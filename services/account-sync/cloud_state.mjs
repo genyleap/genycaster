@@ -27,7 +27,7 @@ const HASH = /^0x[0-9a-f]{40}$/i;
 const PROFILE_CATEGORY = new Set([
   'Arts & entertainment','Business','Education','Finance','Food & beverage',
   'Health & wellness','Media & news','Science & technology','Technology',
-  'Professional services','Sports','Travel & transportation','Other'
+  'Professional services','Sports','Trading','Travel & transportation','Other'
 ]);
 const PROFILE_ROLE = new Set([
   'Artist','Author','Creator','Designer','Developer','Engineer',
@@ -68,6 +68,11 @@ export function validateCloudItem(entity, item) {
         // Previously saved freeform professions require explicit selection on
         // upgrade; arbitrary user strings cannot masquerade as a classified role.
         || (item.profession !== '' && !PROFILE_ROLE.has(item.profession))) return null;
+    const secondary=item.secondary_categories===undefined?[]:item.secondary_categories;
+    if(!Array.isArray(secondary)||secondary.length>3
+       || new Set(secondary).size!==secondary.length
+       || secondary.some(value=>typeof value!=='string'
+          || !PROFILE_CATEGORY.has(value) || value===item.category))return null;
     const seen = new Set();
     const links = [];
     for (const value of item.links) {
@@ -78,7 +83,8 @@ export function validateCloudItem(entity, item) {
       seen.add(value.url);
       links.push({label:value.label,url:value.url});
     }
-    return {category:item.category,profession:item.profession,links,
+    return {category:item.category,profession:item.profession,
+      secondary_categories:secondary,links,
       revision:item.revision,publicly_visible:false};
   }
   if (entity === 'connections') {

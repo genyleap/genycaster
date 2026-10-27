@@ -2,6 +2,31 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.option.trading">
+            <source>Trading</source>
+            <translation>交易</translation>
+        </message>
+        <message id="genycaster.profile.secondary_categories_label">
+            <source>Secondary categories</source>
+            <translation>次要类别</translation>
+        </message>
+        <message id="genycaster.profile.add_secondary">
+            <source>Add a secondary category</source>
+            <translation>添加次要类别</translation>
+        </message>
+        <message id="genycaster.profile.remove_secondary">
+            <source>Remove secondary category</source>
+            <translation>删除次要类别</translation>
+        </message>
+        <message id="genycaster.profile.secondary_error">
+            <source>Choose up to three distinct additional categories.</source>
+            <translation>最多选择三个不同的其他类别。</translation>
+        </message>
+        <message id="genycaster.profile.preview_label">
+            <source>Profile preview</source>
+            <translation>个人资料预览</translation>
+        </message>
+
         <message id="genycaster.filters.title">
             <source>Filters</source>
             <translation>筛选</translation>

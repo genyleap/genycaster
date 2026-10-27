@@ -191,6 +191,7 @@ Item {
         return {
             category: String(saved.category || ""),
             profession: String(saved.profession || ""),
+            secondary_categories: root.profileSequence(saved.secondaryCategories, 3),
             links: urls.map((url, index) => ({
                 label: String(labels[index] || "").slice(0, 32), url: url
             })).filter(entry => typeof entry.url === "string"
@@ -210,6 +211,7 @@ Item {
             const owners = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             owners[root.profileExtrasOwnerKey] = {
                 category: item.category, profession: item.profession,
+                secondaryCategories: root.profileSequence(item.secondary_categories, 3),
                 links: links.map(entry => entry.url),
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
             }
@@ -251,6 +253,8 @@ Item {
             const latest = root.cloudProfilePayload()
             const same = item.category === latest.category
                       && item.profession === latest.profession
+                      && JSON.stringify(root.profileSequence(item.secondary_categories, 3))
+                         === JSON.stringify(latest.secondary_categories)
                       && JSON.stringify(root.profileSequence(item.links, 5))
                          === JSON.stringify(latest.links)
             if (same) root.setCloudFlags(false, Number(item.revision || 0))
@@ -355,6 +359,7 @@ Item {
             const links = root.profileSequence(server.links, 5)
             return {
                 category: server.category, profession: server.profession,
+                secondaryCategories: root.profileSequence(server.secondary_categories, 3),
                 links: links.map(entry => String(entry.url || "")),
                 labels: links.map(entry => String(entry.label || ""))
             }
@@ -372,7 +377,7 @@ Item {
         "Select category", "Arts & entertainment", "Business", "Education",
         "Finance", "Food & beverage", "Health & wellness", "Media & news",
         "Science & technology", "Technology", "Professional services",
-        "Sports", "Travel & transportation", "Other"
+        "Sports", "Trading", "Travel & transportation", "Other"
     ]
     readonly property var profileRoleOptions: {
         const options = ["Select role", "Artist", "Author", "Creator",
@@ -436,13 +441,21 @@ Item {
         return (!query || query[1].length < 256)
             && (!hash || hash[1].length < 128)
     }
-    function saveExtraDetails(profession, rawLinks, category) {
+    function saveExtraDetails(profession, rawLinks, category, secondaryCategories) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
         const role = String(profession || "").trim()
         const categoryName = String(category || "").trim()
         if ((role && root.profileRoleOptions.indexOf(role) <= 0)
                 || (categoryName && root.profileCategoryOptions.indexOf(categoryName) <= 0)) {
             root.profileExtrasError = qsTrId("genycaster.profile.selection_error")
+            return false
+        }
+        const additional=root.profileSequence(secondaryCategories, 3)
+        if (additional.length !== Number(secondaryCategories?.length || 0)
+            || new Set(additional).size !== additional.length
+            || additional.some(name => root.profileCategoryOptions.indexOf(name) <= 0
+                                   || name === categoryName)) {
+            root.profileExtrasError = qsTrId("genycaster.profile.secondary_error")
             return false
         }
         if (role.length > 80) {
@@ -467,6 +480,7 @@ Item {
             const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
             entries[root.profileExtrasOwnerKey] = {
                 profession: role, category: categoryName,
+                secondaryCategories: additional,
                 links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
             profileExtrasSettings.entriesJson = JSON.stringify(entries)
@@ -2409,86 +2423,120 @@ Item {
                         inputMethodHints: Qt.ImhUrlCharactersOnly
                         forceLeftToRight: true
                     }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.avatar")
-                        color: Theme.inkMuted
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        spacing: Theme.space3
-                        Avatar {
-                            avatarSize: 52
-                            Layout.preferredWidth: 52
-                            Layout.preferredHeight: 52
-                            sourceUrl: avatarProtocolEditor.text.trim()
-                            displayName: displayProtocolEditor.text
-                            forceAutomaticDownload: true
-                        }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.profile.image_preview_hint")
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.Wrap
-                            }
-                            ActionButton {
-                                Layout.alignment: Qt.AlignLeft
-                                compact: true
-                                quiet: true
-                                iconGlyph: Theme.iconImage
-                                text: qsTrId("genycaster.profile.upload_avatar")
-                                enabled: mediaUpload.available && !mediaUpload.busy
-                                onClicked: root.chooseProfileImage(-1001)
-                            }
-                        }
-                    }
-                    DirectionAwareTextField {
-                        id: avatarProtocolEditor
-                        objectName: "profileProtocolAvatar"
-                        visible: root.editProfileMediaUrls
-                        Layout.fillWidth: true
-                        forceLeftToRight: true
-                        inputMethodHints: Qt.ImhUrlCharactersOnly
-                        placeholderText: "https://"
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.banner")
-                        color: Theme.inkMuted
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        spacing: Theme.space3
-                        SuperellipseImage {
-                            Layout.preferredWidth: 92
-                            Layout.preferredHeight: 54
-                            source: linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim())
-                            mediaCategory: "avatars"
-                            forceAutomaticDownload: true
-                            showLoadingIndicator: false
-                            showFailureIndicator: false
-                            fillColor: Theme.surfaceMuted
-                            borderWidth: 1
-                            borderColor: Theme.borderMuted
-                            curveDepth: Theme.curveCompact
-                        }
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.profile.image_preview_hint")
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.Wrap
-                            }
-                            ActionButton {
+                        DirectionAwareLabel {
+                         Layout.fillWidth: true
+                         text: qsTrId("genycaster.profile.preview_label")
+                         font.pixelSize: Theme.typeLabelSize
+                         font.weight: Theme.weightDemiBold
+                         color: Theme.textPrimary
+                     }
+                     Item {
+                         objectName: "profileLivePreview"
+                         Layout.fillWidth: true
+                         Layout.preferredHeight: 214
+                         clip: true
+
+                         Superellipse {
+                             anchors.fill: parent
+                             fillColor: Theme.surfaceRaised
+                             borderColor: Theme.borderSubtle
+                             borderWidth: Theme.strokeHairline
+                             curveDepth: Theme.curveContainer
+                         }
+                         SuperellipseImage {
+                             x: 1
+                             y: 1
+                             width: parent.width - 2
+                             height: 144
+                             source: linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim())
+                             mediaCategory: "avatars"
+                             forceAutomaticDownload: true
+                             showLoadingIndicator: false
+                             showFailureIndicator: false
+                             fillColor: Theme.surfaceMuted
+                             curveDepth: Theme.curveContainer
+                         }
+                         RowLayout {
+                             x: Theme.space3
+                             y: 108
+                             width: parent.width - Theme.space3 * 2
+                             height: 98
+                             spacing: Theme.space3
+                             layoutDirection: Theme.uiDirection
+                             Avatar {
+                                 avatarSize: 76
+                                 Layout.preferredWidth: 76
+                                 Layout.preferredHeight: 76
+                                 sourceUrl: avatarProtocolEditor.text.trim()
+                                 displayName: displayProtocolEditor.text
+                                 forceAutomaticDownload: true
+                             }
+                             ColumnLayout {
+                                 Layout.fillWidth: true
+                                 Layout.minimumWidth: 0
+                                 Layout.alignment: Qt.AlignBottom
+                                 spacing: 2
+                                 DirectionAwareLabel {
+                                     Layout.fillWidth: true
+                                     text: displayProtocolEditor.text.trim()
+                                           || String(root.activeDetail.displayName || "")
+                                     color: Theme.textPrimary
+                                     font.pixelSize: Theme.typeBodySize
+                                     font.weight: Theme.weightDemiBold
+                                     elide: Text.ElideRight
+                                 }
+                                 DirectionAwareLabel {
+                                     Layout.fillWidth: true
+                                     text: "@" + String(root.activeDetail.username || "")
+                                     color: Theme.textSecondary
+                                     font.pixelSize: Theme.typeCaptionSize
+                                     elide: Text.ElideRight
+                                 }
+                             }
+                         }
+                     }
+                     RowLayout {
+                         Layout.fillWidth: true
+                         spacing: Theme.space2
+                         layoutDirection: Theme.uiDirection
+                         ActionButton {
+                             Layout.fillWidth: true
+                             compact: true
+                             quiet: true
+                             iconGlyph: Theme.iconImage
+                             text: qsTrId("genycaster.profile.upload_avatar")
+                             enabled: mediaUpload.available && !mediaUpload.busy
+                             onClicked: root.chooseProfileImage(-1001)
+                         }
+                         ActionButton {
+                             Layout.fillWidth: true
+                             compact: true
+                             quiet: true
+                             iconGlyph: Theme.iconImage
+                             text: qsTrId("genycaster.profile.upload_banner")
+                             enabled: mediaUpload.available && !mediaUpload.busy
+                             onClicked: root.chooseProfileImage(-1002)
+                         }
+                     }
+                     DirectionAwareTextField {
+                         id: avatarProtocolEditor
+                         objectName: "profileProtocolAvatar"
+                         visible: root.editProfileMediaUrls
+                         Layout.fillWidth: true
+                         forceLeftToRight: true
+                         inputMethodHints: Qt.ImhUrlCharactersOnly
+                         placeholderText: "https://"
+                     }
+                     DirectionAwareTextField {
+                         id: bannerProtocolEditor
+                         objectName: "profileProtocolBanner"
+                         visible: root.editProfileMediaUrls
+                         Layout.fillWidth: true
+                         forceLeftToRight: true
+                         inputMethodHints: Qt.ImhUrlCharactersOnly
+                         placeholderText: "https://"
+                     }
+                     ActionButton {
                                 Layout.alignment: Qt.AlignLeft
                                 compact: true
                                 quiet: true
@@ -2542,7 +2590,7 @@ Item {
                     ActionButton {
                         objectName: "profileProtocolSave"
                         Layout.fillWidth: true
-                        positive: true
+                        prominent: true
                         enabled: presentationBridge.writeReady && !presentationBridge.writeBusy
                                  && !mediaUpload.busy && !root.protocolProfilePending
                         text: qsTrId("genycaster.profile.update_farcaster")
@@ -2617,7 +2665,61 @@ Item {
                         popupMaximumWidth: width
                         model: root.profileCategoryOptions
                         optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
+                        onActivated: index => {
+                            if (index > 0)
+                                profileExtrasEditor.secondarySelection =
+                                    profileExtrasEditor.secondarySelection.filter(
+                                        name => name !== root.profileCategoryOptions[index])
+                        }
                         Accessible.name: qsTrId("genycaster.profile.category_label")
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.secondary_categories_label")
+                              + " (" + profileExtrasEditor.secondarySelection.length + "/3)"
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Repeater {
+                            model: profileExtrasEditor.secondarySelection
+                            delegate: ActionButton {
+                                required property var modelData
+                                compact: true
+                                quiet: true
+                                iconGlyph: Theme.iconClose
+                                text: root.profileOptionLabel(modelData)
+                                Accessible.description: qsTrId("genycaster.profile.remove_secondary")
+                                onClicked: profileExtrasEditor.secondarySelection =
+                                   profileExtrasEditor.secondarySelection.filter(x=>x!==modelData)
+                            }
+                        }
+                    }
+                    GenyComboBox {
+                        id: secondaryPicker
+                        objectName: "profileSecondaryCategoryPicker"
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        popupMaximumWidth: width
+                        enabled: profileExtrasEditor.secondarySelection.length < 3
+                        model: [qsTrId("genycaster.profile.add_secondary")].concat(
+                            root.profileCategoryOptions.slice(1).filter(category =>
+                                category !== categoryEditor.currentText
+                                && profileExtrasEditor.secondarySelection.indexOf(category) < 0))
+                        optionLabelProvider: function(value) {
+                            return root.profileCategoryOptions.indexOf(value) > 0
+                                   ? root.profileOptionLabel(value) : value
+                        }
+                        onActivated: index => {
+                            const category=String(model[index] || "")
+                            if (index > 0 && profileExtrasEditor.secondarySelection.length < 3)
+                                profileExtrasEditor.secondarySelection =
+                                    profileExtrasEditor.secondarySelection.concat(category)
+                            currentIndex = 0
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -2686,7 +2788,8 @@ Item {
                         if (root.saveExtraDetails(
                                 professionEditor.currentIndex > 0 ? professionEditor.currentText : "",
                                 linksEditor.text,
-                                categoryEditor.currentIndex > 0 ? categoryEditor.currentText : ""))
+                                categoryEditor.currentIndex > 0 ? categoryEditor.currentText : "",
+                                profileExtrasEditor.secondarySelection))
                             profileExtrasEditor.close()
                     }
                 }

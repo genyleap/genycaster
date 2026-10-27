@@ -2,6 +2,31 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.profile.option.trading">
+            <source>Trading</source>
+            <translation>ट्रेडिंग</translation>
+        </message>
+        <message id="genycaster.profile.secondary_categories_label">
+            <source>Secondary categories</source>
+            <translation>अतिरिक्त श्रेणियाँ</translation>
+        </message>
+        <message id="genycaster.profile.add_secondary">
+            <source>Add a secondary category</source>
+            <translation>अतिरिक्त श्रेणी जोड़ें</translation>
+        </message>
+        <message id="genycaster.profile.remove_secondary">
+            <source>Remove secondary category</source>
+            <translation>अतिरिक्त श्रेणी हटाएँ</translation>
+        </message>
+        <message id="genycaster.profile.secondary_error">
+            <source>Choose up to three distinct additional categories.</source>
+            <translation>अधिकतम तीन अलग अतिरिक्त श्रेणियाँ चुनें।</translation>
+        </message>
+        <message id="genycaster.profile.preview_label">
+            <source>Profile preview</source>
+            <translation>प्रोफ़ाइल पूर्वावलोकन</translation>
+        </message>
+
         <message id="genycaster.filters.title">
             <source>Filters</source>
             <translation>फ़िल्टर</translation>

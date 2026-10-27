@@ -144,6 +144,16 @@ test('User-owned professional category and labelled links have strict validation
   const valid=validateCloudItem('profile_extras',draft);
   assert.equal(valid.publicly_visible,false);
   assert.equal(valid.subject,undefined);
+  assert.deepEqual(validateCloudItem('profile_extras',{
+    ...draft,category:'Technology',secondary_categories:['Trading','Business','Finance']
+  }).secondary_categories,['Trading','Business','Finance']);
+  assert.deepEqual(validateCloudItem('profile_extras',draft).secondary_categories,[]);
+  for(const secondary_categories of [
+    ['Trading','Trading'],['Technology'],['Trading','Business','Finance','Education'],
+    ['Fake category'],[7]
+  ]) assert.equal(validateCloudItem('profile_extras',{
+    ...draft,category:'Technology',secondary_categories
+  }),null);
   for (const bad of [
     {...draft,category:'Untrusted category'},
     {...draft,profession:'CEO of the world'},

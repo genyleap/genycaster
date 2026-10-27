@@ -102,7 +102,7 @@ ComboBox {
         readonly property bool currentOption: optionDelegate.index === control.currentIndex
         width: ListView.view ? ListView.view.width : implicitWidth
         implicitWidth: Math.ceil(contentItem.implicitWidth + Theme.space4 * 2)
-        height: 44
+        height: 42
         highlighted: control.highlightedIndex === index
         leftPadding: Theme.space3
         rightPadding: Theme.space3
@@ -133,23 +133,40 @@ ComboBox {
             }
         }
 
-        background: Superellipse {
-            anchors.fill: parent
-            anchors.margins: 2
-            fillColor: optionDelegate.highlighted || optionDelegate.hovered
-                       ? Theme.primarySurfaceHover
-                       : optionDelegate.currentOption ? Theme.primarySurface : Theme.surfaceRaised
-            curveDepth: Theme.curveCompact
-            Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
+        background: Item {
+            Rectangle {
+                anchors.fill: parent
+                anchors.leftMargin: 1
+                anchors.rightMargin: 1
+                color: optionDelegate.highlighted || optionDelegate.hovered
+                       ? Theme.surfaceHover
+                       : optionDelegate.currentOption ? Theme.primarySurface : "transparent"
+            }
+            Rectangle {
+                width: 3
+                height: parent.height - 8
+                anchors.verticalCenter: parent.verticalCenter
+                x: Theme.rtl ? parent.width - width - 2 : 2
+                radius: 1.5
+                visible: optionDelegate.currentOption
+                color: Theme.accent
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: Theme.strokeHairline
+                color: Theme.borderSubtle
+            }
         }
     }
 
     popup: Popup {
         y: control.height + Theme.space2
         x: Theme.rtl ? control.width - width : 0
-        width: control.naturalPopupWidth
-        implicitHeight: Math.min(contentItem.implicitHeight + Theme.space2, 380)
-        padding: Theme.space1
+        width: control.width
+        implicitHeight: Math.min(contentItem.implicitHeight + 2, 286)
+        padding: 2
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
 
         contentItem: ListView {

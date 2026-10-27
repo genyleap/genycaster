@@ -30,7 +30,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -40,6 +40,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const bookmarkPreviewsReady=versions.has(5);
   const topicsReady=versions.has(6);
   const bookmarkCollectionsReady=versions.has(7);
+  const secondaryCategoriesReady=versions.has(8);
   return {
     close:()=>pool.end(),
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
@@ -259,29 +260,41 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       return result.rows[0].seen_at_ms;
     },
     async getProfileExtras({issuer,subject}) {
+      const extra=secondaryCategoriesReady
+        ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
       const result=await pool.query(`SELECT category,profession,links,publicly_visible,
-          revision,updated_at FROM profile_extras WHERE issuer=$1 AND subject=$2`,
+          revision,updated_at,${extra} FROM profile_extras WHERE issuer=$1 AND subject=$2`,
         [issuer,subject]);
       const record=result.rows[0];
       return record ? {...record,revision:Number(record.revision)} : null;
     },
     async putProfileExtras({issuer,subject},item) {
-      // Version zero creates exactly once; existing rows require the expected
-      // revision. Two devices cannot silently overwrite each other's changes.
+      // Before the additive migration, legacy edits remain available. Never
+      // acknowledge a secondary selection without persisting it.
+      const secondary=item.secondary_categories || [];
+      if (!secondaryCategoriesReady && secondary.length)
+        throw new Error('profile_secondary_categories_migration_required');
+      const extra=secondaryCategoriesReady ? ',secondary_categories' : '';
+      const argument=secondaryCategoriesReady ? ',$7::jsonb' : '';
+      const update=secondaryCategoriesReady
+        ? ',secondary_categories=EXCLUDED.secondary_categories' : '';
+      const returning=secondaryCategoriesReady
+        ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
       const result=await pool.query(`INSERT INTO profile_extras
-          (issuer,subject,category,profession,links,publicly_visible,revision)
-        SELECT $1,$2,$3,$4,$5::jsonb,false,1
+          (issuer,subject,category,profession,links,publicly_visible,revision${extra})
+        SELECT $1,$2,$3,$4,$5::jsonb,false,1${argument}
         WHERE $6::bigint=0 OR EXISTS (
           SELECT 1 FROM profile_extras WHERE issuer=$1 AND subject=$2
             AND revision=$6
         )
         ON CONFLICT (issuer,subject) DO UPDATE SET
           category=EXCLUDED.category,profession=EXCLUDED.profession,
-          links=EXCLUDED.links,publicly_visible=false,
+          links=EXCLUDED.links,publicly_visible=false${update},
           revision=profile_extras.revision+1,updated_at=now()
         WHERE profile_extras.revision=$6
-        RETURNING category,profession,links,publicly_visible,revision,updated_at`,
-        [issuer,subject,item.category,item.profession,JSON.stringify(item.links),item.revision]);
+        RETURNING category,profession,links,publicly_visible,revision,updated_at,${returning}`,
+        [issuer,subject,item.category,item.profession,JSON.stringify(item.links),
+         item.revision,...(secondaryCategoriesReady?[JSON.stringify(secondary)]:[])]);
       const record=result.rows[0];
       return record ? {...record,revision:Number(record.revision)} : null;
     },
