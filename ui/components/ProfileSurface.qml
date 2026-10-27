@@ -2536,26 +2536,6 @@ Item {
                          inputMethodHints: Qt.ImhUrlCharactersOnly
                          placeholderText: "https://"
                      }
-                     ActionButton {
-                                Layout.alignment: Qt.AlignLeft
-                                compact: true
-                                quiet: true
-                                iconGlyph: Theme.iconImage
-                                text: qsTrId("genycaster.profile.upload_banner")
-                                enabled: mediaUpload.available && !mediaUpload.busy
-                                onClicked: root.chooseProfileImage(-1002)
-                            }
-                        }
-                    }
-                    DirectionAwareTextField {
-                        id: bannerProtocolEditor
-                        objectName: "profileProtocolBanner"
-                        visible: root.editProfileMediaUrls
-                        Layout.fillWidth: true
-                        forceLeftToRight: true
-                        inputMethodHints: Qt.ImhUrlCharactersOnly
-                        placeholderText: "https://"
-                    }
                     ActionButton {
                         Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
                         compact: true
