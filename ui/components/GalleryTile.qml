@@ -52,7 +52,20 @@ Item {
         root.aspectRatioResolved(ratio)
     }
 
+    // Our own media host sends the appropriate CORS headers for native and
+    // WebAssembly. If the remote-image provider fails, retry that canonical
+    // origin directly rather than leaving a giant empty gallery tile. Never
+    // bypass a user's disabled photo-auto-download setting.
+    property bool originFallbackAttempted: false
+    readonly property string ownMediaUrl: {
+        const target = String(root.embed.url || root.embed.value || "").trim()
+        return /^https:\/\/media-farcaster\.genyleap\.com\/m\/v1\/[a-z0-9/_-]+\.(?:jpe?g|png|webp|gif)(?:\?[^#]*)?$/i.test(target)
+               ? target : ""
+    }
+    onEmbedChanged: root.originFallbackAttempted = false
     function resolvedSource() {
+        if (root.originFallbackAttempted && root.ownMediaUrl.length > 0)
+            return root.ownMediaUrl
         const direct = String(root.embed.imageSource || "")
         if (direct.length > 0)
             return direct
@@ -96,6 +109,13 @@ Item {
         clipToSuperellipse: root.useLayeredMask
         fillColor: preview.ready && root.preserveAspect ? "transparent" : Theme.surface
         borderWidth: 0
+        onLoadFailedChanged: {
+            if (loadFailed && !root.originFallbackAttempted
+                    && root.ownMediaUrl.length > 0
+                    && dataStorage.autoDownloadAllowed("photos")
+                    && String(root.embed.imageSource || "").startsWith("image://remote/"))
+                root.originFallbackAttempted = true
+        }
         onStatusChanged: root.reportDecodedAspect()
         onSourceImplicitWidthChanged: root.reportDecodedAspect()
         onSourceImplicitHeightChanged: root.reportDecodedAspect()

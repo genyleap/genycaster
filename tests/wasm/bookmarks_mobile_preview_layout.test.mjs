@@ -31,3 +31,21 @@ test('ordinary link pictures get a full-width aspect-preserving frame on mobile'
   assert.match(generic,/fillMode: Image\.PreserveAspectFit/);
   assert.doesNotMatch(generic,/root\.compact \? 116 : 156/);
 });
+
+test('compact bookmark filters have bounded widths and do not consume the full row',()=>{
+  assert.match(bookmarks,/id: bookmarkSortPicker[\s\S]*?Layout\.preferredWidth: root\.compact \? 144 : 184/);
+  assert.match(bookmarks,/Layout\.maximumWidth: root\.compact \? 144 : 184/);
+  assert.match(bookmarks,/id: collectionPicker[\s\S]*?Layout\.preferredWidth: root\.compact \? 168 : 200/);
+  assert.match(bookmarks,/Layout\.maximumWidth: root\.compact \? 168 : 240/);
+  assert.match(bookmarks,/visible: !root\.compact[\s\S]*?text: "Collections"/);
+});
+test('owned Farcaster images fall back to their original HTTPS URL only after a provider error',()=>{
+  const tile=read('ui/components/GalleryTile.qml');
+  assert.match(tile,/readonly property string ownMediaUrl:/);
+  assert.match(tile,/media-farcaster/);
+  assert.match(tile,/if \(root\.originFallbackAttempted && root\.ownMediaUrl\.length > 0\)/);
+  assert.match(tile,/onLoadFailedChanged: \{/);
+  assert.match(tile,/dataStorage\.autoDownloadAllowed\("photos"\)/);
+  assert.match(tile,/root\.originFallbackAttempted = true/);
+  assert.match(tile,/onEmbedChanged: root\.originFallbackAttempted = false/);
+});

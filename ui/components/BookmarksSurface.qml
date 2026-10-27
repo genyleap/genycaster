@@ -183,17 +183,16 @@ Flickable {
                 GenyComboBox {
                     id: bookmarkSortPicker
                     objectName: "bookmarkSortPicker"
-                    Layout.fillWidth: root.compact
                     Layout.minimumWidth: 0
-                    Layout.preferredWidth: root.compact ? 160 : 184
-                    Layout.maximumWidth: root.compact ? Number.POSITIVE_INFINITY : 184
+                    Layout.preferredWidth: root.compact ? 144 : 184
+                    Layout.maximumWidth: root.compact ? 144 : 184
                     model: [qsTrId("genycaster.bookmarks.sort_priority"), qsTrId("genycaster.bookmarks.sort_newest"), qsTrId("genycaster.bookmarks.sort_oldest")]
                     currentIndex: root.sortMode === "oldest" ? 2
                                 : root.sortMode === "newest" ? 1 : 0
                     onActivated: index => root.sortMode =
                         index === 2 ? "oldest" : index === 1 ? "newest" : "priority"
                 }
-                Item { Layout.fillWidth: !root.compact; Layout.minimumWidth: 0 }
+                Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                 ActionButton {
                     iconOnly: true
                     compact: true
@@ -212,6 +211,7 @@ Flickable {
             Layout.minimumWidth: 0
             spacing: Theme.space2
             DirectionAwareLabel {
+                visible: !root.compact
                 Layout.fillWidth: true
                 text: "Collections"
                 color: Theme.textSecondary
@@ -225,15 +225,16 @@ Flickable {
                 GenyComboBox {
                     id: collectionPicker
                     objectName: "bookmarkCollectionPicker"
-                    Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    Layout.preferredWidth: 180
+                    Layout.preferredWidth: root.compact ? 168 : 200
+                    Layout.maximumWidth: root.compact ? 168 : 240
                     model: root.collectionChoiceLabels
                     currentIndex: Math.max(0,root.collectionChoices.findIndex(
                         entry=>entry.id===root.selectedCollection))
                     enabled: root.authenticated && !root.collectionsBusy
                     onActivated: index=>root.collectionSelected(root.collectionChoices[index].id)
                 }
+                Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
                 ActionButton {
                     compact: true
                     quiet: true
