@@ -19,6 +19,10 @@ const store={
     return change.action==='delete'?{id:change.id}:
       {id:change.id,name:change.name,revision:'1'};
   },
+  async listBookmarkMemberships(owner){
+    calls.push(['memberships',owner.subject]);
+    return [{cast_hash:hash,collection_id:id}];
+  },
   async listBookmarkCollectionItems(owner,collectionId){
     calls.push(['items',owner.subject,collectionId]);
     return [{cast_hash:hash}];
@@ -77,6 +81,9 @@ test('bookmark collections and memberships are private to the verified owner',as
     assert.equal((await req('bookmark_collections','GET',undefined,'Bearer forged')).status,401);
     const one='Bearer valid1',two='Bearer valid2';
     assert.equal((await req('bookmark_collections','GET',undefined,one)).status,200);
+    const memberships=await req('bookmark_collection_items','GET',undefined,one);
+    assert.equal(memberships.status,200);
+    assert.deepEqual((await memberships.json()).items,[{cast_hash:hash,collection_id:id}]);
     assert.equal((await req('bookmark_collections','PUT',
       {id,action:'create',name:'Inspiration'},one)).status,200);
     assert.equal((await req('bookmark_collections','PUT',
@@ -93,6 +100,7 @@ test('bookmark collections and memberships are private to the verified owner',as
     assert.deepEqual(calls.filter(c=>c[0]==='list').map(c=>c[1]),['farcaster:42']);
     assert.ok(calls.some(c=>c[0]==='update' && c[1]==='farcaster:43'));
     assert.ok(calls.some(c=>c[0]==='item_write' && c[1]==='farcaster:42'));
+    assert.ok(calls.some(c=>c[0]==='memberships' && c[1]==='farcaster:42'));
   });
 });
 

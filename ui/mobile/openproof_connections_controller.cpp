@@ -2087,6 +2087,8 @@ void OpenProofConnectionsController::sendBookmarkCollectionRequest(
                 if(value.isObject())items.push_back(value.toObject().toVariantMap());
             if(resource==QStringLiteral("bookmark_collections")) {
                 m_bookmarkCollections=std::move(items);
+            } else if(queryId.isEmpty()) {
+                m_bookmarkMembershipItems=std::move(items);
             } else if(queryId==m_activeBookmarkCollection) {
                 m_bookmarkCollectionItems=std::move(items);
             }
@@ -2098,12 +2100,22 @@ void OpenProofConnectionsController::sendBookmarkCollectionRequest(
             // membership state or caching account-wide lists across FIDs.
             QMetaObject::invokeMethod(this,[this] { refreshBookmarkCollections(); },
                                       Qt::QueuedConnection);
-        } else if(resource==QStringLiteral("bookmark_collections")
-                  && !m_activeBookmarkCollection.isEmpty()) {
+        } else if(resource==QStringLiteral("bookmark_collections")) {
             const auto selected=m_activeBookmarkCollection;
             QMetaObject::invokeMethod(this,[this,selected] {
-                if(selected==m_activeBookmarkCollection)
+                if(selected!=m_activeBookmarkCollection)return;
+                if(selected.isEmpty()) {
+                    sendBookmarkCollectionRequest(
+                        QStringLiteral("bookmark_collection_items"),{},false);
+                } else {
                     selectBookmarkCollection(selected);
+                }
+            },Qt::QueuedConnection);
+        } else if(resource==QStringLiteral("bookmark_collection_items")
+                  && !queryId.isEmpty()) {
+            QMetaObject::invokeMethod(this,[this] {
+                sendBookmarkCollectionRequest(
+                    QStringLiteral("bookmark_collection_items"),{},false);
             },Qt::QueuedConnection);
         }
     });
@@ -2205,6 +2217,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     }
     m_bookmarkCollections.clear();
     m_bookmarkCollectionItems.clear();
+    m_bookmarkMembershipItems.clear();
     m_activeBookmarkCollection.clear();
     m_bookmarkCollectionsError.clear();
     emit bookmarkCollectionsChanged();

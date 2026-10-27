@@ -167,6 +167,18 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
          [issuer,subject,id]);
       return result.rows;
     },
+    async listBookmarkMemberships({issuer,subject}) {
+      if(!bookmarkCollectionsReady)throw new Error('bookmark_collections_not_ready');
+      const result=await pool.query(`SELECT i.collection_id::text AS collection_id,
+           '0x'||encode(i.cast_hash,'hex') AS cast_hash
+         FROM bookmark_collection_items i
+         JOIN bookmarks b ON b.openproof_issuer=i.issuer
+           AND b.openproof_subject=i.subject AND b.cast_hash=i.cast_hash
+         WHERE i.issuer=$1 AND i.subject=$2 AND b.is_deleted=false
+         ORDER BY i.added_at DESC,i.cast_hash DESC LIMIT 500`,
+         [issuer,subject]);
+      return result.rows;
+    },
     async putBookmarkCollectionItem({issuer,subject},change) {
       if(!bookmarkCollectionsReady) throw new Error('bookmark_collections_not_ready');
       const params=[issuer,subject,change.collection_id,change.cast_hash.slice(2)];

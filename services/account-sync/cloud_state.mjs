@@ -444,6 +444,10 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(request.method==='GET') {
           const search=new URL(request.url,'http://localhost').searchParams;
           const id=search.get('collection_id');
+          if(id===null && typeof store.listBookmarkMemberships==='function') {
+            respond(response,200,{items:await store.listBookmarkMemberships(owner)});
+            return true;
+          }
           if(!ID.test(String(id||''))) {
             respond(response,400,{error:'invalid_bookmark_collection'});return true;
           }

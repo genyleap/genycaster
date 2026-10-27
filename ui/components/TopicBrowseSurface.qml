@@ -9,6 +9,22 @@ Item {
     property string scopeName: "Explorer"
     property string topicSlug: ""
     property var topics: []
+    function topicTitleFor(slug) {
+        const titles={
+            art:qsTrId("genycaster.topic.art"),
+            development:qsTrId("genycaster.topic.development"),
+            photography:qsTrId("genycaster.topic.photography"),
+            design:qsTrId("genycaster.topic.design"),
+            technology:qsTrId("genycaster.topic.technology"),
+            music:qsTrId("genycaster.topic.music"),
+            writing:qsTrId("genycaster.topic.writing"),
+            science:qsTrId("genycaster.topic.science"),
+            business:qsTrId("genycaster.topic.business"),
+            gaming:qsTrId("genycaster.topic.gaming")
+        }
+        return titles[slug] || slug.replace(/-/g," ")
+                        .replace(/\b\w/g,character=>character.toUpperCase())
+    }
     property var items: []
     property var cachedRows: []
     property var hydratedRows: []
@@ -80,7 +96,7 @@ Item {
             for (const entry of root.topics || []) {
                 const slug=String(entry.slug || "")
                 if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
-                    options.push({id:slug,label:topicBrowserPicker.titleFor(slug)})
+                    options.push({id:slug,label:root.topicTitleFor(slug)})
             }
             return [{id:"topic",title:"Topics",value:root.topicSlug,defaultValue:"",
                      options:options}]
@@ -117,7 +133,7 @@ Item {
                 elide: Text.ElideRight
             }
             ActionButton {
-                visible: root.compact
+                visible: true
                 objectName: "mobileTopicFilterTrigger"
                 Layout.preferredWidth: 44
                 Layout.preferredHeight: 44
@@ -130,7 +146,7 @@ Item {
             }
             TopicFilterPicker {
                 id: topicBrowserPicker
-                visible: !root.compact
+                visible: false
                 Layout.preferredWidth: 200
                 Layout.maximumWidth: root.compact ? 148 : 200
                 Layout.preferredHeight: 30

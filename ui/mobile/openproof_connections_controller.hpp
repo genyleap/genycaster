@@ -56,6 +56,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString activeCastTopic READ activeCastTopic NOTIFY topicCastsChanged)
     Q_PROPERTY(QVariantList bookmarkCollections READ bookmarkCollections NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(QVariantList bookmarkCollectionItems READ bookmarkCollectionItems NOTIFY bookmarkCollectionsChanged)
+    Q_PROPERTY(QVariantList bookmarkMembershipItems READ bookmarkMembershipItems NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(QString activeBookmarkCollection READ activeBookmarkCollection NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(bool bookmarkCollectionsBusy READ bookmarkCollectionsBusy NOTIFY bookmarkCollectionsChanged)
     Q_PROPERTY(QString bookmarkCollectionsError READ bookmarkCollectionsError NOTIFY bookmarkCollectionsChanged)
@@ -115,6 +116,7 @@ public:
     Q_INVOKABLE void saveCastTopics(const QString& castHash, const QStringList& slugs);
     [[nodiscard]] QVariantList bookmarkCollections() const { return m_bookmarkCollections; }
     [[nodiscard]] QVariantList bookmarkCollectionItems() const { return m_bookmarkCollectionItems; }
+    [[nodiscard]] QVariantList bookmarkMembershipItems() const { return m_bookmarkMembershipItems; }
     [[nodiscard]] QString activeBookmarkCollection() const { return m_activeBookmarkCollection; }
     [[nodiscard]] bool bookmarkCollectionsBusy() const noexcept { return m_bookmarkCollectionRequest != nullptr; }
     [[nodiscard]] QString bookmarkCollectionsError() const { return m_bookmarkCollectionsError; }
@@ -254,6 +256,7 @@ private:
     QString m_topicsError{};
     QVariantList m_bookmarkCollections{};
     QVariantList m_bookmarkCollectionItems{};
+    QVariantList m_bookmarkMembershipItems{};
     QString m_activeBookmarkCollection{};
     QString m_bookmarkCollectionsError{};
     QPointer<QNetworkReply> m_bookmarkCollectionRequest{};

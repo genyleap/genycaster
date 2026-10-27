@@ -11,7 +11,8 @@ const topics=read('ui/components/TopicBrowseSurface.qml');
 test('the QML manifest registers a real product-owned filter sheet',()=>{
   assert.match(read('ui/CMakeLists.txt'), /components\/ContentFilterSheet\.qml/);
   assert.match(sheet, /GenyDrawer \{/);
-  assert.match(sheet, /bottomSheet: true/);
+  assert.match(sheet, /bottomSheet: phoneLayout/);
+  assert.match(sheet, /contentHeight: filterGroups\.implicitHeight \+ Theme\.space3/);
   assert.match(sheet, /implicitHeight: 44/);
   assert.match(sheet, /signal applied\(var values\)/);
   assert.match(sheet, /onOpened: resetDraft\(\)/);
@@ -19,32 +20,33 @@ test('the QML manifest registers a real product-owned filter sheet',()=>{
   assert.match(sheet, /root\.applied\(Object\.assign\(\{\}, root\.draft\)\)/);
   assert.match(sheet, /root\.close\(\)/);
 });
-test('Explorer keeps desktop menu and opens touch sheet on phones',()=>{
-  assert.match(shell, /visible: !root\.mobile && presentationBridge\.isAuthenticated/);
+test('Explorer uses the same responsive filter drawer on desktop and mobile',()=>{
+  assert.match(shell, /visible: presentationBridge\.isAuthenticated\s+&& openProofConnections\.topicCatalog\.length > 0/);
   assert.match(shell, /onClicked: explorerFilterSheet\.open\(\)/);
   assert.match(shell, /root\.chooseExplorerAudience\(String\(values\.audience/);
   assert.match(shell, /root\.openTopicBrowser\(String\(values\.topic\),"explorer",0\)/);
 });
-test('Profile and topic discovery use touch filter actions without discarding desktop sort',()=>{
+test('Profile and topic discovery use the same filter action across screen sizes',()=>{
   assert.match(profile, /id: profileFilterSheet/);
   assert.match(profile, /onClicked: profileFilterSheet\.open\(\)/);
-  assert.match(profile, /visible: !root\.compact\s+Layout\.maximumWidth: 136/);
+  assert.match(profile, /visible: false\s+Layout\.maximumWidth: 136/);
   assert.match(profile, /root\.profileFeedRequested\(String\(values\.feed/);
   assert.match(topics, /id: topicFilterSheet/);
   assert.match(topics, /onClicked: topicFilterSheet\.open\(\)/);
-  assert.match(topics, /visible: !root\.compact\s+Layout\.preferredWidth: 200/);
+  assert.match(topics, /visible: false\s+Layout\.preferredWidth: 200/);
 });
 test('mobile bookmarks do not stack collection and sort dropdowns above content',()=>{
   assert.match(bookmarks, /id: bookmarkFilterSheet/);
   assert.match(bookmarks, /onClicked: bookmarkFilterSheet\.open\(\)/);
-  assert.match(bookmarks, /visible: !root\.compact[\s\S]{0,220}id: bookmarkSortPicker/);
-  assert.match(bookmarks, /visible: !root\.compact[\s\S]{0,220}id: collectionPicker/);
+  assert.match(bookmarks, /visible: false[\s\S]{0,220}id: bookmarkSortPicker/);
+  assert.match(bookmarks, /visible: false[\s\S]{0,220}id: collectionPicker/);
   assert.match(bookmarks, /root\.collectionSelected\(String\(values\.collection/);
 });
-test('Settings leads to verified account profile without impersonating an edit API',()=>{
+test('Settings account card launches the existing real editor on both layouts',()=>{
   assert.match(settings,/objectName: "settingsProfileCard"/);
   assert.match(settings,/visible: presentationBridge\.isAuthenticated/);
   assert.match(settings,/signal profileRequested\(\)/);
   assert.match(settings,/onTapped: root\.profileRequested\(\)/);
-  assert.match(shell,/onProfileRequested: \{\s*close\(\)\s*root\.openMyProfileFromNavigation\(\)/);
+  assert.match(shell,/onProfileRequested: \{\s*close\(\)\s*root\.openMyProfileEditorFromSettings\(\)/);
+  assert.match(profile,/function openProfileEditor\(\)/);
 });

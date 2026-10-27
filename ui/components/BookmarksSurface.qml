@@ -15,6 +15,7 @@ Flickable {
     property string sortMode: "priority"
     property var collections: []
     property var collectionItems: []
+    property var membershipItems: []
     property string selectedCollection: ""
     property bool collectionsBusy: false
     property string collectionsError: ""
@@ -32,6 +33,16 @@ Flickable {
         return result
     }
     readonly property var collectionChoiceLabels: root.collectionChoices.map(item=>item.name)
+    function savedCollectionIndex(hash) {
+        const key=String(hash || "").toLowerCase()
+        for (const membership of root.membershipItems || []) {
+            if (String(membership.cast_hash || "").toLowerCase() !== key) continue
+            const index=root.collectionChoices.findIndex(entry=>
+                String(entry.id || "") === String(membership.collection_id || ""))
+            if (index > 0) return index
+        }
+        return 0
+    }
     readonly property var activeCollectionEntry: {
         const items=root.collections || []
         for(let i=0;i<Number(items.length || 0);++i)
@@ -183,7 +194,7 @@ Flickable {
                 font.pixelSize: Theme.typeMetaSize
             }
             ActionButton {
-                visible: root.compact
+                visible: true
                 objectName: "mobileBookmarkFilterTrigger"
                 Layout.preferredWidth: 44
                 Layout.preferredHeight: 44
@@ -230,7 +241,7 @@ Flickable {
                 wrapMode: Text.Wrap
             }
             RowLayout {
-                visible: !root.compact
+                visible: false
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 spacing: Theme.space2
@@ -273,7 +284,7 @@ Flickable {
                 font.pixelSize: Theme.typeMetaSize
             }
             RowLayout {
-                visible: !root.compact
+                visible: false
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 spacing: Theme.space2
@@ -507,14 +518,14 @@ Flickable {
                             Layout.maximumWidth: root.compact ? 176 : 248
                             model: ["Add to collection…"].concat(
                                 root.collectionChoices.slice(1).map(item=>item.name))
-                            currentIndex: 0
+                            currentIndex: root.savedCollectionIndex(
+                                String(bookmarkCard.modelData.castId || ""))
                             enabled: !root.collectionsBusy
-                            onActivated: index=>{
-                                if(index>0)
+                            onActivated: index => {
+                                if (index > 0)
                                     root.membershipRequested(
                                         String(bookmarkCard.modelData.castId || ""),
                                         root.collectionChoices[index].id,false)
-                                Qt.callLater(()=>addToCollectionPicker.currentIndex=0)
                             }
                         }
                         ActionButton {

@@ -420,6 +420,60 @@ GenyDrawer {
         }
     }
 
+        // Account identity is the entry point to Settings on both phone and desktop.
+    component SettingsProfileCard: Superellipse {
+            objectName: "settingsProfileCard"
+            visible: presentationBridge.isAuthenticated
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? 82 : 0
+            fillColor: Theme.surfaceMuted
+            borderWidth: Theme.strokeHairline
+            borderColor: Theme.borderSubtle
+            curveDepth: Theme.curveContainer
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.space3
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space3
+                Avatar {
+                    sourceUrl: String(presentationBridge.accountAvatarUrl || "")
+                    displayName: String(presentationBridge.accountName || "")
+                    avatarSize: root.mobilePresentation ? 52 : 44
+                    Layout.preferredWidth: root.mobilePresentation ? 52 : 44
+                    Layout.preferredHeight: root.mobilePresentation ? 52 : 44
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space1
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(presentationBridge.accountName || presentationBridge.identityName || "")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeBodySize
+                        font.weight: Theme.weightDemiBold
+                        elide: Text.ElideRight
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: "@" + String(presentationBridge.accountProfile.username || "")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
+                        elide: Text.ElideRight
+                        visible: Boolean(presentationBridge.accountProfile.username)
+                    }
+                }
+                Icon {
+                    text: Theme.iconArrowRight
+                    color: Theme.textSecondary
+                    preferredSize: Theme.iconSize
+                }
+            }
+            TapHandler { onTapped: root.profileRequested() }
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTrId("genycaster.profile.edit_profile")
+        }
+
+
     contentItem: ColumnLayout {
         spacing: root.mobilePresentation ? Theme.space2 : Theme.space3
 
@@ -471,61 +525,6 @@ GenyDrawer {
             Item { Layout.preferredWidth: 48; Layout.preferredHeight: 48 }
         }
 
-        // Account identity is the entry point to Settings on both phone and desktop.
-        Superellipse {
-            objectName: "settingsProfileCard"
-            visible: presentationBridge.isAuthenticated
-            Layout.fillWidth: true
-            Layout.maximumWidth: 640
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredHeight: visible ? 86 : 0
-            fillColor: Theme.surfaceMuted
-            borderWidth: Theme.strokeHairline
-            borderColor: Theme.borderSubtle
-            curveDepth: Theme.curveContainer
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: Theme.space3
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space3
-                Avatar {
-                    sourceUrl: String(presentationBridge.accountAvatarUrl || "")
-                    displayName: String(presentationBridge.accountName || "")
-                    avatarSize: 52
-                    Layout.preferredWidth: 52
-                    Layout.preferredHeight: 52
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Theme.space1
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: String(presentationBridge.accountName || presentationBridge.identityName || "")
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.typeBodySize
-                        font.weight: Theme.weightDemiBold
-                        elide: Text.ElideRight
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: "@" + String(presentationBridge.accountProfile.username || "")
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeMetaSize
-                        elide: Text.ElideRight
-                        visible: Boolean(presentationBridge.accountProfile.username)
-                    }
-                }
-                Icon {
-                    text: Theme.iconArrowRight
-                    color: Theme.textSecondary
-                    preferredSize: Theme.iconSize
-                }
-            }
-            TapHandler { onTapped: root.profileRequested() }
-            Accessible.role: Accessible.Button
-            Accessible.name: qsTrId("genycaster.profile.edit_profile")
-        }
-
         ScrollView {
             id: mobileSettingsIndex
             objectName: "mobileSettingsIndex"
@@ -540,6 +539,8 @@ GenyDrawer {
             ColumnLayout {
                 width: mobileSettingsIndex.availableWidth
                 spacing: Theme.space4
+
+                SettingsProfileCard {}
 
                 MobileSettingsGroup {
                     visible: presentationBridge.isAuthenticated
@@ -609,6 +610,10 @@ GenyDrawer {
                         id: settingsNavigation
                         width: parent.width
                         spacing: Theme.space1
+                    SettingsProfileCard {
+                        visible: presentationBridge.isAuthenticated
+                        Layout.fillWidth: true
+                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.settings.mobile_personalization")

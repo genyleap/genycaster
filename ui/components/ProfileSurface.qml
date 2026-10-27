@@ -22,6 +22,22 @@ Item {
     property string profileSortMode: "newest"
     property string popularMetric: "all"
     property var topicCatalog: []
+    function topicTitleFor(slug) {
+        const titles={
+            art:qsTrId("genycaster.topic.art"),
+            development:qsTrId("genycaster.topic.development"),
+            photography:qsTrId("genycaster.topic.photography"),
+            design:qsTrId("genycaster.topic.design"),
+            technology:qsTrId("genycaster.topic.technology"),
+            music:qsTrId("genycaster.topic.music"),
+            writing:qsTrId("genycaster.topic.writing"),
+            science:qsTrId("genycaster.topic.science"),
+            business:qsTrId("genycaster.topic.business"),
+            gaming:qsTrId("genycaster.topic.gaming")
+        }
+        return titles[slug] || slug.replace(/-/g," ")
+                        .replace(/\b\w/g,character=>character.toUpperCase())
+    }
     property bool runtimeReady: false
     property bool compact: false
     property bool busy: false
@@ -2014,7 +2030,7 @@ Item {
 
                         ActionButton {
                             objectName: "mobileProfileFilterTrigger"
-                            visible: root.compact
+                            visible: true
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredWidth: 44
                             Layout.preferredHeight: 44
@@ -2029,7 +2045,7 @@ Item {
                             objectName: "profileSortFilter"
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredWidth: implicitWidth
-                            visible: !root.compact
+                            visible: false
                             Layout.maximumWidth: 136
                             model: root.profileFeed === "user-popular"
                                    ? [
@@ -2061,7 +2077,7 @@ Item {
                 }
             }
             RowLayout {
-                visible: !root.compact && root.topicCatalog.length > 0
+                visible: false
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
                 Layout.rightMargin: root.profileContentX
@@ -2216,7 +2232,7 @@ Item {
         }
     }
 
-    // Mobile-only progressive disclosure; desktop retains inline controls.
+    // Shared adaptive filter drawer for touch and pointer-driven windows.
     ContentFilterSheet {
         id: profileFilterSheet
         heading: "Filter profile casts"
@@ -2225,7 +2241,7 @@ Item {
             for (const entry of root.topicCatalog || []) {
                 const slug=String(entry.slug || "")
                 if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
-                    topics.push({id:slug,label:profileTopicPicker.titleFor(slug)})
+                    topics.push({id:slug,label:root.topicTitleFor(slug)})
             }
             return [
                 {id:"feed", title:"Content", value:root.profileFeed, defaultValue:"user-posts",
@@ -2259,6 +2275,11 @@ Item {
             if (values.topic)
                 root.topicRequested(String(values.topic),Number(root.activeDetail.fid || 0))
         }
+    }
+
+    function openProfileEditor() {
+        if (root.isOwnProfile)
+            profileExtrasEditor.open()
     }
 
     // All account-owned sheets reuse the application's interactive

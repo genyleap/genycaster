@@ -378,6 +378,37 @@ Item {
         root.returnToPendingShellRoute()
     }
 
+    property bool profileEditorRequestedFromSettings: false
+    property int profileEditorAttempts: 0
+    function openMyProfileEditorFromSettings() {
+        if (!presentationBridge.isAuthenticated) return
+        root.profileEditorRequestedFromSettings = true
+        root.profileEditorAttempts = 0
+        root.openMyProfileFromNavigation()
+        profileEditorOpenTimer.restart()
+    }
+    Timer {
+        id: profileEditorOpenTimer
+        interval: 160
+        repeat: true
+        running: false
+        onTriggered: {
+            if (!root.profileEditorRequestedFromSettings
+                || !presentationBridge.isAuthenticated
+                || root.profileEditorAttempts++ > 75) {
+                stop()
+                root.profileEditorRequestedFromSettings = false
+                return
+            }
+            const page = profileSurfaceLoader.item
+            if (root.shellRoute === "" && presentationBridge.activeView === "profile"
+                && page && page.isOwnProfile) {
+                stop()
+                root.profileEditorRequestedFromSettings = false
+                page.openProfileEditor()
+            }
+        }
+    }
     function openMyProfileFromNavigation() {
         root.clearPendingShellReturn()
         root.shellRoute = ""
@@ -769,8 +800,7 @@ Item {
                 onSearchRequested: searchPalette.open()
             }
             TopicFilterPicker {
-                visible: !root.mobile && presentationBridge.isAuthenticated
-                         && openProofConnections.topicCatalog.length > 0
+                visible: false
                 width: root.compact ? 136 : 156
                 height: visible ? implicitHeight : 0
                 x: Theme.gutter(parent.width)
@@ -781,7 +811,7 @@ Item {
                 onTopicRequested: slug => root.openTopicBrowser(slug,"explorer",0)
             }
             ActionButton {
-                visible: root.mobile && presentationBridge.isAuthenticated
+                visible: presentationBridge.isAuthenticated
                          && openProofConnections.topicCatalog.length > 0
                 x: Theme.gutter(parent.width)
                 width: 44
@@ -1037,6 +1067,7 @@ Item {
                                             pendingCount: openProofConnections.bookmarkPendingCount
                                             collections: openProofConnections.bookmarkCollections
                                             collectionItems: openProofConnections.bookmarkCollectionItems
+                                            membershipItems: openProofConnections.bookmarkMembershipItems
                                             selectedCollection: openProofConnections.activeBookmarkCollection
                                             collectionsBusy: openProofConnections.bookmarkCollectionsBusy
                                             collectionsError: openProofConnections.bookmarkCollectionsError
@@ -2018,7 +2049,7 @@ Item {
                 onSignOutConfirmationRequested: root.requestSignOut()
                 onProfileRequested: {
                     close()
-                    root.openMyProfileFromNavigation()
+                    root.openMyProfileEditorFromSettings()
                 }
             }
         }
