@@ -97,7 +97,9 @@ Rectangle {
                 Row {
                     id: localizedVersion
                     visible: Theme.rtl
-                    x: 0
+                    // Mirror the LTR baseline alignment: the Persian caption
+                    // starts at the wordmark's RIGHT edge, not its left edge.
+                    x: parent.width - implicitWidth
                     y: brandWordmark.height + Theme.scaleUi(2)
                     spacing: Theme.scaleUi(3)
                     layoutDirection: Qt.RightToLeft
