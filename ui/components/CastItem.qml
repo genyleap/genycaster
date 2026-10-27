@@ -552,12 +552,15 @@ Item {
                                     avatarSize: Layout.preferredWidth
                                     sourceUrl: root.channelImageUrl
                                     forceAutomaticDownload: true
-                                    displayName: root.channelDisplayName
+                                    displayName: root.castChannel
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
-                                    text: root.channelDisplayName
+                                    // Attribution uses the canonical channel slug, never its
+                                    // mutable display title (e.g. /network-propaganda).
+                                    forceLeftToRight: true
+                                    text: "/" + root.castChannel
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold

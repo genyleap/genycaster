@@ -1052,20 +1052,22 @@ Superellipse {
     Component {
         id: genericLinkCard
 
-        RowLayout {
+        GridLayout {
             property alias artworkItem: genericThumb
             property alias artworkFrameItem: genericThumbFrame
             width: Math.max(0, root.width - content.anchors.leftMargin
                                - content.anchors.rightMargin)
             Layout.minimumWidth: 0
             clip: true
-            // Editorial media card: artwork occupies the leading edge and
-            // the Cast's own sentence, link identity and metadata read as one
-            // coherent surface. Mirror by the caption's writing direction.
+            // Full-width art on phones: a wide OpenGraph image must not be
+            // squeezed into a square thumbnail with empty letterboxing.
+            // Desktop keeps the compact editorial two-column card.
+            columns: root.compact ? 1 : 2
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
             layoutDirection: root.castCaption.length > 0
                              && localizationController.isRightToLeftText(root.castCaption)
                              ? Qt.RightToLeft : Qt.LeftToRight
-            spacing: Theme.space2
 
             Item {
                 id: genericThumbFrame
@@ -1073,13 +1075,19 @@ Superellipse {
                                                     && root.previewSource.length > 0
                                                     && !root.genericArtworkUnavailable
                 visible: shouldReserve
-                // Cap the artwork by actual card width; a fixed 184px
-                // thumbnail plus long metadata made narrow cards overflow.
-                Layout.preferredWidth: shouldReserve
-                    ? Math.min(root.compact ? 116 : 184,
-                               Math.max(64, (root.width - Theme.space3 * 2) * 0.38))
-                    : 0
-                Layout.preferredHeight: shouldReserve ? (root.compact ? 116 : 156) : 0
+                // A phone gets a full-bleed 16:9-class preview; preserve the
+                // entire OG image instead of fitting a landscape screenshot
+                // inside a 116x116 square. Keep size stable while it loads.
+                Layout.fillWidth: root.compact && shouldReserve
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: !shouldReserve ? 0 : root.compact
+                    ? Math.max(0, root.width - content.anchors.leftMargin
+                                  - content.anchors.rightMargin)
+                    : Math.min(184, Math.max(64, (root.width - Theme.space3 * 2) * 0.38))
+                Layout.preferredHeight: !shouldReserve ? 0
+                    : Math.min(root.compact ? 300 : 180,
+                               Layout.preferredWidth / Math.max(0.8,
+                                   Math.min(3.0, root.previewImageAspect)))
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent

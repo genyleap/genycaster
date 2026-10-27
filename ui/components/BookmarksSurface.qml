@@ -165,10 +165,9 @@ Flickable {
             }
         }
 
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.space2
-            layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.bookmarks.description")
@@ -176,62 +175,84 @@ Flickable {
                 font.pixelSize: Theme.typeMetaSize
                 wrapMode: Text.Wrap
             }
-            GenyComboBox {
-                id: bookmarkSortPicker
-                objectName: "bookmarkSortPicker"
-                Layout.preferredWidth: root.compact ? 116 : 160
-                model: [qsTrId("genycaster.bookmarks.sort_priority"), qsTrId("genycaster.bookmarks.sort_newest"), qsTrId("genycaster.bookmarks.sort_oldest")]
-                currentIndex: root.sortMode === "oldest" ? 2
-                            : root.sortMode === "newest" ? 1 : 0
-                onActivated: index => root.sortMode =
-                    index === 2 ? "oldest" : index === 1 ? "newest" : "priority"
-            }
-            ActionButton {
-                iconOnly: true
-                compact: true
-                quiet: true
-                iconGlyph: Theme.iconRefresh
-                text: qsTrId("genycaster.bookmarks.refresh")
-                busy: root.refreshBusy
-                enabled: root.authenticated && !root.refreshBusy
-                onClicked: root.refreshRequested()
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                GenyComboBox {
+                    id: bookmarkSortPicker
+                    objectName: "bookmarkSortPicker"
+                    Layout.fillWidth: root.compact
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: root.compact ? 160 : 184
+                    Layout.maximumWidth: root.compact ? Number.POSITIVE_INFINITY : 184
+                    model: [qsTrId("genycaster.bookmarks.sort_priority"), qsTrId("genycaster.bookmarks.sort_newest"), qsTrId("genycaster.bookmarks.sort_oldest")]
+                    currentIndex: root.sortMode === "oldest" ? 2
+                                : root.sortMode === "newest" ? 1 : 0
+                    onActivated: index => root.sortMode =
+                        index === 2 ? "oldest" : index === 1 ? "newest" : "priority"
+                }
+                Item { Layout.fillWidth: !root.compact; Layout.minimumWidth: 0 }
+                ActionButton {
+                    iconOnly: true
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconRefresh
+                    text: qsTrId("genycaster.bookmarks.refresh")
+                    busy: root.refreshBusy
+                    enabled: root.authenticated && !root.refreshBusy
+                    onClicked: root.refreshRequested()
+                }
             }
         }
 
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             spacing: Theme.space2
-            layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
+                Layout.fillWidth: true
                 text: "Collections"
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeMetaSize
             }
-            GenyComboBox {
-                id: collectionPicker
-                objectName: "bookmarkCollectionPicker"
+            RowLayout {
                 Layout.fillWidth: true
-                model: root.collectionChoiceLabels
-                currentIndex: Math.max(0,root.collectionChoices.findIndex(
-                    entry=>entry.id===root.selectedCollection))
-                enabled: root.authenticated && !root.collectionsBusy
-                onActivated: index=>root.collectionSelected(root.collectionChoices[index].id)
-            }
-            ActionButton {
-                compact: true
-                quiet: true
-                iconGlyph: Theme.iconPlus
-                text: "New collection"
-                enabled: root.authenticated && !root.collectionsBusy
-                onClicked: root.editCollection("create",null)
-            }
-            ActionButton {
-                compact: true
-                quiet: true
-                iconGlyph: Theme.iconRefresh
-                text: "Refresh collections"
-                enabled: root.authenticated && !root.collectionsBusy
-                onClicked: root.collectionsRefreshRequested()
+                Layout.minimumWidth: 0
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                GenyComboBox {
+                    id: collectionPicker
+                    objectName: "bookmarkCollectionPicker"
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 180
+                    model: root.collectionChoiceLabels
+                    currentIndex: Math.max(0,root.collectionChoices.findIndex(
+                        entry=>entry.id===root.selectedCollection))
+                    enabled: root.authenticated && !root.collectionsBusy
+                    onActivated: index=>root.collectionSelected(root.collectionChoices[index].id)
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: root.compact
+                    iconGlyph: Theme.iconPlus
+                    text: "New collection"
+                    enabled: root.authenticated && !root.collectionsBusy
+                    onClicked: root.editCollection("create",null)
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconRefresh
+                    text: "Refresh collections"
+                    busy: root.collectionsBusy
+                    enabled: root.authenticated && !root.collectionsBusy
+                    onClicked: root.collectionsRefreshRequested()
+                }
             }
         }
 
@@ -243,6 +264,7 @@ Flickable {
                 compact: true
                 quiet: true
                 text: "Rename"
+                Layout.fillWidth: root.compact
                 enabled: !root.collectionsBusy
                 onClicked: root.editCollection("rename",root.activeCollectionEntry)
             }
@@ -250,21 +272,23 @@ Flickable {
                 compact: true
                 quiet: true
                 destructive: true
-                text: "Delete collection"
+                text: root.compact ? "Delete" : "Delete collection"
                 enabled: !root.collectionsBusy
                 onClicked: root.editCollection("delete",root.activeCollectionEntry)
             }
             Item { Layout.fillWidth: true }
         }
 
-        RowLayout {
+        ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             visible: root.collectionEditorMode.length>0
             spacing: Theme.space2
             DirectionAwareTextField {
                 id: collectionNameEditor
                 visible: root.collectionEditorMode!=="delete"
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 text: root.collectionEditorName
                 placeholderText: "Collection name"
                 onTextChanged: root.collectionEditorName=text
@@ -310,12 +334,6 @@ Flickable {
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
-        BusyIndicator {
-            visible: root.collectionsBusy
-            running: visible
-            Layout.alignment: Qt.AlignHCenter
-        }
-
         DirectionAwareLabel {
             objectName: "bookmarkAccountStatus"
             visible: root.authenticated && (root.accountError.length > 0 || root.pendingCount > 0)
