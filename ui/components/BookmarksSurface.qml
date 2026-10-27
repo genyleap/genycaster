@@ -210,6 +210,20 @@ Flickable {
                         animate: visible && !root.moving
                     }
 
+                    // A bookmark can exist on another device before its
+                    // canonical cast is fetched. Keep navigation available
+                    // even if its provider is offline or returns no preview.
+                    ActionButton {
+                        visible: castSkeletonFallback.visible
+                        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                        compact: true
+                        quiet: true
+                        iconGlyph: Theme.iconArrowUpRight
+                        text: qsTrId("genycaster.bookmarks.open_saved_cast")
+                        onClicked: root.castRequested(
+                            String(bookmarkCard.modelData.castId || ""))
+                    }
+
                     CastItem {
                         id: savedCast
                         objectName: "bookmarkRichCast"

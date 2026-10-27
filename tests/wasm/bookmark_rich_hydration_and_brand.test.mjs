@@ -14,6 +14,7 @@ test('saved casts render through canonical CastItem with full media, link and pa
   assert.match(cast,/CastEmbedsPanel \{/);
   assert.match(cast,/RichCastRenderer \{/);
   assert.match(ui,/CastSkeleton \{/);
+  assert.match(ui,/visible: castSkeletonFallback.visible[\s\S]*?genycaster.bookmarks.open_saved_cast/);
 });
 
 test('bookmarks hydrate by cast hash through native provider read without navigating or uploading',()=>{
