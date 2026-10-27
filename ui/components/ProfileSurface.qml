@@ -37,7 +37,8 @@ Item {
             writing:qsTrId("genycaster.topic.writing"),
             science:qsTrId("genycaster.topic.science"),
             business:qsTrId("genycaster.topic.business"),
-            gaming:qsTrId("genycaster.topic.gaming")
+            gaming:qsTrId("genycaster.topic.gaming"),
+            trading:qsTrId("genycaster.topic.trading")
         }
         return titles[slug] || slug.replace(/-/g," ")
                         .replace(/\b\w/g,character=>character.toUpperCase())
@@ -191,6 +192,9 @@ Item {
         return {
             category: String(saved.category || ""),
             profession: String(saved.profession || ""),
+            roles: root.profileSequence(saved.roles, 5).length
+                    ? root.profileSequence(saved.roles, 5)
+                    : (saved.profession ? [String(saved.profession)] : []),
             secondary_categories: root.profileSequence(saved.secondaryCategories, 3),
             links: urls.map((url, index) => ({
                 label: String(labels[index] || "").slice(0, 32), url: url
@@ -211,6 +215,7 @@ Item {
             const owners = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             owners[root.profileExtrasOwnerKey] = {
                 category: item.category, profession: item.profession,
+                roles: root.profileSequence(item.roles, 5),
                 secondaryCategories: root.profileSequence(item.secondary_categories, 3),
                 links: links.map(entry => entry.url),
                 labels: links.map(entry => String(entry.label || "").slice(0, 32))
@@ -253,6 +258,8 @@ Item {
             const latest = root.cloudProfilePayload()
             const same = item.category === latest.category
                       && item.profession === latest.profession
+                      && JSON.stringify(root.profileSequence(item.roles, 5))
+                         === JSON.stringify(latest.roles)
                       && JSON.stringify(root.profileSequence(item.secondary_categories, 3))
                          === JSON.stringify(latest.secondary_categories)
                       && JSON.stringify(root.profileSequence(item.links, 5))
@@ -359,6 +366,7 @@ Item {
             const links = root.profileSequence(server.links, 5)
             return {
                 category: server.category, profession: server.profession,
+                roles: root.profileSequence(server.roles, 5),
                 secondaryCategories: root.profileSequence(server.secondary_categories, 3),
                 links: links.map(entry => String(entry.url || "")),
                 labels: links.map(entry => String(entry.label || ""))
@@ -383,7 +391,8 @@ Item {
         const options = ["Select role", "Artist", "Author", "Creator",
             "Designer", "Developer", "Engineer", "Entrepreneur", "Founder",
             "Investor", "Journalist", "Photographer", "Researcher",
-            "Student", "Teacher", "Consultant", "Organization", "Other"]
+            "Student", "Teacher", "Consultant", "Organization", "Other",
+            "Trader", "Analyst", "Product Manager", "Community Manager", "Content Creator"]
         // The account API accepts only curated roles. Never offer a legacy
         // freeform role as a selectable value and then silently fail HTTP 400.
         return options
@@ -441,9 +450,16 @@ Item {
         return (!query || query[1].length < 256)
             && (!hash || hash[1].length < 128)
     }
-    function saveExtraDetails(profession, rawLinks, category, secondaryCategories) {
+    function saveExtraDetails(profession, rawLinks, category, secondaryCategories, roles) {
         if (!root.isOwnProfile || !root.profileExtrasOwnerKey) return false
-        const role = String(profession || "").trim()
+        const selectedRoles = root.profileSequence(roles, 5)
+        const role = String(selectedRoles[0] || profession || "").trim()
+        if (selectedRoles.length > 5
+            || new Set(selectedRoles).size !== selectedRoles.length
+            || selectedRoles.some(value => root.profileRoleOptions.indexOf(value) <= 0)) {
+            root.profileExtrasError = qsTrId("genycaster.profile.selection_error")
+            return false
+        }
         const categoryName = String(category || "").trim()
         if ((role && root.profileRoleOptions.indexOf(role) <= 0)
                 || (categoryName && root.profileCategoryOptions.indexOf(categoryName) <= 0)) {
@@ -480,6 +496,7 @@ Item {
             const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
             entries[root.profileExtrasOwnerKey] = {
                 profession: role, category: categoryName,
+                roles: selectedRoles,
                 secondaryCategories: additional,
                 links: unique.map(e=>e.url), labels: unique.map(e=>e.label)
             }
@@ -2324,6 +2341,8 @@ Item {
         readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
         edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
+        property var secondarySelection: []
+        property var roleSelection: []
         dimBackground: true
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
         height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 750) : parent.height) : 750
@@ -2337,8 +2356,11 @@ Item {
                                      ? "Technology" : savedCategory
             categoryEditor.currentIndex = Math.max(0,
                 root.profileCategoryOptions.indexOf(inferredCategory))
-            professionEditor.currentIndex = Math.max(0,
-                root.profileRoleOptions.indexOf(savedRole))
+            profileExtrasEditor.secondarySelection = root.profileSequence(root.profileExtras.secondaryCategories, 3)
+                .filter(value => value !== inferredCategory)
+            profileExtrasEditor.roleSelection = root.profileSequence(root.profileExtras.roles, 5)
+            if (profileExtrasEditor.roleSelection.length === 0 && savedRole)
+                profileExtrasEditor.roleSelection = [savedRole]
             const saved = Array.isArray(root.profileExtras.links) ? root.profileExtras.links : []
             const titles = Array.isArray(root.profileExtras.labels) ? root.profileExtras.labels : []
             linksEditor.text = saved.map((url,index)=>titles[index]
@@ -2685,6 +2707,8 @@ Item {
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
                         enabled: profileExtrasEditor.secondarySelection.length < 3
+                        currentIndex: 0
+                        displayText: qsTrId("genycaster.profile.add_secondary")
                         model: [qsTrId("genycaster.profile.add_secondary")].concat(
                             root.profileCategoryOptions.slice(1).filter(category =>
                                 category !== categoryEditor.currentText
@@ -2698,7 +2722,7 @@ Item {
                             if (index > 0 && profileExtrasEditor.secondarySelection.length < 3)
                                 profileExtrasEditor.secondarySelection =
                                     profileExtrasEditor.secondarySelection.concat(category)
-                            currentIndex = 0
+                            Qt.callLater(() => { secondaryPicker.currentIndex = 0 })
                         }
                     }
                     DirectionAwareLabel {
@@ -2707,20 +2731,60 @@ Item {
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.profile.roles_hint") + " ("
+                              + profileExtrasEditor.roleSelection.length + "/5)"
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                    }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Repeater {
+                            model: profileExtrasEditor.roleSelection
+                            delegate: ActionButton {
+                                required property var modelData
+                                compact: true
+                                quiet: true
+                                iconGlyph: Theme.iconClose
+                                text: root.profileOptionLabel(modelData)
+                                Accessible.description: qsTrId("genycaster.profile.remove_role")
+                                onClicked: profileExtrasEditor.roleSelection =
+                                    profileExtrasEditor.roleSelection.filter(v=>v!==modelData)
+                            }
+                        }
+                    }
                     GenyComboBox {
                         id: professionEditor
                         objectName: "profileProfessionPicker"
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         popupMaximumWidth: width
-                        model: root.profileRoleOptions
-                        optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
+                        enabled: profileExtrasEditor.roleSelection.length < 5
+                        currentIndex: 0
+                        displayText: qsTrId("genycaster.profile.add_role")
+                        model: [qsTrId("genycaster.profile.add_role")].concat(
+                            root.profileRoleOptions.slice(1).filter(role =>
+                                profileExtrasEditor.roleSelection.indexOf(role) < 0))
+                        optionLabelProvider: function(value) {
+                            return root.profileRoleOptions.indexOf(value) > 0
+                                    ? root.profileOptionLabel(value) : value
+                        }
+                        onActivated: index => {
+                            const role=String(model[index] || "")
+                            if (index>0 && profileExtrasEditor.roleSelection.length<5)
+                                profileExtrasEditor.roleSelection =
+                                    profileExtrasEditor.roleSelection.concat(role)
+                            Qt.callLater(() => { professionEditor.currentIndex=0 })
+                        }
                         Accessible.name: qsTrId("genycaster.profile.role_accessible")
                     }
                     DirectionAwareLabel {
                         visible: String(root.profileExtras.profession || "").length > 0
                             && root.profileRoleOptions.indexOf(String(root.profileExtras.profession)) < 0
-                            && professionEditor.currentIndex === 0
+                            && profileExtrasEditor.roleSelection.length === 0
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.previous_role")
                         color: Theme.inkMuted
@@ -2766,10 +2830,12 @@ Item {
                     text: qsTrId("genycaster.profile.save_additional_details")
                     onClicked: {
                         if (root.saveExtraDetails(
-                                professionEditor.currentIndex > 0 ? professionEditor.currentText : "",
+                                profileExtrasEditor.roleSelection.length
+                                   ? String(profileExtrasEditor.roleSelection[0]) : "",
                                 linksEditor.text,
                                 categoryEditor.currentIndex > 0 ? categoryEditor.currentText : "",
-                                profileExtrasEditor.secondarySelection))
+                                profileExtrasEditor.secondarySelection,
+                profileExtrasEditor.roleSelection))
                             profileExtrasEditor.close()
                     }
                 }

@@ -30,7 +30,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -41,6 +41,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const topicsReady=versions.has(6);
   const bookmarkCollectionsReady=versions.has(7);
   const secondaryCategoriesReady=versions.has(8);
+  const multipleRolesReady=versions.has(9);
   return {
     close:()=>pool.end(),
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
@@ -262,8 +263,10 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     async getProfileExtras({issuer,subject}) {
       const extra=secondaryCategoriesReady
         ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
+      const roleField=multipleRolesReady
+        ? 'roles' : "CASE WHEN profession='' THEN '[]'::jsonb ELSE jsonb_build_array(profession) END AS roles";
       const result=await pool.query(`SELECT category,profession,links,publicly_visible,
-          revision,updated_at,${extra} FROM profile_extras WHERE issuer=$1 AND subject=$2`,
+          revision,updated_at,${extra},${roleField} FROM profile_extras WHERE issuer=$1 AND subject=$2`,
         [issuer,subject]);
       const record=result.rows[0];
       return record ? {...record,revision:Number(record.revision)} : null;
@@ -272,29 +275,38 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       // Before the additive migration, legacy edits remain available. Never
       // acknowledge a secondary selection without persisting it.
       const secondary=item.secondary_categories || [];
+      const roles=item.roles || (item.profession?[item.profession]:[]);
+      if(!multipleRolesReady && roles.length>1)
+        throw new Error('profile_multiple_roles_migration_required');
       if (!secondaryCategoriesReady && secondary.length)
         throw new Error('profile_secondary_categories_migration_required');
       const extra=secondaryCategoriesReady ? ',secondary_categories' : '';
       const argument=secondaryCategoriesReady ? ',$7::jsonb' : '';
       const update=secondaryCategoriesReady
         ? ',secondary_categories=EXCLUDED.secondary_categories' : '';
+      const roleColumn=multipleRolesReady ? ',roles' : '';
+      const roleArgument=multipleRolesReady ? ',$8::jsonb' : '';
+      const roleUpdate=multipleRolesReady ? ',roles=EXCLUDED.roles' : '';
+      const roleReturning=multipleRolesReady
+        ? 'roles' : "CASE WHEN profession='' THEN '[]'::jsonb ELSE jsonb_build_array(profession) END AS roles";
       const returning=secondaryCategoriesReady
         ? 'secondary_categories' : "'[]'::jsonb AS secondary_categories";
       const result=await pool.query(`INSERT INTO profile_extras
-          (issuer,subject,category,profession,links,publicly_visible,revision${extra})
-        SELECT $1,$2,$3,$4,$5::jsonb,false,1${argument}
+          (issuer,subject,category,profession,links,publicly_visible,revision${extra}${roleColumn})
+        SELECT $1,$2,$3,$4,$5::jsonb,false,1${argument}${roleArgument}
         WHERE $6::bigint=0 OR EXISTS (
           SELECT 1 FROM profile_extras WHERE issuer=$1 AND subject=$2
             AND revision=$6
         )
         ON CONFLICT (issuer,subject) DO UPDATE SET
           category=EXCLUDED.category,profession=EXCLUDED.profession,
-          links=EXCLUDED.links,publicly_visible=false${update},
+          links=EXCLUDED.links,publicly_visible=false${update}${roleUpdate},
           revision=profile_extras.revision+1,updated_at=now()
         WHERE profile_extras.revision=$6
-        RETURNING category,profession,links,publicly_visible,revision,updated_at,${returning}`,
+        RETURNING category,profession,links,publicly_visible,revision,updated_at,${returning},${roleReturning}`,
         [issuer,subject,item.category,item.profession,JSON.stringify(item.links),
-         item.revision,...(secondaryCategoriesReady?[JSON.stringify(secondary)]:[])]);
+         item.revision,...(secondaryCategoriesReady?[JSON.stringify(secondary)]:[]),
+         ...(multipleRolesReady?[JSON.stringify(roles)]:[])]);
       const record=result.rows[0];
       return record ? {...record,revision:Number(record.revision)} : null;
     },

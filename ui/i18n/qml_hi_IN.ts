@@ -2,6 +2,42 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.trading">
+            <source>Trading</source>
+            <translation>ट्रेडिंग</translation>
+        </message>
+        <message id="genycaster.profile.option.trader">
+            <source>Trader</source>
+            <translation>ट्रेडर</translation>
+        </message>
+        <message id="genycaster.profile.option.analyst">
+            <source>Analyst</source>
+            <translation>विश्लेषक</translation>
+        </message>
+        <message id="genycaster.profile.option.product_manager">
+            <source>Product Manager</source>
+            <translation>उत्पाद प्रबंधक</translation>
+        </message>
+        <message id="genycaster.profile.option.community_manager">
+            <source>Community Manager</source>
+            <translation>समुदाय प्रबंधक</translation>
+        </message>
+        <message id="genycaster.profile.option.content_creator">
+            <source>Content Creator</source>
+            <translation>कंटेंट क्रिएटर</translation>
+        </message>
+        <message id="genycaster.profile.roles_hint">
+            <source>Choose up to five roles</source>
+            <translation>अधिकतम पाँच भूमिकाएँ चुनें</translation>
+        </message>
+        <message id="genycaster.profile.add_role">
+            <source>Add a role</source>
+            <translation>भूमिका जोड़ें</translation>
+        </message>
+        <message id="genycaster.profile.remove_role">
+            <source>Remove role</source>
+            <translation>भूमिका हटाएँ</translation>
+        </message>
         <message id="genycaster.profile.option.trading">
             <source>Trading</source>
             <translation>ट्रेडिंग</translation>

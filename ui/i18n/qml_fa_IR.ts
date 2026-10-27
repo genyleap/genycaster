@@ -2,6 +2,42 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.trading">
+            <source>Trading</source>
+            <translation>معامله‌گری</translation>
+        </message>
+        <message id="genycaster.profile.option.trader">
+            <source>Trader</source>
+            <translation>معامله‌گر</translation>
+        </message>
+        <message id="genycaster.profile.option.analyst">
+            <source>Analyst</source>
+            <translation>تحلیلگر</translation>
+        </message>
+        <message id="genycaster.profile.option.product_manager">
+            <source>Product Manager</source>
+            <translation>مدیر محصول</translation>
+        </message>
+        <message id="genycaster.profile.option.community_manager">
+            <source>Community Manager</source>
+            <translation>مدیر انجمن</translation>
+        </message>
+        <message id="genycaster.profile.option.content_creator">
+            <source>Content Creator</source>
+            <translation>تولیدکنندهٔ محتوا</translation>
+        </message>
+        <message id="genycaster.profile.roles_hint">
+            <source>Choose up to five roles</source>
+            <translation>تا پنج نقش انتخاب کنید</translation>
+        </message>
+        <message id="genycaster.profile.add_role">
+            <source>Add a role</source>
+            <translation>افزودن نقش</translation>
+        </message>
+        <message id="genycaster.profile.remove_role">
+            <source>Remove role</source>
+            <translation>حذف نقش</translation>
+        </message>
         <message id="genycaster.profile.option.trading">
             <source>Trading</source>
             <translation>معامله‌گری</translation>

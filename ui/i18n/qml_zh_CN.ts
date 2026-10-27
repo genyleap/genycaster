@@ -2,6 +2,42 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.trading">
+            <source>Trading</source>
+            <translation>交易</translation>
+        </message>
+        <message id="genycaster.profile.option.trader">
+            <source>Trader</source>
+            <translation>交易员</translation>
+        </message>
+        <message id="genycaster.profile.option.analyst">
+            <source>Analyst</source>
+            <translation>分析师</translation>
+        </message>
+        <message id="genycaster.profile.option.product_manager">
+            <source>Product Manager</source>
+            <translation>产品经理</translation>
+        </message>
+        <message id="genycaster.profile.option.community_manager">
+            <source>Community Manager</source>
+            <translation>社区经理</translation>
+        </message>
+        <message id="genycaster.profile.option.content_creator">
+            <source>Content Creator</source>
+            <translation>内容创作者</translation>
+        </message>
+        <message id="genycaster.profile.roles_hint">
+            <source>Choose up to five roles</source>
+            <translation>最多选择五种角色</translation>
+        </message>
+        <message id="genycaster.profile.add_role">
+            <source>Add a role</source>
+            <translation>添加角色</translation>
+        </message>
+        <message id="genycaster.profile.remove_role">
+            <source>Remove role</source>
+            <translation>移除角色</translation>
+        </message>
         <message id="genycaster.profile.option.trading">
             <source>Trading</source>
             <translation>交易</translation>

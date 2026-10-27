@@ -23,6 +23,7 @@ Item {
         case "science": return qsTrId("genycaster.topic.science")
         case "business": return qsTrId("genycaster.topic.business")
         case "gaming": return qsTrId("genycaster.topic.gaming")
+        case "trading": return qsTrId("genycaster.topic.trading")
         default: return slug.replace(/-/g, " ").replace(/\b\w/g, character => character.toUpperCase())
         }
     }

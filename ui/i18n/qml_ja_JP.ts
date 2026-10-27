@@ -2,6 +2,42 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic.trading">
+            <source>Trading</source>
+            <translation>トレーディング</translation>
+        </message>
+        <message id="genycaster.profile.option.trader">
+            <source>Trader</source>
+            <translation>トレーダー</translation>
+        </message>
+        <message id="genycaster.profile.option.analyst">
+            <source>Analyst</source>
+            <translation>アナリスト</translation>
+        </message>
+        <message id="genycaster.profile.option.product_manager">
+            <source>Product Manager</source>
+            <translation>プロダクトマネージャー</translation>
+        </message>
+        <message id="genycaster.profile.option.community_manager">
+            <source>Community Manager</source>
+            <translation>コミュニティマネージャー</translation>
+        </message>
+        <message id="genycaster.profile.option.content_creator">
+            <source>Content Creator</source>
+            <translation>コンテンツクリエイター</translation>
+        </message>
+        <message id="genycaster.profile.roles_hint">
+            <source>Choose up to five roles</source>
+            <translation>役割を最大5つ選択</translation>
+        </message>
+        <message id="genycaster.profile.add_role">
+            <source>Add a role</source>
+            <translation>役割を追加</translation>
+        </message>
+        <message id="genycaster.profile.remove_role">
+            <source>Remove role</source>
+            <translation>役割を削除</translation>
+        </message>
         <message id="genycaster.profile.option.trading">
             <source>Trading</source>
             <translation>トレーディング</translation>

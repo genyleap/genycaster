@@ -32,7 +32,8 @@ const PROFILE_CATEGORY = new Set([
 const PROFILE_ROLE = new Set([
   'Artist','Author','Creator','Designer','Developer','Engineer',
   'Entrepreneur','Founder','Investor','Journalist','Photographer',
-  'Researcher','Student','Teacher','Consultant','Organization','Other'
+  'Researcher','Student','Teacher','Consultant','Organization','Other',
+  'Trader','Analyst','Product Manager','Community Manager','Content Creator'
 ]);
 const KINDS = Object.freeze({
   drafts: ['cast', 'article', 'thread'],
@@ -73,6 +74,11 @@ export function validateCloudItem(entity, item) {
        || new Set(secondary).size!==secondary.length
        || secondary.some(value=>typeof value!=='string'
           || !PROFILE_CATEGORY.has(value) || value===item.category))return null;
+    const roles=item.roles===undefined
+      ? (item.profession?[item.profession]:[]) : item.roles;
+    if(!Array.isArray(roles)||roles.length>5||new Set(roles).size!==roles.length
+      ||roles.some(value=>typeof value!=='string'||!PROFILE_ROLE.has(value))
+      ||(roles[0]||'')!==item.profession)return null;
     const seen = new Set();
     const links = [];
     for (const value of item.links) {
@@ -84,7 +90,7 @@ export function validateCloudItem(entity, item) {
       links.push({label:value.label,url:value.url});
     }
     return {category:item.category,profession:item.profession,
-      secondary_categories:secondary,links,
+      secondary_categories:secondary,roles,links,
       revision:item.revision,publicly_visible:false};
   }
   if (entity === 'connections') {

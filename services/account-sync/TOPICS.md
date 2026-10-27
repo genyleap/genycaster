@@ -7,7 +7,7 @@ Topics classify casts independently of Farcaster channels. No `parent_url`,
 
 Apply `migrations/006_cast_topics.sql` to the **GenyCaster-owned** PostgreSQL
 database after schema v5, using an authorized database operator. It is additive
-and seeds Art, Development and Photography plus seven additional topics.
+and seeds Art, Development and Photography plus seven additional topics.\n\nMigration `009_profile_roles_cast_trading.sql` additionally activates the\n`trading` topic. The catalog remains independent of the user's professional\ncategory and role selections; this database migration must be run by the\nPostgreSQL table owner before the topic is offered to clients.
 
 `topics` is the server-managed catalog: `slug`, ordering, active status.
 `cast_topics` stores a many-to-many relationship from the immutable cast hash
@@ -21,12 +21,12 @@ INSERT INTO topics (slug, sort_order) VALUES ('architecture', 110)
 ON CONFLICT (slug) DO NOTHING;
 ```
 
-A client displays an unknown slug with a readable title-cased fallback.
+A client displays an unknown slug with a readable title-cased fallback.\nTrading has a bundled localized label in the desktop/mobile composer and\nExplorer/Profile filter pickers.
 Localized strings for the ten built-in topics are bundled in the UI catalogs.
 
 ## Account API
 
-- `GET /api/v1/cloud/topics` — public active catalog and cast counts.
+- `GET /api/v1/cloud/topics` — authenticated active catalog and cast counts.
 - `PUT /api/v1/cloud/cast_topics` — authenticated account-scoped assignment,
   e.g. `{"cast_hash":"0x...","topics":["art","photography"]}`.
 - `GET /api/v1/cloud/topic_casts?topic=art&limit=30&offset=0` — paginated

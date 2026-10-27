@@ -20,7 +20,8 @@ Item {
             writing:qsTrId("genycaster.topic.writing"),
             science:qsTrId("genycaster.topic.science"),
             business:qsTrId("genycaster.topic.business"),
-            gaming:qsTrId("genycaster.topic.gaming")
+            gaming:qsTrId("genycaster.topic.gaming"),
+            trading:qsTrId("genycaster.topic.trading")
         }
         return titles[slug] || slug.replace(/-/g," ")
                         .replace(/\b\w/g,character=>character.toUpperCase())

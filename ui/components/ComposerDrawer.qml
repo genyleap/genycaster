@@ -82,6 +82,7 @@ GenyDrawer {
         case "science": return qsTrId("genycaster.topic.science")
         case "business": return qsTrId("genycaster.topic.business")
         case "gaming": return qsTrId("genycaster.topic.gaming")
+        case "trading": return qsTrId("genycaster.topic.trading")
         default: {
             const tokens=String(slug).split("-")
             return tokens.map(t=>t.length ? t.charAt(0).toUpperCase()+t.slice(1) : "").join(" ")
@@ -1259,6 +1260,29 @@ GenyDrawer {
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
+                ActionButton {
+                    objectName: "desktopCastChannelTrigger"
+                    compact: true
+                    selected: root.selectedParentUrl.length > 0
+                    iconGlyph: Theme.iconGlobe
+                    text: root.selectedContextLabel.length > 0
+                        ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
+                    onClicked: channelPicker.open()
+                }
+                ActionButton {
+                    visible: root.selectedParentUrl.length > 0
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.composer.context_clear")
+                    onClicked: {
+                        root.selectedParentUrl = ""
+                        root.selectedContextLabel = ""
+                        root.selectedContextImage = ""
+                        root.selectedChannelId = ""
+                    }
+                }
                 ActionButton {
                     compact: true
                     selected: root.selectedTopics.length > 0

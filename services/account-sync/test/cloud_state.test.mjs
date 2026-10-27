@@ -148,6 +148,18 @@ test('User-owned professional category and labelled links have strict validation
     ...draft,category:'Technology',secondary_categories:['Trading','Business','Finance']
   }).secondary_categories,['Trading','Business','Finance']);
   assert.deepEqual(validateCloudItem('profile_extras',draft).secondary_categories,[]);
+  assert.deepEqual(validateCloudItem('profile_extras',draft).roles,['Developer']);
+  assert.deepEqual(validateCloudItem('profile_extras',{
+    ...draft,profession:'Founder',
+    roles:['Founder','Trader','Analyst','Product Manager','Community Manager']
+  }).roles,['Founder','Trader','Analyst','Product Manager','Community Manager']);
+  for(const roles of [
+    ['Founder','Founder'],['Founder','Nonexistent Role'],
+    ['Founder','Trader','Analyst','Product Manager','Community Manager','Content Creator'],
+    ['Trader'],[8]
+  ]) assert.equal(validateCloudItem('profile_extras',{
+    ...draft,profession:'Founder',roles
+  }),null);
   for(const secondary_categories of [
     ['Trading','Trading'],['Technology'],['Trading','Business','Finance','Education'],
     ['Fake category'],[7]
