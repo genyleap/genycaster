@@ -37,10 +37,9 @@ The client queues an association locally until the Farcaster CastAdd is
 outbox entries for retry. This is GenyCaster metadata, **not part of Farcaster
 CastAdd protocol data**.
 
-**Security note:** the topic API verifies the account FID and prevents a
-different FID from overwriting an existing cast's topic assignment. It does
-not yet independently attest that a claimed cast hash was authored by that FID.
-Before displaying results in discovery, consumers must compare the returned
-`author_fid` against the authoritative Farcaster cast author; a server-side
-cast-authorship verifier is a prerequisite to considering stored counts fully
-authoritative. Do not use topic records as identity or protocol proof.
+**Security note:** topic assignment requires the verified account FID and
+an independent read of the canonical `/v1/castById` response from the trusted
+Snapchain node. The returned hash, author FID and CastAdd body must all match.
+Unindexed, deleted, unavailable or malformed records are rejected rather than
+being accepted as client-declared identity. A topic is application metadata,
+not part of the signed protocol message or a separate identity attestation.
