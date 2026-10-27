@@ -102,6 +102,7 @@ set(farcasterQmlFiles
     components/LinkPreview.qml
     components/MobileCreateMenu.qml
     components/GenyComboBox.qml
+    components/GenyMultiSelect.qml
     components/GenyProgressBar.qml
     components/GenySlider.qml
     components/GenyVideoPlayer.qml

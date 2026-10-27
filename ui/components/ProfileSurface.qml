@@ -2678,51 +2678,24 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.secondary_categories_label")
-                              + " (" + profileExtrasEditor.secondarySelection.length + "/3)"
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
-                    Flow {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Repeater {
-                            model: profileExtrasEditor.secondarySelection
-                            delegate: ActionButton {
-                                required property var modelData
-                                compact: true
-                                quiet: true
-                                iconGlyph: Theme.iconClose
-                                text: root.profileOptionLabel(modelData)
-                                Accessible.description: qsTrId("genycaster.profile.remove_secondary")
-                                onClicked: profileExtrasEditor.secondarySelection =
-                                   profileExtrasEditor.secondarySelection.filter(x=>x!==modelData)
-                            }
-                        }
-                    }
-                    GenyComboBox {
+                    GenyMultiSelect {
                         id: secondaryPicker
                         objectName: "profileSecondaryCategoryPicker"
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        popupMaximumWidth: width
-                        enabled: profileExtrasEditor.secondarySelection.length < 3
-                        currentIndex: 0
-                        displayText: qsTrId("genycaster.profile.add_secondary")
-                        model: [qsTrId("genycaster.profile.add_secondary")].concat(
-                            root.profileCategoryOptions.slice(1).filter(category =>
-                                category !== categoryEditor.currentText
-                                && profileExtrasEditor.secondarySelection.indexOf(category) < 0))
-                        optionLabelProvider: function(value) {
-                            return root.profileCategoryOptions.indexOf(value) > 0
-                                   ? root.profileOptionLabel(value) : value
-                        }
-                        onActivated: index => {
-                            const category=String(model[index] || "")
-                            if (index > 0 && profileExtrasEditor.secondarySelection.length < 3)
-                                profileExtrasEditor.secondarySelection =
-                                    profileExtrasEditor.secondarySelection.concat(category)
-                            Qt.callLater(() => { secondaryPicker.currentIndex = 0 })
+                        options: root.profileCategoryOptions.slice(1).filter(
+                            category => category !== categoryEditor.currentText)
+                        selectedValues: profileExtrasEditor.secondarySelection
+                        maximumSelection: 3
+                        placeholderText: qsTrId("genycaster.profile.add_secondary")
+                        accessibleLabel: qsTrId("genycaster.profile.secondary_categories_label")
+                        removeLabel: qsTrId("genycaster.profile.remove_secondary")
+                        optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
+                        onSelectionEdited: nextValues => {
+                            profileExtrasEditor.secondarySelection = nextValues
                         }
                     }
                     DirectionAwareLabel {
@@ -2731,55 +2704,21 @@ Item {
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.roles_hint") + " ("
-                              + profileExtrasEditor.roleSelection.length + "/5)"
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.inkMuted
-                    }
-                    Flow {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Repeater {
-                            model: profileExtrasEditor.roleSelection
-                            delegate: ActionButton {
-                                required property var modelData
-                                compact: true
-                                quiet: true
-                                iconGlyph: Theme.iconClose
-                                text: root.profileOptionLabel(modelData)
-                                Accessible.description: qsTrId("genycaster.profile.remove_role")
-                                onClicked: profileExtrasEditor.roleSelection =
-                                    profileExtrasEditor.roleSelection.filter(v=>v!==modelData)
-                            }
-                        }
-                    }
-                    GenyComboBox {
+                    GenyMultiSelect {
                         id: professionEditor
                         objectName: "profileProfessionPicker"
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        popupMaximumWidth: width
-                        enabled: profileExtrasEditor.roleSelection.length < 5
-                        currentIndex: 0
-                        displayText: qsTrId("genycaster.profile.add_role")
-                        model: [qsTrId("genycaster.profile.add_role")].concat(
-                            root.profileRoleOptions.slice(1).filter(role =>
-                                profileExtrasEditor.roleSelection.indexOf(role) < 0))
-                        optionLabelProvider: function(value) {
-                            return root.profileRoleOptions.indexOf(value) > 0
-                                    ? root.profileOptionLabel(value) : value
+                        options: root.profileRoleOptions.slice(1)
+                        selectedValues: profileExtrasEditor.roleSelection
+                        maximumSelection: 5
+                        placeholderText: qsTrId("genycaster.profile.add_role")
+                        accessibleLabel: qsTrId("genycaster.profile.role_accessible")
+                        removeLabel: qsTrId("genycaster.profile.remove_role")
+                        optionLabelProvider: function(value) { return root.profileOptionLabel(value) }
+                        onSelectionEdited: nextValues => {
+                            profileExtrasEditor.roleSelection = nextValues
                         }
-                        onActivated: index => {
-                            const role=String(model[index] || "")
-                            if (index>0 && profileExtrasEditor.roleSelection.length<5)
-                                profileExtrasEditor.roleSelection =
-                                    profileExtrasEditor.roleSelection.concat(role)
-                            Qt.callLater(() => { professionEditor.currentIndex=0 })
-                        }
-                        Accessible.name: qsTrId("genycaster.profile.role_accessible")
                     }
                     DirectionAwareLabel {
                         visible: String(root.profileExtras.profession || "").length > 0

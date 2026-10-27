@@ -15,12 +15,15 @@ test('desktop has separately actionable Farcaster channel and cast topic selecto
 test('secondary category picker never presents a blank trigger',()=>{
  assert.match(profile,/property var secondarySelection: \[\]/);
  assert.match(profile,/profileExtrasEditor\.secondarySelection = root\.profileSequence\(root\.profileExtras\.secondaryCategories, 3\)/);
- assert.match(profile,/objectName: "profileSecondaryCategoryPicker"[\s\S]{0,650}displayText: qsTrId\("genycaster\.profile\.add_secondary"\)/);
+ assert.match(profile,/objectName: "profileSecondaryCategoryPicker"[\s\S]{0,650}placeholderText: qsTrId\("genycaster\.profile\.add_secondary"\)/);
 });
 test('multiple roles are additive owner scoped with migration and legacy compatibility',()=>{
  assert.match(profile,/property var roleSelection: \[\]/);
- assert.match(profile,/profileExtrasEditor\.roleSelection\.concat\(role\)/);
- assert.match(profile,/profileExtrasEditor\.roleSelection\.filter\(v=>v!==modelData\)/);
+ assert.match(profile,/maximumSelection: 5/);
+ assert.match(profile,/profileExtrasEditor\.roleSelection = nextValues/);
+ const multi=read('ui/components/GenyMultiSelect.qml');
+ assert.match(multi,/next\.push\(canonical\)/);
+ assert.match(multi,/next\.splice\(existing, 1\)/);
  assert.match(profile,/roles: root\.profileSequence\(saved\.roles, 5\)/);
  assert.match(store,/multipleRolesReady=versions\.has\(9\)/);
  assert.match(store,/roles=EXCLUDED\.roles/);

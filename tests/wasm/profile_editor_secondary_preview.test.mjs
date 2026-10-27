@@ -24,7 +24,7 @@ test('cover and avatar are composed as a single live preview',()=>{
 test('trading plus at most three account-owned secondary categories are persisted',()=>{
  assert.match(profile,/"Sports", "Trading"/);
  assert.match(profile,/objectName: "profileSecondaryCategoryPicker"/);
- assert.match(profile,/secondarySelection\.length < 3/);
+ assert.match(profile,/maximumSelection: 3/);
  assert.match(profile,/secondary_categories: root\.profileSequence\(saved\.secondaryCategories, 3\)/);
  assert.match(profile,/secondaryCategories: root\.profileSequence\(server\.secondary_categories, 3\)/);
  assert.match(backend,/'Trading'/);

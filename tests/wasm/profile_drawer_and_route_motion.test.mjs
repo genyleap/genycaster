@@ -11,13 +11,13 @@ test('profile profession and category are selectable, validated, and retain save
   assert.match(profile,/objectName: "profileCategoryPicker"/);
   assert.match(profile,/objectName: "profileProfessionPicker"/);
   assert.match(profile,/GenyComboBox \{\s*id: categoryEditor/);
-  assert.match(profile,/GenyComboBox \{\s*id: professionEditor/);
+  assert.match(profile,/GenyMultiSelect \{\s*id: professionEditor/);
   assert.match(profile,/root\.profileRoleOptions\.indexOf\(role\)/);
   assert.match(profile,/root\.profileCategoryOptions\.indexOf\(categoryName\)/);
   assert.match(profile,/category: categoryName/);
   assert.match(profile,/root\.profileExtras\.category/);
   assert.match(profile,/savedRole = String\(root\.profileExtras\.profession/);
-  assert.match(profile,/professionEditor\.currentIndex > 0 \? professionEditor\.currentText/);
+  assert.match(profile,/profileExtrasEditor\.roleSelection\.length/);
   assert.match(profile,/busy: root\.busy[\s\S]*?enabled: !root\.busy/);
 });
 test('mobile profile binds avatar and connections to the same header band',()=>{
