@@ -2347,6 +2347,10 @@ Item {
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
         height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 750) : parent.height) : 750
         showHandle: mobilePresentation
+        // Native Drawer drag recognition competes with the nested editor's
+        // vertical Flickable on iOS/WASM. Retain handle and close button but
+        // give touch-drag ownership to the form's scroll surface.
+        interactive: false
         contentPadding: Theme.space4
         onOpened: {
             openProofConnections.checkCloudService()
@@ -2385,12 +2389,17 @@ Item {
                 onCloseRequested: profileExtrasEditor.close()
             }
             Flickable {
+                id: profileEditorScroll
+                objectName: "profileEditorScroll"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                interactive: true
+                flickableDirection: Flickable.VerticalFlick
                 boundsBehavior: Flickable.StopAtBounds
                 contentHeight: formColumn.implicitHeight + Theme.space4
                 contentWidth: width
+                ScrollBar.vertical: GenyScrollBar {}
                 ColumnLayout {
                     id: formColumn
                     width: parent.width

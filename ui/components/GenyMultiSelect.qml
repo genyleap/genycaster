@@ -38,19 +38,15 @@ Item {
         selectionEdited(next)
     }
     function openChoices() {
-        searchField.text = ""
-        picker.open()
-        searchField.forceActiveFocus()
+        // Touch-first choices: opening must never request the soft keyboard.
+        if (picker.visible) picker.close()
+        else picker.open()
     }
 
     readonly property int previewCount: width < 350 ? 1 : width < 490 ? 2 : 3
     readonly property var visibleValues: (selectedValues || []).slice(0, previewCount)
     readonly property int hiddenCount: Math.max(0, (selectedValues || []).length - visibleValues.length)
-    readonly property var filteredOptions: {
-        const needle = searchField.text.trim().toLocaleLowerCase()
-        return (options || []).filter(value => !needle
-                     || optionLabel(value).toLocaleLowerCase().indexOf(needle) >= 0)
-    }
+    readonly property var availableOptions: options || []
 
     implicitHeight: 50
     implicitWidth: 310
@@ -187,7 +183,8 @@ Item {
         modal: false
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-        onClosed: searchField.text = ""
+        // There is deliberately no text editor: selecting categories must
+        // not cause the phone's keyboard to hide the profile form.
         background: PopupSurface {
             fillColor: Theme.surfaceElevated
             borderColor: Theme.borderDefault
@@ -199,24 +196,14 @@ Item {
             id: popupContent
             spacing: Theme.space2
 
-            RowLayout {
+            DirectionAwareLabel {
                 Layout.fillWidth: true
-                spacing: Theme.space2
-                DirectionAwareTextField {
-                    id: searchField
-                    objectName: "genyMultiSelectSearch"
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    placeholderText: qsTrId("genycaster.topics.search")
-                    inputMethodHints: Qt.ImhNoPredictiveText
-                }
-                DirectionAwareLabel {
-                    text: (control.selectedValues || []).length
-                          + "/" + control.maximumSelection
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeCaptionSize
-                    font.weight: Theme.weightDemiBold
-                }
+                text: (control.selectedValues || []).length
+                      + "/" + control.maximumSelection
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                font.weight: Theme.weightDemiBold
+                horizontalAlignment: Theme.textStartAlignment
             }
 
             GridView {
@@ -224,9 +211,9 @@ Item {
                 objectName: "genyMultiSelectChoices"
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(214,
-                    Math.ceil(control.filteredOptions.length / 2) * cellHeight)
+                    Math.ceil(control.availableOptions.length / 2) * cellHeight)
                 clip: true
-                model: control.filteredOptions
+                model: control.availableOptions
                 cellWidth: Math.max(1, width / 2)
                 cellHeight: 46
                 layoutDirection: Theme.uiDirection
