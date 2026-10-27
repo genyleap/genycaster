@@ -265,6 +265,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         m_cloudSessionVerified=true;
         m_cloudCsrf=csrf;
         fetchTopics();
+        refreshBookmarkCollections();
         m_bookmarkPoll.start();
         publishPortableConnectionLabels();
         if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
@@ -337,6 +338,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     m_cloudSessionVerified=true;
     m_cloudCsrf=std::move(csrf);
     fetchTopics();
+    refreshBookmarkCollections();
     m_bookmarkPoll.start();
     publishPortableConnectionLabels();
     if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
@@ -1904,6 +1906,149 @@ void OpenProofConnectionsController::pumpTopicWrites()
     });
 }
 
+void OpenProofConnectionsController::sendBookmarkCollectionRequest(
+    const QString& resource, const QVariantMap& body, const bool upload,
+    const QString& queryId)
+{
+    if (m_bookmarkCollectionRequest || !m_viewerFid
+        || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    if (resource != QStringLiteral("bookmark_collections")
+        && resource != QStringLiteral("bookmark_collection_items")) return;
+    QUrl endpoint=m_cloudUrl;
+    endpoint.setPath(QStringLiteral("/api/v1/cloud/") + resource);
+    endpoint.setQuery(QString{});
+    if(!queryId.isEmpty()) {
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("collection_id"),queryId);
+        endpoint.setQuery(query);
+    }
+    QNetworkRequest request{endpoint};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    QNetworkReply* reply{};
+    if(upload) {
+        request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+        reply=m_network.put(request,QJsonDocument(QJsonObject::fromVariantMap(body))
+                                .toJson(QJsonDocument::Compact));
+    } else reply=m_network.get(request);
+    m_bookmarkCollectionRequest=reply;
+    m_bookmarkCollectionsError.clear();
+    emit bookmarkCollectionsChanged();
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,
+            [this,reply,generation,viewer,resource,upload,queryId] {
+        if(m_bookmarkCollectionRequest==reply) m_bookmarkCollectionRequest=nullptr;
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->bytesAvailable()<=96*1024
+            ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid)return;
+        const QJsonDocument document=QJsonDocument::fromJson(bytes);
+        if(status!=200 || !document.isObject()) {
+            m_bookmarkCollectionsError=QStringLiteral("Could not update bookmark collections");
+            emit bookmarkCollectionsChanged();
+            return;
+        }
+        if(!upload) {
+            const QJsonValue values=document.object().value(QStringLiteral("items"));
+            if(!values.isArray() || values.toArray().size()>500) {
+                m_bookmarkCollectionsError=QStringLiteral("Invalid collection response");
+                emit bookmarkCollectionsChanged();
+                return;
+            }
+            QVariantList items;
+            for(const auto& value : values.toArray())
+                if(value.isObject())items.push_back(value.toObject().toVariantMap());
+            if(resource==QStringLiteral("bookmark_collections")) {
+                m_bookmarkCollections=std::move(items);
+            } else if(queryId==m_activeBookmarkCollection) {
+                m_bookmarkCollectionItems=std::move(items);
+            }
+        }
+        m_bookmarkCollectionsError.clear();
+        emit bookmarkCollectionsChanged();
+        if(upload) {
+            // Reads are ordered after the committed write. Avoid optimistic
+            // membership state or caching account-wide lists across FIDs.
+            QMetaObject::invokeMethod(this,[this] { refreshBookmarkCollections(); },
+                                      Qt::QueuedConnection);
+        } else if(resource==QStringLiteral("bookmark_collections")
+                  && !m_activeBookmarkCollection.isEmpty()) {
+            const auto selected=m_activeBookmarkCollection;
+            QMetaObject::invokeMethod(this,[this,selected] {
+                if(selected==m_activeBookmarkCollection)
+                    selectBookmarkCollection(selected);
+            },Qt::QueuedConnection);
+        }
+    });
+}
+
+void OpenProofConnectionsController::refreshBookmarkCollections()
+{
+    sendBookmarkCollectionRequest(QStringLiteral("bookmark_collections"),{},false);
+}
+
+void OpenProofConnectionsController::selectBookmarkCollection(const QString& id)
+{
+    static const QRegularExpression uuid{
+        QStringLiteral("^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$")};
+    if(!id.isEmpty() && !uuid.match(id).hasMatch())return;
+    if(m_bookmarkCollectionRequest)return;
+    m_activeBookmarkCollection=id.toLower();
+    m_bookmarkCollectionItems.clear();
+    emit bookmarkCollectionsChanged();
+    if(!id.isEmpty())
+        sendBookmarkCollectionRequest(QStringLiteral("bookmark_collection_items"),
+                                      {},false,m_activeBookmarkCollection);
+}
+
+void OpenProofConnectionsController::createBookmarkCollection(const QString& name)
+{
+    if(name.trimmed()!=name || name.isEmpty() || name.size()>80)return;
+    sendBookmarkCollectionRequest(QStringLiteral("bookmark_collections"),
+        {{QStringLiteral("action"),QStringLiteral("create")},
+         {QStringLiteral("id"),QUuid::createUuid().toString(QUuid::WithoutBraces)},
+         {QStringLiteral("name"),name}},true);
+}
+
+void OpenProofConnectionsController::renameBookmarkCollection(
+    const QString& id,const QString& name,const QString& revision)
+{
+    if(name.trimmed()!=name || name.isEmpty() || name.size()>80)return;
+    sendBookmarkCollectionRequest(QStringLiteral("bookmark_collections"),
+        {{QStringLiteral("action"),QStringLiteral("rename")},
+         {QStringLiteral("id"),id},{QStringLiteral("name"),name},
+         {QStringLiteral("expected_revision"),revision}},true);
+}
+
+void OpenProofConnectionsController::deleteBookmarkCollection(
+    const QString& id,const QString& revision)
+{
+    if(id==m_activeBookmarkCollection) {
+        m_activeBookmarkCollection.clear();
+        m_bookmarkCollectionItems.clear();
+        emit bookmarkCollectionsChanged();
+    }
+    sendBookmarkCollectionRequest(QStringLiteral("bookmark_collections"),
+        {{QStringLiteral("action"),QStringLiteral("delete")},
+         {QStringLiteral("id"),id},{QStringLiteral("expected_revision"),revision}},true);
+}
+
+void OpenProofConnectionsController::setBookmarkCollectionMembership(
+    const QString& castHash,const QString& collectionId,const bool remove)
+{
+    static const QRegularExpression hash{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    if(!hash.match(castHash).hasMatch())return;
+    sendBookmarkCollectionRequest(QStringLiteral("bookmark_collection_items"),
+        {{QStringLiteral("collection_id"),collectionId},
+         {QStringLiteral("cast_hash"),castHash.toLower()},
+         {QStringLiteral("remove"),remove}},true);
+}
+
 void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
     if (m_viewerFid == fid) return;
@@ -1921,6 +2066,16 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    if(m_bookmarkCollectionRequest) {
+        m_bookmarkCollectionRequest->abort();
+        m_bookmarkCollectionRequest->deleteLater();
+        m_bookmarkCollectionRequest=nullptr;
+    }
+    m_bookmarkCollections.clear();
+    m_bookmarkCollectionItems.clear();
+    m_activeBookmarkCollection.clear();
+    m_bookmarkCollectionsError.clear();
+    emit bookmarkCollectionsChanged();
     if(m_topicCatalogRequest) {
         m_topicCatalogRequest->abort();
         m_topicCatalogRequest->deleteLater();

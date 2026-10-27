@@ -13,6 +13,43 @@ Flickable {
     property string accountError: ""
     property int pendingCount: 0
     property string sortMode: "priority"
+    property var collections: []
+    property var collectionItems: []
+    property string selectedCollection: ""
+    property bool collectionsBusy: false
+    property string collectionsError: ""
+    property string collectionEditorMode: ""
+    property string collectionEditorId: ""
+    property string collectionEditorRevision: ""
+    property string collectionEditorName: ""
+    readonly property var collectionChoices: {
+        const result = [{ id: "", name: "All bookmarks" }]
+        const source = root.collections || []
+        for(let i=0;i<Number(source.length || 0);++i) {
+            const item=source[i] || ({})
+            if(item.id && item.name)result.push({id:String(item.id),name:String(item.name)})
+        }
+        return result
+    }
+    readonly property var collectionChoiceLabels: root.collectionChoices.map(item=>item.name)
+    readonly property var activeCollectionEntry: {
+        const items=root.collections || []
+        for(let i=0;i<Number(items.length || 0);++i)
+            if(String(items[i].id || "")===root.selectedCollection)return items[i]
+        return null
+    }
+    function editCollection(mode, item) {
+        root.collectionEditorMode=mode
+        root.collectionEditorId=String(item && item.id || "")
+        root.collectionEditorRevision=String(item && item.revision || "")
+        root.collectionEditorName=mode==="create" ? "" : String(item && item.name || "")
+    }
+    signal collectionSelected(string id)
+    signal collectionCreateRequested(string name)
+    signal collectionRenameRequested(string id, string name, string revision)
+    signal collectionDeleteRequested(string id, string revision)
+    signal membershipRequested(string castHash, string collectionId, bool remove)
+    signal collectionsRefreshRequested()
     signal castRequested(string castId)
     signal removeRequested(string castId)
     signal priorityRequested(string castId, int priority)
@@ -57,7 +94,14 @@ Flickable {
             const timeB = Number(b.savedAtMs || b.createdAtMs || 0)
             return root.sortMode === "oldest" ? timeA - timeB : timeB - timeA
         })
-        return unique
+        if(!root.selectedCollection)return unique
+        const memberships=new Set()
+        const stored=root.collectionItems || []
+        for(let i=0;i<Number(stored.length || 0);++i) {
+            const item=stored[i] || ({})
+            memberships.add(String(item.cast_hash || "").toLowerCase())
+        }
+        return unique.filter(item=>memberships.has(String(item.castId || "").toLowerCase()))
     }
     // Only read the visible portion of the list; scroll and account updates
     // schedule a bounded, cancellable provider read by canonical cast hash.
@@ -152,6 +196,124 @@ Flickable {
                 enabled: root.authenticated && !root.refreshBusy
                 onClicked: root.refreshRequested()
             }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+            DirectionAwareLabel {
+                text: "Collections"
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeMetaSize
+            }
+            GenyComboBox {
+                id: collectionPicker
+                objectName: "bookmarkCollectionPicker"
+                Layout.fillWidth: true
+                model: root.collectionChoiceLabels
+                currentIndex: Math.max(0,root.collectionChoices.findIndex(
+                    entry=>entry.id===root.selectedCollection))
+                enabled: root.authenticated && !root.collectionsBusy
+                onActivated: index=>root.collectionSelected(root.collectionChoices[index].id)
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconPlus
+                text: "New collection"
+                enabled: root.authenticated && !root.collectionsBusy
+                onClicked: root.editCollection("create",null)
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconRefresh
+                text: "Refresh collections"
+                enabled: root.authenticated && !root.collectionsBusy
+                onClicked: root.collectionsRefreshRequested()
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.activeCollectionEntry !== null
+            spacing: Theme.space2
+            ActionButton {
+                compact: true
+                quiet: true
+                text: "Rename"
+                enabled: !root.collectionsBusy
+                onClicked: root.editCollection("rename",root.activeCollectionEntry)
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                destructive: true
+                text: "Delete collection"
+                enabled: !root.collectionsBusy
+                onClicked: root.editCollection("delete",root.activeCollectionEntry)
+            }
+            Item { Layout.fillWidth: true }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: root.collectionEditorMode.length>0
+            spacing: Theme.space2
+            DirectionAwareTextField {
+                id: collectionNameEditor
+                visible: root.collectionEditorMode!=="delete"
+                Layout.fillWidth: true
+                text: root.collectionEditorName
+                placeholderText: "Collection name"
+                onTextChanged: root.collectionEditorName=text
+                maximumLength: 80
+            }
+            DirectionAwareLabel {
+                visible: root.collectionEditorMode==="delete"
+                Layout.fillWidth: true
+                text: "Delete this collection? Saved casts will remain in Bookmarks."
+                wrapMode: Text.Wrap
+                color: Theme.textSecondary
+            }
+            ActionButton {
+                compact: true
+                prominent: true
+                text: root.collectionEditorMode==="delete"?"Confirm delete":"Save"
+                enabled: !root.collectionsBusy
+                         && (root.collectionEditorMode==="delete"
+                             || root.collectionEditorName.trim().length>0)
+                onClicked: {
+                    if(root.collectionEditorMode==="create")
+                        root.collectionCreateRequested(root.collectionEditorName.trim())
+                    else if(root.collectionEditorMode==="rename")
+                        root.collectionRenameRequested(root.collectionEditorId,
+                            root.collectionEditorName.trim(),root.collectionEditorRevision)
+                    else root.collectionDeleteRequested(root.collectionEditorId,
+                            root.collectionEditorRevision)
+                    root.collectionEditorMode=""
+                }
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                text: "Cancel"
+                onClicked: root.collectionEditorMode=""
+            }
+        }
+        DirectionAwareLabel {
+            visible: root.collectionsError.length>0
+            Layout.fillWidth: true
+            text: root.collectionsError
+            color: Theme.negative
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
+        }
+        BusyIndicator {
+            visible: root.collectionsBusy
+            running: visible
+            Layout.alignment: Qt.AlignHCenter
         }
 
         DirectionAwareLabel {
@@ -252,6 +414,36 @@ Flickable {
                         Layout.fillWidth: true
                         layoutDirection: Theme.uiDirection
                         spacing: Theme.space1
+                        GenyComboBox {
+                            id: addToCollectionPicker
+                            objectName: "bookmarkAssignCollectionPicker"
+                            visible: root.selectedCollection.length===0
+                                     && root.collectionChoices.length>1
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: root.compact ? 176 : 248
+                            model: ["Add to collection…"].concat(
+                                root.collectionChoices.slice(1).map(item=>item.name))
+                            currentIndex: 0
+                            enabled: !root.collectionsBusy
+                            onActivated: index=>{
+                                if(index>0)
+                                    root.membershipRequested(
+                                        String(bookmarkCard.modelData.castId || ""),
+                                        root.collectionChoices[index].id,false)
+                                Qt.callLater(()=>addToCollectionPicker.currentIndex=0)
+                            }
+                        }
+                        ActionButton {
+                            visible: root.selectedCollection.length>0
+                            compact: true
+                            quiet: true
+                            destructive: true
+                            text: "Remove from collection"
+                            enabled: !root.collectionsBusy
+                            onClicked: root.membershipRequested(
+                                String(bookmarkCard.modelData.castId || ""),
+                                root.selectedCollection,true)
+                        }
                         Item { Layout.fillWidth: true }
                         ActionButton {
                             objectName: "bookmarkPriorityMobileButton"

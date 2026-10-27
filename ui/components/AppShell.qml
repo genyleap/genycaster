@@ -900,7 +900,24 @@ Item {
                                             refreshBusy: openProofConnections.bookmarkRefreshBusy
                                             accountError: openProofConnections.bookmarkError
                                             pendingCount: openProofConnections.bookmarkPendingCount
-                                            onRefreshRequested: openProofConnections.refreshAccountBookmarks()
+                                            collections: openProofConnections.bookmarkCollections
+                                            collectionItems: openProofConnections.bookmarkCollectionItems
+                                            selectedCollection: openProofConnections.activeBookmarkCollection
+                                            collectionsBusy: openProofConnections.bookmarkCollectionsBusy
+                                            collectionsError: openProofConnections.bookmarkCollectionsError
+                                            onCollectionSelected: id => openProofConnections.selectBookmarkCollection(id)
+                                            onCollectionCreateRequested: name => openProofConnections.createBookmarkCollection(name)
+                                            onCollectionRenameRequested: (id,name,revision) =>
+                                                openProofConnections.renameBookmarkCollection(id,name,revision)
+                                            onCollectionDeleteRequested: (id,revision) =>
+                                                openProofConnections.deleteBookmarkCollection(id,revision)
+                                            onMembershipRequested: (hash,id,remove) =>
+                                                openProofConnections.setBookmarkCollectionMembership(hash,id,remove)
+                                            onCollectionsRefreshRequested: openProofConnections.refreshBookmarkCollections()
+                                            onRefreshRequested: {
+                                                openProofConnections.refreshAccountBookmarks()
+                                                openProofConnections.refreshBookmarkCollections()
+                                            }
                                             onRemoveRequested: castId => presentationBridge.removeBookmark(castId)
                                             onPriorityRequested: (castId, priority) =>
                                                 presentationBridge.setBookmarkPriority(castId, priority)
@@ -922,7 +939,10 @@ Item {
                                             onExternalRequested: url => root.openCastTextLink(url)
                                             onMediaRequested: (mediaItems, index) =>
                                                 mediaGallery.openAt(mediaItems, index)
-                                            Component.onCompleted: openProofConnections.refreshAccountBookmarks()
+                                            Component.onCompleted: {
+                                                openProofConnections.refreshAccountBookmarks()
+                                                openProofConnections.refreshBookmarkCollections()
+                                            }
                                             onCastRequested: castId => {
                                                 const hash = String(castId || "").trim()
                                                 if (!/^0x[0-9a-fA-F]{40}$/.test(hash)) return

@@ -49,6 +49,11 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantList topicCatalog READ topicCatalog NOTIFY topicsChanged)
     Q_PROPERTY(bool topicsBusy READ topicsBusy NOTIFY topicsChanged)
     Q_PROPERTY(QString topicsError READ topicsError NOTIFY topicsChanged)
+    Q_PROPERTY(QVariantList bookmarkCollections READ bookmarkCollections NOTIFY bookmarkCollectionsChanged)
+    Q_PROPERTY(QVariantList bookmarkCollectionItems READ bookmarkCollectionItems NOTIFY bookmarkCollectionsChanged)
+    Q_PROPERTY(QString activeBookmarkCollection READ activeBookmarkCollection NOTIFY bookmarkCollectionsChanged)
+    Q_PROPERTY(bool bookmarkCollectionsBusy READ bookmarkCollectionsBusy NOTIFY bookmarkCollectionsChanged)
+    Q_PROPERTY(QString bookmarkCollectionsError READ bookmarkCollectionsError NOTIFY bookmarkCollectionsChanged)
 public:
     explicit OpenProofConnectionsController(QObject* parent = nullptr,
                                             QSettings* settings = nullptr);
@@ -95,6 +100,19 @@ public:
     [[nodiscard]] QString topicsError() const { return m_topicsError; }
     Q_INVOKABLE void fetchTopics();
     Q_INVOKABLE void saveCastTopics(const QString& castHash, const QStringList& slugs);
+    [[nodiscard]] QVariantList bookmarkCollections() const { return m_bookmarkCollections; }
+    [[nodiscard]] QVariantList bookmarkCollectionItems() const { return m_bookmarkCollectionItems; }
+    [[nodiscard]] QString activeBookmarkCollection() const { return m_activeBookmarkCollection; }
+    [[nodiscard]] bool bookmarkCollectionsBusy() const noexcept { return m_bookmarkCollectionRequest != nullptr; }
+    [[nodiscard]] QString bookmarkCollectionsError() const { return m_bookmarkCollectionsError; }
+    Q_INVOKABLE void refreshBookmarkCollections();
+    Q_INVOKABLE void selectBookmarkCollection(const QString& id);
+    Q_INVOKABLE void createBookmarkCollection(const QString& name);
+    Q_INVOKABLE void renameBookmarkCollection(const QString& id, const QString& name,
+                                              const QString& revision);
+    Q_INVOKABLE void deleteBookmarkCollection(const QString& id, const QString& revision);
+    Q_INVOKABLE void setBookmarkCollectionMembership(const QString& castHash,
+                                                      const QString& collectionId, bool remove);
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
     /** Read the last server-confirmed OpenProof link display snapshot. */
@@ -157,6 +175,7 @@ signals:
     void stateChanged();
     void cloudStateChanged();
     void topicsChanged();
+    void bookmarkCollectionsChanged();
     void cloudProfileExtrasReceived(const QVariantMap& item);
     void cloudProfileExtrasSaved(const QVariantMap& item);
     void cloudBookmarkChangesReceived(const QVariantList& changes);
@@ -208,8 +227,15 @@ private:
     QVariantList m_topicCatalog{};
     QVariantList m_topicOutbox{};
     QString m_topicsError{};
+    QVariantList m_bookmarkCollections{};
+    QVariantList m_bookmarkCollectionItems{};
+    QString m_activeBookmarkCollection{};
+    QString m_bookmarkCollectionsError{};
+    QPointer<QNetworkReply> m_bookmarkCollectionRequest{};
     void pumpTopicWrites();
     [[nodiscard]] QString topicOutboxKey() const;
+    void sendBookmarkCollectionRequest(const QString& resource, const QVariantMap& body,
+                                       bool upload, const QString& queryId = {});
     QPointer<QNetworkReply> m_sessionRequest{};
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};
