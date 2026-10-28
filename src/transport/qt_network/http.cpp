@@ -344,7 +344,7 @@ private:
             // drain after cancellation: calling readAll() in that narrow window
             // makes Qt ask a closed QSslSocket to read and emits
             // "QIODevice::read (QSslSocket): device not open".
-            if (timedOut || !reply->isOpen()) {
+            if (timedOut || !reply->isReadable() || reply->bytesAvailable() <= 0) {
                 return;
             }
             const QByteArray chunk = reply->readAll();

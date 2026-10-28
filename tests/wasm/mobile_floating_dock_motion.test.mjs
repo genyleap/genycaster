@@ -23,7 +23,7 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/root\.width >= 375/);
   assert.match(dock,/Theme\.scaleUi\(10\) : Theme\.scaleUi\(4\)/);
-  assert.match(dock,/Layout\.minimumWidth: 39/);
+  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : 39/);
 });
 
 test('capsule, selected states and action button are border-free in light and dark themes',()=>{
@@ -34,7 +34,7 @@ test('capsule, selected states and action button are border-free in light and da
   assert.doesNotMatch(destination,/borderColor:/);
   assert.match(capsule,/fillColor: "transparent"/);
   assert.match(capsule,/objectName: "mobileCapsuleGlassTint"/);
-  assert.match(capsule,/fillColor: Theme\.dark \? "#703A4151" : "#8CFFFFFF"/);
+  assert.match(capsule,/fillColor: root\.useBackdropBlur[\s\S]*?Theme\.navigationGlassTint/);
   assert.match(capsule,/borderWidth: 0/);
   assert.match(primary,/fillColor: Theme\.mobileActionColor[\s\S]*?borderWidth: 0/);
   assert.doesNotMatch(primary,/borderColor:/);
@@ -42,14 +42,14 @@ test('capsule, selected states and action button are border-free in light and da
 
 test('easing is responsive, interruptible and respects reduced motion',()=>{
   assert.match(dock,/readonly property bool animateDock: !Theme\.reduceMotion/);
-  for(const section of ['implicitWidth','fillColor','scale','opacity'])
+  for(const section of ['fillColor','scale'])
     assert.match(dock,new RegExp('Behavior on '+section+' \\{'));
-  assert.match(dock,/NumberAnimation \{ duration: 210; easing\.type: Easing\.OutCubic \}/);
+  assert.doesNotMatch(dock,/Behavior on implicitWidth/);
   assert.match(dock,/ColorAnimation \{ duration: 185; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/ColorAnimation \{ duration: 230; easing\.type: Easing\.OutCubic \}/);
   assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.91 : 1/);
   const allBehaviors=[...dock.matchAll(/Behavior on (?:fillColor|scale|color|opacity|implicitWidth) \{\s*enabled: ([^\n]+)/g)];
-  assert.ok(allBehaviors.length>=6);
+  assert.ok(allBehaviors.length>=5);
   assert.ok(allBehaviors.every(match=>match[1].trim()==='root.animateDock'));
 });
 

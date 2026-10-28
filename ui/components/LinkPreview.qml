@@ -37,11 +37,10 @@ Superellipse {
     // first reservation. A verified Mini App is the one deliberate exception:
     // its discovery artwork and launch affordance must remain accessible.
     // Manifest admission itself is deferred while the Flickable is moving.
-    readonly property var reservedLayout: root.knownMiniApp.homeUrl
-                                           || root.browserMiniAppPreview.providerKind === "miniapp"
-                                         ? ({kind: "miniapp", aspect: 3 / 2, artwork: true})
-                                         : root.layoutReservation !== null
-                                           ? root.layoutReservation : root.fallbackLayout()
+    // Geometry reads only the committed reservation. Catalogue/metadata/image
+    // bindings may run during child creation and must not re-enter this binding.
+    readonly property var reservedLayout: root.layoutReservation !== null
+        ? root.layoutReservation : ({kind: "generic", aspect: 16 / 9, artwork: true})
     readonly property bool layoutMiniApp: root.reservedLayout.kind === "miniapp"
     // Reserve the pending artwork slot before asynchronous metadata arrives.
     // The reservation is frozen per URL; removing the thumbnail after a failed
@@ -193,19 +192,8 @@ Superellipse {
 
     signal openRequested(string url)
 
-    function fallbackLayout() {
-        // Computed only from the cast URL and verified catalogue; neither is
-        // modified by an asynchronous metadata response for this identity.
-        const hint = root.providerKindForUrl(root.targetUrl)
-        const kind = root.knownMiniApp.homeUrl ? "miniapp"
-                   : ["youtube", "spotify", "apple-music", "soundcloud", "video"].indexOf(hint) >= 0
-                   ? "poster" : "generic"
-        return ({kind: kind, aspect: kind === "miniapp" ? 3 / 2 : 16 / 9,
-                 artwork: kind !== "generic" || root.previewSource.length > 0})
-    }
-
     function initialLayout() {
-        const metadata = root.previewData
+        const metadata = root.selectedPreviewData()
         const hint = root.providerKindForUrl(root.targetUrl)
         const provider = String(metadata.providerKind || (root.knownMiniApp.homeUrl ? 'miniapp' : hint))
         const kind = provider === "miniapp" ? "miniapp"
@@ -216,7 +204,7 @@ Superellipse {
         const height = Number(metadata.imageHeight || root.embed.imageHeight || 0)
         const aspect = width > 0 && height > 0 ? width / height : kind === "miniapp" ? 3 / 2 : 16 / 9
         return { kind: kind, aspect: aspect,
-                 artwork: kind !== "generic" || root.previewSource.length > 0 }
+                 artwork: kind !== "generic" || root.rawPreviewSource.length > 0 }
     }
 
     // Freeze only geometry, not metadata/actions. A cold URL gets a reserved
@@ -226,8 +214,15 @@ Superellipse {
         id: layoutReservationTimer
         interval: 0
         onTriggered: {
-            if (root.layoutReservation === null)
+            if (root.scrollMoving)
+                return
+            if (root.knownMiniApp.homeUrl
+                    || root.browserMiniAppPreview.providerKind === "miniapp") {
+                if (root.layoutReservation === null || root.layoutReservation.kind !== "miniapp")
+                    root.layoutReservation = {kind: "miniapp", aspect: 3 / 2, artwork: true}
+            } else if (root.layoutReservation === null) {
                 root.layoutReservation = root.initialLayout()
+            }
         }
     }
 
@@ -432,12 +427,17 @@ Superellipse {
             root.metadataManagedExternally ? root.externalPreview : root.resolvedPreview)
         previewReconcileTimer.restart()
     }
-    onBrowserMiniAppPreviewChanged: previewReconcileTimer.restart()
+    onKnownMiniAppChanged: layoutReservationTimer.restart()
+    onBrowserMiniAppPreviewChanged: {
+        previewReconcileTimer.restart()
+        layoutReservationTimer.restart()
+    }
     onBrowserLinkPreviewChanged: previewReconcileTimer.restart()
     onScrollMovingChanged: {
         if (root.scrollMoving) {
             metadataDeadline.stop()
         } else {
+            layoutReservationTimer.restart()
             if (root.pendingBrowserMiniAppPreview.resolved) {
                 root.browserMiniAppPreview = root.pendingBrowserMiniAppPreview
                 root.pendingBrowserMiniAppPreview = ({})

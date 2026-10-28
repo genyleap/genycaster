@@ -17,6 +17,10 @@ Item {
     property Item blurSourceItem: null
     property bool glassEnabled: false
     readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
+        && root.visible && root.width > 0 && root.height > 0
+        && root.GraphicsInfo.api !== GraphicsInfo.Software
+        && root.GraphicsInfo.api !== GraphicsInfo.Null
+        && root.GraphicsInfo.api !== GraphicsInfo.Unknown
     readonly property bool showSelectedLabel: width >= 375
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
@@ -44,16 +48,29 @@ Item {
         property string caption: ""
         property string iconGlyph: ""
         property bool displayLabel: false
-        implicitHeight: 49
-        implicitWidth: active && displayLabel ? 80 : 43
-        Behavior on implicitWidth {
-            enabled: root.animateDock
-            NumberAnimation { duration: 210; easing.type: Easing.OutCubic }
+        readonly property real iconSlot: Math.max(24, Theme.iconSizeNavigation + 2)
+        readonly property real expandedWidth: iconSlot + Theme.space1
+            + Math.ceil(captionMetrics.advanceWidth) + 16
+        readonly property bool labelVisible: active && displayLabel
+            && navigationCapsule.width >= expandedWidth + 4 * 44 + 12
+        implicitHeight: 48
+        implicitWidth: labelVisible ? expandedWidth : 44
+        leftPadding: 8
+        rightPadding: 8
+        topPadding: 0
+        bottomPadding: 0
+        LayoutMirroring.enabled: false
+        LayoutMirroring.childrenInherit: false
+
+        TextMetrics {
+            id: captionMetrics
+            font: destinationLabel.font
+            text: destination.caption
         }
         Layout.fillWidth: true
-        Layout.minimumWidth: 39
+        Layout.minimumWidth: labelVisible ? expandedWidth : 39
         Layout.preferredWidth: implicitWidth
-        Layout.preferredHeight: 49
+        Layout.preferredHeight: 48
         flat: true
         hoverEnabled: true
         text: caption
@@ -77,40 +94,39 @@ Item {
                 NumberAnimation { duration: 190; easing.type: Easing.OutCubic }
             }
         }
-        contentItem: RowLayout {
-            spacing: Theme.space1
-            layoutDirection: Theme.uiDirection
-            Item { Layout.fillWidth: true }
-            Icon {
-                text: destination.iconGlyph
-                filled: destination.active
-                preferredSize: Theme.iconSizeNavigation
-                color: destination.active ? Theme.ink : Theme.inkMuted
-                scale: destination.active ? 1.07 : 1.0
-                Behavior on scale {
-                    enabled: root.animateDock
-                    NumberAnimation { duration: 210; easing.type: Easing.OutCubic }
+        contentItem: Item {
+            clip: true
+            Row {
+                anchors.centerIn: parent
+                spacing: Theme.space1
+                layoutDirection: Theme.uiDirection
+                Icon {
+                    width: destination.iconSlot
+                    height: destination.iconSlot
+                    text: destination.iconGlyph
+                    filled: destination.active
+                    preferredSize: Theme.iconSizeNavigation
+                    color: destination.active ? Theme.ink : Theme.inkMuted
+                    Behavior on color {
+                        enabled: root.animateDock
+                        ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
+                    }
                 }
-                Behavior on color {
-                    enabled: root.animateDock
-                    ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
+                DirectionAwareLabel {
+                    id: destinationLabel
+                    visible: destination.labelVisible
+                    width: Math.ceil(captionMetrics.advanceWidth)
+                    height: destination.iconSlot
+                    text: destination.caption
+                    textFormat: Text.PlainText
+                    selectableText: false
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightDemiBold
+                    color: Theme.ink
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.NoWrap
                 }
             }
-            DirectionAwareLabel {
-                visible: destination.active && destination.displayLabel
-                opacity: visible ? 1 : 0
-                Behavior on opacity {
-                    enabled: root.animateDock
-                    NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
-                }
-                text: destination.caption
-                font.pixelSize: Theme.typeCaptionSize
-                font.weight: Theme.weightDemiBold
-                color: Theme.ink
-                Layout.maximumWidth: 67
-                elide: Text.ElideRight
-            }
-            Item { Layout.fillWidth: true }
         }
     }
 
@@ -146,13 +162,24 @@ Item {
             // repeat its edge pixels, producing the streaks visible over text
             // and high-contrast images on Safari/WebGL.
             //
-            // Source coordinates refer to the layered readingContent in its
-            // own local space. Keep overscan inside that layer's bounds so a
+            // Source coordinates refer to the active page in its own local
+            // space. Keep overscan inside that page's bounds so a
             // capsule near the viewport edge never samples transparent black.
             readonly property real blurOverscan: 36
-            readonly property point backdropOrigin: root.blurSourceItem
-                ? root.blurSourceItem.mapFromItem(navigationCapsule, 0, 0)
-                : Qt.point(0, 0)
+            readonly property point backdropOrigin: {
+                // mapFromItem() does not itself subscribe to geometry changes.
+                // Observe the dock/viewport geometry so resize, RTL and the
+                // selected label cannot leave the capture at its old position.
+                root.x; root.y; root.width; root.height
+                dockRow.x; dockRow.y
+                navigationCapsule.x; navigationCapsule.y
+                navigationCapsule.width; navigationCapsule.height
+                if (!root.blurSourceItem)
+                    return Qt.point(0, 0)
+                root.blurSourceItem.x; root.blurSourceItem.y
+                root.blurSourceItem.width; root.blurSourceItem.height
+                return root.blurSourceItem.mapFromItem(navigationCapsule, 0, 0)
+            }
             readonly property real sampleLeft: root.blurSourceItem
                 ? Math.min(blurOverscan, Math.max(0, backdropOrigin.x)) : 0
             readonly property real sampleTop: root.blurSourceItem
@@ -174,50 +201,46 @@ Item {
                         + navigationCapsule.sampleBottom
                 z: 0
 
-                // Do not crop a layered page with ShaderEffectSource.sourceRect:
-                // Qt/WASM can show the top of a cached page texture inside a
-                // bottom-anchored dock after a feed scroll or route change.
-                //
-                // Capture the *whole current viewport* at its native size,
-                // translate the texture in scene coordinates, and clip it to
-                // the small overscanned dock region. Only this compact result
-                // is fed to MultiEffect. This avoids a second sourceRect
-                // transform and keeps the crop in the same coordinate space
-                // as the visible dock on every frame.
-                Item {
-                    id: backdropWindow
+                // Capture the final, opaque page in one pass. A transparent
+                // text-only source lets the original sharp text show through
+                // its blurred alpha, especially after switching appearance.
+                ShaderEffectSource {
+                    id: capsuleBackdrop
+                    objectName: "mobileCapsuleBackdropCapture"
                     anchors.fill: parent
-                    clip: true
-                    visible: root.useBackdropBlur
-                    layer.enabled: true
-                    layer.smooth: true
+                    visible: false
+                    sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
+                    sourceRect: Qt.rect(
+                        navigationCapsule.backdropOrigin.x - navigationCapsule.sampleLeft,
+                        navigationCapsule.backdropOrigin.y - navigationCapsule.sampleTop,
+                        expandedBackdrop.width, expandedBackdrop.height)
+                    live: root.useBackdropBlur
+                    recursive: false
+                    hideSource: false
+                    smooth: true
+                }
 
-                    ShaderEffectSource {
-                        id: capsuleBackdrop
-                        objectName: "mobileCapsuleBackdropCapture"
-                        width: root.blurSourceItem ? root.blurSourceItem.width : 1
-                        height: root.blurSourceItem ? root.blurSourceItem.height : 1
-                        x: navigationCapsule.sampleLeft - navigationCapsule.backdropOrigin.x
-                        y: navigationCapsule.sampleTop - navigationCapsule.backdropOrigin.y
-                        visible: root.useBackdropBlur
-                        sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
-                        live: root.useBackdropBlur
-                        recursive: false
-                        hideSource: false
-                        smooth: true
-                        // An empty sourceRect deliberately captures the entire
-                        // layer. The viewport crop happens via x/y and clip.
-                        sourceRect: Qt.rect(0, 0, 0, 0)
-                        textureSize: Qt.size(Math.max(1, Math.ceil(width)),
-                                             Math.max(1, Math.ceil(height)))
+                // Repaint after the theme's palette bindings settle. This is
+                // owned by the dock, so there is no delayed callback after unload.
+                Timer {
+                    id: backdropRefresh
+                    interval: 0
+                    repeat: false
+                    onTriggered: {
+                        if (root.useBackdropBlur)
+                            capsuleBackdrop.scheduleUpdate()
                     }
+                }
+                Connections {
+                    target: Theme
+                    function onDarkChanged() { backdropRefresh.restart() }
                 }
 
                 Item {
                     id: capsuleMask
                     anchors.fill: parent
                     visible: false
-                    layer.enabled: true
+                    layer.enabled: root.useBackdropBlur
 
                     Rectangle {
                         x: navigationCapsule.sampleLeft
@@ -234,7 +257,7 @@ Item {
                     objectName: "mobileCapsuleGlassBlur"
                     anchors.fill: parent
                     visible: root.useBackdropBlur
-                    source: backdropWindow
+                    source: capsuleBackdrop
                     blurEnabled: true
                     blur: 0.72
                     blurMax: 32
@@ -255,7 +278,8 @@ Item {
                 z: 1
                 curveDepth: height / 2
                 exponent: 2.0
-                fillColor: Theme.dark ? "#703A4151" : "#8CFFFFFF"
+                fillColor: root.useBackdropBlur
+                    ? Theme.navigationGlassTint : Theme.surfaceElevated
                 borderWidth: 0
             }
 

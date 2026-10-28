@@ -36,6 +36,7 @@ Item {
     property bool feedStarted: false
     property bool interactionsAvailable: false
     property bool compact: false
+    property real bottomOverlayInset: 0
     property bool presentationActive: true
     property double accountFid: 0
     property bool loadMorePending: false
@@ -1757,7 +1758,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
+        anchors.bottomMargin: Math.max(Theme.space4, root.bottomOverlayInset + Theme.space3)
     }
 
     Item {

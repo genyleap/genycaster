@@ -45,6 +45,7 @@ Item {
     }
     property bool runtimeReady: false
     property bool compact: false
+    property real bottomOverlayInset: 0
     property bool busy: false
     property bool hasMore: false
     property bool offline: false
@@ -3289,7 +3290,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
+        anchors.bottomMargin: Math.max(Theme.space4, root.bottomOverlayInset + Theme.space3)
     }
     ContentRefreshIndicator {
         anchors.left: parent.left

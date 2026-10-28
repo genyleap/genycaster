@@ -19,7 +19,7 @@ test('five destinations stay in a capsule and the sixth control is independent',
   assert.ok(capsule.indexOf('objectName: "mobilePrimaryActionButton"')
     >capsule.indexOf('objectName: "mobileDockProfile"'));
   assert.match(dock,/showSelectedLabel: width >= 375/);
-  assert.match(dock,/Layout\.minimumWidth: 39/);
+  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : 39/);
   assert.match(dock,/Layout\.preferredWidth: 56/);
   assert.match(dock,/layoutDirection: Theme\.uiDirection/);
   assert.match(action,/Accessible\.name: text/);

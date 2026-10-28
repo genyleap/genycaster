@@ -461,7 +461,10 @@ Item {
                         layoutDirection: Theme.uiDirection
                         GenyComboBox {
                             objectName: "miniAppMobileTopicFilter"
-                            Layout.preferredWidth: Math.min(175, parent.width * 0.56)
+                            // Size hints must not depend on the layout they
+                            // invalidate. The outer viewport owns this budget.
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: Math.min(175, pageColumn.width * 0.56)
                             model: root.availableCategories
                             textRole: "title"
                             valueRole: "id"
