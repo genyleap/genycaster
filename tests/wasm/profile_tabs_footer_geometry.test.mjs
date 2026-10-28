@@ -34,7 +34,8 @@ test('mobile full-bleed footer no longer clips a blank gutter below scrollable c
     const footer = read('BottomNavigation.qml');
     assert.match(shell, /anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused[\s\S]*?\? mobileBottomNavigation\.height : 0/);
     assert.doesNotMatch(shell, /mobileBottomNavigation\.height \+ Theme\.space5/);
-    assert.match(footer, /anchors\.topMargin: 17\s+anchors\.bottomMargin: 23/);
+    assert.match(footer, /anchors\.topMargin: 10/);
+    assert.match(footer, /objectName: "mobilePrimaryActionButton"/);
     assert.match(footer, /y: -7\s+height: 14/);
     assert.match(footer, /anchors\.fill: parent[\s\S]*?color: root\.footerColor/);
 });

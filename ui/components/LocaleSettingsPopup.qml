@@ -797,6 +797,96 @@ GenyDrawer {
                         }
                     }
 
+
+                    // Action Button is a persistent device-local iOS-like shortcut.
+                    // The icon follows its selected safe, built-in action.
+                    ColumnLayout {
+                        objectName: "mobileActionButtonPreferences"
+                        Layout.fillWidth: true
+                        spacing: Theme.space3
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.mobile_action_title")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            text: qsTrId("genycaster.settings.mobile_action_description")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.mobile_action_function")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                        }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            columns: root.mobilePresentation ? 2 : 4
+                            columnSpacing: Theme.space2
+                            rowSpacing: Theme.space2
+
+                            Repeater {
+                                model: [
+                                    {id:"compose",icon:Theme.iconPlus,label:qsTrId("genycaster.bottom_nav.create")},
+                                    {id:"photo",icon:Theme.iconImage,label:qsTrId("genycaster.home.post_photo")},
+                                    {id:"search",icon:Theme.iconSearch,label:qsTrId("genycaster.settings.mobile_action_search")},
+                                    {id:"settings",icon:Theme.iconSettings,label:qsTrId("genycaster.settings.appearance")}
+                                ]
+                                delegate: ActionButton {
+                                    required property var modelData
+                                    objectName: "mobileActionChoice_" + modelData.id
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    compact: true
+                                    quiet: true
+                                    iconGlyph: modelData.icon
+                                    selected: Theme.mobileAction === modelData.id
+                                    text: modelData.label
+                                    onClicked: Theme.setMobileAction(modelData.id)
+                                }
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.settings.mobile_action_color")
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeMetaSize
+                        }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            columns: 3
+                            columnSpacing: Theme.space2
+                            Repeater {
+                                model: [
+                                    {id:"blue",color:"#3266FA",label:qsTrId("genycaster.settings.mobile_action_blue")},
+                                    {id:"coral",color:"#FF5267",label:qsTrId("genycaster.settings.mobile_action_coral")},
+                                    {id:"theme",color:Theme.presetFill,label:qsTrId("genycaster.settings.mobile_action_theme")}
+                                ]
+                                delegate: ActionButton {
+                                    required property var modelData
+                                    objectName: "mobileActionColor_" + modelData.id
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    compact: true
+                                    quiet: true
+                                    iconGlyph: Theme.iconCheck
+                                    customIconColor: modelData.color
+                                    selected: Theme.mobileActionColorPreset === modelData.id
+                                    text: modelData.label
+                                    onClicked: Theme.setMobileActionColor(modelData.id)
+                                }
+                            }
+                        }
+                    }
+
                     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
 
                     ColumnLayout {

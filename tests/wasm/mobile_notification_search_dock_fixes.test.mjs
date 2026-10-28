@@ -29,24 +29,29 @@ test('search handles outside taps and offers explicit clearing of results', () =
     assert.match(palette, /onClicked: root\.clearResults\(\)/);
 });
 
-test('mobile footer is full bleed dark, with curved page edge and no floating capsule', () => {
+test('mobile dock has five destinations and a separate configurable Action Button', () => {
     const nav = read('ui/components/BottomNavigation.qml');
     const shell = read('ui/components/AppShell.qml');
-    const button = read('ui/components/BottomNavButton.qml');
-    const html = read('ui/wasm/genycaster-shell.html');
-    assert.match(nav, /id: footerBackground[\s\S]*?anchors\.fill: parent[\s\S]*?color: root\.footerColor/);
-    assert.match(nav, /footerColor: "#202128"/);
-    assert.match(nav, /id: contentLowerEdge[\s\S]*?curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
-    assert.match(nav, /curveTopLeft: false[\s\S]*?curveTopRight: false/);
-    assert.match(nav, /anchors\.topMargin: 17\s+anchors\.bottomMargin: 23/);
-    assert.match(nav, /y: -7\s+height: 14/);
-    assert.doesNotMatch(nav, /id: dockSurface|glassCapture|MultiEffect|shadowEnabled: true|borderWidth: 1/);
-    assert.equal(nav.split('darkDock: true').length - 1, 6);
-    assert.match(button, /darkDock \? "#ffffff"/);
+    assert.match(nav, /objectName: "mobileNavigationCapsule"/);
+    assert.match(nav, /objectName: "mobilePrimaryActionButton"/);
+    assert.match(nav, /objectName: "mobileFooterBackground"/);
+    assert.match(nav, /objectName: "mobileContentLowerEdge"/);
+    assert.match(nav, /curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
+    for(const id of ['mobileDockHome','mobileDockExplore','mobileDockApps',
+                      'mobileBottomBookmarksButton','mobileDockProfile'])
+        assert.match(nav, new RegExp('objectName: "'+id+'"'));
+    assert.match(nav, /Layout\.preferredWidth: 56/);
+    assert.match(nav, /anchors\.topMargin: 10/);
+    assert.match(nav, /Theme\.mobileActionColor/);
+    assert.match(nav, /Theme\.mobileActionIcon/);
+    assert.match(nav, /case "photo": root\.photoRequested\(\)/);
+    assert.match(nav, /case "search": root\.searchRequested\(\)/);
+    assert.match(nav, /case "settings": root\.settingsRequested\(\)/);
+    assert.match(nav, /default: root\.createRequested\(\)/);
     assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
+    assert.match(shell, /onPhotoRequested: root\.openComposer\(null, "media"\)/);
+    assert.match(shell, /onSearchRequested: searchPalette\.open\(\)/);
     assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);
-    assert.doesNotMatch(shell, /anchors\.bottomMargin: Math\.max\(Theme\.space4, Theme\.mobileGutter\)/);
-    assert.match(html, /@media\(max-width:700px\)\{body::after\{[^}]*background-color:#202128/);
 });
 
 test('mentioned content and search controls have localized labels', () => {

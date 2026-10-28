@@ -10,6 +10,32 @@ QtObject {
         property bool enabled: false
         property bool animateAvatars: true
     }
+    // Device-local, user-customizable mobile Action Button.
+    // Persist only allowlisted capabilities, never executable commands.
+    property Settings mobileActionPreferences: Settings {
+        category: "MobileActionButton"
+        property string action: "compose"
+        property string colorPreset: "blue"
+    }
+    readonly property string mobileAction: ["compose","photo","search","settings"].indexOf(
+        mobileActionPreferences.action) >= 0 ? mobileActionPreferences.action : "compose"
+    readonly property string mobileActionColorPreset: ["blue","coral","theme"].indexOf(
+        mobileActionPreferences.colorPreset) >= 0 ? mobileActionPreferences.colorPreset : "blue"
+    readonly property color mobileActionColor: mobileActionColorPreset === "coral"
+        ? "#FF5267" : mobileActionColorPreset === "theme" ? presetFill : "#3266FA"
+    readonly property string mobileActionIcon: mobileAction === "photo" ? iconImage
+        : mobileAction === "search" ? iconSearch
+        : mobileAction === "settings" ? iconSettings : iconPlus
+    function setMobileAction(action) {
+        if(["compose","photo","search","settings"].indexOf(action)<0) return false
+        mobileActionPreferences.action=action
+        return true
+    }
+    function setMobileActionColor(preset) {
+        if(["blue","coral","theme"].indexOf(preset)<0) return false
+        mobileActionPreferences.colorPreset=preset
+        return true
+    }
     readonly property bool powerSave: energyPreferences.enabled
     readonly property bool animateAvatars: energyPreferences.animateAvatars
     function setPowerSave(enabled) { energyPreferences.enabled = Boolean(enabled) }

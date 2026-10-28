@@ -6273,5 +6273,37 @@ Company | https://company.com</source>
             <source>Onchain</source>
             <translation>فعالیت آن‌چین</translation>
         </message>
+        <message id="genycaster.settings.mobile_action_title">
+            <source>Mobile Action Button</source>
+            <translation>دکمهٔ اکشن موبایل</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_description">
+            <source>Choose what the floating button does and its color. Saved on this device.</source>
+            <translation>کارکرد و رنگ دکمهٔ شناور را انتخاب کنید. این تنظیم روی همین دستگاه ذخیره می‌شود.</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_function">
+            <source>Button action</source>
+            <translation>عملکرد دکمه</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_search">
+            <source>Search</source>
+            <translation>جست‌وجو</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_color">
+            <source>Button color</source>
+            <translation>رنگ دکمه</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_blue">
+            <source>Blue</source>
+            <translation>آبی</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_coral">
+            <source>Red</source>
+            <translation>قرمز</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_theme">
+            <source>Theme</source>
+            <translation>رنگ تم</translation>
+        </message>
     </context>
 </TS>

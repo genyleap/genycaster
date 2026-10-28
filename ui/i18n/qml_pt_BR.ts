@@ -6273,5 +6273,37 @@ Company | https://company.com</translation>
             <source>Onchain</source>
             <translation>Onchain</translation>
         </message>
+        <message id="genycaster.settings.mobile_action_title">
+            <source>Mobile Action Button</source>
+            <translation>Mobile Action Button</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_description">
+            <source>Choose what the floating button does and its color. Saved on this device.</source>
+            <translation>Choose what the floating button does and its color. Saved on this device.</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_function">
+            <source>Button action</source>
+            <translation>Button action</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_search">
+            <source>Search</source>
+            <translation>Search</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_color">
+            <source>Button color</source>
+            <translation>Button color</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_blue">
+            <source>Blue</source>
+            <translation>Blue</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_coral">
+            <source>Red</source>
+            <translation>Red</translation>
+        </message>
+        <message id="genycaster.settings.mobile_action_theme">
+            <source>Theme</source>
+            <translation>Theme</translation>
+        </message>
     </context>
 </TS>

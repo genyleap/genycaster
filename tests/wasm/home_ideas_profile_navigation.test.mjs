@@ -23,8 +23,8 @@ test('mobile nav Profile replaces redundant Settings, with guest sign-in preserv
     assert.match(header, /genycaster-wordmark\.svg/);
     assert.doesNotMatch(header, /fillColor: Theme\.primaryFill/);
     assert.match(nav, /signal profileRequested\(\)/);
-    assert.match(nav, /text: qsTrId\("genycaster\.side_nav\.profile"\)[\s\S]*?onClicked: root\.profileRequested\(\)/);
-    assert.doesNotMatch(nav, /onClicked: root\.settingsRequested\(\)/);
+    assert.match(nav, /caption: qsTrId\("genycaster\.side_nav\.profile"\)[\s\S]*?onClicked: root\.profileRequested\(\)/);
+    assert.match(nav, /case "settings": root.settingsRequested\(\); break/);
     assert.match(shell, /onProfileRequested: \{[\s\S]*?presentationBridge\.isAuthenticated[\s\S]*?root\.openMyProfileFromNavigation\(\)[\s\S]*?root\.openAccountPopup\(\)/);
     assert.match(header, /onClicked: root\.settingsRequested\(\)/);
 });

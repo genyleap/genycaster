@@ -1774,6 +1774,8 @@ Item {
                             onRouteRequested: route => root.openShellRoute(route)
                             // Primary compose bypasses the secondary action sheet.
                             onCreateRequested: root.openComposer(null)
+                            onPhotoRequested: root.openComposer(null, "media")
+                            onSearchRequested: searchPalette.open()
                             onProfileRequested: {
                                 if (presentationBridge.isAuthenticated)
                                     root.openMyProfileFromNavigation()
