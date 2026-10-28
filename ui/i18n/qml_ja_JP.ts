@@ -6097,5 +6097,33 @@ Company | https://company.com</translation>
             <source>No public GitHub events in the last 30 days</source>
             <translation>過去30日間に公開GitHubイベントはありません</translation>
         </message>
+        <message id="genycaster.activity.contributions_count">
+            <source>%1 contributions</source>
+            <translation>%1件の貢献</translation>
+        </message>
+        <message id="genycaster.activity.contributions_label">
+            <source>contributions</source>
+            <translation>貢献</translation>
+        </message>
+        <message id="genycaster.activity.day_contributions">
+            <source>%1 · %2 contributions</source>
+            <translation>%1 · %2件の貢献</translation>
+        </message>
+        <message id="genycaster.activity.github_public_calendar">
+            <source>GitHub public contribution calendar · private activity may differ</source>
+            <translation>GitHub公開貢献カレンダー · 非公開の活動は異なる場合があります</translation>
+        </message>
+        <message id="genycaster.activity.github_session_required">
+            <source>Account verification required to load contributions</source>
+            <translation>アカウント確認が必要です</translation>
+        </message>
+        <message id="genycaster.activity.previous_year">
+            <source>Previous year</source>
+            <translation>前年</translation>
+        </message>
+        <message id="genycaster.activity.next_year">
+            <source>Next year</source>
+            <translation>翌年</translation>
+        </message>
     </context>
 </TS>

@@ -6097,5 +6097,33 @@ Company | https://company.com</source>
             <source>No public GitHub events in the last 30 days</source>
             <translation>رویداد عمومی گیت‌هاب در ۳۰ روز اخیر وجود ندارد</translation>
         </message>
+        <message id="genycaster.activity.contributions_count">
+            <source>%1 contributions</source>
+            <translation>%1 مشارکت</translation>
+        </message>
+        <message id="genycaster.activity.contributions_label">
+            <source>contributions</source>
+            <translation>مشارکت</translation>
+        </message>
+        <message id="genycaster.activity.day_contributions">
+            <source>%1 · %2 contributions</source>
+            <translation>%1 · %2 مشارکت</translation>
+        </message>
+        <message id="genycaster.activity.github_public_calendar">
+            <source>GitHub public contribution calendar · private activity may differ</source>
+            <translation>تقویم مشارکت‌های عمومی GitHub · فعالیت خصوصی ممکن است متفاوت باشد</translation>
+        </message>
+        <message id="genycaster.activity.github_session_required">
+            <source>Account verification required to load contributions</source>
+            <translation>برای دریافت مشارکت‌ها تأیید حساب لازم است</translation>
+        </message>
+        <message id="genycaster.activity.previous_year">
+            <source>Previous year</source>
+            <translation>سال قبل</translation>
+        </message>
+        <message id="genycaster.activity.next_year">
+            <source>Next year</source>
+            <translation>سال بعد</translation>
+        </message>
     </context>
 </TS>

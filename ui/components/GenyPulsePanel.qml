@@ -16,6 +16,59 @@ Item {
     property string verifiedWallet: ""
     property bool expanded: false
     property string selectedDate: ""
+    property string selectedGithubDate: ""
+    property int githubYear: new Date().getUTCFullYear()
+    property string githubRange: compact ? "3m" : "1y"
+    readonly property var githubContributionData: genyPulseActivity.githubContributions
+    readonly property bool githubContributionsReady:
+        githubContributionData.status==="ok"
+        && String(githubContributionData.username || "").toLowerCase()===
+           effectiveGithubLogin.toLowerCase()
+        && Number(githubContributionData.year || 0)===githubYear
+    readonly property var githubContributionDays: githubContributionMap(githubContributionData.days)
+    readonly property int githubYearMax: new Date().getUTCFullYear()
+    readonly property int githubEndMonth: githubYear===githubYearMax ? new Date().getUTCMonth() : 11
+    readonly property int githubFirstMonth: githubRange==="1m" ? githubEndMonth
+        : githubRange==="3m" ? Math.max(0,githubEndMonth-2) : 0
+    readonly property int githubStartRangeDay:
+        Math.floor(Date.UTC(githubYear,githubFirstMonth,1)/86400000)
+    readonly property int githubLastRangeDay:
+        Math.min(Math.floor(Date.UTC(githubYear,githubEndMonth+1,0)/86400000),
+                 githubYear===githubYearMax ? todayDay : 999999)
+    readonly property int githubStartWeekDay:
+        new Date(githubStartRangeDay*86400000).getUTCDay()
+    readonly property int githubGridStart: githubStartRangeDay-githubStartWeekDay
+    readonly property int githubWeeks:
+        Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
+    readonly property int githubTileWidth: Math.max(9,Math.min(17,
+        Math.floor((githubContent.width-(githubWeeks-1)*gapSize)/githubWeeks)))
+    readonly property int githubTileHeight: Math.max(9,Math.min(16,Math.round(githubTileWidth*0.85)))
+    readonly property int githubGridWidth: githubWeeks*githubTileWidth+(githubWeeks-1)*gapSize
+    readonly property int githubVisibleTotal: {
+        if(!githubContributionsReady)return 0
+        let total=0
+        for(let day=githubStartRangeDay;day<=githubLastRangeDay;++day)
+            total+=Number((githubContributionDays[dayString(day)]||{}).count || 0)
+        return total
+    }
+    function githubContributionMap(days) {
+        const map=({})
+        if(!days || typeof days.length!=="number")return map
+        for(let i=0;i<days.length && i<366;++i) {
+            const row=days[i]||({})
+            const date=String(row.date||"")
+            if(/^\d{4}-\d{2}-\d{2}$/.test(date))
+                map[date]={count:Number(row.count||0),level:Number(row.level||0)}
+        }
+        return map
+    }
+    function githubTileColor(level) {
+        const colors=Theme.dark
+          ? ["#232A27","#0E4429","#006D32","#26A641","#39D353"]
+          : ["#E8EBE9","#9BE9A8","#40C463","#30A14E","#216E39"]
+        return colors[Math.max(0,Math.min(4,level))] || colors[0]
+    }
+
     signal connectionsRequested()
 
     readonly property var farcasterData: genyPulseActivity.farcaster
@@ -76,6 +129,7 @@ Item {
         if(status==="rate-limited")return qsTrId("genycaster.activity.rate_limited")
         if(status==="not-found")return qsTrId("genycaster.activity.github_not_found")
         if(status==="partial")return qsTrId("genycaster.activity.partial")
+        if(status==="authorization-required")return qsTrId("genycaster.activity.github_session_required")
         if(status==="ok" && source.source==="github-events" && Number(source.count || 0)===0)
             return qsTrId("genycaster.activity.no_recent_github")
         if(status==="ok")return qsTrId("genycaster.activity.recent")
@@ -89,9 +143,15 @@ Item {
             genyPulseActivity.requestGitHubId(githubAccountId)
         else genyPulseActivity.requestGitHub("")
         genyPulseActivity.setVerifiedWallet(verifiedWallet)
+        refreshGithubCalendar()
         if(!farcasterReady)selectedDate=""
     }
 
+    function refreshGithubCalendar() {
+        genyPulseActivity.requestGitHubContributions(isOwnProfile ? effectiveGithubLogin : "",githubYear)
+    }
+    onEffectiveGithubLoginChanged: refreshGithubCalendar()
+    onGithubYearChanged: refreshGithubCalendar()
     onProfileFidChanged: refreshTimer.restart()
     onVerifiedGitHubChanged: refreshTimer.restart()
     onGithubAccountIdChanged: refreshTimer.restart()
@@ -332,7 +392,7 @@ Item {
                             Label {
                                 Layout.fillWidth: true
                                 text: root.effectiveGithubLogin.length>0
-                                      ? "@" + root.effectiveGithubLogin + " · " + root.sourceSubtitle(root.githubData)
+                                      ? "@" + root.effectiveGithubLogin + " · " + root.sourceSubtitle(root.githubContributionData)
                                       : root.githubLinked
                                         ? root.githubAccountId.length>0
                                           ? root.sourceSubtitle(root.githubData)
@@ -344,8 +404,8 @@ Item {
                             }
                         }
                         Label {
-                            visible: root.githubReady
-                            text: qsTrId("genycaster.activity.events").arg(root.githubData.count || 0)
+                            visible: root.githubContributionsReady
+                            text: qsTrId("genycaster.activity.contributions_count").arg(root.githubVisibleTotal)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                         }
@@ -360,43 +420,140 @@ Item {
                         }
                     }
 
-                    ColumnLayout {
-                        visible: root.githubReady
+                    GridLayout {
                         Layout.fillWidth: true
-                        spacing: Theme.space2
-                        Item {
+                        columns: githubContent.width < 410 ? 1 : 2
+                        rowSpacing: Theme.space1
+                        columnSpacing: Theme.space2
+
+                        RowLayout {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 2 * root.githubCellHeight + root.gapSize
-                            Row {
-                                width: parent.width
-                                spacing: root.gapSize
-                                Repeater {
-                                    model: root.githubColumns
-                                    delegate: Column {
-                                        required property int index
-                                        spacing: root.gapSize
-                                        Repeater {
-                                            model: 2
-                                            delegate: Rectangle {
-                                                required property int index
-                                                readonly property int day: root.todayDay - 29 + parent.index*2 + index
-                                                width: root.githubCellSize
-                                                height: root.githubCellHeight
-                                                radius: 4
-                                                color: root.tileColor(root.countAt(root.githubDays,day),"github")
+                            spacing: Theme.space1
+                            ActionButton {
+                                compact: true; quiet: true; elevated: false; pill: true
+                                iconOnly: true
+                                iconGlyph: Theme.iconChevronLeft
+                                text: qsTrId("genycaster.activity.previous_year")
+                                enabled: root.githubYear>2014
+                                onClicked: { root.githubYear--; root.selectedGithubDate="" }
+                            }
+                            Label {
+                                text: String(root.githubYear)
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                                Layout.minimumWidth: 40
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            ActionButton {
+                                compact: true; quiet: true; elevated: false; pill: true
+                                iconOnly: true
+                                iconGlyph: Theme.iconChevronRight
+                                text: qsTrId("genycaster.activity.next_year")
+                                enabled: root.githubYear<root.githubYearMax
+                                onClicked: { root.githubYear++; root.selectedGithubDate="" }
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space1
+                            Repeater {
+                                model: ["1m","3m","1y"]
+                                delegate: ActionButton {
+                                    required property string modelData
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    quiet: root.githubRange!==modelData
+                                    selected: root.githubRange===modelData
+                                    elevated: false
+                                    pill: true
+                                    text: modelData.toUpperCase()
+                                    onClicked: {
+                                        root.githubRange=modelData
+                                        root.selectedGithubDate=""
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        visible: root.githubContributionsReady
+                        text: root.githubVisibleTotal+" "+
+                              qsTrId("genycaster.activity.contributions_label")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                    }
+                    Flickable {
+                        id: githubCalendarViewport
+                        visible: root.githubContributionsReady
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 7*root.githubTileHeight+6*root.gapSize
+                        clip: true
+                        contentWidth: root.githubGridWidth
+                        contentHeight: height
+                        flickableDirection: Flickable.HorizontalFlick
+                        boundsBehavior: Flickable.StopAtBounds
+                        onContentWidthChanged: contentX=Math.max(0,contentWidth-width)
+                        Row {
+                            spacing: root.gapSize
+                            Repeater {
+                                model: root.githubWeeks
+                                delegate: Column {
+                                    required property int index
+                                    spacing: root.gapSize
+                                    Repeater {
+                                        model: 7
+                                        delegate: Rectangle {
+                                            required property int index
+                                            readonly property int day:
+                                                root.githubGridStart+parent.index*7+index
+                                            readonly property bool inRange:
+                                                day>=root.githubStartRangeDay &&
+                                                day<=root.githubLastRangeDay
+                                            readonly property string date: root.dayString(day)
+                                            readonly property var datum:
+                                                root.githubContributionDays[date] || ({})
+                                            width: root.githubTileWidth
+                                            height: root.githubTileHeight
+                                            radius: 3
+                                            color: inRange ? root.githubTileColor(Number(datum.level || 0))
+                                                           : "transparent"
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                enabled: parent.inRange
+                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                                onClicked: root.selectedGithubDate=parent.date
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.activity.github_window")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
-                        }
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        visible: root.githubContributionsReady && root.selectedGithubDate.length>0
+                        text: qsTrId("genycaster.activity.day_contributions")
+                            .arg(root.selectedGithubDate)
+                            .arg(Number((root.githubContributionDays[root.selectedGithubDate]||{}).count || 0))
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.githubContributionsReady
+                              ? qsTrId("genycaster.activity.github_public_calendar")
+                              : root.effectiveGithubLogin.length>0
+                                ? root.sourceSubtitle(root.githubContributionData)
+                                : root.githubLinked ? qsTrId("genycaster.activity.github_identity_pending")
+                                                    : qsTrId("genycaster.activity.not_linked")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                        elide: Text.ElideRight
                     }
                 }
             }
