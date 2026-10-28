@@ -60,8 +60,8 @@ test('compact 91-day Casts view shares GitHub day-cell sizing',()=>{
   assert.ok(qml.includes('ColumnLayout {\n            id: activityGrid'));
   assert.match(qml,/readonly property int cellSize: githubTileWidth/);
   assert.match(qml,/readonly property int cellHeight: githubTileHeight/);
-  assert.match(qml,/Layout.preferredWidth: root.castsGridWidth/);
-  assert.match(qml,/Layout.alignment: Qt.AlignRight/);
+  assert.match(qml,/anchors.horizontalCenter: parent.horizontalCenter/);
+  assert.doesNotMatch(qml,/Layout.alignment: Qt.AlignRight \| Qt.AlignVCenter/);
   assert.match(qml,/text: "Casts"/);
   assert.match(qml,/text: Theme.iconCompose/);
   assert.ok(!qml.includes('text: "Farcaster"'));
@@ -74,21 +74,21 @@ test('compact 91-day Casts view shares GitHub day-cell sizing',()=>{
   }
 });
 
-test('month and quarter maintain annual cell size and trail at right edge',()=>{
-  assert.match(qml,/readonly property int githubTileWidth: root.width>=744 \? 12 : 10/);
+test('monthly, quarterly and yearly views retain the same calendar geometry',()=>{
+  assert.match(qml,/readonly property int githubCalendarFirstDay:/);
+  assert.match(qml,/readonly property int githubCalendarLastDay:/);
+  assert.match(qml,/githubGridStart: githubCalendarFirstDay-/);
+  assert.match(qml,/githubCalendarLastDay-githubGridStart\+1/);
   assert.match(qml,/contentWidth: Math.max\(width, root.githubGridWidth\)/);
-  assert.match(qml,/x: Math.max\(0, githubCalendarViewport.width-root.githubGridWidth\)/);
-  assert.match(qml,/onGithubRangeChanged\(\)/);
-  assert.match(qml,/function showLatest\(\)/);
-  assert.match(qml,/root.githubWeeks/);
-  // Short ranges are placed against the right edge rather than at x=0.
-  for(const viewport of [300,375,740]){
-    const tile=viewport>=720?12:10, gap=3;
-    for(const weeks of [5,14,53]){
-      const grid=weeks*tile+(weeks-1)*gap;
-      const x=Math.max(0,viewport-grid);
-      assert.equal(x+grid,Math.max(viewport,grid));
-    }
+  assert.match(qml,/x: Math.max\(0, \(githubCalendarViewport.width-root.githubGridWidth\)\/2\)/);
+  assert.match(qml,/inCalendar && day>=root.githubStartRangeDay/);
+  assert.match(qml,/Theme.dark \? "#282B33" : "#E9EBEF"/);
+  assert.match(qml,/enabled: parent.inRange/);
+  for(const cell of [10,12]){
+    const fullWeeks=44, gap=3;
+    const fullWidth=fullWeeks*cell+(fullWeeks-1)*gap;
+    for(const range of ['1m','3m','1y'])
+      assert.equal(fullWeeks*cell+(fullWeeks-1)*gap,fullWidth,range);
   }
 });
 

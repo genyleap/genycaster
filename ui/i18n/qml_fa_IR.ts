@@ -6110,8 +6110,8 @@ Company | https://company.com</source>
             <translation>%1 · %2 مشارکت</translation>
         </message>
         <message id="genycaster.activity.github_public_calendar">
-            <source>GitHub public contribution calendar · private activity may differ</source>
-            <translation>تقویم مشارکت‌های عمومی GitHub · فعالیت خصوصی ممکن است متفاوت باشد</translation>
+            <source>Public contributions only</source>
+            <translation>فقط مشارکت‌های عمومی</translation>
         </message>
         <message id="genycaster.activity.github_session_required">
             <source>Account verification required to load contributions</source>

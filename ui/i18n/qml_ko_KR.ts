@@ -6110,8 +6110,8 @@ Company | https://company.com</translation>
             <translation>%1 · 기여 %2건</translation>
         </message>
         <message id="genycaster.activity.github_public_calendar">
-            <source>GitHub public contribution calendar · private activity may differ</source>
-            <translation>GitHub 공개 기여 캘린더 · 비공개 활동은 다를 수 있음</translation>
+            <source>Public contributions only</source>
+            <translation>공개 기여만 표시</translation>
         </message>
         <message id="genycaster.activity.github_session_required">
             <source>Account verification required to load contributions</source>

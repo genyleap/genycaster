@@ -6110,8 +6110,8 @@ Company | https://company.com</translation>
             <translation>%1 · вкладов: %2</translation>
         </message>
         <message id="genycaster.activity.github_public_calendar">
-            <source>GitHub public contribution calendar · private activity may differ</source>
-            <translation>Публичный календарь GitHub · частная активность может отличаться</translation>
+            <source>Public contributions only</source>
+            <translation>Только публичный вклад</translation>
         </message>
         <message id="genycaster.activity.github_session_required">
             <source>Account verification required to load contributions</source>

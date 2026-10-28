@@ -35,11 +35,17 @@ Item {
     readonly property int githubLastRangeDay:
         Math.min(Math.floor(Date.UTC(githubYear,githubEndMonth+1,0)/86400000),
                  githubYear===githubYearMax ? todayDay : 999999)
-    readonly property int githubStartWeekDay:
-        new Date(githubStartRangeDay*86400000).getUTCDay()
-    readonly property int githubGridStart: githubStartRangeDay-githubStartWeekDay
+    // A stable year-to-date calendar for ALL range filters. The filtered
+    // months stay at the end; older dates remain neutral rather than leaving
+    // an empty half-card when the user chooses 1M or 3M.
+    readonly property int githubCalendarFirstDay:
+        Math.floor(Date.UTC(githubYear,0,1)/86400000)
+    readonly property int githubCalendarLastDay:
+        Math.min(Math.floor(Date.UTC(githubYear+1,0,0)/86400000),todayDay)
+    readonly property int githubGridStart: githubCalendarFirstDay-
+        new Date(githubCalendarFirstDay*86400000).getUTCDay()
     readonly property int githubWeeks:
-        Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
+        Math.ceil((githubCalendarLastDay-githubGridStart+1)/7)
     // Keep a fixed calendar scale across 1M / 3M / 1Y. Shorter
     // periods occupy the RIGHT edge of the same viewport, not the left.
     readonly property int githubTileWidth: root.width>=744 ? 12 : 10
@@ -267,61 +273,35 @@ Item {
                     }
                 }
 
-                RowLayout {
+                // A centered, self-contained calendar: never split the day
+                // count and the grid across opposite ends of a large card.
+                Item {
                     Layout.fillWidth: true
-                    spacing: Theme.space2
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        Layout.alignment: Qt.AlignVCenter
-                        spacing: Theme.space1
-                        Label {
-                            Layout.fillWidth: true
-                            text: root.farcasterReady
-                                  ? String(root.farcasterData.days.length)
-                                  : "—"
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeTitle3Size
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.activity.active_days")
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeCaptionSize
-                            elide: Text.ElideRight
-                        }
-                    }
-
-                    Item {
-                        Layout.preferredWidth: root.castsGridWidth
-                        Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
-                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                        Row {
-                            id: calendarRow
-                            spacing: root.gapSize
-                            Repeater {
-                                model: root.weeks
-                                delegate: Column {
-                                    required property int index
-                                    spacing: root.gapSize
-                                    Repeater {
-                                        model: 7
-                                        delegate: Rectangle {
-                                            required property int index
-                                            readonly property int day: root.firstDay + parent.index*7 + index
-                                            readonly property int value: root.countAt(root.farcasterDays, day)
-                                            width: root.cellSize
-                                            height: root.cellHeight
-                                            radius: 3
-                                            color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                enabled: root.farcasterReady && parent.value>0
-                                                onClicked: root.selectedDate = root.dayString(parent.day)
-                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                            }
+                    Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
+                    Row {
+                        id: calendarRow
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: root.gapSize
+                        Repeater {
+                            model: root.weeks
+                            delegate: Column {
+                                required property int index
+                                spacing: root.gapSize
+                                Repeater {
+                                    model: 7
+                                    delegate: Rectangle {
+                                        required property int index
+                                        readonly property int day: root.firstDay + parent.index*7 + index
+                                        readonly property int value: root.countAt(root.farcasterDays, day)
+                                        width: root.cellSize
+                                        height: root.cellHeight
+                                        radius: 3
+                                        color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            enabled: root.farcasterReady && parent.value>0
+                                            onClicked: root.selectedDate = root.dayString(parent.day)
+                                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                         }
                                     }
                                 }
@@ -331,13 +311,15 @@ Item {
                 }
 
                 Label {
-                    visible: root.selectedDate.length>0 || !root.farcasterReady
                     Layout.fillWidth: true
                     text: root.selectedDate.length>0 && root.farcasterReady
                           ? qsTrId("genycaster.activity.day_summary")
                                 .arg(root.selectedDate)
                                 .arg(root.farcasterDays[root.selectedDate] || 0)
-                          : root.sourceSubtitle(root.farcasterData)
+                          : root.farcasterReady
+                            ? qsTrId("genycaster.activity.active_days")
+                                + ": " + Number(root.farcasterData.days.length)
+                            : root.sourceSubtitle(root.farcasterData)
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     elide: Text.ElideRight
@@ -400,7 +382,7 @@ Item {
                             Label {
                                 Layout.fillWidth: true
                                 text: root.effectiveGithubLogin.length>0
-                                      ? "@" + root.effectiveGithubLogin + " · " + root.sourceSubtitle(root.githubContributionData)
+                                      ? "@" + root.effectiveGithubLogin
                                       : root.githubLinked
                                         ? root.githubAccountId.length>0
                                           ? root.sourceSubtitle(root.githubData)
@@ -487,14 +469,6 @@ Item {
                         }
                     }
 
-                    Label {
-                        Layout.fillWidth: true
-                        visible: root.githubContributionsReady
-                        text: root.githubVisibleTotal+" "+
-                              qsTrId("genycaster.activity.contributions_label")
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.inkMuted
-                    }
                     Flickable {
                         id: githubCalendarViewport
                         visible: root.githubContributionsReady
@@ -523,7 +497,7 @@ Item {
                             }
                         }
                         Row {
-                            x: Math.max(0, githubCalendarViewport.width-root.githubGridWidth)
+                            x: Math.max(0, (githubCalendarViewport.width-root.githubGridWidth)/2)
                             spacing: root.gapSize
                             Repeater {
                                 model: root.githubWeeks
@@ -536,8 +510,11 @@ Item {
                                             required property int index
                                             readonly property int day:
                                                 root.githubGridStart+parent.index*7+index
+                                            readonly property bool inCalendar:
+                                                day>=root.githubCalendarFirstDay &&
+                                                day<=root.githubCalendarLastDay
                                             readonly property bool inRange:
-                                                day>=root.githubStartRangeDay &&
+                                                inCalendar && day>=root.githubStartRangeDay &&
                                                 day<=root.githubLastRangeDay
                                             readonly property string date: root.dayString(day)
                                             readonly property var datum:
@@ -545,8 +522,9 @@ Item {
                                             width: root.githubTileWidth
                                             height: root.githubTileHeight
                                             radius: 3
-                                            color: inRange ? root.githubTileColor(Number(datum.level || 0))
-                                                           : "transparent"
+                                            color: !inCalendar ? "transparent"
+                                                : inRange ? root.githubTileColor(Number(datum.level || 0))
+                                                : (Theme.dark ? "#282B33" : "#E9EBEF")
                                             MouseArea {
                                                 anchors.fill: parent
                                                 enabled: parent.inRange

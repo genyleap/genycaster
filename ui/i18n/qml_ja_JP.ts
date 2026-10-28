@@ -6110,8 +6110,8 @@ Company | https://company.com</translation>
             <translation>%1 · %2件の貢献</translation>
         </message>
         <message id="genycaster.activity.github_public_calendar">
-            <source>GitHub public contribution calendar · private activity may differ</source>
-            <translation>GitHub公開貢献カレンダー · 非公開の活動は異なる場合があります</translation>
+            <source>Public contributions only</source>
+            <translation>公開貢献のみ</translation>
         </message>
         <message id="genycaster.activity.github_session_required">
             <source>Account verification required to load contributions</source>
