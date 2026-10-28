@@ -35,22 +35,19 @@ Item {
     readonly property int githubLastRangeDay:
         Math.min(Math.floor(Date.UTC(githubYear,githubEndMonth+1,0)/86400000),
                  githubYear===githubYearMax ? todayDay : 999999)
-    // A stable year-to-date calendar for ALL range filters. The filtered
-    // months stay at the end; older dates remain neutral rather than leaving
-    // an empty half-card when the user chooses 1M or 3M.
-    readonly property int githubCalendarFirstDay:
-        Math.floor(Date.UTC(githubYear,0,1)/86400000)
-    readonly property int githubCalendarLastDay:
-        Math.min(Math.floor(Date.UTC(githubYear+1,0,0)/86400000),todayDay)
-    readonly property int githubGridStart: githubCalendarFirstDay-
-        new Date(githubCalendarFirstDay*86400000).getUTCDay()
+    // Every selected range owns the full width of the calendar viewport:
+    // there is no artificial padded year that wastes its left half.
+    readonly property int githubGridStart: githubStartRangeDay-
+        new Date(githubStartRangeDay*86400000).getUTCDay()
     readonly property int githubWeeks:
-        Math.ceil((githubCalendarLastDay-githubGridStart+1)/7)
-    // Keep a fixed calendar scale across 1M / 3M / 1Y. Shorter
-    // periods occupy the RIGHT edge of the same viewport, not the left.
-    readonly property int githubTileWidth: root.width>=744 ? 12 : 10
-    readonly property int githubTileHeight: githubTileWidth
-    readonly property int githubGridWidth: githubWeeks*githubTileWidth+(githubWeeks-1)*gapSize
+        Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
+    // Responsive geometry keeps cells evenly distributed from left to right.
+    // A monthly view uses short horizontal tiles, never giant square blocks.
+    readonly property int githubGapSize: githubWeeks>24 ? 1 : gapSize
+    readonly property real githubTileWidth: Math.max(4,
+        (githubContent.width - (githubWeeks-1)*githubGapSize)/Math.max(1,githubWeeks))
+    readonly property int githubTileHeight: githubWeeks>24 ? 8 : 11
+    readonly property real githubGridWidth: githubWeeks*githubTileWidth+(githubWeeks-1)*githubGapSize
     readonly property int githubVisibleTotal: {
         if(!githubContributionsReady)return 0
         let total=0
@@ -84,11 +81,12 @@ Item {
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
     readonly property int weeks: 13
     readonly property int gapSize: 3
-    // Casts should use the same small square cadence as GitHub.
-    // Keep the 91-day coverage explicit rather than inventing older days.
-    readonly property int cellSize: githubTileWidth
-    readonly property int cellHeight: githubTileHeight
-    readonly property int castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
+    // Fit all 13 observed weeks to the content's full available width.
+    // The slim row height keeps the purple activity cells lightweight.
+    readonly property real cellSize: Math.max(8,
+        (farcasterContent.width-(weeks-1)*gapSize)/weeks)
+    readonly property int cellHeight: 11
+    readonly property real castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
     readonly property bool hasOnchainActivity: verifiedWallet.length>0
         && (walletData.status==="ok" || walletData.status==="partial")
     readonly property bool hasOptionalSources: githubLinked || hasOnchainActivity
@@ -280,7 +278,7 @@ Item {
                     Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
                     Row {
                         id: calendarRow
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        x: 0
                         spacing: root.gapSize
                         Repeater {
                             model: root.weeks
@@ -393,79 +391,74 @@ Item {
                                 elide: Text.ElideRight
                             }
                         }
+                        RowLayout {
+                            // Compact, theme-styled filters live in the upper-right
+                            // instead of taking an entire row of the profile.
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                            spacing: Theme.space1
+                            Repeater {
+                                model: ["1m", "3m", "1y"]
+                                delegate: ActionButton {
+                                    required property string modelData
+                                    Layout.preferredWidth: 39
+                                    Layout.preferredHeight: 27
+                                    leftPadding: 3
+                                    rightPadding: 3
+                                    compact: true
+                                    quiet: root.githubRange !== modelData
+                                    selected: root.githubRange === modelData
+                                    elevated: false
+                                    pill: true
+                                    text: modelData.toUpperCase()
+                                    onClicked: {
+                                        root.githubRange = modelData
+                                        root.selectedGithubDate = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        ActionButton {
+                            compact: true; quiet: true; elevated: false; pill: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconArrowLeft
+                            text: qsTrId("genycaster.activity.previous_year")
+                            enabled: root.githubYear>2014
+                            onClicked: { root.githubYear--; root.selectedGithubDate="" }
+                        }
+                        Label {
+                            text: String(root.githubYear)
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeCaptionSize
+                            font.weight: Theme.weightDemiBold
+                            Layout.minimumWidth: 40
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        ActionButton {
+                            compact: true; quiet: true; elevated: false; pill: true
+                            iconOnly: true
+                            iconGlyph: Theme.iconArrowRight
+                            text: qsTrId("genycaster.activity.next_year")
+                            enabled: root.githubYear<root.githubYearMax
+                            onClicked: { root.githubYear++; root.selectedGithubDate="" }
+                        }
+                        Item { Layout.fillWidth: true }
                         Label {
                             visible: root.githubContributionsReady
                             text: qsTrId("genycaster.activity.contributions_count").arg(root.githubVisibleTotal)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
                         }
                         ActionButton {
-                            visible: root.isOwnProfile && (!root.githubLinked || (!root.effectiveGithubLogin.length && !root.githubAccountId.length))
-                            compact: true
-                            quiet: false
-                            elevated: false
-                            pill: true
+                            visible: root.isOwnProfile && root.effectiveGithubLogin.length===0
+                            compact: true; quiet: false; elevated: false; pill: true
                             text: qsTrId("genycaster.activity.manage")
                             onClicked: root.connectionsRequested()
-                        }
-                    }
-
-                    GridLayout {
-                        Layout.fillWidth: true
-                        columns: githubContent.width < 410 ? 1 : 2
-                        rowSpacing: Theme.space1
-                        columnSpacing: Theme.space2
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            ActionButton {
-                                compact: true; quiet: true; elevated: false; pill: true
-                                iconOnly: true
-                                iconGlyph: Theme.iconArrowLeft
-                                text: qsTrId("genycaster.activity.previous_year")
-                                enabled: root.githubYear>2014
-                                onClicked: { root.githubYear--; root.selectedGithubDate="" }
-                            }
-                            Label {
-                                text: String(root.githubYear)
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
-                                Layout.minimumWidth: 40
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            ActionButton {
-                                compact: true; quiet: true; elevated: false; pill: true
-                                iconOnly: true
-                                iconGlyph: Theme.iconArrowRight
-                                text: qsTrId("genycaster.activity.next_year")
-                                enabled: root.githubYear<root.githubYearMax
-                                onClicked: { root.githubYear++; root.selectedGithubDate="" }
-                            }
-                            Item { Layout.fillWidth: true }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space1
-                            Repeater {
-                                model: ["1m","3m","1y"]
-                                delegate: ActionButton {
-                                    required property string modelData
-                                    Layout.fillWidth: true
-                                    compact: true
-                                    quiet: root.githubRange!==modelData
-                                    selected: root.githubRange===modelData
-                                    elevated: false
-                                    pill: true
-                                    text: modelData.toUpperCase()
-                                    onClicked: {
-                                        root.githubRange=modelData
-                                        root.selectedGithubDate=""
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -473,48 +466,27 @@ Item {
                         id: githubCalendarViewport
                         visible: root.githubContributionsReady
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 7*root.githubTileHeight+6*root.gapSize
+                        Layout.preferredHeight: 7*root.githubTileHeight+6*root.githubGapSize
                         clip: true
-                        contentWidth: Math.max(width, root.githubGridWidth)
+                        contentWidth: width
                         contentHeight: height
-                        flickableDirection: Flickable.HorizontalFlick
-                        boundsBehavior: Flickable.StopAtBounds
-                        function showLatest() {
-                            contentX=Math.max(0,contentWidth-width)
-                        }
-                        // Keep short ranges at the trailing/right edge, and
-                        // show the most recent dates when 1Y overflows.
-                        onContentWidthChanged: Qt.callLater(showLatest)
-                        onWidthChanged: Qt.callLater(showLatest)
-                        onVisibleChanged: if (visible) Qt.callLater(showLatest)
-                        Connections {
-                            target: root
-                            function onGithubRangeChanged() {
-                                Qt.callLater(githubCalendarViewport.showLatest)
-                            }
-                            function onGithubYearChanged() {
-                                Qt.callLater(githubCalendarViewport.showLatest)
-                            }
-                        }
+                        interactive: false
                         Row {
-                            x: Math.max(0, (githubCalendarViewport.width-root.githubGridWidth)/2)
-                            spacing: root.gapSize
+                            x: 0
+                            spacing: root.githubGapSize
                             Repeater {
                                 model: root.githubWeeks
                                 delegate: Column {
                                     required property int index
-                                    spacing: root.gapSize
+                                    spacing: root.githubGapSize
                                     Repeater {
                                         model: 7
                                         delegate: Rectangle {
                                             required property int index
                                             readonly property int day:
                                                 root.githubGridStart+parent.index*7+index
-                                            readonly property bool inCalendar:
-                                                day>=root.githubCalendarFirstDay &&
-                                                day<=root.githubCalendarLastDay
                                             readonly property bool inRange:
-                                                inCalendar && day>=root.githubStartRangeDay &&
+                                                day>=root.githubStartRangeDay &&
                                                 day<=root.githubLastRangeDay
                                             readonly property string date: root.dayString(day)
                                             readonly property var datum:
@@ -522,9 +494,9 @@ Item {
                                             width: root.githubTileWidth
                                             height: root.githubTileHeight
                                             radius: 3
-                                            color: !inCalendar ? "transparent"
-                                                : inRange ? root.githubTileColor(Number(datum.level || 0))
-                                                : (Theme.dark ? "#282B33" : "#E9EBEF")
+                                            color: inRange
+                                                ? root.githubTileColor(Number(datum.level || 0))
+                                                : "transparent"
                                             MouseArea {
                                                 anchors.fill: parent
                                                 enabled: parent.inRange

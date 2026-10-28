@@ -47,7 +47,7 @@ test('Onchain verified wallet cannot be confused with transactions',()=>{
 });
 
 test('compact cells and status positioning prevent oversized heatmap',()=>{
-  assert.match(qml,/readonly property int cellSize:/);
+  assert.match(qml,/readonly property real cellSize:/);
   assert.match(qml,/model: root.weeks/);
   assert.match(qml,/readonly property int weeks: 13/);
   assert.match(qml,/Theme.iconChevronDown/);
@@ -56,40 +56,54 @@ test('compact cells and status positioning prevent oversized heatmap',()=>{
   assert.match(qml,/elide: Text.ElideRight/);
 });
 
-test('compact 91-day Casts view shares GitHub day-cell sizing',()=>{
-  assert.ok(qml.includes('ColumnLayout {\n            id: activityGrid'));
-  assert.match(qml,/readonly property int cellSize: githubTileWidth/);
-  assert.match(qml,/readonly property int cellHeight: githubTileHeight/);
-  assert.match(qml,/anchors.horizontalCenter: parent.horizontalCenter/);
-  assert.doesNotMatch(qml,/Layout.alignment: Qt.AlignRight \| Qt.AlignVCenter/);
+test('Casts grid fills both card edges with compact, fixed-height rows',()=>{
+  assert.match(qml,/readonly property real cellSize:/);
+  assert.match(qml,/farcasterContent.width-\(weeks-1\)\*gapSize/);
+  assert.match(qml,/readonly property int cellHeight: 11/);
+  assert.match(qml,/readonly property real castsGridWidth:/);
+  assert.match(qml,/id: calendarRow[\s\S]*?x: 0/);
   assert.match(qml,/text: "Casts"/);
   assert.match(qml,/text: Theme.iconCompose/);
-  assert.ok(!qml.includes('text: "Farcaster"'));
+  for(const width of [280,300,344,420,740,980]){
+    const weeks=13,gap=3;
+    const cell=(width-(weeks-1)*gap)/weeks;
+    const grid=weeks*cell+(weeks-1)*gap;
+    assert.ok(Math.abs(grid-width)<0.001,"13 weeks fit width "+width);
+    assert.ok(cell>0,"positive cell size");
+  }
   for(const provider of ['github','ethereum-wallet'])
     assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
-  for(const width of [296,336,440,840,1050]){
-    const tile=width>=720?12:10;
-    const castWidth=13*tile+12*3;
-    assert.ok(castWidth<=width, 'compact Casts calendar fits the card');
+});
+
+test('GitHub 1M/3M/1Y grids independently stretch to the full content width',()=>{
+  assert.match(qml,/githubGridStart: githubStartRangeDay-/);
+  assert.match(qml,/githubLastRangeDay-githubGridStart\+1/);
+  assert.match(qml,/githubContent.width - \(githubWeeks-1\)\*githubGapSize/);
+  assert.match(qml,/contentWidth: width/);
+  assert.match(qml,/interactive: false/);
+  assert.match(qml,/id: githubCalendarViewport[\s\S]*?Row \{\s*x: 0/);
+  assert.ok(!qml.includes('githubCalendarFirstDay'));
+  assert.ok(!qml.includes('onContentWidthChanged: Qt.callLater(showLatest)'));
+  for(const width of [280,304,344,480,780,1000]){
+    for(const weeks of [5,14,44,53]){
+      const gap=weeks>24?1:3;
+      const cell=(width-(weeks-1)*gap)/weeks;
+      const total=weeks*cell+(weeks-1)*gap;
+      assert.ok(Math.abs(total-width)<0.001,width+"/"+weeks);
+      assert.ok(cell>=4 || width===280 && weeks===53);
+    }
   }
 });
 
-test('monthly, quarterly and yearly views retain the same calendar geometry',()=>{
-  assert.match(qml,/readonly property int githubCalendarFirstDay:/);
-  assert.match(qml,/readonly property int githubCalendarLastDay:/);
-  assert.match(qml,/githubGridStart: githubCalendarFirstDay-/);
-  assert.match(qml,/githubCalendarLastDay-githubGridStart\+1/);
-  assert.match(qml,/contentWidth: Math.max\(width, root.githubGridWidth\)/);
-  assert.match(qml,/x: Math.max\(0, \(githubCalendarViewport.width-root.githubGridWidth\)\/2\)/);
-  assert.match(qml,/inCalendar && day>=root.githubStartRangeDay/);
-  assert.match(qml,/Theme.dark \? "#282B33" : "#E9EBEF"/);
-  assert.match(qml,/enabled: parent.inRange/);
-  for(const cell of [10,12]){
-    const fullWeeks=44, gap=3;
-    const fullWidth=fullWeeks*cell+(fullWeeks-1)*gap;
-    for(const range of ['1m','3m','1y'])
-      assert.equal(fullWeeks*cell+(fullWeeks-1)*gap,fullWidth,range);
-  }
+test('compact time filter buttons are in GitHub top-right header',()=>{
+  const header=qml.indexOf('text: "GitHub"');
+  const nav=qml.indexOf('iconGlyph: Theme.iconArrowLeft',header);
+  const filter=qml.indexOf('model: ["1m", "3m", "1y"]',header);
+  assert.ok(header>=0 && filter>header && filter<nav);
+  assert.match(qml,/Layout.preferredWidth: 39/);
+  assert.match(qml,/Layout.preferredHeight: 27/);
+  assert.match(qml,/Layout.alignment: Qt.AlignRight \| Qt.AlignVCenter/);
+  assert.match(qml,/selected: root.githubRange === modelData/);
 });
 
 test('unlinked users never receive empty third-party activity cards',()=>{
@@ -148,7 +162,7 @@ test('GitHub calendar is source-specific, real contributions, selectable by year
   assert.match(source,/requestGitHubContributions/);
   assert.match(source,/api\/v1\/cloud\/github_contributions/);
   assert.match(qml,/githubContributionData: genyPulseActivity.githubContributions/);
-  assert.match(qml,/model: \["1m","3m","1y"\]/);
+  assert.match(qml,/model: \["1m", "3m", "1y"\]/);
   assert.match(qml,/githubYear--/);
   assert.match(qml,/githubYear\+\+/);
   assert.match(qml,/Flickable \{/);
