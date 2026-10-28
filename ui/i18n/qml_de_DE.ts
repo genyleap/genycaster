@@ -5953,5 +5953,85 @@ Company | https://company.com</translation>
             <source>Neynar Mini Apps · docs access</source>
             <translation>Neynar Mini Apps · Dokumentationszugang</translation>
         </message>
+        <message id="genycaster.activity.title">
+            <source>Activity</source>
+            <translation>Aktivität</translation>
+        </message>
+        <message id="genycaster.activity.explore">
+            <source>Explore</source>
+            <translation>Entdecken</translation>
+        </message>
+        <message id="genycaster.activity.less">
+            <source>Less</source>
+            <translation>Weniger</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_title">
+            <source>Farcaster activity</source>
+            <translation>Farcaster-Aktivität</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_detail">
+            <source>Casts &amp; replies</source>
+            <translation>Casts und Antworten</translation>
+        </message>
+        <message id="genycaster.activity.sample_summary">
+            <source>%1 loaded casts · %2 observed days</source>
+            <translation>%1 geladene Casts · %2 beobachtete Tage</translation>
+        </message>
+        <message id="genycaster.activity.open_posts">
+            <source>Open Posts to see observed activity</source>
+            <translation>Beiträge öffnen, um Aktivitäten zu sehen</translation>
+        </message>
+        <message id="genycaster.activity.preview">
+            <source>Preview</source>
+            <translation>Vorschau</translation>
+        </message>
+        <message id="genycaster.activity.day_summary">
+            <source>%1 · %2 loaded casts</source>
+            <translation>%1 · %2 geladene Casts</translation>
+        </message>
+        <message id="genycaster.activity.offline">
+            <source>Loaded posts only · Offline snapshot</source>
+            <translation>Nur geladene Beiträge · Offline-Snapshot</translation>
+        </message>
+        <message id="genycaster.activity.disclaimer">
+            <source>Loaded posts only · Not a complete history or streak</source>
+            <translation>Nur geladene Beiträge · Kein vollständiger Verlauf oder Streak</translation>
+        </message>
+        <message id="genycaster.activity.github_detail">
+            <source>Commits &amp; pull requests</source>
+            <translation>Commits und Pull Requests</translation>
+        </message>
+        <message id="genycaster.activity.onchain_detail">
+            <source>Wallet transactions</source>
+            <translation>Wallet-Transaktionen</translation>
+        </message>
+        <message id="genycaster.activity.linked">
+            <source>Linked</source>
+            <translation>Verbunden</translation>
+        </message>
+        <message id="genycaster.activity.not_linked">
+            <source>Not linked</source>
+            <translation>Nicht verbunden</translation>
+        </message>
+        <message id="genycaster.activity.unavailable">
+            <source>Unavailable</source>
+            <translation>Nicht verfügbar</translation>
+        </message>
+        <message id="genycaster.activity.index_pending">
+            <source>Account verified · Activity indexing not enabled yet</source>
+            <translation>Konto bestätigt · Aktivitätsindex noch nicht aktiv</translation>
+        </message>
+        <message id="genycaster.activity.connect_hint">
+            <source>Connect your account to prepare activity tracking</source>
+            <translation>Verbinde dein Konto, um das Tracking vorzubereiten</translation>
+        </message>
+        <message id="genycaster.activity.no_history">
+            <source>No public activity history available</source>
+            <translation>Kein öffentlicher Aktivitätsverlauf verfügbar</translation>
+        </message>
+        <message id="genycaster.activity.manage">
+            <source>Manage connections</source>
+            <translation>Verbindungen verwalten</translation>
+        </message>
     </context>
 </TS>

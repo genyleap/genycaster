@@ -5953,5 +5953,85 @@ Company | https://company.com</translation>
             <source>Neynar Mini Apps · docs access</source>
             <translation>Neynar मिनी ऐप · दस्तावेज़ पहुँच</translation>
         </message>
+        <message id="genycaster.activity.title">
+            <source>Activity</source>
+            <translation>गतिविधि</translation>
+        </message>
+        <message id="genycaster.activity.explore">
+            <source>Explore</source>
+            <translation>और देखें</translation>
+        </message>
+        <message id="genycaster.activity.less">
+            <source>Less</source>
+            <translation>कम देखें</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_title">
+            <source>Farcaster activity</source>
+            <translation>Farcaster गतिविधि</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_detail">
+            <source>Casts &amp; replies</source>
+            <translation>कास्ट और उत्तर</translation>
+        </message>
+        <message id="genycaster.activity.sample_summary">
+            <source>%1 loaded casts · %2 observed days</source>
+            <translation>%1 लोड किए गए कास्ट · %2 सक्रिय दिन देखे गए</translation>
+        </message>
+        <message id="genycaster.activity.open_posts">
+            <source>Open Posts to see observed activity</source>
+            <translation>गतिविधि देखने के लिए पोस्ट खोलें</translation>
+        </message>
+        <message id="genycaster.activity.preview">
+            <source>Preview</source>
+            <translation>पूर्वावलोकन</translation>
+        </message>
+        <message id="genycaster.activity.day_summary">
+            <source>%1 · %2 loaded casts</source>
+            <translation>%1 · %2 लोड किए गए कास्ट</translation>
+        </message>
+        <message id="genycaster.activity.offline">
+            <source>Loaded posts only · Offline snapshot</source>
+            <translation>केवल लोड किए गए पोस्ट · ऑफ़लाइन डेटा</translation>
+        </message>
+        <message id="genycaster.activity.disclaimer">
+            <source>Loaded posts only · Not a complete history or streak</source>
+            <translation>केवल लोड किए गए पोस्ट · पूरा इतिहास या स्ट्रीक नहीं</translation>
+        </message>
+        <message id="genycaster.activity.github_detail">
+            <source>Commits &amp; pull requests</source>
+            <translation>कमिट और पुल अनुरोध</translation>
+        </message>
+        <message id="genycaster.activity.onchain_detail">
+            <source>Wallet transactions</source>
+            <translation>वॉलेट लेनदेन</translation>
+        </message>
+        <message id="genycaster.activity.linked">
+            <source>Linked</source>
+            <translation>जुड़ा हुआ</translation>
+        </message>
+        <message id="genycaster.activity.not_linked">
+            <source>Not linked</source>
+            <translation>नहीं जुड़ा</translation>
+        </message>
+        <message id="genycaster.activity.unavailable">
+            <source>Unavailable</source>
+            <translation>उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.activity.index_pending">
+            <source>Account verified · Activity indexing not enabled yet</source>
+            <translation>खाता सत्यापित · गतिविधि अनुक्रमण अभी चालू नहीं</translation>
+        </message>
+        <message id="genycaster.activity.connect_hint">
+            <source>Connect your account to prepare activity tracking</source>
+            <translation>गतिविधि ट्रैक करने हेतु खाता जोड़ें</translation>
+        </message>
+        <message id="genycaster.activity.no_history">
+            <source>No public activity history available</source>
+            <translation>सार्वजनिक गतिविधि इतिहास उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.activity.manage">
+            <source>Manage connections</source>
+            <translation>कनेक्शन प्रबंधित करें</translation>
+        </message>
     </context>
 </TS>

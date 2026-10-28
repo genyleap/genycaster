@@ -5953,5 +5953,85 @@ Company | https://company.com</translation>
             <source>Neynar Mini Apps · docs access</source>
             <translation>Neynar Mini Apps · ドキュメントアクセス</translation>
         </message>
+        <message id="genycaster.activity.title">
+            <source>Activity</source>
+            <translation>アクティビティ</translation>
+        </message>
+        <message id="genycaster.activity.explore">
+            <source>Explore</source>
+            <translation>詳しく見る</translation>
+        </message>
+        <message id="genycaster.activity.less">
+            <source>Less</source>
+            <translation>閉じる</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_title">
+            <source>Farcaster activity</source>
+            <translation>Farcasterのアクティビティ</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_detail">
+            <source>Casts &amp; replies</source>
+            <translation>Castと返信</translation>
+        </message>
+        <message id="genycaster.activity.sample_summary">
+            <source>%1 loaded casts · %2 observed days</source>
+            <translation>読み込み済みCast %1件 · 確認できた日数 %2日</translation>
+        </message>
+        <message id="genycaster.activity.open_posts">
+            <source>Open Posts to see observed activity</source>
+            <translation>投稿を開いてアクティビティを表示</translation>
+        </message>
+        <message id="genycaster.activity.preview">
+            <source>Preview</source>
+            <translation>プレビュー</translation>
+        </message>
+        <message id="genycaster.activity.day_summary">
+            <source>%1 · %2 loaded casts</source>
+            <translation>%1 · 読み込み済みCast %2件</translation>
+        </message>
+        <message id="genycaster.activity.offline">
+            <source>Loaded posts only · Offline snapshot</source>
+            <translation>読み込み済み投稿のみ · オフラインデータ</translation>
+        </message>
+        <message id="genycaster.activity.disclaimer">
+            <source>Loaded posts only · Not a complete history or streak</source>
+            <translation>読み込み済み投稿のみ · 完全な履歴や連続記録ではありません</translation>
+        </message>
+        <message id="genycaster.activity.github_detail">
+            <source>Commits &amp; pull requests</source>
+            <translation>コミットとプルリクエスト</translation>
+        </message>
+        <message id="genycaster.activity.onchain_detail">
+            <source>Wallet transactions</source>
+            <translation>ウォレット取引</translation>
+        </message>
+        <message id="genycaster.activity.linked">
+            <source>Linked</source>
+            <translation>連携済み</translation>
+        </message>
+        <message id="genycaster.activity.not_linked">
+            <source>Not linked</source>
+            <translation>未連携</translation>
+        </message>
+        <message id="genycaster.activity.unavailable">
+            <source>Unavailable</source>
+            <translation>利用不可</translation>
+        </message>
+        <message id="genycaster.activity.index_pending">
+            <source>Account verified · Activity indexing not enabled yet</source>
+            <translation>アカウント確認済み · アクティビティの集計は未対応</translation>
+        </message>
+        <message id="genycaster.activity.connect_hint">
+            <source>Connect your account to prepare activity tracking</source>
+            <translation>アカウントを連携して記録の準備をする</translation>
+        </message>
+        <message id="genycaster.activity.no_history">
+            <source>No public activity history available</source>
+            <translation>公開アクティビティ履歴はありません</translation>
+        </message>
+        <message id="genycaster.activity.manage">
+            <source>Manage connections</source>
+            <translation>連携を管理</translation>
+        </message>
     </context>
 </TS>

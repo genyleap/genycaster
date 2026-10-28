@@ -5953,5 +5953,85 @@ Company | https://company.com</translation>
             <source>Neynar Mini Apps · docs access</source>
             <translation>Neynar 迷你应用 · 文档访问</translation>
         </message>
+        <message id="genycaster.activity.title">
+            <source>Activity</source>
+            <translation>活动</translation>
+        </message>
+        <message id="genycaster.activity.explore">
+            <source>Explore</source>
+            <translation>展开</translation>
+        </message>
+        <message id="genycaster.activity.less">
+            <source>Less</source>
+            <translation>收起</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_title">
+            <source>Farcaster activity</source>
+            <translation>Farcaster 活动</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_detail">
+            <source>Casts &amp; replies</source>
+            <translation>动态与回复</translation>
+        </message>
+        <message id="genycaster.activity.sample_summary">
+            <source>%1 loaded casts · %2 observed days</source>
+            <translation>已加载 %1 条动态 · 观察到 %2 天</translation>
+        </message>
+        <message id="genycaster.activity.open_posts">
+            <source>Open Posts to see observed activity</source>
+            <translation>打开帖子以查看已观察到的活动</translation>
+        </message>
+        <message id="genycaster.activity.preview">
+            <source>Preview</source>
+            <translation>预览</translation>
+        </message>
+        <message id="genycaster.activity.day_summary">
+            <source>%1 · %2 loaded casts</source>
+            <translation>%1 · 已加载 %2 条动态</translation>
+        </message>
+        <message id="genycaster.activity.offline">
+            <source>Loaded posts only · Offline snapshot</source>
+            <translation>仅显示已加载帖子 · 离线快照</translation>
+        </message>
+        <message id="genycaster.activity.disclaimer">
+            <source>Loaded posts only · Not a complete history or streak</source>
+            <translation>仅显示已加载帖子 · 非完整历史或连续活跃记录</translation>
+        </message>
+        <message id="genycaster.activity.github_detail">
+            <source>Commits &amp; pull requests</source>
+            <translation>提交与拉取请求</translation>
+        </message>
+        <message id="genycaster.activity.onchain_detail">
+            <source>Wallet transactions</source>
+            <translation>钱包交易</translation>
+        </message>
+        <message id="genycaster.activity.linked">
+            <source>Linked</source>
+            <translation>已连接</translation>
+        </message>
+        <message id="genycaster.activity.not_linked">
+            <source>Not linked</source>
+            <translation>未连接</translation>
+        </message>
+        <message id="genycaster.activity.unavailable">
+            <source>Unavailable</source>
+            <translation>不可用</translation>
+        </message>
+        <message id="genycaster.activity.index_pending">
+            <source>Account verified · Activity indexing not enabled yet</source>
+            <translation>账户已验证 · 活动索引尚未启用</translation>
+        </message>
+        <message id="genycaster.activity.connect_hint">
+            <source>Connect your account to prepare activity tracking</source>
+            <translation>连接账户以准备活动追踪</translation>
+        </message>
+        <message id="genycaster.activity.no_history">
+            <source>No public activity history available</source>
+            <translation>暂无公开活动历史</translation>
+        </message>
+        <message id="genycaster.activity.manage">
+            <source>Manage connections</source>
+            <translation>管理连接</translation>
+        </message>
     </context>
 </TS>

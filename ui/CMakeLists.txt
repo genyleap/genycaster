@@ -120,6 +120,7 @@ set(farcasterQmlFiles
     components/ProgressRing.qml
     components/ProfileLinkRow.qml
     components/ProfileSurface.qml
+    components/GenyPulsePanel.qml
     components/AccountConnectionsPopup.qml
     components/ProfileTrustCard.qml
     components/SearchPalette.qml

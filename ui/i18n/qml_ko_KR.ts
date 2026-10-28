@@ -5953,5 +5953,85 @@ Company | https://company.com</translation>
             <source>Neynar Mini Apps · docs access</source>
             <translation>Neynar Mini Apps · 문서 접근</translation>
         </message>
+        <message id="genycaster.activity.title">
+            <source>Activity</source>
+            <translation>활동</translation>
+        </message>
+        <message id="genycaster.activity.explore">
+            <source>Explore</source>
+            <translation>자세히</translation>
+        </message>
+        <message id="genycaster.activity.less">
+            <source>Less</source>
+            <translation>접기</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_title">
+            <source>Farcaster activity</source>
+            <translation>Farcaster 활동</translation>
+        </message>
+        <message id="genycaster.activity.farcaster_detail">
+            <source>Casts &amp; replies</source>
+            <translation>캐스트와 답글</translation>
+        </message>
+        <message id="genycaster.activity.sample_summary">
+            <source>%1 loaded casts · %2 observed days</source>
+            <translation>불러온 캐스트 %1개 · 확인된 날짜 %2일</translation>
+        </message>
+        <message id="genycaster.activity.open_posts">
+            <source>Open Posts to see observed activity</source>
+            <translation>게시물을 열어 활동을 확인하세요</translation>
+        </message>
+        <message id="genycaster.activity.preview">
+            <source>Preview</source>
+            <translation>미리보기</translation>
+        </message>
+        <message id="genycaster.activity.day_summary">
+            <source>%1 · %2 loaded casts</source>
+            <translation>%1 · 불러온 캐스트 %2개</translation>
+        </message>
+        <message id="genycaster.activity.offline">
+            <source>Loaded posts only · Offline snapshot</source>
+            <translation>불러온 게시물만 · 오프라인 데이터</translation>
+        </message>
+        <message id="genycaster.activity.disclaimer">
+            <source>Loaded posts only · Not a complete history or streak</source>
+            <translation>불러온 게시물만 · 전체 기록이나 연속 활동 아님</translation>
+        </message>
+        <message id="genycaster.activity.github_detail">
+            <source>Commits &amp; pull requests</source>
+            <translation>커밋과 풀 리퀘스트</translation>
+        </message>
+        <message id="genycaster.activity.onchain_detail">
+            <source>Wallet transactions</source>
+            <translation>지갑 거래</translation>
+        </message>
+        <message id="genycaster.activity.linked">
+            <source>Linked</source>
+            <translation>연결됨</translation>
+        </message>
+        <message id="genycaster.activity.not_linked">
+            <source>Not linked</source>
+            <translation>연결되지 않음</translation>
+        </message>
+        <message id="genycaster.activity.unavailable">
+            <source>Unavailable</source>
+            <translation>사용 불가</translation>
+        </message>
+        <message id="genycaster.activity.index_pending">
+            <source>Account verified · Activity indexing not enabled yet</source>
+            <translation>계정 확인됨 · 활동 인덱싱은 아직 미지원</translation>
+        </message>
+        <message id="genycaster.activity.connect_hint">
+            <source>Connect your account to prepare activity tracking</source>
+            <translation>활동 추적을 위해 계정을 연결하세요</translation>
+        </message>
+        <message id="genycaster.activity.no_history">
+            <source>No public activity history available</source>
+            <translation>공개 활동 기록이 없습니다</translation>
+        </message>
+        <message id="genycaster.activity.manage">
+            <source>Manage connections</source>
+            <translation>연결 관리</translation>
+        </message>
     </context>
 </TS>

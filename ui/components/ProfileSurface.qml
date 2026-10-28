@@ -2017,6 +2017,25 @@ Item {
                 }
             }
 
+            // Activity is a read-only derived preview, never a claimed full
+            // annual record. Profile rows may be paginated or cached.
+            GenyPulsePanel {
+                objectName: "profileGenyPulse"
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                visible: Number(root.activeDetail.fid || 0) > 0
+                profileFid: Number(root.activeDetail.fid || 0)
+                profileFeed: root.profileFeed
+                rows: root.rows || []
+                compact: root.compact
+                offline: root.offline
+                isOwnProfile: root.isOwnProfile
+                connectionsVerified: root.isOwnProfile && openProofConnections.authorized
+                connections: root.isOwnProfile ? openProofConnections.connections : []
+                onConnectionsRequested: root.openConnections()
+            }
+
             // One compact navigation row, like the X profile timeline:
             // the sort/filter action lives alongside the content tabs rather
             // than occupying an otherwise empty second row above the casts.
