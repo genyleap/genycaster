@@ -19,10 +19,16 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(dock,/import QtQuick\.Effects/);
   assert.match(dock,/glassEnabled: false/);
   assert.match(dock,/useBackdropBlur: glassEnabled && blurSourceItem !== null/);
-  assert.match(shell,/blurSourceItem: readingContent\s+glassEnabled: true/);
-  // The compositor shares its live source texture with the dock: no
-  // separate re-render of the scrolled ListView at the previous scroll offset.
-  assert.match(shell,/id: readingContent[\s\S]*?layer\.enabled: root\.mobile/);
+  // Each destination owns its live backdrop texture. Inactive Home story
+  // thumbnails must never appear while the Explore feed is visible.
+  assert.match(shell,/blurSourceItem: root\.shellRoute\.length === 0/);
+  assert.match(shell,/profileSurfaceLoader\.visible && profileSurfaceLoader\.item/);
+  assert.match(shell,/feedSurfaceLoader\.visible && feedSurfaceLoader\.item/);
+  assert.match(shell,/homeDashboard\.visible \? homeDashboard : readingContent/);
+  assert.match(shell,/layer\.enabled: root\.mobile && visible/);
+  assert.match(shell,/layer\.enabled: root\.mobile && feedSurfaceLoader\.surfaceRequested/);
+  assert.match(shell,/layer\.enabled: root\.mobile && profileSurfaceLoader\.surfaceRequested/);
+  assert.doesNotMatch(shell,/id: readingContent[\s\S]{0,450}layer\.enabled: root\.mobile/);
   assert.match(shell,/layer\.smooth: true/);
   assert.doesNotMatch(dock,/contentScrolling|viewportScrollRecent|viewportGlassSettle/);
   assert.match(dock,/live: root\.useBackdropBlur/);

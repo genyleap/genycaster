@@ -1043,12 +1043,10 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
-                                // Shared offscreen texture: the visible scrolling
-                                // page and dock blur must sample the same frame,
-                                // rather than rendering the ListView a second time.
-                                // Restrict to the mobile viewport, not an entire feed.
-                                layer.enabled: root.mobile
-                                layer.smooth: true
+                                // Keep the multi-route layout unlayered. A shared
+                                // texture of inactive/cached routes could leak old
+                                // Home story thumbnails into the active feed glass.
+                                // The dock samples only its currently visible page.
                                 // No reserved/painted footer: content extends to the
                                 // screen edge *behind* the floating dock.
                                 // Each scrollable list provides its own trailing
@@ -1326,6 +1324,9 @@ Item {
 
                                 HomeDashboard {
                                     id: homeDashboard
+                                    layer.enabled: root.mobile && visible
+                                    layer.live: true
+                                    layer.smooth: true
                                     visible: root.shellRoute.length === 0 && presentationBridge.activeView === "feed"
                                              && root.primaryDestination === "home"
                                     opacity: visible ? 1.0 : 0.0
@@ -1400,6 +1401,9 @@ Item {
 
                                     sourceComponent: Component {
                                         FeedSurface {
+                                            layer.enabled: root.mobile && feedSurfaceLoader.surfaceRequested
+                                            layer.live: true
+                                            layer.smooth: true
                                             presentationActive: feedSurfaceLoader.surfaceRequested
                                             rows: root.topicBrowseActive && root.topicBrowseScope==="explorer"
                                                   ? root.topicInlineRows() : presentationBridge.rows
@@ -1550,6 +1554,9 @@ Item {
 
                                     sourceComponent: Component {
                                         ProfileSurface {
+                                            layer.enabled: root.mobile && profileSurfaceLoader.surfaceRequested
+                                            layer.live: true
+                                            layer.smooth: true
                                             detail: presentationBridge.detail
                                             rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                   ? root.topicInlineRows() : presentationBridge.rows
@@ -1771,7 +1778,16 @@ Item {
                             anchors.left: readingPane.left
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom
-                            blurSourceItem: readingContent
+                            // Capture only the page currently presented in the
+                            // reading pane. Never sample a shared texture containing
+                            // inactive HomeDashboard/Feed/Profile branches.
+                            blurSourceItem: root.shellRoute.length === 0
+                                && profileSurfaceLoader.visible && profileSurfaceLoader.item
+                                ? profileSurfaceLoader.item
+                                : root.shellRoute.length === 0
+                                  && feedSurfaceLoader.visible && feedSurfaceLoader.item
+                                  ? feedSurfaceLoader.item
+                                  : homeDashboard.visible ? homeDashboard : readingContent
                             glassEnabled: true
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed

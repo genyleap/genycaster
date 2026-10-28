@@ -14,6 +14,8 @@ int main(int argc, char** argv)
     QSettings settings{settingsPath, QSettings::IniFormat};
     const QString publicEndpoint{QStringLiteral("https://haatz.quilibrium.com")};
     const QString independentEndpoint{QStringLiteral("https://node.example.org")};
+    // Read-node selection and Snapchain writes are independent endpoints.
+    const QString writeEndpoint{QStringLiteral("https://write.example.org")};
     settings.setValue(QStringLiteral("network/hypersnapBaseUrl"), independentEndpoint);
     settings.setValue(QStringLiteral("network/nodeSelectionMode"), QStringLiteral("manual"));
     settings.setValue(QStringLiteral("network/proxyMode"), QStringLiteral("system"));
@@ -22,7 +24,7 @@ int main(int argc, char** argv)
     {
         // Probing disabled: no actual provider network requests.
         NodeSelectionController controller{
-            settings, publicEndpoint,
+            settings, publicEndpoint, writeEndpoint,
             {independentEndpoint + QLatin1Char('/'), independentEndpoint,
              QStringLiteral("not-a-url")},
             QStringLiteral("system"), false};
@@ -31,6 +33,8 @@ int main(int argc, char** argv)
         assert(controller.selectedEndpoint() == independentEndpoint);
         assert(!controller.automatic() && !controller.probing());
         assert(controller.restartRequired());
+        assert(controller.snapchainWriteEndpoint() == writeEndpoint);
+        assert(!controller.writeRestartRequired());
         assert(!controller.selectNode(QStringLiteral("unknown-node")));
         int selectionChanges{};
         int nodeChanges{};
@@ -67,11 +71,13 @@ int main(int argc, char** argv)
 
     QSettings reopened{settingsPath, QSettings::IniFormat};
     NodeSelectionController again{
-        reopened, publicEndpoint, {independentEndpoint},
+        reopened, publicEndpoint, writeEndpoint, {independentEndpoint},
         QStringLiteral("system"), false};
     assert(!again.automatic());
     assert(again.selectedEndpoint() == publicEndpoint);
     assert(again.proxyMode() == QStringLiteral("direct"));
     assert(again.proxyRestartRequired());
+    assert(again.snapchainWriteEndpoint() == writeEndpoint);
+    assert(!again.writeRestartRequired());
     return 0;
 }
