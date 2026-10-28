@@ -2502,7 +2502,6 @@ Item {
         parent: Overlay.overlay
         readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
-        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
         property var secondarySelection: []
         property var roleSelection: []
         dimBackground: true
@@ -2973,7 +2972,6 @@ Item {
         readonly property bool mobilePresentation:
             parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
-        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
         dimBackground: true
         interactive: false
         showHandle: mobilePresentation
@@ -3161,7 +3159,6 @@ Item {
         parent: Overlay.overlay
         readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
-        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
         dimBackground: true
         showHandle: mobilePresentation
         width: parent ? (mobilePresentation ? parent.width : Math.min(440, parent.width)) : 440

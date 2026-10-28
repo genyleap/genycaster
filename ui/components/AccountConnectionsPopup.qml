@@ -29,15 +29,14 @@ GenyDrawer {
     signal openProfileRequested(string url)
     signal manualLinkedInRequested(string url)
 
-    // Connections is an in-product sheet: bottom-up on phones and
-    // a right-anchored inspector on desktop, independent of UI text direction.
+    // Shared GenyDrawer handles bottom sheets on phones and consistently
+    // right-anchored inspectors on desktop in both LTR and RTL.
     readonly property real viewportWidth: Overlay.overlay && Overlay.overlay.width > 0
                                           ? Overlay.overlay.width
                                           : (parent ? parent.width : 0)
     readonly property bool mobilePresentation: viewportWidth > 0
                                               && viewportWidth < Theme.breakpointMobile
     bottomSheet: mobilePresentation
-    edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
     dimBackground: true
     interactive: false
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside

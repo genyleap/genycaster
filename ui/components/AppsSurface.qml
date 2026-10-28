@@ -1096,7 +1096,6 @@ Item {
         objectName: "miniAppDetailDrawer"
         readonly property bool mobilePresentation: parent ? parent.width < Theme.breakpointMobile : true
         bottomSheet: mobilePresentation
-        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
         fullScreen: false
         dimBackground: true
         interactive: false
