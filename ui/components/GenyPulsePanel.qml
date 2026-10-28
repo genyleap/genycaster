@@ -22,18 +22,17 @@ Item {
     readonly property var githubData: genyPulseActivity.github
     readonly property var walletData: genyPulseActivity.onchain
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
-    readonly property bool desktopGrid: width >= 800 && expanded
     readonly property int weeks: 13
     readonly property int gapSize: 3
-    // Fit seven rows by thirteen weeks within the actual card, not viewport.
-    readonly property bool showMetrics: farcasterContent.width >= 390
-    readonly property int cellSize: {
-        const usable = Math.max(160, farcasterContent.width - (showMetrics ? 140 : 0))
-        return Math.max(8, Math.min(desktopGrid ? 27 : 23,
-                                  Math.floor((usable - (weeks-1)*gapSize)/weeks)))
-    }
-    readonly property int githubCellSize: Math.max(10,Math.min(23,
-        Math.floor((githubContent.width - 175)/5)))
+    // Every source owns the full available card width. Fixed-size tiles
+    // previously stranded most of the right side of desktop profiles.
+    readonly property int cellSize: Math.max(9,
+        Math.floor((farcasterContent.width - (weeks-1)*gapSize)/weeks))
+    readonly property int cellHeight: Math.min(20,Math.max(10,Math.round(cellSize*0.62)))
+    readonly property int githubColumns: 15
+    readonly property int githubCellSize: Math.max(9,
+        Math.floor((githubContent.width - (githubColumns-1)*gapSize)/githubColumns))
+    readonly property int githubCellHeight: Math.min(20,Math.max(10,Math.round(githubCellSize*0.62)))
     readonly property int todayDay: Math.floor(Date.now()/86400000)
     readonly property int firstDay: todayDay - weeks*7 + 1
     readonly property bool farcasterReady: (farcasterData.status==="ok" || farcasterData.status==="partial")
@@ -139,18 +138,13 @@ Item {
             }
         }
 
-        GridLayout {
+        ColumnLayout {
             id: activityGrid
             Layout.fillWidth: true
-            columns: root.desktopGrid ? 2 : 1
-            columnSpacing: Theme.space2
-            rowSpacing: Theme.space2
+            spacing: Theme.space2
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredWidth: root.desktopGrid ? Math.floor((root.width - Theme.space2)/2) : root.width
-            Layout.maximumWidth: !root.expanded && root.width>=800 ? 650 : 100000
-            Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
             implicitHeight: farcasterContent.implicitHeight + Theme.space3*2
             radius: Theme.space3
             color: Theme.surfaceMuted
@@ -222,11 +216,11 @@ Item {
                     spacing: Theme.space4
 
                     Item {
-                        Layout.preferredWidth: root.weeks * root.cellSize + (root.weeks-1) * root.gapSize
-                        Layout.preferredHeight: 7 * root.cellSize + 6 * root.gapSize
-                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
                         Row {
                             id: calendarRow
+                            width: parent.width
                             spacing: root.gapSize
                             Repeater {
                                 model: root.weeks
@@ -240,8 +234,8 @@ Item {
                                             readonly property int day: root.firstDay + parent.index*7 + index
                                             readonly property int value: root.countAt(root.farcasterDays, day)
                                             width: root.cellSize
-                                            height: root.cellSize
-                                            radius: 3
+                                            height: root.cellHeight
+                                            radius: 4
                                             color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
                                             MouseArea {
                                                 anchors.fill: parent
@@ -256,63 +250,36 @@ Item {
                         }
                     }
 
-                    ColumnLayout {
-                        visible: root.showMetrics
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 90
-                        Layout.maximumWidth: 122
-                        Layout.alignment: Qt.AlignVCenter
-                        spacing: Theme.space3
-                        ColumnLayout {
-                            spacing: 0
-                            Label {
-                                text: root.farcasterReady ? String(root.farcasterData.days.length) : "—"
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
-                                color: Theme.ink
-                            }
-                            Label {
-                                text: qsTrId("genycaster.activity.active_days")
-                                font.pixelSize: Theme.typeCaptionSize
-                                color: Theme.inkMuted
-                            }
-                        }
-                        ColumnLayout {
-                            spacing: 0
-                            Label {
-                                text: root.farcasterReady ? String(root.farcasterData.replies || 0) : "—"
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightDemiBold
-                                color: Theme.ink
-                            }
-                            Label {
-                                text: qsTrId("genycaster.activity.reply_count")
-                                font.pixelSize: Theme.typeCaptionSize
-                                color: Theme.inkMuted
-                            }
-                        }
-                    }
+
                 }
 
-                Label {
-                    visible: root.selectedDate.length>0 || !root.farcasterReady
+                RowLayout {
                     Layout.fillWidth: true
-                    text: root.selectedDate.length>0 && root.farcasterReady
-                        ? qsTrId("genycaster.activity.day_summary")
-                            .arg(root.selectedDate)
-                            .arg(root.farcasterDays[root.selectedDate] || 0)
-                        : root.sourceSubtitle(root.farcasterData)
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    elide: Text.ElideRight
+                    spacing: Theme.space3
+                    Label {
+                        Layout.fillWidth: true
+                        text: root.selectedDate.length>0 && root.farcasterReady
+                            ? qsTrId("genycaster.activity.day_summary")
+                                .arg(root.selectedDate)
+                                .arg(root.farcasterDays[root.selectedDate] || 0)
+                            : root.sourceSubtitle(root.farcasterData)
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
+                    }
+                    Label {
+                        visible: root.farcasterReady
+                        text: qsTrId("genycaster.activity.active_days")
+                              + ": " + Number(root.farcasterData.days.length)
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
                 }
             }
         }
 
         ColumnLayout {
             Layout.fillWidth: true
-            Layout.preferredWidth: root.desktopGrid ? Math.floor((root.width - Theme.space2)/2) : root.width
-            Layout.alignment: Qt.AlignTop
             visible: root.expanded
             spacing: Theme.space2
 
@@ -393,24 +360,31 @@ Item {
                         }
                     }
 
-                    RowLayout {
+                    ColumnLayout {
                         visible: root.githubReady
                         Layout.fillWidth: true
-                        spacing: Theme.space3
-                        Row {
-                            spacing: root.gapSize
-                            Repeater {
-                                model: 5
-                                delegate: Column {
-                                    required property int index
-                                    spacing: root.gapSize
-                                    Repeater {
-                                        model: 7
-                                        delegate: Rectangle {
-                                            required property int index
-                                            readonly property int day: root.todayDay - 34 + parent.index*7 + index
-                                            width: root.githubCellSize; height: root.githubCellSize; radius: 4
-                                            color: root.tileColor(root.countAt(root.githubDays,day),"github")
+                        spacing: Theme.space2
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 2 * root.githubCellHeight + root.gapSize
+                            Row {
+                                width: parent.width
+                                spacing: root.gapSize
+                                Repeater {
+                                    model: root.githubColumns
+                                    delegate: Column {
+                                        required property int index
+                                        spacing: root.gapSize
+                                        Repeater {
+                                            model: 2
+                                            delegate: Rectangle {
+                                                required property int index
+                                                readonly property int day: root.todayDay - 29 + parent.index*2 + index
+                                                width: root.githubCellSize
+                                                height: root.githubCellHeight
+                                                radius: 4
+                                                color: root.tileColor(root.countAt(root.githubDays,day),"github")
+                                            }
                                         }
                                     }
                                 }
@@ -421,8 +395,7 @@ Item {
                             text: qsTrId("genycaster.activity.github_window")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.Wrap
-                            maximumLineCount: 2
+                            elide: Text.ElideRight
                         }
                     }
                 }

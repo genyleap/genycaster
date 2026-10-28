@@ -56,11 +56,27 @@ test('compact cells and status positioning prevent oversized heatmap',()=>{
   assert.match(qml,/elide: Text.ElideRight/);
 });
 
-test('Activity uses responsive columns and bundled provider brand icons',()=>{
-  assert.ok(qml.includes('GridLayout {'));
-  assert.ok(qml.includes('columns: root.desktopGrid ? 2 : 1'));
-  assert.ok(qml.includes('readonly property int cellSize: {'));
-  assert.ok(qml.includes('farcasterContent.width - (showMetrics ? 140 : 0)'));
+test('Activity fills profile width on mobile and desktop without an artificial cap',()=>{
+  assert.ok(qml.includes('ColumnLayout {\n            id: activityGrid'));
+  assert.ok(!qml.includes('Layout.maximumWidth: !root.expanded'));
+  assert.ok(!qml.includes('columns: root.desktopGrid ? 2 : 1'));
+  assert.ok(!qml.includes('root.desktopGrid ? Math.floor'));
+  assert.ok(qml.includes('Layout.fillWidth: true'));
+  assert.ok(qml.includes('readonly property int githubColumns: 15'));
+  assert.ok(qml.includes('root.githubCellHeight'));
+  assert.ok(qml.includes('root.cellHeight'));
+  // By construction, every day-cell track consumes the available content width
+  // with only an unavoidable sub-column integer-pixel remainder.
+  for(const cardWidth of [300,375,520,800,1050,1400]) {
+    const inner=cardWidth - 24;
+    for(const cols of [13,15]) {
+      const gap=3;
+      const cell=Math.floor((inner-(cols-1)*gap)/cols);
+      const graph=cell*cols+(cols-1)*gap;
+      assert.ok(graph<=inner, 'grid must not overflow');
+      assert.ok(inner-graph<cols, 'grid must not strand half the card');
+    }
+  }
   for(const provider of ['farcaster','github','ethereum-wallet']) {
     assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
     assert.ok(!qml.includes('text: "'+({farcaster:'◫',github:'⌘','ethereum-wallet':'⬡'})[provider]+'"'));
