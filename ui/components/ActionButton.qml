@@ -14,6 +14,8 @@ Button {
     property bool positive: false
     property bool selected: false
     property color customIconColor: "transparent"
+    property color customSelectedColor: "transparent"
+    property color customSelectedSurface: "transparent"
     property string iconGlyph: ""
     property bool iconOnly: false
     property bool compact: false
@@ -137,7 +139,7 @@ Button {
                                                : !enabled ? Theme.inkDisabled
                                                : positive ? Theme.contrastInk(Theme.success)
                                                : prominent ? Theme.accentInk
-                                               : selected ? Theme.accent
+                                               : selected ? (customSelectedColor.a > 0 ? customSelectedColor : Theme.accent)
                                                : Theme.ink
 
     contentItem: RowLayout {
@@ -232,7 +234,9 @@ Button {
             if (control.prominent)
                 return control.down ? Theme.primaryPressed : control.hovered ? Theme.primaryFillHover : Theme.primaryFill
             if (control.selected)
-                return control.down || control.hovered ? Theme.primarySurfaceHover : Theme.primarySurface
+                return control.customSelectedSurface.a > 0
+                    ? control.customSelectedSurface
+                    : control.down || control.hovered ? Theme.primarySurfaceHover : Theme.primarySurface
             if (control.quiet)
                 return control.hovered || control.down ? Theme.castHover : "transparent"
             return control.down ? Theme.surfacePressed : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised

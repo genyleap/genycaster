@@ -201,6 +201,8 @@ signals:
     void stateChanged();
     void cloudStateChanged();
     void profileStatusChanged();
+    /** Emitted exactly once for each status save attempt (including rejected requests). */
+    void profileStatusSaveFinished(bool saved, const QString& message);
     void topicsChanged();
     void topicCastsChanged();
     void bookmarkCollectionsChanged();

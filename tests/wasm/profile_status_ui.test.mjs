@@ -93,3 +93,37 @@ test('iOS visual viewport panning keeps the Qt canvas above the keyboard',()=>{
   fit();
   assert.equal(context.screen.style.top,'24px');
 });
+
+test('status save closes only on server-confirmed completion and preserves conflict errors',()=>{
+  const editor=qml.slice(qml.indexOf('id: profileStatusEditor'),qml.indexOf('id: profileLinksDrawer'));
+  assert.match(header,/void profileStatusSaveFinished\(bool saved, const QString& message\)/);
+  assert.match(controller,/emit profileStatusSaveFinished\(false,m_profileStatusError\)/);
+  assert.match(controller,/emit profileStatusSaveFinished\(saved,m_profileStatusError\)/);
+  assert.match(editor,/function onProfileStatusSaveFinished\(saved,message\)/);
+  assert.match(editor,/if\(saved\) \{[\s\S]*?profileStatusEditor\.close\(\)/);
+  assert.match(editor,/profileStatusEditor\.saveError=message/);
+  assert.match(editor,/objectName: "profileStatusSaveError"/);
+  assert.doesNotMatch(editor,/function onProfileStatusChanged\(\) \{[\s\S]*?if\(profileStatusEditor\.awaitingSave\s*&& !openProofConnections\.profileStatusBusy\)/);
+  assert.match(controller,/if\(!saved && code==409\)/);
+  assert.match(controller,/if\(m_profileStatusFid!=profileFid\) \{\s*m_profileStatus\.clear/);
+  assert.match(controller,/\|\| m_profileStatusWrite\) return/);
+});
+test('profile summary and picker carry semantic icon/color for each mood',()=>{
+  const row=qml.slice(qml.indexOf('objectName: "profileMoodSummary"'),qml.indexOf('objectName: "profileSaveStatus"'));
+  const picker=qml.slice(qml.indexOf('id: profileStatusEditor'),qml.indexOf('id: profileLinksDrawer'));
+  for(const mood of ['available','busy','idle','away','focusing','creating','dnd','custom','none'])
+    assert.match(qml,new RegExp("id:'"+mood+"',icon:Theme\\.icon[A-Za-z]+,color:Theme\\.[A-Za-z]+"));
+  assert.match(row,/root\.moodAppearance\(root\.displayedMood\.mood\)\.icon/);
+  assert.match(row,/root\.moodAppearance\(root\.displayedMood\.mood\)\.color/);
+  assert.match(picker,/customSelectedColor: modelData\.color/);
+  assert.match(picker,/customSelectedSurface: Qt\.rgba/);
+  const button=readFileSync(root+'/ui/components/ActionButton.qml','utf8');
+  assert.match(button,/customSelectedColor/);
+  assert.match(button,/customSelectedSurface/);
+});
+test('periodic status fetch never races an open editor or pending save',()=>{
+  const timer=qml.slice(qml.indexOf('id: profileStatusFetch'),qml.indexOf('interval: 60000'));
+  assert.match(timer,/profileStatusEditor.visible \|\| profileStatusEditor.awaitingSave/);
+  assert.match(controller,/if\(m_profileStatusRead!=reply\) \{/);
+  assert.match(controller,/if\s*\(!profileFid \|\| !trustedHttpsEndpoint\(m_cloudUrl\) \|\| m_profileStatusWrite\) return/);
+});

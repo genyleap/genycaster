@@ -1166,15 +1166,19 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 
 void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
 {
-    if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite) return;
     if (m_profileStatusRead) {
         m_profileStatusRead->abort();
         m_profileStatusRead->deleteLater();
         m_profileStatusRead=nullptr;
     }
+    // Retain the last confirmed state for the SAME FID while refreshing.
+    // A temporary timeout must never erase a successfully saved status.
+    if(m_profileStatusFid!=profileFid) {
+        m_profileStatus.clear();
+        m_profileStatusRevision=0;
+    }
     m_profileStatusFid=profileFid;
-    m_profileStatus.clear();
-    m_profileStatusRevision=0;
     m_profileStatusError.clear();
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/profile_status"));
@@ -1196,7 +1200,13 @@ void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
     emit profileStatusChanged();
     const auto generation=m_grantGeneration;
     connect(reply,&QNetworkReply::finished,this,[this,reply,profileFid,generation]{
-        if(m_profileStatusRead==reply)m_profileStatusRead=nullptr;
+        // An aborted/superseded GET must not clear the newer result or show
+        // an error after another read has replaced it.
+        if(m_profileStatusRead!=reply) {
+            reply->deleteLater();
+            return;
+        }
+        m_profileStatusRead=nullptr;
         const int code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const auto data=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
         reply->deleteLater();
@@ -1231,6 +1241,7 @@ void OpenProofConnectionsController::saveProfileStatus(
        m_profileStatusRead || (mood==QStringLiteral("custom") && note.trimmed().isEmpty())) {
         m_profileStatusError=QStringLiteral("Status cannot be saved until account verification is ready.");
         emit profileStatusChanged();
+        emit profileStatusSaveFinished(false,m_profileStatusError);
         return;
     }
     QUrl url=m_cloudUrl;
@@ -1262,21 +1273,28 @@ void OpenProofConnectionsController::saveProfileStatus(
         if(generation!=m_grantGeneration || viewer!=m_viewerFid)return;
         const auto doc=QJsonDocument::fromJson(bytes);
         const auto item=doc.object().value(QStringLiteral("item"));
-        if(code==200 && item.isObject()){
+        const bool saved=code==200 && item.isObject()
+            && reply->error()==QNetworkReply::NoError;
+        if(saved){
             m_profileStatus=item.toObject().toVariantMap();
             m_profileStatusRevision=m_profileStatus.value(QStringLiteral("revision"))
                 .toString().toLongLong();
             m_profileStatusError.clear();
         } else {
             m_profileStatusError=code==409
-                ?QStringLiteral("A newer status was saved elsewhere. Refresh before editing.")
-                :QStringLiteral("Could not save status. Your selection has not changed.");
-            if(code==409)
-                QMetaObject::invokeMethod(this,[this,viewer]{
-                    if(m_viewerFid==viewer)fetchProfileStatus(viewer);
-                },Qt::QueuedConnection);
+                ?QStringLiteral("This status changed on another device. Review your selection and save again.")
+                :code==401 || code==403
+                    ?QStringLiteral("Your account session has expired. Sign in again to save your status.")
+                    :QStringLiteral("Could not save status. Your selection has not changed. Please try again.");
         }
         emit profileStatusChanged();
+        // A profileStatusChanged event also fires for GETs and in-flight PUTs.
+        // Only this terminal result may dismiss the editor.
+        emit profileStatusSaveFinished(saved,m_profileStatusError);
+        if(!saved && code==409)
+            QMetaObject::invokeMethod(this,[this,viewer]{
+                if(m_viewerFid==viewer)fetchProfileStatus(viewer);
+            },Qt::QueuedConnection);
     });
 }
 

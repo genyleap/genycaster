@@ -63,17 +63,23 @@ Item {
     property bool protocolProfilePending: false
     property bool protocolProfileConfirmed: false
     property bool editProfileMediaUrls: false
+    // Each explicit mood owns its own semantic icon and accessible theme color.
+    // No live-presence inference: these are user-chosen profile decorations.
     readonly property var moodOptions: [
-        {id:'available',icon:Theme.iconCheck},
-        {id:'busy',icon:Theme.iconCalendar},
-        {id:'idle',icon:Theme.iconPause},
-        {id:'away',icon:Theme.iconPause},
-        {id:'focusing',icon:Theme.iconSpark},
-        {id:'creating',icon:Theme.iconCompose},
-        {id:'dnd',icon:Theme.iconVolumeMuted},
-        {id:'custom',icon:Theme.iconMessage},
-        {id:'none',icon:Theme.iconClose}
+        {id:'available',icon:Theme.iconCheck,color:Theme.success},
+        {id:'busy',icon:Theme.iconCalendar,color:Theme.warning},
+        {id:'idle',icon:Theme.iconPause,color:Theme.inkMuted},
+        {id:'away',icon:Theme.iconPause,color:Theme.warning},
+        {id:'focusing',icon:Theme.iconSpark,color:Theme.accentSecondary},
+        {id:'creating',icon:Theme.iconCompose,color:Theme.accent},
+        {id:'dnd',icon:Theme.iconVolumeMuted,color:Theme.danger},
+        {id:'custom',icon:Theme.iconMessage,color:Theme.accent},
+        {id:'none',icon:Theme.iconClose,color:Theme.inkMuted}
     ]
+    function moodAppearance(mood) {
+        const entry=root.moodOptions.find(option=>option.id===String(mood||'none'))
+        return entry || root.moodOptions[root.moodOptions.length-1]
+    }
     readonly property var displayedMood: {
         const value=openProofConnections.profileStatus || ({})
         return String(value.fid||'')===String(Number(root.activeDetail.fid||0))
@@ -91,6 +97,10 @@ Item {
         interval: 180
         repeat: false
         onTriggered: {
+            // Never start background GETs while the user is editing or
+            // saving: their response could race the revision used by PUT.
+            if(profileStatusEditor.visible || profileStatusEditor.awaitingSave)
+                return
             const fid=Number(root.activeDetail.fid||0)
             if(fid>0 && !openProofConnections.profileStatusBusy)
                 openProofConnections.fetchProfileStatus(fid)
@@ -1953,14 +1963,18 @@ Item {
                             onTapped: profileStatusEditor.open()
                         }
                         Icon {
-                            text: Theme.iconSpark
+                            text: root.moodAppearance(root.displayedMood.mood).icon
                             preferredSize: 16
-                            color: Theme.accent
+                            color: root.displayedMood.mood && root.displayedMood.mood!=='none'
+                                   ? root.moodAppearance(root.displayedMood.mood).color
+                                   : Theme.inkMuted
                         }
                         DirectionAwareLabel {
                             id: statusSummaryLabel
                             Layout.fillWidth: true
-                            color: Theme.inkMuted
+                            color: root.displayedMood.mood && root.displayedMood.mood!=='none'
+                                   ? root.moodAppearance(root.displayedMood.mood).color
+                                   : Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             text: root.displayedMood.mood && root.displayedMood.mood!=='none'
                                   ? root.moodLabel(root.displayedMood.mood)
@@ -2993,6 +3007,7 @@ Item {
         property bool publicMood: true
         property bool awaitingSave: false
         property bool dirtySelection: false
+        property string saveError: ""
         onOpened: {
             const state=root.displayedMood
             selectedMood=String(state.mood||"none")
@@ -3002,22 +3017,33 @@ Item {
             publicMood=state.visible!==false
             awaitingSave=false
             dirtySelection=false
+            saveError=""
             openProofConnections.fetchProfileStatus(Number(root.activeDetail.fid||0))
         }
         Connections {
             target: openProofConnections
             function onProfileStatusChanged() {
-                if(profileStatusEditor.awaitingSave
-                    && !openProofConnections.profileStatusBusy) {
-                    profileStatusEditor.awaitingSave=false
-                    if(!openProofConnections.profileStatusError)
-                        profileStatusEditor.close()
-                } else if(profileStatusEditor.visible && !profileStatusEditor.dirtySelection
+                // GET completion must never be mistaken for a confirmed PUT.
+                if(profileStatusEditor.visible && !profileStatusEditor.dirtySelection
+                          && !profileStatusEditor.awaitingSave
                           && !openProofConnections.profileStatusBusy) {
                     const state=root.displayedMood
                     profileStatusEditor.selectedMood=String(state.mood||"none")
                     statusNoteEditor.text=String(state.note||"")
                     profileStatusEditor.publicMood=state.visible!==false
+                }
+            }
+            function onProfileStatusSaveFinished(saved,message) {
+                if(!profileStatusEditor.awaitingSave)
+                    return
+                profileStatusEditor.awaitingSave=false
+                if(saved) {
+                    profileStatusEditor.saveError=""
+                    statusNoteEditor.focus=false
+                    profileStatusEditor.close()
+                } else {
+                    // Persist the error even if a 409 triggers a fresh GET.
+                    profileStatusEditor.saveError=message
                 }
             }
         }
@@ -3052,11 +3078,16 @@ Item {
                             quiet: profileStatusEditor.selectedMood!==modelData.id
                             selected: profileStatusEditor.selectedMood===modelData.id
                             iconGlyph: modelData.icon
+                            customIconColor: modelData.color
+                            customSelectedColor: modelData.color
+                            customSelectedSurface: Qt.rgba(modelData.color.r,modelData.color.g,
+                                                           modelData.color.b,Theme.dark ? 0.19 : 0.11)
                             alignStart: true
                             text: root.moodLabel(modelData.id)
                             onClicked: {
                                 profileStatusEditor.selectedMood=modelData.id
                                 profileStatusEditor.dirtySelection=true
+                                profileStatusEditor.saveError=""
                             }
                         }
                     }
@@ -3073,8 +3104,10 @@ Item {
                         placeholderText: qsTrId("genycaster.status.placeholder")
                         onActiveFocusChanged: if (activeFocus)
                             profileStatusEditor.revealNoteEditor()
-                        onTextChanged: if (profileStatusEditor.visible)
+                        onTextChanged: if (profileStatusEditor.visible) {
                             profileStatusEditor.dirtySelection=true
+                            profileStatusEditor.saveError=""
+                        }
                     }
                     GenySwitch {
                         id: statusVisibility
@@ -3084,28 +3117,34 @@ Item {
                         onToggled: {
                             profileStatusEditor.publicMood=checked
                             profileStatusEditor.dirtySelection=true
+                            profileStatusEditor.saveError=""
                         }
                     }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: openProofConnections.profileStatusError.length>0
-                        text: openProofConnections.profileStatusError
-                        color: Theme.negative
-                        wrapMode: Text.Wrap
-                    }
                 }
+            }
+            DirectionAwareLabel {
+                objectName: "profileStatusSaveError"
+                Layout.fillWidth: true
+                visible: profileStatusEditor.saveError.length>0
+                text: profileStatusEditor.saveError
+                color: Theme.negative
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeCaptionSize
+                Accessible.role: Accessible.StaticText
             }
             ActionButton {
                 objectName: "profileStatusSave"
                 Layout.fillWidth: true
                 prominent: true
                 busy: profileStatusEditor.awaitingSave
-                enabled: !openProofConnections.profileStatusBusy
+                enabled: !profileStatusEditor.awaitingSave
+                    && !openProofConnections.profileStatusBusy
                     && openProofConnections.cloudAuthorizationReady
                     && (profileStatusEditor.selectedMood!=="custom"
                         || statusNoteEditor.text.trim().length>0)
                 text: qsTrId("genycaster.status.save")
                 onClicked: {
+                    profileStatusEditor.saveError=""
                     profileStatusEditor.awaitingSave=true
                     openProofConnections.saveProfileStatus(
                         profileStatusEditor.selectedMood,
