@@ -1043,6 +1043,12 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
+                                // Shared offscreen texture: the visible scrolling
+                                // page and dock blur must sample the same frame,
+                                // rather than rendering the ListView a second time.
+                                // Restrict to the mobile viewport, not an entire feed.
+                                layer.enabled: root.mobile
+                                layer.smooth: true
                                 // No reserved/painted footer: content extends to the
                                 // screen edge *behind* the floating dock.
                                 // Each scrollable list provides its own trailing
@@ -1766,7 +1772,7 @@ Item {
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom
                             blurSourceItem: readingContent
-                            glassEnabled: !Theme.powerSave
+                            glassEnabled: true
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed
                             shellRoute: root.shellRoute

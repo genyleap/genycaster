@@ -17,7 +17,6 @@ Item {
     property Item blurSourceItem: null
     property bool glassEnabled: false
     readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
-                                           && !Theme.powerSave
     readonly property bool showSelectedLabel: width >= 375
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
@@ -137,8 +136,9 @@ Item {
             fillColor: "transparent"
             borderWidth: 0
 
-            // Sample only the 56px dock region (not the entire screen).
-            // The source excludes this dock, preventing recursive capture.
+            // Crop the already-composited readingContent layer to this capsule.
+            // The source excludes the dock, preventing recursive capture.
+            // The visible content and the blur share one rendered texture.
             ShaderEffectSource {
                 id: capsuleBackdrop
                 objectName: "mobileCapsuleBackdropCapture"

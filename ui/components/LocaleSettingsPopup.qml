@@ -86,10 +86,11 @@ GenyDrawer {
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(1100, parent.width * 0.96)) : 1100
-    // Settings is a full-screen navigable destination on phones: never leave
-    // a distracting exposed strip above it. Outside-click dismissal still
-    // applies whenever the surface has an uncovered backdrop (e.g. desktop).
-    height: parent ? parent.height : 820
+    // A modest top reveal makes Settings consistent with other bottom sheets
+    // without sacrificing its internal independently scrolling sections.
+    height: parent ? (mobilePresentation
+                     ? Math.min(parent.height * 0.91, Theme.scaleUi(790))
+                     : parent.height) : 820
 
     onOpened: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {

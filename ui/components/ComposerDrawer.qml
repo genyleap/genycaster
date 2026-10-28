@@ -1024,7 +1024,7 @@ GenyDrawer {
                     }
                 }
             }
-            BusyIndicator {
+            GenySpinner {
                 Layout.alignment: Qt.AlignHCenter
                 visible: openProofConnections.topicsBusy
                 running: visible

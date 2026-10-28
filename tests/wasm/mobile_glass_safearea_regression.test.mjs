@@ -19,7 +19,13 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(dock,/import QtQuick\.Effects/);
   assert.match(dock,/glassEnabled: false/);
   assert.match(dock,/useBackdropBlur: glassEnabled && blurSourceItem !== null/);
-  assert.match(shell,/blurSourceItem: readingContent\s+glassEnabled: !Theme\.powerSave/);
+  assert.match(shell,/blurSourceItem: readingContent\s+glassEnabled: true/);
+  // The compositor shares its live source texture with the dock: no
+  // separate re-render of the scrolled ListView at the previous scroll offset.
+  assert.match(shell,/id: readingContent[\s\S]*?layer\.enabled: root\.mobile/);
+  assert.match(shell,/layer\.smooth: true/);
+  assert.doesNotMatch(dock,/contentScrolling|viewportScrollRecent|viewportGlassSettle/);
+  assert.match(dock,/live: root\.useBackdropBlur/);
   const glass=dock.slice(dock.indexOf('id: navigationCapsule'),
       dock.indexOf('objectName: "mobileDockHome"'));
   assert.match(glass,/objectName: "mobileCapsuleBackdropCapture"/);
