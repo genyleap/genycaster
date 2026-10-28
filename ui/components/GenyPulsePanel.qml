@@ -432,7 +432,7 @@ Item {
                             ActionButton {
                                 compact: true; quiet: true; elevated: false; pill: true
                                 iconOnly: true
-                                iconGlyph: Theme.iconChevronLeft
+                                iconGlyph: Theme.iconArrowLeft
                                 text: qsTrId("genycaster.activity.previous_year")
                                 enabled: root.githubYear>2014
                                 onClicked: { root.githubYear--; root.selectedGithubDate="" }
@@ -448,7 +448,7 @@ Item {
                             ActionButton {
                                 compact: true; quiet: true; elevated: false; pill: true
                                 iconOnly: true
-                                iconGlyph: Theme.iconChevronRight
+                                iconGlyph: Theme.iconArrowRight
                                 text: qsTrId("genycaster.activity.next_year")
                                 enabled: root.githubYear<root.githubYearMax
                                 onClicked: { root.githubYear++; root.selectedGithubDate="" }
