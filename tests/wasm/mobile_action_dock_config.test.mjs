@@ -24,7 +24,8 @@ test('five destinations stay in a capsule and the sixth control is independent',
   assert.match(dock,/layoutDirection: Theme\.uiDirection/);
   assert.match(action,/Accessible\.name: text/);
   assert.match(action,/Theme\.contrastInk\(Theme\.mobileActionColor\)/);
-  assert.match(action,/enabled: !Theme\.reduceMotion/);
+  assert.match(action,/enabled: root\.animateDock/);
+  assert.match(dock,/readonly property bool animateDock: !Theme\.reduceMotion/);
 });
 
 test('dock dispatches only implemented actions through AppShell',()=>{

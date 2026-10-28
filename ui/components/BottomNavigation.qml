@@ -16,7 +16,10 @@ Item {
     property Item blurSourceItem: null
     property bool glassEnabled: false
     readonly property bool showSelectedLabel: width >= 375
-    readonly property color footerColor: Theme.dark ? "#202128" : Theme.background
+    // The footer owns touch targets only: no full-width painted backdrop.
+    // Page content keeps its bottom reservation so lists never end beneath
+    // these floating controls.
+    readonly property bool animateDock: !Theme.reduceMotion
 
     signal trendingRequested()
     signal followingRequested()
@@ -30,29 +33,9 @@ Item {
     implicitHeight: 88
     clip: false
 
-    Rectangle {
-        id: footerBackground
-        objectName: "mobileFooterBackground"
-        anchors.fill: parent
-        color: root.footerColor
-    }
-
-    // The reading surface has bottom-rounded corners over the dock; no
-    // performance-heavy scene capture or full-screen blur on WASM.
-    Superellipse {
-        objectName: "mobileContentLowerEdge"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        y: -7
-        height: 14
-        fillColor: Theme.background
-        curveDepth: 22
-        curveTopLeft: false
-        curveTopRight: false
-        curveBottomLeft: true
-        curveBottomRight: true
-    }
-
+    // A genuinely floating dock: the root is fully transparent. No footer
+    // rectangle or curved page separator can cover the scrollable surface.
+    // Reserve bottom space in AppShell instead of painting a dark footer.
     component DockDestination: Button {
         id: destination
         property bool active: false
@@ -61,6 +44,10 @@ Item {
         property bool displayLabel: false
         implicitHeight: 49
         implicitWidth: active && displayLabel ? 87 : 43
+        Behavior on implicitWidth {
+            enabled: root.animateDock
+            NumberAnimation { duration: 210; easing.type: Easing.OutCubic }
+        }
         Layout.fillWidth: true
         Layout.minimumWidth: 39
         Layout.preferredWidth: implicitWidth
@@ -73,9 +60,17 @@ Item {
         background: Superellipse {
             curveDepth: height / 2
             fillColor: destination.active
-                ? (Theme.dark ? "#454952" : "#E4E6EB") : "transparent"
-            borderWidth: destination.active ? Theme.strokeHairline : 0
-            borderColor: Theme.dark ? "#646873" : "#D5D9E1"
+                ? (Theme.dark ? "#505460" : "#E7EAF0") : "transparent"
+            borderWidth: 0
+            scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
+            Behavior on fillColor {
+                enabled: root.animateDock
+                ColorAnimation { duration: 185; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+                enabled: root.animateDock
+                NumberAnimation { duration: 190; easing.type: Easing.OutCubic }
+            }
         }
         contentItem: RowLayout {
             spacing: Theme.space1
@@ -85,11 +80,24 @@ Item {
                 text: destination.iconGlyph
                 filled: destination.active
                 preferredSize: Theme.iconSizeNavigation
-                color: destination.active ? Theme.ink
-                    : Theme.inkMuted
+                color: destination.active ? Theme.ink : Theme.inkMuted
+                scale: destination.active ? 1.07 : 1.0
+                Behavior on scale {
+                    enabled: root.animateDock
+                    NumberAnimation { duration: 210; easing.type: Easing.OutCubic }
+                }
+                Behavior on color {
+                    enabled: root.animateDock
+                    ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
+                }
             }
             DirectionAwareLabel {
                 visible: destination.active && destination.displayLabel
+                opacity: visible ? 1 : 0
+                Behavior on opacity {
+                    enabled: root.animateDock
+                    NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+                }
                 text: destination.caption
                 font.pixelSize: Theme.typeCaptionSize
                 font.weight: Theme.weightDemiBold
@@ -108,7 +116,7 @@ Item {
         anchors.top: parent.top
         anchors.leftMargin: Theme.mobileGutter
         anchors.rightMargin: Theme.mobileGutter
-        anchors.topMargin: 10
+        anchors.topMargin: 8
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
@@ -118,9 +126,18 @@ Item {
             Layout.minimumWidth: 0
             Layout.preferredHeight: 56
             curveDepth: height / 2
-            fillColor: Theme.dark ? "#31343C" : "#F8F9FC"
-            borderWidth: 1
-            borderColor: Theme.dark ? "#60646F" : "#D8DBE2"
+            fillColor: Theme.dark ? "#31343D" : "#F9FAFC"
+            borderWidth: 0
+            // Deliberately restrained material separation. No blur capture or
+            // full-width glass layer: WebAssembly remains inexpensive.
+            Superellipse {
+                anchors.fill: parent
+                anchors.topMargin: 3
+                anchors.bottomMargin: -3
+                z: -1
+                fillColor: Theme.dark ? "#40000000" : "#1B192236"
+                curveDepth: height / 2
+            }
 
             RowLayout {
                 anchors.fill: parent
@@ -191,12 +208,24 @@ Item {
                 curveDepth: height / 2
                 exponent: 2.01
                 fillColor: Theme.mobileActionColor
-                borderWidth: 1
-                borderColor: Qt.rgba(1, 1, 1, 0.32)
-                scale: mobilePrimaryAction.down ? 0.94 : 1
+                borderWidth: 0
+                // Shadow is a single offset vector shape, not a blur pass.
+                Superellipse {
+                    anchors.fill: parent
+                    anchors.topMargin: 3
+                    anchors.bottomMargin: -3
+                    z: -1
+                    fillColor: Theme.dark ? "#48000000" : "#28000000"
+                    curveDepth: height / 2
+                }
+                scale: mobilePrimaryAction.down ? 0.91 : 1
                 Behavior on scale {
-                    enabled: !Theme.reduceMotion
-                    NumberAnimation { duration: Theme.motionFast }
+                    enabled: root.animateDock
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
+                Behavior on fillColor {
+                    enabled: root.animateDock
+                    ColorAnimation { duration: 230; easing.type: Easing.OutCubic }
                 }
             }
             contentItem: Icon {

@@ -34,14 +34,14 @@ test('mobile dock has five destinations and a separate configurable Action Butto
     const shell = read('ui/components/AppShell.qml');
     assert.match(nav, /objectName: "mobileNavigationCapsule"/);
     assert.match(nav, /objectName: "mobilePrimaryActionButton"/);
-    assert.match(nav, /objectName: "mobileFooterBackground"/);
-    assert.match(nav, /objectName: "mobileContentLowerEdge"/);
-    assert.match(nav, /curveBottomLeft: true[\s\S]*?curveBottomRight: true/);
+    assert.doesNotMatch(nav, /objectName: "mobileFooterBackground"/);
+    assert.doesNotMatch(nav, /objectName: "mobileContentLowerEdge"/);
+    assert.doesNotMatch(nav, /footerColor|footerBackground|contentLowerEdge/);
     for(const id of ['mobileDockHome','mobileDockExplore','mobileDockApps',
                       'mobileBottomBookmarksButton','mobileDockProfile'])
         assert.match(nav, new RegExp('objectName: "'+id+'"'));
     assert.match(nav, /Layout\.preferredWidth: 56/);
-    assert.match(nav, /anchors\.topMargin: 10/);
+    assert.match(nav, /anchors\.topMargin: 8/);
     assert.match(nav, /Theme\.mobileActionColor/);
     assert.match(nav, /Theme\.mobileActionIcon/);
     assert.match(nav, /case "photo": root\.photoRequested\(\)/);

@@ -1038,16 +1038,14 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
-                                // Reserve only the actual footer. The previous
-                                // extra bottom gutter left a blank strip above
-                                // the dark dock and made clipped casts appear
-                                // disconnected from the scrollable viewport.
+                                // Keep floating navigation from obscuring the last
+                                // list item. The reserved region is transparent
+                                // page canvas, not a solid dark footer.
                                 anchors.bottomMargin: root.mobile && !root.homeComposerFocused
                                                       && !root.initialSetupOpen
                                     ? mobileBottomNavigation.height : 0
-                                // A mobile ListView must reach the curved dock edge;
-                                // extra ColumnLayout spacing otherwise clips its
-                                // final visible cast behind a blank gutter.
+                                // Avoid an extra ColumnLayout spacer above
+                                // the floating controls.
                                 spacing: root.mobile ? 0 : Theme.space3
 
                                 ComingSoonSurface {
@@ -1749,10 +1747,9 @@ Item {
                                 }
                             }
 
-                        // Edge-to-edge mobile chrome: a dark footer fills the
-                        // bottom of the viewport, with a softly curved content
-                        // boundary above it. No floating capsule or exterior
-                        // light-colored gutter at the device's curved corners.
+                        // Floating dock with no full-width footer paint.
+                        // Keep real content clearance for touch targets and
+                        // the iPhone home-indicator safe area.
                         BottomNavigation {
                             id: mobileBottomNavigation
                             // This stays under readingPane; never reparent a

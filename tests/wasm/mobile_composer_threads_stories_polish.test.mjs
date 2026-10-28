@@ -49,9 +49,11 @@ test('stories and their activity badges are upscaled together', () => {
  assert.match(strip, /implicitHeight: visible \? \(root\.compact \? 94 : 98\)/);
 });
 
-test('footer edge no longer masks a tall region of the scrolling feed', () => {
+test('floating dock keeps feed clearance without an opaque footer', () => {
  const shell = qml('AppShell');
  const footer = qml('BottomNavigation');
  assert.match(shell, /spacing: root\.mobile \? 0 : Theme\.space3/);
- assert.match(footer, /y: -7\s+height: 14/);
+ assert.match(shell, /\? mobileBottomNavigation\.height : 0/);
+ assert.doesNotMatch(footer, /objectName: "mobileFooterBackground"/);
+ assert.doesNotMatch(footer, /objectName: "mobileContentLowerEdge"/);
 });
