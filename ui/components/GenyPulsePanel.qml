@@ -35,19 +35,22 @@ Item {
     readonly property int githubLastRangeDay:
         Math.min(Math.floor(Date.UTC(githubYear,githubEndMonth+1,0)/86400000),
                  githubYear===githubYearMax ? todayDay : 999999)
-    // Every selected range owns the full width of the calendar viewport:
-    // there is no artificial padded year that wastes its left half.
+    // Only the selected dates are rendered. Keep square tiles centered for
+    // short ranges and allow scrolling for long ranges.
     readonly property int githubGridStart: githubStartRangeDay-
         new Date(githubStartRangeDay*86400000).getUTCDay()
     readonly property int githubWeeks:
         Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
-    // Responsive geometry keeps cells evenly distributed from left to right.
-    // A monthly view uses short horizontal tiles, never giant square blocks.
-    readonly property int githubGapSize: githubWeeks>24 ? 1 : gapSize
-    readonly property real githubTileWidth: Math.max(4,
-        (githubContent.width - (githubWeeks-1)*githubGapSize)/Math.max(1,githubWeeks))
-    readonly property int githubTileHeight: githubWeeks>24 ? 8 : 11
-    readonly property real githubGridWidth: githubWeeks*githubTileWidth+(githubWeeks-1)*githubGapSize
+    // HabitKit-style heatmap: always square cells with equal gutters.
+    // Longer calendars scroll rather than squeezing into thin rectangles.
+    readonly property int githubGapSize: githubWeeks>24 ? 2 : gapSize
+    readonly property int githubTileSize: Math.max(8, Math.min(
+        githubWeeks>24 ? 11 : githubWeeks>9 ? 20 : 24,
+        Math.floor((githubContent.width-(githubWeeks-1)*githubGapSize)
+                   /Math.max(1,githubWeeks))))
+    readonly property int githubTileWidth: githubTileSize
+    readonly property int githubTileHeight: githubTileSize
+    readonly property int githubGridWidth: githubWeeks*githubTileSize+(githubWeeks-1)*githubGapSize
     readonly property int githubVisibleTotal: {
         if(!githubContributionsReady)return 0
         let total=0
@@ -81,12 +84,12 @@ Item {
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
     readonly property int weeks: 13
     readonly property int gapSize: 3
-    // Fit all 13 observed weeks to the content's full available width.
-    // The slim row height keeps the purple activity cells lightweight.
-    readonly property real cellSize: Math.max(8,
-        (farcasterContent.width-(weeks-1)*gapSize)/weeks)
-    readonly property int cellHeight: 11
-    readonly property real castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
+    // The 91-day Casts calendar also uses uniform square cells.
+    // A modest max size avoids huge blocks on desktop/tablet.
+    readonly property int cellSize: Math.max(8,Math.min(20,
+        Math.floor((farcasterContent.width-(weeks-1)*gapSize)/weeks)))
+    readonly property int cellHeight: cellSize
+    readonly property int castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
     readonly property bool hasOnchainActivity: verifiedWallet.length>0
         && (walletData.status==="ok" || walletData.status==="partial")
     readonly property bool hasOptionalSources: githubLinked || hasOnchainActivity
@@ -271,14 +274,13 @@ Item {
                     }
                 }
 
-                // A centered, self-contained calendar: never split the day
-                // count and the grid across opposite ends of a large card.
+                // Center the fixed-square day grid with symmetric margins.
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
                     Row {
                         id: calendarRow
-                        x: 0
+                        x: Math.max(0,(parent.width-root.castsGridWidth)/2)
                         spacing: root.gapSize
                         Repeater {
                             model: root.weeks
@@ -468,11 +470,27 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 7*root.githubTileHeight+6*root.githubGapSize
                         clip: true
-                        contentWidth: width
+                        contentWidth: Math.max(width,root.githubGridWidth)
                         contentHeight: height
-                        interactive: false
+                        flickableDirection: Flickable.HorizontalFlick
+                        boundsBehavior: Flickable.StopAtBounds
+                        function showLatest() {
+                            contentX=Math.max(0,contentWidth-width)
+                        }
+                        onContentWidthChanged: Qt.callLater(showLatest)
+                        onWidthChanged: Qt.callLater(showLatest)
+                        onVisibleChanged: if(visible) Qt.callLater(showLatest)
+                        Connections {
+                            target: root
+                            function onGithubRangeChanged() {
+                                Qt.callLater(githubCalendarViewport.showLatest)
+                            }
+                            function onGithubYearChanged() {
+                                Qt.callLater(githubCalendarViewport.showLatest)
+                            }
+                        }
                         Row {
-                            x: 0
+                            x: Math.max(0,(githubCalendarViewport.width-root.githubGridWidth)/2)
                             spacing: root.githubGapSize
                             Repeater {
                                 model: root.githubWeeks
@@ -493,7 +511,7 @@ Item {
                                                 root.githubContributionDays[date] || ({})
                                             width: root.githubTileWidth
                                             height: root.githubTileHeight
-                                            radius: 3
+                                            radius: Math.max(2,Math.floor(root.githubTileSize*0.2))
                                             color: inRange
                                                 ? root.githubTileColor(Number(datum.level || 0))
                                                 : "transparent"
