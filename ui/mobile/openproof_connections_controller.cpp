@@ -1163,6 +1163,123 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
     });
 }
 
+
+void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
+{
+    if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl)) return;
+    if (m_profileStatusRead) {
+        m_profileStatusRead->abort();
+        m_profileStatusRead->deleteLater();
+        m_profileStatusRead=nullptr;
+    }
+    m_profileStatusFid=profileFid;
+    m_profileStatus.clear();
+    m_profileStatusRevision=0;
+    m_profileStatusError.clear();
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/profile_status"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    if(profileFid==m_viewerFid && cloudAuthorizationReady())
+        authorizeCloudRequest(request);
+    else {
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("fid"),QString::number(profileFid));
+        url.setQuery(query);
+        request.setUrl(url);
+    }
+    auto* reply=m_network.get(request);
+    m_profileStatusRead=reply;
+    emit profileStatusChanged();
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,profileFid,generation]{
+        if(m_profileStatusRead==reply)m_profileStatusRead=nullptr;
+        const int code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto data=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_profileStatusFid!=profileFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(data);
+        const auto item=doc.object().value(QStringLiteral("item"));
+        if(code==200 && doc.isObject() && (item.isNull() || item.isObject())){
+            m_profileStatus=item.isObject()?item.toObject().toVariantMap():QVariantMap{};
+            bool valid=false;
+            m_profileStatusRevision=m_profileStatus.value(QStringLiteral("revision"))
+                .toString().toLongLong(&valid);
+            if(!valid)m_profileStatusRevision=0;
+            m_profileStatusError.clear();
+        } else {
+            m_profileStatusError=QStringLiteral("Status is temporarily unavailable.");
+        }
+        emit profileStatusChanged();
+    });
+}
+
+void OpenProofConnectionsController::saveProfileStatus(
+    const QString& mood,const QString& note,bool visible)
+{
+    static const QSet<QString> moods={
+        QStringLiteral("none"),QStringLiteral("available"),QStringLiteral("busy"),
+        QStringLiteral("idle"),QStringLiteral("away"),QStringLiteral("focusing"),QStringLiteral("creating"),
+        QStringLiteral("dnd"),QStringLiteral("custom")
+    };
+    if(!moods.contains(mood) || note.size()>72 || !m_viewerFid ||
+       m_profileStatusFid!=m_viewerFid || !cloudAuthorizationReady() ||
+       !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite ||
+       m_profileStatusRead || (mood==QStringLiteral("custom") && note.trimmed().isEmpty())) {
+        m_profileStatusError=QStringLiteral("Status cannot be saved until account verification is ready.");
+        emit profileStatusChanged();
+        return;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/profile_status"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9'000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const QJsonObject data{
+        {QStringLiteral("mood"),mood},
+        {QStringLiteral("note"),note.trimmed()},
+        {QStringLiteral("visible"),visible},
+        {QStringLiteral("revision"),static_cast<double>(m_profileStatusRevision)}
+    };
+    auto* reply=m_network.put(request,QJsonDocument{data}.toJson(QJsonDocument::Compact));
+    m_profileStatusWrite=reply;
+    m_profileStatusError.clear();
+    emit profileStatusChanged();
+    const auto generation=m_grantGeneration;
+    const auto viewer=m_viewerFid;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer]{
+        if(m_profileStatusWrite==reply)m_profileStatusWrite=nullptr;
+        const auto code=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=4096?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto item=doc.object().value(QStringLiteral("item"));
+        if(code==200 && item.isObject()){
+            m_profileStatus=item.toObject().toVariantMap();
+            m_profileStatusRevision=m_profileStatus.value(QStringLiteral("revision"))
+                .toString().toLongLong();
+            m_profileStatusError.clear();
+        } else {
+            m_profileStatusError=code==409
+                ?QStringLiteral("A newer status was saved elsewhere. Refresh before editing.")
+                :QStringLiteral("Could not save status. Your selection has not changed.");
+            if(code==409)
+                QMetaObject::invokeMethod(this,[this,viewer]{
+                    if(m_viewerFid==viewer)fetchProfileStatus(viewer);
+                },Qt::QueuedConnection);
+        }
+        emit profileStatusChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchCloudProfileExtras()
 {
     sendCloudProfileRequest(false);

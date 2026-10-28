@@ -6125,5 +6125,69 @@ Company | https://company.com</translation>
             <source>Next year</source>
             <translation>Next year</translation>
         </message>
+        <message id="genycaster.status.set">
+            <source>Set status</source>
+            <translation>Set status</translation>
+        </message>
+        <message id="genycaster.status.hint">
+            <source>Set your mood for GenyCaster profiles</source>
+            <translation>Set your mood for GenyCaster profiles</translation>
+        </message>
+        <message id="genycaster.status.available">
+            <source>Available</source>
+            <translation>Available</translation>
+        </message>
+        <message id="genycaster.status.busy">
+            <source>Busy</source>
+            <translation>Busy</translation>
+        </message>
+        <message id="genycaster.status.idle">
+            <source>Idle</source>
+            <translation>Idle</translation>
+        </message>
+        <message id="genycaster.status.away">
+            <source>Away</source>
+            <translation>Away</translation>
+        </message>
+        <message id="genycaster.status.focusing">
+            <source>Focused</source>
+            <translation>Focused</translation>
+        </message>
+        <message id="genycaster.status.creating">
+            <source>Creating</source>
+            <translation>Creating</translation>
+        </message>
+        <message id="genycaster.status.dnd">
+            <source>Do not disturb</source>
+            <translation>Do not disturb</translation>
+        </message>
+        <message id="genycaster.status.custom">
+            <source>Custom</source>
+            <translation>Custom</translation>
+        </message>
+        <message id="genycaster.status.none">
+            <source>Clear status</source>
+            <translation>Clear status</translation>
+        </message>
+        <message id="genycaster.status.note">
+            <source>Status message</source>
+            <translation>Status message</translation>
+        </message>
+        <message id="genycaster.status.placeholder">
+            <source>What are you up to?</source>
+            <translation>What are you up to?</translation>
+        </message>
+        <message id="genycaster.status.visible">
+            <source>Show status on my profile</source>
+            <translation>Show status on my profile</translation>
+        </message>
+        <message id="genycaster.status.save">
+            <source>Save status</source>
+            <translation>Save status</translation>
+        </message>
+        <message id="genycaster.status.edit">
+            <source>Edit status</source>
+            <translation>Edit status</translation>
+        </message>
     </context>
 </TS>

@@ -6125,5 +6125,69 @@ Company | https://company.com</translation>
             <source>Next year</source>
             <translation>下一年</translation>
         </message>
+        <message id="genycaster.status.set">
+            <source>Set status</source>
+            <translation>设置状态</translation>
+        </message>
+        <message id="genycaster.status.hint">
+            <source>Set your mood for GenyCaster profiles</source>
+            <translation>在 GenyCaster 个人资料中展示心情</translation>
+        </message>
+        <message id="genycaster.status.available">
+            <source>Available</source>
+            <translation>在线</translation>
+        </message>
+        <message id="genycaster.status.busy">
+            <source>Busy</source>
+            <translation>忙碌</translation>
+        </message>
+        <message id="genycaster.status.idle">
+            <source>Idle</source>
+            <translation>空闲</translation>
+        </message>
+        <message id="genycaster.status.away">
+            <source>Away</source>
+            <translation>离开</translation>
+        </message>
+        <message id="genycaster.status.focusing">
+            <source>Focused</source>
+            <translation>专注中</translation>
+        </message>
+        <message id="genycaster.status.creating">
+            <source>Creating</source>
+            <translation>创作中</translation>
+        </message>
+        <message id="genycaster.status.dnd">
+            <source>Do not disturb</source>
+            <translation>请勿打扰</translation>
+        </message>
+        <message id="genycaster.status.custom">
+            <source>Custom</source>
+            <translation>自定义</translation>
+        </message>
+        <message id="genycaster.status.none">
+            <source>Clear status</source>
+            <translation>清除状态</translation>
+        </message>
+        <message id="genycaster.status.note">
+            <source>Status message</source>
+            <translation>状态消息</translation>
+        </message>
+        <message id="genycaster.status.placeholder">
+            <source>What are you up to?</source>
+            <translation>你在做什么？</translation>
+        </message>
+        <message id="genycaster.status.visible">
+            <source>Show status on my profile</source>
+            <translation>在资料中显示状态</translation>
+        </message>
+        <message id="genycaster.status.save">
+            <source>Save status</source>
+            <translation>保存状态</translation>
+        </message>
+        <message id="genycaster.status.edit">
+            <source>Edit status</source>
+            <translation>编辑状态</translation>
+        </message>
     </context>
 </TS>

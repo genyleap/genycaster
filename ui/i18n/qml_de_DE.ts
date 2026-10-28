@@ -6125,5 +6125,69 @@ Company | https://company.com</translation>
             <source>Next year</source>
             <translation>Nächstes Jahr</translation>
         </message>
+        <message id="genycaster.status.set">
+            <source>Set status</source>
+            <translation>Status festlegen</translation>
+        </message>
+        <message id="genycaster.status.hint">
+            <source>Set your mood for GenyCaster profiles</source>
+            <translation>Teile deine Stimmung auf GenyCaster</translation>
+        </message>
+        <message id="genycaster.status.available">
+            <source>Available</source>
+            <translation>Verfügbar</translation>
+        </message>
+        <message id="genycaster.status.busy">
+            <source>Busy</source>
+            <translation>Beschäftigt</translation>
+        </message>
+        <message id="genycaster.status.idle">
+            <source>Idle</source>
+            <translation>Inaktiv</translation>
+        </message>
+        <message id="genycaster.status.away">
+            <source>Away</source>
+            <translation>Abwesend</translation>
+        </message>
+        <message id="genycaster.status.focusing">
+            <source>Focused</source>
+            <translation>Konzentriert</translation>
+        </message>
+        <message id="genycaster.status.creating">
+            <source>Creating</source>
+            <translation>Kreativ</translation>
+        </message>
+        <message id="genycaster.status.dnd">
+            <source>Do not disturb</source>
+            <translation>Nicht stören</translation>
+        </message>
+        <message id="genycaster.status.custom">
+            <source>Custom</source>
+            <translation>Benutzerdefiniert</translation>
+        </message>
+        <message id="genycaster.status.none">
+            <source>Clear status</source>
+            <translation>Status löschen</translation>
+        </message>
+        <message id="genycaster.status.note">
+            <source>Status message</source>
+            <translation>Statusnachricht</translation>
+        </message>
+        <message id="genycaster.status.placeholder">
+            <source>What are you up to?</source>
+            <translation>Womit beschäftigst du dich?</translation>
+        </message>
+        <message id="genycaster.status.visible">
+            <source>Show status on my profile</source>
+            <translation>Status im Profil anzeigen</translation>
+        </message>
+        <message id="genycaster.status.save">
+            <source>Save status</source>
+            <translation>Status speichern</translation>
+        </message>
+        <message id="genycaster.status.edit">
+            <source>Edit status</source>
+            <translation>Status bearbeiten</translation>
+        </message>
     </context>
 </TS>

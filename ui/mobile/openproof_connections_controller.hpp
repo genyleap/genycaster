@@ -43,6 +43,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
+    Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
+    Q_PROPERTY(bool profileStatusBusy READ profileStatusBusy NOTIFY profileStatusChanged)
+    Q_PROPERTY(QString profileStatusError READ profileStatusError NOTIFY profileStatusChanged)
     Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
     Q_PROPERTY(QString bookmarkError READ bookmarkError NOTIFY cloudStateChanged)
     Q_PROPERTY(int bookmarkPendingCount READ bookmarkPendingCount NOTIFY cloudStateChanged)
@@ -89,6 +92,11 @@ public:
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
     [[nodiscard]] QVariantMap cloudProfileExtras() const { return m_cloudProfileExtras; }
+    [[nodiscard]] QVariantMap profileStatus() const { return m_profileStatus; }
+    [[nodiscard]] bool profileStatusBusy() const noexcept {
+        return m_profileStatusRead || m_profileStatusWrite;
+    }
+    [[nodiscard]] QString profileStatusError() const { return m_profileStatusError; }
     [[nodiscard]] bool bookmarkPreviewSupported() const noexcept {
         return m_bookmarkPreviewsReady;
     }
@@ -131,6 +139,8 @@ public:
                                                       const QString& collectionId, bool remove);
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
+    Q_INVOKABLE void fetchProfileStatus(qulonglong profileFid);
+    Q_INVOKABLE void saveProfileStatus(const QString& mood,const QString& note,bool visible);
     /** Read the last server-confirmed OpenProof link display snapshot. */
     Q_INVOKABLE void refreshAccountConnectionsSnapshot();
     /** Re-read the bookmark change history on demand, without local data loss. */
@@ -190,6 +200,7 @@ public:
 signals:
     void stateChanged();
     void cloudStateChanged();
+    void profileStatusChanged();
     void topicsChanged();
     void topicCastsChanged();
     void bookmarkCollectionsChanged();
@@ -232,6 +243,12 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_profileStatusRead{};
+    QPointer<QNetworkReply> m_profileStatusWrite{};
+    qulonglong m_profileStatusFid{};
+    qlonglong m_profileStatusRevision{};
+    QVariantMap m_profileStatus{};
+    QString m_profileStatusError{};
     QPointer<QNetworkReply> m_accountConnectionsRequest{};
     QPointer<QNetworkReply> m_portableConnectionsRequest{};
     bool m_portableConnectionsPublished{};

@@ -246,3 +246,23 @@ for profile links and LinkedIn; test offline replay, logout/account switch,
 concurrent edits, and database backup/restore.
 
 No actual private user token should appear in logs or be pasted into tickets.
+
+### GenyCaster user-selected profile status
+
+`GET /api/v1/cloud/profile_status?fid=<verified-farcaster-fid>` exposes
+only an explicitly public, user-selected status. It never claims to reflect
+live socket presence or online availability. Private or cleared statuses
+return `{"item":null}`, with no authentication or social-data scraping.
+
+`GET /api/v1/cloud/profile_status` requires the verified owner's account
+session and includes private status. `PUT /api/v1/cloud/profile_status`
+requires the same account session (and CSRF for cookie sessions). Body:
+`{mood,note,visible,revision}`. Mood is a bounded curated identifier;
+`note` is user-authored (up to 72 Unicode scalars). Expected `revision`
+protects against conflicting writes on another device. The server ignores
+any caller-supplied FID; ownership is derived from the verified session.
+
+Data is persisted as a reserved GenyCaster-owned `notifications` row
+(ID `00000000-0000-4000-8000-000000000003`). Generic notification
+reads and writes exclude that row and cannot impersonate the internal
+record. This needs no new database role, schema privileges, or migrations.

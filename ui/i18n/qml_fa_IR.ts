@@ -6125,5 +6125,69 @@ Company | https://company.com</source>
             <source>Next year</source>
             <translation>سال بعد</translation>
         </message>
+        <message id="genycaster.status.set">
+            <source>Set status</source>
+            <translation>تنظیم وضعیت</translation>
+        </message>
+        <message id="genycaster.status.hint">
+            <source>Set your mood for GenyCaster profiles</source>
+            <translation>حالت خود را در پروفایل جنی‌کستر مشخص کنید</translation>
+        </message>
+        <message id="genycaster.status.available">
+            <source>Available</source>
+            <translation>در دسترس</translation>
+        </message>
+        <message id="genycaster.status.busy">
+            <source>Busy</source>
+            <translation>مشغول</translation>
+        </message>
+        <message id="genycaster.status.idle">
+            <source>Idle</source>
+            <translation>بی‌کار</translation>
+        </message>
+        <message id="genycaster.status.away">
+            <source>Away</source>
+            <translation>دور از دستگاه</translation>
+        </message>
+        <message id="genycaster.status.focusing">
+            <source>Focused</source>
+            <translation>در حال تمرکز</translation>
+        </message>
+        <message id="genycaster.status.creating">
+            <source>Creating</source>
+            <translation>در حال خلق</translation>
+        </message>
+        <message id="genycaster.status.dnd">
+            <source>Do not disturb</source>
+            <translation>مزاحم نشوید</translation>
+        </message>
+        <message id="genycaster.status.custom">
+            <source>Custom</source>
+            <translation>دلخواه</translation>
+        </message>
+        <message id="genycaster.status.none">
+            <source>Clear status</source>
+            <translation>پاک‌کردن وضعیت</translation>
+        </message>
+        <message id="genycaster.status.note">
+            <source>Status message</source>
+            <translation>پیام وضعیت</translation>
+        </message>
+        <message id="genycaster.status.placeholder">
+            <source>What are you up to?</source>
+            <translation>الان مشغول چه کاری هستید؟</translation>
+        </message>
+        <message id="genycaster.status.visible">
+            <source>Show status on my profile</source>
+            <translation>نمایش وضعیت در پروفایل من</translation>
+        </message>
+        <message id="genycaster.status.save">
+            <source>Save status</source>
+            <translation>ذخیره وضعیت</translation>
+        </message>
+        <message id="genycaster.status.edit">
+            <source>Edit status</source>
+            <translation>ویرایش وضعیت</translation>
+        </message>
     </context>
 </TS>

@@ -6125,5 +6125,69 @@ Company | https://company.com</translation>
             <source>Next year</source>
             <translation>अगला वर्ष</translation>
         </message>
+        <message id="genycaster.status.set">
+            <source>Set status</source>
+            <translation>स्थिति सेट करें</translation>
+        </message>
+        <message id="genycaster.status.hint">
+            <source>Set your mood for GenyCaster profiles</source>
+            <translation>GenyCaster प्रोफ़ाइल पर अपना मूड दिखाएँ</translation>
+        </message>
+        <message id="genycaster.status.available">
+            <source>Available</source>
+            <translation>उपलब्ध</translation>
+        </message>
+        <message id="genycaster.status.busy">
+            <source>Busy</source>
+            <translation>व्यस्त</translation>
+        </message>
+        <message id="genycaster.status.idle">
+            <source>Idle</source>
+            <translation>निष्क्रिय</translation>
+        </message>
+        <message id="genycaster.status.away">
+            <source>Away</source>
+            <translation>दूर</translation>
+        </message>
+        <message id="genycaster.status.focusing">
+            <source>Focused</source>
+            <translation>ध्यान केंद्रित</translation>
+        </message>
+        <message id="genycaster.status.creating">
+            <source>Creating</source>
+            <translation>बना रहे हैं</translation>
+        </message>
+        <message id="genycaster.status.dnd">
+            <source>Do not disturb</source>
+            <translation>परेशान न करें</translation>
+        </message>
+        <message id="genycaster.status.custom">
+            <source>Custom</source>
+            <translation>कस्टम</translation>
+        </message>
+        <message id="genycaster.status.none">
+            <source>Clear status</source>
+            <translation>स्थिति हटाएँ</translation>
+        </message>
+        <message id="genycaster.status.note">
+            <source>Status message</source>
+            <translation>स्थिति संदेश</translation>
+        </message>
+        <message id="genycaster.status.placeholder">
+            <source>What are you up to?</source>
+            <translation>आप क्या कर रहे हैं?</translation>
+        </message>
+        <message id="genycaster.status.visible">
+            <source>Show status on my profile</source>
+            <translation>मेरी प्रोफ़ाइल पर स्थिति दिखाएँ</translation>
+        </message>
+        <message id="genycaster.status.save">
+            <source>Save status</source>
+            <translation>स्थिति सहेजें</translation>
+        </message>
+        <message id="genycaster.status.edit">
+            <source>Edit status</source>
+            <translation>स्थिति संपादित करें</translation>
+        </message>
     </context>
 </TS>

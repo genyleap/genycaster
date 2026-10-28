@@ -199,7 +199,7 @@ Item {
                 objectName: "genyPulseExpandButton"
                 visible: root.hasOptionalSources
                 compact: true
-                quiet: false
+                quiet: true
                 elevated: false
                 pill: true
                 iconSize: 13

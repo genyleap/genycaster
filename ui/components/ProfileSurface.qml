@@ -63,6 +63,52 @@ Item {
     property bool protocolProfilePending: false
     property bool protocolProfileConfirmed: false
     property bool editProfileMediaUrls: false
+    readonly property var moodOptions: [
+        {id:'available',icon:Theme.iconCheck},
+        {id:'busy',icon:Theme.iconCalendar},
+        {id:'idle',icon:Theme.iconPause},
+        {id:'away',icon:Theme.iconPause},
+        {id:'focusing',icon:Theme.iconSpark},
+        {id:'creating',icon:Theme.iconCompose},
+        {id:'dnd',icon:Theme.iconVolumeMuted},
+        {id:'custom',icon:Theme.iconMessage},
+        {id:'none',icon:Theme.iconClose}
+    ]
+    readonly property var displayedMood: {
+        const value=openProofConnections.profileStatus || ({})
+        return String(value.fid||'')===String(Number(root.activeDetail.fid||0))
+            ? value : ({})
+    }
+    function moodLabel(mood) {
+        const names={available:'available',busy:'busy',idle:'idle',away:'away',
+            focusing:'focusing',creating:'creating',dnd:'dnd',custom:'custom',none:'none'}
+        const key=names[String(mood||'')]
+        return key ? qsTrId('genycaster.status.'+key) : ''
+    }
+    onActiveDetailChanged: profileStatusFetch.restart()
+    Timer {
+        id: profileStatusFetch
+        interval: 180
+        repeat: false
+        onTriggered: {
+            const fid=Number(root.activeDetail.fid||0)
+            if(fid>0 && !openProofConnections.profileStatusBusy)
+                openProofConnections.fetchProfileStatus(fid)
+        }
+    }
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.visible && Number(root.activeDetail.fid||0)>0
+        onTriggered: profileStatusFetch.restart()
+    }
+    Connections {
+        target: openProofConnections
+        function onStateChanged() {
+            if(root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+                profileStatusFetch.restart()
+        }
+    }
     property int pendingProfileMediaAfterIndex: -1
 
     function chooseProfileImage(afterIndex) {
@@ -349,7 +395,10 @@ Item {
     }
     onProfileExtrasOwnerKeyChanged: root.migrateLegacyProfileExtras()
     onAccountIssuerChanged: root.migrateLegacyProfileExtras()
-    Component.onCompleted: root.migrateLegacyProfileExtras()
+    Component.onCompleted: {
+        root.migrateLegacyProfileExtras()
+        profileStatusFetch.start()
+    }
     readonly property var profileExtras: {
         const generation = root.profileExtrasGeneration
         if (!root.profileExtrasOwnerKey) return ({})
@@ -1215,6 +1264,7 @@ Item {
             spacing: Theme.space2
 
             RowLayout {
+                visible: !(root.compact && root.isOwnProfile)
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
                 Layout.rightMargin: root.profileContentX
@@ -1865,10 +1915,12 @@ Item {
                         visible: root.profileProfession.length > 0 || root.profileCategory.length > 0
                         layoutDirection: Theme.uiDirection
                         spacing: Theme.space2
+                        Layout.topMargin: Theme.space1
                         Icon {
                             text: Theme.iconBusiness
                             color: Theme.inkMuted
-                            preferredSize: Theme.typeCaptionSize
+                            preferredSize: 16
+                            Layout.alignment: Qt.AlignVCenter
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -1881,6 +1933,36 @@ Item {
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightMedium
                             elide: Text.ElideRight
+                        }
+                    }
+
+                    RowLayout {
+                        objectName: "profileMoodSummary"
+                        Layout.fillWidth: true
+                        visible: root.isOwnProfile || String(root.displayedMood.mood||'none')!=='none'
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Icon {
+                            text: Theme.iconSpark
+                            preferredSize: 16
+                            color: Theme.accent
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            text: root.displayedMood.mood && root.displayedMood.mood!=='none'
+                                  ? root.moodLabel(root.displayedMood.mood)
+                                    + (root.displayedMood.note ? ' · '+String(root.displayedMood.note) : '')
+                                  : qsTrId('genycaster.status.set')
+                            elide: Text.ElideRight
+                        }
+                        ActionButton {
+                            visible: root.isOwnProfile
+                            compact: true; quiet: true; elevated: false
+                            iconOnly: true; iconGlyph: Theme.iconCompose
+                            text: qsTrId('genycaster.status.edit')
+                            onClicked: profileStatusEditor.open()
                         }
                     }
 
@@ -2466,6 +2548,18 @@ Item {
                     id: formColumn
                     width: parent.width
                     spacing: Theme.space3
+                    ActionButton {
+                        objectName: "profileStatusSetting"
+                        Layout.fillWidth: true
+                        iconGlyph: Theme.iconSpark
+                        quiet: true
+                        alignStart: true
+                        text: qsTrId('genycaster.status.edit')
+                        onClicked: {
+                            profileExtrasEditor.close()
+                            Qt.callLater(function() { profileStatusEditor.open() })
+                        }
+                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.protocol_heading")
@@ -2853,6 +2947,144 @@ Item {
         }
     }
 
+
+    GenyDrawer {
+        id: profileStatusEditor
+        objectName: "profileStatusEditor"
+        parent: Overlay.overlay
+        readonly property bool mobilePresentation:
+            parent && parent.width < Theme.breakpointMobile
+        bottomSheet: mobilePresentation
+        edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge
+        dimBackground: true
+        interactive: false
+        showHandle: mobilePresentation
+        width: parent ? (mobilePresentation ? parent.width : Math.min(430,parent.width)) : 430
+        height: parent ? (mobilePresentation ? Math.min(parent.height*0.87,710) : parent.height) : 690
+        contentPadding: Theme.space4
+        property string selectedMood: "none"
+        property bool publicMood: true
+        property bool awaitingSave: false
+        property bool dirtySelection: false
+        onOpened: {
+            const state=root.displayedMood
+            selectedMood=String(state.mood||"none")
+            if(!root.moodOptions.some(option=>option.id===selectedMood))
+                selectedMood="none"
+            statusNoteEditor.text=String(state.note||"")
+            publicMood=state.visible!==false
+            awaitingSave=false
+            dirtySelection=false
+            openProofConnections.fetchProfileStatus(Number(root.activeDetail.fid||0))
+        }
+        Connections {
+            target: openProofConnections
+            function onProfileStatusChanged() {
+                if(profileStatusEditor.awaitingSave
+                    && !openProofConnections.profileStatusBusy) {
+                    profileStatusEditor.awaitingSave=false
+                    if(!openProofConnections.profileStatusError)
+                        profileStatusEditor.close()
+                } else if(profileStatusEditor.visible && !profileStatusEditor.dirtySelection
+                          && !openProofConnections.profileStatusBusy) {
+                    const state=root.displayedMood
+                    profileStatusEditor.selectedMood=String(state.mood||"none")
+                    statusNoteEditor.text=String(state.note||"")
+                    profileStatusEditor.publicMood=state.visible!==false
+                }
+            }
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            ModalHeader {
+                Layout.fillWidth: true
+                title: qsTrId("genycaster.status.set")
+                subtitle: qsTrId("genycaster.status.hint")
+                onCloseRequested: profileStatusEditor.close()
+            }
+            Flickable {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: width
+                contentHeight: statusForm.implicitHeight+Theme.space3
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                ColumnLayout {
+                    id: statusForm
+                    width: parent.width
+                    spacing: Theme.space2
+                    Repeater {
+                        model: root.moodOptions
+                        delegate: ActionButton {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            elevated: false
+                            quiet: profileStatusEditor.selectedMood!==modelData.id
+                            selected: profileStatusEditor.selectedMood===modelData.id
+                            iconGlyph: modelData.icon
+                            alignStart: true
+                            text: root.moodLabel(modelData.id)
+                            onClicked: {
+                                profileStatusEditor.selectedMood=modelData.id
+                                profileStatusEditor.dirtySelection=true
+                            }
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.status.note")
+                        color: Theme.inkMuted
+                    }
+                    DirectionAwareTextField {
+                        id: statusNoteEditor
+                        objectName: "profileStatusCustomNote"
+                        Layout.fillWidth: true
+                        maximumLength: 72
+                        placeholderText: qsTrId("genycaster.status.placeholder")
+                        onTextChanged: if (profileStatusEditor.visible)
+                            profileStatusEditor.dirtySelection=true
+                    }
+                    GenySwitch {
+                        id: statusVisibility
+                        Layout.fillWidth: true
+                        checked: profileStatusEditor.publicMood
+                        text: qsTrId("genycaster.status.visible")
+                        onToggled: {
+                            profileStatusEditor.publicMood=checked
+                            profileStatusEditor.dirtySelection=true
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: openProofConnections.profileStatusError.length>0
+                        text: openProofConnections.profileStatusError
+                        color: Theme.negative
+                        wrapMode: Text.Wrap
+                    }
+                }
+            }
+            ActionButton {
+                objectName: "profileStatusSave"
+                Layout.fillWidth: true
+                prominent: true
+                busy: profileStatusEditor.awaitingSave
+                enabled: !openProofConnections.profileStatusBusy
+                    && openProofConnections.cloudAuthorizationReady
+                    && (profileStatusEditor.selectedMood!=="custom"
+                        || statusNoteEditor.text.trim().length>0)
+                text: qsTrId("genycaster.status.save")
+                onClicked: {
+                    profileStatusEditor.awaitingSave=true
+                    openProofConnections.saveProfileStatus(
+                        profileStatusEditor.selectedMood,
+                        statusNoteEditor.text,
+                        profileStatusEditor.publicMood)
+                }
+            }
+        }
+    }
+
     GenyDrawer {
         id: profileLinksDrawer
         objectName: "profileLinksDrawer"
@@ -2965,12 +3197,14 @@ Item {
     }
 
     onIsOwnProfileChanged: {
+        profileStatusFetch.restart()
         root.profileLinksExpanded = false
         if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
             profileRefreshRetry.restart()
         if (!root.isOwnProfile) {
             accountConnectionsPopup.close()
             profileExtrasEditor.close()
+            profileStatusEditor.close()
             profileLinksDrawer.close()
         }
     }

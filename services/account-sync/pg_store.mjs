@@ -4,6 +4,7 @@ import {randomUUID} from 'node:crypto';
 // Internal singleton row inside the existing per-account notifications table.
 // A dedicated state endpoint owns it; ordinary notification APIs cannot write it.
 const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
+const PROFILE_STATUS_ROW='00000000-0000-4000-8000-000000000003';
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
   tasks:'id,kind,schedule_at,timezone,payload,state,revision,attempt_count,executed_at,deleted_at,updated_at',
@@ -44,6 +45,49 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const multipleRolesReady=versions.has(9);
   return {
     close:()=>pool.end(),
+    // A reserved account-owned notification record, distinct from notifications
+    // displayed to users. No schema changes or additional database privileges.
+    async getPublicProfileStatus(fid,issuer) {
+      const result=await pool.query(`SELECT payload,revision::text,updated_at
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='profile_status'
+          AND deleted_at IS NULL
+          AND (payload->>'visible')::boolean=true
+          AND payload->>'mood'<>'none' LIMIT 1`,
+        [issuer,'farcaster:'+fid,PROFILE_STATUS_ROW]);
+      return result.rows[0] ? {...result.rows[0].payload,
+        fid:String(fid),revision:result.rows[0].revision,
+        updated_at:result.rows[0].updated_at} : null;
+    },
+    async getOwnProfileStatus({issuer,subject,fid}) {
+      const result=await pool.query(`SELECT payload,revision::text,updated_at
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='profile_status'
+          AND deleted_at IS NULL LIMIT 1`,
+        [issuer,subject,PROFILE_STATUS_ROW]);
+      return result.rows[0] ? {...result.rows[0].payload,
+        fid:String(fid),revision:result.rows[0].revision,
+        updated_at:result.rows[0].updated_at} : null;
+    },
+    async putProfileStatus({issuer,subject,fid},item) {
+      const result=await pool.query(`INSERT INTO notifications
+          (issuer,subject,id,source,kind,payload,occurred_at,revision)
+          SELECT $1,$2,$3::uuid,'genycaster','profile_status',$4::jsonb,now(),1
+          WHERE $5::bigint=0
+          ON CONFLICT(issuer,subject,id) DO UPDATE SET
+            payload=EXCLUDED.payload,occurred_at=now(),read_at=NULL,
+            updated_at=now(),revision=notifications.revision+1
+          WHERE notifications.revision=$5::bigint
+            AND notifications.source='genycaster'
+            AND notifications.kind='profile_status'
+          RETURNING payload,revision::text,updated_at`,
+          [issuer,subject,PROFILE_STATUS_ROW,JSON.stringify({
+            mood:item.mood,note:item.note,visible:item.visible
+          }),item.revision]);
+      return result.rows[0] ? {...result.rows[0].payload,
+        fid:String(fid),revision:result.rows[0].revision,
+        updated_at:result.rows[0].updated_at} : null;
+    },
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
     topicsReady:()=>topicsReady,
     bookmarkCollectionsReady:()=>bookmarkCollectionsReady,
@@ -321,7 +365,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         'SELECT '+columns+' FROM '+entity+' WHERE '+(
           entity==='bookmarks'?'openproof_issuer=$1 AND openproof_subject=$2':'issuer=$1 AND subject=$2'
         )+(entity==='notifications'
-          ? " AND NOT (source='genycaster' AND kind='seen_watermark')" : '')
+          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status'))" : '')
           +' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
         [issuer,subject]);
       return result.rows.map(row=>normalizeRow(entity,row));

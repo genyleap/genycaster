@@ -150,9 +150,11 @@ export function validateCloudItem(entity, item) {
       revision:item.revision};
   }
   if (entity === 'notifications') {
-    // Reserved for the app-owned read watermark, never a user-supplied event.
-    if (String(item.id).toLowerCase()==='00000000-0000-4000-8000-000000000001'
-        || (item.source==='genycaster' && item.kind==='seen_watermark')) return null;
+    // Application-controlled singletons are reserved from the generic API.
+    if (['00000000-0000-4000-8000-000000000001',
+         '00000000-0000-4000-8000-000000000003'].includes(String(item.id).toLowerCase())
+        || (item.source==='genycaster'
+            && ['seen_watermark','profile_status'].includes(item.kind))) return null;
     if (!/^[a-z][a-z0-9_-]{0,39}$/.test(item.source || '') ||
         typeof item.kind !== 'string' || item.kind.length > 64 || !item.kind ||
         typeof item.occurred_at !== 'string' ||
@@ -323,9 +325,22 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
-      'bookmark_collections','bookmark_collection_items','github_contributions',
+      'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
+    }
+    if(entity==='profile_status' && request.method==='GET') {
+      const params=new URL(request.url,'http://localhost').searchParams;
+      const fid=params.get('fid');
+      if(fid!==null) {
+        if(params.getAll('fid').length!==1 || !/^[1-9][0-9]{0,18}$/.test(fid)
+            || !Number.isSafeInteger(Number(fid))) {
+          respond(response,400,{error:'invalid_fid'});return true;
+        }
+        try {respond(response,200,{item:await store.getPublicProfileStatus(fid,upstream)});}
+        catch {respond(response,503,{error:'status_unavailable'});}
+        return true;
+      }
     }
     if (entity==='app_updates') {
       if (request.method!=='GET') respond(response,405,{error:'method_not_allowed'});
@@ -366,6 +381,33 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='profile_status') {
+        if(request.method==='GET') {
+          respond(response,200,{item:await store.getOwnProfileStatus(owner)});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const payload=await readBody(request,2048);
+        const choices=['none','available','busy','idle','away','focusing','creating','dnd','custom'];
+        if(!payload || typeof payload!=='object' || Array.isArray(payload)
+            || !choices.includes(payload.mood)
+            || typeof payload.note!=='string' || [...payload.note].length>72
+            || /[\u0000-\u001f\u007f]/u.test(payload.note)
+            || typeof payload.visible!=='boolean'
+            || !Number.isSafeInteger(payload.revision) || payload.revision<0
+            || payload.revision>Number.MAX_SAFE_INTEGER-1
+            || (payload.mood==='custom' && !payload.note.trim())) {
+          respond(response,400,{error:'invalid_status'});return true;
+        }
+        const saved=await store.putProfileStatus(owner,{
+          mood:payload.mood,note:payload.note.trim(),
+          visible:payload.visible,revision:payload.revision
+        });
+        if(!saved){respond(response,409,{error:'revision_conflict'});return true;}
+        respond(response,200,{item:saved});return true;
+      }
       if(entity==='github_contributions') {
         if(request.method!=='GET') {
           respond(response,405,{error:'method_not_allowed'});return true;
