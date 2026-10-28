@@ -65,6 +65,7 @@ private:
     QSet<QString> m_githubEvents;
     QVariantMap m_castBuckets;
     QVariantMap m_githubBuckets;
+    qint64 m_castOldestObservedAt{};
     int m_castCount{};
     int m_replyCount{};
     int m_eventCount{};

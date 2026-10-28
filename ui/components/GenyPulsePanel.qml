@@ -35,22 +35,25 @@ Item {
     readonly property int githubLastRangeDay:
         Math.min(Math.floor(Date.UTC(githubYear,githubEndMonth+1,0)/86400000),
                  githubYear===githubYearMax ? todayDay : 999999)
-    // Only the selected dates are rendered. Keep square tiles centered for
-    // short ranges and allow scrolling for long ranges.
-    readonly property int githubGridStart: githubStartRangeDay-
-        new Date(githubStartRangeDay*86400000).getUTCDay()
-    readonly property int githubWeeks:
-        Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
-    // HabitKit-style heatmap: always square cells with equal gutters.
-    // Longer calendars scroll rather than squeezing into thin rectangles.
-    readonly property int githubGapSize: githubWeeks>24 ? 2 : gapSize
-    readonly property int githubTileSize: Math.max(8, Math.min(
-        githubWeeks>24 ? 11 : githubWeeks>9 ? 20 : 24,
+    // GitHub remains a YEAR calendar in every mode. 1M / 3M only change
+    // the summary and emphasize days, never erase the rest of the year.
+    readonly property int githubYearStart:
+        Math.floor(Date.UTC(githubYear,0,1)/86400000)
+    readonly property int githubYearEnd: Math.min(
+        Math.floor(Date.UTC(githubYear+1,0,0)/86400000),todayDay)
+    readonly property int githubGridStart: githubYearStart-
+        new Date(githubYearStart*86400000).getUTCDay()
+    readonly property int githubWeeks: Math.ceil((githubYearEnd-githubGridStart+1)/7)
+    // Small square days exactly like GitHub's annual contribution grid.
+    readonly property int githubGapSize: 1
+    readonly property int heatmapMaxTile: root.width>=600 ? 18 : 10
+    readonly property int githubTileSize: Math.max(4,Math.min(heatmapMaxTile,
         Math.floor((githubContent.width-(githubWeeks-1)*githubGapSize)
                    /Math.max(1,githubWeeks))))
     readonly property int githubTileWidth: githubTileSize
     readonly property int githubTileHeight: githubTileSize
-    readonly property int githubGridWidth: githubWeeks*githubTileSize+(githubWeeks-1)*githubGapSize
+    readonly property int githubGridWidth:
+        githubWeeks*githubTileSize+(githubWeeks-1)*githubGapSize
     readonly property int githubVisibleTotal: {
         if(!githubContributionsReady)return 0
         let total=0
@@ -82,19 +85,20 @@ Item {
     readonly property var githubData: genyPulseActivity.github
     readonly property var walletData: genyPulseActivity.onchain
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
-    readonly property int weeks: 13
-    readonly property int gapSize: 3
-    // The 91-day Casts calendar also uses uniform square cells.
-    // A modest max size avoids huge blocks on desktop/tablet.
-    readonly property int cellSize: Math.max(8,Math.min(20,
-        Math.floor((farcasterContent.width-(weeks-1)*gapSize)/weeks)))
+    readonly property int gapSize: 2
+    readonly property int todayDay: Math.floor(Date.now()/86400000)
+    readonly property int castsYearStartDay: todayDay - 364
+    readonly property int firstDay: castsYearStartDay-
+        new Date(castsYearStartDay*86400000).getUTCDay()
+    readonly property int weeks: Math.ceil((todayDay-firstDay+1)/7)
+    readonly property int castsGapSize: 1
+    readonly property int cellSize: Math.max(4,Math.min(heatmapMaxTile,
+        Math.floor((farcasterContent.width-(weeks-1)*castsGapSize)/weeks)))
     readonly property int cellHeight: cellSize
-    readonly property int castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
+    readonly property int castsGridWidth: weeks*cellSize + (weeks-1)*castsGapSize
     readonly property bool hasOnchainActivity: verifiedWallet.length>0
         && (walletData.status==="ok" || walletData.status==="partial")
     readonly property bool hasOptionalSources: githubLinked || hasOnchainActivity
-    readonly property int todayDay: Math.floor(Date.now()/86400000)
-    readonly property int firstDay: todayDay - weeks*7 + 1
     readonly property bool farcasterReady: (farcasterData.status==="ok" || farcasterData.status==="partial")
         && String(farcasterData.fid || "")===String(Math.floor(profileFid))
     readonly property string effectiveGithubLogin: verifiedGitHub.length>0
@@ -267,36 +271,43 @@ Item {
                         }
                     }
                     Label {
-                        text: "91d"
+                        text: "1Y"
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }
 
-                // Center the fixed-square day grid with symmetric margins.
+                // Full-year density across the whole card, never 13 giant columns.
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
+                    Layout.preferredHeight: 7 * root.cellHeight + 6 * root.castsGapSize
                     Row {
                         id: calendarRow
                         x: Math.max(0,(parent.width-root.castsGridWidth)/2)
-                        spacing: root.gapSize
+                        spacing: root.castsGapSize
                         Repeater {
                             model: root.weeks
                             delegate: Column {
                                 required property int index
-                                spacing: root.gapSize
+                                spacing: root.castsGapSize
                                 Repeater {
                                     model: 7
                                     delegate: Rectangle {
                                         required property int index
                                         readonly property int day: root.firstDay + parent.index*7 + index
+                                        readonly property bool inYear:
+                                            day>=root.castsYearStartDay && day<=root.todayDay
                                         readonly property int value: root.countAt(root.farcasterDays, day)
+                                        readonly property bool unobserved:
+                                            root.farcasterData.status==="partial"
+                                            && day<Number(root.farcasterData.knownFromDay || root.castsYearStartDay)
                                         width: root.cellSize
                                         height: root.cellHeight
-                                        radius: 3
-                                        color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
+                                        radius: 2
+                                        color: !inYear ? "transparent" :
+                                            unobserved ? (Theme.dark ? "#20232B" : "#EFF0F3") :
+                                            root.tileColor(root.farcasterReady ? value : 0, "farcaster")
                                         MouseArea {
                                             anchors.fill: parent
                                             enabled: root.farcasterReady && parent.value>0
@@ -317,7 +328,9 @@ Item {
                                 .arg(root.selectedDate)
                                 .arg(root.farcasterDays[root.selectedDate] || 0)
                           : root.farcasterReady
-                            ? qsTrId("genycaster.activity.active_days")
+                            ? (root.farcasterData.status==="partial"
+                                ? qsTrId("genycaster.activity.partial") + " · " : "")
+                                + qsTrId("genycaster.activity.active_days")
                                 + ": " + Number(root.farcasterData.days.length)
                             : root.sourceSubtitle(root.farcasterData)
                     color: Theme.inkMuted
@@ -503,6 +516,9 @@ Item {
                                             required property int index
                                             readonly property int day:
                                                 root.githubGridStart+parent.index*7+index
+                                            readonly property bool inYear:
+                                                day>=root.githubYearStart &&
+                                                day<=root.githubYearEnd
                                             readonly property bool inRange:
                                                 day>=root.githubStartRangeDay &&
                                                 day<=root.githubLastRangeDay
@@ -511,13 +527,16 @@ Item {
                                                 root.githubContributionDays[date] || ({})
                                             width: root.githubTileWidth
                                             height: root.githubTileHeight
-                                            radius: Math.max(2,Math.floor(root.githubTileSize*0.2))
-                                            color: inRange
+                                            radius: 2
+                                            color: inYear
                                                 ? root.githubTileColor(Number(datum.level || 0))
                                                 : "transparent"
+                                            opacity: root.githubRange==="1y" || inRange ? 1 : 0.7
+                                            border.width: root.githubRange!=="1y" && inRange ? 1 : 0
+                                            border.color: Theme.dark ? "#BDECD1" : "#28865E"
                                             MouseArea {
                                                 anchors.fill: parent
-                                                enabled: parent.inRange
+                                                enabled: parent.inYear
                                                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                                                 onClicked: root.selectedGithubDate=parent.date
                                             }

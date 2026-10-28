@@ -25,9 +25,9 @@ test('activity is read independently from profile timeline and reacts to FID',()
 });
 
 test('Farcaster and GitHub have separate pagination, state, deduplication and time bounds',()=>{
-  assert.match(source,/kFarcasterWindowDays = 91/);
+  assert.match(source,/kFarcasterWindowDays = 365/);
   assert.match(source,/kGithubWindowDays = 30/);
-  assert.match(source,/kCastPages = 12/);
+  assert.match(source,/kCastPages = 40/);
   assert.match(source,/kGithubPages = 3/);
   assert.match(source,/m_castHashes.contains\(hash\)/);
   assert.match(source,/m_githubEvents.contains\(id\)/);
@@ -46,64 +46,67 @@ test('Onchain verified wallet cannot be confused with transactions',()=>{
   assert.match(qml,/wallet_pending/);
 });
 
-test('compact heatmap cells retain square geometry and source semantics',()=>{
-  assert.match(qml,/readonly property int cellSize:/);
-  assert.match(qml,/readonly property int cellHeight: cellSize/);
-  assert.match(qml,/readonly property int weeks: 13/);
-  assert.match(qml,/Theme.iconChevronDown/);
-  assert.ok(!qml.includes('genycaster.activity.preview'));
-  assert.ok(!qml.includes('genycaster.activity.no_history'));
-  assert.match(qml,/elide: Text.ElideRight/);
-});
-
-test('Casts tiles are squares with bounded size and centered equal gutters',()=>{
-  assert.match(qml,/Math\.min\(20,/);
-  assert.match(qml,/farcasterContent.width-\(weeks-1\)\*gapSize/);
-  assert.match(qml,/readonly property int cellHeight: cellSize/);
-  assert.match(qml,/Math\.max\(0,\(parent.width-root.castsGridWidth\)\/2\)/);
-  assert.match(qml,/width: root.cellSize/);
-  assert.match(qml,/height: root.cellHeight/);
+test('both activity calendars use a dense, seven-row annual layout',()=>{
+  assert.match(qml,/readonly property int githubYearStart:/);
+  assert.match(qml,/readonly property int githubYearEnd:/);
+  assert.match(qml,/githubGridStart: githubYearStart-/);
+  assert.match(qml,/githubWeeks: Math.ceil\(\(githubYearEnd-githubGridStart\+1\)\/7\)/);
+  assert.match(qml,/readonly property int castsYearStartDay: todayDay - 364/);
+  assert.match(qml,/readonly property int firstDay: castsYearStartDay-/);
+  assert.match(qml,/readonly property int weeks: Math.ceil\(\(todayDay-firstDay\+1\)\/7\)/);
+  assert.match(qml,/text: "1Y"/);
   assert.match(qml,/text: "Casts"/);
-  assert.match(qml,/text: Theme.iconCompose/);
-  for(const width of [280,300,344,420,740,980]){
-    const weeks=13,gap=3;
-    const size=Math.max(8,Math.min(20,Math.floor((width-(weeks-1)*gap)/weeks)));
-    const grid=weeks*size+(weeks-1)*gap;
-    assert.equal(size,Math.floor(size));
-    assert.ok(grid<=width,'squares must not overflow '+width);
-    assert.ok(size<=20,'not overgrown on desktop');
-    assert.ok(grid>=0.7*Math.min(width,350),'mobile grid balanced');
-  }
-  for(const provider of ['github','ethereum-wallet'])
-    assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
+  assert.match(qml,/Theme.iconCompose/);
 });
 
-test('GitHub cells are always squares, with horizontal scroll for long years',()=>{
-  assert.match(qml,/githubGridStart: githubStartRangeDay-/);
-  assert.match(qml,/githubLastRangeDay-githubGridStart\+1/);
-  assert.match(qml,/readonly property int githubTileSize:/);
+test('year-long Casts are paginated independently and partial history is identified',()=>{
+  assert.match(source,/kFarcasterWindowDays = 365/);
+  assert.match(source,/kCastPages = 40/);
+  assert.match(source,/m_castOldestObservedAt/);
+  assert.match(source,/knownFromDay/);
+  assert.match(source,/if\(\(page\+1\)%4==0\)publishFarcaster\(false\)/);
+  assert.match(qml,/root.farcasterData.status==="partial"/);
+  assert.match(qml,/unobserved \? \(Theme.dark/);
+  assert.match(qml,/qsTrId\("genycaster.activity.partial"\)/);
+});
+
+test('small SQUARE tiles are consistently bounded on both annual grids',()=>{
+  assert.match(qml,/readonly property int githubGapSize: 1/);
+  assert.match(qml,/readonly property int githubTileSize: Math.max\(4,Math.min\(heatmapMaxTile,/);
+  assert.match(qml,/readonly property int cellSize: Math.max\(4,Math.min\(heatmapMaxTile,/);
   assert.match(qml,/readonly property int githubTileWidth: githubTileSize/);
   assert.match(qml,/readonly property int githubTileHeight: githubTileSize/);
+  assert.match(qml,/readonly property int cellHeight: cellSize/);
+  assert.match(qml,/width: root.cellSize/);
+  assert.match(qml,/height: root.cellHeight/);
   assert.match(qml,/width: root.githubTileWidth/);
   assert.match(qml,/height: root.githubTileHeight/);
-  assert.match(qml,/contentWidth: Math.max\(width,root.githubGridWidth\)/);
-  assert.match(qml,/flickableDirection: Flickable.HorizontalFlick/);
-  assert.match(qml,/onGithubRangeChanged\(\)/);
-  assert.match(qml,/function showLatest\(\)/);
-  for(const width of [280,304,344,480,780,1000]){
-    for(const weeks of [5,14,44,53]){
-      const gap=weeks>24?2:3;
-      const maxSize=weeks>24?11:weeks>9?20:24;
-      const size=Math.max(8,Math.min(maxSize,Math.floor((width-(weeks-1)*gap)/weeks)));
-      const total=weeks*size+(weeks-1)*gap;
-      const scrollWidth=Math.max(width,total);
-      const scrollOffset=Math.max(0,scrollWidth-width);
-      assert.ok(size>=8 && size<=24);
-      assert.equal(scrollWidth-scrollOffset,width);
-      assert.ok(total<=scrollWidth);
-      assert.equal(size,size,'square remains square');
+  for(const width of [310,330,345,400,720,980]){
+    for(const weeks of [43,44,52,53]){
+      const maxTile=width>=600?18:10;
+      const px=Math.max(4,Math.min(maxTile,Math.floor((width-(weeks-1))/weeks)));
+      assert.ok(px>=4 && px<=18);
+      assert.equal(Math.trunc(px),px);
+      assert.ok(weeks*px+(weeks-1)<=width,'annual heatmap should not stretch '+width+'/'+weeks);
     }
   }
+});
+
+test('all GitHub time filters preserve the same COLORED annual calendar',()=>{
+  const qmlCalendar=qml.slice(qml.indexOf('id: githubCalendarViewport'));
+  assert.match(qmlCalendar,/model: root.githubWeeks/);
+  assert.match(qmlCalendar,/inYear\s*\? root.githubTileColor/);
+  assert.match(qmlCalendar,/opacity: root.githubRange==="1y" \|\| inRange \? 1 : 0.7/);
+  assert.match(qmlCalendar,/border.width: root.githubRange!=="1y" && inRange \? 1 : 0/);
+  assert.match(qmlCalendar,/enabled: parent.inYear/);
+  assert.ok(!qmlCalendar.includes('color: inRange ? root.githubTileColor'));
+  assert.ok(!qml.includes('githubGridStart: githubStartRangeDay-'));
+  // Each filter changes the selected range and total, but never grid weeks.
+  const gridDef=qml.slice(qml.indexOf('readonly property int githubYearStart:'),
+    qml.indexOf('readonly property int githubVisibleTotal:'));
+  assert.ok(!gridDef.includes('githubRange'));
+  assert.match(qml,/githubStartRangeDay/);
+  assert.match(qml,/githubLastRangeDay/);
 });
 
 test('compact time filter buttons are in GitHub top-right header',()=>{

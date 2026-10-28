@@ -1,5 +1,6 @@
 #include "genypulse_activity_controller.hpp"
 
+#include <algorithm>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -11,10 +12,10 @@
 
 namespace {
 constexpr qint64 kDayMs = 86'400'000;
-constexpr qint64 kFarcasterWindowDays = 91;
+constexpr qint64 kFarcasterWindowDays = 365;
 constexpr qint64 kGithubWindowDays = 30;
 constexpr qint64 kCacheMs = 10 * 60 * 1000;
-constexpr int kCastPages = 12;
+constexpr int kCastPages = 40;
 constexpr int kGithubPages = 3;
 constexpr int kMaxResponseBytes = 1024 * 1024;
 
@@ -63,6 +64,7 @@ void GenyPulseActivityController::requestFarcaster(const qulonglong fid) {
     m_castBuckets.clear();
     m_castCount=0;
     m_replyCount=0;
+    m_castOldestObservedAt=0;
     m_castHashes.clear();
     m_fid=fid;
     if(!fid){m_farcaster=statusMap(QStringLiteral("idle"),QStringLiteral("hypersnap"));emit farcasterChanged();return;}
@@ -78,6 +80,10 @@ void GenyPulseActivityController::publishFarcaster(const bool complete) {
     m_farcaster.insert(QStringLiteral("days"),toDays(m_castBuckets));
     m_farcaster.insert(QStringLiteral("count"),m_castCount);
     m_farcaster.insert(QStringLiteral("replies"),m_replyCount);
+    const qint64 windowStart=QDateTime::currentMSecsSinceEpoch()-kFarcasterWindowDays*kDayMs;
+    const qint64 earliest=complete || m_castOldestObservedAt==0
+        ?windowStart:std::max(windowStart,m_castOldestObservedAt);
+    m_farcaster.insert(QStringLiteral("knownFromDay"),earliest/kDayMs);
     m_farcaster.insert(QStringLiteral("coverage"),complete
         ?QStringLiteral("window"):QStringLiteral("limited"));
     m_castFetchedAt=QDateTime::currentMSecsSinceEpoch();
@@ -123,6 +129,8 @@ void GenyPulseActivityController::fetchFarcasterPage(
             const QString hash=cast.value(QStringLiteral("hash")).toString();
             if(hash.size()!=40 || m_castHashes.contains(hash))continue;
             m_castHashes.insert(hash);
+            m_castOldestObservedAt=m_castOldestObservedAt==0
+                ?when:std::min(m_castOldestObservedAt,when);
             ++m_castCount;
             if(!cast.value(QStringLiteral("parent_hash")).isNull()
                 && !cast.value(QStringLiteral("parent_hash")).toString().isEmpty())
@@ -134,6 +142,8 @@ void GenyPulseActivityController::fetchFarcasterPage(
                         .value(QStringLiteral("cursor")).toString();
         if(next.isEmpty()||casts.isEmpty()||reachedOld){publishFarcaster(true);return;}
         if(page+1>=kCastPages){publishFarcaster(false);return;}
+        // Share partial, clearly marked progress while fetching a whole year.
+        if((page+1)%4==0)publishFarcaster(false);
         fetchFarcasterPage(fid,next,page+1);
     });
 }
