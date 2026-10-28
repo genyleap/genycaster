@@ -70,16 +70,27 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         updated_at:result.rows[0].updated_at} : null;
     },
     async putProfileStatus({issuer,subject,fid},item) {
+      // First write requires revision=0; later writes MUST produce an INSERT
+      // candidate so ON CONFLICT can perform the revision-checked UPDATE.
+      // Previously WHERE $5=0 suppressed ALL updates once revision became 1.
+      // The EXISTS gate also prevents a stale nonzero revision from creating
+      // a missing row, without bypassing the optimistic concurrency check.
       const result=await pool.query(`INSERT INTO notifications
           (issuer,subject,id,source,kind,payload,occurred_at,revision)
           SELECT $1,$2,$3::uuid,'genycaster','profile_status',$4::jsonb,now(),1
-          WHERE $5::bigint=0
+          WHERE $5::bigint=0 OR EXISTS (
+            SELECT 1 FROM notifications
+            WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+              AND source='genycaster' AND kind='profile_status'
+              AND deleted_at IS NULL
+          )
           ON CONFLICT(issuer,subject,id) DO UPDATE SET
             payload=EXCLUDED.payload,occurred_at=now(),read_at=NULL,
             updated_at=now(),revision=notifications.revision+1
           WHERE notifications.revision=$5::bigint
             AND notifications.source='genycaster'
             AND notifications.kind='profile_status'
+            AND notifications.deleted_at IS NULL
           RETURNING payload,revision::text,updated_at`,
           [issuer,subject,PROFILE_STATUS_ROW,JSON.stringify({
             mood:item.mood,note:item.note,visible:item.visible
