@@ -20,6 +20,11 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(dock,/glassEnabled: false/);
   assert.match(dock,/useBackdropBlur: glassEnabled && blurSourceItem !== null/);
   assert.match(shell,/blurSourceItem: readingContent\s+glassEnabled: !Theme\.powerSave/);
+  assert.match(dock,/browserRenderer: Qt\.platform\.os === "wasm"/);
+  assert.match(dock,/&& \(!browserRenderer \|\| !contentScrolling\)/);
+  assert.match(shell,/contentScrolling: root\.shellRoute\.length === 0/);
+  assert.match(shell,/profileSurfaceLoader\.item\.viewportInMotion/);
+  assert.match(shell,/feedSurfaceLoader\.item\.viewportInMotion/);
   const glass=dock.slice(dock.indexOf('id: navigationCapsule'),
       dock.indexOf('objectName: "mobileDockHome"'));
   assert.match(glass,/objectName: "mobileCapsuleBackdropCapture"/);
@@ -40,8 +45,20 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/maskEnabled: true/);
   assert.match(glass,/maskSource: capsuleMask/);
   assert.match(glass,/objectName: "mobileCapsuleGlassTint"/);
-  assert.match(glass,/fillColor: Theme\.dark \? "#703A4151" : "#8CFFFFFF"/);
+  assert.match(glass,/root\.useBackdropBlur[\s\S]*?"#703A4151" : "#8CFFFFFF"/);
+  assert.match(glass,/"#C43A4151" : "#E3FFFFFF"/);
   assert.match(glass,/borderWidth: 0/);
+});
+
+test('mobile glass never samples a moving browser viewport',()=>{
+  for (const surface of [feed,profile]) {
+    assert.match(surface,/readonly property bool viewportInMotion: \w+\.moving \|\| viewportScrollRecent/);
+    assert.match(surface,/id: viewportGlassSettle[\s\S]*?interval: 140/);
+    assert.match(surface,/onContentYChanged: \{\s*if \(root\.compact\) \{/);
+    assert.match(surface,/viewportGlassSettle\.restart\(\)/);
+  }
+  assert.match(dock,/sourceItem: root\.useBackdropBlur \? root\.blurSourceItem : null/);
+  assert.match(dock,/visible: root\.useBackdropBlur/);
 });
 
 test('floating content paints behind dock and last items still scroll into view',()=>{

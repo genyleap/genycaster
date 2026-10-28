@@ -16,8 +16,13 @@ Item {
     property string primaryDestination: "home"
     property Item blurSourceItem: null
     property bool glassEnabled: false
+    // A live offscreen capture of a scrolling ListView can trail the onscreen
+    // scene on mobile WebGL. Never display that stale texture during movement.
+    property bool contentScrolling: false
+    readonly property bool browserRenderer: Qt.platform.os === "wasm"
     readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
                                            && !Theme.powerSave
+                                           && (!browserRenderer || !contentScrolling)
     readonly property bool showSelectedLabel: width >= 375
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
@@ -199,8 +204,14 @@ Item {
                 z: 1
                 curveDepth: height / 2
                 exponent: 2.0
-                fillColor: Theme.dark ? "#703A4151" : "#8CFFFFFF"
+                fillColor: root.useBackdropBlur
+                           ? (Theme.dark ? "#703A4151" : "#8CFFFFFF")
+                           : (Theme.dark ? "#C43A4151" : "#E3FFFFFF")
                 borderWidth: 0
+                Behavior on fillColor {
+                    enabled: root.animateDock
+                    ColorAnimation { duration: 110; easing.type: Easing.OutCubic }
+                }
             }
 
             // Restrained depth, without a painted footer.
