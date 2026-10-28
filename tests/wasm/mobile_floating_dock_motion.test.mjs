@@ -30,7 +30,7 @@ test('capsule, selected states and action button are border-free in light and da
   assert.doesNotMatch(destination,/borderColor:/);
   assert.match(capsule,/fillColor: "transparent"/);
   assert.match(capsule,/objectName: "mobileCapsuleGlassTint"/);
-  assert.match(capsule,/fillColor: Theme\.dark \? "#913D4351" : "#B8FFFFFF"/);
+  assert.match(capsule,/fillColor: Theme\.dark \? "#843A4151" : "#9AFFFFFF"/);
   assert.match(capsule,/borderWidth: 0/);
   assert.match(primary,/fillColor: Theme\.mobileActionColor[\s\S]*?borderWidth: 0/);
   assert.doesNotMatch(primary,/borderColor:/);

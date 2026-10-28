@@ -138,13 +138,18 @@ Item {
             ShaderEffectSource {
                 id: capsuleBackdrop
                 objectName: "mobileCapsuleBackdropCapture"
+                // A ShaderEffectSource is an Item. textureSize does NOT set its
+                // visual width/height: leaving it at 0 made the MultiEffect
+                // render nothing and exposed only the translucent tint.
+                anchors.fill: parent
                 visible: false
-                sourceItem: root.blurSourceItem
+                sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
                 live: root.useBackdropBlur
                 recursive: false
                 hideSource: false
                 smooth: true
-                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.65)), 56)
+                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.7)),
+                                     Math.max(1, Math.round(navigationCapsule.height * 0.7)))
                 sourceRect: {
                     if (!root.blurSourceItem || navigationCapsule.width <= 0)
                         return Qt.rect(0, 0, 1, 1)
@@ -153,12 +158,15 @@ Item {
                                    navigationCapsule.width, navigationCapsule.height)
                 }
             }
-            Superellipse {
+            Rectangle {
                 id: capsuleMask
                 anchors.fill: parent
+                radius: height / 2
+                color: "#FFFFFF"
                 visible: false
-                fillColor: "#FFFFFF"
-                curveDepth: height / 2
+                // MultiEffect.maskSource requires a texture provider. A
+                // hidden unlayered SceneGraphSuperellipse isn't one.
+                layer.enabled: true
             }
             MultiEffect {
                 objectName: "mobileCapsuleGlassBlur"
@@ -167,9 +175,10 @@ Item {
                 visible: root.useBackdropBlur
                 source: capsuleBackdrop
                 blurEnabled: true
-                blur: 0.74
-                blurMax: 16
-                blurMultiplier: 0.68
+                blur: 0.95
+                blurMax: 32
+                blurMultiplier: 1.0
+                saturation: 0.88
                 maskEnabled: true
                 maskSource: capsuleMask
                 maskThresholdMin: 0.5
@@ -183,7 +192,7 @@ Item {
                 anchors.fill: parent
                 z: 1
                 curveDepth: height / 2
-                fillColor: Theme.dark ? "#913D4351" : "#B8FFFFFF"
+                fillColor: Theme.dark ? "#843A4151" : "#9AFFFFFF"
                 borderWidth: 0
             }
 

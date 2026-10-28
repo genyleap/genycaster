@@ -23,18 +23,24 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   const glass=dock.slice(dock.indexOf('id: navigationCapsule'),
       dock.indexOf('objectName: "mobileDockHome"'));
   assert.match(glass,/objectName: "mobileCapsuleBackdropCapture"/);
-  assert.match(glass,/sourceItem: root\.blurSourceItem/);
+  assert.match(glass,/anchors\.fill: parent/);
+  assert.match(glass,/sourceItem: root\.useBackdropBlur \? root\.blurSourceItem : null/);
   assert.match(glass,/sourceRect: \{/);
   assert.match(glass,/mapFromItem\(navigationCapsule, 0, 0\)/);
-  assert.match(glass,/textureSize: Qt\.size\(Math\.max\(1, Math\.round\(navigationCapsule\.width \* 0\.65\)\), 56\)/);
+  assert.match(glass,/textureSize: Qt\.size\(Math\.max\(1, Math\.round\(navigationCapsule\.width \* 0\.7\)\)/);
+  assert.match(glass,/Math\.round\(navigationCapsule\.height \* 0\.7\)/);
   assert.match(glass,/live: root\.useBackdropBlur/);
   assert.match(glass,/recursive: false/);
   assert.match(glass,/objectName: "mobileCapsuleGlassBlur"/);
-  assert.match(glass,/blurMax: 16/);
+  assert.match(glass,/blurMax: 32/);
+  assert.match(glass,/blur: 0\.95/);
+  assert.match(glass,/layer\.enabled: true/);
+  assert.match(glass,/id: capsuleMask/);
+  assert.match(glass,/radius: height \/ 2/);
   assert.match(glass,/maskEnabled: true/);
   assert.match(glass,/maskSource: capsuleMask/);
   assert.match(glass,/objectName: "mobileCapsuleGlassTint"/);
-  assert.match(glass,/fillColor: Theme\.dark \? "#913D4351" : "#B8FFFFFF"/);
+  assert.match(glass,/fillColor: Theme\.dark \? "#843A4151" : "#9AFFFFFF"/);
   assert.match(glass,/borderWidth: 0/);
 });
 
