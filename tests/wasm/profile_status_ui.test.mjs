@@ -127,3 +127,30 @@ test('periodic status fetch never races an open editor or pending save',()=>{
   assert.match(controller,/if\(m_profileStatusRead!=reply\) \{/);
   assert.match(controller,/if\s*\(!profileFid \|\| !trustedHttpsEndpoint\(m_cloudUrl\) \|\| m_profileStatusWrite\) return/);
 });
+
+test('status icon family is semantic, bundled and independent of audio controls',()=>{
+  const theme=readFileSync(root+'/ui/theme/Theme.qml','utf8');
+  const mappings={
+    available:'iconStatusAvailable',busy:'iconStatusBusy',idle:'iconStatusIdle',
+    away:'iconStatusAway',focusing:'iconStatusFocused',
+    creating:'iconStatusCreating',dnd:'iconStatusDoNotDisturb',
+    custom:'iconStatusCustom',none:'iconStatusClear'
+  };
+  for(const [status,semanticName] of Object.entries(mappings)){
+    assert.match(theme,new RegExp('readonly property string '+semanticName+
+      ': "status/'+status+'"'));
+    assert.match(qml,new RegExp("id:'"+status+"',icon:Theme\\."+semanticName+",color:Theme\\."));
+    const svg=readFileSync(root+'/ui/assets/icons/genyleap/icons/status/'+status+'.svg','utf8');
+    assert.match(svg,/<svg [^>]*viewBox="0 0 24 24"/);
+    assert.match(svg,/stroke="currentColor"/);
+    assert.match(svg,/<\/svg>/);
+    assert.doesNotMatch(svg,/<(?:text|image|script)\b/i);
+  }
+  const dnd=readFileSync(root+'/ui/assets/icons/genyleap/icons/status/dnd.svg','utf8');
+  assert.match(dnd,/<circle[^>]*r="9"/);
+  assert.match(dnd,/<path[^>]*18\.36 5\.64/);
+  assert.doesNotMatch(qml,/id:'dnd',icon:Theme\.iconVolumeMuted/);
+  const away=readFileSync(root+'/ui/assets/icons/genyleap/icons/status/away.svg','utf8');
+  const idle=readFileSync(root+'/ui/assets/icons/genyleap/icons/status/idle.svg','utf8');
+  assert.notEqual(away,idle);
+});

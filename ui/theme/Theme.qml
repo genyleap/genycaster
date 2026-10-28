@@ -441,6 +441,17 @@ QtObject {
     readonly property string iconPlus: "plus"
     readonly property string iconVolume: "volume"
     readonly property string iconVolumeMuted: "volume-muted"
+    // A distinct, stroke-consistent status icon family. Do Not Disturb is a
+    // prohibition sign rather than audio mute; Away and Idle differ visually.
+    readonly property string iconStatusAvailable: "status/available"
+    readonly property string iconStatusBusy: "status/busy"
+    readonly property string iconStatusIdle: "status/idle"
+    readonly property string iconStatusAway: "status/away"
+    readonly property string iconStatusFocused: "status/focusing"
+    readonly property string iconStatusCreating: "status/creating"
+    readonly property string iconStatusDoNotDisturb: "status/dnd"
+    readonly property string iconStatusCustom: "status/custom"
+    readonly property string iconStatusClear: "status/none"
     readonly property string iconExpand: "expand"
     readonly property string iconCompress: "compress"
     readonly property string iconReplay: "replay"

@@ -66,15 +66,15 @@ Item {
     // Each explicit mood owns its own semantic icon and accessible theme color.
     // No live-presence inference: these are user-chosen profile decorations.
     readonly property var moodOptions: [
-        {id:'available',icon:Theme.iconCheck,color:Theme.success},
-        {id:'busy',icon:Theme.iconCalendar,color:Theme.warning},
-        {id:'idle',icon:Theme.iconPause,color:Theme.inkMuted},
-        {id:'away',icon:Theme.iconPause,color:Theme.warning},
-        {id:'focusing',icon:Theme.iconSpark,color:Theme.accentSecondary},
-        {id:'creating',icon:Theme.iconCompose,color:Theme.accent},
-        {id:'dnd',icon:Theme.iconVolumeMuted,color:Theme.danger},
-        {id:'custom',icon:Theme.iconMessage,color:Theme.accent},
-        {id:'none',icon:Theme.iconClose,color:Theme.inkMuted}
+        {id:'available',icon:Theme.iconStatusAvailable,color:Theme.success},
+        {id:'busy',icon:Theme.iconStatusBusy,color:Theme.warning},
+        {id:'idle',icon:Theme.iconStatusIdle,color:Theme.inkMuted},
+        {id:'away',icon:Theme.iconStatusAway,color:Theme.accentSecondary},
+        {id:'focusing',icon:Theme.iconStatusFocused,color:Theme.swatchViolet},
+        {id:'creating',icon:Theme.iconStatusCreating,color:Theme.accent},
+        {id:'dnd',icon:Theme.iconStatusDoNotDisturb,color:Theme.danger},
+        {id:'custom',icon:Theme.iconStatusCustom,color:Theme.accent},
+        {id:'none',icon:Theme.iconStatusClear,color:Theme.inkMuted}
     ]
     function moodAppearance(mood) {
         const entry=root.moodOptions.find(option=>option.id===String(mood||'none'))
