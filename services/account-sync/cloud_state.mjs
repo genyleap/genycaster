@@ -3,6 +3,7 @@
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
+import {createGithubCalendarReader} from './github_contributions.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
@@ -246,6 +247,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
   const signerProof=createSignerSessionProof({fetchImpl});
+  const readGithubCalendar=createGithubCalendarReader({fetchImpl});
   function sameOriginRequest(request) {
     // The browser must be on the official Genycaster host, not another site
     // submitting a form and attempting to plant an authenticated cookie.
@@ -321,7 +323,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     if (!['connections','bookmarks','notifications','notification_seen',
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
-      'bookmark_collections','bookmark_collection_items',
+      'bookmark_collections','bookmark_collection_items','github_contributions',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -364,6 +366,42 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='github_contributions') {
+        if(request.method!=='GET') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const params=new URL(request.url,'http://localhost').searchParams;
+        const login=params.get('username')||'';
+        const yearText=params.get('year')||'';
+        const currentYear=new Date().getUTCFullYear();
+        if(!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(login)
+            || !/^(20[1-2][0-9])$/.test(yearText)
+            || Number(yearText)<2014 || Number(yearText)>currentYear
+            || params.getAll('username').length!==1 || params.getAll('year').length!==1) {
+          respond(response,400,{error:'invalid_calendar_request'});return true;
+        }
+        // Require a server-confirmed GitHub connection belonging to the
+        // authenticated Farcaster identity. Never trust a supplied username
+        // as the link proof; no bearer tokens are exposed to the browser.
+        const connections=await store.list('connections',owner);
+        const verified=connections.some(row=>{
+          if(row.provider!=='github' || !row.last_confirmed_at)return false;
+          const preferred=String(row.preferred_username||'').toLowerCase();
+          const profile=String(row.provider_profile_url||'');
+          return preferred===login.toLowerCase()
+            || profile.toLowerCase()==='https://github.com/'+login.toLowerCase()
+            || profile.toLowerCase()==='https://github.com/'+login.toLowerCase()+'/';
+        });
+        if(!verified) {
+          respond(response,403,{error:'github_identity_unconfirmed'});return true;
+        }
+        try {
+          respond(response,200,await readGithubCalendar(login,Number(yearText)));
+        }catch {
+          respond(response,503,{error:'github_calendar_unavailable'});
+        }
+        return true;
+      }
       if(entity==='topics' || entity==='topic_casts') {
         if(request.method!=='GET') {
           respond(response,405,{error:'method_not_allowed'});return true;

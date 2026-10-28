@@ -6097,5 +6097,33 @@ Company | https://company.com</translation>
             <source>No public GitHub events in the last 30 days</source>
             <translation>Nenhum evento público do GitHub nos últimos 30 dias</translation>
         </message>
+        <message id="genycaster.activity.contributions_count">
+            <source>%1 contributions</source>
+            <translation>%1 contribuições</translation>
+        </message>
+        <message id="genycaster.activity.contributions_label">
+            <source>contributions</source>
+            <translation>contribuições</translation>
+        </message>
+        <message id="genycaster.activity.day_contributions">
+            <source>%1 · %2 contributions</source>
+            <translation>%1 · %2 contribuições</translation>
+        </message>
+        <message id="genycaster.activity.github_public_calendar">
+            <source>GitHub public contribution calendar · private activity may differ</source>
+            <translation>Calendário público do GitHub · atividades privadas podem diferir</translation>
+        </message>
+        <message id="genycaster.activity.github_session_required">
+            <source>Account verification required to load contributions</source>
+            <translation>Verificação da conta necessária</translation>
+        </message>
+        <message id="genycaster.activity.previous_year">
+            <source>Previous year</source>
+            <translation>Ano anterior</translation>
+        </message>
+        <message id="genycaster.activity.next_year">
+            <source>Next year</source>
+            <translation>Próximo ano</translation>
+        </message>
     </context>
 </TS>

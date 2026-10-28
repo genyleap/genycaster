@@ -298,6 +298,113 @@ void GenyPulseActivityController::fetchGitHubPage(const QString& username,const 
     });
 }
 
+void GenyPulseActivityController::requestGitHubContributions(const QString& username,
+                                                              const int year) {
+    static const QRegularExpression validLogin{
+        QStringLiteral("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")};
+    const auto login=username.trimmed();
+    const int currentYear=QDate::currentDate().year();
+    const bool valid=validLogin.match(login).hasMatch() &&
+        year>=2014 && year<=currentYear;
+    if(valid && login.compare(m_githubCalendarLogin,Qt::CaseInsensitive)==0
+       && year==m_githubCalendarYear &&
+       (m_githubContributionsReply ||
+        (m_githubCalendarFetchedAt>0 &&
+         QDateTime::currentMSecsSinceEpoch()-m_githubCalendarFetchedAt<kCacheMs)))
+        return;
+
+    ++m_githubCalendarGeneration;
+    if(m_githubContributionsReply) {
+        m_githubContributionsReply->abort();
+        m_githubContributionsReply->deleteLater();
+        m_githubContributionsReply=nullptr;
+    }
+    m_githubCalendarLogin=login;
+    m_githubCalendarYear=year;
+    m_githubCalendarFetchedAt=0;
+    if(!valid) {
+        m_githubContributions=statusMap(QStringLiteral("idle"),
+                                         QStringLiteral("github-public-contributions"));
+        emit githubContributionsChanged();
+        return;
+    }
+    m_githubContributions=statusMap(QStringLiteral("loading"),
+                                    QStringLiteral("github-public-contributions"));
+    m_githubContributions.insert(QStringLiteral("username"),login);
+    m_githubContributions.insert(QStringLiteral("year"),year);
+    emit githubContributionsChanged();
+
+    // Same-origin, account-bound GenyCaster service parses GitHub's public
+    // calendar. Neither GitHub credentials nor page HTML go into QML.
+    QUrl url{QStringLiteral("https://caster.genyleap.com/api/v1/cloud/github_contributions")};
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("username"),login);
+    query.addQueryItem(QStringLiteral("year"),QString::number(year));
+    url.setQuery(query);
+    auto req=publicRead(url);
+    auto* reply=m_http.get(req);
+    m_githubContributionsReply=reply;
+    const quint64 generation=m_githubCalendarGeneration;
+    connect(reply,&QNetworkReply::finished,this,
+            [this,reply,generation,login,year] {
+        if(m_githubContributionsReply==reply)m_githubContributionsReply=nullptr;
+        const int http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray data=reply->bytesAvailable()<=96*1024
+            ?reply->readAll():QByteArray{};
+        const bool ok=http==200 && reply->error()==QNetworkReply::NoError;
+        reply->deleteLater();
+        if(generation!=m_githubCalendarGeneration || year!=m_githubCalendarYear ||
+           login.compare(m_githubCalendarLogin,Qt::CaseInsensitive)!=0)return;
+        const auto parsed=QJsonDocument::fromJson(data);
+        const auto object=parsed.object();
+        const auto list=object.value(QStringLiteral("days")).toArray();
+        if(!ok || !parsed.isObject() ||
+           object.value(QStringLiteral("source")).toString()!=
+               QStringLiteral("github-public-contributions") ||
+           object.value(QStringLiteral("username")).toString()
+               .compare(login,Qt::CaseInsensitive)!=0 ||
+           object.value(QStringLiteral("year")).toInt()!=year ||
+           list.size()<20 || list.size()>366) {
+            m_githubContributions=statusMap(http==401 || http==403
+                ?QStringLiteral("authorization-required")
+                :QStringLiteral("error"),QStringLiteral("github-public-contributions"));
+            m_githubContributions.insert(QStringLiteral("username"),login);
+            m_githubContributions.insert(QStringLiteral("year"),year);
+            emit githubContributionsChanged();
+            return;
+        }
+        QVariantList days;
+        const auto prefix=QString::number(year)+QStringLiteral("-");
+        for(const auto& raw:list) {
+            if(!raw.isObject())continue;
+            const auto item=raw.toObject();
+            const auto date=item.value(QStringLiteral("date")).toString();
+            const int count=item.value(QStringLiteral("count")).toInt(-1);
+            const int level=item.value(QStringLiteral("level")).toInt(-1);
+            if(!date.startsWith(prefix) || date.size()!=10 ||
+               count<0 || level<0 || level>4)continue;
+            days.push_back(QVariantMap{{QStringLiteral("date"),date},
+                {QStringLiteral("count"),count},{QStringLiteral("level"),level}});
+        }
+        if(days.size()!=list.size()){
+            m_githubContributions=statusMap(QStringLiteral("error"),
+                QStringLiteral("github-public-contributions"));
+        }else{
+            m_githubContributions=statusMap(QStringLiteral("ok"),
+                QStringLiteral("github-public-contributions"));
+            m_githubContributions.insert(QStringLiteral("days"),days);
+            m_githubContributions.insert(QStringLiteral("count"),
+                object.value(QStringLiteral("count")).toInt());
+            m_githubContributions.insert(QStringLiteral("observedDays"),
+                object.value(QStringLiteral("observedDays")).toInt());
+            m_githubCalendarFetchedAt=QDateTime::currentMSecsSinceEpoch();
+        }
+        m_githubContributions.insert(QStringLiteral("username"),login);
+        m_githubContributions.insert(QStringLiteral("year"),year);
+        emit githubContributionsChanged();
+    });
+}
+
 void GenyPulseActivityController::setVerifiedWallet(const QString& address) {
     const static QRegularExpression pattern{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
     const QString valid=pattern.match(address).hasMatch()?address.toLower():QString{};

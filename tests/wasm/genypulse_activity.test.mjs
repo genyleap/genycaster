@@ -62,8 +62,10 @@ test('Activity fills profile width on mobile and desktop without an artificial c
   assert.ok(!qml.includes('columns: root.desktopGrid ? 2 : 1'));
   assert.ok(!qml.includes('root.desktopGrid ? Math.floor'));
   assert.ok(qml.includes('Layout.fillWidth: true'));
-  assert.ok(qml.includes('readonly property int githubColumns: 15'));
-  assert.ok(qml.includes('root.githubCellHeight'));
+  assert.ok(qml.includes('readonly property int githubGridWidth:'));
+  assert.ok(qml.includes('root.githubTileHeight'));
+  assert.ok(qml.includes('Flickable {'));
+  assert.ok(qml.includes('root.githubWeeks'));
   assert.ok(qml.includes('root.cellHeight'));
   // By construction, every day-cell track consumes the available content width
   // with only an unavoidable sub-column integer-pixel remainder.
@@ -122,4 +124,18 @@ test('GitHub numeric-id fallback stays provider-verified and bounded',()=>{
   assert.match(source,/confirmedId!=id/);
   assert.match(source,/m_githubAccountId!=id/);
   assert.match(source,/kCacheMs/);
+});
+
+test('GitHub calendar is source-specific, real contributions, selectable by year/range',()=>{
+  assert.match(header,/Q_PROPERTY\(QVariantMap githubContributions/);
+  assert.match(source,/requestGitHubContributions/);
+  assert.match(source,/api\/v1\/cloud\/github_contributions/);
+  assert.match(qml,/githubContributionData: genyPulseActivity.githubContributions/);
+  assert.match(qml,/model: \["1m","3m","1y"\]/);
+  assert.match(qml,/githubYear--/);
+  assert.match(qml,/githubYear\+\+/);
+  assert.match(qml,/Flickable \{/);
+  assert.match(qml,/githubTileColor/);
+  assert.ok(!qml.includes('genycaster.activity.events'));
+  assert.ok(!qml.includes('genycaster.activity.github_window'));
 });

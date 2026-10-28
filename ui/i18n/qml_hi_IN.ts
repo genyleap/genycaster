@@ -6097,5 +6097,33 @@ Company | https://company.com</translation>
             <source>No public GitHub events in the last 30 days</source>
             <translation>पिछले 30 दिनों में कोई सार्वजनिक GitHub गतिविधि नहीं</translation>
         </message>
+        <message id="genycaster.activity.contributions_count">
+            <source>%1 contributions</source>
+            <translation>%1 योगदान</translation>
+        </message>
+        <message id="genycaster.activity.contributions_label">
+            <source>contributions</source>
+            <translation>योगदान</translation>
+        </message>
+        <message id="genycaster.activity.day_contributions">
+            <source>%1 · %2 contributions</source>
+            <translation>%1 · %2 योगदान</translation>
+        </message>
+        <message id="genycaster.activity.github_public_calendar">
+            <source>GitHub public contribution calendar · private activity may differ</source>
+            <translation>GitHub सार्वजनिक योगदान कैलेंडर · निजी गतिविधि अलग हो सकती है</translation>
+        </message>
+        <message id="genycaster.activity.github_session_required">
+            <source>Account verification required to load contributions</source>
+            <translation>खाता सत्यापन आवश्यक</translation>
+        </message>
+        <message id="genycaster.activity.previous_year">
+            <source>Previous year</source>
+            <translation>पिछला वर्ष</translation>
+        </message>
+        <message id="genycaster.activity.next_year">
+            <source>Next year</source>
+            <translation>अगला वर्ष</translation>
+        </message>
     </context>
 </TS>

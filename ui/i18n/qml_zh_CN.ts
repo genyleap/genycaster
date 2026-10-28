@@ -6097,5 +6097,33 @@ Company | https://company.com</translation>
             <source>No public GitHub events in the last 30 days</source>
             <translation>过去30天没有公开的 GitHub 事件</translation>
         </message>
+        <message id="genycaster.activity.contributions_count">
+            <source>%1 contributions</source>
+            <translation>%1 次贡献</translation>
+        </message>
+        <message id="genycaster.activity.contributions_label">
+            <source>contributions</source>
+            <translation>次贡献</translation>
+        </message>
+        <message id="genycaster.activity.day_contributions">
+            <source>%1 · %2 contributions</source>
+            <translation>%1 · %2 次贡献</translation>
+        </message>
+        <message id="genycaster.activity.github_public_calendar">
+            <source>GitHub public contribution calendar · private activity may differ</source>
+            <translation>GitHub 公开贡献日历 · 私有活动可能不同</translation>
+        </message>
+        <message id="genycaster.activity.github_session_required">
+            <source>Account verification required to load contributions</source>
+            <translation>需要验证账户才能加载贡献</translation>
+        </message>
+        <message id="genycaster.activity.previous_year">
+            <source>Previous year</source>
+            <translation>上一年</translation>
+        </message>
+        <message id="genycaster.activity.next_year">
+            <source>Next year</source>
+            <translation>下一年</translation>
+        </message>
     </context>
 </TS>
