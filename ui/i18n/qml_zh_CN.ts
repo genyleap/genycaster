@@ -6189,5 +6189,89 @@ Company | https://company.com</translation>
             <source>Edit status</source>
             <translation>编辑状态</translation>
         </message>
+        <message id="genycaster.activity.casts">
+            <source>Casts</source>
+            <translation>Casts</translation>
+        </message>
+        <message id="genycaster.activity.range_year">
+            <source>1Y</source>
+            <translation>1Y</translation>
+        </message>
+        <message id="genycaster.activity.range_month">
+            <source>1M</source>
+            <translation>1M</translation>
+        </message>
+        <message id="genycaster.activity.range_three_months">
+            <source>3M</source>
+            <translation>3M</translation>
+        </message>
+        <message id="genycaster.bookmarks.new_collection">
+            <source>New collection</source>
+            <translation>New collection</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh_collections">
+            <source>Refresh collections</source>
+            <translation>Refresh collections</translation>
+        </message>
+        <message id="genycaster.bookmarks.rename">
+            <source>Rename</source>
+            <translation>Rename</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete">
+            <source>Delete</source>
+            <translation>Delete</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete_collection">
+            <source>Delete collection</source>
+            <translation>Delete collection</translation>
+        </message>
+        <message id="genycaster.bookmarks.collection_name">
+            <source>Collection name</source>
+            <translation>Collection name</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete_confirmation">
+            <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
+            <translation>Delete this collection? Saved casts will remain in Bookmarks.</translation>
+        </message>
+        <message id="genycaster.bookmarks.confirm_delete">
+            <source>Confirm delete</source>
+            <translation>Confirm delete</translation>
+        </message>
+        <message id="genycaster.bookmarks.save">
+            <source>Save</source>
+            <translation>Save</translation>
+        </message>
+        <message id="genycaster.bookmarks.cancel">
+            <source>Cancel</source>
+            <translation>Cancel</translation>
+        </message>
+        <message id="genycaster.bookmarks.add_to_collection">
+            <source>Add to collection…</source>
+            <translation>Add to collection…</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove_from_collection">
+            <source>Remove from collection</source>
+            <translation>Remove from collection</translation>
+        </message>
+        <message id="genycaster.bookmarks.chooser_title">
+            <source>Save to collection</source>
+            <translation>Save to collection</translation>
+        </message>
+        <message id="genycaster.bookmarks.chooser_description">
+            <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
+            <translation>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</translation>
+        </message>
+        <message id="genycaster.bookmarks.uncategorized">
+            <source>Uncategorized</source>
+            <translation>Uncategorized</translation>
+        </message>
+        <message id="genycaster.bookmarks.create">
+            <source>Create</source>
+            <translation>Create</translation>
+        </message>
+        <message id="genycaster.activity.onchain">
+            <source>Onchain</source>
+            <translation>Onchain</translation>
+        </message>
     </context>
 </TS>

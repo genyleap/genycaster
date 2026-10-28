@@ -10,13 +10,13 @@ const cast=read('ui/components/CastItem.qml');
 test('mobile bookmark header never asks three text buttons and a 260px select to share one row',()=>{
   assert.match(bookmarks,/ColumnLayout \{[\s\S]*?bookmarkSortPicker/);
   assert.match(bookmarks,/id: collectionPicker[\s\S]*?Layout\.minimumWidth: 0/);
-  assert.match(bookmarks,/iconOnly: root\.compact[\s\S]*?text: "New collection"/);
-  assert.match(bookmarks,/iconOnly: true[\s\S]*?text: "Refresh collections"/);
+  assert.match(bookmarks,/iconOnly: root\.compact[\s\S]*?text: qsTrId\("genycaster\.bookmarks\.new_collection"\)/);
+  assert.match(bookmarks,/iconOnly: true[\s\S]*?text: qsTrId\("genycaster\.bookmarks\.refresh_collections"\)/);
   assert.match(bookmarks,/id: collectionNameEditor[\s\S]*?Layout\.minimumWidth: 0/);
 });
 test('collection refresh uses GenyCaster spinner in its fixed-size action, not Qt BusyIndicator',()=>{
   assert.doesNotMatch(bookmarks,/\bBusyIndicator\s*\{/);
-  assert.match(bookmarks,/text: "Refresh collections"\s*busy: root\.collectionsBusy/);
+  assert.match(bookmarks,/text: qsTrId\("genycaster\.bookmarks\.refresh_collections"\)\s*busy: root\.collectionsBusy/);
 });
 test('cast channel renders the canonical /slug rather than a mutable human display name',()=>{
   assert.match(cast,/text: "\/" \+ root\.castChannel/);
@@ -37,7 +37,7 @@ test('compact bookmark filters have bounded widths and do not consume the full r
   assert.match(bookmarks,/Layout\.maximumWidth: root\.compact \? 144 : 184/);
   assert.match(bookmarks,/id: collectionPicker[\s\S]*?Layout\.preferredWidth: root\.compact \? 168 : 200/);
   assert.match(bookmarks,/Layout\.maximumWidth: root\.compact \? 168 : 240/);
-  assert.match(bookmarks,/visible: !root\.compact[\s\S]*?text: "Collections"/);
+  assert.match(bookmarks,/visible: !root\.compact[\s\S]*?text: qsTrId\("genycaster\.filters\.collections"\)/);
 });
 test('owned Farcaster images fall back to their original HTTPS URL only after a provider error',()=>{
   const tile=read('ui/components/GalleryTile.qml');

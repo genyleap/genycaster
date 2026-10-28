@@ -6189,5 +6189,89 @@ Company | https://company.com</source>
             <source>Edit status</source>
             <translation>ویرایش وضعیت</translation>
         </message>
+        <message id="genycaster.activity.casts">
+            <source>Casts</source>
+            <translation>کست‌ها</translation>
+        </message>
+        <message id="genycaster.activity.range_year">
+            <source>1Y</source>
+            <translation>۱ سال</translation>
+        </message>
+        <message id="genycaster.activity.range_month">
+            <source>1M</source>
+            <translation>۱ ماه</translation>
+        </message>
+        <message id="genycaster.activity.range_three_months">
+            <source>3M</source>
+            <translation>۳ ماه</translation>
+        </message>
+        <message id="genycaster.bookmarks.new_collection">
+            <source>New collection</source>
+            <translation>مجموعهٔ جدید</translation>
+        </message>
+        <message id="genycaster.bookmarks.refresh_collections">
+            <source>Refresh collections</source>
+            <translation>تازه‌سازی مجموعه‌ها</translation>
+        </message>
+        <message id="genycaster.bookmarks.rename">
+            <source>Rename</source>
+            <translation>تغییر نام</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete">
+            <source>Delete</source>
+            <translation>حذف</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete_collection">
+            <source>Delete collection</source>
+            <translation>حذف مجموعه</translation>
+        </message>
+        <message id="genycaster.bookmarks.collection_name">
+            <source>Collection name</source>
+            <translation>نام مجموعه</translation>
+        </message>
+        <message id="genycaster.bookmarks.delete_confirmation">
+            <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
+            <translation>این مجموعه حذف شود؟ کست‌های ذخیره‌شده همچنان در نشان‌شده‌ها باقی می‌مانند.</translation>
+        </message>
+        <message id="genycaster.bookmarks.confirm_delete">
+            <source>Confirm delete</source>
+            <translation>تأیید حذف</translation>
+        </message>
+        <message id="genycaster.bookmarks.save">
+            <source>Save</source>
+            <translation>ذخیره</translation>
+        </message>
+        <message id="genycaster.bookmarks.cancel">
+            <source>Cancel</source>
+            <translation>انصراف</translation>
+        </message>
+        <message id="genycaster.bookmarks.add_to_collection">
+            <source>Add to collection…</source>
+            <translation>افزودن به مجموعه…</translation>
+        </message>
+        <message id="genycaster.bookmarks.remove_from_collection">
+            <source>Remove from collection</source>
+            <translation>حذف از مجموعه</translation>
+        </message>
+        <message id="genycaster.bookmarks.chooser_title">
+            <source>Save to collection</source>
+            <translation>ذخیره در مجموعه</translation>
+        </message>
+        <message id="genycaster.bookmarks.chooser_description">
+            <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
+            <translation>نشان‌شده ذخیره شد. مجموعه‌ای انتخاب کنید یا آن را بدون دسته‌بندی نگه دارید.</translation>
+        </message>
+        <message id="genycaster.bookmarks.uncategorized">
+            <source>Uncategorized</source>
+            <translation>بدون دسته‌بندی</translation>
+        </message>
+        <message id="genycaster.bookmarks.create">
+            <source>Create</source>
+            <translation>ایجاد</translation>
+        </message>
+        <message id="genycaster.activity.onchain">
+            <source>Onchain</source>
+            <translation>فعالیت آن‌چین</translation>
+        </message>
     </context>
 </TS>

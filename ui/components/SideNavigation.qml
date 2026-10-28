@@ -76,30 +76,48 @@ Rectangle {
         anchors.margins: Theme.space3
         spacing: Theme.space2
 
-        RowLayout {
+        // Keep the brand assets in a fixed, non-mirrored visual group.
+        // RTL may reposition the group, but may never separate/reverse the
+        // symbol, Latin wordmark or localized version caption.
+        Item {
+            id: navigationBrand
+            objectName: "sidebarBrandCluster"
             Layout.fillWidth: true
+            Layout.preferredHeight: Theme.scaleUi(52)
             Layout.leftMargin: Theme.space1
             Layout.rightMargin: Theme.space1
-            spacing: Theme.space2
-            layoutDirection: Theme.uiDirection
+            LayoutMirroring.enabled: false
+            LayoutMirroring.childrenInherit: false
+            readonly property real markSize: Theme.scaleUi(35)
+            readonly property real brandGap: Theme.space2
 
             Image {
-                Layout.preferredWidth: 35
-                Layout.preferredHeight: 35
+                id: navigationBrandSymbol
+                width: navigationBrand.markSize
+                height: navigationBrand.markSize
+                x: Theme.rtl ? navigationBrand.width - width : 0
+                y: (navigationBrand.height - height) / 2
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 sourceSize.width: 70
                 sourceSize.height: 70
                 fillMode: Image.PreserveAspectFit
                 Accessible.ignored: true
             }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
+            Item {
+                id: navigationBrandText
+                readonly property real maxWidth: Math.max(0,navigationBrand.width
+                                            - navigationBrand.markSize-navigationBrand.brandGap)
+                width: maxWidth
+                height: navigationBrand.height
+                x: Theme.rtl ? 0 : navigationBrandSymbol.width + navigationBrand.brandGap
+                LayoutMirroring.enabled: false
+                LayoutMirroring.childrenInherit: false
                 Image {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 19
-                    horizontalAlignment: Image.AlignLeft
+                    id: navigationWordmark
+                    width: parent.width
+                    height: Theme.scaleUi(22)
+                    y: Theme.scaleUi(3)
+                    horizontalAlignment: Theme.rtl ? Image.AlignRight : Image.AlignLeft
                     fillMode: Image.PreserveAspectFit
                     source: Theme.dark
                             ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
@@ -108,11 +126,15 @@ Rectangle {
                     sourceSize.height: 44
                     Accessible.name: "GenyCaster"
                 }
-                Label {
+                Text {
+                    width: parent.width
+                    y: navigationWordmark.y + navigationWordmark.height + Theme.space1
                     text: qsTrId("genycaster.release.beta_1_0")
                     color: Theme.inkMuted
-                    font.family: Theme.latinFontFamily
+                    font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Theme.rtl ? Text.AlignRight : Text.AlignLeft
+                    renderType: Text.NativeRendering
                     Accessible.ignored: true
                 }
             }

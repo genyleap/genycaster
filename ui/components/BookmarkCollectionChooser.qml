@@ -28,14 +28,14 @@ Popup {
         spacing: Theme.space2
         DirectionAwareLabel {
             Layout.fillWidth: true
-            text: "Save to collection"
+            text: qsTrId("genycaster.bookmarks.chooser_title")
             font.pixelSize: Theme.typeBodySize
             font.weight: Theme.weightDemiBold
             color: Theme.textPrimary
         }
         DirectionAwareLabel {
             Layout.fillWidth: true
-            text: "Your bookmark is saved. Choose a personal collection, or leave it uncategorized."
+            text: qsTrId("genycaster.bookmarks.chooser_description")
             wrapMode: Text.Wrap
             font.pixelSize: Theme.typeCaptionSize
             color: Theme.textSecondary
@@ -44,7 +44,7 @@ Popup {
             Layout.fillWidth: true
             compact: true
             quiet: true
-            text: "Uncategorized"
+            text: qsTrId("genycaster.bookmarks.uncategorized")
             enabled: !root.busy
             onClicked: {
                 root.unfiledRequested()
@@ -83,7 +83,7 @@ Popup {
             DirectionAwareTextField {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                placeholderText: "New collection"
+                placeholderText: qsTrId("genycaster.bookmarks.new_collection")
                 maximumLength: 80
                 text: root.newName
                 onTextChanged: root.newName=text
@@ -92,7 +92,7 @@ Popup {
                 compact: true
                 prominent: true
                 iconGlyph: Theme.iconPlus
-                text: "Create"
+                text: qsTrId("genycaster.bookmarks.create")
                 enabled: !root.busy && root.newName.trim().length>0
                 onClicked: root.createRequested(root.newName.trim())
             }

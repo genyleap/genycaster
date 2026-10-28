@@ -65,7 +65,8 @@ Item {
             font.weight: Theme.weightBold
         }
         DirectionAwareLabel {
-            text: String(root.cardCount > 0 ? root.shownIndex + 1 : 0) + " / " + String(root.cardCount)
+            text: LocaleFormat.formatInteger(root.cardCount > 0 ? root.shownIndex + 1 : 0)
+                + " / " + LocaleFormat.formatInteger(root.cardCount)
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
             forceLeftToRight: true

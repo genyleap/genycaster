@@ -135,7 +135,7 @@ GenyDrawer {
                                     curveDepth: 12
                                     DirectionAwareLabel {
                                         anchors.centerIn: parent
-                                        text: String(sectionGroup.index + 1)
+                                        text: LocaleFormat.formatInteger(sectionGroup.index + 1)
                                         color: Theme.accent
                                         font.pixelSize: Theme.typeMetaSize
                                         font.weight: Theme.weightBold

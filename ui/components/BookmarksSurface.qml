@@ -212,7 +212,7 @@ Flickable {
                 quiet: true
                 iconOnly: true
                 iconGlyph: Theme.iconPlus
-                text: "New collection"
+                text: qsTrId("genycaster.bookmarks.new_collection")
                 enabled: root.authenticated && !root.collectionsBusy
                 onClicked: root.editCollection("create",null)
             }
@@ -307,7 +307,7 @@ Flickable {
                     quiet: true
                     iconOnly: root.compact
                     iconGlyph: Theme.iconPlus
-                    text: "New collection"
+                    text: qsTrId("genycaster.bookmarks.new_collection")
                     enabled: root.authenticated && !root.collectionsBusy
                     onClicked: root.editCollection("create",null)
                 }
@@ -316,7 +316,7 @@ Flickable {
                     quiet: true
                     iconOnly: true
                     iconGlyph: Theme.iconRefresh
-                    text: "Refresh collections"
+                    text: qsTrId("genycaster.bookmarks.refresh_collections")
                     busy: root.collectionsBusy
                     enabled: root.authenticated && !root.collectionsBusy
                     onClicked: root.collectionsRefreshRequested()
@@ -343,7 +343,7 @@ Flickable {
             ActionButton {
                 compact: true
                 quiet: true
-                text: "Rename"
+                text: qsTrId("genycaster.bookmarks.rename")
                 Layout.fillWidth: root.compact
                 enabled: !root.collectionsBusy
                 onClicked: root.editCollection("rename",root.activeCollectionEntry)
@@ -352,7 +352,8 @@ Flickable {
                 compact: true
                 quiet: true
                 destructive: true
-                text: root.compact ? "Delete" : "Delete collection"
+                text: root.compact ? qsTrId("genycaster.bookmarks.delete")
+                                   : qsTrId("genycaster.bookmarks.delete_collection")
                 enabled: !root.collectionsBusy
                 onClicked: root.editCollection("delete",root.activeCollectionEntry)
             }
@@ -370,21 +371,23 @@ Flickable {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 text: root.collectionEditorName
-                placeholderText: "Collection name"
+                placeholderText: qsTrId("genycaster.bookmarks.collection_name")
                 onTextChanged: root.collectionEditorName=text
                 maximumLength: 80
             }
             DirectionAwareLabel {
                 visible: root.collectionEditorMode==="delete"
                 Layout.fillWidth: true
-                text: "Delete this collection? Saved casts will remain in Bookmarks."
+                text: qsTrId("genycaster.bookmarks.delete_confirmation")
                 wrapMode: Text.Wrap
                 color: Theme.textSecondary
             }
             ActionButton {
                 compact: true
                 prominent: true
-                text: root.collectionEditorMode==="delete"?"Confirm delete":"Save"
+                text: root.collectionEditorMode==="delete"
+                    ? qsTrId("genycaster.bookmarks.confirm_delete")
+                    : qsTrId("genycaster.bookmarks.save")
                 enabled: !root.collectionsBusy
                          && (root.collectionEditorMode==="delete"
                              || root.collectionEditorName.trim().length>0)
@@ -402,7 +405,7 @@ Flickable {
             ActionButton {
                 compact: true
                 quiet: true
-                text: "Cancel"
+                text: qsTrId("genycaster.bookmarks.cancel")
                 onClicked: root.collectionEditorMode=""
             }
         }
@@ -420,7 +423,7 @@ Flickable {
             Layout.fillWidth: true
             color: root.accountError.length > 0 ? Theme.negative : Theme.inkMuted
             text: root.accountError.length > 0 ? root.accountError
-                  : qsTrId("genycaster.bookmarks.pending").arg(root.pendingCount)
+                  : qsTrId("genycaster.bookmarks.pending").arg(LocaleFormat.formatInteger(root.pendingCount))
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
@@ -519,7 +522,7 @@ Flickable {
                                      && root.collectionChoices.length>1
                             Layout.fillWidth: true
                             Layout.maximumWidth: root.compact ? 176 : 248
-                            model: ["Add to collection…"].concat(
+                            model: [qsTrId("genycaster.bookmarks.add_to_collection")].concat(
                                 root.collectionChoices.slice(1).map(item=>item.name))
                             currentIndex: root.savedCollectionIndex(
                                 String(bookmarkCard.modelData.castId || ""))
@@ -536,7 +539,7 @@ Flickable {
                             compact: true
                             quiet: true
                             destructive: true
-                            text: "Remove from collection"
+                            text: qsTrId("genycaster.bookmarks.remove_from_collection")
                             enabled: !root.collectionsBusy
                             onClicked: root.membershipRequested(
                                 String(bookmarkCard.modelData.castId || ""),

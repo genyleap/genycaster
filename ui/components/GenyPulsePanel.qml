@@ -252,7 +252,7 @@ Item {
                         spacing: 0
                         Label {
                             Layout.fillWidth: true
-                            text: "Casts"
+                            text: qsTrId("genycaster.activity.casts")
                             color: Theme.ink
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
@@ -262,8 +262,8 @@ Item {
                             Layout.fillWidth: true
                             text: root.farcasterReady
                                   ? qsTrId("genycaster.activity.indexed_count")
-                                      .arg(root.farcasterData.count || 0)
-                                      .arg(root.farcasterData.replies || 0)
+                                      .arg(LocaleFormat.formatInteger(Number(root.farcasterData.count || 0)))
+                                      .arg(LocaleFormat.formatInteger(Number(root.farcasterData.replies || 0)))
                                   : root.sourceSubtitle(root.farcasterData)
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.inkMuted
@@ -271,7 +271,7 @@ Item {
                         }
                     }
                     Label {
-                        text: "1Y"
+                        text: qsTrId("genycaster.activity.range_year")
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         Layout.alignment: Qt.AlignVCenter
@@ -325,13 +325,13 @@ Item {
                     Layout.fillWidth: true
                     text: root.selectedDate.length>0 && root.farcasterReady
                           ? qsTrId("genycaster.activity.day_summary")
-                                .arg(root.selectedDate)
-                                .arg(root.farcasterDays[root.selectedDate] || 0)
+                                .arg(LocaleFormat.localizeDigits(root.selectedDate))
+                                .arg(LocaleFormat.formatInteger(Number(root.farcasterDays[root.selectedDate] || 0)))
                           : root.farcasterReady
                             ? (root.farcasterData.status==="partial"
                                 ? qsTrId("genycaster.activity.partial") + " · " : "")
                                 + qsTrId("genycaster.activity.active_days")
-                                + ": " + Number(root.farcasterData.days.length)
+                                + ": " + LocaleFormat.formatInteger(Number(root.farcasterData.days.length))
                             : root.sourceSubtitle(root.farcasterData)
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
@@ -387,7 +387,7 @@ Item {
                             Layout.minimumWidth: 0
                             spacing: 0
                             Label {
-                                text: "GitHub"
+                                text: "GitHub" // Provider's proper name is not translated.
                                 color: Theme.ink
                                 font.pixelSize: Theme.typeBodySize
                                 font.weight: Theme.weightDemiBold
@@ -424,7 +424,9 @@ Item {
                                     selected: root.githubRange === modelData
                                     elevated: false
                                     pill: true
-                                    text: modelData.toUpperCase()
+                                    text: modelData==="1m" ? qsTrId("genycaster.activity.range_month")
+                                         : modelData==="3m" ? qsTrId("genycaster.activity.range_three_months")
+                                                            : qsTrId("genycaster.activity.range_year")
                                     onClicked: {
                                         root.githubRange = modelData
                                         root.selectedGithubDate = ""
@@ -446,7 +448,7 @@ Item {
                             onClicked: { root.githubYear--; root.selectedGithubDate="" }
                         }
                         Label {
-                            text: String(root.githubYear)
+                            text: LocaleFormat.formatInteger(root.githubYear)
                             color: Theme.ink
                             font.pixelSize: Theme.typeCaptionSize
                             font.weight: Theme.weightDemiBold
@@ -464,7 +466,7 @@ Item {
                         Item { Layout.fillWidth: true }
                         Label {
                             visible: root.githubContributionsReady
-                            text: qsTrId("genycaster.activity.contributions_count").arg(root.githubVisibleTotal)
+                            text: qsTrId("genycaster.activity.contributions_count").arg(LocaleFormat.formatInteger(root.githubVisibleTotal))
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             elide: Text.ElideRight
@@ -550,8 +552,8 @@ Item {
                         Layout.fillWidth: true
                         visible: root.githubContributionsReady && root.selectedGithubDate.length>0
                         text: qsTrId("genycaster.activity.day_contributions")
-                            .arg(root.selectedGithubDate)
-                            .arg(Number((root.githubContributionDays[root.selectedGithubDate]||{}).count || 0))
+                            .arg(LocaleFormat.localizeDigits(root.selectedGithubDate))
+                            .arg(LocaleFormat.formatInteger(Number((root.githubContributionDays[root.selectedGithubDate]||{}).count || 0)))
                         font.pixelSize: Theme.typeCaptionSize
                         color: Theme.inkMuted
                     }
@@ -608,7 +610,7 @@ Item {
                         Layout.minimumWidth: 0
                         spacing: 0
                         Label {
-                            text: "Onchain"
+                            text: qsTrId("genycaster.activity.onchain")
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
                             color: Theme.ink

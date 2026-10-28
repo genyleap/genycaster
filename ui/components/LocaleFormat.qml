@@ -79,6 +79,18 @@ QtObject {
         return localizationController.formatInteger(value)
     }
 
+    // Presentation-only conversion: IDs, hashes, usernames and provider keys
+    // retain ASCII digits. Dates such as ISO YYYY-MM-DD are displayed with
+    // native digits without changing their canonical data representation.
+    function localizeDigits(value) {
+        root.observeRevision()
+        const text=String(value === undefined || value === null ? "" : value)
+        const language=String(localizationController.effectiveLanguageTag || "").toLowerCase()
+        const alphabet=language.startsWith("fa") ? "۰۱۲۳۴۵۶۷۸۹"
+                      : language.startsWith("ar") ? "٠١٢٣٤٥٦٧٨٩" : ""
+        return alphabet ? text.replace(/[0-9]/g,digit=>alphabet[Number(digit)]) : text
+    }
+
     function formatCompactNumber(value) {
         root.observeRevision()
         return localizationController.formatCompactNumber(value)
