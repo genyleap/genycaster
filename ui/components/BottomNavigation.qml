@@ -119,8 +119,13 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: Theme.mobileGutter
-        anchors.rightMargin: Theme.mobileGutter
+        // Slightly shorter floating dock, with generous exterior breathing
+        // room. Use smaller extra margins on narrow phones so the five
+        // destinations retain usable touch widths.
+        readonly property real extraInset: root.width >= 375
+                                           ? Theme.scaleUi(10) : Theme.scaleUi(4)
+        anchors.leftMargin: Theme.mobileGutter + extraInset
+        anchors.rightMargin: Theme.mobileGutter + extraInset
         anchors.topMargin: 8
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
@@ -169,27 +174,42 @@ Item {
                         + navigationCapsule.sampleBottom
                 z: 0
 
-                ShaderEffectSource {
-                    id: capsuleBackdrop
-                    objectName: "mobileCapsuleBackdropCapture"
-                    // The source is already a shared layer, not another
-                    // independent render of the scrolling ListView.
+                // Do not crop a layered page with ShaderEffectSource.sourceRect:
+                // Qt/WASM can show the top of a cached page texture inside a
+                // bottom-anchored dock after a feed scroll or route change.
+                //
+                // Capture the *whole current viewport* at its native size,
+                // translate the texture in scene coordinates, and clip it to
+                // the small overscanned dock region. Only this compact result
+                // is fed to MultiEffect. This avoids a second sourceRect
+                // transform and keeps the crop in the same coordinate space
+                // as the visible dock on every frame.
+                Item {
+                    id: backdropWindow
                     anchors.fill: parent
-                    visible: false
-                    sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
-                    live: root.useBackdropBlur
-                    recursive: false
-                    hideSource: false
-                    smooth: true
-                    textureSize: Qt.size(Math.max(1, Math.round(expandedBackdrop.width)),
-                                         Math.max(1, Math.round(expandedBackdrop.height)))
-                    sourceRect: {
-                        if (!root.blurSourceItem || navigationCapsule.width <= 0)
-                            return Qt.rect(0, 0, 1, 1)
-                        return Qt.rect(
-                            navigationCapsule.backdropOrigin.x - navigationCapsule.sampleLeft,
-                            navigationCapsule.backdropOrigin.y - navigationCapsule.sampleTop,
-                            expandedBackdrop.width, expandedBackdrop.height)
+                    clip: true
+                    visible: root.useBackdropBlur
+                    layer.enabled: true
+                    layer.smooth: true
+
+                    ShaderEffectSource {
+                        id: capsuleBackdrop
+                        objectName: "mobileCapsuleBackdropCapture"
+                        width: root.blurSourceItem ? root.blurSourceItem.width : 1
+                        height: root.blurSourceItem ? root.blurSourceItem.height : 1
+                        x: navigationCapsule.sampleLeft - navigationCapsule.backdropOrigin.x
+                        y: navigationCapsule.sampleTop - navigationCapsule.backdropOrigin.y
+                        visible: root.useBackdropBlur
+                        sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
+                        live: root.useBackdropBlur
+                        recursive: false
+                        hideSource: false
+                        smooth: true
+                        // An empty sourceRect deliberately captures the entire
+                        // layer. The viewport crop happens via x/y and clip.
+                        sourceRect: Qt.rect(0, 0, 0, 0)
+                        textureSize: Qt.size(Math.max(1, Math.ceil(width)),
+                                             Math.max(1, Math.ceil(height)))
                     }
                 }
 
@@ -214,7 +234,7 @@ Item {
                     objectName: "mobileCapsuleGlassBlur"
                     anchors.fill: parent
                     visible: root.useBackdropBlur
-                    source: capsuleBackdrop
+                    source: backdropWindow
                     blurEnabled: true
                     blur: 0.72
                     blurMax: 32

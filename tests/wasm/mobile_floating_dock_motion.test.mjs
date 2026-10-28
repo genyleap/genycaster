@@ -19,7 +19,11 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
   assert.match(dock,/anchors\.topMargin: 8/);
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter/);
-  assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter/);
+  assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter \+ extraInset/);
+  assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
+  assert.match(dock,/root\.width >= 375/);
+  assert.match(dock,/Theme\.scaleUi\(10\) : Theme\.scaleUi\(4\)/);
+  assert.match(dock,/Layout\.minimumWidth: 39/);
 });
 
 test('capsule, selected states and action button are border-free in light and dark themes',()=>{
