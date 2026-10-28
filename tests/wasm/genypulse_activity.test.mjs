@@ -56,6 +56,17 @@ test('compact cells and status positioning prevent oversized heatmap',()=>{
   assert.match(qml,/elide: Text.ElideRight/);
 });
 
+test('Activity uses responsive columns and bundled provider brand icons',()=>{
+  assert.ok(qml.includes('GridLayout {'));
+  assert.ok(qml.includes('columns: root.desktopGrid ? 2 : 1'));
+  assert.ok(qml.includes('readonly property int cellSize: {'));
+  assert.ok(qml.includes('farcasterContent.width - (showMetrics ? 140 : 0)'));
+  for(const provider of ['farcaster','github','ethereum-wallet']) {
+    assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
+    assert.ok(!qml.includes('text: "'+({farcaster:'◫',github:'⌘','ethereum-wallet':'⬡'})[provider]+'"'));
+  }
+});
+
 test('localization covers every activity string across twelve languages',()=>{
   const keys=[...qml.matchAll(/genycaster\.activity\.[a-z_]+/g)].map(m=>m[0]);
   for(const lang of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',

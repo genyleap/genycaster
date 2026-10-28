@@ -21,13 +21,19 @@ Item {
     readonly property var farcasterData: genyPulseActivity.farcaster
     readonly property var githubData: genyPulseActivity.github
     readonly property var walletData: genyPulseActivity.onchain
-    readonly property bool wide: width >= 560
-    // The Farcaster provider reads exactly 91 days, never 26 weeks.
-    // Show the matching 13-week window instead of implying older no-activity days.
+    readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
+    readonly property bool desktopGrid: width >= 800 && expanded
     readonly property int weeks: 13
     readonly property int gapSize: 3
-    readonly property int cellSize: wide ? 13
-        : Math.max(9, Math.min(14, Math.floor((width - 24 - (weeks-1)*gapSize)/weeks)))
+    // Fit seven rows by thirteen weeks within the actual card, not viewport.
+    readonly property bool showMetrics: farcasterContent.width >= 390
+    readonly property int cellSize: {
+        const usable = Math.max(160, farcasterContent.width - (showMetrics ? 140 : 0))
+        return Math.max(8, Math.min(desktopGrid ? 27 : 23,
+                                  Math.floor((usable - (weeks-1)*gapSize)/weeks)))
+    }
+    readonly property int githubCellSize: Math.max(10,Math.min(23,
+        Math.floor((githubContent.width - 175)/5)))
     readonly property int todayDay: Math.floor(Date.now()/86400000)
     readonly property int firstDay: todayDay - weeks*7 + 1
     readonly property bool farcasterReady: (farcasterData.status==="ok" || farcasterData.status==="partial")
@@ -133,8 +139,18 @@ Item {
             }
         }
 
+        GridLayout {
+            id: activityGrid
+            Layout.fillWidth: true
+            columns: root.desktopGrid ? 2 : 1
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
+
         Rectangle {
             Layout.fillWidth: true
+            Layout.preferredWidth: root.desktopGrid ? Math.floor((root.width - Theme.space2)/2) : root.width
+            Layout.maximumWidth: !root.expanded && root.width>=800 ? 650 : 100000
+            Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
             implicitHeight: farcasterContent.implicitHeight + Theme.space3*2
             radius: Theme.space3
             color: Theme.surfaceMuted
@@ -153,15 +169,20 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Rectangle {
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
                         radius: 9
                         color: Theme.dark ? "#30283E" : "#EEE9FA"
-                        Label {
+                        Image {
                             anchors.centerIn: parent
-                            text: "◫"
-                            font.pixelSize: 18
-                            color: Theme.dark ? "#B5A0F2" : "#7560BF"
+                            width: 21
+                            height: 21
+                            source: root.providerIconRoot + "farcaster.svg"
+                            sourceSize.width: 42
+                            sourceSize.height: 42
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            Accessible.ignored: true
                         }
                     }
                     ColumnLayout {
@@ -203,7 +224,7 @@ Item {
                     Item {
                         Layout.preferredWidth: root.weeks * root.cellSize + (root.weeks-1) * root.gapSize
                         Layout.preferredHeight: 7 * root.cellSize + 6 * root.gapSize
-                        Layout.alignment: root.wide ? Qt.AlignLeft : Qt.AlignHCenter
+                        Layout.alignment: Qt.AlignHCenter
                         Row {
                             id: calendarRow
                             spacing: root.gapSize
@@ -236,8 +257,10 @@ Item {
                     }
 
                     ColumnLayout {
-                        visible: root.wide
+                        visible: root.showMetrics
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 90
+                        Layout.maximumWidth: 122
                         Layout.alignment: Qt.AlignVCenter
                         spacing: Theme.space3
                         ColumnLayout {
@@ -288,6 +311,8 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.preferredWidth: root.desktopGrid ? Math.floor((root.width - Theme.space2)/2) : root.width
+            Layout.alignment: Qt.AlignTop
             visible: root.expanded
             spacing: Theme.space2
 
@@ -311,11 +336,21 @@ Item {
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Rectangle {
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
+                            Layout.preferredWidth: 30
+                            Layout.preferredHeight: 30
                             radius: 9
-                            color: Theme.surface
-                            Label { anchors.centerIn: parent; text: "⌘"; font.pixelSize: 18; color: "#46B884" }
+                            color: "#FFFFFF"
+                            Image {
+                                anchors.centerIn: parent
+                                width: 21
+                                height: 21
+                                source: root.providerIconRoot + "github.svg"
+                                sourceSize.width: 42
+                                sourceSize.height: 42
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                Accessible.ignored: true
+                            }
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -374,7 +409,7 @@ Item {
                                         delegate: Rectangle {
                                             required property int index
                                             readonly property int day: root.todayDay - 34 + parent.index*7 + index
-                                            width: 12; height: 12; radius: 3
+                                            width: root.githubCellSize; height: root.githubCellSize; radius: 4
                                             color: root.tileColor(root.countAt(root.githubDays,day),"github")
                                         }
                                     }
@@ -409,11 +444,21 @@ Item {
                     anchors.margins: Theme.space3
                     spacing: Theme.space2
                     Rectangle {
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
                         radius: 9
-                        color: Theme.surface
-                        Label { anchors.centerIn: parent; text: "⬡"; font.pixelSize: 18; color: "#49A7D7" }
+                        color: "#FFFFFF"
+                        Image {
+                            anchors.centerIn: parent
+                            width: 16
+                            height: 24
+                            source: root.providerIconRoot + "ethereum-wallet.svg"
+                            sourceSize.width: 32
+                            sourceSize.height: 48
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            Accessible.ignored: true
+                        }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -438,5 +483,6 @@ Item {
                 }
             }
         }
+        } // activityGrid
     }
 }
