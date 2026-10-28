@@ -6073,5 +6073,29 @@ Company | https://company.com</translation>
             <source>No verified Ethereum wallet</source>
             <translation>无已验证的以太坊钱包</translation>
         </message>
+        <message id="genycaster.activity.active_days">
+            <source>Observed days</source>
+            <translation>已观察到的天数</translation>
+        </message>
+        <message id="genycaster.activity.reply_count">
+            <source>Replies</source>
+            <translation>回复</translation>
+        </message>
+        <message id="genycaster.activity.github_identity_pending">
+            <source>Connected · Public GitHub login not available</source>
+            <translation>已连接 · 公开 GitHub 用户名不可用</translation>
+        </message>
+        <message id="genycaster.activity.rate_limited">
+            <source>GitHub rate limit reached</source>
+            <translation>已达到 GitHub 请求限制</translation>
+        </message>
+        <message id="genycaster.activity.github_not_found">
+            <source>GitHub account not found</source>
+            <translation>未找到 GitHub 账户</translation>
+        </message>
+        <message id="genycaster.activity.no_recent_github">
+            <source>No public GitHub events in the last 30 days</source>
+            <translation>过去30天没有公开的 GitHub 事件</translation>
+        </message>
     </context>
 </TS>

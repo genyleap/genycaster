@@ -2,8 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Compact, source-scoped activity. Requests and normalization live in the
-// native GenyPulse adapter. Unknown days are never claimed inactive.
+// One bounded, source-specific read model per provider. Missing heatmap cells
+// are unobserved, not proof of inactivity or a valid contribution streak.
 Item {
     id: root
     objectName: "genyPulsePanel"
@@ -11,6 +11,8 @@ Item {
     property bool compact: false
     property bool isOwnProfile: false
     property string verifiedGitHub: ""
+    property bool githubLinked: false
+    property string githubAccountId: ""
     property string verifiedWallet: ""
     property bool expanded: false
     property string selectedDate: ""
@@ -19,60 +21,74 @@ Item {
     readonly property var farcasterData: genyPulseActivity.farcaster
     readonly property var githubData: genyPulseActivity.github
     readonly property var walletData: genyPulseActivity.onchain
-    readonly property int weeks: compact ? 13 : 26
-    readonly property int cellSize: compact ? 11 : 10
-    readonly property int cellGap: 3
-    readonly property int todayDay: Math.floor(Date.now() / 86400000)
-    readonly property int firstDay: todayDay - weeks * 7 + 1
-    readonly property bool farcasterReady: (farcasterData.status === "ok" || farcasterData.status === "partial")
-                                           && String(farcasterData.fid || "") === String(Math.floor(profileFid))
-    readonly property bool githubReady: (githubData.status === "ok" || githubData.status === "partial")
-                                        && verifiedGitHub.length>0
-                                        && String(githubData.username || "").toLowerCase() === verifiedGitHub.toLowerCase()
+    readonly property bool wide: width >= 560
+    readonly property int weeks: wide ? 26 : 18
+    readonly property int gapSize: 3
+    readonly property int cellSize: wide ? 10
+        : Math.max(8, Math.min(11, Math.floor((width - 24 - (weeks-1)*gapSize)/weeks)))
+    readonly property int todayDay: Math.floor(Date.now()/86400000)
+    readonly property int firstDay: todayDay - weeks*7 + 1
+    readonly property bool farcasterReady: (farcasterData.status==="ok" || farcasterData.status==="partial")
+        && String(farcasterData.fid || "")===String(Math.floor(profileFid))
+    readonly property string effectiveGithubLogin: verifiedGitHub.length>0
+        ? verifiedGitHub
+        : githubLinked && githubAccountId.length>0
+          && String(githubData.accountId || "")===githubAccountId
+            ? String(githubData.username || "") : ""
+    readonly property bool githubReady: (githubData.status==="ok" || githubData.status==="partial")
+        && effectiveGithubLogin.length>0
+        && String(githubData.username || "").toLowerCase()===effectiveGithubLogin.toLowerCase()
     readonly property var farcasterDays: dayMap(farcasterData.days)
     readonly property var githubDays: dayMap(githubData.days)
 
     function dayMap(items) {
-        const values = ({})
-        if (!items || typeof items.length !== "number") return values
-        for (let i=0; i<items.length && i<366; ++i) {
+        const map=({})
+        if(!items || typeof items.length!=="number")return map
+        for(let i=0;i<items.length && i<366;++i) {
             const item=items[i] || ({})
             const date=String(item.date || "")
             const count=Number(item.count || 0)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(count) && count>0)
-                values[date]=count
+            if(/^\d{4}-\d{2}-\d{2}$/.test(date) && isFinite(count) && count>0)
+                map[date]=count
         }
-        return values
+        return map
     }
-    function dayString(day) {
-        return new Date(day*86400000).toISOString().slice(0,10)
-    }
-    function countAt(days, day) {
-        return Number(days[root.dayString(day)] || 0)
-    }
-    function tileColor(count, source) {
-        if (count<1) return Theme.dark ? "#282A32" : "#E6E8ED"
+    function dayString(day) { return new Date(day*86400000).toISOString().slice(0,10) }
+    function countAt(items,day) { return Number(items[dayString(day)] || 0) }
+    function tileColor(count,source) {
+        if(count<1)return Theme.dark ? "#282A31" : "#E6E8EC"
         const palette=source==="github"
-            ? ["#9CDEC1","#4CBF91","#21805D"]
-            : ["#C5B5FA","#997CE5","#6650B4"]
+            ? ["#B5E8D0","#68CA9B","#32966C"]
+            : ["#C8B8F8","#9D81EA","#6552BD"]
         return palette[count>=5?2:count>=3?1:0]
     }
     function sourceSubtitle(source) {
-        const state=String(source.status || "")
-        if(state==="loading")return qsTrId("genycaster.activity.loading")
-        if(state==="error")return qsTrId("genycaster.activity.fetch_error")
-        if(state==="partial")return qsTrId("genycaster.activity.partial")
-        if(state==="ok")return qsTrId("genycaster.activity.recent")
+        const status=String(source.status || "")
+        if(status==="loading")return qsTrId("genycaster.activity.loading")
+        if(status==="error")return qsTrId("genycaster.activity.fetch_error")
+        if(status==="rate-limited")return qsTrId("genycaster.activity.rate_limited")
+        if(status==="not-found")return qsTrId("genycaster.activity.github_not_found")
+        if(status==="partial")return qsTrId("genycaster.activity.partial")
+        if(status==="ok" && source.source==="github-events" && Number(source.count || 0)===0)
+            return qsTrId("genycaster.activity.no_recent_github")
+        if(status==="ok")return qsTrId("genycaster.activity.recent")
         return qsTrId("genycaster.activity.unavailable")
     }
-
     function refreshSources() {
-        genyPulseActivity.requestFarcaster(Math.max(0,Math.floor(root.profileFid)))
-        genyPulseActivity.requestGitHub(root.isOwnProfile ? root.verifiedGitHub : "")
-        genyPulseActivity.setVerifiedWallet(root.verifiedWallet)
+        genyPulseActivity.requestFarcaster(Math.max(0,Math.floor(profileFid)))
+        if(isOwnProfile && verifiedGitHub.length>0)
+            genyPulseActivity.requestGitHub(verifiedGitHub)
+        else if(isOwnProfile && githubLinked && githubAccountId.length>0)
+            genyPulseActivity.requestGitHubId(githubAccountId)
+        else genyPulseActivity.requestGitHub("")
+        genyPulseActivity.setVerifiedWallet(verifiedWallet)
+        if(!farcasterReady)selectedDate=""
     }
+
     onProfileFidChanged: refreshTimer.restart()
     onVerifiedGitHubChanged: refreshTimer.restart()
+    onGithubAccountIdChanged: refreshTimer.restart()
+    onGithubLinkedChanged: refreshTimer.restart()
     onVerifiedWalletChanged: refreshTimer.restart()
     onIsOwnProfileChanged: refreshTimer.restart()
     Component.onCompleted: refreshTimer.start()
@@ -93,7 +109,7 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.space1
+            spacing: Theme.space2
             Label {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.activity.title")
@@ -101,46 +117,48 @@ Item {
                 font.weight: Theme.weightDemiBold
                 color: Theme.ink
             }
-            Button {
+            ActionButton {
                 objectName: "genyPulseExpandButton"
-                flat: true
-                padding: Theme.space1
-                text: root.expanded ? qsTrId("genycaster.activity.less") :
-                                      qsTrId("genycaster.activity.explore")
-                font.pixelSize: Theme.typeCaptionSize
+                compact: true
+                quiet: false
+                elevated: false
+                pill: true
+                iconSize: 13
+                iconGlyph: root.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
+                text: root.expanded ? qsTrId("genycaster.activity.less")
+                                    : qsTrId("genycaster.activity.explore")
                 onClicked: root.expanded = !root.expanded
-                Accessible.name: text
             }
         }
 
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: farcasterPanel.implicitHeight + Theme.space2*2
+            implicitHeight: farcasterContent.implicitHeight + Theme.space3*2
             radius: Theme.space3
             color: Theme.surfaceMuted
             border.width: 1
             border.color: Theme.borderMuted
 
             ColumnLayout {
-                id: farcasterPanel
+                id: farcasterContent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: Theme.space2
-                spacing: Theme.space1
+                anchors.margins: Theme.space3
+                spacing: Theme.space2
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Rectangle {
-                        Layout.preferredWidth: 25
-                        Layout.preferredHeight: 25
-                        radius: 8
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        radius: 9
                         color: Theme.dark ? "#30283E" : "#EEE9FA"
                         Label {
                             anchors.centerIn: parent
                             text: "◫"
-                            font.pixelSize: 17
+                            font.pixelSize: 18
                             color: Theme.dark ? "#B5A0F2" : "#7560BF"
                         }
                     }
@@ -159,74 +177,109 @@ Item {
                         Label {
                             Layout.fillWidth: true
                             text: root.farcasterReady
-                                ? qsTrId("genycaster.activity.indexed_count")
-                                    .arg(root.farcasterData.count || 0)
-                                    .arg(root.farcasterData.replies || 0)
-                                : root.sourceSubtitle(root.farcasterData)
+                                  ? qsTrId("genycaster.activity.indexed_count")
+                                      .arg(root.farcasterData.count || 0)
+                                      .arg(root.farcasterData.replies || 0)
+                                  : root.sourceSubtitle(root.farcasterData)
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.inkMuted
                             elide: Text.ElideRight
                         }
                     }
                     Label {
-                        text: root.weeks + "w"
+                        text: "91d"
                         color: Theme.inkSubtle
                         font.pixelSize: Theme.typeCaptionSize
                         Layout.alignment: Qt.AlignVCenter
                     }
                 }
 
-                Row {
+                RowLayout {
                     Layout.fillWidth: true
-                    spacing: root.cellGap
-                    Layout.topMargin: Theme.space1
-                    Repeater {
-                        model: root.weeks
-                        delegate: Column {
-                            required property int index
-                            spacing: root.cellGap
+                    spacing: Theme.space4
+
+                    Item {
+                        Layout.preferredWidth: root.weeks * root.cellSize + (root.weeks-1) * root.gapSize
+                        Layout.preferredHeight: 7 * root.cellSize + 6 * root.gapSize
+                        Layout.alignment: root.wide ? Qt.AlignLeft : Qt.AlignHCenter
+                        Row {
+                            id: calendarRow
+                            spacing: root.gapSize
                             Repeater {
-                                model: 7
-                                delegate: Rectangle {
+                                model: root.weeks
+                                delegate: Column {
                                     required property int index
-                                    readonly property int day: root.firstDay + parent.index*7 + index
-                                    readonly property int value: root.countAt(root.farcasterDays,day)
-                                    width: root.cellSize
-                                    height: root.cellSize
-                                    radius: 3
-                                    color: root.tileColor(root.farcasterReady ? value : 0,"farcaster")
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        enabled: root.farcasterReady && parent.value>0
-                                        onClicked: root.selectedDate=root.dayString(parent.day)
+                                    spacing: root.gapSize
+                                    Repeater {
+                                        model: 7
+                                        delegate: Rectangle {
+                                            required property int index
+                                            readonly property int day: root.firstDay + parent.index*7 + index
+                                            readonly property int value: root.countAt(root.farcasterDays, day)
+                                            width: root.cellSize
+                                            height: root.cellSize
+                                            radius: 3
+                                            color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                enabled: root.farcasterReady && parent.value>0
+                                                onClicked: root.selectedDate = root.dayString(parent.day)
+                                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
+                    ColumnLayout {
+                        visible: root.wide
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: Theme.space3
+                        ColumnLayout {
+                            spacing: 0
+                            Label {
+                                text: root.farcasterReady ? String(root.farcasterData.days.length) : "—"
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.ink
+                            }
+                            Label {
+                                text: qsTrId("genycaster.activity.active_days")
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.inkMuted
+                            }
+                        }
+                        ColumnLayout {
+                            spacing: 0
+                            Label {
+                                text: root.farcasterReady ? String(root.farcasterData.replies || 0) : "—"
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.ink
+                            }
+                            Label {
+                                text: qsTrId("genycaster.activity.reply_count")
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.inkMuted
+                            }
+                        }
+                    }
                 }
 
-                RowLayout {
+                Label {
+                    visible: root.selectedDate.length>0 || !root.farcasterReady
                     Layout.fillWidth: true
-                    spacing: Theme.space1
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.selectedDate.length>0 && root.farcasterReady
-                              ? qsTrId("genycaster.activity.day_summary")
-                                    .arg(root.selectedDate)
-                                    .arg(root.farcasterDays[root.selectedDate] || 0)
-                              : root.sourceSubtitle(root.farcasterData)
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                    }
-                    Label {
-                        text: root.farcasterData.status==="partial"
-                              ? qsTrId("genycaster.activity.limited")
-                              : "Hypersnap"
-                        color: Theme.inkSubtle
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
+                    text: root.selectedDate.length>0 && root.farcasterReady
+                        ? qsTrId("genycaster.activity.day_summary")
+                            .arg(root.selectedDate)
+                            .arg(root.farcasterDays[root.selectedDate] || 0)
+                        : root.sourceSubtitle(root.farcasterData)
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    elide: Text.ElideRight
                 }
             }
         }
@@ -238,26 +291,29 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: githubPanel.implicitHeight + Theme.space2*2
+                implicitHeight: githubContent.implicitHeight + Theme.space3*2
                 radius: Theme.space3
                 color: Theme.surfaceMuted
                 border.width: 1
                 border.color: Theme.borderMuted
 
                 ColumnLayout {
-                    id: githubPanel
+                    id: githubContent
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space2
-                    spacing: Theme.space1
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space2
+
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Rectangle {
-                            Layout.preferredWidth: 25; Layout.preferredHeight: 25
-                            radius: 8; color: Theme.surface
-                            Label {anchors.centerIn: parent; text: "⌘"; color: "#46B884"; font.pixelSize: 17}
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
+                            radius: 9
+                            color: Theme.surface
+                            Label { anchors.centerIn: parent; text: "⌘"; font.pixelSize: 18; color: "#46B884" }
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
@@ -271,79 +327,91 @@ Item {
                             }
                             Label {
                                 Layout.fillWidth: true
-                                text: root.verifiedGitHub.length>0
-                                      ? "@" + root.verifiedGitHub + " · " +
-                                        root.sourceSubtitle(root.githubData)
-                                      : qsTrId("genycaster.activity.not_linked")
+                                text: root.effectiveGithubLogin.length>0
+                                      ? "@" + root.effectiveGithubLogin + " · " + root.sourceSubtitle(root.githubData)
+                                      : root.githubLinked
+                                        ? root.githubAccountId.length>0
+                                          ? root.sourceSubtitle(root.githubData)
+                                          : qsTrId("genycaster.activity.github_identity_pending")
+                                        : qsTrId("genycaster.activity.not_linked")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 elide: Text.ElideRight
                             }
                         }
                         Label {
-                            text: root.githubReady
-                                  ? qsTrId("genycaster.activity.events")
-                                        .arg(root.githubData.count || 0)
-                                  : ""
+                            visible: root.githubReady
+                            text: qsTrId("genycaster.activity.events").arg(root.githubData.count || 0)
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                         }
+                        ActionButton {
+                            visible: root.isOwnProfile && (!root.githubLinked || (!root.effectiveGithubLogin.length && !root.githubAccountId.length))
+                            compact: true
+                            quiet: false
+                            elevated: false
+                            pill: true
+                            text: qsTrId("genycaster.activity.manage")
+                            onClicked: root.connectionsRequested()
+                        }
                     }
-                    Row {
+
+                    RowLayout {
                         visible: root.githubReady
                         Layout.fillWidth: true
-                        spacing: root.cellGap
-                        Repeater {
-                            model: root.compact ? 13 : 26
-                            delegate: Column {
-                                required property int index
-                                spacing: root.cellGap
-                                Repeater {
-                                    model: 7
-                                    delegate: Rectangle {
-                                        required property int index
-                                        readonly property int day: root.firstDay + parent.index*7 + index
-                                        width: root.cellSize; height: root.cellSize; radius: 3
-                                        color: root.tileColor(root.countAt(root.githubDays,day),"github")
+                        spacing: Theme.space3
+                        Row {
+                            spacing: root.gapSize
+                            Repeater {
+                                model: 5
+                                delegate: Column {
+                                    required property int index
+                                    spacing: root.gapSize
+                                    Repeater {
+                                        model: 7
+                                        delegate: Rectangle {
+                                            required property int index
+                                            readonly property int day: root.todayDay - 34 + parent.index*7 + index
+                                            width: 12; height: 12; radius: 3
+                                            color: root.tileColor(root.countAt(root.githubDays,day),"github")
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    Label {
-                        visible: root.githubReady
-                        text: qsTrId("genycaster.activity.github_window")
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.inkMuted
-                    }
-                    Button {
-                        visible: root.isOwnProfile && root.verifiedGitHub.length===0
-                        flat: true; padding: 0
-                        text: qsTrId("genycaster.activity.manage")
-                        font.pixelSize: Theme.typeCaptionSize
-                        onClicked: root.connectionsRequested()
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.activity.github_window")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                        }
                     }
                 }
             }
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: walletPanel.implicitHeight + Theme.space2*2
+                implicitHeight: walletContent.implicitHeight + Theme.space3*2
                 radius: Theme.space3
                 color: Theme.surfaceMuted
                 border.width: 1
                 border.color: Theme.borderMuted
+
                 RowLayout {
-                    id: walletPanel
+                    id: walletContent
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Theme.space2
+                    anchors.margins: Theme.space3
                     spacing: Theme.space2
                     Rectangle {
-                        Layout.preferredWidth: 25; Layout.preferredHeight: 25
-                        radius: 8; color: Theme.surface
-                        Label {anchors.centerIn: parent; text: "⬡"; font.pixelSize: 18; color: "#49A7D7"}
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        radius: 9
+                        color: Theme.surface
+                        Label { anchors.centerIn: parent; text: "⬡"; font.pixelSize: 18; color: "#49A7D7" }
                     }
                     ColumnLayout {
                         Layout.fillWidth: true

@@ -1423,11 +1423,40 @@ void OpenProofConnectionsController::refreshAccountConnectionsSnapshot()
             if(!serverVerifiedFarcaster || m_actionBusy || !m_pendingProvider.isEmpty())
                 return;
             QVariantList retained;
+            QSet<QString> alreadyPresent;
             for(const auto& value:m_connections) {
+                auto item=value.toMap();
+                const auto provider=item.value(QStringLiteral("provider")).toString();
+                if(!m_providers.contains(provider) || providers.contains(provider)) {
+                    // Keep the original OAuth subject; confirmed account
+                    // metadata may enrich missing display-only fields.
+                    for(const auto& confirmed:current) {
+                        const auto row=confirmed.toMap();
+                        if(row.value(QStringLiteral("provider")).toString()!=provider)
+                            continue;
+                        for(const auto* field:{"username","profileUrl"}) {
+                            const auto key=QString::fromLatin1(field);
+                            if(item.value(key).toString().isEmpty()
+                               && !row.value(key).toString().isEmpty())
+                                item.insert(key,row.value(key));
+                        }
+                        break;
+                    }
+                    retained.push_back(item);
+                    alreadyPresent.insert(provider);
+                }
+            }
+            // A provider linked on another device may exist in the canonical
+            // confirmed database even when the local OpenProof read predates
+            // that link. Add display-only confirmed identities; never treat
+            // server-confirmed:* labels as OAuth subjects for mutations.
+            for(const auto& value:current) {
                 const auto item=value.toMap();
                 const auto provider=item.value(QStringLiteral("provider")).toString();
-                if(!m_providers.contains(provider) || providers.contains(provider))
+                if(!alreadyPresent.contains(provider)) {
                     retained.push_back(value);
+                    alreadyPresent.insert(provider);
+                }
             }
             if(retained!=m_connections) {
                 m_connections=std::move(retained);
@@ -2457,7 +2486,24 @@ void OpenProofConnectionsController::refreshConnections()
                 // the OIDC sub. Prefer provider-backed profile_url and only
                 // use preferred_username when that exact claim is available.
                 QString publicUrl;
-                const QString handle = json.value(QStringLiteral("preferred_username")).toString();
+                QString handle = json.value(QStringLiteral("preferred_username")).toString();
+                if (provider == QStringLiteral("github")) {
+                    // GitHub may return a provider-backed profile URL without
+                    // preferred_username. Never infer the login from an
+                    // editable bio or the opaque OpenProof subject.
+                    const QUrl candidate{json.value(QStringLiteral("profile_url")).toString()};
+                    static const QRegularExpression githubPath{
+                        QStringLiteral("^/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)/?$")};
+                    const auto match=githubPath.match(candidate.path());
+                    if(candidate.scheme()==QStringLiteral("https")
+                        && candidate.host()==QStringLiteral("github.com")
+                        && candidate.port()==-1 && candidate.userInfo().isEmpty()
+                        && candidate.query().isEmpty() && candidate.fragment().isEmpty()
+                        && match.hasMatch()) {
+                        publicUrl=QStringLiteral("https://github.com/")+match.captured(1);
+                        if(handle.isEmpty())handle=match.captured(1);
+                    }
+                }
                 if (provider == QStringLiteral("linkedin")) {
                     const QString value = json.value(QStringLiteral("profile_url")).toString();
                     const QUrl url{value};
@@ -2634,7 +2680,8 @@ void OpenProofConnectionsController::disconnectProvider(
     const QString& provider, const QString& subject)
 {
     if (!m_verified || m_actionBusy || m_request || !isConnected(provider, subject)
-        || provider == QStringLiteral("farcaster") || subject.isEmpty()) return;
+        || provider == QStringLiteral("farcaster") || subject.isEmpty()
+        || subject.startsWith(QStringLiteral("server-confirmed:"))) return;
     m_actionBusy = true;
     m_error.clear();
     emit stateChanged();

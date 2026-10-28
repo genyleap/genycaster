@@ -6073,5 +6073,29 @@ Company | https://company.com</translation>
             <source>No verified Ethereum wallet</source>
             <translation>인증된 Ethereum 지갑 없음</translation>
         </message>
+        <message id="genycaster.activity.active_days">
+            <source>Observed days</source>
+            <translation>활동 확인일</translation>
+        </message>
+        <message id="genycaster.activity.reply_count">
+            <source>Replies</source>
+            <translation>답글</translation>
+        </message>
+        <message id="genycaster.activity.github_identity_pending">
+            <source>Connected · Public GitHub login not available</source>
+            <translation>연결됨 · 공개 GitHub 사용자 이름 없음</translation>
+        </message>
+        <message id="genycaster.activity.rate_limited">
+            <source>GitHub rate limit reached</source>
+            <translation>GitHub 요청 한도에 도달함</translation>
+        </message>
+        <message id="genycaster.activity.github_not_found">
+            <source>GitHub account not found</source>
+            <translation>GitHub 계정을 찾을 수 없음</translation>
+        </message>
+        <message id="genycaster.activity.no_recent_github">
+            <source>No public GitHub events in the last 30 days</source>
+            <translation>최근 30일간 공개 GitHub 이벤트 없음</translation>
+        </message>
     </context>
 </TS>

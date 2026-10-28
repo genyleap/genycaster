@@ -19,7 +19,8 @@ test('activity is read independently from profile timeline and reacts to FID',()
   assert.match(qml,/genyPulseActivity.setVerifiedWallet/);
   assert.ok(!/XMLHttpRequest|fetch\(/.test(qml));
   assert.match(profile,/verifiedGitHub:\s*\{/);
-  assert.match(profile,/openProofConnections.authorized/);
+  assert.match(profile,/verifiedGithubActivityAccount/);
+  assert.match(profile,/githubLinked: root.verifiedGithubActivityAccount.linked/);
   assert.match(profile,/verifiedEthAddresses/);
 });
 
@@ -46,7 +47,9 @@ test('Onchain verified wallet cannot be confused with transactions',()=>{
 });
 
 test('compact cells and status positioning prevent oversized heatmap',()=>{
-  assert.match(qml,/cellSize: compact \? 11 : 10/);
+  assert.match(qml,/readonly property int cellSize:/);
+  assert.match(qml,/model: root.weeks/);
+  assert.match(qml,/Theme.iconChevronDown/);
   assert.ok(!qml.includes('genycaster.activity.preview'));
   assert.ok(!qml.includes('genycaster.activity.no_history'));
   assert.match(qml,/elide: Text.ElideRight/);
@@ -69,4 +72,26 @@ test('normalization and query stay in native adapter, not UI',()=>{
   assert.match(source,/m_githubReply->abort\(\)/);
   assert.match(source,/statusMap\(QStringLiteral\("error"\)/);
   assert.match(source,/https:\/\/api\.github\.com\/users/);
+});
+
+test('GitHub reads canonical OpenProof snapshots even without an active grant',()=>{
+  const openproof=readFileSync(resolve(root,'ui/mobile/openproof_connections_controller.cpp'),'utf8');
+  assert.match(profile,/openProofConnections.connections/);
+  const idSection=profile.slice(profile.indexOf('readonly property var verifiedGithubActivityAccount:'),
+      profile.indexOf('function socialIcon(provider)'));
+  assert.doesNotMatch(idSection,/openProofConnections.authorized/);
+  assert.match(idSection,/entry.profileUrl/);
+  assert.match(idSection,/entry.subject/);
+  assert.match(openproof,/server-confirmed:/);
+  assert.match(openproof,/for\(const auto& confirmed:current\)/);
+  assert.match(openproof,/retained.push_back\(value\)/);
+  assert.match(qml,/genyPulseActivity.requestGitHubId\(githubAccountId\)/);
+});
+
+test('GitHub numeric-id fallback stays provider-verified and bounded',()=>{
+  assert.match(source,/requestGitHubId/);
+  assert.match(source,/github.com\/user/); // Guarded source URL or documentation
+  assert.match(source,/confirmedId!=id/);
+  assert.match(source,/m_githubAccountId!=id/);
+  assert.match(source,/kCacheMs/);
 });
