@@ -6033,5 +6033,45 @@ Company | https://company.com</translation>
             <source>Manage connections</source>
             <translation>Управление подключениями</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>Загрузка активности…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>Активность временно недоступна</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>Неполная история</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>Недавняя активность</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>Кастов: %1 · Ответов: %2</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>Частично</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>Событий: %1</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>Публичные события · 30 дней, не годовой вклад</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>Кошелёк подтверждён · Индексатор не подключён</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>Нет подтверждённого Ethereum-кошелька</translation>
+        </message>
     </context>
 </TS>

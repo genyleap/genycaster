@@ -5,74 +5,68 @@ import {fileURLToPath} from 'node:url';
 import {resolve, dirname} from 'node:path';
 import {runInNewContext} from 'node:vm';
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const qml = readFileSync(resolve(root, 'ui/components/GenyPulsePanel.qml'), 'utf8');
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
+const qml=readFileSync(resolve(root,'ui/components/GenyPulsePanel.qml'),'utf8');
+const profile=readFileSync(resolve(root,'ui/components/ProfileSurface.qml'),'utf8');
+const source=readFileSync(resolve(root,'ui/mobile/genypulse_activity_controller.cpp'),'utf8');
+const header=readFileSync(resolve(root,'ui/mobile/genypulse_activity_controller.hpp'),'utf8');
 
-function functionSource(name, nextName) {
-  const begin = qml.indexOf('    function ' + name + '(');
-  const end = qml.indexOf('    function ' + nextName + '(', begin);
-  assert.ok(begin >= 0 && end > begin, 'Missing ' + name);
-  return qml.slice(begin, end).trim();
-}
-
-const aggregate = functionSource('aggregateCasts', 'connectionState');
-const connections = functionSource('connectionState', 'bucketCount');
-
-function compute(context) {
-  return runInNewContext(aggregate + '\naggregateCasts()', {root: context, isFinite});
-}
-function status(context, provider) {
-  return runInNewContext(connections + '\nconnectionState(provider)', {
-    root: context, provider
-  });
-}
-
-test('Farcaster heatmap only counts unique author casts with valid timestamps', () => {
-  const day = Math.floor(Date.now() / 86400000) - 3;
-  const timestamp = day * 86400000 + 10_000;
-  const rows = [
-    {authorFid:42, castId:'0xa', createdAtMs:timestamp},
-    {authorFid:42, castId:'0xa', createdAtMs:timestamp},
-    {authorFid:42, castId:'0xb', createdAtMs:timestamp+100},
-    {authorFid:43, castId:'0xc', createdAtMs:timestamp},
-    {authorFid:42, castId:'0xd', createdAtMs:123}
-  ];
-  const result = compute({rows, profileFid:42, feedSupported:true,
-      profileFeed:'user-posts', startUtc:day-20, todayUtc:day+3});
-  assert.equal(result.total,2);
-  assert.equal(result.days,1);
-  assert.equal(result.counts[day],2);
+test('activity is read independently from profile timeline and reacts to FID',()=>{
+  assert.ok(!qml.includes('root.rows') && !qml.includes('profileFeed'));
+  assert.match(qml,/onProfileFidChanged: refreshTimer.restart/);
+  assert.match(qml,/genyPulseActivity.requestFarcaster/);
+  assert.match(qml,/genyPulseActivity.requestGitHub/);
+  assert.match(qml,/genyPulseActivity.setVerifiedWallet/);
+  assert.ok(!/XMLHttpRequest|fetch\(/.test(qml));
+  assert.match(profile,/verifiedGitHub:\s*\{/);
+  assert.match(profile,/openProofConnections.authorized/);
+  assert.match(profile,/verifiedEthAddresses/);
 });
 
-test('Missing or unsupported profile rows do not create invented streaks', () => {
-  const result = compute({rows:[{authorFid:42,castId:'0xa',createdAtMs:Date.now()}],
-      profileFid:42, feedSupported:false, profileFeed:'user-likes',
-      startUtc:0, todayUtc:99999});
-  assert.deepEqual(JSON.parse(JSON.stringify(result)),{counts:{},total:0,days:0});
-  assert.ok(!qml.includes('currentStreak:'));
+test('Farcaster and GitHub have separate pagination, state, deduplication and time bounds',()=>{
+  assert.match(source,/kFarcasterWindowDays = 91/);
+  assert.match(source,/kGithubWindowDays = 30/);
+  assert.match(source,/kCastPages = 12/);
+  assert.match(source,/kGithubPages = 3/);
+  assert.match(source,/m_castHashes.contains\(hash\)/);
+  assert.match(source,/m_githubEvents.contains\(id\)/);
+  assert.match(source,/publishFarcaster\(false\)/);
+  assert.match(source,/publishGitHub\(false\)/);
+  assert.match(source,/QNetworkRequest::ManualRedirectPolicy/);
+  assert.match(source,/kMaxResponseBytes/);
+  assert.match(header,/Q_PROPERTY\(QVariantMap farcaster/);
+  assert.match(header,/Q_PROPERTY\(QVariantMap github/);
+  assert.match(header,/Q_PROPERTY\(QVariantMap onchain/);
 });
 
-test('Only verified own-profile accounts expose linked state', () => {
-  const connectionsValue=[{provider:'github'},{provider:'ethereum-wallet'}];
-  assert.equal(status({isOwnProfile:true,connectionsVerified:true,
-      connections:connectionsValue}, 'github'),'linked');
-  assert.equal(status({isOwnProfile:true,connectionsVerified:true,
-      connections:connectionsValue}, 'ethereum-wallet'),'linked');
-  assert.equal(status({isOwnProfile:false,connectionsVerified:true,
-      connections:connectionsValue},'github'),'unavailable');
-  assert.equal(status({isOwnProfile:true,connectionsVerified:false,
-      connections:connectionsValue},'github'),'unavailable');
-  assert.equal(status({isOwnProfile:true,connectionsVerified:true,
-      connections:[]},'github'),'not-linked');
+test('Onchain verified wallet cannot be confused with transactions',()=>{
+  assert.match(source,/not-indexed/);
+  assert.ok(!/m_onchain\.insert\(QStringLiteral\("count"\)/.test(source));
+  assert.match(qml,/wallet_pending/);
 });
 
-test('Presentation remains provider-free and localization has all activity labels', () => {
-  assert.ok(!qml.includes("XMLHttpRequest") && !qml.includes("fetch("));
+test('compact cells and status positioning prevent oversized heatmap',()=>{
+  assert.match(qml,/cellSize: compact \? 11 : 10/);
+  assert.ok(!qml.includes('genycaster.activity.preview'));
+  assert.ok(!qml.includes('genycaster.activity.no_history'));
+  assert.match(qml,/elide: Text.ElideRight/);
+});
+
+test('localization covers every activity string across twelve languages',()=>{
   const keys=[...qml.matchAll(/genycaster\.activity\.[a-z_]+/g)].map(m=>m[0]);
   for(const lang of ['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
-      'pt_BR','ru_RU','hi_IN','ja_JP','ko_KR','zh_CN']) {
+    'pt_BR','ru_RU','hi_IN','ja_JP','ko_KR','zh_CN']){
     const ts=readFileSync(resolve(root,'ui/i18n/qml_'+lang+'.ts'),'utf8');
     for(const key of new Set(keys))
       assert.ok(ts.includes('id="'+key+'"'),lang+' missing '+key);
   }
+});
+
+test('normalization and query stay in native adapter, not UI',()=>{
+  assert.match(source,/cast\.value\(QStringLiteral\("author"\)\)/);
+  assert.match(source,/QDateTime::fromString/);
+  assert.match(source,/m_farcasterReply->abort\(\)/);
+  assert.match(source,/m_githubReply->abort\(\)/);
+  assert.match(source,/statusMap\(QStringLiteral\("error"\)/);
+  assert.match(source,/https:\/\/api\.github\.com\/users/);
 });

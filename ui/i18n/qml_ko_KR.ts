@@ -6033,5 +6033,45 @@ Company | https://company.com</translation>
             <source>Manage connections</source>
             <translation>연결 관리</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>활동 불러오는 중…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>활동을 일시적으로 사용할 수 없음</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>일부 기록</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>최근 활동</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>캐스트 %1개 · 답글 %2개</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>일부</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>이벤트 %1개</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>공개 이벤트 · 최근 30일(연간 기여 아님)</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>지갑 인증됨 · 체인 인덱서 미연결</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>인증된 Ethereum 지갑 없음</translation>
+        </message>
     </context>
 </TS>

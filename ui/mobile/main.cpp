@@ -92,6 +92,7 @@
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
 #include "openproof_connections_controller.hpp"
+#include "genypulse_activity_controller.hpp"
 #if defined(__EMSCRIPTEN__)
 #include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
@@ -1841,6 +1842,9 @@ int main(int argc, char* argv[])
         QStringLiteral("bundledIconFontFamily"), bundledIconFontFamily);
     engine.rootContext()->setContextProperty(
         QStringLiteral("bundledIconRegularFontFamily"), bundledIconRegularFontFamily);
+    GenyPulseActivityController genyPulseActivity;
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("genyPulseActivity"), &genyPulseActivity);
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);

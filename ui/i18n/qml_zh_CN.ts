@@ -6033,5 +6033,45 @@ Company | https://company.com</translation>
             <source>Manage connections</source>
             <translation>管理连接</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>正在加载活动…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>活动暂时不可用</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>部分历史</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>最近活动</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>%1 条动态 · %2 条回复</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>部分</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>%1 个事件</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>公开事件 · 最近30天（非年度贡献）</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>钱包已验证 · 尚未连接链索引器</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>无已验证的以太坊钱包</translation>
+        </message>
     </context>
 </TS>

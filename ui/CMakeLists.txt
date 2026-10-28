@@ -274,6 +274,8 @@ qt_add_executable(farcaster_client
     mobile/browser_openproof_auth.hpp
     mobile/openproof_connections_controller.cpp
     mobile/openproof_connections_controller.hpp
+    mobile/genypulse_activity_controller.cpp
+    mobile/genypulse_activity_controller.hpp
 )
 
 target_sources(farcaster_client

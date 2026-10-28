@@ -6033,5 +6033,45 @@ Company | https://company.com</translation>
             <source>Manage connections</source>
             <translation>कनेक्शन प्रबंधित करें</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>गतिविधि लोड हो रही है…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>गतिविधि अभी उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>आंशिक इतिहास</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>हाल की गतिविधि</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>%1 कास्ट · %2 उत्तर</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>आंशिक</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>%1 घटनाएँ</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>सार्वजनिक घटनाएँ · पिछले 30 दिन, वार्षिक योगदान नहीं</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>सत्यापित वॉलेट · चेन इंडेक्सर जुड़ा नहीं</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>कोई सत्यापित Ethereum वॉलेट नहीं</translation>
+        </message>
     </context>
 </TS>

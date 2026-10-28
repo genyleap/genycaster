@@ -6033,5 +6033,45 @@ Company | https://company.com</translation>
             <source>Manage connections</source>
             <translation>連携を管理</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>アクティビティを読み込み中…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>アクティビティを取得できません</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>一部の履歴</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>最近のアクティビティ</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>Cast %1件 · 返信 %2件</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>一部のみ</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>イベント %1件</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>公開イベント · 過去30日間（年間貢献ではありません）</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>ウォレット確認済み · チェーン索引は未接続</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>確認済みEthereumウォレットはありません</translation>
+        </message>
     </context>
 </TS>

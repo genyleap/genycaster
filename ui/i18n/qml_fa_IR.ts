@@ -6033,5 +6033,45 @@ Company | https://company.com</source>
             <source>Manage connections</source>
             <translation>مدیریت اتصال‌ها</translation>
         </message>
+        <message id="genycaster.activity.loading">
+            <source>Loading activity…</source>
+            <translation>در حال دریافت فعالیت…</translation>
+        </message>
+        <message id="genycaster.activity.fetch_error">
+            <source>Activity temporarily unavailable</source>
+            <translation>دادهٔ فعالیت موقتاً در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.activity.partial">
+            <source>Partial history</source>
+            <translation>تاریخچه ناقص</translation>
+        </message>
+        <message id="genycaster.activity.recent">
+            <source>Recent activity</source>
+            <translation>فعالیت اخیر</translation>
+        </message>
+        <message id="genycaster.activity.indexed_count">
+            <source>%1 casts · %2 replies</source>
+            <translation>%1 کست · %2 پاسخ</translation>
+        </message>
+        <message id="genycaster.activity.limited">
+            <source>Partial</source>
+            <translation>ناقص</translation>
+        </message>
+        <message id="genycaster.activity.events">
+            <source>%1 events</source>
+            <translation>%1 رویداد</translation>
+        </message>
+        <message id="genycaster.activity.github_window">
+            <source>Public events · last 30 days (not annual contributions)</source>
+            <translation>رویدادهای عمومی · ۳۰ روز اخیر (نه مشارکت سالانه)</translation>
+        </message>
+        <message id="genycaster.activity.wallet_pending">
+            <source>Verified wallet · chain indexer not connected</source>
+            <translation>کیف پول تأیید شده · ایندکسر شبکه متصل نیست</translation>
+        </message>
+        <message id="genycaster.activity.wallet_missing">
+            <source>No verified Ethereum wallet</source>
+            <translation>کیف پول اتریومی تأییدشده وجود ندارد</translation>
+        </message>
     </context>
 </TS>

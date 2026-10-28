@@ -2026,13 +2026,28 @@ Item {
                 Layout.rightMargin: root.profileContentX
                 visible: Number(root.activeDetail.fid || 0) > 0
                 profileFid: Number(root.activeDetail.fid || 0)
-                profileFeed: root.profileFeed
-                rows: root.rows || []
                 compact: root.compact
-                offline: root.offline
                 isOwnProfile: root.isOwnProfile
-                connectionsVerified: root.isOwnProfile && openProofConnections.authorized
-                connections: root.isOwnProfile ? openProofConnections.connections : []
+                verifiedGitHub: {
+                    if(!root.isOwnProfile || !openProofConnections.authorized) return ""
+                    const items=openProofConnections.connections || []
+                    for(let i=0;i<items.length;++i) {
+                        const item=items[i] || ({})
+                        const login=String(item.username || "").replace(/^@/,"")
+                        if(item.provider==="github"
+                           && /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(login))
+                            return login
+                    }
+                    return ""
+                }
+                verifiedWallet: {
+                    const verified=root.activeDetail.verifiedEthAddresses || []
+                    for(let i=0;i<verified.length && i<50;++i) {
+                        const address=String(verified[i] || "")
+                        if(/^0x[0-9a-fA-F]{40}$/.test(address))return address
+                    }
+                    return ""
+                }
                 onConnectionsRequested: root.openConnections()
             }
 
