@@ -14,10 +14,9 @@ function allQml(relative) {
   });
 }
 
-test('all adaptive GenyDrawer instances share the same physical right edge',()=>{
+test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom sheets',()=>{
   const drawer=qml('components/GenyDrawer.qml');
-  assert.match(drawer,/edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*Qt\.RightEdge\b/);
-  assert.doesNotMatch(drawer,/edge:[^\n]*Theme\.rtl/);
+  assert.match(drawer,/edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.match(drawer,/property:\s*"position"/);
   assert.match(drawer,/control\.edge\s*!==\s*Qt\.RightEdge/);
   const files=[...allQml('components'),...allQml('mobile')];

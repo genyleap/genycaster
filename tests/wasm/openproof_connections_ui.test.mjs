@@ -50,7 +50,8 @@ test('owner profile anchors linked networks to the right with blue or green proo
 test('connections opens as mobile bottom sheet and desktop right drawer', () => {
   assert.ok(popup.includes('GenyDrawer {'));
   assert.ok(popup.includes('bottomSheet: mobilePresentation'));
-  assert.ok(popup.includes('edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge'));
+  assert.ok(!popup.includes('edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge'));
+  assert.match(read('../../ui/components/GenyDrawer.qml'), /edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.ok(popup.includes('Theme.breakpointMobile'));
   assert.ok(popup.includes('dimBackground: true'));
   assert.ok(!popup.includes('GenyModal {'));

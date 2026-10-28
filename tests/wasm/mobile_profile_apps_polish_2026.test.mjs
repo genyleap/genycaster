@@ -39,7 +39,9 @@ test('desktop app details open from the right in a bounded inspector', () => {
   const apps = read('ui/components/AppsSurface.qml');
   const detail = apps.slice(apps.indexOf('id: miniAppDetailDrawer'));
   assert.match(detail, /bottomSheet: mobilePresentation/);
-  assert.match(detail, /edge: mobilePresentation \? Qt\.BottomEdge : Qt\.RightEdge/);
+  assert.doesNotMatch(detail, /edge:\s*(?:Qt\.|mobilePresentation)/);
+  const shared = read('ui/components/GenyDrawer.qml');
+  assert.match(shared, /edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.match(detail, /Math\.min\(480, parent\.width \* 0\.9\)/);
   assert.match(detail, /parent\.height\) : 640/);
 });

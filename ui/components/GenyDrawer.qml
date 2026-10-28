@@ -19,11 +19,11 @@ Drawer {
     focus: true
     interactive: true
     dim: control.blurSourceItem !== null || control.dimBackground
-    // All desktop inspectors are anchored to the physical right edge in both
-    // LTR and RTL. The old RTL-only left edge made settings/account/storage
-    // open opposite to profile editing. Reading direction belongs to content
-    // layout; phone bottom sheets keep their bottom-edge presentation.
-    edge: bottomSheet ? Qt.BottomEdge : Qt.RightEdge
+    // Side inspectors mirror with the active interface language: RTL opens
+    // from the physical LEFT; LTR opens from the physical RIGHT.
+    // Phone-sized bottom sheets keep their BottomEdge in both directions.
+    // Qt Drawer owns x/y and interactive drag geometry through this edge.
+    edge: bottomSheet ? Qt.BottomEdge : (Theme.rtl ? Qt.LeftEdge : Qt.RightEdge)
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     leftInset: floatingSheet ? Theme.space3 : 0
     rightInset: floatingSheet ? Theme.space3 : 0
