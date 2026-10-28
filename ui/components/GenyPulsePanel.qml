@@ -40,9 +40,10 @@ Item {
     readonly property int githubGridStart: githubStartRangeDay-githubStartWeekDay
     readonly property int githubWeeks:
         Math.ceil((githubLastRangeDay-githubGridStart+1)/7)
-    readonly property int githubTileWidth: Math.max(9,Math.min(17,
-        Math.floor((githubContent.width-(githubWeeks-1)*gapSize)/githubWeeks)))
-    readonly property int githubTileHeight: Math.max(9,Math.min(16,Math.round(githubTileWidth*0.85)))
+    // Keep a fixed calendar scale across 1M / 3M / 1Y. Shorter
+    // periods occupy the RIGHT edge of the same viewport, not the left.
+    readonly property int githubTileWidth: root.width>=744 ? 12 : 10
+    readonly property int githubTileHeight: githubTileWidth
     readonly property int githubGridWidth: githubWeeks*githubTileWidth+(githubWeeks-1)*gapSize
     readonly property int githubVisibleTotal: {
         if(!githubContributionsReady)return 0
@@ -77,15 +78,14 @@ Item {
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
     readonly property int weeks: 13
     readonly property int gapSize: 3
-    // Every source owns the full available card width. Fixed-size tiles
-    // previously stranded most of the right side of desktop profiles.
-    readonly property int cellSize: Math.max(9,
-        Math.floor((farcasterContent.width - (weeks-1)*gapSize)/weeks))
-    readonly property int cellHeight: Math.min(20,Math.max(10,Math.round(cellSize*0.62)))
-    readonly property int githubColumns: 15
-    readonly property int githubCellSize: Math.max(9,
-        Math.floor((githubContent.width - (githubColumns-1)*gapSize)/githubColumns))
-    readonly property int githubCellHeight: Math.min(20,Math.max(10,Math.round(githubCellSize*0.62)))
+    // Casts should use the same small square cadence as GitHub.
+    // Keep the 91-day coverage explicit rather than inventing older days.
+    readonly property int cellSize: githubTileWidth
+    readonly property int cellHeight: githubTileHeight
+    readonly property int castsGridWidth: weeks*cellSize + (weeks-1)*gapSize
+    readonly property bool hasOnchainActivity: verifiedWallet.length>0
+        && (walletData.status==="ok" || walletData.status==="partial")
+    readonly property bool hasOptionalSources: githubLinked || hasOnchainActivity
     readonly property int todayDay: Math.floor(Date.now()/86400000)
     readonly property int firstDay: todayDay - weeks*7 + 1
     readonly property bool farcasterReady: (farcasterData.status==="ok" || farcasterData.status==="partial")
@@ -186,6 +186,7 @@ Item {
             }
             ActionButton {
                 objectName: "genyPulseExpandButton"
+                visible: root.hasOptionalSources
                 compact: true
                 quiet: false
                 elevated: false
@@ -227,16 +228,11 @@ Item {
                         Layout.preferredHeight: 30
                         radius: 9
                         color: Theme.dark ? "#30283E" : "#EEE9FA"
-                        Image {
+                        Icon {
                             anchors.centerIn: parent
-                            width: 21
-                            height: 21
-                            source: root.providerIconRoot + "farcaster.svg"
-                            sourceSize.width: 42
-                            sourceSize.height: 42
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            Accessible.ignored: true
+                            text: Theme.iconCompose
+                            preferredSize: 18
+                            color: Theme.dark ? "#C8B8F8" : "#745BC8"
                         }
                     }
                     ColumnLayout {
@@ -245,7 +241,7 @@ Item {
                         spacing: 0
                         Label {
                             Layout.fillWidth: true
-                            text: "Farcaster"
+                            text: "Casts"
                             color: Theme.ink
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
@@ -273,14 +269,37 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.space4
+                    spacing: Theme.space2
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: Theme.space1
+                        Label {
+                            Layout.fillWidth: true
+                            text: root.farcasterReady
+                                  ? String(root.farcasterData.days.length)
+                                  : "—"
+                            color: Theme.ink
+                            font.pixelSize: Theme.typeTitle3Size
+                            font.weight: Theme.weightDemiBold
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.activity.active_days")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            elide: Text.ElideRight
+                        }
+                    }
 
                     Item {
-                        Layout.fillWidth: true
+                        Layout.preferredWidth: root.castsGridWidth
                         Layout.preferredHeight: 7 * root.cellHeight + 6 * root.gapSize
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                         Row {
                             id: calendarRow
-                            width: parent.width
                             spacing: root.gapSize
                             Repeater {
                                 model: root.weeks
@@ -295,7 +314,7 @@ Item {
                                             readonly property int value: root.countAt(root.farcasterDays, day)
                                             width: root.cellSize
                                             height: root.cellHeight
-                                            radius: 4
+                                            radius: 3
                                             color: root.tileColor(root.farcasterReady ? value : 0, "farcaster")
                                             MouseArea {
                                                 anchors.fill: parent
@@ -309,41 +328,30 @@ Item {
                             }
                         }
                     }
-
-
                 }
 
-                RowLayout {
+                Label {
+                    visible: root.selectedDate.length>0 || !root.farcasterReady
                     Layout.fillWidth: true
-                    spacing: Theme.space3
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.selectedDate.length>0 && root.farcasterReady
-                            ? qsTrId("genycaster.activity.day_summary")
+                    text: root.selectedDate.length>0 && root.farcasterReady
+                          ? qsTrId("genycaster.activity.day_summary")
                                 .arg(root.selectedDate)
                                 .arg(root.farcasterDays[root.selectedDate] || 0)
-                            : root.sourceSubtitle(root.farcasterData)
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                    }
-                    Label {
-                        visible: root.farcasterReady
-                        text: qsTrId("genycaster.activity.active_days")
-                              + ": " + Number(root.farcasterData.days.length)
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
+                          : root.sourceSubtitle(root.farcasterData)
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    elide: Text.ElideRight
                 }
             }
         }
 
         ColumnLayout {
             Layout.fillWidth: true
-            visible: root.expanded
+            visible: root.expanded && root.hasOptionalSources
             spacing: Theme.space2
 
             Rectangle {
+                visible: root.githubLinked
                 Layout.fillWidth: true
                 implicitHeight: githubContent.implicitHeight + Theme.space3*2
                 radius: Theme.space3
@@ -493,12 +501,29 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 7*root.githubTileHeight+6*root.gapSize
                         clip: true
-                        contentWidth: root.githubGridWidth
+                        contentWidth: Math.max(width, root.githubGridWidth)
                         contentHeight: height
                         flickableDirection: Flickable.HorizontalFlick
                         boundsBehavior: Flickable.StopAtBounds
-                        onContentWidthChanged: contentX=Math.max(0,contentWidth-width)
+                        function showLatest() {
+                            contentX=Math.max(0,contentWidth-width)
+                        }
+                        // Keep short ranges at the trailing/right edge, and
+                        // show the most recent dates when 1Y overflows.
+                        onContentWidthChanged: Qt.callLater(showLatest)
+                        onWidthChanged: Qt.callLater(showLatest)
+                        onVisibleChanged: if (visible) Qt.callLater(showLatest)
+                        Connections {
+                            target: root
+                            function onGithubRangeChanged() {
+                                Qt.callLater(githubCalendarViewport.showLatest)
+                            }
+                            function onGithubYearChanged() {
+                                Qt.callLater(githubCalendarViewport.showLatest)
+                            }
+                        }
                         Row {
+                            x: Math.max(0, githubCalendarViewport.width-root.githubGridWidth)
                             spacing: root.gapSize
                             Repeater {
                                 model: root.githubWeeks
@@ -559,6 +584,7 @@ Item {
             }
 
             Rectangle {
+                visible: root.hasOnchainActivity
                 Layout.fillWidth: true
                 implicitHeight: walletContent.implicitHeight + Theme.space3*2
                 radius: Theme.space3

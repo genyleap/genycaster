@@ -56,33 +56,50 @@ test('compact cells and status positioning prevent oversized heatmap',()=>{
   assert.match(qml,/elide: Text.ElideRight/);
 });
 
-test('Activity fills profile width on mobile and desktop without an artificial cap',()=>{
+test('compact 91-day Casts view shares GitHub day-cell sizing',()=>{
   assert.ok(qml.includes('ColumnLayout {\n            id: activityGrid'));
-  assert.ok(!qml.includes('Layout.maximumWidth: !root.expanded'));
-  assert.ok(!qml.includes('columns: root.desktopGrid ? 2 : 1'));
-  assert.ok(!qml.includes('root.desktopGrid ? Math.floor'));
-  assert.ok(qml.includes('Layout.fillWidth: true'));
-  assert.ok(qml.includes('readonly property int githubGridWidth:'));
-  assert.ok(qml.includes('root.githubTileHeight'));
-  assert.ok(qml.includes('Flickable {'));
-  assert.ok(qml.includes('root.githubWeeks'));
-  assert.ok(qml.includes('root.cellHeight'));
-  // By construction, every day-cell track consumes the available content width
-  // with only an unavoidable sub-column integer-pixel remainder.
-  for(const cardWidth of [300,375,520,800,1050,1400]) {
-    const inner=cardWidth - 24;
-    for(const cols of [13,15]) {
-      const gap=3;
-      const cell=Math.floor((inner-(cols-1)*gap)/cols);
-      const graph=cell*cols+(cols-1)*gap;
-      assert.ok(graph<=inner, 'grid must not overflow');
-      assert.ok(inner-graph<cols, 'grid must not strand half the card');
+  assert.match(qml,/readonly property int cellSize: githubTileWidth/);
+  assert.match(qml,/readonly property int cellHeight: githubTileHeight/);
+  assert.match(qml,/Layout.preferredWidth: root.castsGridWidth/);
+  assert.match(qml,/Layout.alignment: Qt.AlignRight/);
+  assert.match(qml,/text: "Casts"/);
+  assert.match(qml,/text: Theme.iconCompose/);
+  assert.ok(!qml.includes('text: "Farcaster"'));
+  for(const provider of ['github','ethereum-wallet'])
+    assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
+  for(const width of [296,336,440,840,1050]){
+    const tile=width>=720?12:10;
+    const castWidth=13*tile+12*3;
+    assert.ok(castWidth<=width, 'compact Casts calendar fits the card');
+  }
+});
+
+test('month and quarter maintain annual cell size and trail at right edge',()=>{
+  assert.match(qml,/readonly property int githubTileWidth: root.width>=744 \? 12 : 10/);
+  assert.match(qml,/contentWidth: Math.max\(width, root.githubGridWidth\)/);
+  assert.match(qml,/x: Math.max\(0, githubCalendarViewport.width-root.githubGridWidth\)/);
+  assert.match(qml,/onGithubRangeChanged\(\)/);
+  assert.match(qml,/function showLatest\(\)/);
+  assert.match(qml,/root.githubWeeks/);
+  // Short ranges are placed against the right edge rather than at x=0.
+  for(const viewport of [300,375,740]){
+    const tile=viewport>=720?12:10, gap=3;
+    for(const weeks of [5,14,53]){
+      const grid=weeks*tile+(weeks-1)*gap;
+      const x=Math.max(0,viewport-grid);
+      assert.equal(x+grid,Math.max(viewport,grid));
     }
   }
-  for(const provider of ['farcaster','github','ethereum-wallet']) {
-    assert.ok(qml.includes('root.providerIconRoot + "'+provider+'.svg"'));
-    assert.ok(!qml.includes('text: "'+({farcaster:'◫',github:'⌘','ethereum-wallet':'⬡'})[provider]+'"'));
-  }
+});
+
+test('unlinked users never receive empty third-party activity cards',()=>{
+  assert.match(qml,/readonly property bool hasOptionalSources: githubLinked \|\| hasOnchainActivity/);
+  assert.match(qml,/visible: root.hasOptionalSources/);
+  assert.match(qml,/visible: root.expanded && root.hasOptionalSources/);
+  assert.match(qml,/visible: root.githubLinked/);
+  assert.match(qml,/visible: root.hasOnchainActivity/);
+  assert.match(qml,/walletData.status==="ok" \|\| walletData.status==="partial"/);
+  assert.doesNotMatch(qml,/visible: root\.isOwnProfile && !root\.githubLinked/);
 });
 
 test('localization covers every activity string across twelve languages',()=>{
