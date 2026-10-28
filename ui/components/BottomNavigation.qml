@@ -46,7 +46,7 @@ Item {
         property string iconGlyph: ""
         property bool displayLabel: false
         implicitHeight: 49
-        implicitWidth: active && displayLabel ? 87 : 43
+        implicitWidth: active && displayLabel ? 80 : 43
         Behavior on implicitWidth {
             enabled: root.animateDock
             NumberAnimation { duration: 210; easing.type: Easing.OutCubic }
@@ -62,8 +62,11 @@ Item {
 
         background: Superellipse {
             curveDepth: height / 2
+            exponent: 2.0
+            // The selected destination is a subtle wash, not an opaque button
+            // floating inside the glass navigation capsule.
             fillColor: destination.active
-                ? (Theme.dark ? "#505460" : "#E7EAF0") : "transparent"
+                ? (Theme.dark ? "#24FFFFFF" : "#1E252C3C") : "transparent"
             borderWidth: 0
             scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
             Behavior on fillColor {
@@ -130,6 +133,7 @@ Item {
             Layout.minimumWidth: 0
             Layout.preferredHeight: 56
             curveDepth: height / 2
+            exponent: 2.0
             fillColor: "transparent"
             borderWidth: 0
 
@@ -148,8 +152,8 @@ Item {
                 recursive: false
                 hideSource: false
                 smooth: true
-                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.7)),
-                                     Math.max(1, Math.round(navigationCapsule.height * 0.7)))
+                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.9)),
+                                     Math.max(1, Math.round(navigationCapsule.height * 0.9)))
                 sourceRect: {
                     if (!root.blurSourceItem || navigationCapsule.width <= 0)
                         return Qt.rect(0, 0, 1, 1)
@@ -175,10 +179,12 @@ Item {
                 visible: root.useBackdropBlur
                 source: capsuleBackdrop
                 blurEnabled: true
-                blur: 0.95
+                // Keep contextual color and movement visible behind the dock,
+                // while making underlying text unreadable.
+                blur: 0.72
                 blurMax: 32
-                blurMultiplier: 1.0
-                saturation: 0.88
+                blurMultiplier: 0.0
+                saturation: -0.22
                 maskEnabled: true
                 maskSource: capsuleMask
                 maskThresholdMin: 0.5
@@ -192,7 +198,8 @@ Item {
                 anchors.fill: parent
                 z: 1
                 curveDepth: height / 2
-                fillColor: Theme.dark ? "#843A4151" : "#9AFFFFFF"
+                exponent: 2.0
+                fillColor: Theme.dark ? "#703A4151" : "#8CFFFFFF"
                 borderWidth: 0
             }
 
@@ -204,6 +211,7 @@ Item {
                 z: -1
                 fillColor: Theme.dark ? "#40000000" : "#1B192236"
                 curveDepth: height / 2
+                exponent: 2.0
             }
 
             RowLayout {
@@ -285,6 +293,7 @@ Item {
                     z: -1
                     fillColor: Theme.dark ? "#48000000" : "#28000000"
                     curveDepth: height / 2
+                    exponent: 2.0
                 }
                 scale: mobilePrimaryAction.down ? 0.91 : 1
                 Behavior on scale {
