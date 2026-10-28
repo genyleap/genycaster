@@ -1942,12 +1942,23 @@ Item {
                         visible: root.isOwnProfile || String(root.displayedMood.mood||'none')!=='none'
                         spacing: Theme.space2
                         layoutDirection: Theme.uiDirection
+                        activeFocusOnTab: root.isOwnProfile
+                        Accessible.role: root.isOwnProfile ? Accessible.Button : Accessible.StaticText
+                        Accessible.name: statusSummaryLabel.text
+                        Accessible.onPressAction: if (root.isOwnProfile) profileStatusEditor.open()
+                        Keys.onReturnPressed: if (root.isOwnProfile) profileStatusEditor.open()
+                        Keys.onSpacePressed: if (root.isOwnProfile) profileStatusEditor.open()
+                        TapHandler {
+                            enabled: root.isOwnProfile
+                            onTapped: profileStatusEditor.open()
+                        }
                         Icon {
                             text: Theme.iconSpark
                             preferredSize: 16
                             color: Theme.accent
                         }
                         DirectionAwareLabel {
+                            id: statusSummaryLabel
                             Layout.fillWidth: true
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
@@ -1956,13 +1967,6 @@ Item {
                                     + (root.displayedMood.note ? ' · '+String(root.displayedMood.note) : '')
                                   : qsTrId('genycaster.status.set')
                             elide: Text.ElideRight
-                        }
-                        ActionButton {
-                            visible: root.isOwnProfile
-                            compact: true; quiet: true; elevated: false
-                            iconOnly: true; iconGlyph: Theme.iconCompose
-                            text: qsTrId('genycaster.status.edit')
-                            onClicked: profileStatusEditor.open()
                         }
                     }
 
@@ -2960,9 +2964,32 @@ Item {
         interactive: false
         showHandle: mobilePresentation
         width: parent ? (mobilePresentation ? parent.width : Math.min(430,parent.width)) : 430
-        height: parent ? (mobilePresentation ? Math.min(parent.height*0.87,710) : parent.height) : 690
+        // On iOS/WASM the Qt viewport shrinks when the keyboard opens. A
+        // near-viewport-height sheet keeps its top anchored and gives the
+        // scrolling form real space while the Save action stays above the IME.
+        height: parent ? (mobilePresentation ? Math.min(parent.height - Theme.space2, 710)
+                                            : parent.height) : 690
         contentPadding: Theme.space4
         property string selectedMood: "none"
+        function revealNoteEditor() {
+            if (!opened || !statusNoteEditor.activeFocus || statusFormScroll.height <= 0)
+                return
+            Qt.callLater(function() {
+                if (!profileStatusEditor.opened || !statusNoteEditor.activeFocus
+                        || statusFormScroll.height <= 0)
+                    return
+                const margin = Theme.space2
+                const top = statusNoteEditor.y
+                const bottom = top + statusNoteEditor.height
+                const maxY = Math.max(0, statusFormScroll.contentHeight - statusFormScroll.height)
+                const currentY = statusFormScroll.contentY
+                if (top < currentY + margin)
+                    statusFormScroll.contentY = Math.max(0, Math.min(maxY, top - margin))
+                else if (bottom > currentY + statusFormScroll.height - margin)
+                    statusFormScroll.contentY = Math.max(0, Math.min(
+                        maxY, bottom + margin - statusFormScroll.height))
+            })
+        }
         property bool publicMood: true
         property bool awaitingSave: false
         property bool dirtySelection: false
@@ -3003,6 +3030,7 @@ Item {
                 onCloseRequested: profileStatusEditor.close()
             }
             Flickable {
+                id: statusFormScroll
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -3010,6 +3038,7 @@ Item {
                 contentHeight: statusForm.implicitHeight+Theme.space3
                 flickableDirection: Flickable.VerticalFlick
                 boundsBehavior: Flickable.StopAtBounds
+                onHeightChanged: profileStatusEditor.revealNoteEditor()
                 ColumnLayout {
                     id: statusForm
                     width: parent.width
@@ -3042,6 +3071,8 @@ Item {
                         Layout.fillWidth: true
                         maximumLength: 72
                         placeholderText: qsTrId("genycaster.status.placeholder")
+                        onActiveFocusChanged: if (activeFocus)
+                            profileStatusEditor.revealNoteEditor()
                         onTextChanged: if (profileStatusEditor.visible)
                             profileStatusEditor.dirtySelection=true
                     }

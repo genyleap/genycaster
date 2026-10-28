@@ -300,14 +300,21 @@ window.fetch=async function(input,options) {
 };
 const screen=$("qt-screen");
 function fit() {
-    // Mobile browser chrome can change the *visible* viewport dynamically.
-    // This keeps the fixed Qt footer above the actual bottom of the screen.
+    // iOS can pan the visual viewport to the focused text input without
+    // scrolling the layout viewport. Keep the Qt canvas within that *visible*
+    // rectangle, not at document y=0 behind the keyboard.
     const viewport=window.visualViewport;
     const height=viewport?viewport.height:window.innerHeight;
+    const top=viewport?viewport.pageTop:window.scrollY;
+    const left=viewport?viewport.pageLeft:window.scrollX;
+    screen.style.top=Math.round(top||0)+"px";
+    screen.style.left=Math.round(left||0)+"px";
     screen.style.height=Math.max(180,Math.round(height))+"px";
 }
 window.addEventListener("resize",fit);
+window.addEventListener("scroll",fit,{passive:true});
 window.visualViewport?.addEventListener("resize",fit);
+window.visualViewport?.addEventListener("scroll",fit);
 fit();
 retry.addEventListener("click",()=>location.reload());
 async function enableOfflineCache() {

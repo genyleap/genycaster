@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 const root=process.cwd();
 const qml=readFileSync(root+'/ui/components/ProfileSurface.qml','utf8');
 const activity=readFileSync(root+'/ui/components/GenyPulsePanel.qml','utf8');
@@ -45,4 +46,50 @@ test('status choices are localized in every bundled UI language',()=>{
     for(const id of ids)
       assert.ok(xml.includes('id="genycaster.status.'+id+'"'),lang+' '+id);
   }
+});
+
+test('own profile status row is the only inline edit affordance',()=>{
+  const start=qml.indexOf('objectName: "profileMoodSummary"');
+  const end=qml.indexOf('objectName: "profileSaveStatus"',start);
+  assert.ok(start>=0 && end>start);
+  const row=qml.slice(start,end);
+  assert.match(row,/TapHandler \{\s*enabled: root\.isOwnProfile\s*onTapped: profileStatusEditor\.open\(\)/);
+  assert.match(row,/Accessible\.role: root\.isOwnProfile \? Accessible\.Button/);
+  assert.match(row,/Keys\.onReturnPressed: if \(root\.isOwnProfile\)/);
+  assert.doesNotMatch(row,/ActionButton \{/);
+});
+test('status note remains reachable in a resizing mobile sheet with pinned save',()=>{
+  const start=qml.indexOf('id: profileStatusEditor');
+  const end=qml.indexOf('id: profileLinksDrawer',start);
+  const editor=qml.slice(start,end);
+  assert.match(editor,/Math\.min\(parent\.height - Theme\.space2, 710\)/);
+  assert.match(editor,/function revealNoteEditor\(\)/);
+  assert.match(editor,/id: statusFormScroll/);
+  assert.match(editor,/onHeightChanged: profileStatusEditor\.revealNoteEditor\(\)/);
+  assert.match(editor,/onActiveFocusChanged: if \(activeFocus\)\s*profileStatusEditor\.revealNoteEditor\(\)/);
+  assert.ok(editor.indexOf('id: statusFormScroll') < editor.indexOf('objectName: "profileStatusSave"'));
+});
+test('iOS visual viewport panning keeps the Qt canvas above the keyboard',()=>{
+  const loader=readFileSync(root+'/ui/wasm/genycaster-loader.js','utf8');
+  const definition=loader.match(/function fit\(\) \{[\s\S]*?\n\}/);
+  assert.ok(definition,'viewport fitting function');
+  assert.match(loader,/window\.visualViewport\?\.addEventListener\("scroll",fit\)/);
+  const context={
+    window:{visualViewport:{height:420,pageTop:180,pageLeft:0},
+      innerHeight:800,scrollY:0,scrollX:0},
+    screen:{style:{}},Math
+  };
+  const fit=vm.runInNewContext('('+definition[0]+')',context);
+  fit();
+  assert.equal(context.screen.style.height,'420px');
+  assert.equal(context.screen.style.top,'180px');
+  context.window.visualViewport.height=780;
+  context.window.visualViewport.pageTop=0;
+  fit();
+  assert.equal(context.screen.style.height,'780px');
+  assert.equal(context.screen.style.top,'0px');
+  context.window.visualViewport=null;
+  context.window.scrollY=24;
+  fit();
+  assert.equal(context.screen.style.top,'24px');
 });
