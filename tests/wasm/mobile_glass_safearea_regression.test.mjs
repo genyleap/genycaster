@@ -33,8 +33,18 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/sourceItem: root\.useBackdropBlur \? root\.blurSourceItem : null/);
   assert.match(glass,/sourceRect: \{/);
   assert.match(glass,/mapFromItem\(navigationCapsule, 0, 0\)/);
-  assert.match(glass,/textureSize: Qt\.size\(Math\.max\(1, Math\.round\(navigationCapsule\.width \* 0\.9\)\)/);
-  assert.match(glass,/Math\.round\(navigationCapsule\.height \* 0\.9\)/);
+  // Convolution needs a larger source than its final 56px visible mask:
+  // otherwise edge texels stretch text and image highlights along the pill.
+  assert.match(glass,/readonly property real blurOverscan: 36/);
+  assert.match(glass,/id: expandedBackdrop/);
+  assert.match(glass,/x: -navigationCapsule\.sampleLeft/);
+  assert.match(glass,/y: -navigationCapsule\.sampleTop/);
+  assert.match(glass,/Math\.min\(blurOverscan, Math\.max\(0, backdropOrigin\.x\)\)/);
+  assert.match(glass,/root\.blurSourceItem\.height - backdropOrigin\.y - height/);
+  assert.match(glass,/expandedBackdrop\.width, expandedBackdrop\.height/);
+  assert.match(glass,/textureSize: Qt\.size\(Math\.max\(1, Math\.round\(expandedBackdrop\.width\)\)/);
+  assert.match(glass,/Math\.round\(expandedBackdrop\.height\)/);
+  assert.doesNotMatch(glass,/navigationCapsule\.width \* 0\.9/);
   assert.match(glass,/live: root\.useBackdropBlur/);
   assert.match(glass,/recursive: false/);
   assert.match(glass,/objectName: "mobileCapsuleGlassBlur"/);

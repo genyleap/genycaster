@@ -136,61 +136,97 @@ Item {
             fillColor: "transparent"
             borderWidth: 0
 
-            // Crop the already-composited readingContent layer to this capsule.
-            // The source excludes the dock, preventing recursive capture.
-            // The visible content and the blur share one rendered texture.
-            ShaderEffectSource {
-                id: capsuleBackdrop
-                objectName: "mobileCapsuleBackdropCapture"
-                // A ShaderEffectSource is an Item. textureSize does NOT set its
-                // visual width/height: leaving it at 0 made the MultiEffect
-                // render nothing and exposed only the translucent tint.
-                anchors.fill: parent
-                visible: false
-                sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
-                live: root.useBackdropBlur
-                recursive: false
-                hideSource: false
-                smooth: true
-                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.9)),
-                                     Math.max(1, Math.round(navigationCapsule.height * 0.9)))
-                sourceRect: {
-                    if (!root.blurSourceItem || navigationCapsule.width <= 0)
-                        return Qt.rect(0, 0, 1, 1)
-                    const origin = root.blurSourceItem.mapFromItem(navigationCapsule, 0, 0)
-                    return Qt.rect(origin.x, origin.y,
-                                   navigationCapsule.width, navigationCapsule.height)
-                }
-            }
-            Rectangle {
-                id: capsuleMask
-                anchors.fill: parent
-                radius: height / 2
-                color: "#FFFFFF"
-                visible: false
-                // MultiEffect.maskSource requires a texture provider. A
-                // hidden unlayered SceneGraphSuperellipse isn't one.
-                layer.enabled: true
-            }
-            MultiEffect {
-                objectName: "mobileCapsuleGlassBlur"
-                anchors.fill: parent
+            // Blur needs pixels OUTSIDE the visible pill. Cropping the
+            // offscreen texture to exactly 56px forces the convolution to
+            // repeat its edge pixels, producing the streaks visible over text
+            // and high-contrast images on Safari/WebGL.
+            //
+            // Source coordinates refer to the layered readingContent in its
+            // own local space. Keep overscan inside that layer's bounds so a
+            // capsule near the viewport edge never samples transparent black.
+            readonly property real blurOverscan: 36
+            readonly property point backdropOrigin: root.blurSourceItem
+                ? root.blurSourceItem.mapFromItem(navigationCapsule, 0, 0)
+                : Qt.point(0, 0)
+            readonly property real sampleLeft: root.blurSourceItem
+                ? Math.min(blurOverscan, Math.max(0, backdropOrigin.x)) : 0
+            readonly property real sampleTop: root.blurSourceItem
+                ? Math.min(blurOverscan, Math.max(0, backdropOrigin.y)) : 0
+            readonly property real sampleRight: root.blurSourceItem
+                ? Math.min(blurOverscan, Math.max(0,
+                    root.blurSourceItem.width - backdropOrigin.x - width)) : 0
+            readonly property real sampleBottom: root.blurSourceItem
+                ? Math.min(blurOverscan, Math.max(0,
+                    root.blurSourceItem.height - backdropOrigin.y - height)) : 0
+
+            Item {
+                id: expandedBackdrop
+                x: -navigationCapsule.sampleLeft
+                y: -navigationCapsule.sampleTop
+                width: navigationCapsule.width + navigationCapsule.sampleLeft
+                       + navigationCapsule.sampleRight
+                height: navigationCapsule.height + navigationCapsule.sampleTop
+                        + navigationCapsule.sampleBottom
                 z: 0
-                visible: root.useBackdropBlur
-                source: capsuleBackdrop
-                blurEnabled: true
-                // Keep contextual color and movement visible behind the dock,
-                // while making underlying text unreadable.
-                blur: 0.72
-                blurMax: 32
-                blurMultiplier: 0.0
-                saturation: -0.22
-                maskEnabled: true
-                maskSource: capsuleMask
-                maskThresholdMin: 0.5
-                maskSpreadAtMin: 1.0
-                autoPaddingEnabled: false
-                antialiasing: true
+
+                ShaderEffectSource {
+                    id: capsuleBackdrop
+                    objectName: "mobileCapsuleBackdropCapture"
+                    // The source is already a shared layer, not another
+                    // independent render of the scrolling ListView.
+                    anchors.fill: parent
+                    visible: false
+                    sourceItem: root.useBackdropBlur ? root.blurSourceItem : null
+                    live: root.useBackdropBlur
+                    recursive: false
+                    hideSource: false
+                    smooth: true
+                    textureSize: Qt.size(Math.max(1, Math.round(expandedBackdrop.width)),
+                                         Math.max(1, Math.round(expandedBackdrop.height)))
+                    sourceRect: {
+                        if (!root.blurSourceItem || navigationCapsule.width <= 0)
+                            return Qt.rect(0, 0, 1, 1)
+                        return Qt.rect(
+                            navigationCapsule.backdropOrigin.x - navigationCapsule.sampleLeft,
+                            navigationCapsule.backdropOrigin.y - navigationCapsule.sampleTop,
+                            expandedBackdrop.width, expandedBackdrop.height)
+                    }
+                }
+
+                Item {
+                    id: capsuleMask
+                    anchors.fill: parent
+                    visible: false
+                    layer.enabled: true
+
+                    Rectangle {
+                        x: navigationCapsule.sampleLeft
+                        y: navigationCapsule.sampleTop
+                        width: navigationCapsule.width
+                        height: navigationCapsule.height
+                        radius: height / 2
+                        color: "#FFFFFF"
+                        antialiasing: true
+                    }
+                }
+
+                MultiEffect {
+                    objectName: "mobileCapsuleGlassBlur"
+                    anchors.fill: parent
+                    visible: root.useBackdropBlur
+                    source: capsuleBackdrop
+                    blurEnabled: true
+                    blur: 0.72
+                    blurMax: 32
+                    blurMultiplier: 0.0
+                    saturation: -0.22
+                    maskEnabled: true
+                    maskSource: capsuleMask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 1.0
+                    autoPaddingEnabled: false
+                    antialiasing: true
+                }
             }
             // Translucent milk-glass tint for contrast; not an opaque pill.
             Superellipse {
