@@ -6073,5 +6073,29 @@ Company | https://company.com</translation>
             <source>No verified Ethereum wallet</source>
             <translation>Keine verifizierte Ethereum-Wallet</translation>
         </message>
+        <message id="genycaster.activity.active_days">
+            <source>Observed days</source>
+            <translation>Beobachtete Tage</translation>
+        </message>
+        <message id="genycaster.activity.reply_count">
+            <source>Replies</source>
+            <translation>Antworten</translation>
+        </message>
+        <message id="genycaster.activity.github_identity_pending">
+            <source>Connected · Public GitHub login not available</source>
+            <translation>Verbunden · Öffentlicher GitHub-Name fehlt</translation>
+        </message>
+        <message id="genycaster.activity.rate_limited">
+            <source>GitHub rate limit reached</source>
+            <translation>GitHub-Anfragelimit erreicht</translation>
+        </message>
+        <message id="genycaster.activity.github_not_found">
+            <source>GitHub account not found</source>
+            <translation>GitHub-Konto nicht gefunden</translation>
+        </message>
+        <message id="genycaster.activity.no_recent_github">
+            <source>No public GitHub events in the last 30 days</source>
+            <translation>Keine öffentlichen GitHub-Ereignisse in den letzten 30 Tagen</translation>
+        </message>
     </context>
 </TS>

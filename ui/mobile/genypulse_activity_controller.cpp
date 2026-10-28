@@ -147,6 +147,8 @@ void GenyPulseActivityController::requestGitHub(const QString& username) {
           QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
     ++m_githubGeneration;
     if(m_githubReply){m_githubReply->abort();m_githubReply->deleteLater();m_githubReply=nullptr;}
+    if(m_githubResolveReply){m_githubResolveReply->abort();m_githubResolveReply->deleteLater();m_githubResolveReply=nullptr;}
+    m_githubAccountId.clear();
     // Recompute rather than merging stale public events after cache expiry.
     m_githubFetchedAt=0;
     m_githubBuckets.clear();
@@ -162,10 +164,75 @@ void GenyPulseActivityController::requestGitHub(const QString& username) {
     fetchGitHubPage(login,1);
 }
 
+void GenyPulseActivityController::requestGitHubId(const QString& accountId) {
+    const static QRegularExpression numeric{
+        QStringLiteral("^[1-9][0-9]{0,14}$")};
+    const QString id=accountId.trimmed();
+    if(!numeric.match(id).hasMatch()) {
+        requestGitHub({});
+        return;
+    }
+    if(id==m_githubAccountId &&
+       (m_githubResolveReply || m_githubReply ||
+        (m_githubFetchedAt>0 &&
+         QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
+
+    ++m_githubGeneration;
+    if(m_githubReply){m_githubReply->abort();m_githubReply->deleteLater();m_githubReply=nullptr;}
+    if(m_githubResolveReply){m_githubResolveReply->abort();m_githubResolveReply->deleteLater();m_githubResolveReply=nullptr;}
+    m_githubAccountId=id;
+    m_githubLogin.clear();
+    m_githubFetchedAt=0;
+    m_githubBuckets.clear();
+    m_githubEvents.clear();
+    m_eventCount=0;
+    m_github=statusMap(QStringLiteral("loading"),QStringLiteral("github-events"));
+    m_github.insert(QStringLiteral("accountId"),id);
+    emit githubChanged();
+
+    // /user/{id} is GitHub's official public lookup by immutable numeric ID,
+    // not an inference from a profile bio or mutable display name.
+    const QUrl url{QStringLiteral("https://api.github.com/user/%1").arg(id)};
+    auto req=publicRead(url);
+    req.setRawHeader("X-GitHub-Api-Version","2022-11-28");
+    auto* reply=m_http.get(req);
+    m_githubResolveReply=reply;
+    const auto generation=m_githubGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,generation,id] {
+        if(m_githubResolveReply==reply)m_githubResolveReply=nullptr;
+        const int http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray data=reply->bytesAvailable()<=32'768?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(generation!=m_githubGeneration || m_githubAccountId!=id)return;
+        const auto doc=QJsonDocument::fromJson(data);
+        const auto obj=doc.object();
+        const QString confirmedId=QString::number(
+            obj.value(QStringLiteral("id")).toVariant().toLongLong());
+        const QString login=obj.value(QStringLiteral("login")).toString();
+        static const QRegularExpression validLogin{
+            QStringLiteral("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")};
+        if(http!=200 || !doc.isObject() || confirmedId!=id ||
+           !validLogin.match(login).hasMatch()) {
+            m_github=statusMap(http==403 || http==429
+                ?QStringLiteral("rate-limited"):QStringLiteral("error"),
+                QStringLiteral("github-events"));
+            m_github.insert(QStringLiteral("accountId"),id);
+            emit githubChanged();
+            return;
+        }
+        requestGitHub(login);
+        // requestGitHub starts the event read synchronously. Preserve the
+        // matching provider ID for the eventually published snapshot.
+        m_githubAccountId=id;
+    });
+}
+
 void GenyPulseActivityController::publishGitHub(const bool complete) {
     m_github=statusMap(complete?QStringLiteral("ok"):QStringLiteral("partial"),
                         QStringLiteral("github-events"));
     m_github.insert(QStringLiteral("username"),m_githubLogin);
+    if(!m_githubAccountId.isEmpty())
+        m_github.insert(QStringLiteral("accountId"),m_githubAccountId);
     m_github.insert(QStringLiteral("days"),toDays(m_githubBuckets));
     m_github.insert(QStringLiteral("count"),m_eventCount);
     m_github.insert(QStringLiteral("coverage"),complete
@@ -195,7 +262,15 @@ void GenyPulseActivityController::fetchGitHubPage(const QString& username,const 
         const auto json=QJsonDocument::fromJson(data);
         if(!success||!json.isArray()){
             if(m_eventCount>0)publishGitHub(false);
-            else {m_github=statusMap(QStringLiteral("error"),QStringLiteral("github-events"));emit githubChanged();}
+            else {
+                m_github=statusMap(http==403 || http==429 ? QStringLiteral("rate-limited")
+                    : http==404 ? QStringLiteral("not-found") : QStringLiteral("error"),
+                    QStringLiteral("github-events"));
+                m_github.insert(QStringLiteral("username"),username);
+                if(!m_githubAccountId.isEmpty())
+                    m_github.insert(QStringLiteral("accountId"),m_githubAccountId);
+                emit githubChanged();
+            }
             return;
         }
         const auto items=json.array();

@@ -610,6 +610,36 @@ Item {
         }
         return result
     }
+    // Only an OpenProof FID-bound snapshot can establish a linked account.
+    // User-editable profile extras, bios and URLs never assert GitHub identity.
+    readonly property var verifiedGithubActivityAccount: {
+        const result = {linked:false, login:"", id:""}
+        if (!root.isOwnProfile || typeof openProofConnections==="undefined"
+                || !openProofConnections) return result
+        const entries = openProofConnections.connections || []
+        for (let i=0; i<entries.length && i<50; ++i) {
+            const entry=entries[i] || ({})
+            if (String(entry.provider || "").toLowerCase()!=="github") continue
+            result.linked=true
+            const subject=String(entry.subject || "")
+            const githubId=/^(?:github:)?([1-9][0-9]{0,14})$/.exec(subject)
+            if(githubId)result.id=githubId[1]
+            const names=[entry.username,entry.preferred_username,entry.login,
+                         entry.handle]
+            const profile=String(entry.profileUrl || entry.provider_profile_url || "")
+            const parsed=/^https:\/\/github\.com\/([A-Za-z0-9-]{1,39})\/?$/.exec(profile)
+            if(parsed) names.push(parsed[1])
+            for(const name of names) {
+                const login=String(name || "").replace(/^@/,"").trim()
+                if (/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(login)) {
+                    result.login=login
+                    break
+                }
+            }
+            return result
+        }
+        return result
+    }
     function socialIcon(provider) {
         const rootPath = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
         return rootPath + provider + ".svg"
@@ -2028,18 +2058,16 @@ Item {
                 profileFid: Number(root.activeDetail.fid || 0)
                 compact: root.compact
                 isOwnProfile: root.isOwnProfile
+                // These are the owner-FID-bound OpenProof connections restored
+                // by the native account controller, including server-confirmed
+                // cross-device snapshots. A fresh OAuth grant is NOT required
+                // just to read the verified public GitHub login.
                 verifiedGitHub: {
-                    if(!root.isOwnProfile || !openProofConnections.authorized) return ""
-                    const items=openProofConnections.connections || []
-                    for(let i=0;i<items.length;++i) {
-                        const item=items[i] || ({})
-                        const login=String(item.username || "").replace(/^@/,"")
-                        if(item.provider==="github"
-                           && /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(login))
-                            return login
-                    }
-                    return ""
+                    const account = root.verifiedGithubActivityAccount
+                    return account.login || ""
                 }
+                githubLinked: root.verifiedGithubActivityAccount.linked
+                githubAccountId: root.verifiedGithubActivityAccount.id
                 verifiedWallet: {
                     const verified=root.activeDetail.verifiedEthAddresses || []
                     for(let i=0;i<verified.length && i<50;++i) {

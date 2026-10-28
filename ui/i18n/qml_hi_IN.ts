@@ -6073,5 +6073,29 @@ Company | https://company.com</translation>
             <source>No verified Ethereum wallet</source>
             <translation>कोई सत्यापित Ethereum वॉलेट नहीं</translation>
         </message>
+        <message id="genycaster.activity.active_days">
+            <source>Observed days</source>
+            <translation>देखे गए दिन</translation>
+        </message>
+        <message id="genycaster.activity.reply_count">
+            <source>Replies</source>
+            <translation>उत्तर</translation>
+        </message>
+        <message id="genycaster.activity.github_identity_pending">
+            <source>Connected · Public GitHub login not available</source>
+            <translation>जुड़ा हुआ · सार्वजनिक GitHub नाम उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.activity.rate_limited">
+            <source>GitHub rate limit reached</source>
+            <translation>GitHub अनुरोध सीमा पूरी हुई</translation>
+        </message>
+        <message id="genycaster.activity.github_not_found">
+            <source>GitHub account not found</source>
+            <translation>GitHub खाता नहीं मिला</translation>
+        </message>
+        <message id="genycaster.activity.no_recent_github">
+            <source>No public GitHub events in the last 30 days</source>
+            <translation>पिछले 30 दिनों में कोई सार्वजनिक GitHub गतिविधि नहीं</translation>
+        </message>
     </context>
 </TS>

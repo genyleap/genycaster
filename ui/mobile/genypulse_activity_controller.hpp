@@ -27,6 +27,8 @@ public:
     Q_INVOKABLE void requestFarcaster(qulonglong fid);
     /** Only pass an OpenProof-confirmed GitHub account identifier, never a bio URL. */
     Q_INVOKABLE void requestGitHub(const QString& username);
+    /** Resolve a numeric provider subject only after OpenProof confirmed the link. */
+    Q_INVOKABLE void requestGitHubId(const QString& accountId);
     /** No chain-agnostic activity is inferred from a wallet verification. */
     Q_INVOKABLE void setVerifiedWallet(const QString& address);
 signals:
@@ -44,6 +46,8 @@ private:
     QVariantMap m_onchain{{QStringLiteral("status"), QStringLiteral("unlinked")}};
     QPointer<QNetworkReply> m_farcasterReply;
     QPointer<QNetworkReply> m_githubReply;
+    QPointer<QNetworkReply> m_githubResolveReply;
+    QString m_githubAccountId{};
     qulonglong m_fid{};
     QString m_githubLogin{};
     QString m_wallet{};
