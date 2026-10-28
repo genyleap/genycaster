@@ -1222,6 +1222,8 @@ Item {
         objectName: "profileList"
         anchors.fill: parent
         clip: true
+        // Preserve trailing scroll clearance beneath the floating nav.
+        bottomMargin: root.compact ? 96 : 0
         model: profileRowsModel
         spacing: 0
         // Only a deliberate pull is allowed past the top; wheel scrolling

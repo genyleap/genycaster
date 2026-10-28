@@ -309,7 +309,8 @@ test('Setup language cards and single in-place Terms/Privacy checkbox remain acc
     assert.match(app,/anchors\.bottom: readingPane\.bottom/);
     assert.ok(app.indexOf("id: mobileBottomNavigation") < app.indexOf("id: contextResizeHandle"),
         "mobile dock must be declared inside readingPane, not in RowLayout");
-    assert.match(app,/anchors\.bottomMargin: root\.mobile/);
+    assert.match(app,/anchors\.bottomMargin: 0/);
+    assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
 
 test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet',()=>{
@@ -335,7 +336,8 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
         'avoid runtime reparenting of layout-owned QML controls');
     assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
     assert.match(app.slice(dock,handle),/blurSourceItem: readingContent/);
-    assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
+    assert.match(app,/anchors\.bottomMargin: 0/);
+    assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
 
 test('mobile Sign Out is reachable through Settings and requires confirmation',()=>{
@@ -361,7 +363,8 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(app,/id: homeDashboard/);
     assert.match(app,/readonly property bool homeComposerFocused:/);
     assert.match(app,/visible: root\.mobile && !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
-    assert.match(app,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
+    assert.match(app,/anchors\.bottomMargin: 0/);
+    assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
 
 test('account header navigates to profile when signed in and opens sign-in otherwise',()=>{

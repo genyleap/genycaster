@@ -1256,6 +1256,9 @@ Item {
         objectName: "readList"
         anchors.fill: parent
         clip: true
+        // The mobile dock is an overlay, not an opaque reserved footer.
+        // Allow the final cast to scroll clear of its touch targets.
+        bottomMargin: root.compact ? 96 : 0
         model: stableRows
         spacing: 0
         // Pulling past the top is a deliberate refresh gesture; the content

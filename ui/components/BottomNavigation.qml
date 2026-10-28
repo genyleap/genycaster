@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 
 // iOS Action Button-inspired mobile dock: five stable destinations in one
 // quiet capsule, one independently configurable primary action outside it.
@@ -15,6 +16,8 @@ Item {
     property string primaryDestination: "home"
     property Item blurSourceItem: null
     property bool glassEnabled: false
+    readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
+                                           && !Theme.powerSave
     readonly property bool showSelectedLabel: width >= 375
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
@@ -121,15 +124,70 @@ Item {
         layoutDirection: Theme.uiDirection
 
         Superellipse {
+            id: navigationCapsule
             objectName: "mobileNavigationCapsule"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.preferredHeight: 56
             curveDepth: height / 2
-            fillColor: Theme.dark ? "#31343D" : "#F9FAFC"
+            fillColor: "transparent"
             borderWidth: 0
-            // Deliberately restrained material separation. No blur capture or
-            // full-width glass layer: WebAssembly remains inexpensive.
+
+            // Sample only the 56px dock region (not the entire screen).
+            // The source excludes this dock, preventing recursive capture.
+            ShaderEffectSource {
+                id: capsuleBackdrop
+                objectName: "mobileCapsuleBackdropCapture"
+                visible: false
+                sourceItem: root.blurSourceItem
+                live: root.useBackdropBlur
+                recursive: false
+                hideSource: false
+                smooth: true
+                textureSize: Qt.size(Math.max(1, Math.round(navigationCapsule.width * 0.65)), 56)
+                sourceRect: {
+                    if (!root.blurSourceItem || navigationCapsule.width <= 0)
+                        return Qt.rect(0, 0, 1, 1)
+                    const origin = root.blurSourceItem.mapFromItem(navigationCapsule, 0, 0)
+                    return Qt.rect(origin.x, origin.y,
+                                   navigationCapsule.width, navigationCapsule.height)
+                }
+            }
+            Superellipse {
+                id: capsuleMask
+                anchors.fill: parent
+                visible: false
+                fillColor: "#FFFFFF"
+                curveDepth: height / 2
+            }
+            MultiEffect {
+                objectName: "mobileCapsuleGlassBlur"
+                anchors.fill: parent
+                z: 0
+                visible: root.useBackdropBlur
+                source: capsuleBackdrop
+                blurEnabled: true
+                blur: 0.74
+                blurMax: 16
+                blurMultiplier: 0.68
+                maskEnabled: true
+                maskSource: capsuleMask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 1.0
+                autoPaddingEnabled: false
+                antialiasing: true
+            }
+            // Translucent milk-glass tint for contrast; not an opaque pill.
+            Superellipse {
+                objectName: "mobileCapsuleGlassTint"
+                anchors.fill: parent
+                z: 1
+                curveDepth: height / 2
+                fillColor: Theme.dark ? "#913D4351" : "#B8FFFFFF"
+                borderWidth: 0
+            }
+
+            // Restrained depth, without a painted footer.
             Superellipse {
                 anchors.fill: parent
                 anchors.topMargin: 3
@@ -140,6 +198,7 @@ Item {
             }
 
             RowLayout {
+                z: 2
                 anchors.fill: parent
                 anchors.margins: 4
                 spacing: 1

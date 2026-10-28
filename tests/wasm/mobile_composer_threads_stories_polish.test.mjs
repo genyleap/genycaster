@@ -53,7 +53,8 @@ test('floating dock keeps feed clearance without an opaque footer', () => {
  const shell = qml('AppShell');
  const footer = qml('BottomNavigation');
  assert.match(shell, /spacing: root\.mobile \? 0 : Theme\.space3/);
- assert.match(shell, /\? mobileBottomNavigation\.height : 0/);
+ assert.match(shell, /anchors\.bottomMargin: 0/);
+ assert.match(qml('FeedSurface'), /bottomMargin: root\.compact \? 96 : 0/);
  assert.doesNotMatch(footer, /objectName: "mobileFooterBackground"/);
  assert.doesNotMatch(footer, /objectName: "mobileContentLowerEdge"/);
 });

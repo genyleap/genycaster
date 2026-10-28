@@ -995,6 +995,11 @@ Item {
                 spacing: 0
 
                 AppHeader {
+                    // Breathing room between the iOS status-safe-area, brand
+                    // chrome and the first content card. Safe area itself is
+                    // already handled by the WASM viewport, so don't double it.
+                    Layout.topMargin: root.mobile ? Theme.space3 : 0
+                    Layout.bottomMargin: root.mobile ? Theme.space3 : 0
                     // Cast details already have their own Back/Refresh bar.
                     // Keeping the global brand bar above that contextual bar
                     // duplicates navigation and wastes space on narrow phones.
@@ -1038,12 +1043,11 @@ Item {
                             ColumnLayout {
                                 id: readingContent
                                 anchors.fill: parent
-                                // Keep floating navigation from obscuring the last
-                                // list item. The reserved region is transparent
-                                // page canvas, not a solid dark footer.
-                                anchors.bottomMargin: root.mobile && !root.homeComposerFocused
-                                                      && !root.initialSetupOpen
-                                    ? mobileBottomNavigation.height : 0
+                                // No reserved/painted footer: content extends to the
+                                // screen edge *behind* the floating dock.
+                                // Each scrollable list provides its own trailing
+                                // clearance so the last row stays reachable.
+                                anchors.bottomMargin: 0
                                 // Avoid an extra ColumnLayout spacer above
                                 // the floating controls.
                                 spacing: root.mobile ? 0 : Theme.space3
@@ -1762,6 +1766,7 @@ Item {
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom
                             blurSourceItem: readingContent
+                            glassEnabled: !Theme.powerSave
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed
                             shellRoute: root.shellRoute

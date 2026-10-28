@@ -14,7 +14,9 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.doesNotMatch(html,/@media\(max-width:700px\)\{body::after/);
   assert.doesNotMatch(html,/background-color:#202128/);
   assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: 88/);
-  assert.match(shell,/anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused[\s\S]*?\? mobileBottomNavigation\.height : 0/);
+  assert.match(shell,/anchors\.bottomMargin: 0/);
+  assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+  assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
   assert.match(dock,/anchors\.topMargin: 8/);
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter/);
   assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter/);
@@ -26,7 +28,9 @@ test('capsule, selected states and action button are border-free in light and da
   const primary=dock.slice(dock.indexOf('objectName: "mobilePrimaryActionButton"'));
   assert.match(destination,/background: Superellipse \{[\s\S]*?borderWidth: 0/);
   assert.doesNotMatch(destination,/borderColor:/);
-  assert.match(capsule,/fillColor: Theme\.dark \? "#31343D" : "#F9FAFC"/);
+  assert.match(capsule,/fillColor: "transparent"/);
+  assert.match(capsule,/objectName: "mobileCapsuleGlassTint"/);
+  assert.match(capsule,/fillColor: Theme\.dark \? "#913D4351" : "#B8FFFFFF"/);
   assert.match(capsule,/borderWidth: 0/);
   assert.match(primary,/fillColor: Theme\.mobileActionColor[\s\S]*?borderWidth: 0/);
   assert.doesNotMatch(primary,/borderColor:/);
