@@ -1251,18 +1251,6 @@ Item {
         onTriggered: root.scheduleLoadMore()
     }
 
-    // The navigation glass uses a static translucent surface while the
-    // browser's ListView is moving; the costly live capture resumes only
-    // after the viewport has been stable for a short interval.
-    property bool viewportScrollRecent: false
-    readonly property bool viewportInMotion: readList.moving || viewportScrollRecent
-    Timer {
-        id: viewportGlassSettle
-        interval: 140
-        repeat: false
-        onTriggered: root.viewportScrollRecent = false
-    }
-
     ListView {
         id: readList
         objectName: "readList"
@@ -1325,10 +1313,6 @@ Item {
             }
         }
         onContentYChanged: {
-            if (root.compact) {
-                root.viewportScrollRecent = true
-                viewportGlassSettle.restart()
-            }
             // A desktop wheel may change contentY without ListView.moving.
             // Such user input invalidates any old geometry anchor immediately;
             // never pull the reader backwards while they continue scrolling.

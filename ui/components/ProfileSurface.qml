@@ -1217,17 +1217,6 @@ Item {
         objectName: "profileRowsModel"
     }
 
-    // Avoid presenting a previous WebGL backdrop frame through the floating
-    // dock while ListView content is moving or programmatically repositioned.
-    property bool viewportScrollRecent: false
-    readonly property bool viewportInMotion: profileList.moving || viewportScrollRecent
-    Timer {
-        id: viewportGlassSettle
-        interval: 140
-        repeat: false
-        onTriggered: root.viewportScrollRecent = false
-    }
-
     ListView {
         id: profileList
         objectName: "profileList"
@@ -1265,10 +1254,6 @@ Item {
         // The anchor is captured once when movement ends; geometry stabilization
         // is only meaningful while the viewport is stationary.
         onContentYChanged: {
-            if (root.compact) {
-                root.viewportScrollRecent = true
-                viewportGlassSettle.restart()
-            }
             if (root.resetPositionPasses > 0
                     && profileList.contentY - profileList.originY
                         > Math.max(100, profileList.height * 0.4)) {

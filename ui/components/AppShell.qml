@@ -1767,15 +1767,6 @@ Item {
                             anchors.bottom: readingPane.bottom
                             blurSourceItem: readingContent
                             glassEnabled: !Theme.powerSave
-                            // On WASM the captured texture may be one or more
-                            // scroll frames behind. Guard only the active view.
-                            contentScrolling: root.shellRoute.length === 0
-                                && ((profileSurfaceLoader.visible
-                                     && profileSurfaceLoader.item !== null
-                                     && profileSurfaceLoader.item.viewportInMotion)
-                                    || (feedSurfaceLoader.visible
-                                        && feedSurfaceLoader.item !== null
-                                        && feedSurfaceLoader.item.viewportInMotion))
                             activeView: presentationBridge.activeView
                             activeFeed: presentationBridge.activeFeed
                             shellRoute: root.shellRoute
