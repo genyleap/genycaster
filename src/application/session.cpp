@@ -175,9 +175,12 @@ foundation::result::Status SessionService::beginSignIn(
         });
 }
 
-foundation::result::Status SessionService::pollSignIn(Observer observer)
+foundation::result::Status SessionService::pollSignIn(
+    Observer observer, AccountGrantObserver grantObserver)
 {
-    return m_impl->executor.post([this, observer = std::move(observer)]() mutable {
+    return m_impl->executor.post(
+        [this, observer = std::move(observer),
+         grantObserver = std::move(grantObserver)]() mutable {
         if (!m_impl->attempt) {
             observer(m_impl->current
                 ? SessionState{.phase = SessionPhase::Authenticated, .session = m_impl->current}
@@ -254,6 +257,12 @@ foundation::result::Status SessionService::pollSignIn(Observer observer)
             .phase = SessionPhase::Authenticated,
             .session = m_impl->current,
         });
+        // Deliver only after the verified session is committed and queued
+        // to the presentation bridge. A restored local session has no grant.
+        if (grantObserver && polled->accountGrant && m_impl->current
+            && polled->accountGrant->fid == m_impl->current->fid.value) {
+            grantObserver(std::move(*polled->accountGrant));
+        }
     });
 }
 

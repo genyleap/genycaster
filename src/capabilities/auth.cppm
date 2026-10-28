@@ -51,11 +51,22 @@ enum class PollState : std::uint8_t {
     Completed,
 };
 
+/** Short-lived, FID-verified account capability for native composition only.
+ * Never persist, log, or expose this value to the QML presentation layer.
+ * A restored device-local session is not an authorization grant. */
+struct VerifiedAccountGrant final {
+    std::string bearer{};
+    std::string subject{};
+    std::uint64_t fid{};
+    int expiresSeconds{};
+};
+
 /** @brief One poll result after provider response validation. */
 struct PollResult final {
     PollState state{PollState::Pending};
     std::optional<domain::session::ClientSession> session{};
     std::optional<std::string> approvalUrl{};
+    std::optional<VerifiedAccountGrant> accountGrant{};
 };
 
 /**

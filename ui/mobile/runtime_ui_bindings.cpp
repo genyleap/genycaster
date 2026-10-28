@@ -3293,7 +3293,7 @@ void connectRuntime(
     auto* const authenticationPollTimer = new QTimer(&bridge);
     authenticationPollTimer->setInterval(1'000);
     QObject::connect(authenticationPollTimer, &QTimer::timeout, &bridge,
-        [&bridge, runtime, sessionObserver] {
+        [&bridge, &connections, runtime, sessionObserver] {
             if (bridge.authenticationPhase() != QStringLiteral("awaiting-approval") &&
                 bridge.authenticationPhase() != QStringLiteral("linking-farcaster")) {
                 return;
@@ -3303,7 +3303,31 @@ void connectRuntime(
                     expected, true, std::memory_order_acq_rel)) {
                 return;
             }
-            auto status = runtime->sessionService->pollSignIn(sessionObserver);
+            // The native OpenProof provider has already verified the matching
+            // Farcaster FID. Forward its short-lived bearer only through trusted
+            // C++ composition; never persist it or expose it to QML. The
+            // session observer queues the canonical UI identity first.
+            const auto accountGrantObserver =
+                [&bridge, &connections](capability::auth::VerifiedAccountGrant grant) {
+                const auto fid = grant.fid;
+                const auto subject = QString::fromStdString(grant.subject);
+                QByteArray bearer = QByteArray::fromStdString(grant.bearer);
+                std::fill(grant.bearer.begin(), grant.bearer.end(), '\0');
+                const int expiresSeconds = grant.expiresSeconds;
+                QMetaObject::invokeMethod(&bridge,
+                    [&bridge, &connections, fid, subject,
+                     bearer = std::move(bearer), expiresSeconds]() mutable {
+                        if (bridge.isAuthenticated() && bridge.accountFid() == fid
+                            && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
+                            connections.acceptAuthenticatedGrant(
+                                std::move(bearer), subject, fid, expiresSeconds);
+                        } else {
+                            bearer.fill('\0');
+                        }
+                    }, Qt::QueuedConnection);
+            };
+            auto status = runtime->sessionService->pollSignIn(
+                sessionObserver, accountGrantObserver);
             if (!status) {
                 runtime->authenticationPollInFlight.store(false, std::memory_order_release);
             }

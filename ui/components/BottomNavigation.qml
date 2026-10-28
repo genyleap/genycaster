@@ -16,11 +16,11 @@ Item {
     property string primaryDestination: "home"
     property Item blurSourceItem: null
     property bool glassEnabled: false
+    // GraphicsInfo.api can briefly be Unknown/Null while Qt recreates its
+    // scenegraph on live theme changes. Treat that as a transient renderer
+    // state, not an instruction to turn the glass into a solid surface.
     readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
         && root.visible && root.width > 0 && root.height > 0
-        && root.GraphicsInfo.api !== GraphicsInfo.Software
-        && root.GraphicsInfo.api !== GraphicsInfo.Null
-        && root.GraphicsInfo.api !== GraphicsInfo.Unknown
     readonly property bool showSelectedLabel: width >= 375
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath

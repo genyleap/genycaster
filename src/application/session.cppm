@@ -53,6 +53,11 @@ enum class WriteAccess {
 /** @brief Observer called from the configured application executor. */
 using Observer = std::function<void(SessionState)>;
 
+/** Native-only, transient account capability delivered to trusted composition.
+ * The UI layer and persisted client session must never receive its bearer. */
+using AccountGrantObserver =
+    std::function<void(capability::auth::VerifiedAccountGrant)>;
+
 /**
  * @brief Orchestrates guest/authenticated client-session transitions.
  *
@@ -86,7 +91,8 @@ public:
         Observer observer);
 
     /** @brief Polls the active authentication/linking attempt once. */
-    [[nodiscard]] foundation::result::Status pollSignIn(Observer observer);
+    [[nodiscard]] foundation::result::Status pollSignIn(
+        Observer observer, AccountGrantObserver grantObserver = {});
 
     /** @brief Cancels transient approval state while retaining any prior session. */
     [[nodiscard]] foundation::result::Status cancelSignIn(Observer observer);

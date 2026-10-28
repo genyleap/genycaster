@@ -88,6 +88,19 @@ namespace {
     return allowed.match(value).hasMatch();
 }
 
+[[nodiscard]] QVariantList offlineTopicCatalog()
+{
+    QVariantList result;
+    for (const auto& slug : {QStringLiteral("art"), QStringLiteral("development"),
+             QStringLiteral("photography"), QStringLiteral("design"),
+             QStringLiteral("technology"), QStringLiteral("music"),
+             QStringLiteral("writing"), QStringLiteral("science"),
+             QStringLiteral("business"), QStringLiteral("gaming")}) {
+        result.push_back(QVariantMap{{QStringLiteral("slug"), slug}});
+    }
+    return result;
+}
+
 } // namespace
 
 OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, QSettings* settings)
@@ -146,15 +159,10 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
         QStringLiteral("x"), QStringLiteral("github"),
         QStringLiteral("linkedin"), QStringLiteral("telegram")
     };
-    // Last-resort offline catalog. The PostgreSQL topic table remains
-    // authoritative and replaces this list after an API read; new topics
-    // never require a client release.
-    for(const auto& slug : {QStringLiteral("art"),QStringLiteral("development"),
-          QStringLiteral("photography"),QStringLiteral("design"),
-          QStringLiteral("technology"),QStringLiteral("music"),
-          QStringLiteral("writing"),QStringLiteral("science"),
-          QStringLiteral("business"),QStringLiteral("gaming")})
-        m_topicCatalog.push_back(QVariantMap{{QStringLiteral("slug"),slug}});
+    // These are display-only offline suggestions. A verified account's
+    // PostgreSQL catalog replaces them, but changing viewers must never
+    // strand the composer with an empty default Qt "unavailable" surface.
+    m_topicCatalog = offlineTopicCatalog();
 
 }
 
@@ -2390,7 +2398,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
         m_topicCatalogRequest->deleteLater();
         m_topicCatalogRequest=nullptr;
     }
-    m_topicCatalog.clear();
+    m_topicCatalog = offlineTopicCatalog();
     if(m_topicSaveRequest) {
         m_topicSaveRequest->abort();
         m_topicSaveRequest->deleteLater();

@@ -826,6 +826,7 @@ private:
         return capability::auth::PollResult{
             .state = capability::auth::PollState::Completed,
             .session = sessionFrom(*account, m_config),
+            .accountGrant = verifiedAccountGrant(*account),
         };
     }
 
@@ -851,6 +852,23 @@ private:
         return capability::auth::PollResult{
             .state = capability::auth::PollState::Completed,
             .session = sessionFrom(*account, m_config),
+            .accountGrant = verifiedAccountGrant(*account),
+        };
+    }
+
+    [[nodiscard]] std::optional<capability::auth::VerifiedAccountGrant>
+    verifiedAccountGrant(const AccountSnapshot& account) const
+    {
+        if (!account.farcasterFid || m_accessToken.empty() || account.subject.empty())
+            return std::nullopt;
+        const auto remaining = std::chrono::duration_cast<std::chrono::seconds>(
+            m_accessExpiresAt - std::chrono::steady_clock::now()).count();
+        if (remaining < 30 || remaining > 3600) return std::nullopt;
+        return capability::auth::VerifiedAccountGrant{
+            .bearer = m_accessToken,
+            .subject = account.subject,
+            .fid = *account.farcasterFid,
+            .expiresSeconds = static_cast<int>(remaining),
         };
     }
 
