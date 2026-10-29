@@ -1498,7 +1498,7 @@ Item {
                                         Layout.alignment: Qt.AlignHCenter
                                         sourceComponent: Component {
                                             TopicBrowseSurface {
-                                                scopeName: root.topicBrowseScope==="profile" ? "Profile" : "Explorer"
+                                                scopeName: root.topicBrowseScope==="profile" ? qsTrId("genycaster.side_nav.profile") : qsTrId("genycaster.side_nav.explorer")
                                                 topicSlug: root.topicBrowseSlug
                                                 topics: openProofConnections.topicCatalog
                                                 items: openProofConnections.topicCastItems

@@ -2,6 +2,26 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic_browser.empty">
+            <source>No GenyCaster casts are tagged with this topic yet.</source>
+            <translation>このトピックが付いた GenyCaster のキャストはまだありません。</translation>
+        </message>
+        <message id="genycaster.topic_browser.cast_author_fid">
+            <source>Cast · FID %1</source>
+            <translation>キャスト · FID %1</translation>
+        </message>
+        <message id="genycaster.topic_browser.view_cast">
+            <source>View cast</source>
+            <translation>キャストを表示</translation>
+        </message>
+        <message id="genycaster.topic_browser.load_more">
+            <source>Load more casts</source>
+            <translation>さらにキャストを読み込む</translation>
+        </message>
+        <message id="genycaster.topic_browser.filter_accessible">
+            <source>Filter casts by topic</source>
+            <translation>トピックでキャストを絞り込む</translation>
+        </message>
         <message id="genycaster.topic.trading">
             <source>Trading</source>
             <translation>トレーディング</translation>

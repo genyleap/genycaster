@@ -29,7 +29,7 @@ Item {
     }
 
     readonly property var options: {
-        const out = [{slug: "", label: "All topics"}]
+        const out = [{slug: "", label: qsTrId("genycaster.filters.all_topics")}]
         for (const value of root.catalog || []) {
             const slug = String(value.slug || "")
             if (/^[a-z][a-z0-9-]{1,63}$/.test(slug))
@@ -52,6 +52,6 @@ Item {
             const entry = root.options[index]
             if (entry) root.topicRequested(entry.slug)
         }
-        Accessible.name: "Filter casts by topic"
+        Accessible.name: qsTrId("genycaster.topic_browser.filter_accessible")
     }
 }

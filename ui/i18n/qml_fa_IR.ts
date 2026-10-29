@@ -2,6 +2,26 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic_browser.empty">
+            <source>No GenyCaster casts are tagged with this topic yet.</source>
+            <translation>هنوز هیچ کستی در جنی‌کستر با این موضوع ثبت نشده است.</translation>
+        </message>
+        <message id="genycaster.topic_browser.cast_author_fid">
+            <source>Cast · FID %1</source>
+            <translation>کست · شناسه FID: %1</translation>
+        </message>
+        <message id="genycaster.topic_browser.view_cast">
+            <source>View cast</source>
+            <translation>نمایش کست</translation>
+        </message>
+        <message id="genycaster.topic_browser.load_more">
+            <source>Load more casts</source>
+            <translation>بارگذاری کست‌های بیشتر</translation>
+        </message>
+        <message id="genycaster.topic_browser.filter_accessible">
+            <source>Filter casts by topic</source>
+            <translation>فیلتر کست‌ها بر اساس موضوع</translation>
+        </message>
         <message id="genycaster.topic.trading">
             <source>Trading</source>
             <translation>معامله‌گری</translation>

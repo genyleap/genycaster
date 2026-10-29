@@ -2,6 +2,26 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.topic_browser.empty">
+            <source>No GenyCaster casts are tagged with this topic yet.</source>
+            <translation>GenyCaster 中还没有标记此话题的 Cast。</translation>
+        </message>
+        <message id="genycaster.topic_browser.cast_author_fid">
+            <source>Cast · FID %1</source>
+            <translation>帖子 · FID %1</translation>
+        </message>
+        <message id="genycaster.topic_browser.view_cast">
+            <source>View cast</source>
+            <translation>查看 Cast</translation>
+        </message>
+        <message id="genycaster.topic_browser.load_more">
+            <source>Load more casts</source>
+            <translation>加载更多 Cast</translation>
+        </message>
+        <message id="genycaster.topic_browser.filter_accessible">
+            <source>Filter casts by topic</source>
+            <translation>按话题筛选 Cast</translation>
+        </message>
         <message id="genycaster.topic.trading">
             <source>Trading</source>
             <translation>交易</translation>

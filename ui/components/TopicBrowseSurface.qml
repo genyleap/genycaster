@@ -6,7 +6,7 @@ import QtQuick.Layouts
 // currently loaded feed page; missing local previews are still discoverable.
 Item {
     id: root
-    property string scopeName: "Explorer"
+    property string scopeName: qsTrId("genycaster.side_nav.explorer")
     property string topicSlug: ""
     property var topics: []
     function topicTitleFor(slug) {
@@ -122,12 +122,12 @@ Item {
                 compact: true
                 quiet: true
                 iconGlyph: Theme.iconArrowLeft
-                text: "Back"
+                text: qsTrId("genycaster.setup.back")
                 onClicked: root.backRequested()
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.scopeName + " · Topics"
+                text: root.scopeName + " · " + qsTrId("genycaster.topics.label")
                 color: Theme.textPrimary
                 font.pixelSize: Theme.typeBodySize
                 font.weight: Theme.weightDemiBold
@@ -172,7 +172,7 @@ Item {
             Layout.leftMargin: Theme.mobileGutter
             Layout.rightMargin: Theme.mobileGutter
             visible: !root.busy && root.items.length===0 && root.errorText.length===0
-            text: "No GenyCaster casts are tagged with this topic yet."
+            text: qsTrId("genycaster.topic_browser.empty")
             color: Theme.inkMuted
             font.pixelSize: Theme.typeMetaSize
             wrapMode: Text.Wrap
@@ -232,7 +232,7 @@ Item {
                         Layout.fillWidth: true
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: "Cast · FID " + String(row.modelData.author_fid || "")
+                            text: qsTrId("genycaster.topic_browser.cast_author_fid").arg(String(row.modelData.author_fid || ""))
                             font.pixelSize: Theme.typeMetaSize
                             color: Theme.textSecondary
                         }
@@ -240,7 +240,7 @@ Item {
                             compact: true
                             quiet: true
                             iconGlyph: Theme.iconArrowUpRight
-                            text: "View cast"
+                            text: qsTrId("genycaster.topic_browser.view_cast")
                             onClicked: root.castRequested(row.hash)
                         }
                     }
@@ -264,7 +264,7 @@ Item {
                     compact: true
                     busy: root.busy
                     enabled: !root.busy
-                    text: "Load more casts"
+                    text: qsTrId("genycaster.topic_browser.load_more")
                     onClicked: root.moreRequested()
                 }
                 GenySpinner {
