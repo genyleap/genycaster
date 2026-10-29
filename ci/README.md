@@ -29,7 +29,7 @@ is never deleted or overwritten.
 | Core tests | Ubuntu 24.04, GCC 16 | C++26 + CTest + architecture guards |
 | Linux x86_64 | Ubuntu 24.04, GCC 16 | Qt AppImage |
 | macOS arm64 | macOS 15, Homebrew LLVM | Qt DMG |
-| Windows x86_64 | Windows 2022, MSVC and vcpkg | Portable ZIP |
+| Windows x86_64 | Windows 2022, Clang-CL/MSVC ABI and vcpkg | Portable ZIP |
 | Android arm64-v8a | Ubuntu 24.04, NDK 27.2.12479018 | APK |
 | WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Static-site tar.gz |
 
