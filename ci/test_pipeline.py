@@ -6,7 +6,9 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import sys
 import unittest
+import zipfile
 
+from ci.verify_platform_package import verify
 from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, main as assemble_release
@@ -42,6 +44,25 @@ class PipelineTests(unittest.TestCase):
             (root / "farcaster_client.cpp.o").write_bytes(b"obj")
             selected = {p.name for p in select_files(root)}
             self.assertEqual(selected, {"farcaster_client.html", "farcaster_client.wasm"})
+
+    def test_windows_portable_zip_structure(self) -> None:
+        with TemporaryDirectory() as folder:
+            archive = Path(folder) / "genycaster-windows.zip"
+            required = (
+                "farcaster_client.exe", "Qt6Core.dll", "Qt6Network.dll",
+                "qt6keychain.dll", "platforms/qwindows.dll", "libcrypto-3-x64.dll",
+                "libssl-3-x64.dll", "libcurl.dll", "sqlite3.dll",
+            )
+            with zipfile.ZipFile(archive, "w") as package:
+                for name in required:
+                    package.writestr(name, b"test")
+            verify("windows", archive)
+            with zipfile.ZipFile(archive, "w") as broken:
+                for name in required:
+                    if name != "Qt6Network.dll":
+                        broken.writestr(name, b"test")
+            with self.assertRaisesRegex(ValueError, "qt6network"):
+                verify("windows", archive)
 
     def test_release_package_contract(self) -> None:
         self.assertEqual(len(EXPECTED), 5)
