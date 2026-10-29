@@ -487,14 +487,21 @@ jobs:
           my %targets = (
               "android-genycaster-arm64" => {
                   inherit_from => [ "android-arm64" ],
+                  shared_extension => ".so",
                   shlib_variant => "_3",
               },
           );
           OPENSSL_TARGET
             ./Configure android-genycaster-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
+            echo "::group::OpenSSL generated shared-library targets"
+            grep -E '^(SHLIBS|SHLIB_VERSION_NUMBER|SHLIB_INFO|build_libs_nodep):' Makefile || true
+            echo "::endgroup::"
             make -s -j 4 build_libs
-            test -s libcrypto_3.so
-            test -s libssl_3.so
+            echo "::group::OpenSSL actual shared-library outputs"
+            ls -lh libcrypto* libssl*
+            echo "::endgroup::"
+            test -s libcrypto_3.so || { echo "::error::libcrypto_3.so not produced by OpenSSL"; exit 1; }
+            test -s libssl_3.so || { echo "::error::libssl_3.so not produced by OpenSSL"; exit 1; }
             cp -R include/openssl "$GITHUB_WORKSPACE/build/android-deps/include/"
             cp -L libcrypto_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libcrypto_3.so"
             cp -L libssl_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
