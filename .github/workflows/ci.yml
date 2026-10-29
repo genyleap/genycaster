@@ -507,12 +507,24 @@ jobs:
             cp -L libssl_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
           )
           libdir="$GITHUB_WORKSPACE/build/android-deps/lib"
+          # Do not use readelf | grep -q under pipefail: grep can exit
+          # before readelf completes, turning a valid ELF into SIGPIPE/141.
+          # Save all diagnostics, and fail with the actual headers if needed.
           for lib in libcrypto_3.so libssl_3.so; do
-            "$toolchain/llvm-readelf" -h "$libdir/$lib" | grep -Eq 'Machine:[[:space:]]+AArch64'
-            "$toolchain/llvm-readelf" -d "$libdir/$lib" | grep -Eq "SONAME.*\\[$lib\\]"
+            "$toolchain/llvm-readelf" -h "$libdir/$lib" > "$libdir/$lib.header.txt"
+            "$toolchain/llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"
+            grep -Eq 'Machine:[[:space:]]+AArch64' "$libdir/$lib.header.txt" || {
+              cat "$libdir/$lib.header.txt"; echo "::error::$lib is not AArch64"; exit 1;
+            }
+            grep -Eq "SONAME.*\\[$lib\\]" "$libdir/$lib.dynamic.txt" || {
+              cat "$libdir/$lib.dynamic.txt"; echo "::error::$lib has an unexpected SONAME"; exit 1;
+            }
           done
-          "$toolchain/llvm-readelf" -d "$libdir/libssl_3.so" |
-            grep -Eq 'NEEDED.*\\[libcrypto_3.so\\]'
+          grep -Eq 'NEEDED.*\\[libcrypto_3.so\\]' "$libdir/libssl_3.so.dynamic.txt" || {
+            cat "$libdir/libssl_3.so.dynamic.txt"
+            echo "::error::libssl_3.so does not depend on libcrypto_3.so"
+            exit 1
+          }
           test -s build/android-deps/include/openssl/opensslv.h
           echo "Android ARM64 OpenSSL ${version} verified for APK deployment"
       - name: Prepare signing for release tags only
