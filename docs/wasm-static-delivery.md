@@ -17,7 +17,7 @@ means a full WASM body was not transferred. To measure cold start once, clear si
 
 ## Build output and update contract
 
-The final Emscripten link now invokes `tools/package_wasm_assets.py`.
+The final Emscripten link now invokes `ci/package_wasm_assets.py`.
 It creates:
 - `farcaster_client.<first-20-hex-of-SHA256>.wasm`, copied from the
   generated binary. **Only a changed WASM binary changes that URL.**
@@ -96,8 +96,8 @@ raster icon sizes. This is **not** a guarantee of fully offline social features.
 
 ```sh
 node --test tests/wasm/*.test.mjs
-python3 tools/check_ui_design.py .
-python3 tools/check_localization_catalog.py .
+python3 ci/check_ui_design.py .
+python3 ci/check_localization_catalog.py .
 ```
 
 A **real Qt 6.12 Emscripten Build + macOS Firefox/Brave + production HTTPS

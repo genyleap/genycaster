@@ -480,7 +480,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
             NAME macos_sdk_include_guard
             COMMAND
                 "${Python3_EXECUTABLE}"
-                "${CMAKE_SOURCE_DIR}/tools/check_macos_sdk_includes.py"
+                "${CMAKE_SOURCE_DIR}/ci/check_macos_sdk_includes.py"
                 "${CMAKE_BINARY_DIR}/compile_commands.json"
         )
         set_tests_properties(macos_sdk_include_guard PROPERTIES LABELS "architecture;macos")

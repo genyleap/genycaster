@@ -21,7 +21,15 @@ def main() -> None:
     assert "Refuse overwriting an existing release" in workflow
     assert "ci/release_gate.py" in workflow
     assert "ci/release_artifacts.py" in workflow
-    print("CI trigger and release gate invariants passed")
+    assert not Path("tools").exists(), "legacy tools/ directory must not return"
+    assert not Path("docs-site").exists(), "obsolete docs-site/ directory must not return"
+    assert "tools/linuxdeploy" not in workflow
+    assert "build/ci-linuxdeploy/" in workflow
+    assert "version=3.5.9" in workflow
+    assert "tools/build_android_openssl.sh" not in workflow
+    assert "Prepare Android OpenSSL 3.5.9 libraries" in workflow
+    assert "sha256sum --check" in workflow
+    print("CI trigger, source layout and release gate invariants passed")
 
 
 if __name__ == "__main__":

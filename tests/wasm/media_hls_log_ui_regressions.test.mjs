@@ -34,7 +34,7 @@ test('browser native HLS modal and local hls.js work without third-party runtime
  const header=read('src/presentation/qt/media_playback_coordinator.hpp');
  const js=read('ui/wasm/browser-hls-pre.js');
  const cmake=read('ui/CMakeLists.txt');
- const packageScript=read('tools/package_wasm_assets.py');
+ const packageScript=read('ci/package_wasm_assets.py');
  assert.match(qml,/mediaPlayback\.openBrowserHls\(candidate\)/);
  assert.match(header,/Q_INVOKABLE bool openBrowserHls\(const QString& source\) const/);
  assert.match(player,/__genycasterBrowserHls\?\.open/);

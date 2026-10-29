@@ -6,7 +6,7 @@ Structural regressions must fail CI before they become product debt.
 
 ## Current executable guard
 
-`tools/check_architecture.py` rejects:
+`ci/check_architecture.py` rejects:
 
 - provider/backend names or managed endpoints outside provider adapters;
 - project-owned `.h` files;

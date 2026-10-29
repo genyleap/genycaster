@@ -130,7 +130,7 @@ test('node switching preserves the source-provider URL and exposes no UI hard-co
 test('channel avatars come from HyperSnap, and static image catalogs are removed',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  const backend=read('ui/mobile/channel_picker_controller.cpp');
- const packaging=read('tools/package_wasm_assets.py');
+ const packaging=read('ci/package_wasm_assets.py');
  const sw=read('ui/wasm/genycaster-sw.js');
  const cmake=read('ui/CMakeLists.txt');
  assert.match(backend,/firstString\(channel,\s*\{"image_url", "imageUrl", "icon_url", "iconUrl"\}\)/);

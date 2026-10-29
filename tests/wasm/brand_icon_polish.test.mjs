@@ -70,7 +70,7 @@ test("Browser tab and installed app icon use actual brand DNA and a clean versio
     assert.match(wordmark,/fill="#B5B5B5"/);
     for(const asset of ["favicon.ico","favicon-16x16.png","favicon-32x32.png",
         "favicon-48x48.png","genycaster-192.png","genycaster-512.png"]){
-        assert.match(html+read("ui/wasm/genycaster-sw.js")+read("tools/package_wasm_assets.py"),
+        assert.match(html+read("ui/wasm/genycaster-sw.js")+read("ci/package_wasm_assets.py"),
             new RegExp(asset.replace(".","\\.")));
         const bytes=readFileSync(new URL("../../ui/wasm/"+asset,import.meta.url));
         assert.ok(bytes.length>100,asset);

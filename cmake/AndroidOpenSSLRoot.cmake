@@ -43,8 +43,8 @@ function(genycaster_resolve_android_openssl_root output requested source_root)
                     "GENYCASTER_ANDROID_OPENSSL_ROOT appears to have lost its "
                     "leading '/': '${_root}'. "
                     "Set the Qt Creator Release CMake variable to '${_candidate}'. "
-                    "If its include/ and lib/ files do not exist, run "
-                    "tools/build_android_openssl.sh for arm64-v8a first.")
+                    "Its include/ and lib/ files must contain the Android "
+                    "arm64-v8a OpenSSL libraries (provisioned by CI).")
             endif()
         endif()
     endif()

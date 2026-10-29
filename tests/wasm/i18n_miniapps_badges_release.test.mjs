@@ -79,7 +79,7 @@ test("Qt live language selection updates the release drawer language across WASM
 test("update drawer reuses the repository icon and success tokens across WASM and native",()=>{
     const shell=read("ui/wasm/genycaster-shell.html");
     const cmake=read("ui/CMakeLists.txt");
-    const pack=read("tools/package_wasm_assets.py");
+    const pack=read("ci/package_wasm_assets.py");
     const serviceWorker=read("ui/wasm/genycaster-sw.js");
     const native=read("ui/components/UpdateNoticeDrawer.qml");
     assert.match(shell,/class="update-glyph"[^>]*><span class="update-symbol"/);

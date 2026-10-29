@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 test('OpenProof recovery module belongs to full and incremental WebAssembly release manifests', () => {
-  const pack = readFileSync(new URL('../../tools/package_wasm_assets.py', import.meta.url), 'utf8');
+  const pack = readFileSync(new URL('../../ci/package_wasm_assets.py', import.meta.url), 'utf8');
   const cmake = readFileSync(new URL('../../ui/CMakeLists.txt', import.meta.url), 'utf8');
   const filename = '"openproof_recovery.mjs"';
   assert.equal(pack.split(filename).length-1, 2,

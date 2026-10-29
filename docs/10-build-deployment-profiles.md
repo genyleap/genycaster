@@ -40,32 +40,15 @@ Qt Quick debug surface with tests. Requires Qt 6.12+ and must additionally pass 
 Android NDK does not provide OpenSSL. Genycaster requires a target-architecture
 OpenSSL 3.5.9 or newer when building its native Qt Android client; do not use
 Homebrew/macOS OpenSSL, a host `Boost_DIR`, or an unversioned system Android
-`libcrypto.so`. The standalone build script obtains the official OpenSSL 3.5.9
-LTS release and its SHA-256 checksum, cross-compiles against the configured
-NDK/API 28 with `SHLIB_VERSION_NUMBER=` (as required by the Qt 6 Android
-OpenSSL instructions), copies the generated target headers and unversioned
-shared libraries as `libcrypto_3.so` and `libssl_3.so`, and patches ELF
-SONAME/dependencies. It validates both files as AArch64 ELF binaries, without
-running `make install_sw` or installing an unused OpenSSL CLI.
-Both shared libraries are packaged through `QT_ANDROID_EXTRA_LIBS`.
-
-On a macOS host with Homebrew, run this from the Genycaster source root:
-
-```sh
-brew install patchelf
-ANDROID_NDK_ROOT="$HOME/Library/Android/sdk/ndk/27.2.12479018" \
-  bash tools/build_android_openssl.sh
-```
-
-Set the Qt Creator Android kit's CMake variable
-`GENYCASTER_ANDROID_OPENSSL_ROOT` to the resulting `build/android-deps`
-absolute path (for example, `/Users/compez/Developer/genycaster/build/android-deps`).
-Clear the Qt Creator CMake cache before reconfiguring, especially when changing
-ABI or OpenSSL prefix. This variable is distinct from
-`OPENSSL_ROOT_DIR`; stale paths to host packages must not be reused.
-The `ui-qt612-debug` CMake preset is intentionally Linux-only: it specifies
-`/opt/gcc-16.2.0/bin/c++` on the build server and must not be used as a Qt
-Creator kit on macOS. Select the Qt 6.12 Android arm64-v8a kit instead.
+`libcrypto.so`. The Android job in `.github/workflows/ci.yml` downloads
+the pinned OpenSSL 3.5.9 source and its SHA-256 checksum, cross-compiles
+against NDK 27/API 28, packages `libcrypto_3.so` and `libssl_3.so`,
+verifies AArch64 ELF headers and dependencies, and deploys them through
+`QT_ANDROID_EXTRA_LIBS`. This is part of the authoritative CI build;
+there is no separate project-maintained OpenSSL bootstrap script.
+`GENYCASTER_ANDROID_OPENSSL_ROOT` remains an optional input for local
+Android cross-builds that already have a correctly prepared target OpenSSL
+prefix. The required package is assembled automatically by GitHub Actions.
 
 ### Android test configuration
 
@@ -119,61 +102,15 @@ If it reports `-1`, the SDK's QtNetwork binary was built without TLS; no
 change to the application's `OPENSSL_ROOT_DIR`, `QT_ANDROID_EXTRA_LIBS`,
 `qtnetwork-config.h`, or CMake gate can repair that binary.
 
-**Preferred if Qt was already compiled locally from source:** Reuse the
-existing `~/Qt/Src/qt-everywhere-src-6.12.0` and the matching
-`~/Qt/6.12.0/host` tools, but build into a new isolated shadow directory
-instead of trying to change the previous build's cached features. The Qt
-project documents `configure -redo` for in-place reconfiguration, but that
-path is less robust when changing underlying features and dependencies.
-GenyCaster's helper supplies the Android arm64-v8a OpenSSL headers and
-libraries directly to Qt's CMake configuration, explicitly enables the SSL
-feature with `-openssl-runtime`, and builds the Qt modules needed by the app:
-
-```sh
-cd ~/Developer/genycaster
-bash tools/rebuild_android_qt_tls_macos.sh --inspect
-bash tools/rebuild_android_qt_tls_macos.sh --configure
-bash tools/rebuild_android_qt_tls_macos.sh --build
-bash tools/rebuild_android_qt_tls_macos.sh --install
-```
-
-This uses the *existing Qt source tree*, not a fresh download. The new install
-prefix is `~/Qt/6.12.0/android-arm64-v8a-tls` and the new build tree is
-`~/Qt/Build/android-arm64-v8a-tls`. On success the helper checks
-`QT_FEATURE_ssl=1` and the installed Qt module CMake packages. Register the
-new `bin/qmake6` in Qt Creator, create a separate Android kit/build directory,
-retain the existing host tools, and keep
-`GENYCASTER_ANDROID_OPENSSL_ROOT=~/Developer/genycaster/build/android-deps`.
-Qt and OpenSSL configurations must target the same Android NDK/ABI.
-
-**Alternative if locally built Qt sources are unavailable:** Qt's installer
-normally distributes Android Qt with SSL support, so you can verify a fresh
-isolated SDK from the official Qt download archive without overwriting your
-working Qt installation:
-
-```sh
-bash tools/provision_android_qt_tls_macos.sh --dry-run
-bash tools/provision_android_qt_tls_macos.sh
-```
-
-This uses `aqtinstall` in a local Python virtual environment and installs Qt
-6.12.0 Android ARM64 + Multimedia into `~/Qt-genycaster-tls/`. The script
-checks the actual installed header and required Qt CMake packages. If
-`QT_FEATURE_ssl=1`, register this Android Qt location in Qt Creator and use
-a **new** Release build directory, retaining the macOS Qt 6.12.0 host path
-and the existing Android OpenSSL prefix. The original SDK remains untouched.
-You may also inspect an existing SDK without downloading anything:
-
-```sh
-bash tools/provision_android_qt_tls_macos.sh --check \
-  "$HOME/Qt/6.12.0/android-arm64-v8a"
-```
-
-If the freshly downloaded official SDK also reports `-1`, do not replace
-libraries or edit feature headers. Build a complete Qt for Android SDK from
-source with the SSL feature enabled, following
-[Qt's Android source-build guide](https://doc.qt.io/qt-6.12/android-building.html).
-Merely packaging `libssl_3.so` or `libcrypto_3.so` cannot fix that SDK.
+For reproducible release candidates, **GitHub Actions is the authoritative
+Android toolchain**. Its Android job installs Qt 6.12.0, verifies the SDK's
+compiled-in TLS feature, builds Android AArch64 OpenSSL, packages the APK and
+checks mandatory runtime libraries. Development-machine Qt recovery scripts
+are intentionally not part of the project. If an independently installed Qt
+SDK reports `-1`, use a compatible Qt for Android build with SSL enabled,
+following [Qt's source-build guide](https://doc.qt.io/qt-6.12/android-building.html);
+do not replace libraries or edit feature headers. Merely bundling
+`libssl_3.so` or `libcrypto_3.so` cannot enable SSL in a disabled SDK.
 Qt Network adapters also check that the TLS backend is usable at
 runtime, and certificate errors are never ignored. Node diagnostics report
 HTTP status and Qt network error in Android Logcat without logging secrets;

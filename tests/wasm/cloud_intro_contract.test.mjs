@@ -5,7 +5,7 @@ const source=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 test('Plain, readable studio credits precede actual WASM progress without decoration',()=>{
   const html=source('ui/wasm/genycaster-shell.html');
   const js=source('ui/wasm/genycaster-loader.js');
-  const pack=source('tools/package_wasm_assets.py');
+  const pack=source('ci/package_wasm_assets.py');
   const cmake=source('ui/CMakeLists.txt');
   for(const brand of ['genycaster-boot-icon.svg','intro-base.svg','intro-farcaster.svg','intro-hypersnap.svg','intro-openproof.svg']) {
     assert.match(html,new RegExp(brand.replace('.','\\.')));

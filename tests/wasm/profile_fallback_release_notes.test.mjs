@@ -27,7 +27,7 @@ test('wasm manifest carries curated real update type and bounded changes',()=>{
     writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
     for(const name of ['farcaster_client.html','qtloader.js','farcaster_client.js','genycaster-loader.js','genycaster-sw.js'])
       writeFileSync(join(dir,name),'test-'+name);
-    const args=[new URL('../../tools/package_wasm_assets.py',import.meta.url).pathname,
+    const args=[new URL('../../ci/package_wasm_assets.py',import.meta.url).pathname,
       '--dir',dir,'--app-version','1.0.0','--release-label','Beta 1.0',
       '--release-notes',new URL('../../ui/wasm/release-notes.json',import.meta.url).pathname];
     const p=spawnSync('python3',args,{encoding:'utf8'});

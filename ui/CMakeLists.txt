@@ -547,7 +547,7 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-openproof.svg"
             "$<TARGET_FILE_DIR:farcaster_client>/intro-openproof.svg"
         COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
+            "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${PROJECT_VERSION}"
             --release-label "Beta 1.0"
@@ -561,7 +561,7 @@ if(EMSCRIPTEN)
     # output and content hash metadata coherent on incremental builds.
     add_custom_target(genycaster_wasm_asset_refresh ALL
         COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_SOURCE_DIR}/tools/package_wasm_assets.py"
+            "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
             --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${PROJECT_VERSION}"
@@ -941,7 +941,7 @@ if(EMSCRIPTEN AND GENYCASTER_OPTIMIZE_CJK_COLLECTION
                 "${CMAKE_BINARY_DIR}/_deps/genycaster-script-fonts-optimized/NotoSansCJK-Regular.ttc")
             execute_process(
                 COMMAND "${_cjkOptimizerPython}"
-                        "${PROJECT_SOURCE_DIR}/tools/optimize_cjk_collection.py"
+                        "${PROJECT_SOURCE_DIR}/ci/optimize_cjk_collection.py"
                         "${_genycasterCjkFontPath}" "${_optimizedCjkPath}"
                 RESULT_VARIABLE _cjkOptimizationResult
                 OUTPUT_VARIABLE _cjkOptimizationOutput

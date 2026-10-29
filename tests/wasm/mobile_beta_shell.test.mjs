@@ -12,7 +12,7 @@ function readGenycasterMain() {
 const read = filename => readFileSync(new URL("../../"+filename,import.meta.url),"utf8");
 test("Beta 1.0 is the public identity across the web shell and Qt headers",()=>{
     const cmake=read("CMakeLists.txt");
-    const pack=read("tools/package_wasm_assets.py");
+    const pack=read("ci/package_wasm_assets.py");
     const html=read("ui/wasm/genycaster-shell.html");
     const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
     assert.match(cmake,/VERSION 1\.0\.0/);

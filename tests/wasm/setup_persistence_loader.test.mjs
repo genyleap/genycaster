@@ -432,7 +432,7 @@ test('Splash logo, version, loading copy and progress share a centered layout ax
 
 test('WASM splash is single-stage, retains original mark and build footer',()=>{
     const cmake=read('ui/CMakeLists.txt');
-    const pack=read('tools/package_wasm_assets.py');
+    const pack=read('ci/package_wasm_assets.py');
     assert.doesNotMatch(html,/class="boot-journey/);
     assert.match(html,/genycaster-wordmark-dark\.svg/);
     assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);

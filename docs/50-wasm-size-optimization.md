@@ -11,7 +11,7 @@ Build `daf4afa0`, WASM SHA filename `farcaster_client.975b06f2c9cfc85c5438.wasm`
 
 ## Safe, lossless initial optimization
 
-The production client's supported localized CJK UI uses the **JP/KR/SC** regional faces, not TC/HK or the five monospace variants. `tools/optimize_cjk_collection.py` generates a TTC containing precisely JP, KR and SC. It **does not subset glyphs** or change regional shaping and verifies source SHA-256, family names and full code-point mapping. The resulting font is 17,371,156 bytes, **2,113,628 bytes smaller** than the source. Native builds preserve their original configuration.
+The production client's supported localized CJK UI uses the **JP/KR/SC** regional faces, not TC/HK or the five monospace variants. `ci/optimize_cjk_collection.py` generates a TTC containing precisely JP, KR and SC. It **does not subset glyphs** or change regional shaping and verifies source SHA-256, family names and full code-point mapping. The resulting font is 17,371,156 bytes, **2,113,628 bytes smaller** than the source. Native builds preserve their original configuration.
 
 WASM CMake uses this TTC when `fontTools` is available. Configure with `-DGENYCASTER_CJK_FONTTOOLS_PYTHON=<python-with-fontTools>` to make this deterministic. If the tool is unavailable, use the complete upstream collection; never ship an incomplete font. The checked source SHA-256 is part of the script; neither the font binary nor a fontTools dependency is committed.
 

@@ -21,7 +21,7 @@ the same time of day (verify on the original cast before submitting).
 | Prize gate | Source evidence now | Result / release gate |
 | --- | --- | --- |
 | Three-command (0) scripted compute provisioning, (1) independent Snapchain node, (2) runnable custom client | No integrated three-command user quickstart/provisioner in this repository | **MISSING**; real fresh-machine execution required |
-| Node syncs without third-party API keys | `docs/44-raw-protocol-read-adapter.md`; optional raw node profiles; `tools/check_bounty_read_node.py` | **PARTIAL**; script test uses a fake local server, not a separately provisioned synced real node |
+| Node syncs without third-party API keys | `docs/44-raw-protocol-read-adapter.md`; optional raw node profiles; `ci/check_bounty_read_node.py` | **PARTIAL**; script test uses a fake local server, not a separately provisioned synced real node |
 | Client exclusively reads from owned node for required tutorial flow | `src/providers/snapchain/`, `docs/44-raw-protocol-read-adapter.md` | **PARTIAL**; raw supports profiles, FID-scoped casts and direct Follow/Followers graph; bounded live Following from raw node now implemented for <=256 followed FIDs with four graph pages and up to eight 100-message Cast pages per author; larger/deeper accounts refuse unsafe completion; Recent/Trending/search still missing (on-device Following preview remains separate); disabling managed fallback exposes missing aggregate feeds |
 | Signed canonical Cast submits to compatible independent validator, not read-only node | `docs/42-durable-provider-neutral-write-routing.md`, `docs/43-provider-neutral-signer-routing.md` | **IMPLEMENTED IN SOURCE, LIVE UNVERIFIED**; endpoint-pinned outbox and reconciliation contract tests; run independent read/write operator test |
 | Import *existing seed phrase* for an account with storage | `docs/50-setup-network-quick-auth.md` | **MISSING**; external onboarding and FID linking are not audited in-app BIP39 custody-wallet import |
@@ -40,7 +40,7 @@ Run on the machine hosting a *personally provisioned* Snapchain read node
 with a public FID known to have casts:
 
 ```sh
-python3 tools/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3 --check-graph
+python3 ci/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3 --check-graph
 ```
 
 The script makes two ordinary read requests by default (sync and canonical casts), or four with `--check-graph` (also effective Follow/Followers). No API key is provided. It requests `/v1/info` and `/v1/castsByFid?fid=...&pageSize=10`. It verifies

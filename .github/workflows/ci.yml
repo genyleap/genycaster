@@ -92,7 +92,7 @@ jobs:
           ctest --test-dir build/core-release --output-on-failure --parallel 2
       - name: Architecture and CI checks
         run: |
-          python3 tools/check_architecture.py
+          python3 ci/check_architecture.py
           python3 ci/verify_ci.py
           python3 -m unittest ci.test_pipeline -v
 
@@ -163,7 +163,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
-            AppDir/usr/share/icons/hicolor/512x512/apps tools
+            AppDir/usr/share/icons/hicolor/512x512/apps build/ci-linuxdeploy
           cp build/native/bin/farcaster_client AppDir/usr/bin/
           cp ui/wasm/genycaster-512.png \
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
@@ -172,21 +172,21 @@ jobs:
             'Icon=genycaster' 'Categories=Network;' \
             > AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
-            -o tools/linuxdeploy.AppImage \
+            -o build/ci-linuxdeploy/linuxdeploy.AppImage \
             https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           curl --fail --location --retry 3 \
-            -o tools/linuxdeploy-plugin-qt.AppImage \
+            -o build/ci-linuxdeploy/linuxdeploy-plugin-qt.AppImage \
             https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x tools/linuxdeploy*.AppImage
+          chmod +x build/ci-linuxdeploy/*.AppImage
           export APPIMAGE_EXTRACT_AND_RUN=1
           export QMAKE="$QT_ROOT_DIR/bin/qmake6"
           export QML_SOURCES_PATHS="$GITHUB_WORKSPACE/ui"
           # linuxdeploy discovers plugins via PATH as linuxdeploy-plugin-<name>.
-          cp tools/linuxdeploy-plugin-qt.AppImage tools/linuxdeploy-plugin-qt
-          chmod +x tools/linuxdeploy-plugin-qt
-          export PATH="$PWD/tools:$PATH"
+          cp build/ci-linuxdeploy/linuxdeploy-plugin-qt.AppImage build/ci-linuxdeploy/linuxdeploy-plugin-qt
+          chmod +x build/ci-linuxdeploy/linuxdeploy-plugin-qt
+          export PATH="$PWD/build/ci-linuxdeploy:$PATH"
           export OUTPUT="GenyCaster-v${VERSION}-linux-x86_64.AppImage"
-          ./tools/linuxdeploy.AppImage \
+          ./build/ci-linuxdeploy/linuxdeploy.AppImage \
             --appdir AppDir \
             --desktop-file AppDir/usr/share/applications/genycaster.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png \
@@ -416,8 +416,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build patchelf perl \
             libdigest-sha-perl make curl tar python3
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/cmdline-ci/latest/bin:$PATH"
+          echo "$ANDROID_HOME/cmdline-ci/latest/bin" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses || true
           sdkmanager --install "ndk;${ANDROID_NDK_VERSION}" \
             "platforms;android-${ANDROID_API}" "build-tools;35.0.0" \
@@ -442,8 +442,54 @@ jobs:
             echo "::error::Qt for Android has SSL disabled; GenyCaster HTTPS transports are fail-closed"
             exit 1
           fi
-      - name: Cross-compile OpenSSL for arm64-v8a
-        run: bash tools/build_android_openssl.sh
+      # Qt for Android ships the TLS backend, not OpenSSL runtime binaries.
+      # Build the pinned Android ABI libraries inside CI, as part of the
+      # platform job (no developer-machine bootstrap scripts).
+      - name: Prepare Android OpenSSL 3.5.9 libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=3.5.9
+          url="https://github.com/openssl/openssl/releases/download/openssl-${version}/openssl-${version}.tar.gz"
+          work="$RUNNER_TEMP/genycaster-android-openssl"
+          mkdir -p "$work" build/android-deps/include build/android-deps/lib
+          curl --fail --location --retry 3 --silent --show-error \
+            "$url" -o "$work/openssl-${version}.tar.gz"
+          curl --fail --location --retry 3 --silent --show-error \
+            "${url}.sha256" -o "$work/openssl-${version}.tar.gz.sha256"
+          expected="$(awk 'NR==1 {print $1}' "$work/openssl-${version}.tar.gz.sha256")"
+          [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]] || { echo "::error::Invalid OpenSSL SHA-256"; exit 1; }
+          echo "$expected  $work/openssl-${version}.tar.gz" | sha256sum --check --status
+          tar -xzf "$work/openssl-${version}.tar.gz" -C "$work"
+
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+          toolchain="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export PATH="$toolchain:$PATH"
+          (
+            cd "$work/openssl-${version}"
+            ./Configure android-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
+            make -s -j 4 SHLIB_VERSION_NUMBER= build_libs
+            test -s libcrypto.so
+            test -s libssl.so
+            cp -R include/openssl "$GITHUB_WORKSPACE/build/android-deps/include/"
+            cp -L libcrypto.so "$GITHUB_WORKSPACE/build/android-deps/lib/libcrypto_3.so"
+            cp -L libssl.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
+          )
+          libdir="$GITHUB_WORKSPACE/build/android-deps/lib"
+          patchelf --set-soname libcrypto_3.so "$libdir/libcrypto_3.so"
+          patchelf --set-soname libssl_3.so "$libdir/libssl_3.so"
+          for needed in libcrypto.so libcrypto.so.3; do
+            if patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx "$needed"; then
+              patchelf --replace-needed "$needed" libcrypto_3.so "$libdir/libssl_3.so"
+            fi
+          done
+          patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx libcrypto_3.so
+          for lib in libcrypto_3.so libssl_3.so; do
+            "$toolchain/llvm-readelf" -h "$libdir/$lib" | grep -Eq 'Machine:[[:space:]]+AArch64'
+          done
+          test -s build/android-deps/include/openssl/opensslv.h
+          echo "Android ARM64 OpenSSL ${version} verified for APK deployment"
       - name: Prepare signing for release tags only
         if: needs.gate.outputs.release == 'true'
         shell: bash
@@ -514,7 +560,7 @@ jobs:
             exit 1
           fi
           if [[ "$SIGN_RELEASE" == true ]]; then
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "${apks[0]}"
+            "$ANDROID_HOME/build-ci/35.0.0/apksigner" verify --verbose "${apks[0]}"
           fi
           cp "${apks[0]}" "dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
           python3 ci/verify_platform_package.py android "dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"

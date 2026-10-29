@@ -16,7 +16,7 @@ This document is the practical ownership map for engineers and coding agents.
 ├── docs/
 ├── src/
 ├── tests/
-├── tools/
+├── ci/
 └── ui/
 ```
 

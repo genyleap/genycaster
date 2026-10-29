@@ -10,10 +10,11 @@ set(GENYCASTER_ANDROID_OPENSSL_ROOT "" CACHE PATH
 
 if(NOT GENYCASTER_ANDROID_OPENSSL_ROOT)
     message(FATAL_ERROR
-        "Genycaster Android requires an OpenSSL 3.5.9+ arm64-v8a build. "
-        "Build it with tools/build_android_openssl.sh, then configure with "
-        "-DGENYCASTER_ANDROID_OPENSSL_ROOT=<prefix>. "
-        "Never point OPENSSL_ROOT_DIR at macOS Homebrew OpenSSL.")
+        "Genycaster Android requires an OpenSSL 3.5.9+ arm64-v8a prefix. "
+        "GitHub Actions provisions and verifies the target libraries directly "
+        "in its Android job. For manual cross-builds set "
+        "-DGENYCASTER_ANDROID_OPENSSL_ROOT=<prepared Android prefix>; "
+        "never use host macOS/Homebrew OpenSSL.")
 endif()
 
 if(NOT CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
@@ -44,11 +45,10 @@ foreach(_genycasterAndroidFile IN ITEMS
             "Missing Android OpenSSL artifact: ${_genycasterAndroidFile}\n"
             "The Android arm64-v8a OpenSSL prefix has not been prepared, "
             "or the previous cross-build was incomplete.\n"
-            "On macOS, run from the GenyCaster source root:\n"
-            "  brew install patchelf\n"
-            "  ANDROID_NDK_ROOT=\"$ENV{HOME}/Library/Android/sdk/ndk/27.2.12479018\" "
-            "bash tools/build_android_openssl.sh\n"
-            "Then confirm these files exist under '${_genycasterAndroidSslRoot}':\n"
+            "GitHub Actions provisions the target ABI libraries in the "
+            "Android CI job; a manual cross-build requires an already prepared "
+            "Android OpenSSL prefix. Confirm these files exist under "
+            "'${_genycasterAndroidSslRoot}':\n"
             "  include/openssl/opensslv.h\n"
             "  lib/libcrypto_3.so\n"
             "  lib/libssl_3.so\n"

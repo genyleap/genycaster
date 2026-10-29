@@ -23,7 +23,7 @@ resolution, or database authorization in a browser-only JavaScript bridge.
 | Public account API URL | `ui/config/public_endpoints.json` | All Qt targets |
 | Account API, auth, validation and PostgreSQL persistence | `services/account-sync/*.mjs` (Node.js) | Server only |
 | Browser signer, IndexedDB persistence and Web Crypto | `ui/wasm/*` | Web target only |
-| Build/verification programs | `tools/*.py` and `tests/*` | Developer/CI only |
+| Build/verification programs | `ci/*.py` and `tests/*` | Developer/CI only |
 
 Both portable C++ account methods and QML components are registered in
 `ui/CMakeLists.txt` **before** the `if(EMSCRIPTEN)` browser packaging block.
@@ -40,17 +40,13 @@ reason to delete server source files.
 
 ## Tracked source inventory
 
-At this checkpoint `git ls-files` reports **168 .mjs** files:
-- 138 tests (115 in `tests/wasm`, 7 account-service tests, 13 media-gateway
-  tests, and one each for quick-auth, snapchain-gateway and docs-site).
-- 19 production Node.js service modules in account-sync, media-gateway,
-  quick-auth and snapchain-gateway.
-- 11 browser-only WebAssembly companion modules in `ui/wasm`.
-
-There are **28 tracked .py** files: 23 under `tools`, four tests under
-`tests`, and one docs-site deployment tool. They are not required to run
-the already-built native Qt client or the Node.js account service. Python is
-required for specific source builds, asset generation, deployment or QA tasks.
+The original inventory was a point-in-time snapshot. The obsolete
+`docs-site/` and `tools/` directories have been removed from the repository.
+Supported CI checks, WASM asset packaging and generators now live under
+`ci/`; Qt/C++ sources remain under `src/` and `ui/`. Node.js application
+services and browser companion modules remain intact. Python is not required
+for the already-built native Qt client or the deployed Node account service,
+but is required for selected source builds, CI tests and asset generation.
 Additional ad-hoc deployment scripts under `/opt/genycaster/caster-deployment`
 are **outside** this tracked repository and must be reviewed separately before
 archival or removal.

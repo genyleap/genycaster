@@ -17,7 +17,7 @@ test('previously registered Farcaster signer automatically starts account owners
   assert.match(runtime,/setAccountSessionObserver/);
   assert.match(controller,/acceptBrowserAccountSession/);
   assert.match(file('ui/CMakeLists.txt'),/browser_account_session\.mjs/);
-  assert.match(file('tools/package_wasm_assets.py'),/browser_account_session\.mjs/);
+  assert.match(file('ci/package_wasm_assets.py'),/browser_account_session\.mjs/);
   assert.match(file('ui/wasm/genycaster-sw.js'),/browser_account_session\.mjs/);
   assert.match(file('ui/wasm/secure_signer_vault.mjs'),
     /genycaster-account-session-v1/);

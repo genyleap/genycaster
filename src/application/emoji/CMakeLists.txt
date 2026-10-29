@@ -36,7 +36,7 @@ if(Python3_Interpreter_FOUND)
     add_custom_target(farcaster_emoji_catalog_regenerate
         COMMAND
             "${Python3_EXECUTABLE}"
-            "${CMAKE_SOURCE_DIR}/tools/generate_emoji_catalog.py"
+            "${CMAKE_SOURCE_DIR}/ci/generate_emoji_catalog.py"
             "${CMAKE_SOURCE_DIR}/ui/assets/emoji/noto_manifest.json"
             "${CMAKE_CURRENT_SOURCE_DIR}/emoji_catalog_data.cpp"
         COMMENT "Regenerating emoji_catalog_data.cpp from the vendored Noto manifest"

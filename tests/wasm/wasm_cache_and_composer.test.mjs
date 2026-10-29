@@ -9,7 +9,7 @@ import {readFileSync as read} from 'node:fs';
 import vm from 'node:vm';
 
 const root=new URL('../../',import.meta.url);
-const pack=new URL('../../tools/package_wasm_assets.py',import.meta.url);
+const pack=new URL('../../ci/package_wasm_assets.py',import.meta.url);
 const worker=read(new URL('../../ui/wasm/genycaster-sw.js',import.meta.url),'utf8');
 const html=read(new URL('../../ui/wasm/genycaster-shell.html',import.meta.url),'utf8');
 const main=read(new URL('../../ui/components/AppShell.qml',import.meta.url),'utf8');

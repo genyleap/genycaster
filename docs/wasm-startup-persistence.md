@@ -91,8 +91,8 @@ rather than assuming every failure is a network outage.
 
 \`\`\`sh
 node --test tests/wasm/*.test.mjs
-python3 tools/check_ui_design.py .
-python3 tools/check_localization_catalog.py .
+python3 ci/check_ui_design.py .
+python3 ci/check_localization_catalog.py .
 \`\`\`
 
 An actual Qt WebAssembly build plus tests on mobile browsers and a deployed

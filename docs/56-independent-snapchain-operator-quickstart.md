@@ -49,7 +49,7 @@ A response that is HTTP 200 with a height but large `blockDelay` is
 With a public FID known to have CastAdd messages:
 
 ```sh
-python3 tools/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3 --check-graph
+python3 ci/check_bounty_read_node.py --read-url http://127.0.0.1:3381 --fid 3 --check-graph
 ```
 
 The probe must return `result:pass` with shard heights, single-digit
@@ -70,7 +70,7 @@ independently verified compatible **writer/validator** endpoint; it
 is *not* safe to POST to the read node just because it exposes HTTP:
 
 ```sh
-python3 tools/launch_self_hosted.py \
+python3 ci/launch_self_hosted.py \
   --read-url http://127.0.0.1:3381 \
   --write-url https://your-validated-writer.example \
   --fid 3 --client /absolute/path/to/farcaster_client
