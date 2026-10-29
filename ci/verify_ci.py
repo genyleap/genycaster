@@ -32,6 +32,8 @@ def main() -> None:
     assert "$ANDROID_HOME/cmdline-ci" not in workflow
     assert "sdkmanager_bin/sdkmanager" in workflow
     assert 'export LDFLAGS="-Wl,-z,max-page-size=16384' in workflow
+    assert 'patchelf --page-size 16384 --set-soname libcrypto_3.so' in workflow
+    assert 'patchelf --page-size 16384 --set-soname libssl_3.so' in workflow
     assert '"$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16' in workflow
     assert "validate_android_elf_alignment" in Path(
         "ci/verify_platform_package.py"

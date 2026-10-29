@@ -487,11 +487,15 @@ jobs:
             cp -L libssl.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
           )
           libdir="$GITHUB_WORKSPACE/build/android-deps/lib"
-          patchelf --set-soname libcrypto_3.so "$libdir/libcrypto_3.so"
-          patchelf --set-soname libssl_3.so "$libdir/libssl_3.so"
+          # PatchELF must preserve ELF LOAD mapping congruence for Android's
+          # 16 KiB page-size linker. The default layout can create an invalid
+          # appended segment despite advertising p_align >= 16384; Android
+          # then reads the wrong DT_VERNEED strings and fails QtLoader startup.
+          patchelf --page-size 16384 --set-soname libcrypto_3.so "$libdir/libcrypto_3.so"
+          patchelf --page-size 16384 --set-soname libssl_3.so "$libdir/libssl_3.so"
           for needed in libcrypto.so libcrypto.so.3; do
             if patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx "$needed"; then
-              patchelf --replace-needed "$needed" libcrypto_3.so "$libdir/libssl_3.so"
+              patchelf --page-size 16384 --replace-needed "$needed" libcrypto_3.so "$libdir/libssl_3.so"
             fi
           done
           patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx libcrypto_3.so

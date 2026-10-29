@@ -53,7 +53,9 @@ def validate_web(path: Path) -> None:
         require(any(name.endswith(".wasm") for name in names), "Missing WASM payload")
 
 
-def validate_android_elf_alignment(name: str, data: bytes) -> None:
+def validate_android_elf_alignment(
+    name: str, data: bytes, *, check_load_mapping: bool = True
+) -> None:
     """Reject 4 KiB ELF load segments, which can fail on 16 KiB Android kernels.
 
     Parse ELF64 little-endian program headers directly so the artifact
@@ -81,6 +83,16 @@ def validate_android_elf_alignment(name: str, data: bytes) -> None:
         require(alignment >= 16384 and alignment & (alignment - 1) == 0,
                 f"{name}: 4 KiB ELF LOAD alignment ({alignment} bytes); "
                 "Android 16 KiB pages require at least 16384")
+        # p_align alone is insufficient: when PatchELF adds a PT_LOAD with
+        # incongruent file offset / virtual address, Android's loader can
+        # resolve DT_VERNEED through the wrong bytes (e.g. "sign_ctx" rather
+        # than "libdl.so") and abort before the Qt entry point runs.
+        file_offset = struct.unpack_from("<Q", data, offset + 8)[0]
+        virtual_address = struct.unpack_from("<Q", data, offset + 16)[0]
+        if check_load_mapping:
+            require((virtual_address - file_offset) % 16384 == 0,
+                    f"{name}: incongruent ELF LOAD offset/vaddr for 16 KiB pages "
+                    f"(file=0x{file_offset:x}, vaddr=0x{virtual_address:x})")
     require(load_segments > 0, f"{name}: missing ELF LOAD segment")
 
 
@@ -106,7 +118,22 @@ def validate_android(path: Path) -> None:
                            if name.startswith("lib/arm64-v8a/") and name.endswith(".so"))
         require(bool(libraries), "Android APK contains no ARM64 native libraries")
         for library in libraries:
-            validate_android_elf_alignment(library, apk.read(library))
+            # Qt 6.12's vendor-prebuilt libavformat.so has an invalid
+            # post-link PT_LOAD mapping. It is not loaded by QtLoader at
+            # startup, unlike OpenSSL. Permit only CI test artifacts while
+            # investigating FFmpeg separately; never publish a release that
+            # silently carries this unresolved 16 KiB mapping defect.
+            vendor_ffmpeg_ci_exception = (
+                path.name.endswith("-CI-TEST.apk")
+                and library == "lib/arm64-v8a/libavformat.so"
+            )
+            if vendor_ffmpeg_ci_exception:
+                print("WARNING: vendor Qt FFmpeg libavformat.so has an "
+                      "unresolved 16 KiB LOAD mapping defect (CI test only)")
+            validate_android_elf_alignment(
+                library, apk.read(library),
+                check_load_mapping=not vendor_ffmpeg_ci_exception,
+            )
 
         manifest = apk.read("AndroidManifest.xml")
         # Android binary XML can use either UTF-8 or UTF-16LE string pools.

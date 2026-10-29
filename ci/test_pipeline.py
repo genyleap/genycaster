@@ -63,6 +63,12 @@ class PipelineTests(unittest.TestCase):
             validate_android_elf_alignment("invalid.so", bytes(data))
 
         struct.pack_into("<Q", data, 112, 16384)
+        # This caught the actual Oct 29 Android startup crash: PatchELF
+        # advertised 16 KiB alignment but appended a misaligned PT_LOAD.
+        struct.pack_into("<Q", data, 72, 4096)  # p_offset
+        with self.assertRaisesRegex(ValueError, "incongruent ELF LOAD"):
+            validate_android_elf_alignment("broken-openssl.so", bytes(data))
+        struct.pack_into("<Q", data, 72, 0)
         struct.pack_into("<H", data, 18, 62)  # Wrong architecture (x86_64)
         with self.assertRaisesRegex(ValueError, "AArch64"):
             validate_android_elf_alignment("wrong-arch.so", bytes(data))
