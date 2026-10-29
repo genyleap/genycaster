@@ -320,7 +320,7 @@ Item {
                             spacing: Theme.space3
 
                             DirectionAwareLabel {
-                                text: "Genycaster"
+                                text: qsTrId("genycaster.app.genycaster")
                                 color: Theme.ink
                                 font.weight: Theme.weightBold
                                 font.pixelSize: root.narrow ? 11 : 14

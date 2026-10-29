@@ -663,7 +663,7 @@ Item {
         const hash = /^[0-9a-f]{40}$/i.test(bare) ? "0x" + bare.toLowerCase() : ""
         const authorFid = Number(cast && (cast.authorFid || cast.castAuthorFid || cast.fid) || 0)
         if (!hash || !Number.isSafeInteger(authorFid) || authorFid <= 0) {
-            root.replyTargetErrorText = qsTr("This cast cannot be quoted because its canonical reference is unavailable.")
+            root.replyTargetErrorText = qsTrId("genycaster.cast.quote_reference_unavailable")
             replyTargetErrorLoader.active = true
             Qt.callLater(function() {
                 if (replyTargetErrorLoader.item) replyTargetErrorLoader.item.open()

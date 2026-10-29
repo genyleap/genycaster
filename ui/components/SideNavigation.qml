@@ -124,7 +124,7 @@ Rectangle {
                             : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
                     sourceSize.width: 340
                     sourceSize.height: 44
-                    Accessible.name: "GenyCaster"
+                    Accessible.name: qsTrId("genycaster.app.genycaster")
                 }
                 Text {
                     width: parent.width

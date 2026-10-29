@@ -6329,5 +6329,17 @@ Company | https://company.com</translation>
             <source>Theme</source>
             <translation>Theme</translation>
         </message>
+        <message id="genycaster.navigation.back_to_top">
+            <source>Back to top</source>
+            <translation>返回顶部</translation>
+        </message>
+        <message id="genycaster.cast.quote_reference_unavailable">
+            <source>This cast cannot be quoted because its canonical reference is unavailable.</source>
+            <translation>无法引用此 Cast，因为其规范引用不可用。</translation>
+        </message>
+        <message id="genycaster.brand.geny_ticker">
+            <source>GENY</source>
+            <translation>GENY</translation>
+        </message>
     </context>
 </TS>

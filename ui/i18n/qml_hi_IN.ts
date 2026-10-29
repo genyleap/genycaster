@@ -6329,5 +6329,17 @@ Company | https://company.com</translation>
             <source>Theme</source>
             <translation>Theme</translation>
         </message>
+        <message id="genycaster.navigation.back_to_top">
+            <source>Back to top</source>
+            <translation>ऊपर जाएँ</translation>
+        </message>
+        <message id="genycaster.cast.quote_reference_unavailable">
+            <source>This cast cannot be quoted because its canonical reference is unavailable.</source>
+            <translation>इस कास्ट को उद्धृत नहीं किया जा सकता, क्योंकि इसका मान्य संदर्भ उपलब्ध नहीं है।</translation>
+        </message>
+        <message id="genycaster.brand.geny_ticker">
+            <source>GENY</source>
+            <translation>GENY</translation>
+        </message>
     </context>
 </TS>

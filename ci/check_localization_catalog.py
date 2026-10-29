@@ -18,6 +18,7 @@ PLACEHOLDER_PATTERN = re.compile(r"%(?:L)?[1-9n]")
 
 INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.app.genycaster",
+    "genycaster.brand.geny_ticker",
     "genycaster.header.genycaster",
     "genycaster.side_nav.genycaster",
     "genycaster.detail.fid_value",

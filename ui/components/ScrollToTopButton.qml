@@ -20,7 +20,7 @@ ActionButton {
     quiet: false
     prominent: true
     iconGlyph: Theme.iconChevronUp
-    text: qsTr("Back to top")
+    text: qsTrId("genycaster.navigation.back_to_top")
     z: 40
     visible: flickable !== null && distanceFromTop > revealDistance
     enabled: visible

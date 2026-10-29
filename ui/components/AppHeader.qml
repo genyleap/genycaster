@@ -90,7 +90,7 @@ Rectangle {
                             : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
                     sourceSize.width: 450
                     sourceSize.height: 72
-                    Accessible.name: "GenyCaster"
+                    Accessible.name: qsTrId("genycaster.app.genycaster")
                 }
 
                 // Separate visual runs: Persian, punctuation and localized

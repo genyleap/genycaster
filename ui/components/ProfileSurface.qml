@@ -1792,7 +1792,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Label {
-                                    text: qsTr("GENY")
+                                    text: qsTrId("genycaster.brand.geny_ticker")
                                     color: Theme.dark ? "#F5CD66" : "#956A0B"
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightBold
