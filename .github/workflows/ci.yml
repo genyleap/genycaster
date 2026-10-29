@@ -160,7 +160,7 @@ jobs:
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
           printf '%s\n' '[Desktop Entry]' 'Type=Application' \
             'Name=GenyCaster' 'Exec=farcaster_client' \
-            'Icon=genycaster' 'Categories=Network;Social;' \
+            'Icon=genycaster' 'Categories=Network;' \
             > AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
             -o tools/linuxdeploy.AppImage \

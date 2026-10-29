@@ -47,7 +47,10 @@ if(EMSCRIPTEN OR ANDROID)
 elseif(APPLE)
     target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE "${FARCASTER_SQLITE3_LIBRARY}")
 else()
-    target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE SQLite3::SQLite3)
+    # sqlite_boundary.hpp is a public textual C API boundary used by the
+    # separate store targets. Export SQLite's include usage requirements so
+    # Clang-CL's module scanner can resolve sqlite3.h on Windows/vcpkg too.
+    target_link_libraries(farcaster_storage_sqlite_boundary PUBLIC SQLite3::SQLite3)
 endif()
 target_compile_features(farcaster_storage_sqlite_boundary PUBLIC cxx_std_26)
 farcaster_enable_warnings(farcaster_storage_sqlite_boundary)
