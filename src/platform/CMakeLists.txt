@@ -44,9 +44,18 @@ elseif(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT)
     # Service/KWallet, and Android Keystore. It does not use plaintext fallback
     # unless a caller opts into that explicitly; Genycaster never does.
     find_package(Qt6Keychain 0.17 CONFIG QUIET)
-    if(ANDROID AND NOT Qt6Keychain_FOUND)
-        # Cross-build QtKeychain for the Android ABI, rather than using a
-        # macOS/Homebrew library or silently disabling persistent signer keys.
+    set(_farcasterFetchQtKeychainDefault OFF)
+    if(ANDROID)
+        set(_farcasterFetchQtKeychainDefault ON)
+    endif()
+    option(GENYCASTER_FETCH_QTKEYCHAIN
+        "Build pinned QtKeychain 0.17 from source if no suitable package is installed"
+        ${_farcasterFetchQtKeychainDefault})
+    unset(_farcasterFetchQtKeychainDefault)
+    if(FARCASTER_BUILD_UI AND GENYCASTER_FETCH_QTKEYCHAIN AND NOT Qt6Keychain_FOUND)
+        # Package builds explicitly enable this source fallback on Linux/Windows.
+        # Android uses it by default. Developer builds without libsecret can
+        # still configure their pre-existing fail-closed signer adapter.
         include(FetchContent)
         set(BUILD_TRANSLATIONS OFF)
         FetchContent_Declare(genycaster_android_qtkeychain

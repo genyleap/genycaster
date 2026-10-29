@@ -1,0 +1,532 @@
+name: GenyCaster cross-platform builds
+
+# No branch pushes, pull requests, schedules or release edits trigger this workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Build platform (never publishes a Release)
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - core
+          - linux
+          - macos
+          - windows
+          - android
+          - web
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: genycaster-cross-platform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  QT_VERSION: '6.12.0'
+  CMAKE_VERSION: '4.4.4'
+  ANDROID_NDK_VERSION: '27.2.12479018'
+  ANDROID_API: '28'
+  LANG: C.UTF-8
+
+jobs:
+  gate:
+    name: Validate version and event
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      release: ${{ steps.release.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: release
+        run: python3 ci/release_gate.py
+      - name: Release commits must originate from main
+        if: steps.release.outputs.release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+  core:
+    name: Core C++26 tests
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'core'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install C++26 toolchain and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 clang-tools-18 ninja-build \
+            libboost-dev libsqlite3-dev libssl-dev python3
+      - name: Build and run core tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC=clang-18 CXX=clang++-18
+          cmake --preset core-release
+          cmake --build --preset core-release --parallel 3
+          ctest --test-dir build/core-release --output-on-failure --parallel 2
+      - name: Architecture and CI checks
+        run: |
+          python3 tools/check_architecture.py
+          python3 ci/verify_ci.py
+          python3 -m unittest ci.test_pipeline -v
+
+  linux:
+    name: Linux x86_64 AppImage
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'linux'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install Linux build and deployment tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ninja-build curl file patchelf libfuse2 \
+            libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-xinerama0 \
+            libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
+            libdbus-1-dev clang-18 clang-tools-18 \
+            libfontconfig1 libfreetype6 python3
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: linux_gcc_64
+          cache: true
+      - name: Build Qt client
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC=clang-18 CXX=clang++-18
+          cmake -S . -B build/native -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+            -DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=/usr/bin/clang-scan-deps-18 \
+            -DFARCASTER_BUILD_TESTS=OFF \
+            -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+          cmake --build build/native --target farcaster_client --parallel 3
+          test -x build/native/ui/farcaster_client
+      - name: Package AppImage
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
+            AppDir/usr/share/icons/hicolor/512x512/apps tools
+          cp build/native/ui/farcaster_client AppDir/usr/bin/
+          cp ui/wasm/genycaster-512.png \
+            AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
+          printf '%s\n' '[Desktop Entry]' 'Type=Application' \
+            'Name=GenyCaster' 'Exec=farcaster_client' \
+            'Icon=genycaster' 'Categories=Network;Social;' \
+            > AppDir/usr/share/applications/genycaster.desktop
+          curl --fail --location --retry 3 \
+            -o tools/linuxdeploy.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl --fail --location --retry 3 \
+            -o tools/linuxdeploy-plugin-qt.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x tools/linuxdeploy*.AppImage
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          export QMAKE="$QT_ROOT_DIR/bin/qmake6"
+          export QML_SOURCES_PATHS="$GITHUB_WORKSPACE/ui"
+          # linuxdeploy discovers plugins via PATH as linuxdeploy-plugin-<name>.
+          cp tools/linuxdeploy-plugin-qt.AppImage tools/linuxdeploy-plugin-qt
+          chmod +x tools/linuxdeploy-plugin-qt
+          export PATH="$PWD/tools:$PATH"
+          export OUTPUT="GenyCaster-v${VERSION}-linux-x86_64.AppImage"
+          ./tools/linuxdeploy.AppImage \
+            --appdir AppDir \
+            --desktop-file AppDir/usr/share/applications/genycaster.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png \
+            --plugin qt --output appimage
+          test -s "$OUTPUT"
+          mv "$OUTPUT" dist/
+          (cd dist && sha256sum *.AppImage > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-linux-x86_64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  macos:
+    name: macOS arm64 DMG
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'macos'
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install macOS toolchain and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install ninja llvm boost openssl@3 sqlite
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: clang_64
+          cache: true
+      - name: Build and deploy macOS application
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          export CC="$(brew --prefix llvm)/bin/clang"
+          export CXX="$(brew --prefix llvm)/bin/clang++"
+          cmake -S . -B build/native -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
+            -DOPENSSL_USE_STATIC_LIBS=TRUE \
+            -DFARCASTER_BUILD_TESTS=OFF \
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+          cmake --build build/native --target farcaster_client --parallel 3
+          APP=build/native/ui/farcaster_client.app
+          test -d "$APP"
+          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
+          mkdir -p dist
+          DMG=build/native/ui/farcaster_client.dmg
+          test -s "$DMG"
+          cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-arm64.dmg"
+          (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-macos-arm64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Windows x64 portable ZIP
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'windows'
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+      - name: Install Windows native packages
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install `
+            boost-headers:x64-windows openssl:x64-windows sqlite3:x64-windows
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile and deploy
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          cmake -S . -B build/native -G Ninja `
+            "-DCMAKE_BUILD_TYPE=Release" `
+            "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            "-DVCPKG_TARGET_TRIPLET=x64-windows" `
+            "-DFARCASTER_BUILD_TESTS=OFF" `
+            "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
+            "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/native --target farcaster_client --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force dist/app | Out-Null
+          Copy-Item build/native/ui/farcaster_client.exe dist/app/
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
+            --qmldir ui --dir dist/app dist/app/farcaster_client.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # windeployqt handles Qt plugins, not arbitrary vcpkg/QtKeychain DLLs.
+          $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
+          foreach ($name in @('libcrypto-3-x64.dll', 'libssl-3-x64.dll')) {
+            $source = Join-Path $vcpkgBin $name
+            if (-not (Test-Path $source)) { throw "Missing dependency: $source" }
+            Copy-Item $source dist/app/
+          }
+          $keychain = Get-ChildItem build/native -Recurse -File -Filter '*keychain*.dll' |
+            Select-Object -First 1
+          if (-not $keychain) { throw 'Missing QtKeychain runtime DLL' }
+          Copy-Item $keychain.FullName dist/app/
+          $zip = "dist/GenyCaster-v$env:VERSION-windows-x86_64.zip"
+          Compress-Archive -Path dist/app/* -DestinationPath $zip
+          if (-not (Test-Path $zip)) { throw "Windows ZIP missing" }
+          $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path $zip -Leaf)" |
+            Set-Content -Encoding ascii dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-windows-x86_64
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  android:
+    name: Android ARM64 APK
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'android'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install Android packages and OpenSSL tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ninja-build patchelf perl \
+            libdigest-sha-perl make curl tar python3
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | sdkmanager --licenses || true
+          sdkmanager --install "ndk;${ANDROID_NDK_VERSION}" \
+            "platforms;android-${ANDROID_API}" "build-tools;35.0.0" \
+            "platform-tools"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+      - uses: jurplel/install-qt-action@v4
+        id: qt
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: android
+          arch: android_arm64_v8a
+          cache: true
+      - name: Cross-compile OpenSSL for arm64-v8a
+        run: bash tools/build_android_openssl.sh
+      - name: Prepare signing for release tags only
+        if: needs.gate.outputs.release == 'true'
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for value in "$KEYSTORE_BASE64" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            test -n "$value" || { echo "::error::Android signing secrets are missing"; exit 1; }
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/genycaster-release.keystore"
+          test -s "$RUNNER_TEMP/genycaster-release.keystore"
+          echo "QT_ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/genycaster-release.keystore" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_STORE_PASS=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "QT_ANDROID_KEYSTORE_KEY_PASS=$KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Configure and build Android APK
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          SIGN_RELEASE: ${{ needs.gate.outputs.release }}
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          args=(
+            -S . -B build/android -G Ninja
+            -DCMAKE_BUILD_TYPE=Release
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake"
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR"
+            "-DQT_HOST_PATH=$QT_HOST_PATH"
+            -DANDROID_ABI=arm64-v8a
+            "-DANDROID_PLATFORM=android-${ANDROID_API}"
+            "-DANDROID_SDK_ROOT=$ANDROID_HOME"
+            "-DANDROID_NDK=$ANDROID_NDK_ROOT"
+            "-DGENYCASTER_ANDROID_OPENSSL_ROOT=$PWD/build/android-deps"
+            -DFARCASTER_BUILD_TESTS=OFF
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+            -DQT_ANDROID_DEPLOY_RELEASE=ON
+          )
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            args+=(
+              -DQT_ANDROID_SIGN_APK=ON
+              "-DQT_ANDROID_KEYSTORE_PATH=$QT_ANDROID_KEYSTORE_PATH"
+              "-DQT_ANDROID_KEYSTORE_ALIAS=$QT_ANDROID_KEYSTORE_ALIAS"
+              "-DQT_ANDROID_KEYSTORE_STORE_PASS=$QT_ANDROID_KEYSTORE_STORE_PASS"
+              "-DQT_ANDROID_KEYSTORE_KEY_PASS=$QT_ANDROID_KEYSTORE_KEY_PASS"
+            )
+          fi
+          # A Qt Network binary without SSL cannot run GenyCaster's HTTPS
+          # transport, even if the APK bundles libcrypto/libssl correctly.
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            QT_NETWORK_CONFIG="$QT_ROOT_DIR/include/QtNetwork/qtnetwork-config.h"
+            if ! grep -Eq '^#define QT_FEATURE_ssl[[:space:]]+1([[:space:]]|$)' "$QT_NETWORK_CONFIG"; then
+              echo "::error::Qt Android SDK lacks QT_FEATURE_ssl=1; refusing release packaging"
+              exit 1
+            fi
+          fi
+          cmake "${args[@]}"
+          cmake --build build/android --target farcaster_client_make_apk --parallel 3
+          mkdir -p dist
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            mapfile -t apks < <(find build/android/ui -type f -name '*signed*.apk' ! -name '*unsigned*')
+          else
+            mapfile -t apks < <(find build/android/ui -type f -name '*.apk')
+          fi
+          [[ ${#apks[@]} -eq 1 ]] || {
+            echo "::error::Expected one appropriate APK; found ${#apks[@]}"
+            exit 1
+          }
+          if [[ "$SIGN_RELEASE" == true ]]; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "${apks[0]}"
+          fi
+          cp "${apks[0]}" "dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-android-arm64-v8a
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  web:
+    name: WebAssembly (single-threaded)
+    needs: gate
+    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'web'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '5.0.5'
+          actions-cache-folder: emsdk-cache
+      - name: Install system build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python3
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: wasm
+          arch: wasm_singlethread
+          cache: true
+      - name: Build and package browser application
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/web -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" \
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
+            "-DQT_HOST_PATH=$QT_HOST_PATH" \
+            -DFARCASTER_BUILD_TESTS=OFF
+          cmake --build build/web --target genycaster_wasm_asset_refresh --parallel 3
+          mkdir -p dist
+          python3 ci/package_web.py \
+            --source build/web/ui \
+            --output "dist/GenyCaster-v${VERSION}-web-wasm.tar.gz"
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-web-wasm
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish version-tag release
+    needs: [gate, core, linux, macos, windows, android, web]
+    if: github.event_name == 'push' && needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Refuse overwriting an existing release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $GITHUB_REF_NAME already exists"
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Verify mandatory packages and aggregate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in GenyCaster-linux-x86_64 GenyCaster-macos-arm64 \
+                      GenyCaster-windows-x86_64 GenyCaster-android-arm64-v8a \
+                      GenyCaster-web-wasm; do
+            test -d "artifacts/$name"
+            test -n "$(find "artifacts/$name" -type f -print -quit)"
+          done
+          python3 ci/release_artifacts.py artifacts release
+      - name: Publish as prerelease until device/signing verification
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: GenyCaster ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: true
+          files: release/*
+          fail_on_unmatched_files: true

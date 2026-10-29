@@ -99,6 +99,15 @@ GENYCASTER_SIGNER_ATTESTATION_URL=https://<trusted-origin>/v1/farcaster/signer-a
 
 Signer provisioning verifies the current FID custody address from IdRegistry before opening the wallet. Older persisted sessions that predate this field are upgraded automatically through the configured Optimism RPC during restore; a valid session no longer requires a forced sign-out merely to obtain `custodyAddress`. The approval page shows the exact custody address that must be selected in the EIP-1193 wallet.
 
+## Multi-platform GitHub Actions
+
+The controlled C++26/Qt 6.12 build matrix covers Linux, macOS, Windows,
+Android arm64-v8a and WebAssembly. **Ordinary pushes and pull requests do not
+trigger CI or publish releases.** Run the matrix on demand from GitHub Actions;
+only a validated version tag runs the full release candidate pipeline.
+Build artifacts are never treated as production-ready merely because they
+compiled. See [CI workflow and release procedure](ci/README.md).
+
 ## Engineering authority
 
 This repository follows the rules in `thecompez/ai-for-modern-cpp` at the pinned revision recorded in `AGENTS.md` and `docs/19-engineering-authority.md`.
