@@ -58,6 +58,8 @@ public:
     /** @brief Runtime status sink. Errors are user-visible; no success is fabricated on failure. */
     Q_INVOKABLE void setState(bool active, const QString& error = {});
 signals:
+    /** An unprivileged system-browser fallback opened successfully. */
+    void externalLaunchSucceeded();
     void launchRequested(const QString& url, const QString& title, const QString& iconSource);
     void closeRequested();
     void closeAllRequested();

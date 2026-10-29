@@ -17,6 +17,52 @@ from ci.release_gate import project_version, release_version
 
 
 class PipelineTests(unittest.TestCase):
+    def test_builtin_provider_linkage_is_explicitly_static(self) -> None:
+        # C++26 modules do not implicitly export their C++ definitions from
+        # Windows DLLs. Provider implementations linked into the executable
+        # must remain static even when BUILD_SHARED_LIBS=ON.
+        provider_specs = (
+            ("src/providers/compatibility/browser_wallet/CMakeLists.txt",
+             "farcaster_provider_compatibility_browser_wallet"),
+            ("src/providers/compatibility/farcaster_auth/CMakeLists.txt",
+             "farcaster_provider_compatibility_auth"),
+            ("src/providers/compatibility/signer_attestation/CMakeLists.txt",
+             "farcaster_provider_compatibility_signer_attestation"),
+            ("src/providers/openproof_auth/CMakeLists.txt",
+             "farcaster_provider_openproof_auth"),
+            ("src/providers/emoji/CMakeLists.txt", "farcaster_provider_emoji"),
+            ("src/providers/snapchain/CMakeLists.txt", "farcaster_provider_snapchain_read"),
+            ("src/providers/snapchain/CMakeLists.txt", "farcaster_provider_snapchain_signer"),
+            ("src/providers/snapchain/CMakeLists.txt", "farcaster_provider_snapchain_write"),
+        )
+        for relative, target in provider_specs:
+            source = Path(relative).read_text(encoding="utf-8")
+            with self.subTest(target=target):
+                self.assertIn(f"add_library({target} STATIC)", source)
+
+    def test_miniapp_url_validation_is_shared_before_platform_dispatch(self) -> None:
+        source = Path("ui/mobile/miniapp_host_controller.cpp").read_text(encoding="utf-8")
+        start = source.index("void MiniAppHostController::openWithMetadata(")
+        end = source.index("void MiniAppHostController::close()", start)
+        procedure = source[start:end]
+        validation = procedure.index("const QUrl destination{url.trimmed(), QUrl::StrictMode};")
+        wasm_dispatch = procedure.index("#if defined(__EMSCRIPTEN__)")
+        self.assertLess(validation, wasm_dispatch)
+        self.assertEqual(procedure.count("const QUrl destination{"), 1)
+        self.assertEqual(procedure.count("QHostAddress numericHost{};"), 1)
+        self.assertIn("destination.scheme() != QStringLiteral(\"https\")", procedure)
+
+    def test_external_miniapp_fallback_is_unprivileged_and_explicit(self) -> None:
+        controller = Path("ui/mobile/miniapp_host_controller.cpp").read_text(encoding="utf-8")
+        header = Path("ui/mobile/miniapp_host_controller.hpp").read_text(encoding="utf-8")
+        surface = Path("ui/components/AppsSurface.qml").read_text(encoding="utf-8")
+        self.assertIn("if (QDesktopServices::openUrl(destination))", controller)
+        self.assertIn("emit externalLaunchSucceeded();", controller)
+        self.assertIn("void externalLaunchSucceeded();", header)
+        self.assertIn("function onExternalLaunchSucceeded()", surface)
+        self.assertIn("root.pendingLaunchApp = null", surface)
+        self.assertNotIn('if (!miniAppHost.available && Qt.platform.os !== "wasm")', surface)
+
     def test_version_tag_gate(self) -> None:
         version = project_version(Path.cwd())
         self.assertEqual(release_version("refs/heads/main", version), (version, False))

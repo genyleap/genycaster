@@ -69,6 +69,11 @@ Item {
     }
     Connections {
         target: miniAppHost
+        function onExternalLaunchSucceeded() {
+            if (root.pendingLaunchApp !== null)
+                miniAppCatalog.recordRecentUse(root.pendingLaunchApp)
+            root.pendingLaunchApp = null
+        }
         function onStateChanged() {
             if (miniAppHost.errorText.length > 0) {
                 root.launchErrorText = miniAppHost.errorText
@@ -130,11 +135,6 @@ Item {
         if (url.length === 0)
             return
         root.launchErrorText = ""
-        if (!miniAppHost.available && Qt.platform.os !== "wasm") {
-            root.launchErrorText = qsTrId("genycaster.miniapp.unavailable")
-            launchErrorTimeout.restart()
-            return
-        }
         if (Number(presentationBridge.accountFid || 0) <= 0) {
             root.authenticationRequested()
             return

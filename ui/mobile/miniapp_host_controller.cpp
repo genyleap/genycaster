@@ -2,6 +2,9 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
+#if !defined(__EMSCRIPTEN__)
+#include <QDesktopServices>
+#endif
 #include <QtTranslation>
 #if defined(__EMSCRIPTEN__)
 #include <QHostAddress>
@@ -116,12 +119,25 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     }
     return;
 #endif
-    if (!m_available) {
-        setState(false, qtTrId("genycaster.miniapp.unavailable"));
-        return;
-    }
     if (m_user.value(QStringLiteral("fid")).toULongLong() == 0) {
         setState(false, qtTrId("genycaster.miniapp.sign_in_first"));
+        return;
+    }
+    if (!m_available) {
+        // A supported system browser is safer than pretending Windows/Linux
+        // ship an embedded SDK runtime. Never bridge signer/wallet permissions.
+        // The Open button remains functional without weakening the native
+        // sandbox or silently marking a session active.
+#if !defined(__EMSCRIPTEN__) && !defined(Q_OS_ANDROID)
+        if (QDesktopServices::openUrl(destination)) {
+            emit externalLaunchSucceeded();
+            setState(false);
+        } else {
+            setState(false, qtTrId("genycaster.miniapp.unavailable"));
+        }
+#else
+        setState(false, qtTrId("genycaster.miniapp.unavailable"));
+#endif
         return;
     }
     emit launchRequested(destination.toString(QUrl::FullyEncoded), title, iconSource.left(4096));
