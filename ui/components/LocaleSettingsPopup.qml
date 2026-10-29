@@ -9,6 +9,18 @@ GenyDrawer {
     property int currentSection: 0
     property bool mobileIndexOpen: true
     property bool showRecoveryExplanation: false
+    // Release categories are a bounded server-controlled enum. Use static
+    // translation IDs so extraction/coverage checks can inspect every label.
+    function releaseTypeLabel(kind) {
+        switch (String(kind || "")) {
+        case "fix": return qsTrId("genycaster.update.type_fix")
+        case "improvement": return qsTrId("genycaster.update.type_improvement")
+        case "feature": return qsTrId("genycaster.update.type_feature")
+        case "security": return qsTrId("genycaster.update.type_security")
+        case "maintenance": return qsTrId("genycaster.update.type_maintenance")
+        default: return ""
+        }
+    }
     readonly property bool webAssembly: Qt.platform.os === "wasm"
     // Overlay.overlay measures the actual Qt window on both native desktop
     // and desktop WebAssembly. Popup parent widths may be transient during
@@ -2372,7 +2384,7 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: updateController.releaseType.length > 0
-                                text: qsTrId("genycaster.update.type_" + updateController.releaseType)
+                                text: root.releaseTypeLabel(updateController.releaseType)
                                       + (updateController.releaseTitle.length > 0
                                          ? " · " + updateController.releaseTitle : "")
                                 color: Theme.accent

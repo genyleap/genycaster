@@ -8,6 +8,18 @@ Drawer {
     id: root
     objectName: "updateNoticeDrawer"
     property string lastPresentedVersion: ""
+    // Release categories are a bounded server-controlled enum. Use static
+    // translation IDs so extraction/coverage checks can inspect every label.
+    function releaseTypeLabel(kind) {
+        switch (String(kind || "")) {
+        case "fix": return qsTrId("genycaster.update.type_fix")
+        case "improvement": return qsTrId("genycaster.update.type_improvement")
+        case "feature": return qsTrId("genycaster.update.type_feature")
+        case "security": return qsTrId("genycaster.update.type_security")
+        case "maintenance": return qsTrId("genycaster.update.type_maintenance")
+        default: return ""
+        }
+    }
 
     parent: Overlay.overlay
     modal: true
@@ -169,7 +181,7 @@ Drawer {
                 }
                 DirectionAwareLabel {
                     visible: updateController.releaseType.length > 0
-                    text: qsTrId("genycaster.update.type_" + updateController.releaseType)
+                    text: root.releaseTypeLabel(updateController.releaseType)
                     color: Theme.accent
                     font.pixelSize: Theme.typeCaptionSize
                 }
