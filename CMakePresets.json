@@ -125,6 +125,11 @@
       "name": "ui-qt612-debug",
       "displayName": "Qt 6.12 Native UI Debug (GCC 16)",
       "inherits": "ui-debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
       "binaryDir": "${sourceDir}/build/ui-qt612-debug",
       "cacheVariables": {
         "CMAKE_PREFIX_PATH": "/opt/genycaster/Qt/6.12.0/gcc_64",

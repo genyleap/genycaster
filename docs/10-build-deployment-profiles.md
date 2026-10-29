@@ -42,8 +42,11 @@ OpenSSL 3.5.9 or newer when building its native Qt Android client; do not use
 Homebrew/macOS OpenSSL, a host `Boost_DIR`, or an unversioned system Android
 `libcrypto.so`. The standalone build script obtains the official OpenSSL 3.5.9
 LTS release and its SHA-256 checksum, cross-compiles against the configured
-NDK/API 28, installs headers and version-suffixed shared libraries
-(`libcrypto_3.so` and `libssl_3.so`), and patches ELF SONAME/dependencies.
+NDK/API 28 with `SHLIB_VERSION_NUMBER=` (as required by the Qt 6 Android
+OpenSSL instructions), copies the generated target headers and unversioned
+shared libraries as `libcrypto_3.so` and `libssl_3.so`, and patches ELF
+SONAME/dependencies. It validates both files as AArch64 ELF binaries, without
+running `make install_sw` or installing an unused OpenSSL CLI.
 Both shared libraries are packaged through `QT_ANDROID_EXTRA_LIBS`.
 
 On a macOS host with Homebrew, run this from the Genycaster source root:
@@ -60,6 +63,9 @@ absolute path (for example, `/Users/compez/Developer/genycaster/build/android-de
 Clear the Qt Creator CMake cache before reconfiguring, especially when changing
 ABI or OpenSSL prefix. This variable is distinct from
 `OPENSSL_ROOT_DIR`; stale paths to host packages must not be reused.
+The `ui-qt612-debug` CMake preset is intentionally Linux-only: it specifies
+`/opt/gcc-16.2.0/bin/c++` on the build server and must not be used as a Qt
+Creator kit on macOS. Select the Qt 6.12 Android arm64-v8a kit instead.
 
 `Qt6Keychain >= 0.17` is a separate Android Keystore-backed signer-vault
 requirement. If the effective backend remains `unavailable`, signed-write

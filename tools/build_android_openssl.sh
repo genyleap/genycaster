@@ -43,27 +43,58 @@ if [[ ! "${expected}" =~ ^[0-9a-fA-F]{64}$ ]] || [[ "${expected}" != "${actual}"
 fi
 
 tar -xzf "${archive}" -C "${work}"
-stage="${work}/installed"
 export ANDROID_NDK_ROOT="${ndk}"
 export ANDROID_NDK_HOME="${ndk}"
 export PATH="${toolchain}:${PATH}"
 cd "${work}/openssl-${version}"
-./Configure android-arm64 shared no-tests -D__ANDROID_API__="${api_level}" \
-    --prefix="${stage}" --openssldir="${stage}/ssl" --libdir=lib
-make -j "${GENYCASTER_ANDROID_BUILD_JOBS:-4}" build_libs
-make install_sw
+./Configure android-arm64 shared no-tests -D__ANDROID_API__="${api_level}"
 
+# Qt 6's documented Android build produces *unversioned* shared objects in
+# the OpenSSL source/build directory. Do not use 'make install_sw' here: its
+# installed paths and sonames do not match the Android APK's required names.
+printf 'Compiling OpenSSL %s for Android arm64-v8a (API %s)...\n' "${version}" "${api_level}"
+make -s -j "${GENYCASTER_ANDROID_BUILD_JOBS:-4}" SHLIB_VERSION_NUMBER= build_libs
+for library in libcrypto.so libssl.so; do
+    if [[ ! -f "${library}" ]]; then
+        printf 'Missing cross-built OpenSSL library: %s\n' "${PWD}/${library}" >&2
+        exit 1
+    fi
+done
+
+# Configure generated the target-specific OpenSSL headers in include/openssl.
+# Copy those headers and the just-built ELF binaries without installing the
+# unused OpenSSL command-line application onto the build host.
 mkdir -p "${output}/include" "${output}/lib"
-cp -R "${stage}/include/openssl" "${output}/include/"
-cp -L "${stage}/lib/libcrypto.so.3" "${output}/lib/libcrypto_3.so"
-cp -L "${stage}/lib/libssl.so.3" "${output}/lib/libssl_3.so"
+cp -R include/openssl "${output}/include/"
+cp -L libcrypto.so "${output}/lib/libcrypto_3.so"
+cp -L libssl.so "${output}/lib/libssl_3.so"
 patchelf --set-soname libcrypto_3.so "${output}/lib/libcrypto_3.so"
 patchelf --set-soname libssl_3.so "${output}/lib/libssl_3.so"
-patchelf --replace-needed libcrypto.so.3 libcrypto_3.so "${output}/lib/libssl_3.so"
 
-if command -v llvm-readelf >/dev/null 2>&1; then
-    llvm-readelf -h "${output}/lib/libcrypto_3.so" | grep -E 'Class:|Machine:'
-    llvm-readelf -d "${output}/lib/libssl_3.so" | grep NEEDED
+# OpenSSL 3's build can refer to either filename depending on its shared-
+# library version configuration. Rebind libssl to the packaged libcrypto.
+for needed in libcrypto.so libcrypto.so.3; do
+    if patchelf --print-needed "${output}/lib/libssl_3.so" | grep -Fqx "${needed}"; then
+        patchelf --replace-needed "${needed}" libcrypto_3.so "${output}/lib/libssl_3.so"
+    fi
+done
+if ! patchelf --print-needed "${output}/lib/libssl_3.so" | grep -Fqx libcrypto_3.so; then
+    printf 'Android libssl is not linked to packaged libcrypto_3.so\n' >&2
+    exit 1
 fi
+
+# Verify the output is Android AArch64 ELF, not a macOS/Homebrew binary.
+if [[ ! -x "${toolchain}/llvm-readelf" ]]; then
+    printf 'Android NDK llvm-readelf not found: %s\n' "${toolchain}/llvm-readelf" >&2
+    exit 1
+fi
+for library in libcrypto_3.so libssl_3.so; do
+    if ! "${toolchain}/llvm-readelf" -h "${output}/lib/${library}" | grep -Eq 'Machine:[[:space:]]+AArch64'; then
+        printf 'Not an Android AArch64 ELF library: %s\n' "${library}" >&2
+        exit 1
+    fi
+done
+printf 'Built Android AArch64 ELF libraries:\n'
+"${toolchain}/llvm-readelf" -d "${output}/lib/libssl_3.so" | grep NEEDED
 printf 'Android arm64-v8a OpenSSL %s installed at: %s\n' "${version}" "${output}"
 printf 'CMake: -DGENYCASTER_ANDROID_OPENSSL_ROOT=%s\n' "${output}"
