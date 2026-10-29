@@ -132,6 +132,15 @@ jobs:
           arch: linux_gcc_64
           modules: qtmultimedia
           cache: true
+      - name: Verify Android icon rasterization and alpha preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC=gcc-16 CXX=g++-16
+          cmake -S tests/icon_raster -B build/icon-raster -G Ninja \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build/icon-raster --parallel 2
+          ctest --test-dir build/icon-raster --output-on-failure
       - name: Build Qt client
         shell: bash
         run: |
@@ -396,8 +405,10 @@ jobs:
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
-      - name: Verify Android OpenSSL path cache recovery
-        run: cmake -P tests/cmake/android_openssl_root_test.cmake
+      - name: Verify Android OpenSSL and Qt Network TLS gates
+        run: |
+          cmake -P tests/cmake/android_openssl_root_test.cmake
+          cmake -P tests/cmake/android_qt_tls_test.cmake
       - name: Install Android packages and OpenSSL tools
         shell: bash
         run: |

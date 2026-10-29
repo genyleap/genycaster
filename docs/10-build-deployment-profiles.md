@@ -108,10 +108,27 @@ compiled in. Packaged OpenSSL shared objects only satisfy *runtime* TLS
 libraries; they cannot enable QSslSocket or QNetworkReply SSL APIs in a Qt
 Network binary that was built without this feature. Inspect the Android kit's
 `include/QtNetwork/qtnetwork-config.h` for `QT_FEATURE_ssl` (1 means enabled;
--1 means disabled). Genycaster's Qt Network adapters guard optional SSL APIs
-with `QT_CONFIG(ssl)` and fail closed if Qt provides no SSL; certificate errors
-are never ignored. A build without Qt SSL is not usable for the HTTPS-backed
-product and must not be considered release-ready.
+-1 means disabled). **CMake now refuses Android UI builds when this feature
+is absent**, including local Qt Creator Release/Debug kits. For a macOS Qt kit:
+
+```sh
+grep QT_FEATURE_ssl "$HOME/Qt/6.12.0/android-arm64-v8a/include/QtNetwork/qtnetwork-config.h"
+```
+
+If it reports `-1`, install or rebuild an Android Qt 6.12 SDK with the SSL
+feature enabled. Adding `libssl_3.so` or `libcrypto_3.so` alone cannot fix
+that SDK. Qt Network adapters also check that the TLS backend is usable at
+runtime, and certificate errors are never ignored. Node diagnostics report
+HTTP status and Qt network error in Android Logcat without logging secrets;
+a cold-emulator HTTPS probe has an 8-second timeout to avoid false offline
+results. The default HyperSnap `/v1/info` route must still return a valid
+`version` and `shardInfos` payload before a node is marked healthy.
+
+Android icon SVGs use an alpha-preserving QtSvg rasterizer and native tint,
+instead of relying on Qt Quick MultiEffect's GPU colorization path that can
+produce solid-square artifacts on Android renderers. The desktop/Web path
+remains unchanged. A standalone Qt 6.12 test in `tests/icon_raster` checks
+shape transparency, tint and rejection of invalid SVG resource paths.
 
 `Qt6Keychain >= 0.17` is a separate Android Keystore-backed signer-vault
 requirement. If the effective backend remains `unavailable`, signed-write

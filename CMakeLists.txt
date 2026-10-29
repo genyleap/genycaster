@@ -387,6 +387,13 @@ include(CTest)
 
 if(FARCASTER_BUILD_UI)
     find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Qml QuickControls2 Network Multimedia Concurrent LinguistTools)
+    if(ANDROID)
+        # The app can compile while Qt for Android was built with SSL disabled,
+        # but every HTTPS provider will then fail at runtime. Reject that SDK
+        # before building an APK that deceptively appears ready to connect.
+        include(AndroidQtNetworkTls)
+        genycaster_require_android_qt_tls("${Qt6Network_INCLUDE_DIRS}")
+    endif()
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
 
     if(QT_KNOWN_POLICY_QTP0004)

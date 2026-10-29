@@ -3,6 +3,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSettings>
@@ -18,6 +19,9 @@ namespace {
 constexpr auto kSelectionModeKey = "network/nodeSelectionMode";
 constexpr auto kNodeIdKey = "network/hypersnapNodeId";
 constexpr auto kNodeEndpointKey = "network/hypersnapBaseUrl";
+// The first HTTPS handshake and DNS lookup on a cold Android emulator can
+// exceed 2.5s even when the provider is healthy. Avoid false 'unreachable'.
+constexpr int kReadNodeProbeTimeoutMs = 8000;
 
 [[nodiscard]] QString normalizedEndpoint(QString endpoint)
 {
@@ -245,7 +249,7 @@ void NodeSelectionController::refresh()
         // is not proof that it supports the Hypersnap v2 read protocol.
         QNetworkRequest request{
             QUrl{m_nodes.at(index).endpoint + QStringLiteral("/v1/info")}};
-        request.setTransferTimeout(2500);
+        request.setTransferTimeout(kReadNodeProbeTimeoutMs);
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                              QNetworkRequest::NoLessSafeRedirectPolicy);
         QNetworkReply* const reply = m_network->get(request);
@@ -333,6 +337,16 @@ void NodeSelectionController::finishProbe(QNetworkReply* const reply)
         node.latencyMs = hypersnapCompatible
             ? static_cast<int>(std::clamp<qint64>(probe.timer.elapsed(), 0, 9999))
             : -1;
+        if (!hypersnapCompatible) {
+            // Only diagnostics for the public origin and Qt error category.
+            // Never log response bodies, credentials, or account state.
+            qWarning().noquote()
+                << "GenyCaster read-node probe failed:"
+                << node.endpoint
+                << "httpStatus=" << statusCode
+                << "qtNetworkError=" << static_cast<int>(reply->error())
+                << "detail=" << reply->errorString();
+        }
     }
 
     reply->deleteLater();

@@ -67,6 +67,13 @@ def validate_android(path: Path) -> None:
         )
         for member in required:
             require(member in names, f"Android APK missing {member}")
+        manifest = apk.read("AndroidManifest.xml")
+        # Android binary XML can use either UTF-8 or UTF-16LE string pools.
+        # Missing INTERNET permission makes a working emulator look offline.
+        permission = "android.permission.INTERNET"
+        require(permission.encode("utf-8") in manifest
+                or permission.encode("utf-16le") in manifest,
+                "Android APK missing INTERNET permission")
         require(any(name.endswith(".dex") for name in names), "Android APK missing DEX")
         require(not any(name.startswith("lib/x86") for name in names),
                 "Unexpected x86 libraries in ARM64-only APK")

@@ -14,6 +14,12 @@ Control {
     /** Exact visual size for role-specific icons; zero uses the design-system default. */
     property real preferredSize: 0
     readonly property url source: Theme.iconSource(root.text, root.filled)
+    readonly property bool useAndroidRaster: Qt.platform.os === "android"
+    readonly property string iconRelativePath: {
+        const prefix = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/"
+        const value = root.source.toString()
+        return value.startsWith(prefix) ? value.substring(prefix.length) : ""
+    }
     readonly property real iconPixelSize: root.preferredSize > 0 ? root.preferredSize : Theme.iconSize
     readonly property int rasterSize: Math.max(16, Math.ceil(root.iconPixelSize
         * Math.max(1, Screen.devicePixelRatio) * renderingController.vectorRasterScale))
@@ -31,11 +37,28 @@ Control {
         // pixel to white and then apply the semantic theme color. Alpha/duotone
         // opacity remains untouched and therefore works in both light and dark themes.
         Image {
+            id: androidIcon
+            anchors.centerIn: parent
+            width: root.iconPixelSize
+            height: root.iconPixelSize
+            visible: root.useAndroidRaster && root.iconRelativePath.length > 0
+            source: visible ? "image://genycaster-icons/" + root.iconRelativePath
+                              + "?color=" + encodeURIComponent(root.color.toString()) : ""
+            sourceSize.width: root.rasterSize
+            sourceSize.height: root.rasterSize
+            fillMode: Image.PreserveAspectFit
+            asynchronous: false
+            cache: true
+            smooth: true
+            mipmap: false
+        }
+
+        Image {
             id: vectorSource
             anchors.centerIn: parent
             width: root.iconPixelSize
             height: root.iconPixelSize
-            source: root.source
+            source: root.useAndroidRaster ? "" : root.source
             sourceSize.width: root.rasterSize
             sourceSize.height: root.rasterSize
             fillMode: Image.PreserveAspectFit
@@ -51,7 +74,7 @@ Control {
             width: root.iconPixelSize
             height: root.iconPixelSize
             source: vectorSource
-            visible: root.source.toString().length > 0
+            visible: !root.useAndroidRaster && root.source.toString().length > 0
             brightness: 1.0
             colorization: 1.0
             colorizationColor: root.color
@@ -62,6 +85,7 @@ Control {
         Text {
             anchors.fill: parent
             visible: root.source.toString().length === 0
+                     || (root.useAndroidRaster && androidIcon.status === Image.Error)
             text: Theme.iconGlyph(root.text)
             color: root.color
             font.family: Theme.iconFamily(root.text)

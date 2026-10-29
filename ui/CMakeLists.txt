@@ -367,6 +367,11 @@ target_compile_definitions(farcaster_client
         GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
 )
 
+if(ANDROID)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Svg)
+    target_link_libraries(farcaster_client PRIVATE Qt6::Svg)
+endif()
+
 if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
     # Package the shared QtKeychain backend used by the static signer vault.
     set_property(TARGET farcaster_client APPEND PROPERTY

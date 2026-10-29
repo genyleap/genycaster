@@ -19,6 +19,9 @@
 #include <QQmlContext>
 #include <QQuickStyle>
 #include <QQuickWindow>
+#if defined(Q_OS_ANDROID)
+#include "android_tinted_icon_provider.hpp"
+#endif
 #include <QWheelEvent>
 #include <QProcess>
 #include <QSettings>
@@ -1821,6 +1824,14 @@ int main(int argc, char* argv[])
             applyProfileVerificationFixture(presentationBridge);
         }
     }
+#if defined(Q_OS_ANDROID)
+    // Android GPUs may render Qt Quick MultiEffect colorization as a filled
+    // rectangle instead of preserving each SVG's alpha mask. Rasterize the
+    // approved local Genyleap icon SVG with QtSvg and tint via SourceIn,
+    // avoiding a second, device-dependent postprocessing shader pass.
+    engine.addImageProvider(QStringLiteral("genycaster-icons"),
+                            new AndroidTintedIconProvider{});
+#endif
     engine.addImageProvider(
         QStringLiteral("remote"),
         new RemoteImageProvider{
