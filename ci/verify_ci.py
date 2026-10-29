@@ -40,10 +40,9 @@ def main() -> None:
     assert "./Configure android-genycaster-arm64 shared no-tests" in workflow
     assert "patchelf --set-soname" not in workflow
     assert "patchelf --page-size" not in workflow
-    assert 'NEEDED.*' in workflow and 'libcrypto_3.so' in workflow
     assert 'llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"' in workflow
-    assert 'grep -Eq "SONAME.*' in workflow
-    assert 'grep -Eq "SONAME.*\\\\[$lib\\\\]" "$libdir/$lib.dynamic.txt"' in workflow
+    assert 'grep -Fq "Library soname: [$lib]" "$libdir/$lib.dynamic.txt"' in workflow
+    assert "grep -Fq 'Shared library: [libcrypto_3.so]' " in workflow
     assert '"$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16' in workflow
     assert "validate_android_elf_alignment" in Path(
         "ci/verify_platform_package.py"

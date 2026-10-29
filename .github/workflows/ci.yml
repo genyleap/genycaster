@@ -516,11 +516,11 @@ jobs:
             grep -Eq 'Machine:[[:space:]]+AArch64' "$libdir/$lib.header.txt" || {
               cat "$libdir/$lib.header.txt"; echo "::error::$lib is not AArch64"; exit 1;
             }
-            grep -Eq "SONAME.*\\[$lib\\]" "$libdir/$lib.dynamic.txt" || {
+            grep -Fq "Library soname: [$lib]" "$libdir/$lib.dynamic.txt" || {
               cat "$libdir/$lib.dynamic.txt"; echo "::error::$lib has an unexpected SONAME"; exit 1;
             }
           done
-          grep -Eq 'NEEDED.*\\[libcrypto_3.so\\]' "$libdir/libssl_3.so.dynamic.txt" || {
+          grep -Fq 'Shared library: [libcrypto_3.so]' "$libdir/libssl_3.so.dynamic.txt" || {
             cat "$libdir/libssl_3.so.dynamic.txt"
             echo "::error::libssl_3.so does not depend on libcrypto_3.so"
             exit 1
