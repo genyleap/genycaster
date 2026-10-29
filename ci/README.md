@@ -26,15 +26,22 @@ is never deleted or overwritten.
 
 | Target | Runner | Result |
 |---|---|---|
-| Core tests | Ubuntu 24.04, Clang 18 | C++26 + CTest + architecture guards |
-| Linux x86_64 | Ubuntu 24.04, Clang 18 | Qt AppImage |
+| Core tests | Ubuntu 24.04, GCC 16 | C++26 + CTest + architecture guards |
+| Linux x86_64 | Ubuntu 24.04, GCC 16 | Qt AppImage |
 | macOS arm64 | macOS 15, Homebrew LLVM | Qt DMG |
 | Windows x86_64 | Windows 2022, MSVC and vcpkg | Portable ZIP |
 | Android arm64-v8a | Ubuntu 24.04, NDK 27.2.12479018 | APK |
 | WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Static-site tar.gz |
 
-Qt 6.12.0 and CMake 4.4.4 are pinned in the workflow. Android compiles
-OpenSSL 3.5.9 for its target architecture, rather than linking macOS/Linux
+Qt 6.12.0 and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
+runners need GCC 16 from the Ubuntu toolchain PPA for GenyCaster's C++26
+module/standard-library support; stock Clang 18 with the default libstdc++
+failed on `std::expected` during the first hosted run. All Qt platforms
+explicitly install the qtmultimedia addon; the base Qt archive alone is
+incomplete. Windows uses `ci/install_qt_windows.py` to retrieve the official
+pinned MSVC2022 Qt 6.12 archives with upstream checksums: the 6.12 public
+repository has component directories but no `Updates.xml` understood by aqt.
+Android compiles OpenSSL 3.5.9 for its target architecture, rather than linking macOS/Linux
 binaries. Emscripten 5.0.5 matches the Qt 6.12 requirement. Linux, Windows
 and Android use the QtKeychain 0.17 source fallback if no suitable installed
 package exists. Linux/Windows set GENYCASTER_FETCH_QTKEYCHAIN=ON

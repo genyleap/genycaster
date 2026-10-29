@@ -7,6 +7,7 @@ from unittest.mock import patch
 import sys
 import unittest
 
+from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, main as assemble_release
 from ci.release_gate import project_version, release_version
@@ -21,6 +22,15 @@ class PipelineTests(unittest.TestCase):
                     "refs/tags/v1.2.3-rc1", "refs/tags/v999.0.0"):
             with self.assertRaises(ValueError):
                 release_version(bad, version)
+
+    def test_windows_qt_archive_manifest(self) -> None:
+        html = f'<a href="{STAMP}qtbase-Windows-MSVC2022.7z">Qt Base</a>'
+        self.assertEqual(
+            archives_from_index(html, ("qtbase",)),
+            [f"{STAMP}qtbase-Windows-MSVC2022.7z"],
+        )
+        with self.assertRaises(ValueError):
+            archives_from_index(html, ("qtbase", "qtdeclarative"))
 
     def test_web_archive_selection_excludes_build_artifacts(self) -> None:
         with TemporaryDirectory() as path:
