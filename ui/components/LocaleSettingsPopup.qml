@@ -100,9 +100,15 @@ GenyDrawer {
     width: parent ? (mobilePresentation ? parent.width : Math.min(1100, parent.width * 0.96)) : 1100
     // A modest top reveal makes Settings consistent with other bottom sheets
     // without sacrificing its internal independently scrolling sections.
+    // A 790dp cap left phone Settings floating well above the navigation
+    // gesture area and exposed the underlying compose FAB. Use the available
+    // viewport, not a desktop dialog maximum, for phone settings.
     height: parent ? (mobilePresentation
-                     ? Math.min(parent.height * 0.91, Theme.scaleUi(790))
+                     ? Math.max(320, parent.height - Math.max(Theme.space7,
+                           parent.SafeArea.margins.top + Theme.space3))
                      : parent.height) : 820
+    bottomPadding: root.contentPadding + (root.mobilePresentation
+                   ? Math.max(Theme.space3, root.SafeArea.margins.bottom) : 0)
 
     onOpened: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {

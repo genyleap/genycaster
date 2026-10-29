@@ -60,6 +60,26 @@ Item {
 
     signal authenticationRequested()
     property var selectedMiniApp: ({})
+    property var pendingLaunchApp: null
+    property string launchErrorText: ""
+    Timer {
+        id: launchErrorTimeout
+        interval: 7000
+        onTriggered: root.launchErrorText = ""
+    }
+    Connections {
+        target: miniAppHost
+        function onStateChanged() {
+            if (miniAppHost.errorText.length > 0) {
+                root.launchErrorText = miniAppHost.errorText
+                root.pendingLaunchApp = null
+                launchErrorTimeout.restart()
+            } else if (miniAppHost.active && root.pendingLaunchApp !== null) {
+                miniAppCatalog.recordRecentUse(root.pendingLaunchApp)
+                root.pendingLaunchApp = null
+            }
+        }
+    }
     function showAppDetails(app) {
         if (!app || !String(app.homeUrl || "").length) return
         root.selectedMiniApp = app
@@ -109,11 +129,17 @@ Item {
         const name = String(app && app.name ? app.name : "")
         if (url.length === 0)
             return
+        root.launchErrorText = ""
+        if (!miniAppHost.available && Qt.platform.os !== "wasm") {
+            root.launchErrorText = qsTrId("genycaster.miniapp.unavailable")
+            launchErrorTimeout.restart()
+            return
+        }
         if (Number(presentationBridge.accountFid || 0) <= 0) {
             root.authenticationRequested()
             return
         }
-        miniAppCatalog.recordRecentUse(app)
+        root.pendingLaunchApp = app
         miniAppHost.openWithMetadata(url, name, String(app && app.iconSource ? app.iconSource : ""))
     }
 
@@ -1092,6 +1118,31 @@ Item {
         }
     }
     }
+    // Make host startup failures visible; unsupported native platforms must
+    // not look like a dead Open button. Recent-use history records success only.
+    Superellipse {
+        visible: root.launchErrorText.length > 0
+        z: 150
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: Theme.space3
+        height: Math.max(52, launchFailure.implicitHeight + Theme.space3 * 2)
+        fillColor: Theme.dangerSurface
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.danger
+        curveDepth: Theme.curveControl
+        DirectionAwareLabel {
+            id: launchFailure
+            anchors.fill: parent
+            anchors.margins: Theme.space3
+            text: root.launchErrorText
+            color: Theme.textPrimary
+            font.pixelSize: Theme.typeLabelSize
+            wrapMode: Text.WordWrap
+        }
+    }
+
     // App Store-style drill-in. Only a user-selected app allocates a large
     // information card. Tapping an icon never starts an embedded Mini App.
     GenyDrawer {

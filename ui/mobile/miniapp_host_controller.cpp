@@ -1,4 +1,6 @@
 #include "miniapp_host_controller.hpp"
+#include <QHostAddress>
+#include <QUrl>
 #include <QSettings>
 #include <QtTranslation>
 #if defined(__EMSCRIPTEN__)
@@ -120,7 +122,26 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         setState(false, qtTrId("genycaster.miniapp.sign_in_first"));
         return;
     }
-    emit launchRequested(url, title, iconSource.left(4096));
+    // A catalog URL is still untrusted. Android's WebView must never receive
+    // file/content/local-network entry points or credentials in its origin.
+    const QUrl destination{url.trimmed(), QUrl::StrictMode};
+    const QString host = destination.host().toLower();
+    QHostAddress numericHost{};
+    if (!destination.isValid() || destination.scheme() != QStringLiteral("https")
+        || destination.port(443) != 443 || !host.contains(QLatin1Char('.'))
+        || host.endsWith(QLatin1Char('.'))
+        || host.endsWith(QStringLiteral(".localhost"))
+        || host.endsWith(QStringLiteral(".local"))
+        || host.endsWith(QStringLiteral(".internal"))
+        || host.endsWith(QStringLiteral(".test"))
+        || host.endsWith(QStringLiteral(".invalid"))
+        || numericHost.setAddress(host)
+        || !destination.userName().isEmpty()
+        || !destination.password().isEmpty()) {
+        setState(false, qtTrId("genycaster.miniapp.unavailable"));
+        return;
+    }
+    emit launchRequested(destination.toString(QUrl::FullyEncoded), title, iconSource.left(4096));
 }
 void MiniAppHostController::close() {
 #if defined(__EMSCRIPTEN__)

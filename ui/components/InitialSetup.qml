@@ -81,8 +81,8 @@ Item {
     readonly property int setupPageTitleSize: Theme.typeTitle2Size
     readonly property int setupBodySize: Theme.typeLabelSize
     readonly property int setupSectionTitleSize: Theme.typeTitle3Size
-    readonly property int setupCardPadding: Theme.space4
-    readonly property int setupGap: Theme.space4
+    readonly property int setupCardPadding: root.phone ? Theme.space3 : Theme.space4
+    readonly property int setupGap: root.phone ? Theme.space3 : Theme.space4
     readonly property color setupCard: Theme.surface
     readonly property color setupCardRaised: Theme.surfaceRaised
     readonly property color setupBorder: Theme.borderMuted
@@ -373,7 +373,7 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 64
+            Layout.preferredHeight: root.phone ? 56 : 64
 
             RowLayout {
                 anchors.fill: parent
@@ -386,22 +386,29 @@ Item {
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
 
-                    Icon {
-                        text: root.genyBrandIcon
-                        color: Theme.accent
-                        preferredSize: 26
+                    // The Geny mark represents the ecosystem; the Setup
+                    // header must show the application's actual brand.
+                    Image {
+                        source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                        Layout.preferredWidth: 30
+                        Layout.preferredHeight: 30
+                        fillMode: Image.PreserveAspectFit
+                        sourceSize: Qt.size(90, 90)
                         Accessible.name: qsTrId("genycaster.app.genycaster")
                     }
 
                     ColumnLayout {
                         spacing: 0
-                        Label {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.app.genycaster")
-                            color: Theme.ink
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            horizontalAlignment: Theme.textStartAlignment
+                        Image {
+                            Layout.preferredWidth: root.phone ? 132 : 148
+                            Layout.preferredHeight: root.phone ? 22 : 24
+                            fillMode: Image.PreserveAspectFit
+                            horizontalAlignment: Image.AlignLeft
+                            source: Theme.dark
+                                ? "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark-dark.svg"
+                                : "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-wordmark.svg"
+                            sourceSize: Qt.size(450, 72)
+                            Accessible.name: qsTrId("genycaster.app.genycaster")
                         }
                         Label {
                             visible: !root.phone
@@ -653,7 +660,7 @@ Item {
                         Loader {
                             id: stageLoader
                             width: parent.width
-                            y: root.phone ? Theme.space5 : Math.max(Theme.space7,
+                            y: root.phone ? Theme.space3 : Math.max(Theme.space7,
                                 (stageFlick.height - stageLoader.implicitHeight) * 0.16)
                             sourceComponent: root.currentStep === 0 ? welcomeStage
                                            : root.currentStep === 1 ? personalizeStage
@@ -1689,6 +1696,7 @@ Item {
 
                     SetupActionCard {
                         Layout.fillWidth: true
+                        compactCard: root.phone
                         title: qsTrId("genycaster.setup.existing_profile")
                         subtitle: qsTrId("genycaster.setup.existing_profile_body")
                         iconGlyph: Theme.iconSignIn
@@ -1744,6 +1752,7 @@ Item {
 
                     SetupActionCard {
                         Layout.fillWidth: true
+                        compactCard: root.phone
                         title: qsTrId("genycaster.shell.continue_with_genyleap")
                         subtitle: qsTrId("genycaster.setup.account_genyleap_body")
                         iconGlyph: root.genyBrandIcon
@@ -1756,6 +1765,7 @@ Item {
 
                     SetupActionCard {
                         Layout.fillWidth: true
+                        compactCard: root.phone
                         title: qsTrId("genycaster.shell.sign_in_with_farcaster")
                         subtitle: qsTrId("genycaster.setup.account_farcaster_body")
                         iconGlyph: "brands/farcaster"

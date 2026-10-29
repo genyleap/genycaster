@@ -98,7 +98,7 @@ GenyDrawer {
             Column {
                 id: filterGroups
                 width: filterScroller.width
-                spacing: Theme.space3
+                spacing: root.phoneLayout ? Theme.space2 : Theme.space3
 
                 Repeater {
                     model: root.sections || []
@@ -107,7 +107,8 @@ GenyDrawer {
                         required property var modelData
                         required property int index
                         width: filterGroups.width
-                        height: sectionContent.implicitHeight + Theme.space3 * 2
+                        height: sectionContent.implicitHeight
+                                + (root.phoneLayout ? Theme.space2 : Theme.space3) * 2
                         fillColor: Theme.surfaceMuted
                         borderWidth: Theme.strokeHairline
                         borderColor: Theme.borderSubtle
@@ -118,10 +119,10 @@ GenyDrawer {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.top: parent.top
-                            anchors.leftMargin: Theme.space3
-                            anchors.rightMargin: Theme.space3
-                            anchors.topMargin: Theme.space3
-                            spacing: Theme.space3
+                            anchors.leftMargin: root.phoneLayout ? Theme.space2 : Theme.space3
+                            anchors.rightMargin: root.phoneLayout ? Theme.space2 : Theme.space3
+                            anchors.topMargin: root.phoneLayout ? Theme.space2 : Theme.space3
+                            spacing: root.phoneLayout ? Theme.space2 : Theme.space3
 
                             RowLayout {
                                 width: parent.width
@@ -166,7 +167,7 @@ GenyDrawer {
                             }
                             Flow {
                                 width: parent.width
-                                spacing: Theme.space2
+                                spacing: root.phoneLayout ? Theme.space1 : Theme.space2
                                 layoutDirection: Theme.uiDirection
                                 Repeater {
                                     model: sectionGroup.modelData.options || []
@@ -179,14 +180,18 @@ GenyDrawer {
                                             String(modelData.id || "")
                                         readonly property bool chosen:
                                             String(root.draft[filterKey] || "") === optionId
-                                        implicitWidth: Math.max(88,
-                                            chipText.implicitWidth + Theme.space4 * 2)
+                                        // Compact visual pill, 44dp touch area remains
+                                        // available for accessibility on every platform.
+                                        implicitWidth: Math.max(root.phoneLayout ? 64 : 80,
+                                            chipText.implicitWidth + (root.phoneLayout ? Theme.space2 : Theme.space3) * 2)
                                         implicitHeight: 44
                                         Accessible.name: String(modelData.label || "")
                                         Accessible.role: Accessible.RadioButton
                                         Accessible.checked: chosen
                                         onClicked: root.choose(filterKey, optionId)
                                         background: Superellipse {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            height: root.phoneLayout ? 34 : 38
                                             fillColor: chip.chosen ? Theme.primarySurface
                                                                   : Theme.surfaceRaised
                                             borderWidth: chip.chosen ? 2 : Theme.strokeHairline
@@ -199,7 +204,7 @@ GenyDrawer {
                                             text: String(chip.modelData.label || "")
                                             color: chip.chosen ? Theme.accent
                                                                : Theme.textPrimary
-                                            font.pixelSize: Theme.typeBodySize
+                                            font.pixelSize: root.phoneLayout ? Theme.typeLabelSize : Theme.typeBodySize
                                             font.weight: chip.chosen
                                                          ? Theme.weightDemiBold
                                                          : Theme.weightMedium

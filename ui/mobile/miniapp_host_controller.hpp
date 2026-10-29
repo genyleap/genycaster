@@ -56,7 +56,7 @@ public:
     /** @brief Returns an owned copy of public account metadata, never credentials. */
     [[nodiscard]] QVariantMap user() const;
     /** @brief Runtime status sink. Errors are user-visible; no success is fabricated on failure. */
-    void setState(bool active, const QString& error = {});
+    Q_INVOKABLE void setState(bool active, const QString& error = {});
 signals:
     void launchRequested(const QString& url, const QString& title, const QString& iconSource);
     void closeRequested();

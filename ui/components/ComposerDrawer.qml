@@ -979,11 +979,16 @@ GenyDrawer {
                                      || title.toLocaleLowerCase().includes(topicSearch.text.trim().toLocaleLowerCase())
                                      || slug.includes(topicSearch.text.trim().toLocaleLowerCase())
                             width: Math.min(topicFlow.width, chipText.implicitWidth
-                                            + (chosen ? Theme.scaleUi(60) : Theme.scaleUi(36)))
-                            height: Theme.scaleUi(44)
+                                            + (chosen ? Theme.scaleUi(36) : Theme.scaleUi(24)))
+                            // Keep the 44dp hit target, but render compact
+                            // topic chips in every client form factor.
+                            height: Math.max(44, Theme.touchTarget)
 
                             Superellipse {
-                                anchors.fill: parent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                height: Theme.scaleUi(34)
                                 fillColor: topicChip.chosen ? Theme.primarySurface : Theme.surfaceRaised
                                 borderWidth: topicChip.chosen ? 2 : 1
                                 borderColor: topicChip.chosen ? Theme.accent : Theme.borderMuted

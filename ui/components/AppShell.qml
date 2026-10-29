@@ -2720,6 +2720,14 @@ Item {
         onFinishSetup: presentationBridge.completeInitialSetup()
     }
 
+    // Compiled only for Android. The Android resource imports QtWebView,
+    // so desktop/WASM do not acquire an unavailable platform dependency.
+    Loader {
+        id: androidMiniAppHostLoader
+        active: Qt.platform.os === "android"
+        source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
+    }
+
     TaskManagerPopup {
         id: taskManagerPopup
         parent: Overlay.overlay

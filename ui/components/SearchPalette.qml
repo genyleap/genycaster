@@ -109,7 +109,13 @@ Drawer {
     interactive: !root.compact
     leftPadding: root.compact ? Theme.mobileGutter : Theme.space5
     rightPadding: root.compact ? Theme.mobileGutter : Theme.space5
-    topPadding: root.compact ? Theme.space3 : Theme.space5
+    // Qt's popup overlay spans the window rather than ApplicationWindow's
+    // safe content item. Respect the system status area on notched phones;
+    // on Android some window managers report zero after implicit padding.
+    readonly property real statusInset: root.compact
+        ? Math.max(Qt.platform.os === "android" ? 24 : 0,
+                   parent ? parent.SafeArea.margins.top : 0) : 0
+    topPadding: (root.compact ? Theme.space3 : Theme.space5) + root.statusInset
     bottomPadding: root.compact ? Theme.space2 : Theme.space5
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 

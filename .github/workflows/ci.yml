@@ -436,7 +436,7 @@ jobs:
           version: ${{ env.QT_VERSION }}
           target: android
           arch: android_arm64_v8a
-          modules: qtmultimedia
+          modules: qtmultimedia qtwebview
           cache: true
       - name: Reject Android SDKs without Qt Network TLS
         shell: bash

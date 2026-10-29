@@ -163,6 +163,12 @@ if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
     list(APPEND farcasterQmlFiles components/AnimatedEmojiLottie.qml)
 endif()
 
+# Android uses the platform WebView for public Mini App web content. No
+# privileged SDK / signer bridge is exposed to that untrusted web surface.
+if(ANDROID)
+    list(APPEND farcasterQmlFiles components/AndroidMiniAppWebView.qml)
+endif()
+
 # Verify the manifest, allowing the optional renderer to be absent from the module.
 file(GLOB_RECURSE farcasterDiscoveredQmlFiles
     RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -171,6 +177,9 @@ file(GLOB_RECURSE farcasterDiscoveredQmlFiles
 )
 if(NOT Qt6Lottie_FOUND OR Qt6_VERSION VERSION_LESS 6.11)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/AnimatedEmojiLottie.qml)
+endif()
+if(NOT ANDROID)
+    list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/AndroidMiniAppWebView.qml)
 endif()
 list(SORT farcasterDiscoveredQmlFiles)
 set(farcasterRegisteredQmlFiles ${farcasterQmlFiles})
@@ -1074,6 +1083,11 @@ qt_add_resources(farcaster_client openproof_public_endpoints
     FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json"
 )
+
+if(ANDROID)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS WebView)
+    target_link_libraries(farcaster_client PRIVATE Qt6::WebView)
+endif()
 
 qt_add_qml_module(farcaster_client
     URI Farcaster.Client

@@ -21,6 +21,7 @@
 #include <QQuickWindow>
 #if defined(Q_OS_ANDROID)
 #include "android_tinted_icon_provider.hpp"
+#include <QtWebView/QtWebView>
 #endif
 #include <QWheelEvent>
 #include <QProcess>
@@ -540,6 +541,8 @@ int main(int argc, char* argv[])
 #if defined(Q_OS_ANDROID)
     // Match the bundled OpenSSL 3 sonames before Qt initializes TLS/networking.
     qputenv("ANDROID_OPENSSL_SUFFIX", "_3");
+    // Native Android WebView must be initialized before the GUI application.
+    QtWebView::initialize();
 #endif
     // Adaptive is the product default. Qt Quick's standard scene graph keeps
     // its default vertex-AA path, while Genycaster's curved design primitives
@@ -1541,8 +1544,10 @@ int main(int argc, char* argv[])
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
 
-#if defined(__EMSCRIPTEN__)
-    constexpr bool miniAppLaunchAvailable = true; // External tab, without privileged SDK.
+#if defined(__EMSCRIPTEN__) || defined(Q_OS_ANDROID)
+    // Browser/WASM and Android host public web content without exposing
+    // signer or wallet permissions. macOS separately enables its SDK runtime.
+    constexpr bool miniAppLaunchAvailable = true;
 #else
     constexpr bool miniAppLaunchAvailable = GENYCASTER_HAS_MINIAPP_HOST != 0;
 #endif
