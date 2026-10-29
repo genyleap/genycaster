@@ -1128,7 +1128,7 @@ Item {
                     quiet: true
                     iconOnly: true
                     iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.action.close")
+                    text: qsTrId("genycaster.shell.close")
                     onClicked: miniAppDetailDrawer.close()
                 }
             }

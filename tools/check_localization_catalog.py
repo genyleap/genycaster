@@ -144,6 +144,26 @@ def main() -> int:
                     f"{path.relative_to(root)}: visible hard-coded Latin text: {match.group(1)!r}"
                 )
 
+    # Profile category/role labels are a finite server-validated vocabulary.
+    # The QML constructs their translation keys from the canonical option,
+    # rather than embedding literal IDs in individual qsTrId calls. Resolve
+    # this specific bounded vocabulary when checking coverage: an unknown
+    # option still fails if it has no translation in the English catalog.
+    profile_path = root / "ui" / "components" / "ProfileSurface.qml"
+    if profile_path.is_file():
+        profile_text = profile_path.read_text(encoding="utf-8")
+        if 'qsTrId("genycaster.profile.option." + key)' in profile_text:
+            referenced_ids.discard("genycaster.profile.option.")
+            options_region = profile_text.split("readonly property var profileCategoryOptions:", 1)
+            if len(options_region) == 2:
+                options_region = options_region[1].split("function profileOptionLabel(", 1)[0]
+                for canonical in re.findall(r'"([^"\\n]+)"', options_region):
+                    key = re.sub(r"[^a-z0-9]+", "_", canonical.lower()).strip("_")
+                    if key:
+                        referenced_ids.add("genycaster.profile.option." + key)
+            else:
+                errors.append("ProfileSurface: canonical category/role list not found")
+
     locale_paths = sorted((root / "ui" / "i18n").glob("qml_*.ts"))
     catalogs = {path.stem.removeprefix("qml_"): read_ts(path) for path in locale_paths}
     required_locales = {
