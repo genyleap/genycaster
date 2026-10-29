@@ -283,6 +283,20 @@ jobs:
             boost-multiprecision:x64-windows boost-property-tree:x64-windows `
             boost-system:x64-windows curl:x64-windows openssl:x64-windows sqlite3:x64-windows
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify required native headers before C++26 scanning
+        shell: pwsh
+        run: |
+          $include = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/include"
+          $headers = @(
+            'boost/json/src.hpp', 'boost/multiprecision/cpp_int.hpp',
+            'boost/asio.hpp', 'boost/beast.hpp',
+            'boost/property_tree/json_parser.hpp', 'boost/system/error_code.hpp',
+            'curl/curl.h', 'sqlite3.h'
+          )
+          foreach ($header in $headers) {
+            $file = Join-Path $include $header
+            if (-not (Test-Path $file)) { throw "Windows CI dependency missing: $file" }
+          }
       - name: Compile and deploy
         shell: pwsh
         env:
