@@ -80,7 +80,10 @@ Item {
                                                    : qsTrId("genycaster.home.greeting_night")).arg(
                                                        "\u2066" + root.welcomeName + "\u2069")
     implicitWidth: 980
-    implicitHeight: 790
+    // The desktop hub has a generous intrinsic height; on mobile the
+    // containing viewport must own the height so its Flickable can scroll.
+    implicitHeight: root.compact ? 0 : 790
+    property real bottomOverlayInset: 0
 
     Timer {
         interval: 60000
@@ -128,7 +131,7 @@ Item {
                     objectName: "homeShortcut_" + modelData.destination
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
-                    Layout.preferredHeight: root.compact ? 116 : 120
+                    Layout.preferredHeight: root.compact ? 104 : 120
                     readonly property bool locked: modelData.destination === "wallet"
                     fillColor: locked ? Theme.surfaceMuted
                                : actionMouse.pressed ? Theme.surfacePressed
@@ -206,7 +209,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: root.compact ? Theme.space3 : Theme.space4
                 Layout.rightMargin: root.compact ? Theme.space3 : Theme.space4
-                Layout.preferredHeight: root.compact ? 96 : 108
+                Layout.preferredHeight: root.compact ? 84 : 108
                 fillColor: Theme.primarySurface
                 borderWidth: 1
                 borderColor: Theme.borderMuted
@@ -427,7 +430,10 @@ GenyTokenBanner {}
         contentWidth: width
         // The former forced 108px tail made Home scroll into an empty area.
         // Real continuation rows now determine the content height instead.
-        contentHeight: mobileColumn.implicitHeight + Theme.space3
+        // Use the measured layout height, with room to scroll the final tiles
+        // above the floating action dock. The dock itself stays an overlay.
+        contentHeight: mobileColumn.implicitHeight + root.bottomOverlayInset + Theme.space4
+        flickableDirection: Flickable.VerticalFlick
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AlwaysOff }
@@ -448,19 +454,19 @@ GenyTokenBanner {}
             spacing: root.densePhone ? Theme.space2 : Theme.space3
             // Keep the focused composer clear of the fixed application header
             // even after the navigation tiles are hidden by the keyboard.
-            Item { Layout.preferredHeight: root.composerFocused ? Theme.space4
-                                                  : root.densePhone ? Theme.space1 : Theme.space3 }
+            Item { Layout.preferredHeight: root.composerFocused ? Theme.space3
+                                                  : root.densePhone ? Theme.space1 : Theme.space2 }
             Superellipse {
                 visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: root.densePhone ? 60 : 80
+                Layout.preferredWidth: root.densePhone ? 52 : 68
                 Layout.preferredHeight: Layout.preferredWidth
                 fillColor: "transparent"
                 borderWidth: 0
                 curveDepth: width / 2
                 Avatar {
                     anchors.centerIn: parent
-                    avatarSize: root.densePhone ? 56 : 76
+                    avatarSize: root.densePhone ? 50 : 64
                     sourceUrl: root.avatarUrl
                     displayName: root.displayName || root.username
                     visible: root.authenticated && root.avatarUrl.length > 0
@@ -469,11 +475,11 @@ GenyTokenBanner {}
                     anchors.centerIn: parent
                     text: Theme.iconLeaf
                     color: Theme.accent
-                    preferredSize: root.densePhone ? 38 : 50
+                    preferredSize: root.densePhone ? 34 : 44
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             // A single aligned launcher: composing starts in the dedicated
@@ -484,7 +490,7 @@ GenyTokenBanner {}
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
-                Layout.preferredHeight: 60
+                Layout.preferredHeight: 52
                 fillColor: Theme.surface
                 borderWidth: 1
                 borderColor: Theme.borderMuted

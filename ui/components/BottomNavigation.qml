@@ -36,7 +36,7 @@ Item {
     signal profileRequested()
     signal routeRequested(string route)
 
-    implicitHeight: 88
+    implicitHeight: 74
     clip: false
 
     // A genuinely floating dock: the root is fully transparent. No footer
@@ -142,7 +142,7 @@ Item {
                                            ? Theme.scaleUi(10) : Theme.scaleUi(4)
         anchors.leftMargin: Theme.mobileGutter + extraInset
         anchors.rightMargin: Theme.mobileGutter + extraInset
-        anchors.topMargin: 8
+        anchors.topMargin: 4
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 

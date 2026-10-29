@@ -998,8 +998,10 @@ Item {
                     // Breathing room between the iOS status-safe-area, brand
                     // chrome and the first content card. Safe area itself is
                     // already handled by the WASM viewport, so don't double it.
-                    Layout.topMargin: root.mobile ? Theme.space3 : 0
-                    Layout.bottomMargin: root.mobile ? Theme.space3 : 0
+                    // Android already excludes the OS status bar from the Qt
+                    // window. Do not stack an extra 24dp of header padding.
+                    Layout.topMargin: root.mobile && Qt.platform.os !== "android" ? Theme.space3 : 0
+                    Layout.bottomMargin: root.mobile && Qt.platform.os !== "android" ? Theme.space3 : 0
                     // Cast details already have their own Back/Refresh bar.
                     // Keeping the global brand bar above that contextual bar
                     // duplicates navigation and wastes space on narrow phones.
@@ -1344,6 +1346,11 @@ Item {
                                         }
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
+                                        // The dashboard contains its own Flickable. Never
+                                        // let its desktop intrinsic 790dp height force the
+                                        // phone reading viewport beyond the visible pane.
+                                        Layout.minimumHeight: 0
+                                        Layout.preferredHeight: root.mobile ? 0 : -1
                                         Layout.maximumWidth: 16777215
                                         Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                                         Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
@@ -1356,6 +1363,7 @@ Item {
                                         notificationUnreadCount: presentationBridge.notificationUnreadCount
                                         rows: presentationBridge.rows
                                         compact: root.compact
+                                        bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                         onExploreRequested: root.openExplorer()
                                         onComposeRequested: text => root.openComposer(null, "", text)
                                         onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
@@ -1774,7 +1782,7 @@ Item {
                             visible: root.mobile && !root.initialSetupOpen
                                      && !root.homeComposerFocused
                             z: 800
-                            height: 88
+                            height: root.mobile ? 74 : 88
                             anchors.left: readingPane.left
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom

@@ -696,12 +696,21 @@ QtObject {
     readonly property int weightBold: Font.Bold
     readonly property int weightBlack: Font.Black
 
+    // Qt Quick coordinates are density-independent on Android. A restrained
+    // native-phone optical adjustment keeps the 360dp-wide emulator readable
+    // without scaling with physical 720px pixels or overriding user choices.
+    readonly property real androidTextAdjustment: Qt.platform.os === "android" ? 0.95 : 1.0
+    readonly property real androidUiAdjustment: Qt.platform.os === "android" ? 0.95 : 1.0
+
     function scaleText(value) {
-        return Math.max(1, Math.round(value * fontScale))
+        const scaled = Math.round(value * fontScale * androidTextAdjustment)
+        // 12sp remains the default readable minimum for mobile captions;
+        // explicit accessibility text scaling above/below 1 still applies.
+        return Math.max(Qt.platform.os === "android" && fontScale >= 1.0 ? 12 : 1, scaled)
     }
 
     function scaleUi(value) {
-        return Math.max(1, Math.round(value * interfaceScale))
+        return Math.max(1, Math.round(value * interfaceScale * androidUiAdjustment))
     }
 
     readonly property int typeCaptionSize: scaleText(12)
@@ -763,7 +772,7 @@ QtObject {
 
     readonly property int controlHeight: scaleUi(44)
     readonly property int compactControlHeight: scaleUi(38)
-    readonly property int touchTarget: scaleUi(46)
+    readonly property int touchTarget: Math.max(44, scaleUi(46))
     readonly property int appBarHeight: scaleUi(60)
     readonly property int navigationWidth: 352
     readonly property int contextRailWidth: 416
