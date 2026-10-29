@@ -401,6 +401,17 @@ jobs:
           arch: android_arm64_v8a
           modules: qtmultimedia
           cache: true
+      - name: Reject Android SDKs without Qt Network TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          config="$QT_ROOT_DIR/include/QtNetwork/qtnetwork-config.h"
+          test -r "$config" || { echo "::error::Missing Qt Network feature configuration: $config"; exit 1; }
+          grep -E '^#define QT_FEATURE_ssl[[:space:]]+' "$config" || true
+          if ! grep -Eq '^#define QT_FEATURE_ssl[[:space:]]+1([[:space:]]|$)' "$config"; then
+            echo "::error::Qt for Android has SSL disabled; GenyCaster HTTPS transports are fail-closed"
+            exit 1
+          fi
       - name: Cross-compile OpenSSL for arm64-v8a
         run: bash tools/build_android_openssl.sh
       - name: Prepare signing for release tags only
@@ -454,15 +465,7 @@ jobs:
               "-DQT_ANDROID_KEYSTORE_KEY_PASS=$QT_ANDROID_KEYSTORE_KEY_PASS"
             )
           fi
-          # A Qt Network binary without SSL cannot run GenyCaster's HTTPS
-          # transport, even if the APK bundles libcrypto/libssl correctly.
-          if [[ "$SIGN_RELEASE" == true ]]; then
-            QT_NETWORK_CONFIG="$QT_ROOT_DIR/include/QtNetwork/qtnetwork-config.h"
-            if ! grep -Eq '^#define QT_FEATURE_ssl[[:space:]]+1([[:space:]]|$)' "$QT_NETWORK_CONFIG"; then
-              echo "::error::Qt Android SDK lacks QT_FEATURE_ssl=1; refusing release packaging"
-              exit 1
-            fi
-          fi
+          # Qt Network SSL feature was verified before OpenSSL packaging.
           cmake "${args[@]}"
           cmake --build build/android --target farcaster_client_make_apk --parallel 3
           mkdir -p dist
