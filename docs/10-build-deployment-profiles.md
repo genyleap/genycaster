@@ -117,8 +117,37 @@ grep QT_FEATURE_ssl "$HOME/Qt/6.12.0/android-arm64-v8a/include/QtNetwork/qtnetwo
 
 If it reports `-1`, the SDK's QtNetwork binary was built without TLS; no
 change to the application's `OPENSSL_ROOT_DIR`, `QT_ANDROID_EXTRA_LIBS`,
-`qtnetwork-config.h`, or CMake gate can repair that binary. Qt's installer
-normally distributes Android Qt with SSL support, so first verify a fresh
+`qtnetwork-config.h`, or CMake gate can repair that binary.
+
+**Preferred if Qt was already compiled locally from source:** Reuse the
+existing `~/Qt/Src/qt-everywhere-src-6.12.0` and the matching
+`~/Qt/6.12.0/host` tools, but build into a new isolated shadow directory
+instead of trying to change the previous build's cached features. The Qt
+project documents `configure -redo` for in-place reconfiguration, but that
+path is less robust when changing underlying features and dependencies.
+GenyCaster's helper supplies the Android arm64-v8a OpenSSL headers and
+libraries directly to Qt's CMake configuration, explicitly enables the SSL
+feature with `-openssl-runtime`, and builds the Qt modules needed by the app:
+
+```sh
+cd ~/Developer/genycaster
+bash tools/rebuild_android_qt_tls_macos.sh --inspect
+bash tools/rebuild_android_qt_tls_macos.sh --configure
+bash tools/rebuild_android_qt_tls_macos.sh --build
+bash tools/rebuild_android_qt_tls_macos.sh --install
+```
+
+This uses the *existing Qt source tree*, not a fresh download. The new install
+prefix is `~/Qt/6.12.0/android-arm64-v8a-tls` and the new build tree is
+`~/Qt/Build/android-arm64-v8a-tls`. On success the helper checks
+`QT_FEATURE_ssl=1` and the installed Qt module CMake packages. Register the
+new `bin/qmake6` in Qt Creator, create a separate Android kit/build directory,
+retain the existing host tools, and keep
+`GENYCASTER_ANDROID_OPENSSL_ROOT=~/Developer/genycaster/build/android-deps`.
+Qt and OpenSSL configurations must target the same Android NDK/ABI.
+
+**Alternative if locally built Qt sources are unavailable:** Qt's installer
+normally distributes Android Qt with SSL support, so you can verify a fresh
 isolated SDK from the official Qt download archive without overwriting your
 working Qt installation:
 
