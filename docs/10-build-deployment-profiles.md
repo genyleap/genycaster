@@ -78,6 +78,18 @@ tests, set `GENYCASTER_ANDROID_ENABLE_TESTS=ON` and
 Hypersnap curl-specific contract suite is omitted when the curl transport
 is not compiled for that target. Linux CI test selection is unchanged.
 
+### Android C++26 module threading consistency
+
+Qt for Android adds `-pthread` to compilation of Qt-consuming translation
+units. The Android Clang module scanner/PCM loader rejects a named-module
+interface built without that mode when a Qt client imports it with `-pthread`
+(`POSIX thread support was disabled in PCH file but is currently enabled`).
+Genycaster applies `-pthread` to **all Android C++ targets**, including the
+Qt-free module producers and Qt UI importers, before any subdirectories are
+configured. This leaves the Linux/macOS/WASM compiler flags unchanged. When
+switching to this revision, reconfigure the Android kit so CMake regenerates
+module compile commands; the affected modules are then rebuilt automatically.
+
 ### Android Boost.JSON headers
 
 Android compiles Boost.JSON directly from `boost/json/src.hpp` and only needs

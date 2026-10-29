@@ -356,6 +356,15 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(ANDROID)
+    # Qt for Android compiles its consumers with -pthread. Clang named-module
+    # BMIs/PCMs must use the same POSIX threading mode as their importers;
+    # otherwise imports of Qt-free modules (for example storage_policy) fail
+    # with a PCH configuration mismatch. Apply the mode before any targets
+    # are created so all C++ module producers and consumers agree.
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-pthread>)
+endif()
+
 include(CTest)
 
 if(FARCASTER_BUILD_UI)
