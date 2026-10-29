@@ -4,7 +4,7 @@
         <name />
         <message id="genycaster.topic.trading">
             <source>Trading</source>
-            <translation>Trading</translation>
+            <translation>Negociação</translation>
         </message>
         <message id="genycaster.profile.option.trader">
             <source>Trader</source>
@@ -40,7 +40,7 @@
         </message>
         <message id="genycaster.profile.option.trading">
             <source>Trading</source>
-            <translation>Trading</translation>
+            <translation>Negociação</translation>
         </message>
         <message id="genycaster.profile.secondary_categories_label">
             <source>Secondary categories</source>
@@ -357,7 +357,7 @@
         </message>
         <message id="genycaster.connections.copy_remove">
             <source>Remove</source>
-            <translation>Remove</translation>
+            <translation>Remover</translation>
         </message>
         <message id="genycaster.connections.copy_connect">
             <source>Connect</source>
@@ -365,11 +365,11 @@
         </message>
         <message id="genycaster.connections.copy_cancel">
             <source>Cancel</source>
-            <translation>Cancel</translation>
+            <translation>Cancelar</translation>
         </message>
         <message id="genycaster.connections.copy_linked">
             <source>Linked</source>
-            <translation>Linked</translation>
+            <translation>Conectado</translation>
         </message>
         <message id="genycaster.connections.copy_proof_only">
             <source>Proof only</source>
@@ -381,7 +381,7 @@
         </message>
         <message id="genycaster.connections.copy_save">
             <source>Save</source>
-            <translation>Save</translation>
+            <translation>Salvar</translation>
         </message>
         <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
             <source>Add your public LinkedIn profile URL.</source>
@@ -409,7 +409,7 @@
         </message>
         <message id="genycaster.home.scope_following">
             <source>Following</source>
-            <translation>Following</translation>
+            <translation>Seguindo</translation>
         </message>
         <message id="genycaster.profile.edit_image_url">
             <source>Edit your media URLs</source>
@@ -489,11 +489,11 @@
         </message>
         <message id="genycaster.profile.following">
             <source>Following</source>
-            <translation>Following</translation>
+            <translation>Seguindo</translation>
         </message>
         <message id="genycaster.profile.followers">
             <source>Followers</source>
-            <translation>Followers</translation>
+            <translation>Seguidores</translation>
         </message>
         <message id="genycaster.profile.links_placeholder">
             <source>Personal | https://example.com
@@ -507,7 +507,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
-            <translation>Farcaster profile</translation>
+            <translation>Perfil do Farcaster</translation>
         </message>
         <message id="genycaster.profile.protocol_description">
             <source>These details are signed and published to Farcaster for all clients.</source>
@@ -515,7 +515,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.display_name">
             <source>Display name</source>
-            <translation>Display name</translation>
+            <translation>Nome de exibição</translation>
         </message>
         <message id="genycaster.profile.bio">
             <source>Bio</source>
@@ -591,15 +591,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.business">
             <source>Business</source>
-            <translation>Business</translation>
+            <translation>Negócios</translation>
         </message>
         <message id="genycaster.profile.option.education">
             <source>Education</source>
-            <translation>Education</translation>
+            <translation>Educação</translation>
         </message>
         <message id="genycaster.profile.option.finance">
             <source>Finance</source>
-            <translation>Finance</translation>
+            <translation>Finanças</translation>
         </message>
         <message id="genycaster.profile.option.food_beverage">
             <source>Food &amp; beverage</source>
@@ -619,7 +619,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.technology">
             <source>Technology</source>
-            <translation>Technology</translation>
+            <translation>Tecnologia</translation>
         </message>
         <message id="genycaster.profile.option.professional_services">
             <source>Professional services</source>
@@ -627,7 +627,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.sports">
             <source>Sports</source>
-            <translation>Sports</translation>
+            <translation>Esportes</translation>
         </message>
         <message id="genycaster.profile.option.travel_transportation">
             <source>Travel &amp; transportation</source>
@@ -635,7 +635,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.other">
             <source>Other</source>
-            <translation>Other</translation>
+            <translation>Outros</translation>
         </message>
         <message id="genycaster.profile.option.select_role">
             <source>Select role</source>
@@ -659,7 +659,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.developer">
             <source>Developer</source>
-            <translation>Developer</translation>
+            <translation>Desenvolvedor</translation>
         </message>
         <message id="genycaster.profile.option.engineer">
             <source>Engineer</source>
@@ -739,7 +739,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.share.copy_link">
             <source>Copy link</source>
-            <translation>Copy link</translation>
+            <translation>Copiar link</translation>
         </message>
         <message id="genycaster.share.copy_farcaster_link">
             <source>Copy Farcaster link</source>
@@ -2707,7 +2707,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel">
             <source>Channel</source>
-            <translation>Channel</translation>
+            <translation>Canal</translation>
         </message>
         <message id="genycaster.composer.ticker">
             <source>Ticker</source>
@@ -2747,7 +2747,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_follower_count">
             <source>%1 followers</source>
-            <translation>%1 followers</translation>
+            <translation>%1 seguidores</translation>
         </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
@@ -2763,7 +2763,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_suggestions">
             <source>Channels</source>
-            <translation>Channels</translation>
+            <translation>Canais</translation>
         </message>
         <message id="genycaster.composer.channel_no_results">
             <source>No channels found. Try another search.</source>
@@ -2775,7 +2775,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.category">
             <source>Category</source>
-            <translation>Category</translation>
+            <translation>Categoria</translation>
         </message>
                 <message id="genycaster.composer.clear_content">
             <source>Clear content</source>
@@ -4047,7 +4047,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.selection_system">
             <source>System</source>
-            <translation>System</translation>
+            <translation>Sistema</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
             <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
@@ -6219,7 +6219,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
-            <translation>Delete</translation>
+            <translation>Excluir</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
@@ -6239,11 +6239,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
-            <translation>Save</translation>
+            <translation>Salvar</translation>
         </message>
         <message id="genycaster.bookmarks.cancel">
             <source>Cancel</source>
-            <translation>Cancel</translation>
+            <translation>Cancelar</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
@@ -6267,11 +6267,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>
-            <translation>Create</translation>
+            <translation>Criar</translation>
         </message>
         <message id="genycaster.activity.onchain">
             <source>Onchain</source>
-            <translation>Onchain</translation>
+            <translation>Na blockchain</translation>
         </message>
         <message id="genycaster.settings.mobile_action_title">
             <source>Mobile Action Button</source>

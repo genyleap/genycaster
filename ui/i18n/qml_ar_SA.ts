@@ -357,7 +357,7 @@
         </message>
         <message id="genycaster.connections.copy_remove">
             <source>Remove</source>
-            <translation>Remove</translation>
+            <translation>إزالة</translation>
         </message>
         <message id="genycaster.connections.copy_connect">
             <source>Connect</source>
@@ -365,11 +365,11 @@
         </message>
         <message id="genycaster.connections.copy_cancel">
             <source>Cancel</source>
-            <translation>Cancel</translation>
+            <translation>إلغاء</translation>
         </message>
         <message id="genycaster.connections.copy_linked">
             <source>Linked</source>
-            <translation>Linked</translation>
+            <translation>مرتبط</translation>
         </message>
         <message id="genycaster.connections.copy_proof_only">
             <source>Proof only</source>
@@ -381,7 +381,7 @@
         </message>
         <message id="genycaster.connections.copy_save">
             <source>Save</source>
-            <translation>Save</translation>
+            <translation>حفظ</translation>
         </message>
         <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
             <source>Add your public LinkedIn profile URL.</source>
@@ -409,7 +409,7 @@
         </message>
         <message id="genycaster.home.scope_following">
             <source>Following</source>
-            <translation>Following</translation>
+            <translation>يتابع</translation>
         </message>
         <message id="genycaster.profile.edit_image_url">
             <source>Edit your media URLs</source>
@@ -489,11 +489,11 @@
         </message>
         <message id="genycaster.profile.following">
             <source>Following</source>
-            <translation>Following</translation>
+            <translation>يتابع</translation>
         </message>
         <message id="genycaster.profile.followers">
             <source>Followers</source>
-            <translation>Followers</translation>
+            <translation>المتابعون</translation>
         </message>
         <message id="genycaster.profile.links_placeholder">
             <source>Personal | https://example.com
@@ -507,7 +507,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
-            <translation>Farcaster profile</translation>
+            <translation>ملف Farcaster الشخصي</translation>
         </message>
         <message id="genycaster.profile.protocol_description">
             <source>These details are signed and published to Farcaster for all clients.</source>
@@ -515,7 +515,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.display_name">
             <source>Display name</source>
-            <translation>Display name</translation>
+            <translation>اسم العرض</translation>
         </message>
         <message id="genycaster.profile.bio">
             <source>Bio</source>
@@ -591,15 +591,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.business">
             <source>Business</source>
-            <translation>Business</translation>
+            <translation>الأعمال</translation>
         </message>
         <message id="genycaster.profile.option.education">
             <source>Education</source>
-            <translation>Education</translation>
+            <translation>التعليم</translation>
         </message>
         <message id="genycaster.profile.option.finance">
             <source>Finance</source>
-            <translation>Finance</translation>
+            <translation>المال</translation>
         </message>
         <message id="genycaster.profile.option.food_beverage">
             <source>Food &amp; beverage</source>
@@ -619,7 +619,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.technology">
             <source>Technology</source>
-            <translation>Technology</translation>
+            <translation>التكنولوجيا</translation>
         </message>
         <message id="genycaster.profile.option.professional_services">
             <source>Professional services</source>
@@ -627,7 +627,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.sports">
             <source>Sports</source>
-            <translation>Sports</translation>
+            <translation>الرياضة</translation>
         </message>
         <message id="genycaster.profile.option.travel_transportation">
             <source>Travel &amp; transportation</source>
@@ -635,7 +635,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.other">
             <source>Other</source>
-            <translation>Other</translation>
+            <translation>أخرى</translation>
         </message>
         <message id="genycaster.profile.option.select_role">
             <source>Select role</source>
@@ -659,7 +659,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.developer">
             <source>Developer</source>
-            <translation>Developer</translation>
+            <translation>المطوّر</translation>
         </message>
         <message id="genycaster.profile.option.engineer">
             <source>Engineer</source>
@@ -739,7 +739,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.share.copy_link">
             <source>Copy link</source>
-            <translation>Copy link</translation>
+            <translation>نسخ الرابط</translation>
         </message>
         <message id="genycaster.share.copy_farcaster_link">
             <source>Copy Farcaster link</source>
@@ -6219,7 +6219,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
-            <translation>Delete</translation>
+            <translation>حذف</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
@@ -6239,11 +6239,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
-            <translation>Save</translation>
+            <translation>حفظ</translation>
         </message>
         <message id="genycaster.bookmarks.cancel">
             <source>Cancel</source>
-            <translation>Cancel</translation>
+            <translation>إلغاء</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
@@ -6267,11 +6267,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>
-            <translation>Create</translation>
+            <translation>إنشاء</translation>
         </message>
         <message id="genycaster.activity.onchain">
             <source>Onchain</source>
-            <translation>Onchain</translation>
+            <translation>على السلسلة</translation>
         </message>
         <message id="genycaster.settings.mobile_action_title">
             <source>Mobile Action Button</source>
