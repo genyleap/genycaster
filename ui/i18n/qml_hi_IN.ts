@@ -2678,8 +2678,8 @@ Company | https://company.com</translation>
             <translation>आप Farcaster की कौन-सी सुविधा पहले सुधारेंगे और क्यों?</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>त्वरित पहुँच</translation>
+            <source>Explore &amp; tools</source>
+            <translation>खोजें और टूल</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>

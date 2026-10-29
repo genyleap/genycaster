@@ -2678,8 +2678,8 @@ Company | https://company.com</source>
             <translation>اول کدوم قابلیت فارکستر رو بهبود می‌دادی و چرا؟</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>دسترسی سریع</translation>
+            <source>Explore &amp; tools</source>
+            <translation>کاوش و ابزارها</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>

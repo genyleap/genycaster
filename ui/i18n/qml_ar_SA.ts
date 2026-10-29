@@ -2678,8 +2678,8 @@ Company | https://company.com</translation>
             <translation>ما أول ميزة في Farcaster تود تحسينها، ولماذا؟</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>وصول سريع</translation>
+            <source>Explore &amp; tools</source>
+            <translation>استكشاف وأدوات</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>

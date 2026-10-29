@@ -2678,8 +2678,8 @@ Company | https://company.com</translation>
             <translation>你最想先改进 Farcaster 的哪个功能？为什么？</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>快捷入口</translation>
+            <source>Explore &amp; tools</source>
+            <translation>探索与工具</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>

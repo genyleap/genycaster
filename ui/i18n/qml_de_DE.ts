@@ -2678,8 +2678,8 @@ Company | https://company.com</translation>
             <translation>Welche Farcaster-Funktion würdest du zuerst verbessern und warum?</translation>
         </message>
         <message id="genycaster.home.hub_quick_access">
-            <source>Quick access</source>
-            <translation>Schnellzugriff</translation>
+            <source>Explore &amp; tools</source>
+            <translation>Entdecken &amp; Werkzeuge</translation>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>
