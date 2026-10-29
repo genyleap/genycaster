@@ -2040,7 +2040,22 @@ int main(int argc, char* argv[])
 #endif
 
     std::shared_ptr<Runtime> runtime{};
-    std::jthread bootstrap{};
+#if !defined(__EMSCRIPTEN__)
+    // Android NDK 27's libc++ does not provide std::jthread. Bootstrap has no
+    // stop_token parameter, so a joining std::thread preserves its lifetime
+    // without detaching or exposing referenced Qt objects to a dangling worker.
+    struct BootstrapThread final {
+        std::thread worker{};
+
+        ~BootstrapThread()
+        {
+            if (worker.joinable()) {
+                worker.join();
+            }
+        }
+    };
+    BootstrapThread bootstrap{};
+#endif
     if (!isSmokeTest && !isVisualTest) {
         const QString databasePathText = optionValue(
             arguments, QStringLiteral("--database-path="));
@@ -2133,11 +2148,11 @@ int main(int argc, char* argv[])
                 }, Qt::QueuedConnection);
         };
 #if defined(__EMSCRIPTEN__)
-        // std::jthread cannot start in a single-threaded WASM browser runtime.
+        // A worker thread cannot start in a single-threaded WASM browser runtime.
         // Defer initialization until Qt's main event loop is active.
         QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
 #else
-        bootstrap = std::jthread(std::move(bootstrapRuntime));
+        bootstrap.worker = std::thread(std::move(bootstrapRuntime));
 #endif
     }
 
