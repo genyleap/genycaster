@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Qt 6.12 WASM Multimedia is technology preview and absent from aqt Qt addons.
+# Compile the official checksum-verified module against installed Qt WASM.
+set -euo pipefail
+: "${QT_ROOT_DIR:?Qt WebAssembly SDK root missing}"
+: "${QT_HOST_PATH:?Matching native Qt host tools missing}"
+
+version=6.12.0
+expected=3143f53b64257ba2a0685c940f5dce476c75871ff86b516de45cfd54ea93a62d
+archive="${RUNNER_TEMP:-/tmp}/qtmultimedia-${version}.tar.xz"
+url="https://download.qt.io/official_releases/qt/6.12/${version}/submodules/qtmultimedia-everywhere-src-${version}.tar.xz"
+
+curl --fail --location --retry 3 --silent --show-error "$url" --output "$archive"
+actual="$(sha256sum "$archive" | awk '{print $1}')"
+if [[ "$actual" != "$expected" ]]; then
+    echo "::error::Qt Multimedia source checksum mismatch" >&2
+    exit 1
+fi
+
+mkdir -p build/qt-wasm-multimedia-source
+tar -xJf "$archive" -C build/qt-wasm-multimedia-source --strip-components=1
+
+# WebAssembly uses its browser media backend, not FFmpeg/native devices.
+cmake -S build/qt-wasm-multimedia-source \
+    -B build/qt-wasm-multimedia -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    "-DCMAKE_TOOLCHAIN_FILE=${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake" \
+    "-DQT_HOST_PATH=${QT_HOST_PATH}" \
+    "-DCMAKE_INSTALL_PREFIX=${QT_ROOT_DIR}" \
+    -DFEATURE_ffmpeg=OFF \
+    -DQT_BUILD_TESTS=OFF \
+    -DQT_BUILD_EXAMPLES=OFF
+cmake --build build/qt-wasm-multimedia --parallel 3
+cmake --install build/qt-wasm-multimedia
+
+test -s "${QT_ROOT_DIR}/lib/cmake/Qt6Multimedia/Qt6MultimediaConfig.cmake" || {
+    echo "::error::Qt6Multimedia not installed for WebAssembly" >&2
+    exit 1
+}
+echo "Qt Multimedia 6.12 WebAssembly module installed from verified source"

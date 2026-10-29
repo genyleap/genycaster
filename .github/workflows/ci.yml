@@ -25,7 +25,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: genycaster-cross-platform-${{ github.ref }}
+  # Separate manual invocations by run ID; never serialize unrelated platform checks.
+  # Version tags still serialize by ref to avoid overlapping releases.
+  group: genycaster-cross-platform-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: false
 
 env:
@@ -474,8 +476,10 @@ jobs:
           version: ${{ env.QT_VERSION }}
           target: wasm
           arch: wasm_singlethread
-          modules: qtmultimedia
           cache: true
+      - name: Build Qt Multimedia WebAssembly tech-preview from verified source
+        shell: bash
+        run: bash ci/build_qt_wasm_multimedia.sh
       - name: Build and package browser application
         shell: bash
         env:

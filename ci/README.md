@@ -44,7 +44,10 @@ repository has component directories but no `Updates.xml` understood by aqt.
 Android compiles OpenSSL 3.5.9 for its target architecture, rather than linking macOS/Linux
 binaries. Emscripten 5.0.5 matches the Qt 6.12 requirement. Linux, Windows
 and Android use the QtKeychain 0.17 source fallback if no suitable installed
-package exists. Linux/Windows set GENYCASTER_FETCH_QTKEYCHAIN=ON
+package exists. The official WebAssembly Qt 6.12 SDK does not provide the
+qtmultimedia addon in its aqt package index, so the Web job builds the matching
+Qt Multimedia 6.12.0 technology-preview module from the official SHA-256-
+verified source archive; this step still requires its first hosted validation. Linux/Windows set GENYCASTER_FETCH_QTKEYCHAIN=ON
 explicitly, so ordinary developer machines without libsecret do not become
 broken. Release configurations require a secure signer vault.
 
