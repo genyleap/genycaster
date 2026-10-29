@@ -8,7 +8,9 @@ module;
 #include <cmath>
 #include <expected>
 #include <limits>
+#include <locale>
 #include <optional>
+#include <sstream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -53,9 +55,14 @@ namespace {
     if (text.empty()) {
         return false;
     }
+    // Android NDK 27's libc++ does not provide floating-point from_chars.
+    // The JSON scanner already checks the number grammar; a classic-locale
+    // stream converts its bounded token without depending on the process locale.
+    std::istringstream number{std::string{text}};
+    number.imbue(std::locale::classic());
     double value{};
-    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !std::isfinite(value)) {
+    number >> std::noskipws >> value;
+    if (number.fail() || !number.eof() || !std::isfinite(value)) {
         return false;
     }
     out = value;

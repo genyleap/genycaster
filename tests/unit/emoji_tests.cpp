@@ -14,6 +14,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 import farcaster.application.emoji.animation_policy;
@@ -164,6 +165,26 @@ void testValidator()
         expect(valid->layerCount == 1U, "layer count extracted");
         expect(valid->durationSeconds > 1.9 && valid->durationSeconds < 2.0, "duration computed");
     }
+
+    // Portable floating-point JSON parsing must work with the Android NDK
+    // libc++, which does not implement std::from_chars(double).
+    auto fractional = validLottie();
+    const auto frameRatePosition = fractional.find("\"fr\":60");
+    fractional.replace(frameRatePosition, 7, "\"fr\":59.5");
+    const auto widthPosition = fractional.find("\"w\":1024");
+    fractional.replace(widthPosition, 8, "\"w\":1.024e3");
+    const auto fractionalAsset = validateEmojiAsset("noto", "x", bytes(fractional));
+    expect(fractionalAsset.has_value(), "fractional/scientific JSON numbers accepted");
+    if (fractionalAsset) {
+        expect(fractionalAsset->frameRate == 59.5, "fractional frame rate preserved");
+        expect(fractionalAsset->width == 1024U, "scientific-notation width preserved");
+    }
+
+    auto overflowed = validLottie();
+    const auto overflowRatePosition = overflowed.find("\"fr\":60");
+    overflowed.replace(overflowRatePosition, 7, "\"fr\":1e309");
+    expect(!validateEmojiAsset("noto", "x", bytes(overflowed)),
+        "non-finite or out-of-range JSON numbers rejected");
 
     expect(
         validateEmojiAsset("noto", "x", std::span<const std::byte>{bytes("")}).has_value() == false,
