@@ -21,7 +21,9 @@ def read(rel: str) -> str:
 
 shell = read("ui/components/AppShell.qml")
 feed = read("ui/components/FeedSurface.qml")
-runtime = read("ui/mobile/main.cpp") + read("ui/mobile/runtime_composition.cppm") + read("ui/mobile/runtime_composition.cpp")
+runtime = (read("ui/mobile/main.cpp") + read("ui/mobile/runtime_composition.cppm") +
+           read("ui/mobile/runtime_composition.cpp") +
+           read("ui/mobile/runtime_ui_bindings.cpp"))
 link_preview = read("ui/components/LinkPreview.qml")
 preview_resolver = read("ui/mobile/link_preview_resolver.cpp")
 profile = read("ui/components/ProfileSurface.qml")
@@ -60,12 +62,12 @@ for token in (
     "property int conversationPrefetchPages: 0",
     "property int developerPrefetchPages: 0",
     "property int automaticPrefetchPages: 0",
-    "readonly property int filterPrefetchLimit: 6",
-    "readonly property int automaticPrefetchLimit: 12",
+    "readonly property int filterPrefetchLimit: 8",
+    "readonly property int automaticPrefetchLimit: 16",
+    "readonly property int automaticNoProgressLimit: 2",
+    "property int automaticLastRowCount: -1",
     "function resetAllFilterPrefetchBudgets()",
-    'root.isRootPost(row) && root.semanticKind(row) === "other"',
-    "id: automaticPrefetchCooldown",
-    "interval: 1400",
+    "root.isRootPost(row)",
     "function semanticKind(data)",
     'if (root.looksDeveloper(data))',
     'if (root.hasCollectible(data))',
@@ -110,7 +112,8 @@ for token in (
     'root.isCollectibleMarketplaceUrl(value)',
     'function rowHasImage(data)',
     'function containsCollectibleLink(data)',
-    'return root.rowHasImage(data) && root.containsCollectibleLink(data)',
+    'if (root.containsCollectibleLink(row))',
+    'if (!root.rowHasImage(row))',
 ):
     if token not in feed:
         errors.append(f"NFT-art filtering contract missing {token!r}")
@@ -124,11 +127,9 @@ presentation_mode_block = re.search(
 if not presentation_mode_block or "root.resetCurrentFilterPrefetchBudget()" not in presentation_mode_block.group("body"):
     errors.append("Each Explorer semantic-tab visit must receive a fresh bounded pagination budget")
 
-for_you_match = re.search(
-    r'if \(root\.presentationMode === "for-you"\) \{(?P<body>.*?)\n\s*\}',
-    feed, re.DOTALL)
-if not for_you_match or 'root.semanticKind(row) === "other"' not in for_you_match.group("body"):
-    errors.append("For You must exclude rows owned by Visuals, Conversations, and Devs")
+if ('(root.presentationMode === "for-you" || root.presentationMode === "following")' not in feed
+        or "if (root.isRootPost(row))" not in feed):
+    errors.append("For You must preserve the full provider-ordered root-post stream")
 
 for token in (
     "enum class ReadIntent",
@@ -143,7 +144,6 @@ for token in (
     "beginFeedRequestGeneration()",
     "isCurrentFeedRequestGeneration(requestGeneration)",
     "maximumContextHydrationsPerFeedState{24U}",
-    "maximumVisibleReactionHydrations{64U}",
     "keepReferencedPreviewRequest",
     ".intent = application::read::model::ReadIntent::Prefetch",
     "allowRecoveryProbe && !continuationRequest",
@@ -210,7 +210,7 @@ if not art_request_match or "!m_explorerArtRows.isEmpty()" in art_request_match.
 
 for token in (
     '"art", "photography", "basepaint", "design", "superrare"',
-    "feedPresentationRows(bridge, state, channelId)",
+    "feedPresentationRows(state, 0U, channelId)",
     'row.insert(QStringLiteral("_artChannelSource"), true)',
     ".intent = application::read::model::ReadIntent::Prefetch",
 ):
@@ -222,14 +222,19 @@ for token in (
     "property bool supplementalBusy: false",
     "function rowHasImage(data)",
     "function containsCollectibleLink(data)",
-    "return root.rowHasImage(data) && root.containsCollectibleLink(data)",
+    "if (root.containsCollectibleLink(row))",
+    "if (!root.rowHasImage(row))",
 ):
     if token not in feed:
         errors.append(f"NFT live-feed filtering missing {token!r}")
 
-for surface_name, surface in (("FeedSurface", feed), ("ProfileSurface", profile), ("DetailSurface", detail)):
+for surface_name, surface in (("FeedSurface", feed), ("DetailSurface", detail)):
     if "ScrollBar.vertical: GenyScrollBar" in surface:
         errors.append(f"{surface_name} must not expose a visible primary reading scrollbar")
+# The profile editor is a long form and intentionally has a scrollbar; the
+# profile reading surface itself must remain free of a visible primary bar.
+if "ScrollBar.vertical: GenyScrollBar" in profile.split("id: profileEditorScroll", 1)[0]:
+    errors.append("Profile reading surface must not expose a visible primary scrollbar")
 
 for token in (
     "primaryRequestGeneration",

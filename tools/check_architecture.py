@@ -28,6 +28,21 @@ QML_IO = re.compile(
     re.IGNORECASE,
 )
 
+# The user's provider selector and diagnostics are intentional presentation
+# boundaries: their UI displays provider names, IDs and configured node types.
+# Other QML surfaces must remain completely provider-neutral, and no QML may
+# initiate network/database I/O. Keep this list narrow and auditable.
+PROVIDER_SELECTION_QML = {
+    "ui/components/NodeManagementPanel.qml",
+    "ui/components/ProviderProfilesPanel.qml",
+}
+PROVIDER_AWARE_PRESENTATION = {
+    "ui/mobile/provider_profiles_controller.cpp",
+    "ui/mobile/channel_picker_controller.cpp",
+    "ui/mobile/genypulse_activity_controller.cpp",
+    "ui/tests/provider_profiles_controller_tests.cpp",
+}
+
 # Textual project headers are exceptional boundaries, never the default architecture.
 # Isolated external module/BMI compatibility boundaries may use the dialect required by
 # the reviewed third-party SDK. They are not part of the C++26 Farcaster core.
@@ -145,8 +160,17 @@ for path in ROOT.rglob("*"):
             namespace_match = EXPORT_NAMESPACE.search(text)
             if namespace_match:
                 expected_namespace = export_match.group(1).replace(".", "::")
-                if namespace_match.group(1) != expected_namespace:
-                    add(path, f"export namespace '{namespace_match.group(1)}' must mirror module identity '{expected_namespace}'")
+                actual_namespace = namespace_match.group(1)
+                # A gateway module may export additional types in its owning
+                # namespace (routing::write, routing::signer) without creating
+                # a fictitious routing::write::gateway namespace in its ABI.
+                matches_module = actual_namespace == expected_namespace
+                owning_gateway = (
+                    expected_namespace.endswith("::gateway")
+                    and actual_namespace == expected_namespace.removesuffix("::gateway")
+                )
+                if not (matches_module or owning_gateway):
+                    add(path, f"export namespace '{actual_namespace}' must mirror module identity '{expected_namespace}'")
             else:
                 add(path, "exported module interface must expose a namespace matching its module identity")
 
@@ -178,12 +202,12 @@ for path in ROOT.rglob("*"):
                 "ui/mobile/main.cpp",
                 "ui/mobile/runtime_composition.cpp",
                 "ui/mobile/runtime_composition.cppm",
-            }  # Explicit executable composition roots.
+            } | PROVIDER_AWARE_PRESENTATION  # Explicit presentation/composition boundaries.
         ):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")
 
     if path.suffix == ".qml":
-        if PROVIDER_SEMANTICS.search(text):
+        if PROVIDER_SEMANTICS.search(text) and rel not in PROVIDER_SELECTION_QML:
             add(path, "provider/backend semantic leaked into QML")
         if QML_IO.search(text):
             add(path, "QML must not own network, websocket, or database I/O")
