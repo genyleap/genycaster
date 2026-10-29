@@ -51,6 +51,11 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(procedure.count("const QUrl destination{"), 1)
         self.assertEqual(procedure.count("QHostAddress numericHost{};"), 1)
         self.assertIn("destination.scheme() != QStringLiteral(\"https\")", procedure)
+        # Unverified URL input must never enter the externally visible state.
+        self.assertIn("m_launchUrl.clear();", procedure)
+        self.assertIn("m_launchUrl = destination.toString(QUrl::FullyEncoded);", procedure)
+        self.assertLess(procedure.index("if (!destination.isValid()"),
+                        procedure.index("m_launchUrl = destination.toString("))
 
     def test_external_miniapp_fallback_is_unprivileged_and_explicit(self) -> None:
         controller = Path("ui/mobile/miniapp_host_controller.cpp").read_text(encoding="utf-8")

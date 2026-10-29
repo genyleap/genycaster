@@ -73,7 +73,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
 {
     // A nested QML TapHandler may observe the same button gesture. Runtime-level
     // session deduplication handles repeated launches without destroying other apps.
-    m_launchUrl = url;
+    m_launchUrl.clear();
     m_error.clear();
     emit stateChanged();
     // Only public HTTPS origins may open in unprivileged web content.
@@ -95,6 +95,8 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
         return;
     }
+    m_launchUrl = destination.toString(QUrl::FullyEncoded);
+    emit stateChanged();
 #if defined(__EMSCRIPTEN__)
     // WebAssembly cannot create the native macOS WKWebView. Host public,
     // embeddable Mini Apps in a sandboxed in-page iframe instead of launching
