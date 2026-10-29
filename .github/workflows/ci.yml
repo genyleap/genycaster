@@ -566,11 +566,35 @@ jobs:
             find build/android/ui -name '*.apk' -print
             exit 1
           fi
-          if [[ "$SIGN_RELEASE" == true ]]; then
-            "$ANDROID_HOME/build-ci/35.0.0/apksigner" verify --verbose "${apks[0]}"
+          # Every published CI artifact must be installable. A manually
+          # dispatched build gets a throwaway test signature, never the
+          # protected release key. Only a version tag uses release secrets.
+          signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -x "$signer" || { echo "::error::Missing Android apksigner"; exit 1; }
+          selected="${apks[0]}"
+          if [[ "$SIGN_RELEASE" != true ]]; then
+            test_keystore="$RUNNER_TEMP/genycaster-ci-test.p12"
+            keytool -genkeypair -noprompt -storetype PKCS12 \
+              -keystore "$test_keystore" -alias genycaster-ci-test \
+              -keyalg RSA -keysize 3072 -validity 2 \
+              -storepass genycaster-ci-ephemeral -keypass genycaster-ci-ephemeral \
+              -dname "CN=GenyCaster CI Test APK, OU=Not For Release"
+            selected="$RUNNER_TEMP/genycaster-ci-test-signed.apk"
+            "$signer" sign --ks "$test_keystore" \
+              --ks-key-alias genycaster-ci-test \
+              --ks-pass pass:genycaster-ci-ephemeral \
+              --key-pass pass:genycaster-ci-ephemeral \
+              --out "$selected" "${apks[0]}"
+            echo "WARNING: Android manual artifact uses an ephemeral CI TEST key."
+            echo "It is installable for testing, NOT an official release signature."
           fi
-          cp "${apks[0]}" "dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
-          python3 ci/verify_platform_package.py android "dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
+          "$signer" verify --verbose --print-certs "$selected"
+          artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
+          if [[ "$SIGN_RELEASE" != true ]]; then
+            artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a-CI-TEST.apk"
+          fi
+          cp "$selected" "$artifact"
+          python3 ci/verify_platform_package.py android "$artifact"
           (cd dist && sha256sum *.apk > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:

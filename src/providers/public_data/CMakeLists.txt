@@ -2,7 +2,9 @@ if(NOT TARGET Boost::headers)
     find_package(Boost 1.75 REQUIRED)
 endif()
 
-add_library(farcaster_provider_public_data)
+# C++26 implementation units are not a DLL-exported ABI. Keep the entire
+# provider in a static archive for the final executable link on Windows.
+add_library(farcaster_provider_public_data STATIC)
 add_library(farcaster::provider_public_data ALIAS farcaster_provider_public_data)
 
 target_sources(farcaster_provider_public_data

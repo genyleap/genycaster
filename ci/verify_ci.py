@@ -31,7 +31,19 @@ def main() -> None:
     assert "$ANDROID_HOME/cmdline-tools/latest/bin" in workflow
     assert "$ANDROID_HOME/cmdline-ci" not in workflow
     assert "sdkmanager_bin/sdkmanager" in workflow
+    assert "$ANDROID_HOME/build-tools/35.0.0/apksigner" in workflow
+    assert "genycaster-ci-test-signed.apk" in workflow
+    assert '"$signer" verify --verbose --print-certs "$selected"' in workflow
     assert "sha256sum --check" in workflow
+    for module_path, target in (
+        ("src/presentation/media/CMakeLists.txt", "farcaster_presentation_media"),
+        ("src/providers/hypersnap/CMakeLists.txt", "farcaster_provider_hypersnap"),
+        ("src/providers/public_data/CMakeLists.txt", "farcaster_provider_public_data"),
+    ):
+        module_cmake = Path(module_path).read_text(encoding="utf-8")
+        assert f"add_library({target} STATIC)" in module_cmake, (
+            f"{target} must retain its implementation symbols on Windows"
+        )
     print("CI trigger, source layout and release gate invariants passed")
 
 

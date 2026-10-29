@@ -9,7 +9,9 @@ elseif(NOT TARGET Boost::headers)
     find_package(Boost 1.75 REQUIRED)
 endif()
 
-add_library(farcaster_provider_hypersnap)
+# Do not accidentally turn a C++26 module provider into a Windows DLL:
+# its non-exported implementation-unit methods must be linked into the app.
+add_library(farcaster_provider_hypersnap STATIC)
 add_library(farcaster::provider_hypersnap ALIAS farcaster_provider_hypersnap)
 
 target_sources(farcaster_provider_hypersnap
