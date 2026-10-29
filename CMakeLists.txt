@@ -70,6 +70,14 @@ endif()
 
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
+# Linux UI includes shared Qt/provider adapters that link core static module
+# libraries. Every dependency must be built with PIC before its own target is
+# created, or the ELF linker rejects relocations from module object files.
+# Core-only command-line/test profiles keep their existing code-generation mode.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FARCASTER_BUILD_UI)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 set(_genycasterPublicDataDefault OFF)
 if(FARCASTER_BUILD_UI)
     set(_genycasterPublicDataDefault ON)

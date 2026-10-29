@@ -441,15 +441,20 @@ jobs:
           cmake "${args[@]}"
           cmake --build build/android --target farcaster_client_make_apk --parallel 3
           mkdir -p dist
+          # Qt's deploy step may produce a native APK and a Gradle APK.
+          # Never select arbitrarily from 'find *.apk' or package Debug.
+          output_dir=build/android/ui/android-build/build/outputs/apk/release
           if [[ "$SIGN_RELEASE" == true ]]; then
-            mapfile -t apks < <(find build/android/ui -type f -name '*signed*.apk' ! -name '*unsigned*')
+            mapfile -t apks < <(find "$output_dir" -maxdepth 1 -type f \
+              -name '*-signed.apk' ! -name '*unsigned*' | sort)
           else
-            mapfile -t apks < <(find build/android/ui -type f -name '*.apk')
+            apks=("$output_dir/android-build-release-unsigned.apk")
           fi
-          [[ ${#apks[@]} -eq 1 ]] || {
-            echo "::error::Expected one appropriate APK; found ${#apks[@]}"
+          if [[ ${#apks[@]} -ne 1 || ! -s "${apks[0]}" ]]; then
+            echo "::error::Expected one release APK under $output_dir"
+            find build/android/ui -name '*.apk' -print
             exit 1
-          }
+          fi
           if [[ "$SIGN_RELEASE" == true ]]; then
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "${apks[0]}"
           fi
