@@ -2,6 +2,10 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.engagement.views_accessible">
+            <source>Views: %1</source>
+            <translation>देखे जाने की संख्या: %1</translation>
+        </message>
         <message id="genycaster.topic_browser.empty">
             <source>No GenyCaster casts are tagged with this topic yet.</source>
             <translation>इस विषय से जुड़ा कोई GenyCaster कास्ट अभी नहीं है।</translation>

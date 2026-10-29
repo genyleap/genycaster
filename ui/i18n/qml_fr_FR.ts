@@ -2,6 +2,10 @@
 <TS version="2.1" language="fr_FR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.engagement.views_accessible">
+            <source>Views: %1</source>
+            <translation>Vues : %1</translation>
+        </message>
         <message id="genycaster.topic_browser.empty">
             <source>No GenyCaster casts are tagged with this topic yet.</source>
             <translation>Aucun cast GenyCaster n&#x27;est encore associé à ce sujet.</translation>

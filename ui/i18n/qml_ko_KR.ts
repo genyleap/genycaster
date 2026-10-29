@@ -2,6 +2,10 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.engagement.views_accessible">
+            <source>Views: %1</source>
+            <translation>조회수: %1</translation>
+        </message>
         <message id="genycaster.topic_browser.empty">
             <source>No GenyCaster casts are tagged with this topic yet.</source>
             <translation>이 주제로 분류된 GenyCaster 캐스트가 아직 없습니다.</translation>

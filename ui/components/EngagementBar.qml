@@ -297,7 +297,7 @@ RowLayout {
             spacing: root.compact ? 2 : Theme.space1
             Accessible.role: Accessible.StaticText
 
-            Accessible.name: "Views: " + viewMetric.text
+            Accessible.name: qsTrId("genycaster.engagement.views_accessible").arg(viewMetric.text)
 
             Icon {
                 text: Theme.iconPreview
