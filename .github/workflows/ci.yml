@@ -488,6 +488,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build python3
+      - name: Install host Qt ShaderTools (qsb for cross-build)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: linux_gcc_64
+          modules: qtshadertools
+          cache: true
       - uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
