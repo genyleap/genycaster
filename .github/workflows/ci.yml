@@ -279,7 +279,9 @@ jobs:
         shell: pwsh
         run: |
           & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install `
-            boost-headers:x64-windows boost-json:x64-windows curl:x64-windows openssl:x64-windows sqlite3:x64-windows
+            boost-asio:x64-windows boost-beast:x64-windows boost-json:x64-windows `
+            boost-multiprecision:x64-windows boost-property-tree:x64-windows `
+            boost-system:x64-windows curl:x64-windows openssl:x64-windows sqlite3:x64-windows
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compile and deploy
         shell: pwsh
