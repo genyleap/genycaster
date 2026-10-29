@@ -20,6 +20,34 @@ fi
 mkdir -p build/qt-wasm-multimedia-source
 tar -xJf "$archive" -C build/qt-wasm-multimedia-source --strip-components=1
 
+# Qt Multimedia's shader packaging helper belongs to Qt ShaderTools. The
+# 6.12 WebAssembly prebuilt SDK omits it; build the matching module first.
+shader_archive="${RUNNER_TEMP:-/tmp}/qtshadertools-${version}.tar.xz"
+shader_url="https://download.qt.io/official_releases/qt/6.12/${version}/submodules/qtshadertools-everywhere-src-${version}.tar.xz"
+shader_expected=c7d84f436e1aaef39fdcadebf2bd71bdf24dc69497e13f2e0198873cbbfea2ab
+curl --fail --location --retry 3 --silent --show-error "$shader_url" --output "$shader_archive"
+shader_actual="$(sha256sum "$shader_archive" | awk '{print $1}')"
+if [[ "$shader_actual" != "$shader_expected" ]]; then
+    echo "::error::Qt ShaderTools source checksum mismatch" >&2
+    exit 1
+fi
+mkdir -p build/qt-wasm-shadertools-source
+tar -xJf "$shader_archive" -C build/qt-wasm-shadertools-source --strip-components=1
+cmake -S build/qt-wasm-shadertools-source \
+    -B build/qt-wasm-shadertools -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    "-DCMAKE_TOOLCHAIN_FILE=${QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake" \
+    "-DQT_HOST_PATH=${QT_HOST_PATH}" \
+    "-DCMAKE_INSTALL_PREFIX=${QT_ROOT_DIR}" \
+    -DQT_BUILD_TESTS=OFF \
+    -DQT_BUILD_EXAMPLES=OFF
+cmake --build build/qt-wasm-shadertools --parallel 3
+cmake --install build/qt-wasm-shadertools
+test -s "${QT_ROOT_DIR}/lib/cmake/Qt6ShaderTools/Qt6ShaderToolsConfig.cmake" || {
+    echo "::error::Qt6ShaderTools not installed for WebAssembly" >&2
+    exit 1
+}
+
 # WebAssembly uses its browser media backend, not FFmpeg/native devices.
 cmake -S build/qt-wasm-multimedia-source \
     -B build/qt-wasm-multimedia -G Ninja \

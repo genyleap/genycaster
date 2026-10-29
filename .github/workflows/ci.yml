@@ -283,7 +283,19 @@ jobs:
         env:
           VERSION: ${{ needs.gate.outputs.version }}
         run: |
+          # Qt's MSVC ABI is supported by Clang-CL. MSVC 19.44 cannot
+          # satisfy CMake's CXX26 feature requirement; never lower C++26.
+          $llvm = "$env:ProgramFiles/LLVM/bin"
+          $clang = Join-Path $llvm 'clang-cl.exe'
+          $scanner = Join-Path $llvm 'clang-scan-deps.exe'
+          if (-not (Test-Path $clang)) { throw 'Clang-CL not available on runner' }
+          if (-not (Test-Path $scanner)) { throw 'Clang module scanner not available on runner' }
+          & $clang --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake -S . -B build/native -G Ninja `
+            "-DCMAKE_C_COMPILER=$clang" `
+            "-DCMAKE_CXX_COMPILER=$clang" `
+            "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=$scanner" `
             "-DCMAKE_BUILD_TYPE=Release" `
             "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" `
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
