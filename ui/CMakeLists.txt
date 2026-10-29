@@ -285,6 +285,11 @@ target_sources(farcaster_client
         mobile/runtime_composition.cppm
 )
 set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
+# macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
+# cannot be deployed into a DMG with the Qt plugin and QML payload.
+if(APPLE AND NOT IOS)
+    set_target_properties(farcaster_client PROPERTIES MACOSX_BUNDLE TRUE)
+endif()
 target_compile_features(farcaster_client PRIVATE cxx_std_26)
 
 # GCC 16 can exhaust memory on small Linux builders while emitting DWARF

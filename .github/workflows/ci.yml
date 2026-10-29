@@ -117,7 +117,7 @@ jobs:
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-render-util0 libxcb-xinerama0 \
             libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
-            libdbus-1-dev software-properties-common \
+            libcurl4-openssl-dev libdbus-1-dev software-properties-common \
             libfontconfig1 libfreetype6 python3
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
@@ -225,17 +225,17 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
             -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
             -DOPENSSL_USE_STATIC_LIBS=TRUE \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           cmake --build build/native --target farcaster_client --parallel 3
-          APP=build/native/ui/farcaster_client.app
+          APP=build/native/bin/farcaster_client.app
           test -d "$APP"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
           mkdir -p dist
-          DMG=build/native/ui/farcaster_client.dmg
+          DMG=build/native/bin/farcaster_client.dmg
           test -s "$DMG"
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-arm64.dmg"
           (cd dist && shasum -a 256 *.dmg > SHA256SUMS)

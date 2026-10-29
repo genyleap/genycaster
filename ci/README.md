@@ -81,7 +81,9 @@ publishes a GitHub release even if you manually run it from a tag.
 * Android: Manually dispatched APKs are not release-signed. Tagged candidate
   builds require the GitHub keystore secrets. Device startup, TLS, signer
   vault, network access and login must be verified before wider distribution.
-* macOS: macdeployqt creates an ad-hoc development DMG; Developer ID signing
+* macOS: the GitHub macOS 15 runner and its Homebrew OpenSSL libraries target
+  macOS 15+; builds for macOS 14 require separately built deployment-target
+  compatible dependencies. macdeployqt creates an ad-hoc development DMG; Developer ID signing
   and Apple notarization are NOT configured yet.
 * Windows: The ZIP is not Authenticode-signed; production certificates and
   verified signing remain a separate release requirement.
