@@ -275,6 +275,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python ci/install_qt_windows.py --destination Qt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Configure vcpkg binary cache
+        shell: pwsh
+        run: |
+          $cache = Join-Path $env:RUNNER_TEMP 'genycaster-vcpkg-binary-cache'
+          New-Item -ItemType Directory -Force $cache | Out-Null
+          "VCPKG_DEFAULT_BINARY_CACHE=$cache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Restore built vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/genycaster-vcpkg-binary-cache
+          key: genycaster-windows-vcpkg-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: |
+            genycaster-windows-vcpkg-
       - name: Install Windows native packages
         shell: pwsh
         run: |
