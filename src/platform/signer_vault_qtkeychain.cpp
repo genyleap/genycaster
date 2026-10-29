@@ -4,7 +4,17 @@ module;
 #include <QEventLoop>
 #include <QObject>
 #include <QString>
+
+// QtKeychain installs its public header as qt6keychain/keychain.h, while
+// a source-tree FetchContent build exposes qtkeychain/keychain.h. Both use
+// the same QKeychain API; preserve the platform's secure-store backend.
+#if __has_include(<qt6keychain/keychain.h>)
 #include <qt6keychain/keychain.h>
+#elif __has_include(<qtkeychain/keychain.h>)
+#include <qtkeychain/keychain.h>
+#else
+#error "QtKeychain public header is missing; provide Qt6Keychain >= 0.17"
+#endif
 
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
