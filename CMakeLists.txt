@@ -6,6 +6,12 @@ project(Genycaster
     LANGUAGES CXX
 )
 
+if(ANDROID)
+    # The bundled SQLite amalgamation is C and must use the Android NDK toolchain.
+    # Native desktop builds continue to use their existing SQLite integration.
+    enable_language(C)
+endif()
+
 if(EMSCRIPTEN)
     # SQLite's WASM amalgamation is C, whereas the native product is C++26
     # modules. Never discover/link host macOS SQLite in a cross build.

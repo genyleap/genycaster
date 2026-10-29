@@ -4,23 +4,23 @@
 # Homebrew LLVM), that can bypass Clang's resource headers and break Darwin
 # typedef discovery while compiling C++ module units. The SDK is already
 # searched through CMAKE_OSX_SYSROOT, so only the library itself is required.
-if(EMSCRIPTEN)
-    # Emscripten cannot link against the host's macOS/Homebrew SQLite3.
-    # Compile the official amalgamation with the selected Emscripten toolchain.
+if(EMSCRIPTEN OR ANDROID)
+    # Both browser and Android builds need SQLite compiled for their target ABI.
+    # Never resolve a macOS/Homebrew or Linux host SQLite library in a cross build.
     include(FetchContent)
-    FetchContent_Declare(genycaster_wasm_sqlite
+    FetchContent_Declare(genycaster_embedded_sqlite
         URL "https://www.sqlite.org/2026/sqlite-amalgamation-3540000.zip"
         URL_HASH "SHA3_256=7b670a62fdfbd672b75fef004cb703c8a3e87d3a5cc7d675b4a08337004a2d93"
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
-    FetchContent_MakeAvailable(genycaster_wasm_sqlite)
+    FetchContent_MakeAvailable(genycaster_embedded_sqlite)
     # FetchContent flattens SQLite's one-directory archive at extract time.
-    set(_genycaster_wasm_sqlite_dir "${genycaster_wasm_sqlite_SOURCE_DIR}")
-    add_library(genycaster_wasm_sqlite3 STATIC
-        "${_genycaster_wasm_sqlite_dir}/sqlite3.c")
-    target_include_directories(genycaster_wasm_sqlite3
-        PUBLIC "${_genycaster_wasm_sqlite_dir}")
-    target_compile_definitions(genycaster_wasm_sqlite3 PRIVATE
+    set(_genycaster_embedded_sqlite_dir "${genycaster_embedded_sqlite_SOURCE_DIR}")
+    add_library(genycaster_embedded_sqlite3 STATIC
+        "${_genycaster_embedded_sqlite_dir}/sqlite3.c")
+    target_include_directories(genycaster_embedded_sqlite3
+        PUBLIC "${_genycaster_embedded_sqlite_dir}")
+    target_compile_definitions(genycaster_embedded_sqlite3 PRIVATE
         SQLITE_THREADSAFE=1 SQLITE_OMIT_LOAD_EXTENSION=1)
 elseif(APPLE)
     find_library(FARCASTER_SQLITE3_LIBRARY NAMES sqlite3 REQUIRED)
@@ -42,8 +42,8 @@ add_library(farcaster_storage_sqlite_boundary STATIC
     sqlite_boundary.hpp
 )
 target_include_directories(farcaster_storage_sqlite_boundary PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-if(EMSCRIPTEN)
-    target_link_libraries(farcaster_storage_sqlite_boundary PUBLIC genycaster_wasm_sqlite3)
+if(EMSCRIPTEN OR ANDROID)
+    target_link_libraries(farcaster_storage_sqlite_boundary PUBLIC genycaster_embedded_sqlite3)
 elseif(APPLE)
     target_link_libraries(farcaster_storage_sqlite_boundary PRIVATE "${FARCASTER_SQLITE3_LIBRARY}")
 else()
