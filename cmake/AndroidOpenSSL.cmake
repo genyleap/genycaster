@@ -22,8 +22,13 @@ if(NOT CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
         "arm64-v8a. Requested ABI: '${CMAKE_ANDROID_ARCH_ABI}'.")
 endif()
 
-get_filename_component(_genycasterAndroidSslRoot
-    "${GENYCASTER_ANDROID_OPENSSL_ROOT}" ABSOLUTE)
+# Qt Creator may pass a macOS absolute path without its leading '/'. CMake
+# turns that relative CACHE PATH into e.g. <source>/Users/... and persists it
+# in the Release kit. Recover only when the absolute candidate actually has
+# the required target-ABI artifacts; do not guess or fall back to host OpenSSL.
+include(AndroidOpenSSLRoot)
+genycaster_resolve_android_openssl_root(_genycasterAndroidSslRoot
+    "${GENYCASTER_ANDROID_OPENSSL_ROOT}" "${CMAKE_SOURCE_DIR}")
 set(_genycasterAndroidSslHeader
     "${_genycasterAndroidSslRoot}/include/openssl/opensslv.h")
 set(_genycasterAndroidCrypto

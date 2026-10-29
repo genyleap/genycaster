@@ -396,6 +396,8 @@ jobs:
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Verify Android OpenSSL path cache recovery
+        run: cmake -P tests/cmake/android_openssl_root_test.cmake
       - name: Install Android packages and OpenSSL tools
         shell: bash
         run: |
