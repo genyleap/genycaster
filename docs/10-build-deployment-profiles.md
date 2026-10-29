@@ -71,11 +71,12 @@ Creator kit on macOS. Select the Qt 6.12 Android arm64-v8a kit instead.
 
 Android client configurations default `FARCASTER_BUILD_TESTS=OFF` so APK
 builds do not create unrelated desktop-style unit and contract executables.
-The option remains explicit and can be enabled for dedicated device testing;
-those test targets share `Boost::headers` instead of looking for host Boost
-packages. Existing Qt Creator CMake caches can retain an older `ON` setting:
-set `FARCASTER_BUILD_TESTS:BOOL=OFF` for the Android kit and clear the CMake
-configuration once when upgrading. This does not disable Linux CI tests.
+Old Qt Creator caches retaining `FARCASTER_BUILD_TESTS=ON` are automatically
+reset to `OFF` for Android APK builds. To opt into dedicated Android device
+tests, set `GENYCASTER_ANDROID_ENABLE_TESTS=ON` and
+`FARCASTER_BUILD_TESTS=ON` explicitly. Tests reuse `Boost::headers`, and the
+Hypersnap curl-specific contract suite is omitted when the curl transport
+is not compiled for that target. Linux CI test selection is unchanged.
 
 ### Android Boost.JSON headers
 

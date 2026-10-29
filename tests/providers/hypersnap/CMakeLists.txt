@@ -1,3 +1,12 @@
+# The contract suite currently exercises the libcurl transport adapter.
+# Android intentionally uses Qt Network and does not build transport_curl.
+# Do not create a dangling link target in Android test configurations.
+if(NOT TARGET farcaster::transport_curl)
+    message(STATUS
+        "Skipping Hypersnap curl contract tests: farcaster::transport_curl is unavailable")
+    return()
+endif()
+
 add_executable(farcaster_hypersnap_contract_tests
     contract_tests.cpp
     fixtures.cpp
