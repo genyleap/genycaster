@@ -41,8 +41,18 @@ foreach(_genycasterAndroidFile IN ITEMS
         "${_genycasterAndroidSsl}")
     if(NOT EXISTS "${_genycasterAndroidFile}")
         message(FATAL_ERROR
-            "Missing Android OpenSSL artifact: ${_genycasterAndroidFile}. "
-            "Run tools/build_android_openssl.sh for arm64-v8a.")
+            "Missing Android OpenSSL artifact: ${_genycasterAndroidFile}\n"
+            "The Android arm64-v8a OpenSSL prefix has not been prepared, "
+            "or the previous cross-build was incomplete.\n"
+            "On macOS, run from the GenyCaster source root:\n"
+            "  brew install patchelf\n"
+            "  ANDROID_NDK_ROOT=\"$ENV{HOME}/Library/Android/sdk/ndk/27.2.12479018\" "
+            "bash tools/build_android_openssl.sh\n"
+            "Then confirm these files exist under '${_genycasterAndroidSslRoot}':\n"
+            "  include/openssl/opensslv.h\n"
+            "  lib/libcrypto_3.so\n"
+            "  lib/libssl_3.so\n"
+            "Never use the host macOS/Homebrew OpenSSL libraries for Android.")
     endif()
 endforeach()
 
