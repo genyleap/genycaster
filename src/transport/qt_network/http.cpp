@@ -11,9 +11,9 @@ module;
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
-#if !defined(__EMSCRIPTEN__)
-// Qt WebAssembly delegates TLS to the browser (fetch/XHR); Qt's SSL
-// diagnostics, handshake signals and QSslSocket are unavailable there.
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
+// Qt WebAssembly delegates TLS to the browser; Qt builds without the SSL
+// feature also omit QSslSocket and QNetworkReply handshake diagnostics.
 #include <QSslError>
 #include <QSslSocket>
 #endif
@@ -119,7 +119,7 @@ enum class RequestStage : std::uint8_t {
     return "unknown";
 }
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
 [[nodiscard]] std::string sslErrorSummary(const QList<QSslError>& errors)
 {
     QStringList descriptions{};
@@ -331,7 +331,7 @@ private:
         responseBody.reserve(std::min<std::size_t>(maxBodyBytes, 64U * 1024U));
         bool bodyLimitExceeded{false};
         bool timedOut{false};
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
         QList<QSslError> sslErrors{};
 #endif
         RequestStage requestStage{RequestStage::Starting};
@@ -362,7 +362,7 @@ private:
         QObject::connect(reply.get(), &QNetworkReply::socketStartedConnecting, &loop, [&]() {
             requestStage = RequestStage::Connecting;
         });
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
         QObject::connect(reply.get(), &QNetworkReply::encrypted, &loop, [&]() {
             requestStage = RequestStage::TlsEstablished;
         });
@@ -380,7 +380,7 @@ private:
             requestStage = RequestStage::ResponseBody;
             consumeAvailableBody();
         });
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
         QObject::connect(
             reply.get(),
             &QNetworkReply::sslErrors,
@@ -449,7 +449,7 @@ private:
 
         if (reply->error() != QNetworkReply::NoError) {
             std::string message = "Qt Network request failed: " + toUtf8(reply->errorString()) + ".";
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
             const std::string tlsDetails = sslErrorSummary(sslErrors);
             if (!tlsDetails.empty()) {
                 message.append(" TLS: ");
@@ -497,13 +497,20 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
         });
     }
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
     if (!QSslSocket::supportsSsl()) {
         return std::unexpected(transportError(
             foundation::error::ErrorCode::TransportFailure,
             "Qt Network has no usable TLS backend. Active backend: " +
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
+#elif !defined(__EMSCRIPTEN__)
+    // The Qt SDK itself was built without SSL. Adding OpenSSL shared objects
+    // to the APK cannot enable APIs disabled when Qt Network was compiled.
+    return std::unexpected(transportError(
+        foundation::error::ErrorCode::Unavailable,
+        "Qt Network was built without SSL/TLS support. Use an SSL-enabled "
+        "Qt Network SDK; HTTPS requests are unavailable."));
 #endif
 
     std::unique_ptr<http::IHttpTransport> transport =

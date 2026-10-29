@@ -11,7 +11,7 @@ module;
 #include <QObject>
 #include <QPointer>
 #include <QRandomGenerator>
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
 #include <QSslSocket>
 #endif
 #include <QString>
@@ -1072,13 +1072,19 @@ makeAsyncTransport(
     if (proxyPolicy == ProxyPolicy::System) {
         QNetworkProxyFactory::setUseSystemConfiguration(true);
     }
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && QT_CONFIG(ssl)
     if (!QSslSocket::supportsSsl()) {
         return std::unexpected(makeError(
             ErrorCode::TransportFailure,
             "Qt Network has no usable TLS backend. Active backend: " +
                 toUtf8(QSslSocket::activeBackend()) + "."));
     }
+#elif !defined(__EMSCRIPTEN__)
+    // Never create an HTTPS-capable-looking transport without TLS support.
+    return std::unexpected(makeError(
+        ErrorCode::Unavailable,
+        "Qt Network was built without SSL/TLS support. Use an SSL-enabled "
+        "Qt Network SDK; HTTPS requests are unavailable."));
 #endif
     std::unique_ptr<async_http::IAsyncHttpTransport> transport =
         std::make_unique<AsyncQtHttpTransport>(proxyPolicy, protocolPolicy, std::move(limits));

@@ -91,6 +91,16 @@ build cache. To override header discovery without linking native libraries,
 set `GENYCASTER_ANDROID_BOOST_INCLUDE_DIR` to a directory containing
 `boost/json/src.hpp`, `boost/json.hpp`, and `boost/version.hpp`.
 
+The precompiled Qt for Android SDK must itself have the `ssl` feature
+compiled in. Packaged OpenSSL shared objects only satisfy *runtime* TLS
+libraries; they cannot enable QSslSocket or QNetworkReply SSL APIs in a Qt
+Network binary that was built without this feature. Inspect the Android kit's
+`include/QtNetwork/qtnetwork-config.h` for `QT_FEATURE_ssl` (1 means enabled;
+-1 means disabled). Genycaster's Qt Network adapters guard optional SSL APIs
+with `QT_CONFIG(ssl)` and fail closed if Qt provides no SSL; certificate errors
+are never ignored. A build without Qt SSL is not usable for the HTTPS-backed
+product and must not be considered release-ready.
+
 `Qt6Keychain >= 0.17` is a separate Android Keystore-backed signer-vault
 requirement. If the effective backend remains `unavailable`, signed-write
 flows must remain disabled. Release validation should enable
