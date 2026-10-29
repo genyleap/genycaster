@@ -36,7 +36,7 @@ Item {
     signal profileRequested()
     signal routeRequested(string route)
 
-    implicitHeight: 74
+    implicitHeight: Qt.platform.os === "android" ? 74 : 88
     clip: false
 
     // A genuinely floating dock: the root is fully transparent. No footer
@@ -142,7 +142,7 @@ Item {
                                            ? Theme.scaleUi(10) : Theme.scaleUi(4)
         anchors.leftMargin: Theme.mobileGutter + extraInset
         anchors.rightMargin: Theme.mobileGutter + extraInset
-        anchors.topMargin: 4
+        anchors.topMargin: Qt.platform.os === "android" ? 4 : 8
         spacing: Theme.space2
         layoutDirection: Theme.uiDirection
 

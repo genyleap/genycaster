@@ -42,11 +42,11 @@ Rectangle {
             id: brandCluster
             objectName: "appHeaderBrandCluster"
             visible: root.showBrand
-            readonly property real symbolSize: Theme.scaleUi(root.compact ? 28 : 30)
-            readonly property real wordmarkWidth: Theme.scaleUi(root.compact ? 122 : 150)
+            readonly property real symbolSize: Theme.scaleUi(root.compact && Qt.platform.os === "android" ? 28 : 30)
+            readonly property real wordmarkWidth: Theme.scaleUi(root.compact ? (Qt.platform.os === "android" ? 122 : 132) : 150)
             readonly property real brandGap: Theme.space2
             width: symbolSize + brandGap + wordmarkWidth
-            height: Theme.scaleUi(root.compact ? 38 : 42)
+            height: Theme.scaleUi(root.compact && Qt.platform.os === "android" ? 38 : 42)
             x: Theme.rtl ? parent.width - root.gutter - width : root.gutter
             y: (parent.height - height) / 2
             LayoutMirroring.enabled: false
@@ -79,7 +79,7 @@ Rectangle {
                 Image {
                     id: brandWordmark
                     width: parent.width
-                    height: Theme.scaleUi(root.compact ? 20 : 24)
+                    height: Theme.scaleUi(root.compact ? (Qt.platform.os === "android" ? 20 : 22) : 24)
                     x: 0
                     y: 0
                     LayoutMirroring.enabled: false

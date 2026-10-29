@@ -1782,7 +1782,7 @@ Item {
                             visible: root.mobile && !root.initialSetupOpen
                                      && !root.homeComposerFocused
                             z: 800
-                            height: root.mobile ? 74 : 88
+                            height: Qt.platform.os === "android" && root.mobile ? 74 : 88
                             anchors.left: readingPane.left
                             anchors.right: readingPane.right
                             anchors.bottom: readingPane.bottom

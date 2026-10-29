@@ -29,6 +29,7 @@ Item {
         }
     }
     readonly property bool densePhone: root.compact && root.height < 840
+    readonly property bool androidCompact: root.compact && Qt.platform.os === "android"
     // Dismiss the draft editor without discarding its contents.
     TapHandler {
         enabled: root.compact && root.composerFocused
@@ -131,7 +132,7 @@ Item {
                     objectName: "homeShortcut_" + modelData.destination
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
-                    Layout.preferredHeight: root.compact ? 104 : 120
+                    Layout.preferredHeight: root.compact ? (root.androidCompact ? 104 : 116) : 120
                     readonly property bool locked: modelData.destination === "wallet"
                     fillColor: locked ? Theme.surfaceMuted
                                : actionMouse.pressed ? Theme.surfacePressed
@@ -209,7 +210,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: root.compact ? Theme.space3 : Theme.space4
                 Layout.rightMargin: root.compact ? Theme.space3 : Theme.space4
-                Layout.preferredHeight: root.compact ? 84 : 108
+                Layout.preferredHeight: root.compact ? (root.androidCompact ? 84 : 96) : 108
                 fillColor: Theme.primarySurface
                 borderWidth: 1
                 borderColor: Theme.borderMuted
@@ -454,19 +455,25 @@ GenyTokenBanner {}
             spacing: root.densePhone ? Theme.space2 : Theme.space3
             // Keep the focused composer clear of the fixed application header
             // even after the navigation tiles are hidden by the keyboard.
-            Item { Layout.preferredHeight: root.composerFocused ? Theme.space3
-                                                  : root.densePhone ? Theme.space1 : Theme.space2 }
+            Item { Layout.preferredHeight: root.composerFocused
+                                                  ? (root.androidCompact ? Theme.space3 : Theme.space4)
+                                                  : root.densePhone ? Theme.space1
+                                                  : root.androidCompact ? Theme.space2 : Theme.space3 }
             Superellipse {
                 visible: !root.composerFocused
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: root.densePhone ? 52 : 68
+                Layout.preferredWidth: root.androidCompact
+                                       ? (root.densePhone ? 52 : 68)
+                                       : (root.densePhone ? 60 : 80)
                 Layout.preferredHeight: Layout.preferredWidth
                 fillColor: "transparent"
                 borderWidth: 0
                 curveDepth: width / 2
                 Avatar {
                     anchors.centerIn: parent
-                    avatarSize: root.densePhone ? 50 : 64
+                    avatarSize: root.androidCompact
+                                ? (root.densePhone ? 50 : 64)
+                                : (root.densePhone ? 56 : 76)
                     sourceUrl: root.avatarUrl
                     displayName: root.displayName || root.username
                     visible: root.authenticated && root.avatarUrl.length > 0
@@ -475,11 +482,15 @@ GenyTokenBanner {}
                     anchors.centerIn: parent
                     text: Theme.iconLeaf
                     color: Theme.accent
-                    preferredSize: root.densePhone ? 34 : 44
+                    preferredSize: root.androidCompact
+                                   ? (root.densePhone ? 34 : 44)
+                                   : (root.densePhone ? 38 : 50)
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size; font.weight: Theme.weightBold; wrapMode: Text.Wrap }
+            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.androidCompact
+                ? (root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size)
+                : (root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize); font.weight: Theme.weightBold; wrapMode: Text.Wrap }
             DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
 
             // A single aligned launcher: composing starts in the dedicated
@@ -490,7 +501,7 @@ GenyTokenBanner {}
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
-                Layout.preferredHeight: 52
+                Layout.preferredHeight: root.androidCompact ? 52 : 60
                 fillColor: Theme.surface
                 borderWidth: 1
                 borderColor: Theme.borderMuted
