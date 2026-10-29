@@ -28,6 +28,9 @@ def main() -> None:
     assert "version=3.5.9" in workflow
     assert "tools/build_android_openssl.sh" not in workflow
     assert "Prepare Android OpenSSL 3.5.9 libraries" in workflow
+    assert "$ANDROID_HOME/cmdline-tools/latest/bin" in workflow
+    assert "$ANDROID_HOME/cmdline-ci" not in workflow
+    assert "sdkmanager_bin/sdkmanager" in workflow
     assert "sha256sum --check" in workflow
     print("CI trigger, source layout and release gate invariants passed")
 

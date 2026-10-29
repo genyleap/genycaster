@@ -416,8 +416,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build patchelf perl \
             libdigest-sha-perl make curl tar python3
-          export PATH="$ANDROID_HOME/cmdline-ci/latest/bin:$PATH"
-          echo "$ANDROID_HOME/cmdline-ci/latest/bin" >> "$GITHUB_PATH"
+          # Android SDK command-line tools live under cmdline-tools, not
+          # the project ci/ directory. Guard this path before sdkmanager.
+          sdkmanager_bin="$ANDROID_HOME/cmdline-tools/latest/bin"
+          test -x "$sdkmanager_bin/sdkmanager" || {
+            echo "::error::Android sdkmanager missing: $sdkmanager_bin/sdkmanager"
+            exit 1
+          }
+          export PATH="$sdkmanager_bin:$PATH"
+          echo "$sdkmanager_bin" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses || true
           sdkmanager --install "ndk;${ANDROID_NDK_VERSION}" \
             "platforms;android-${ANDROID_API}" "build-tools;35.0.0" \
