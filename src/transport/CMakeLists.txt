@@ -14,7 +14,10 @@ target_compile_features(farcaster_transport PUBLIC cxx_std_26)
 set_property(TARGET farcaster_transport PROPERTY CXX_SCAN_FOR_MODULES ON)
 farcaster_enable_warnings(farcaster_transport)
 
-if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER AND NOT EMSCRIPTEN)
+# Android and browser compositions use the Qt transport adapter; the
+# standalone curl target is not linked into the Android client and the NDK
+# does not ship libcurl.
+if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER AND NOT EMSCRIPTEN AND NOT ANDROID)
     if(APPLE)
         # The SDK already supplies headers through CMAKE_OSX_SYSROOT. Linking the
         # system curl dylib directly avoids propagating MacOSX.sdk/usr/include as

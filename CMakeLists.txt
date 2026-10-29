@@ -340,8 +340,18 @@ if(FARCASTER_BUILD_UI)
     if(QT_KNOWN_POLICY_QTP0004)
         qt_policy(SET QTP0004 NEW)
     endif()
+    if(QT_KNOWN_POLICY_QTP0002)
+        # Required for generator expressions in QT_ANDROID_EXTRA_LIBS.
+        qt_policy(SET QTP0002 NEW)
+    endif()
 
     qt_standard_project_setup(REQUIRES 6.12)
+endif()
+
+# Android's OpenSSL is an ABI-specific external dependency. Import target
+# libraries before optional provider/signer CMakeLists consume OpenSSL::Crypto.
+if(ANDROID AND FARCASTER_BUILD_UI)
+    include(AndroidOpenSSL)
 endif()
 
 add_subdirectory(src/foundation)

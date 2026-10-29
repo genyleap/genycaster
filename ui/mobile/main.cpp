@@ -534,6 +534,10 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
 
 int main(int argc, char* argv[])
 {
+#if defined(Q_OS_ANDROID)
+    // Match the bundled OpenSSL 3 sonames before Qt initializes TLS/networking.
+    qputenv("ANDROID_OPENSSL_SUFFIX", "_3");
+#endif
     // Adaptive is the product default. Qt Quick's standard scene graph keeps
     // its default vertex-AA path, while Genycaster's curved design primitives
     // use Shape.CurveRenderer for native high-quality curve AA without MSAA.

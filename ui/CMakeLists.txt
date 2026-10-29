@@ -362,6 +362,20 @@ target_compile_definitions(farcaster_client
         GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
 )
 
+if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
+    # Package the shared QtKeychain backend used by the static signer vault.
+    set_property(TARGET farcaster_client APPEND PROPERTY
+        QT_ANDROID_EXTRA_LIBS "$<TARGET_FILE:Qt6Keychain::Qt6Keychain>")
+endif()
+
+# Qt's TLS backend loads both shared OpenSSL libraries dynamically on Android.
+# Include them in the APK, even though Genycaster links only OpenSSL::Crypto.
+if(ANDROID AND TARGET OpenSSL::Crypto)
+    set_property(TARGET farcaster_client APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
+        "${GENYCASTER_ANDROID_OPENSSL_CRYPTO_LIBRARY}"
+        "${GENYCASTER_ANDROID_OPENSSL_SSL_LIBRARY}")
+endif()
+
 target_link_libraries(farcaster_client
     PRIVATE
         farcaster::presentation

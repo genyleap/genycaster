@@ -1,5 +1,7 @@
 find_package(Boost 1.75 REQUIRED)
-find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+if(NOT TARGET OpenSSL::Crypto)
+    find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+endif()
 
 add_library(farcaster_provider_compatibility_auth)
 add_library(farcaster::provider_compatibility_auth ALIAS farcaster_provider_compatibility_auth)

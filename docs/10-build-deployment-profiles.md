@@ -34,6 +34,40 @@ Qt Quick debug surface with tests. Requires Qt 6.12+ and must additionally pass 
 
 `FARCASTER_BUILD_UI=ON` now defaults `FARCASTER_ENABLE_HYPERSNAP_PROVIDER=ON`. Core-only presets still set both UI and provider support OFF explicitly. A runnable UI with provider support explicitly disabled fails at configure time instead of producing an executable whose first read can never route. Strict-self-hosted UI composition is also rejected until a self-hosted read adapter is implemented; the provider-free strict core preset remains valid.
 
+
+### Android arm64-v8a OpenSSL (Qt 6.12)
+
+Android NDK does not provide OpenSSL. Genycaster requires a target-architecture
+OpenSSL 3.5.9 or newer when building its native Qt Android client; do not use
+Homebrew/macOS OpenSSL, a host `Boost_DIR`, or an unversioned system Android
+`libcrypto.so`. The standalone build script obtains the official OpenSSL 3.5.9
+LTS release and its SHA-256 checksum, cross-compiles against the configured
+NDK/API 28, installs headers and version-suffixed shared libraries
+(`libcrypto_3.so` and `libssl_3.so`), and patches ELF SONAME/dependencies.
+Both shared libraries are packaged through `QT_ANDROID_EXTRA_LIBS`.
+
+On a macOS host with Homebrew, run this from the Genycaster source root:
+
+```sh
+brew install patchelf
+ANDROID_NDK_ROOT="$HOME/Library/Android/sdk/ndk/27.2.12479018" \
+  bash tools/build_android_openssl.sh
+```
+
+Set the Qt Creator Android kit's CMake variable
+`GENYCASTER_ANDROID_OPENSSL_ROOT` to the resulting `build/android-deps`
+absolute path (for example, `/Users/compez/Developer/genycaster/build/android-deps`).
+Clear the Qt Creator CMake cache before reconfiguring, especially when changing
+ABI or OpenSSL prefix. This variable is distinct from
+`OPENSSL_ROOT_DIR`; stale paths to host packages must not be reused.
+
+`Qt6Keychain >= 0.17` is a separate Android Keystore-backed signer-vault
+requirement. If the effective backend remains `unavailable`, signed-write
+flows must remain disabled. Release validation should enable
+`FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON` and verify packaged libraries,
+the ABI, and actual device startup/signing. A successful CMake configure is
+not evidence that an APK has been built, signed, or tested.
+
 ## Future provider-policy profiles
 
 Once real adapters exist, deployment policy may express:

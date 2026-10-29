@@ -44,8 +44,29 @@ elseif(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT)
     # Service/KWallet, and Android Keystore. It does not use plaintext fallback
     # unless a caller opts into that explicitly; Genycaster never does.
     find_package(Qt6Keychain 0.17 CONFIG QUIET)
+    if(ANDROID AND NOT Qt6Keychain_FOUND)
+        # Cross-build QtKeychain for the Android ABI, rather than using a
+        # macOS/Homebrew library or silently disabling persistent signer keys.
+        include(FetchContent)
+        set(BUILD_TRANSLATIONS OFF)
+        FetchContent_Declare(genycaster_android_qtkeychain
+            GIT_REPOSITORY "https://github.com/frankosterfeld/qtkeychain.git"
+            GIT_TAG "875f77d9f61bd97fd84cca47ce3bc71186dfbd09"
+            GIT_SHALLOW FALSE
+        )
+        FetchContent_MakeAvailable(genycaster_android_qtkeychain)
+        unset(BUILD_TRANSLATIONS)
+        if(TARGET qt6keychain)
+            if(NOT TARGET Qt6Keychain::Qt6Keychain)
+                add_library(Qt6Keychain::Qt6Keychain ALIAS qt6keychain)
+            endif()
+            set(Qt6Keychain_FOUND TRUE)
+        endif()
+    endif()
     if(Qt6Keychain_FOUND)
-        find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+        if(NOT TARGET OpenSSL::Crypto)
+            find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+        endif()
         target_sources(farcaster_platform_signer PRIVATE signer_vault_qtkeychain.cpp)
         target_link_libraries(farcaster_platform_signer
             PUBLIC farcaster::capabilities farcaster::domain farcaster::foundation
