@@ -314,12 +314,18 @@ jobs:
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
             --qmldir ui --dir dist/app dist/app/farcaster_client.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          # windeployqt handles Qt plugins, not arbitrary vcpkg/QtKeychain DLLs.
+          # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
+          # Bundle all DLLs from this build's isolated vcpkg target triplet:
+          # libcurl, SQLite and OpenSSL have their own transitive dependencies.
           $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
-          foreach ($name in @('libcrypto-3-x64.dll', 'libssl-3-x64.dll')) {
-            $source = Join-Path $vcpkgBin $name
-            if (-not (Test-Path $source)) { throw "Missing dependency: $source" }
-            Copy-Item $source dist/app/
+          $runtimeDlls = @(Get-ChildItem $vcpkgBin -File -Filter '*.dll')
+          foreach ($pattern in @('libcrypto*.dll', 'libssl*.dll', '*sqlite*.dll', '*curl*.dll')) {
+            if (@($runtimeDlls | Where-Object { $_.Name -like $pattern }).Count -eq 0) {
+              throw "Required Windows runtime dependency not found: $pattern"
+            }
+          }
+          foreach ($dll in $runtimeDlls) {
+            Copy-Item $dll.FullName dist/app/ -ErrorAction Stop
           }
           $keychain = Get-ChildItem build/native -Recurse -File -Filter '*keychain*.dll' |
             Select-Object -First 1
