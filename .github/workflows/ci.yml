@@ -414,7 +414,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y ninja-build patchelf perl \
+          sudo apt-get install -y ninja-build perl \
             libdigest-sha-perl make curl tar python3
           # Android SDK command-line tools live under cmdline-tools, not
           # the project ci/ directory. Guard this path before sdkmanager.
@@ -478,30 +478,34 @@ jobs:
             # NDK r27 defaults to 4 KiB ELF segments. Android 15+ may use
             # 16 KiB pages; OpenSSL must match the Qt and provider binaries.
             export LDFLAGS="-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
-            ./Configure android-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
-            make -s -j 4 SHLIB_VERSION_NUMBER= build_libs
-            test -s libcrypto.so
-            test -s libssl.so
+            # OpenSSL's own shlib_variant names both libraries and their ELF
+            # SONAME/DT_NEEDED links *during* compilation. Do not post-process
+            # native ELF with patchelf: it produced a noncongruent PT_LOAD and
+            # crashed QtLoader at application startup ("sign_ctx" in verneed).
+            # The Android target's .so extension has no version suffix.
+            cat > Configurations/99-genycaster-android.conf <<'OPENSSL_TARGET'
+          my %targets = (
+              "android-genycaster-arm64" => {
+                  inherit_from => [ "android-arm64" ],
+                  shlib_variant => "_3",
+              },
+          );
+          OPENSSL_TARGET
+            ./Configure android-genycaster-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
+            make -s -j 4 build_libs
+            test -s libcrypto_3.so
+            test -s libssl_3.so
             cp -R include/openssl "$GITHUB_WORKSPACE/build/android-deps/include/"
-            cp -L libcrypto.so "$GITHUB_WORKSPACE/build/android-deps/lib/libcrypto_3.so"
-            cp -L libssl.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
+            cp -L libcrypto_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libcrypto_3.so"
+            cp -L libssl_3.so "$GITHUB_WORKSPACE/build/android-deps/lib/libssl_3.so"
           )
           libdir="$GITHUB_WORKSPACE/build/android-deps/lib"
-          # PatchELF must preserve ELF LOAD mapping congruence for Android's
-          # 16 KiB page-size linker. The default layout can create an invalid
-          # appended segment despite advertising p_align >= 16384; Android
-          # then reads the wrong DT_VERNEED strings and fails QtLoader startup.
-          patchelf --page-size 16384 --set-soname libcrypto_3.so "$libdir/libcrypto_3.so"
-          patchelf --page-size 16384 --set-soname libssl_3.so "$libdir/libssl_3.so"
-          for needed in libcrypto.so libcrypto.so.3; do
-            if patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx "$needed"; then
-              patchelf --page-size 16384 --replace-needed "$needed" libcrypto_3.so "$libdir/libssl_3.so"
-            fi
-          done
-          patchelf --print-needed "$libdir/libssl_3.so" | grep -Fqx libcrypto_3.so
           for lib in libcrypto_3.so libssl_3.so; do
             "$toolchain/llvm-readelf" -h "$libdir/$lib" | grep -Eq 'Machine:[[:space:]]+AArch64'
+            "$toolchain/llvm-readelf" -d "$libdir/$lib" | grep -Eq "SONAME.*\\[$lib\\]"
           done
+          "$toolchain/llvm-readelf" -d "$libdir/libssl_3.so" |
+            grep -Eq 'NEEDED.*\\[libcrypto_3.so\\]'
           test -s build/android-deps/include/openssl/opensslv.h
           echo "Android ARM64 OpenSSL ${version} verified for APK deployment"
       - name: Prepare signing for release tags only

@@ -32,8 +32,15 @@ def main() -> None:
     assert "$ANDROID_HOME/cmdline-ci" not in workflow
     assert "sdkmanager_bin/sdkmanager" in workflow
     assert 'export LDFLAGS="-Wl,-z,max-page-size=16384' in workflow
-    assert 'patchelf --page-size 16384 --set-soname libcrypto_3.so' in workflow
-    assert 'patchelf --page-size 16384 --set-soname libssl_3.so' in workflow
+    # OpenSSL must emit the final Android SONAMEs itself; post-link
+    # PatchELF corrupted DT_VERNEED/PT_LOAD and caused QtLoader startup crashes.
+    assert '"android-genycaster-arm64" =>' in workflow
+    assert 'inherit_from => [ "android-arm64" ]' in workflow
+    assert 'shlib_variant => "_3"' in workflow
+    assert "./Configure android-genycaster-arm64 shared no-tests" in workflow
+    assert "patchelf --set-soname" not in workflow
+    assert "patchelf --page-size" not in workflow
+    assert 'NEEDED.*' in workflow and 'libcrypto_3.so' in workflow
     assert '"$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16' in workflow
     assert "validate_android_elf_alignment" in Path(
         "ci/verify_platform_package.py"
