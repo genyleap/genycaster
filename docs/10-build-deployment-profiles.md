@@ -115,9 +115,37 @@ is absent**, including local Qt Creator Release/Debug kits. For a macOS Qt kit:
 grep QT_FEATURE_ssl "$HOME/Qt/6.12.0/android-arm64-v8a/include/QtNetwork/qtnetwork-config.h"
 ```
 
-If it reports `-1`, install or rebuild an Android Qt 6.12 SDK with the SSL
-feature enabled. Adding `libssl_3.so` or `libcrypto_3.so` alone cannot fix
-that SDK. Qt Network adapters also check that the TLS backend is usable at
+If it reports `-1`, the SDK's QtNetwork binary was built without TLS; no
+change to the application's `OPENSSL_ROOT_DIR`, `QT_ANDROID_EXTRA_LIBS`,
+`qtnetwork-config.h`, or CMake gate can repair that binary. Qt's installer
+normally distributes Android Qt with SSL support, so first verify a fresh
+isolated SDK from the official Qt download archive without overwriting your
+working Qt installation:
+
+```sh
+bash tools/provision_android_qt_tls_macos.sh --dry-run
+bash tools/provision_android_qt_tls_macos.sh
+```
+
+This uses `aqtinstall` in a local Python virtual environment and installs Qt
+6.12.0 Android ARM64 + Multimedia into `~/Qt-genycaster-tls/`. The script
+checks the actual installed header and required Qt CMake packages. If
+`QT_FEATURE_ssl=1`, register this Android Qt location in Qt Creator and use
+a **new** Release build directory, retaining the macOS Qt 6.12.0 host path
+and the existing Android OpenSSL prefix. The original SDK remains untouched.
+You may also inspect an existing SDK without downloading anything:
+
+```sh
+bash tools/provision_android_qt_tls_macos.sh --check \
+  "$HOME/Qt/6.12.0/android-arm64-v8a"
+```
+
+If the freshly downloaded official SDK also reports `-1`, do not replace
+libraries or edit feature headers. Build a complete Qt for Android SDK from
+source with the SSL feature enabled, following
+[Qt's Android source-build guide](https://doc.qt.io/qt-6.12/android-building.html).
+Merely packaging `libssl_3.so` or `libcrypto_3.so` cannot fix that SDK.
+Qt Network adapters also check that the TLS backend is usable at
 runtime, and certificate errors are never ignored. Node diagnostics report
 HTTP status and Qt network error in Android Logcat without logging secrets;
 a cold-emulator HTTPS probe has an 8-second timeout to avoid false offline
