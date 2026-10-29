@@ -80,9 +80,12 @@ if "JSON.stringify" in feed:
     errors.append("Feed reconciliation must not serialize nested QVariant payloads in JavaScript.")
 if "scrollWorkThrottle" not in feed:
     errors.append("Feed scroll work must remain coalesced rather than running for every contentY change.")
-if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in feed
+# Compact and desktop feeds now use separate bounded cache budgets to avoid
+# retaining heavyweight rich-post delegates offscreen on smaller devices.
+if ("cacheBuffer: root.compact ? Math.min(Math.max(height * 0.33, 240), 440)" not in feed
+        or ": Math.min(Math.max(height * 0.65, 480), 820)" not in feed
         or "pixelAligned: false" not in feed):
-    errors.append("Feed must retain a bounded pre-incubation runway for complex delegates and preserve subpixel scrolling.")
+    errors.append("Feed must retain bounded compact/desktop delegate runways and preserve subpixel scrolling.")
 if ("cacheBuffer: Math.min(Math.max(height * 0.75, 560), 960)" not in profile
         or "if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)" not in profile):
     errors.append("Profile feed scroll work must stay idle during kinetic motion and use the bounded pre-incubation runway shared with the main feed.")
