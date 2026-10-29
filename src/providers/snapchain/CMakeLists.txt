@@ -1,7 +1,9 @@
 if(EMSCRIPTEN)
     # Browser builds have portable Boost headers but no native BoostConfig package.
     include(WasmBoostHeaders)
-else()
+elseif(NOT TARGET Boost::headers)
+    # Android defines Boost::headers at the composition root. Native hosts
+    # continue to discover their installed Boost package normally.
     find_package(Boost 1.75 REQUIRED)
 endif()
 

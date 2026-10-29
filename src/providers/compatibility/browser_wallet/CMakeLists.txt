@@ -1,4 +1,6 @@
-find_package(Boost 1.75 REQUIRED)
+if(NOT TARGET Boost::headers)
+    find_package(Boost 1.75 REQUIRED)
+endif()
 if(NOT TARGET OpenSSL::Crypto)
     find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 endif()

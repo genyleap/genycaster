@@ -67,6 +67,19 @@ The `ui-qt612-debug` CMake preset is intentionally Linux-only: it specifies
 `/opt/gcc-16.2.0/bin/c++` on the build server and must not be used as a Qt
 Creator kit on macOS. Select the Qt 6.12 Android arm64-v8a kit instead.
 
+### Android Boost.JSON headers
+
+Android compiles Boost.JSON directly from `boost/json/src.hpp` and only needs
+portable Boost headers. `cmake/AndroidBoostHeaders.cmake` creates the
+`Boost::headers` interface target before providers are configured, avoiding
+Qt Creator's host-only `find_package(Boost)` package-manager interception.
+If suitable Boost 1.75+ headers are available via Homebrew, only their
+headers are used (never host compiled libraries); otherwise the official
+SHA-256-pinned Boost 1.89.0 header distribution is fetched into the CMake
+build cache. To override header discovery without linking native libraries,
+set `GENYCASTER_ANDROID_BOOST_INCLUDE_DIR` to a directory containing
+`boost/json/src.hpp`, `boost/json.hpp`, and `boost/version.hpp`.
+
 `Qt6Keychain >= 0.17` is a separate Android Keystore-backed signer-vault
 requirement. If the effective backend remains `unavailable`, signed-write
 flows must remain disabled. Release validation should enable

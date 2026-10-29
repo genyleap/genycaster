@@ -4,7 +4,8 @@ if(EMSCRIPTEN)
     # Avoid find_package(Boost): Qt Creator's package provider intercepts it
     # and may attempt to use native macOS binaries during a cross-build.
     include(WasmBoostHeaders)
-else()
+elseif(NOT TARGET Boost::headers)
+    # Android supplies the same header-only contract at the composition root.
     find_package(Boost 1.75 REQUIRED)
 endif()
 

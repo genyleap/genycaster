@@ -348,10 +348,11 @@ if(FARCASTER_BUILD_UI)
     qt_standard_project_setup(REQUIRES 6.12)
 endif()
 
-# Android's OpenSSL is an ABI-specific external dependency. Import target
-# libraries before optional provider/signer CMakeLists consume OpenSSL::Crypto.
+# Prepare Android-only target dependencies before provider subdirectories.
+# Neither Boost nor OpenSSL may link host (macOS/Homebrew) binaries into APKs.
 if(ANDROID AND FARCASTER_BUILD_UI)
     include(AndroidOpenSSL)
+    include(AndroidBoostHeaders)
 endif()
 
 add_subdirectory(src/foundation)

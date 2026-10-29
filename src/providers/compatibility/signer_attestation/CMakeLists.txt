@@ -1,4 +1,6 @@
-find_package(Boost 1.75 REQUIRED)
+if(NOT TARGET Boost::headers)
+    find_package(Boost 1.75 REQUIRED)
+endif()
 
 add_library(farcaster_provider_compatibility_signer_attestation)
 add_library(farcaster::provider_compatibility_signer_attestation ALIAS farcaster_provider_compatibility_signer_attestation)

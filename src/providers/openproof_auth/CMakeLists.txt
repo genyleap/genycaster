@@ -1,4 +1,6 @@
-find_package(Boost 1.75 REQUIRED)
+if(NOT TARGET Boost::headers)
+    find_package(Boost 1.75 REQUIRED)
+endif()
 
 add_library(farcaster_provider_openproof_auth)
 add_library(farcaster::provider_openproof_auth ALIAS farcaster_provider_openproof_auth)
