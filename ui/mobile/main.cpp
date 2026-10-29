@@ -2360,5 +2360,23 @@ int main(int argc, char* argv[])
         flushBrowserData();
     });
 #endif
-    return application.exec();
+    const int exitCode = application.exec();
+#if defined(Q_OS_ANDROID)
+    // Android HWUI may still have an active rendering thread when Qt's Java
+    // bridge returns from main(). Tear down the scene graph and the native
+    // QQuickWindow while QGuiApplication and its platform resources remain
+    // alive, rather than leaving window cleanup to the C++ object unwind.
+    // The bootstrap worker may refer to UI controllers; join it first.
+    if (bootstrap.worker.joinable()) {
+        bootstrap.worker.join();
+    }
+    if (mainWindow != nullptr) {
+        mainWindow->setPersistentGraphics(false);
+        mainWindow->setPersistentSceneGraph(false);
+        mainWindow->hide();
+        mainWindow->releaseResources();
+        delete mainWindow;
+    }
+#endif
+    return exitCode;
 }

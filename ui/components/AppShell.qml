@@ -2066,9 +2066,9 @@ Item {
 
     BookmarkCollectionChooser {
         id: bookmarkCollectionChooser
-        collections: openProofConnections.bookmarkCollections
-        busy: openProofConnections.bookmarkCollectionsBusy
-        errorText: openProofConnections.bookmarkCollectionsError
+        collections: openProofConnections ? openProofConnections.bookmarkCollections : []
+        busy: openProofConnections ? openProofConnections.bookmarkCollectionsBusy : false
+        errorText: openProofConnections ? openProofConnections.bookmarkCollectionsError : ""
         onClosed: root.bookmarkAssignmentCreateName=""
         onCollectionPicked: id => root.assignSavedBookmark(
             root.bookmarkChoiceHash,id)
@@ -2088,7 +2088,7 @@ Item {
         heading: qsTrId("genycaster.filters.explorer")
         sections: {
             const topicOptions=[{id:"",label:qsTrId("genycaster.filters.all_topics")}]
-            for (const entry of openProofConnections.topicCatalog || []) {
+            for (const entry of (openProofConnections ? openProofConnections.topicCatalog : [])) {
                 const slug=String(entry.slug || "")
                 if (!/^[a-z][a-z0-9-]{1,63}$/.test(slug)) continue
                 const names={

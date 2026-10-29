@@ -968,7 +968,7 @@ GenyDrawer {
                     layoutDirection: Theme.uiDirection
 
                     Repeater {
-                        model: openProofConnections.topicCatalog
+                        model: openProofConnections ? openProofConnections.topicCatalog : []
                         delegate: Item {
                             id: topicChip
                             required property var modelData
@@ -1026,13 +1026,14 @@ GenyDrawer {
             }
             GenySpinner {
                 Layout.alignment: Qt.AlignHCenter
-                visible: openProofConnections.topicsBusy
+                visible: openProofConnections ? openProofConnections.topicsBusy : false
                 running: visible
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                visible: !openProofConnections.topicsBusy
-                         && openProofConnections.topicCatalog.length === 0
+                visible: !openProofConnections
+                         || (!openProofConnections.topicsBusy
+                             && openProofConnections.topicCatalog.length === 0)
                 text: qsTrId("genycaster.topics.unavailable")
                 color: Theme.inkMuted
                 wrapMode: Text.Wrap
