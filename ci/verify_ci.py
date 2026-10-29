@@ -31,6 +31,12 @@ def main() -> None:
     assert "$ANDROID_HOME/cmdline-tools/latest/bin" in workflow
     assert "$ANDROID_HOME/cmdline-ci" not in workflow
     assert "sdkmanager_bin/sdkmanager" in workflow
+    assert 'export LDFLAGS="-Wl,-z,max-page-size=16384' in workflow
+    assert '"$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16' in workflow
+    assert "validate_android_elf_alignment" in Path(
+        "ci/verify_platform_package.py"
+    ).read_text(encoding="utf-8")
+    assert "add_link_options(" in Path("CMakeLists.txt").read_text(encoding="utf-8")
     assert "$ANDROID_HOME/build-tools/35.0.0/apksigner" in workflow
     assert "genycaster-ci-test-signed.apk" in workflow
     assert '"$signer" verify --verbose --print-certs "$selected"' in workflow

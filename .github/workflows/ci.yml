@@ -475,6 +475,9 @@ jobs:
           export PATH="$toolchain:$PATH"
           (
             cd "$work/openssl-${version}"
+            # NDK r27 defaults to 4 KiB ELF segments. Android 15+ may use
+            # 16 KiB pages; OpenSSL must match the Qt and provider binaries.
+            export LDFLAGS="-Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384"
             ./Configure android-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
             make -s -j 4 SHLIB_VERSION_NUMBER= build_libs
             test -s libcrypto.so
@@ -589,6 +592,9 @@ jobs:
             echo "It is installable for testing, NOT an official release signature."
           fi
           "$signer" verify --verbose --print-certs "$selected"
+          # An APK can pass signing and all CMake checks while failing the
+          # native loader on devices with 16 KiB pages.
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$selected"
           artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
           if [[ "$SIGN_RELEASE" != true ]]; then
             artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a-CI-TEST.apk"

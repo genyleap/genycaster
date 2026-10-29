@@ -7,8 +7,9 @@ from unittest.mock import patch
 import sys
 import unittest
 import zipfile
+import struct
 
-from ci.verify_platform_package import verify
+from ci.verify_platform_package import validate_android_elf_alignment, verify
 from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, main as assemble_release
@@ -44,6 +45,27 @@ class PipelineTests(unittest.TestCase):
             (root / "farcaster_client.cpp.o").write_bytes(b"obj")
             selected = {p.name for p in select_files(root)}
             self.assertEqual(selected, {"farcaster_client.html", "farcaster_client.wasm"})
+
+    def test_android_16k_elf_alignment(self) -> None:
+        # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
+        data = bytearray(128)
+        data[:6] = b"\x7fELF\x02\x01"
+        struct.pack_into("<H", data, 18, 183)  # EM_AARCH64
+        struct.pack_into("<Q", data, 32, 64)   # e_phoff
+        struct.pack_into("<H", data, 54, 56)   # e_phentsize
+        struct.pack_into("<H", data, 56, 1)    # e_phnum
+        struct.pack_into("<I", data, 64, 1)    # PT_LOAD
+        struct.pack_into("<Q", data, 112, 16384)  # p_align
+        validate_android_elf_alignment("valid.so", bytes(data))
+
+        struct.pack_into("<Q", data, 112, 4096)
+        with self.assertRaisesRegex(ValueError, "4 KiB ELF LOAD alignment"):
+            validate_android_elf_alignment("invalid.so", bytes(data))
+
+        struct.pack_into("<Q", data, 112, 16384)
+        struct.pack_into("<H", data, 18, 62)  # Wrong architecture (x86_64)
+        with self.assertRaisesRegex(ValueError, "AArch64"):
+            validate_android_elf_alignment("wrong-arch.so", bytes(data))
 
     def test_windows_portable_zip_structure(self) -> None:
         with TemporaryDirectory() as folder:
