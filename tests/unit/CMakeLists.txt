@@ -1,3 +1,13 @@
+# Unit tests use assert() for both checks and setup operations. In Release,
+# CMake adds -DNDEBUG, which removes those setup expressions entirely and can
+# turn a valid test into a bad_function_call / segmentation fault. Keep the
+# assertions enabled only in this test directory, never in product libraries.
+if(MSVC)
+    add_compile_options(/UNDEBUG)
+else()
+    add_compile_options(-UNDEBUG)
+endif()
+
 add_executable(farcaster_core_tests
     core_tests.cpp
 )
