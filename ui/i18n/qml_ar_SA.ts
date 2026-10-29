@@ -5642,8 +5642,8 @@ Company | https://company.com</translation>
             <translation>كيف أرى كلمات الاسترداد الخاصة بي؟</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
-            <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
-            <translation>لا يحتفظ Genycaster بكلمات الاسترداد الأصلية، ولا يمكن استعادتها من مفتاح النشر المصرح به. ابحث عن نسختك الاحتياطية في محفظة Farcaster أو تطبيقه الأصلي، ولا تشارك كلمات الاسترداد مطلقًا.</translation>
+            <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
+            <translation>قد يتيح تطبيق Farcaster الأصلي أو المحفظة عرض عبارة الاسترداد التي احتفظ بها بأمان (في الإصدارات القديمة من Warpcast: Settings &gt; Advanced &gt; Reveal recovery phrase). لا يحتفظ Genycaster بكلمات الاسترداد الأصلية ولا يمكنه إعادة إنشائها من مفتاح التوقيع المستخدم للنشر. احتفظ بنسختك الاحتياطية بسرية.</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>

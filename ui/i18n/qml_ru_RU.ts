@@ -5642,8 +5642,8 @@ Company | https://company.com</translation>
             <translation>How do I view my recovery words?</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
-            <source>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</source>
-            <translation>Genycaster does not retain the original recovery words. They cannot be reconstructed from an authorized publishing key. Find your backup in the original Farcaster wallet or app; never share the words.</translation>
+            <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
+            <translation>Исходное приложение или кошелёк Farcaster может позволять просмотреть безопасно сохранённую фразу восстановления (в старых версиях Warpcast: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster не хранит исходные слова и не может восстановить их по вашему ключу подписи для публикаций. Никому не раскрывайте свою резервную копию.</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
