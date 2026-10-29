@@ -2,7 +2,10 @@ if(NOT TARGET Boost::headers)
     find_package(Boost 1.75 REQUIRED)
 endif()
 
-add_library(farcaster_provider_compatibility_signer_attestation)
+# Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_compatibility_signer_attestation STATIC)
 add_library(farcaster::provider_compatibility_signer_attestation ALIAS farcaster_provider_compatibility_signer_attestation)
 
 target_sources(farcaster_provider_compatibility_signer_attestation

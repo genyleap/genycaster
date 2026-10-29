@@ -1,7 +1,10 @@
 # Concrete emoji asset providers and infrastructure (Noto mapping, bounded
 # validation, disk cache). Pure C++26 modules; network/UI live in the Qt
 # presentation boundary.
-add_library(farcaster_provider_emoji)
+# Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_emoji STATIC)
 add_library(farcaster::provider_emoji ALIAS farcaster_provider_emoji)
 
 target_sources(farcaster_provider_emoji

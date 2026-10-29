@@ -17,7 +17,10 @@ target_compile_features(farcaster_snapchain_boost_json PRIVATE cxx_std_26)
 farcaster_enable_warnings(farcaster_snapchain_boost_json)
 
 if(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
-    add_library(farcaster_provider_snapchain_read)
+    # Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_snapchain_read STATIC)
     add_library(farcaster::provider_snapchain_read ALIAS farcaster_provider_snapchain_read)
     target_sources(farcaster_provider_snapchain_read
         PUBLIC FILE_SET CXX_MODULES FILES read.cppm
@@ -41,7 +44,10 @@ if(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
 endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
-    add_library(farcaster_provider_snapchain_signer)
+    # Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_snapchain_signer STATIC)
     add_library(farcaster::provider_snapchain_signer ALIAS farcaster_provider_snapchain_signer)
 
     target_sources(farcaster_provider_snapchain_signer
@@ -77,7 +83,10 @@ if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
 endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER)
-    add_library(farcaster_provider_snapchain_write)
+    # Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_snapchain_write STATIC)
     add_library(farcaster::provider_snapchain_write ALIAS farcaster_provider_snapchain_write)
 
     target_sources(farcaster_provider_snapchain_write

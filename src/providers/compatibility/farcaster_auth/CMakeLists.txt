@@ -5,7 +5,10 @@ if(NOT TARGET OpenSSL::Crypto)
     find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 endif()
 
-add_library(farcaster_provider_compatibility_auth)
+# Built-in provider adapters are statically composed into the client.
+# On Windows, C++26 module exports in DLL targets are not portable ABI exports.
+# Use an explicit archive regardless of BUILD_SHARED_LIBS/vcpkg triplet.
+add_library(farcaster_provider_compatibility_auth STATIC)
 add_library(farcaster::provider_compatibility_auth ALIAS farcaster_provider_compatibility_auth)
 
 target_sources(farcaster_provider_compatibility_auth

@@ -73,14 +73,11 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     m_launchUrl = url;
     m_error.clear();
     emit stateChanged();
-#if defined(__EMSCRIPTEN__)
-    // WebAssembly cannot create the native macOS WKWebView. Host public,
-    // embeddable Mini Apps in a sandboxed in-page iframe instead of launching
-    // an unrelated browser tab. Do not claim that the unprivileged iframe
-    // has the desktop Mini App SDK or wallet signer permissions.
-    const QUrl destination{url, QUrl::StrictMode};
-    QHostAddress numericHost{};
+    // Only public HTTPS origins may open in unprivileged web content.
+    // Check both web and native before dispatching to a platform host.
+    const QUrl destination{url.trimmed(), QUrl::StrictMode};
     const QString host = destination.host().toLower();
+    QHostAddress numericHost{};
     if (!destination.isValid() || destination.scheme() != QStringLiteral("https")
         || destination.port(443) != 443 || !host.contains(QLatin1Char('.'))
         || host.endsWith(QLatin1Char('.'))
@@ -95,6 +92,11 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
         return;
     }
+#if defined(__EMSCRIPTEN__)
+    // WebAssembly cannot create the native macOS WKWebView. Host public,
+    // embeddable Mini Apps in a sandboxed in-page iframe instead of launching
+    // an unrelated browser tab. Do not claim that the unprivileged iframe
+    // has the desktop Mini App SDK or wallet signer permissions.
     const QByteArray launchUtf8 = destination.toString(QUrl::FullyEncoded).toUtf8();
     const QByteArray titleUtf8 = title.left(160).toUtf8();
     const QByteArray closeUtf8 = qtTrId("genycaster.locale.close").toUtf8();
@@ -120,25 +122,6 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     }
     if (m_user.value(QStringLiteral("fid")).toULongLong() == 0) {
         setState(false, qtTrId("genycaster.miniapp.sign_in_first"));
-        return;
-    }
-    // A catalog URL is still untrusted. Android's WebView must never receive
-    // file/content/local-network entry points or credentials in its origin.
-    const QUrl destination{url.trimmed(), QUrl::StrictMode};
-    const QString host = destination.host().toLower();
-    QHostAddress numericHost{};
-    if (!destination.isValid() || destination.scheme() != QStringLiteral("https")
-        || destination.port(443) != 443 || !host.contains(QLatin1Char('.'))
-        || host.endsWith(QLatin1Char('.'))
-        || host.endsWith(QStringLiteral(".localhost"))
-        || host.endsWith(QStringLiteral(".local"))
-        || host.endsWith(QStringLiteral(".internal"))
-        || host.endsWith(QStringLiteral(".test"))
-        || host.endsWith(QStringLiteral(".invalid"))
-        || numericHost.setAddress(host)
-        || !destination.userName().isEmpty()
-        || !destination.password().isEmpty()) {
-        setState(false, qtTrId("genycaster.miniapp.unavailable"));
         return;
     }
     emit launchRequested(destination.toString(QUrl::FullyEncoded), title, iconSource.left(4096));
