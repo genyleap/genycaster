@@ -95,10 +95,41 @@ publishes a GitHub release even if you manually run it from a tag.
 * Web: The static site is archived only. It is not auto-deployed. Browser
   startup, HTTPS/CORS and cache behavior need end-to-end verification.
 
-The first GitHub-hosted executions are not yet verified. A successful local
-CMake configure is not proof that packaging, Android deployment or native
-runtime behavior succeeds on every runner. The release job intentionally
-fails closed rather than silently skipping an unavailable required platform.
+## Automated package verification
 
-To stop tag-based CI, disable the workflow in GitHub Actions. Ordinary
-commits and pull requests do not run it.
+Every platform job invokes `ci/verify_platform_package.py` **before** uploading
+its artifact. The validator inspects Linux AppImage ELF/type-2 signatures,
+macOS UDIF DMG trailers, WebAssembly bootstrap/loader/manifest files, Android
+ARM64 Qt/SSL/QtKeychain libraries and DEX/manifest, and Windows EXE/Qt/SSL/
+SQLite/curl/QtKeychain DLLs. The same checks are exercised by portable
+`ci/test_pipeline.py` tests. Checksums remain separate and are recalculated
+for tagged releases. None of these checks establishes a working runtime,
+verified TLS handshake, a trusted signature, or completed user acceptance.
+
+The Android job also checks `QT_FEATURE_ssl=1` in the installed Qt Network
+SDK **for manual and tagged builds**, before building OpenSSL. Bundling TLS
+shared libraries alone cannot enable SSL APIs disabled when Qt was compiled.
+Windows installs the individual vcpkg Boost libraries used by the source,
+checks native headers before C++26 module dependency scanning, and caches
+vcpkg binary packages across compatible manually dispatched runs.
+
+## Hosted validation status (2026-10-29)
+
+The following **manual** GitHub-hosted builds produced successful packaging
+artifacts and passed subsequent artifact inspection (not device runtime tests):
+
+* Linux: [AppImage run 40858586032](https://github.com/genyleap/genycaster/actions/runs/40858586032)
+* macOS: [DMG run 40848337565](https://github.com/genyleap/genycaster/actions/runs/40848337565)
+* Android: [APK run 40849490289](https://github.com/genyleap/genycaster/actions/runs/40849490289)
+* WebAssembly: [web archive run 40853856463](https://github.com/genyleap/genycaster/actions/runs/40853856463)
+
+Windows was not yet confirmed at this checkpoint. The Core matrix compiled
+with GCC 16 and passed 17/18 tests; `localization_catalog_guard` remained red
+due to actual translation backlog, so no release tag was created. Security-
+critical locale text requires native-language review before a public release.
+Always consult current Actions runs rather than treating this historical
+checkpoint as the live status.
+
+The release job fails closed rather than silently skipping an unavailable
+required platform. To stop tag-based CI, disable the workflow in GitHub
+Actions. Ordinary commits and pull requests do not run it.
