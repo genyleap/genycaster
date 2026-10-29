@@ -141,6 +141,15 @@ jobs:
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           cmake --build build/icon-raster --parallel 2
           ctest --test-dir build/icon-raster --output-on-failure
+      - name: Test cross-platform Mini App host security
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CC=gcc-16 CXX=g++-16
+          cmake -S tests/miniapp_host -B build/miniapp-host -G Ninja \
+            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build/miniapp-host --parallel 2
+          ctest --test-dir build/miniapp-host --output-on-failure
       - name: Build Qt client
         shell: bash
         run: |
