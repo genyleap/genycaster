@@ -67,6 +67,16 @@ The `ui-qt612-debug` CMake preset is intentionally Linux-only: it specifies
 `/opt/gcc-16.2.0/bin/c++` on the build server and must not be used as a Qt
 Creator kit on macOS. Select the Qt 6.12 Android arm64-v8a kit instead.
 
+### Android test configuration
+
+Android client configurations default `FARCASTER_BUILD_TESTS=OFF` so APK
+builds do not create unrelated desktop-style unit and contract executables.
+The option remains explicit and can be enabled for dedicated device testing;
+those test targets share `Boost::headers` instead of looking for host Boost
+packages. Existing Qt Creator CMake caches can retain an older `ON` setting:
+set `FARCASTER_BUILD_TESTS:BOOL=OFF` for the Android kit and clear the CMake
+configuration once when upgrading. This does not disable Linux CI tests.
+
 ### Android Boost.JSON headers
 
 Android compiles Boost.JSON directly from `boost/json/src.hpp` and only needs

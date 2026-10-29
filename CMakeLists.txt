@@ -42,7 +42,16 @@ include(ProjectWarnings)
 include(ArchitectureGuards)
 include(Sanitizers)
 
-option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests" ON)
+# Android APK builds should compile the product, not host/device test runners.
+# Keep the flag opt-in on Android; explicit cache overrides are respected for
+# developers intentionally cross-compiling device tests.
+set(_farcasterBuildTestsDefault ON)
+if(ANDROID)
+    set(_farcasterBuildTestsDefault OFF)
+endif()
+option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture tests"
+    ${_farcasterBuildTestsDefault})
+unset(_farcasterBuildTestsDefault)
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
 set(_genycasterPublicDataDefault OFF)

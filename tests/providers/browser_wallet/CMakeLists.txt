@@ -1,4 +1,8 @@
-find_package(Boost 1.75 REQUIRED)
+# Android/WASM already provide the portable Boost::headers target; avoid
+# asking the IDE's package provider to locate a host BoostConfig package.
+if(NOT TARGET Boost::headers)
+    find_package(Boost 1.75 REQUIRED)
+endif()
 
 if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
     add_executable(farcaster_provider_browser_wallet_contract_tests contract_tests.cpp)
