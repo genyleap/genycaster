@@ -169,7 +169,7 @@
         </message>
         <message id="genycaster.topic.design">
             <source>Design</source>
-            <translation>Design</translation>
+            <translation>Gestaltung</translation>
         </message>
         <message id="genycaster.topic.technology">
             <source>Technology</source>
@@ -193,7 +193,7 @@
         </message>
         <message id="genycaster.topic.gaming">
             <source>Gaming</source>
-            <translation>Gaming</translation>
+            <translation>Videospiele</translation>
         </message>
         <message id="genycaster.topics.label">
             <source>Topics</source>
@@ -245,11 +245,11 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>Betaversion</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
-            <translation>GENY Token</translation>
+            <translation>GENY-Token</translation>
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
@@ -413,7 +413,7 @@
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
-            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+            <translation>LinkedIn gibt bei der normalen Anmeldung keine öffentliche Profil-URL weiter. Die Funktion „Suchen“ durchsucht LinkedIn nach dem Namen des verknüpften Kontos.</translation>
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
@@ -425,7 +425,7 @@
         </message>
         <message id="genycaster.home.scope_feed">
             <source>Feed</source>
-            <translation>Feed</translation>
+            <translation>Neuigkeiten</translation>
         </message>
         <message id="genycaster.home.scope_everyone">
             <source>Everyone</source>
@@ -526,7 +526,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
-            <translation>in</translation>
+            <translation>in Kanal</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
@@ -822,7 +822,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.link_number">
             <source>Link %1</source>
-            <translation>Link %1</translation>
+            <translation>Verknüpfung %1</translation>
         </message>
         <message id="genycaster.profile.selection_error">
             <source>Choose a category and role from the lists.</source>
@@ -882,7 +882,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.links_title">
             <source>Links</source>
-            <translation>Links</translation>
+            <translation>Verknüpfungen</translation>
         </message>
         <message id="genycaster.profile.links_subtitle">
             <source>Personal and professional websites</source>
@@ -1450,7 +1450,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.beta_release_short">
             <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · Beta 1.0</translation>
+            <translation>GenyCaster · Betaversion 1.0</translation>
         </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
@@ -2714,7 +2714,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_wallet">
             <source>Wallet</source>
-            <translation>Wallet</translation>
+            <translation>Krypto-Wallet</translation>
         </message>
         <message id="genycaster.home.hub_wallet_detail">
             <source>Your assets and decentralized identity.</source>
@@ -5778,7 +5778,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.apps.category.community">
             <source>Community</source>
-            <translation>Community</translation>
+            <translation>Gemeinschaft</translation>
         </message>
         <message id="genycaster.apps.category.development">
             <source>Development</source>
@@ -5830,7 +5830,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.apps.screenshots">
             <source>Screenshots</source>
-            <translation>Screenshots</translation>
+            <translation>Bildschirmfotos</translation>
         </message>
         <message id="genycaster.apps.discovery_source">
             <source>Discovery source</source>
@@ -5934,7 +5934,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.apps.category.lifestyle">
             <source>Lifestyle</source>
-            <translation>Lifestyle</translation>
+            <translation>Lebensstil</translation>
         </message>
         <message id="genycaster.apps.category.photography">
             <source>Photography</source>
@@ -6214,19 +6214,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.activity.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>Beiträge</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
-            <translation>1Y</translation>
+            <translation>1 Jahr</translation>
         </message>
         <message id="genycaster.activity.range_month">
             <source>1M</source>
-            <translation>1M</translation>
+            <translation>1 Mon.</translation>
         </message>
         <message id="genycaster.activity.range_three_months">
             <source>3M</source>
-            <translation>3M</translation>
+            <translation>3 Mon.</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
