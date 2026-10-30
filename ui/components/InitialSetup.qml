@@ -188,7 +188,7 @@ Item {
         event.accepted = true
     }
 
-    Rectangle { anchors.fill: parent; color: Theme.background }
+    Rectangle { anchors.fill: parent; color: Theme.dark ? Theme.background : Theme.surface }
     // Don't let touches on the empty full-screen backdrop fall through to casts.
     MouseArea { anchors.fill: parent; z: -1; onPressed: mouse => mouse.accepted = true }
 
