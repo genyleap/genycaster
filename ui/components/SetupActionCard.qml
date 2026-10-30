@@ -20,15 +20,17 @@ Button {
     property bool showChevron: true
     property bool showSelectionMark: true
     property bool compactCard: false
+    property bool onboardingStyle: false
+    property bool neutralPrimary: false
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    implicitHeight: Math.max(compactCard ? 62 : 96,
+    implicitHeight: Math.max(compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
-    topPadding: compactCard ? Theme.space3 : Theme.space4
-    bottomPadding: compactCard ? Theme.space3 : Theme.space4
+    topPadding: compactCard || onboardingStyle ? Theme.space3 : Theme.space4
+    bottomPadding: compactCard || onboardingStyle ? Theme.space3 : Theme.space4
 
     Accessible.name: title
     Accessible.description: subtitle
@@ -40,7 +42,7 @@ Button {
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
     readonly property color foreground: visuallyDisabled ? Theme.inkMuted
-                                      : primary ? Theme.accentInk : Theme.ink
+                                      : primary ? (neutralPrimary ? Theme.surface : Theme.accentInk) : Theme.ink
     readonly property color secondaryForeground: visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
@@ -49,13 +51,16 @@ Button {
         fillColor: root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
-                     ? (root.down ? Theme.primaryPressed
-                                  : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
+                     ? (root.neutralPrimary ? Theme.ink
+                        : root.down ? Theme.primaryPressed
+                                    : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
         borderWidth: Theme.keyboardFocusVisible(root) ? 2
+                     : root.selected ? 2
                      : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
-        borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus : Theme.borderMuted
+        borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus
+                     : root.selected ? Theme.accent : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 
@@ -85,13 +90,13 @@ Button {
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: 2
+            spacing: root.onboardingStyle ? Theme.space1 : 2
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.title
                 color: root.foreground
-                font.pixelSize: root.compactCard ? Theme.typeLabelSize : Math.max(Theme.typeLabelSize, 17)
+                font.pixelSize: root.compactCard || root.onboardingStyle ? Theme.typeLabelSize : Math.max(Theme.typeLabelSize, 17)
                 font.weight: Theme.weightDemiBold
                 horizontalAlignment: Theme.textStartAlignment
                 elide: Text.ElideRight
@@ -107,7 +112,7 @@ Button {
                 horizontalAlignment: Theme.textStartAlignment
                 wrapMode: Text.WordWrap
                 elide: Text.ElideRight
-                maximumLineCount: root.compactCard ? 1 : 2
+                maximumLineCount: root.compactCard ? 1 : root.onboardingStyle ? 3 : 2
             }
         }
 
