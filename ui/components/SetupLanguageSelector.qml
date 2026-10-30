@@ -185,13 +185,14 @@ Item {
                     root.choose(Math.min(root.itemCount - 1, picker.currentIndex + 1))
                     event.accepted = true
                 }
-                Keys.onHomePressed: event => {
-                    root.choose(0)
-                    event.accepted = true
-                }
-                Keys.onEndPressed: event => {
-                    root.choose(root.itemCount - 1)
-                    event.accepted = true
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Home) {
+                        root.choose(0)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_End) {
+                        root.choose(root.itemCount - 1)
+                        event.accepted = true
+                    }
                 }
             }
         }
