@@ -15,6 +15,7 @@ Item {
     property string selectedLabel: ""
     property string selectedDetail: ""
     property bool userInteracted: false
+    property bool storyboard: false
     property string suggestedTag: ""
     signal activated(int index, var entry)
 
@@ -58,11 +59,11 @@ Item {
 
         DirectionAwareLabel {
             Layout.fillWidth: true
-            Layout.topMargin: root.narrow ? Theme.space6 : Theme.space5
-            text: qsTrId("genycaster.locale.language")
+            Layout.topMargin: root.narrow ? Theme.space4 : Theme.space5
+            text: root.storyboard ? qsTrId("genycaster.setup.design_language_title") : qsTrId("genycaster.locale.language")
             color: Theme.ink
             font.family: Theme.fontFamilyForText(text)
-            font.pixelSize: root.narrow ? 32 : 38
+            font.pixelSize: root.storyboard ? (root.narrow ? 28 : 34) : (root.narrow ? 30 : 34)
             font.weight: Theme.weightBold
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
@@ -73,6 +74,7 @@ Item {
             Layout.maximumWidth: 430
             Layout.alignment: Qt.AlignHCenter
             text: qsTrId("genycaster.setup.language_orbit_hint")
+            visible: !root.storyboard
             color: Theme.inkMuted
             font.family: Theme.fontFamilyForText(text)
             font.pixelSize: Theme.typeLabelSize
@@ -82,7 +84,7 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.topMargin: root.narrow ? Theme.space6 : Theme.space7
+            Layout.topMargin: root.storyboard ? Theme.space7 : root.narrow ? Theme.space5 : Theme.space7
             Layout.preferredHeight: root.narrow ? 328 : 356
             Layout.bottomMargin: root.narrow ? Theme.space3 : Theme.space4
 
@@ -91,7 +93,7 @@ Item {
                 width: Math.min(parent.width, root.narrow ? 340 : 400)
                 height: root.rowHeight - 4
                 fillColor: Theme.surfaceMuted
-                borderColor: Theme.borderMuted
+                borderColor: root.storyboard ? "transparent" : Theme.borderMuted
                 borderWidth: Theme.strokeStandard
                 curveDepth: Theme.curveControl
             }
@@ -156,16 +158,17 @@ Item {
                             font.family: Theme.fontFamilyForText(text)
                             font.pixelSize: languageRow.selected ? 22 : 19
                             font.weight: languageRow.selected ? Theme.weightDemiBold : Theme.weightRegular
-                            horizontalAlignment: languageRow.nativeRtl ? Text.AlignRight : Text.AlignLeft
+                            horizontalAlignment: root.storyboard ? Text.AlignHCenter : languageRow.nativeRtl ? Text.AlignRight : Text.AlignLeft
                             elide: Text.ElideRight
                         }
 
                         DirectionAwareLabel {
+                            visible: !root.storyboard
                             text: languageRow.modelData.hello
                             color: languageRow.selected ? Theme.inkMuted : Theme.inkSubtle
                             font.family: Theme.fontFamilyForText(text)
                             font.pixelSize: Theme.typeCaptionSize
-                            horizontalAlignment: languageRow.nativeRtl ? Text.AlignRight : Text.AlignLeft
+                            horizontalAlignment: root.storyboard ? Text.AlignHCenter : languageRow.nativeRtl ? Text.AlignRight : Text.AlignLeft
                         }
                     }
 
@@ -201,7 +204,7 @@ Item {
             Layout.fillWidth: true
             text: root.currentEntry && root.currentEntry.tag === root.suggestedTag
                   ? qsTrId("genycaster.setup.system_suggestion") : ""
-            visible: text.length > 0
+            visible: !root.storyboard && text.length > 0
             color: Theme.inkSubtle
             font.pixelSize: Theme.typeCaptionSize
             horizontalAlignment: Text.AlignHCenter
