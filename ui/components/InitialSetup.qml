@@ -38,6 +38,7 @@ Item {
     property bool guestSelected: false
     property bool consentChecked: false
     readonly property bool phone: width < 680
+    readonly property int setupGutter: phone ? 24 : 48
     readonly property bool browserReadOnly: wasmReadOnly
     readonly property bool authenticationInProgress:
         authenticationPhase === "starting" || authenticationPhase === "awaiting-approval"
@@ -147,9 +148,9 @@ Item {
         switchStep(currentStep - 1)
     }
     function actionText() {
-        if (currentStep === 0) return qsTrId("genycaster.setup.continue")
+        if (currentStep === 0) return qsTrId("genycaster.setup.design_get_started")
         if (currentStep === 2 && !legalConsentAccepted) return qsTrId("genycaster.setup.agree_continue")
-        if (currentStep === 7) return reviewMode ? qsTrId("genycaster.locale.close") : qsTrId("genycaster.setup.finish")
+        if (currentStep === 7) return reviewMode ? qsTrId("genycaster.locale.close") : qsTrId("genycaster.setup.design_start")
         return qsTrId("genycaster.setup.continue")
     }
     function actionEnabled() {
@@ -190,72 +191,37 @@ Item {
 
     Rectangle { anchors.fill: parent; color: Theme.dark ? Theme.background : Theme.surface }
     // Don't let touches on the empty full-screen backdrop fall through to casts.
-    MouseArea { anchors.fill: parent; z: -1; onPressed: mouse => mouse.accepted = true }
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        enabled: root.visible
+        acceptedButtons: Qt.AllButtons
+        propagateComposedEvents: false
+        onPressed: mouse => mouse.accepted = true
+        onWheel: wheel => wheel.accepted = true
+    }
 
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
         Item {
+            visible: !root.phone
             Layout.fillWidth: true
-            Layout.preferredHeight: root.phone ? 64 : 76
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: root.phone ? Theme.space4 : Theme.space7
-                anchors.rightMargin: root.phone ? Theme.space4 : Theme.space7
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-
-                ActionButton {
-                    visible: root.currentStep > 0 || root.reviewMode
-                    iconOnly: true
-                    compact: true
-                    quiet: true
-                    text: qsTrId("genycaster.setup.back")
-                    iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
-                    onClicked: root.previousStep()
-                }
-
-                Image {
-                    source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                    Layout.preferredWidth: 28
-                    Layout.preferredHeight: 28
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize: Qt.size(90,90)
-                }
-                DirectionAwareLabel {
-                    text: "GenyCaster"
-                    font.pixelSize: 18
-                    font.weight: Theme.weightBold
-                    color: Theme.ink
-                }
-                Item { Layout.fillWidth: true }
-
-                Row {
-                    spacing: 5
-                    layoutDirection: Qt.LeftToRight
-                    Repeater {
-                        model: root.wizardSteps
-                        delegate: Superellipse {
-                            required property int modelData
-                            width: modelData === root.currentStep ? 20 : 6
-                            height: 6
-                            curveDepth: 3
-                            fillColor: modelData === root.currentStep
-                                       ? Theme.accent : modelData < root.currentStep
-                                       ? Theme.inkMuted : Theme.borderStrong
-                        }
+            Layout.preferredHeight: root.phone ? 0 : 44
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 7
+                Repeater {
+                    model: 4
+                    delegate: Superellipse {
+                        required property int index
+                        width: index === Math.floor(root.currentStep / 2) ? 17 : 6
+                        height: 4
+                        curveDepth: 2
+                        fillColor: index === Math.floor(root.currentStep / 2) ? Theme.accent : Theme.borderStrong
                     }
-                }
-                ActionButton {
-                    visible: root.reviewMode
-                    iconOnly: true
-                    compact: true
-                    quiet: true
-                    iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.locale.close")
-                    onClicked: root.closeReviewRequested()
                 }
             }
         }
@@ -270,8 +236,8 @@ Item {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: Math.round(parent.width * 0.30)
-                color: Theme.surfaceMuted
+                width: Math.round(parent.width * 0.34)
+                color: Theme.dark ? Theme.surfaceMuted : Qt.rgba(Theme.swatchGeny.r, Theme.swatchGeny.g, Theme.swatchGeny.b, 0.10)
                 Image {
                     anchors.centerIn: parent
                     width: Math.min(180, parent.width * 0.56)
@@ -281,6 +247,35 @@ Item {
                     fillMode: Image.PreserveAspectFit
                     opacity: 0.85
                 }
+            }
+
+            ActionButton {
+                z: 20
+                visible: root.currentStep > 0
+                anchors.top: parent.top
+                anchors.topMargin: Theme.space2
+                anchors.left: parent.left
+                anchors.leftMargin: root.phone ? Theme.space2 : Theme.space6
+                compact: true
+                quiet: true
+                iconOnly: true
+                text: qsTrId("genycaster.setup.back")
+                iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
+                onClicked: root.previousStep()
+            }
+            ActionButton {
+                z: 20
+                visible: root.reviewMode
+                anchors.top: parent.top
+                anchors.topMargin: Theme.space2
+                anchors.right: parent.right
+                anchors.rightMargin: root.phone ? Theme.space2 : Theme.space6
+                compact: true
+                quiet: true
+                iconOnly: true
+                text: qsTrId("genycaster.locale.close")
+                iconGlyph: Theme.iconClose
+                onClicked: root.closeReviewRequested()
             }
 
             Flickable {
@@ -297,13 +292,20 @@ Item {
 
                 Item {
                     id: stagePanel
-                    width: Math.min(560, stageScroll.width - (root.phone ? 40 : 96))
+                    width: Math.max(0, Math.min(root.phone ? 440 : 560,
+                                             stageScroll.width - root.setupGutter * 2))
                     x: root.currentStep === 0 && !root.phone && root.width >= 1100
                        ? Math.round(stageScroll.width * 0.30
                                     + (stageScroll.width * 0.70 - width) / 2)
                        : Math.round((stageScroll.width - width) / 2)
-                    y: Math.max(root.phone ? Theme.space5 : Theme.space7,
-                                (stageScroll.height - stageLoader.implicitHeight) * (root.phone ? 0.11 : 0.22))
+                    // Optical position per scene from the approved storyboard.
+                    y: root.currentStep === 0 || root.currentStep === 7
+                       ? Math.max(48, (stageScroll.height - stageLoader.implicitHeight) * 0.40)
+                       : root.currentStep === 5
+                       ? Math.max(70, (stageScroll.height - stageLoader.implicitHeight) * 0.43)
+                       : root.currentStep === 1
+                       ? Math.max(62, (stageScroll.height - stageLoader.implicitHeight) * 0.20)
+                       : Math.max(44, Math.min(110, stageScroll.height * 0.12))
                     implicitHeight: stageLoader.implicitHeight
 
                     Loader {
@@ -321,9 +323,11 @@ Item {
             }
         }
 
-        Item {
+        Rectangle {
+            visible: [0,1,2,6,7].indexOf(root.currentStep) >= 0
             Layout.fillWidth: true
-            Layout.preferredHeight: root.phone ? 90 : 100
+            Layout.preferredHeight: visible ? (root.phone ? 82 : 86) : 0
+            color: Theme.dark ? Theme.background : Theme.surface
 
             RowLayout {
                 anchors.fill: parent
@@ -338,10 +342,11 @@ Item {
                 SetupPrimaryButton {
                     visible: root.currentStep !== 4 || root.authenticated
                     Layout.fillWidth: root.phone
-                    Layout.maximumWidth: root.phone ? 16777215 : 440
+                    Layout.maximumWidth: root.phone ? 16777215 : 420
                     Layout.minimumWidth: root.phone ? 0 : 240
                     text: root.actionText()
                     enabled: root.actionEnabled()
+                    neutralPrimary: true
                     showArrow: root.currentStep === 0
                     onClicked: root.nextStep()
                 }
@@ -351,38 +356,55 @@ Item {
         }
     }
 
+
     Component {
         id: welcomeStage
         ColumnLayout {
             spacing: Theme.space4
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 110 : 140
-                Image {
-                    anchors.centerIn: parent
-                    width: 76
-                    height: 76
-                    fillMode: Image.PreserveAspectFit
-                    sourceSize: Qt.size(228,228)
-                    source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                }
+            LayoutMirroring.enabled: Theme.rtl
+
+            Image {
+                Layout.preferredWidth: 62
+                Layout.preferredHeight: 62
+                Layout.alignment: root.phone ? Qt.AlignLeft : Qt.AlignHCenter
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                fillMode: Image.PreserveAspectFit
+                sourceSize: Qt.size(160,160)
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.topMargin: Theme.space2
                 text: qsTrId("genycaster.setup.welcome_title")
-                color: Theme.ink
-                font.pixelSize: root.phone ? 36 : 42
+                font.pixelSize: root.phone ? 32 : 36
                 font.weight: Theme.weightBold
+                lineHeight: 1.14
+                color: Theme.ink
                 wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.world_conversations")
+                text: qsTrId("genycaster.setup.design_welcome_description")
                 color: Theme.inkMuted
-                font.pixelSize: Theme.typeBodySize
+                font.pixelSize: Theme.typeLabelSize
+                lineHeight: 1.36
                 wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
+            }
+            Row {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: Theme.space6
+                spacing: 7
+                Repeater {
+                    model: 3
+                    delegate: Superellipse {
+                        required property int index
+                        width: 6
+                        height: 6
+                        curveDepth: 3
+                        fillColor: index === 0 ? Theme.ink : Theme.borderStrong
+                    }
+                }
             }
         }
     }
@@ -390,10 +412,11 @@ Item {
     Component {
         id: languageStage
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space2
             SetupLanguageSelector {
-                id: wheel
+                id: languageWheel
                 Layout.fillWidth: true
+                storyboard: true
                 model: root.greetings
                 selectedLabel: localizationController.languageLabel
                 selectedDetail: localizationController.regionalLocaleLabel
@@ -401,12 +424,12 @@ Item {
                     root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                 onActivated: (index, entry) => {
                     if (entry && entry.tag && !localizationController.setLanguageTag(entry.tag))
-                        wheel.currentIndex = root.greetingIndexForTag(localizationController.effectiveLanguageTag)
+                        languageWheel.currentIndex = root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                 }
                 Connections {
                     target: localizationController
                     function onEffectiveLanguageTagChanged() {
-                        wheel.currentIndex = root.greetingIndexForTag(localizationController.effectiveLanguageTag)
+                        languageWheel.currentIndex = root.greetingIndexForTag(localizationController.effectiveLanguageTag)
                     }
                 }
             }
@@ -416,69 +439,73 @@ Item {
     Component {
         id: termsStage
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: "system/lock"
-                title: qsTrId("genycaster.setup.privacy_terms")
-                subtitle: qsTrId("genycaster.setup.privacy_compact_intro")
+                title: qsTrId("genycaster.setup.design_terms_title")
+                subtitle: qsTrId("genycaster.setup.design_terms_description")
+                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space3 }
             SetupActionCard {
                 Layout.fillWidth: true
+                compactCard: true
+                onboardingStyle: true
                 title: qsTrId("genycaster.setup.terms_title")
-                subtitle: qsTrId("genycaster.setup.open_terms")
-                iconGlyph: "system/lock"
+                showChevron: true
                 onClicked: Qt.openUrlExternally("https://genyleap.com/terms-of-use")
             }
             SetupActionCard {
                 Layout.fillWidth: true
+                compactCard: true
+                onboardingStyle: true
                 title: qsTrId("genycaster.setup.privacy_title")
-                subtitle: qsTrId("genycaster.setup.open_privacy")
-                iconGlyph: "system/lock"
+                showChevron: true
                 onClicked: Qt.openUrlExternally("https://genyleap.com/privacy")
             }
             CheckBox {
-                id: consent
+                id: consentCheck
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space5
-                text: qsTrId("genycaster.setup.single_legal_consent")
+                Layout.topMargin: Theme.space3
                 checked: root.legalConsentAccepted || root.consentChecked
                 enabled: !root.legalConsentAccepted
-                spacing: Theme.space3
-                LayoutMirroring.enabled: Theme.rtl
-                implicitHeight: Math.max(Theme.touchTarget, legalText.implicitHeight + Theme.space3 * 2)
+                text: qsTrId("genycaster.setup.single_legal_consent")
                 onToggled: root.consentChecked = checked
+                focusPolicy: Qt.StrongFocus
+                spacing: Theme.space2
+                LayoutMirroring.enabled: Theme.rtl
+                implicitHeight: Math.max(Theme.touchTarget, consentLabel.implicitHeight + Theme.space2 * 2)
                 indicator: Superellipse {
-                    implicitWidth: 24; implicitHeight: 24
-                    x: consent.leftPadding
-                    y: Math.round((consent.height - height) / 2)
-                    fillColor: consent.checked ? Theme.primaryFill : Theme.surface
-                    borderColor: consent.checked ? Theme.primaryFill : Theme.borderStrong
+                    implicitWidth: 21
+                    implicitHeight: 21
+                    x: consentCheck.leftPadding
+                    y: (consentCheck.height - height) / 2
+                    fillColor: consentCheck.checked ? Theme.ink : Theme.surface
+                    borderColor: consentCheck.checked ? Theme.ink : Theme.borderStrong
                     borderWidth: 1
-                    curveDepth: 6
+                    curveDepth: 5
                     Icon {
                         anchors.centerIn: parent
-                        visible: consent.checked
                         text: Theme.iconCheck
-                        color: Theme.accentInk
-                        preferredSize: 15
+                        visible: consentCheck.checked
+                        color: Theme.surface
+                        preferredSize: 14
                     }
                 }
                 contentItem: DirectionAwareLabel {
-                    id: legalText
-                    text: consent.text
+                    id: consentLabel
+                    text: consentCheck.text
                     color: Theme.ink
-                    font.pixelSize: Theme.typeLabelSize
+                    font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: consent.indicator.width + consent.spacing
+                    leftPadding: consentCheck.indicator.width + consentCheck.spacing
                 }
                 background: Superellipse {
-                    fillColor: Theme.surfaceMuted
-                    borderColor: Theme.keyboardFocusVisible(consent) ? Theme.focus : Theme.borderMuted
-                    borderWidth: Theme.keyboardFocusVisible(consent) ? 2 : 1
-                    curveDepth: Theme.curveContainer
+                    fillColor: "transparent"
+                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : 0
+                    borderColor: Theme.focus
                 }
             }
         }
@@ -487,49 +514,47 @@ Item {
     Component {
         id: accountStage
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
-                title: qsTrId("genycaster.header.account")
-                subtitle: qsTrId("genycaster.setup.account_methods_explainer")
+                title: qsTrId("genycaster.setup.design_account_title")
+                subtitle: qsTrId("genycaster.setup.design_account_description")
+                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
-            SetupActionCard {
+            GridLayout {
                 Layout.fillWidth: true
-                title: qsTrId("genycaster.setup.new_profile")
-                subtitle: qsTrId("genycaster.setup.new_profile_body")
-                primary: root.accountIntent !== "existing"
-                showSelectionMark: false
-                trailingText: qsTrId("genycaster.shell.coming_soon")
-                onClicked: root.accountIntent = "new"
-            }
-            SetupActionCard {
-                Layout.fillWidth: true
-                title: qsTrId("genycaster.setup.existing_profile")
-                subtitle: qsTrId("genycaster.setup.existing_profile_body")
-                primary: root.accountIntent === "existing"
-                showSelectionMark: false
-                onClicked: {
-                    root.accountIntent = "existing"
-                    root.switchStep(4)
-                }
-            }
-            ColumnLayout {
-                visible: root.accountIntent === "new"
-                Layout.fillWidth: true
-                spacing: Theme.space3
-                DirectionAwareLabel {
+                columns: root.phone ? 1 : 2
+                rowSpacing: Theme.space3
+                columnSpacing: Theme.space3
+                layoutDirection: Theme.uiDirection
+                SetupActionCard {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.registration_handoff")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeLabelSize
-                    wrapMode: Text.WordWrap
+                    onboardingStyle: true
+                    primary: true
+                    neutralPrimary: true
+                    title: qsTrId("genycaster.setup.design_create_account")
+                    subtitle: qsTrId("genycaster.setup.new_profile_body")
+                    iconGlyph: root.phone ? "" : Theme.iconUser
+                    showChevron: true
+                    onClicked: {
+                        root.accountIntent = "new"
+                        root.openRegistration()
+                    }
                 }
-                SetupPrimaryButton {
+                SetupActionCard {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.open_registration")
-                    onClicked: root.openRegistration()
+                    onboardingStyle: true
+                    primary: false
+                    title: qsTrId("genycaster.setup.design_existing_account")
+                    subtitle: qsTrId("genycaster.setup.design_existing_description")
+                    iconGlyph: root.phone ? "" : Theme.iconLink
+                    showChevron: true
+                    onClicked: {
+                        root.accountIntent = "existing"
+                        root.switchStep(4)
+                    }
                 }
             }
         }
@@ -538,53 +563,48 @@ Item {
     Component {
         id: signInStage
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconLink
-                title: qsTrId("genycaster.setup.sign_in_required")
-                subtitle: qsTrId("genycaster.setup.authentication_explainer")
+                title: qsTrId("genycaster.setup.design_signin_title")
+                subtitle: qsTrId("genycaster.setup.design_signin_description")
+                centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
             SetupActionCard {
-                visible: root.authenticated
-                Layout.fillWidth: true
-                title: qsTrId("genycaster.setup.account_verified")
-                subtitle: qsTrId("genycaster.setup.account_verified_body")
-                iconGlyph: Theme.iconCheck
-                complete: true
-                onClicked: root.switchStep(5)
-            }
-            SetupActionCard {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                title: qsTrId("genycaster.shell.continue_with_genyleap")
-                subtitle: qsTrId("genycaster.setup.account_genyleap_body")
+                compactCard: true
+                onboardingStyle: true
                 iconGlyph: "brands/geny"
+                title: qsTrId("genycaster.shell.continue_with_genyleap")
                 enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                 onClicked: {
-                    root.switchStep(5)
                     root.continueWithGenyleap()
+                    root.switchStep(5)
                 }
             }
             SetupActionCard {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                subtitle: qsTrId("genycaster.setup.account_farcaster_body")
+                compactCard: true
+                onboardingStyle: true
                 iconGlyph: "brands/farcaster"
+                title: qsTrId("genycaster.shell.sign_in_with_farcaster")
                 enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                 onClicked: {
-                    root.switchStep(5)
                     root.continueWithFarcaster()
+                    root.switchStep(5)
                 }
             }
             SetupActionCard {
                 visible: !root.authenticated
                 Layout.fillWidth: true
-                title: qsTrId("genycaster.setup.recovery_button")
-                subtitle: qsTrId("genycaster.setup.recovery_button_body")
+                compactCard: true
+                onboardingStyle: true
                 iconGlyph: "system/lock"
+                title: qsTrId("genycaster.setup.design_recovery_title")
                 onClicked: {
                     if (root.browserReadOnly) {
                         root.recoverAccount()
@@ -597,19 +617,19 @@ Item {
             ColumnLayout {
                 visible: root.showRecovery && !root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
-                spacing: Theme.space3
+                spacing: Theme.space2
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.setup.recovery_privacy")
                     color: Theme.inkMuted
-                    wrapMode: Text.WordWrap
                     font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
                 }
-                DirectionAwareTextField {
-                    id: phraseField
+                TextField {
+                    id: recoveryField
                     Layout.fillWidth: true
                     maximumLength: 4095
-                    echoMode: revealPhrase.checked ? TextInput.Normal : TextInput.Password
+                    echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
                     inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                     placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
                     enabled: !root.authenticationInProgress
@@ -617,30 +637,41 @@ Item {
                     Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
                 }
                 CheckBox {
-                    id: revealPhrase
+                    id: revealWords
                     text: qsTrId("genycaster.setup.show_recovery_words")
                     onVisibleChanged: if (!visible) checked = false
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true
+                    neutralPrimary: true
                     text: qsTrId("genycaster.setup.recovery_button")
                     enabled: root.runtimeReady && !root.authenticationInProgress
-                             && (phraseField.text.trim().split(/\s+/).length === 12
-                                 || phraseField.text.trim().split(/\s+/).length === 24)
+                          && (recoveryField.text.trim().split(/\s+/).length === 12
+                              || recoveryField.text.trim().split(/\s+/).length === 24)
                     onClicked: {
-                        let words = phraseField.text
-                        phraseField.clear()
-                        revealPhrase.checked = false
+                        let words = recoveryField.text
+                        recoveryField.clear()
+                        revealWords.checked = false
+                        root.nativeRecoverAccount(words)
                         root.switchStep(5)
-                        if (root.browserReadOnly) root.recoverAccount()
-                        else root.nativeRecoverAccount(words)
                         words = ""
                     }
                 }
             }
-            SetupPrimaryButton {
-                visible: root.browserReadOnly && !root.authenticated
+            SetupActionCard {
+                visible: root.authenticated
                 Layout.fillWidth: true
+                compactCard: true
+                title: qsTrId("genycaster.setup.account_verified")
+                iconGlyph: Theme.iconCheck
+                complete: true
+                onClicked: root.switchStep(5)
+            }
+            ActionButton {
+                visible: root.browserReadOnly && !root.authenticated
+                Layout.alignment: Qt.AlignHCenter
+                quiet: true
+                compact: true
                 text: qsTrId("genycaster.setup.continue_as_guest")
                 onClicked: {
                     root.guestSelected = true
@@ -648,9 +679,9 @@ Item {
                 }
             }
             DirectionAwareLabel {
+                visible: root.authenticationErrorText.length > 0
                 Layout.fillWidth: true
                 text: root.authenticationErrorText
-                visible: text.length > 0
                 color: Theme.danger
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.typeCaptionSize
@@ -661,90 +692,84 @@ Item {
     Component {
         id: verifyingStage
         ColumnLayout {
-            spacing: Theme.space5
+            spacing: Theme.space4
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 110 : 150
+                Layout.preferredHeight: 78
                 GenySpinner {
                     anchors.centerIn: parent
-                    width: 56; height: 56
-                    strokeWidth: 4
+                    width: 50
+                    height: 50
+                    strokeWidth: 3
                     running: root.authenticationInProgress
-                    color: root.authenticated ? Theme.success : Theme.accent
+                    visible: !root.authenticated
+                    color: Theme.accent
                 }
                 Icon {
                     anchors.centerIn: parent
                     visible: root.authenticated
                     text: Theme.iconCheck
-                    color: Theme.success
-                    preferredSize: 48
+                    color: Theme.accent
+                    preferredSize: 44
                 }
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.authenticated ? qsTrId("genycaster.setup.account_verified")
-                      : root.authenticationPhase === "linking-farcaster"
-                      ? qsTrId("genycaster.shell.link_your_farcaster_account")
-                      : root.authenticationPhase === "awaiting-approval"
-                      ? qsTrId("genycaster.shell.approve_sign_in")
-                      : root.authenticationPhase === "starting"
-                      ? qsTrId("genycaster.setup.recovery_working")
-                      : qsTrId("genycaster.setup.sign_in_required")
-                font.pixelSize: root.phone ? 28 : 34
-                font.weight: Theme.weightBold
+                    : root.authenticationPhase === "linking-farcaster"
+                    ? qsTrId("genycaster.shell.link_your_farcaster_account")
+                    : root.authenticationPhase === "awaiting-approval"
+                    ? qsTrId("genycaster.shell.approve_sign_in")
+                    : qsTrId("genycaster.setup.design_verifying_title")
                 color: Theme.ink
+                font.pixelSize: root.phone ? 25 : 30
+                font.weight: Theme.weightBold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.authenticated
-                      ? qsTrId("genycaster.setup.account_verified_body")
-                      : root.authenticationPhase === "awaiting-approval"
-                      ? qsTrId("genycaster.shell.approve_the_request_in_a_farcaster_compatible_client_t")
-                      : qsTrId("genycaster.setup.recovery_working_body")
+                text: root.authenticated ? qsTrId("genycaster.setup.account_verified_body")
+                    : qsTrId("genycaster.setup.design_verifying_description")
                 color: Theme.inkMuted
-                font.pixelSize: Theme.typeLabelSize
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
-            }
-            SetupActionCard {
-                visible: root.authenticated && !root.signerReady
-                Layout.fillWidth: true
-                title: qsTrId("genycaster.shell.enable_interactions")
-                subtitle: root.signerStatusText
-                iconGlyph: Theme.iconCheck
-                busy: root.signerBusy
-                enabled: !root.signerBusy && root.runtimeReady
-                onClicked: root.authorizeSigner()
-            }
-            DirectionAwareLabel {
-                visible: root.signerErrorText.length > 0
-                Layout.fillWidth: true
-                text: root.signerErrorText
-                color: Theme.warning
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
             }
             SetupPrimaryButton {
                 visible: !root.authenticated && root.authenticationApprovalAvailable
                 Layout.fillWidth: true
+                neutralPrimary: true
                 text: root.authenticationRoute === "farcaster"
-                      ? qsTrId("genycaster.shell.open_farcaster")
-                      : qsTrId("genycaster.shell.open_genyleap")
+                    ? qsTrId("genycaster.shell.open_farcaster")
+                    : qsTrId("genycaster.shell.open_genyleap")
                 onClicked: root.openApproval()
+            }
+            SetupActionCard {
+                visible: root.authenticated && !root.signerReady
+                Layout.fillWidth: true
+                compactCard: true
+                title: qsTrId("genycaster.shell.enable_interactions")
+                busy: root.signerBusy
+                enabled: !root.signerBusy && root.runtimeReady
+                onClicked: root.authorizeSigner()
             }
             ActionButton {
                 visible: root.authenticationInProgress
                 Layout.alignment: Qt.AlignHCenter
                 quiet: true
+                compact: true
                 text: qsTrId("genycaster.shell.cancel")
-                onClicked: { root.cancelAuthentication(); root.switchStep(4) }
+                onClicked: {
+                    root.cancelAuthentication()
+                    root.switchStep(4)
+                }
             }
             DirectionAwareLabel {
-                visible: root.authenticationErrorText.length > 0
+                visible: root.authenticationErrorText.length > 0 || root.signerErrorText.length > 0
                 Layout.fillWidth: true
-                text: root.authenticationErrorText
+                text: root.authenticationErrorText.length > 0
+                    ? root.authenticationErrorText : root.signerErrorText
                 color: Theme.danger
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -752,7 +777,8 @@ Item {
             SetupActionCard {
                 visible: !root.authenticated && !root.authenticationInProgress
                 Layout.fillWidth: true
-                title: qsTrId("genycaster.shell.try_again")
+                compactCard: true
+                title: qsTrId("genycaster.setup.other_sign_in_methods")
                 onClicked: root.switchStep(4)
             }
         }
@@ -761,114 +787,99 @@ Item {
     Component {
         id: appearanceStage
         ColumnLayout {
-            spacing: Theme.space4
+            spacing: Theme.space3
             SetupPageHeader {
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconMoon
-                title: qsTrId("genycaster.settings.appearance")
-                subtitle: qsTrId("genycaster.setup.personalize_body")
+                title: qsTrId("genycaster.setup.design_appearance_title")
+                subtitle: qsTrId("genycaster.setup.design_appearance_description")
+                centered: !root.phone
             }
-            Item { Layout.preferredHeight: Theme.space3 }
-            Repeater {
-                model: [
-                    { key:"light", title:qsTrId("genycaster.settings.mode_light"), glyph:Theme.iconSun },
-                    { key:"dark", title:qsTrId("genycaster.settings.mode_dark"), glyph:Theme.iconMoon },
-                    { key:"system", title:qsTrId("genycaster.settings.mode_system"), glyph:Theme.iconSystem }
-                ]
-                delegate: SetupActionCard {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    title: modelData.title
-                    iconGlyph: modelData.glyph
-                    selected: appearanceController.themeMode === modelData.key
-                    primary: false
-                    showChevron: false
-                    onClicked: appearanceController.setThemeMode(modelData.key)
-                }
-            }
-            RowLayout {
+            Item { Layout.preferredHeight: Theme.space4 }
+            GridLayout {
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space3
-                spacing: Theme.space2
+                columns: root.phone ? 1 : 3
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
+                layoutDirection: Theme.uiDirection
                 Repeater {
                     model: [
-                        { key:"geny", shade:Theme.swatchGeny },
-                        { key:"ocean", shade:Theme.swatchOcean },
-                        { key:"violet", shade:Theme.swatchViolet },
-                        { key:"ember", shade:Theme.swatchEmber },
-                        { key:"rose", shade:Theme.swatchRose },
-                        { key:"mint", shade:Theme.swatchMint },
-                        { key:"mono", shade:Theme.swatchMono }
+                        { key: "light", label: qsTrId("genycaster.settings.mode_light"), glyph: Theme.iconSun },
+                        { key: "dark", label: qsTrId("genycaster.settings.mode_dark"), glyph: Theme.iconMoon },
+                        { key: "system", label: qsTrId("genycaster.settings.mode_system"), glyph: Theme.iconSystem }
                     ]
                     delegate: Button {
-                        id: chip
+                        id: appearanceChoice
                         required property var modelData
+                        readonly property bool chosen: appearanceController.themeMode === modelData.key
                         Layout.fillWidth: true
-                        implicitHeight: 44
-                        Accessible.name: modelData.key
-                        Accessible.checked: appearanceController.colorThemeId === modelData.key
-                        onClicked: appearanceController.setColorThemeId(modelData.key)
+                        Layout.minimumWidth: root.phone ? 0 : 140
+                        Layout.preferredWidth: root.phone ? -1 : 165
+                        implicitHeight: root.phone ? 62 : 110
+                        focusPolicy: Qt.StrongFocus
+                        Accessible.name: modelData.label
+                        Accessible.checked: chosen
+                        onClicked: appearanceController.setThemeMode(modelData.key)
                         background: Superellipse {
-                            fillColor: "transparent"
-                            borderWidth: chip.activeFocus ? 2 : 0
-                            borderColor: Theme.focus
-                            curveDepth: 10
+                            fillColor: appearanceChoice.chosen ? Theme.surfaceMuted : Theme.surface
+                            borderWidth: appearanceChoice.chosen ? 2 : 1
+                            borderColor: appearanceChoice.chosen ? Theme.accent : Theme.borderMuted
+                            curveDepth: Theme.curveContainer
                         }
-                        contentItem: Superellipse {
-                            width: 28; height: 28
-                            curveDepth: 14
-                            fillColor: chip.modelData.shade
-                            borderWidth: appearanceController.colorThemeId === chip.modelData.key ? 3 : 1
-                            borderColor: appearanceController.colorThemeId === chip.modelData.key ? Theme.ink : Theme.borderMuted
+                        contentItem: Item {
+                            RowLayout {
+                                visible: root.phone
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space3
+                                anchors.rightMargin: Theme.space3
+                                spacing: Theme.space3
+                                Icon {
+                                    text: appearanceChoice.modelData.glyph
+                                    color: appearanceChoice.chosen ? Theme.ink : Theme.inkMuted
+                                    preferredSize: 22
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: appearanceChoice.modelData.label
+                                    color: Theme.ink
+                                    font.weight: Theme.weightDemiBold
+                                    horizontalAlignment: Theme.textStartAlignment
+                                }
+                                Icon {
+                                    visible: appearanceChoice.chosen
+                                    text: Theme.iconCheck
+                                    color: Theme.accent
+                                    preferredSize: 17
+                                }
+                            }
+                            ColumnLayout {
+                                visible: !root.phone
+                                anchors.centerIn: parent
+                                spacing: Theme.space2
+                                Icon {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: appearanceChoice.modelData.glyph
+                                    color: Theme.ink
+                                    preferredSize: 28
+                                }
+                                DirectionAwareLabel {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: appearanceChoice.modelData.label
+                                    color: Theme.ink
+                                    font.weight: Theme.weightDemiBold
+                                    horizontalAlignment: Text.AlignHCenter
+                                }
+                            }
+                            Icon {
+                                visible: !root.phone && appearanceChoice.chosen
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                text: Theme.iconCheck
+                                color: Theme.accent
+                                preferredSize: 14
+                            }
                         }
                     }
-                }
-            }
-            ActionButton {
-                Layout.fillWidth: true
-                Layout.topMargin: Theme.space3
-                quiet: true
-                text: qsTrId("genycaster.setup.advanced_nodes")
-                iconGlyph: Theme.iconSettings
-                onClicked: root.showAdvanced = !root.showAdvanced
-            }
-            ColumnLayout {
-                visible: root.showAdvanced
-                Layout.fillWidth: true
-                spacing: Theme.space3
-                DirectionAwareLabel {
-                    text: qsTrId("genycaster.setup.connection_mode_title")
-                    color: Theme.inkMuted
-                }
-                SetupActionCard {
-                    Layout.fillWidth: true
-                    title: qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))
-                    iconGlyph: Theme.iconGlobe
-                    selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
-                    showChevron: false
-                    onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
-                }
-                SetupActionCard {
-                    Layout.fillWidth: true
-                    title: qsTrId("genycaster.setup.network_farcaster_category").arg(qsTrId("genycaster.setup.centralized_service_label"))
-                    iconGlyph: "brands/farcaster"
-                    selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
-                    showChevron: false
-                    onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
-                }
-                GenyComboBox {
-                    Layout.fillWidth: true
-                    model: localizationController.availableRegionalLocales
-                    textRole: "label"; valueRole: "id"
-                    currentIndex: root.indexFor(localizationController.availableRegionalLocales, localizationController.regionalLocaleTag)
-                    onActivated: (index) => localizationController.setRegionalLocaleTag(localizationController.availableRegionalLocales[index].id)
-                }
-                GenyComboBox {
-                    Layout.fillWidth: true
-                    model: localizationController.availableTimeZones
-                    textRole: "label"; valueRole: "id"
-                    currentIndex: root.indexFor(localizationController.availableTimeZones, localizationController.timeZoneId)
-                    onActivated: (index) => localizationController.setTimeZoneId(localizationController.availableTimeZones[index].id)
                 }
             }
         }
@@ -880,12 +891,13 @@ Item {
             spacing: Theme.space5
             Item {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.phone ? 130 : 168
+                Layout.preferredHeight: 90
                 Superellipse {
+                    width: 66
+                    height: 66
                     anchors.centerIn: parent
-                    width: 74; height: 74
-                    fillColor: Theme.primaryFill
-                    curveDepth: 24
+                    curveDepth: 20
+                    fillColor: Theme.accent
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconCheck
@@ -896,35 +908,21 @@ Item {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.status.ready")
+                text: qsTrId("genycaster.setup.design_complete_title")
                 color: Theme.ink
-                font.pixelSize: root.phone ? 32 : 40
+                font.pixelSize: root.phone ? 30 : 34
                 font.weight: Theme.weightBold
-                horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.setup.ready_generic")
+                text: qsTrId("genycaster.setup.design_complete_description")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeLabelSize
+                lineHeight: 1.35
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
-            }
-            SetupActionCard {
-                Layout.fillWidth: true
-                compactCard: true
-                title: localizationController.languageLabel
-                iconGlyph: Theme.iconLanguage
-                onClicked: root.switchStep(1)
-            }
-            SetupActionCard {
-                Layout.fillWidth: true
-                compactCard: true
-                title: qsTrId("genycaster.settings.appearance")
-                subtitle: appearanceController.themeMode
-                iconGlyph: Theme.iconPalette
-                onClicked: root.switchStep(6)
             }
         }
     }
