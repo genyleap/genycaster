@@ -22,17 +22,26 @@ from urllib.request import urlopen
 from urllib.parse import urljoin
 
 VERSION = "6.12.0"
-BASE = ("https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/"
-        "qt6_6120/qt6_6120_msvc2022_64/")
 STAMP = "6.12.0-0-202609280346"
-PACKAGE_GROUPS = {
-    "qt.qt6.6120.win64_msvc2022_64": (
-        "qtbase", "qtdeclarative", "qttools", "qtsvg"
-    ),
-    "qt.qt6.6120.addons.qtshadertools.win64_msvc2022_64": ("qtshadertools",),
-    "qt.qt6.6120.addons.qtmultimedia.win64_msvc2022_64": ("qtmultimedia",),
-    "qt.qt6.6120.addons.qtlottie.win64_msvc2022_64": ("qtlottie",),
+ARCHIVE_LAYOUTS = {
+    "x86_64": ("windows_x86", "qt6_6120_msvc2022_64", "win64_msvc2022_64"),
+    "arm64": ("windows_arm64", "qt6_6120", "win64_msvc2022_arm64"),
 }
+
+
+def archive_layout(architecture: str) -> tuple[str, dict[str, tuple[str, ...]]]:
+    platform, leaf, suffix = ARCHIVE_LAYOUTS[architecture]
+    base = ("https://download.qt.io/online/qtsdkrepository/"
+            f"{platform}/desktop/qt6_6120/{leaf}/")
+    packages = {
+        f"qt.qt6.6120.{suffix}": (
+            "qtbase", "qtdeclarative", "qttools", "qtsvg"
+        ),
+        f"qt.qt6.6120.addons.qtshadertools.{suffix}": ("qtshadertools",),
+        f"qt.qt6.6120.addons.qtmultimedia.{suffix}": ("qtmultimedia",),
+        f"qt.qt6.6120.addons.qtlottie.{suffix}": ("qtlottie",),
+    }
+    return base, packages
 
 
 class Hrefs(HTMLParser):
@@ -86,17 +95,20 @@ def download_archive(url: str, destination: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--destination", type=Path, default=Path("Qt"))
+    parser.add_argument("--architecture", choices=tuple(ARCHIVE_LAYOUTS),
+                        default="x86_64")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    base, groups = archive_layout(args.architecture)
     packages: list[tuple[str, str]] = []
-    for package, components in PACKAGE_GROUPS.items():
-        index = urljoin(BASE, package + "/")
+    for package, components in groups.items():
+        index = urljoin(base, package + "/")
         html = read_url(index).decode("utf-8")
         for archive in archives_from_index(html, components):
             packages.append((package, archive))
     if args.dry_run:
         for package, archive in packages:
-            print(urljoin(BASE, package + "/" + archive))
+            print(urljoin(base, package + "/" + archive))
         return 0
 
     executable = (shutil.which("7z") or shutil.which("7za") or
@@ -109,7 +121,7 @@ def main() -> int:
     archive_dir = destination / ".archive-cache"
     archive_dir.mkdir(exist_ok=True)
     for package, archive in packages:
-        url = urljoin(BASE, package + "/" + archive)
+        url = urljoin(base, package + "/" + archive)
         target = archive_dir / archive
         print(f"Downloading {archive}", flush=True)
         download_archive(url, target)

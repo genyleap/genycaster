@@ -324,16 +324,30 @@ jobs:
           retention-days: 14
 
   windows:
-    name: Windows x64 portable ZIP
+    name: Windows ${{ matrix.arch }} portable ZIP
     needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-2022
+            msvc_arch: amd64
+            vcpkg_triplet: ${{ matrix.vcpkg_triplet }}
+          - arch: arm64
+            runner: windows-11-arm
+            msvc_arch: arm64
+            vcpkg_triplet: arm64-windows
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'windows'
-    runs-on: windows-2022
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
@@ -345,7 +359,7 @@ jobs:
         run: |
           choco install 7zip --no-progress -y
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python ci/install_qt_windows.py --destination Qt
+          python ci/install_qt_windows.py --destination Qt --architecture ${{ matrix.arch }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure vcpkg binary cache
         shell: pwsh
@@ -364,14 +378,14 @@ jobs:
         shell: pwsh
         run: |
           & "$env:VCPKG_INSTALLATION_ROOT/vcpkg.exe" install `
-            boost-asio:x64-windows boost-beast:x64-windows boost-json:x64-windows `
-            boost-multiprecision:x64-windows boost-property-tree:x64-windows `
-            boost-system:x64-windows curl:x64-windows openssl:x64-windows sqlite3:x64-windows
+            boost-asio:${{ matrix.vcpkg_triplet }} boost-beast:${{ matrix.vcpkg_triplet }} boost-json:${{ matrix.vcpkg_triplet }} `
+            boost-multiprecision:${{ matrix.vcpkg_triplet }} boost-property-tree:${{ matrix.vcpkg_triplet }} `
+            boost-system:${{ matrix.vcpkg_triplet }} curl:${{ matrix.vcpkg_triplet }} openssl:${{ matrix.vcpkg_triplet }} sqlite3:${{ matrix.vcpkg_triplet }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify required native headers before C++26 scanning
         shell: pwsh
         run: |
-          $include = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/include"
+          $include = "$env:VCPKG_INSTALLATION_ROOT/installed/${{ matrix.vcpkg_triplet }}/include"
           $headers = @(
             'boost/json/src.hpp', 'boost/multiprecision/cpp_int.hpp',
             'boost/asio.hpp', 'boost/beast.hpp',
@@ -395,7 +409,7 @@ jobs:
             "-DCMAKE_CXX_COMPILER=$clang" `
             "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=$scanner" `
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
-            "-DVCPKG_TARGET_TRIPLET=x64-windows" `
+            "-DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}" `
             "-DVCPKG_APPLOCAL_DEPS=OFF"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build/custody-vectors --parallel 2
@@ -416,6 +430,13 @@ jobs:
           if (-not (Test-Path $scanner)) { throw 'Clang module scanner not available on runner' }
           & $clang --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Check compiler, SDK and imported Qt architecture before linking.
+          if ("${{ matrix.arch }}" -eq "arm64") {
+            $machine = & "$env:ProgramFiles/LLVM/bin/clang-cl.exe" --target=arm64-pc-windows-msvc -print-target-triple
+            if ($LASTEXITCODE -ne 0 -or $machine -notmatch "arm64") {
+              throw "ARM64 Clang-CL toolchain not available"
+            }
+          }
           # vcpkg z-applocal assumes QtKeychain lives in the official Qt bin,
           # although it is fetched and built separately. Copy all runtime DLLs
           # explicitly below instead of invoking vcpkg's incorrect app-local step.
@@ -426,7 +447,7 @@ jobs:
             "-DCMAKE_BUILD_TYPE=Release" `
             "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" `
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
-            "-DVCPKG_TARGET_TRIPLET=x64-windows" `
+            "-DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}" `
             "-DVCPKG_APPLOCAL_DEPS=OFF" `
             "-DFARCASTER_BUILD_TESTS=OFF" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
@@ -454,7 +475,7 @@ jobs:
           # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
           # Bundle all DLLs from this build's isolated vcpkg target triplet:
           # libcurl, SQLite and OpenSSL have their own transitive dependencies.
-          $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
+          $vcpkgBin = "$env:VCPKG_INSTALLATION_ROOT/installed/${{ matrix.vcpkg_triplet }}/bin"
           $runtimeDlls = @(Get-ChildItem $vcpkgBin -File -Filter '*.dll')
           foreach ($pattern in @('libcrypto*.dll', 'libssl*.dll', '*sqlite*.dll', '*curl*.dll')) {
             if (@($runtimeDlls | Where-Object { $_.Name -like $pattern }).Count -eq 0) {
@@ -468,7 +489,7 @@ jobs:
             Select-Object -First 1
           if (-not $keychain) { throw 'Missing QtKeychain runtime DLL' }
           Copy-Item $keychain.FullName dist/app/
-          $zip = "dist/GenyCaster-v$env:VERSION-windows-x86_64.zip"
+          $zip = "dist/GenyCaster-v$env:VERSION-windows-${{ matrix.arch }}.zip"
           Compress-Archive -Path dist/app/* -DestinationPath $zip
           if (-not (Test-Path $zip)) { throw "Windows ZIP missing" }
           python ci/verify_platform_package.py windows $zip
@@ -478,7 +499,7 @@ jobs:
             Set-Content -Encoding ascii dist/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: GenyCaster-windows-x86_64
+          name: GenyCaster-windows-${{ matrix.arch }}
           path: |
             dist/*.zip
             dist/SHA256SUMS
@@ -844,7 +865,7 @@ jobs:
           set -euo pipefail
           for name in GenyCaster-linux-x86_64 GenyCaster-linux-arm64 \
                       GenyCaster-macos-arm64 GenyCaster-macos-x86_64 \
-                      GenyCaster-windows-x86_64 \
+                      GenyCaster-windows-x86_64 GenyCaster-windows-arm64 \
                       GenyCaster-android-arm64-v8a GenyCaster-android-armeabi-v7a \
                       GenyCaster-web-wasm; do
             test -d "artifacts/$name"
