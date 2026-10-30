@@ -17,6 +17,23 @@ from ci.release_gate import project_version, release_version
 
 
 class PipelineTests(unittest.TestCase):
+    def test_native_custody_wordlist_and_module_boundary(self) -> None:
+        # The native BIP39 table is generated from the reviewed browser
+        # dictionary; never allow a drifted or hand-edited second wordlist.
+        import subprocess
+        validation = subprocess.run(
+            [sys.executable, "ci/generate_bip39_custody_header.py", "--check"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(validation.returncode, 0, validation.stderr)
+        platform = Path("src/platform/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("farcaster_platform_custody_recovery", platform)
+        self.assertIn("custody_recovery.cppm", platform)
+        module = Path("src/platform/custody_recovery.cppm").read_text(encoding="utf-8")
+        self.assertIn("export module farcaster.platform.custody_recovery;", module)
+        self.assertIn("derivePublicCustodyAddress", module)
+        self.assertFalse(Path("src/platform/custody_recovery.hpp").exists())
+
     def test_builtin_provider_linkage_is_explicitly_static(self) -> None:
         # C++26 modules do not implicitly export their C++ definitions from
         # Windows DLLs. Provider implementations linked into the executable

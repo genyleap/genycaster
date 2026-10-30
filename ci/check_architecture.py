@@ -53,6 +53,9 @@ ALLOWED_CXX23_CMAKE = {
 ALLOWED_HPP = {
     pathlib.Path("src/storage/sqlite_boundary.hpp"),
     pathlib.Path("src/platform/signer_keychain_boundary.hpp"),
+    # Reviewed third-party scure-bip39 English wordlist, compiled as inert data
+    # inside the OpenSSL/C interface's global module fragment (never an API).
+    pathlib.Path("src/platform/custody_bip39_english.hpp"),
     pathlib.Path("src/presentation/qt/presentation_bridge.hpp"),
     pathlib.Path("src/presentation/qt/localization_controller.hpp"),
     pathlib.Path("src/presentation/qt/appearance_controller.hpp"),

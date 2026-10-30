@@ -141,6 +141,15 @@ jobs:
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
           cmake --build build/icon-raster --parallel 2
           ctest --test-dir build/icon-raster --output-on-failure
+      - name: Verify native custody recovery vectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/generate_bip39_custody_header.py --check
+          export CC=gcc-16 CXX=g++-16
+          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja
+          cmake --build build/custody-vectors --parallel 2
+          ctest --test-dir build/custody-vectors --output-on-failure
       - name: Test cross-platform Mini App host security
         shell: bash
         run: |

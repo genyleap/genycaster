@@ -9,6 +9,6 @@ add_executable(miniapp_host_contracts
     ../../ui/mobile/miniapp_host_controller.cpp
     ../../ui/mobile/miniapp_host_controller.hpp
 )
-target_compile_features(miniapp_host_contracts PRIVATE cxx_std_23)
+target_compile_features(miniapp_host_contracts PRIVATE cxx_std_26)
 target_link_libraries(miniapp_host_contracts PRIVATE Qt6::Core Qt6::Network Qt6::Gui)
 add_test(NAME miniapp.host.security COMMAND miniapp_host_contracts)

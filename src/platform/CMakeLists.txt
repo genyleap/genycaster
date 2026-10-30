@@ -1,3 +1,18 @@
+# Recovery custody derivation is a portable, private OpenSSL boundary:
+# never pass the mnemonic or secp256k1 key into QML, a browser, or a provider.
+# This leaf provides public address derivation only; it does not authenticate.
+if(NOT TARGET OpenSSL::Crypto)
+    find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+endif()
+add_library(farcaster_platform_custody_recovery STATIC)
+target_sources(farcaster_platform_custody_recovery
+    PUBLIC FILE_SET CXX_MODULES FILES custody_recovery.cppm
+    PRIVATE custody_recovery.cpp custody_bip39_english.hpp)
+add_library(farcaster::platform_custody_recovery ALIAS farcaster_platform_custody_recovery)
+target_compile_features(farcaster_platform_custody_recovery PUBLIC cxx_std_26)
+target_link_libraries(farcaster_platform_custody_recovery PRIVATE OpenSSL::Crypto)
+farcaster_enable_warnings(farcaster_platform_custody_recovery)
+
 add_library(farcaster_platform_signer)
 add_library(farcaster::platform_signer ALIAS farcaster_platform_signer)
 

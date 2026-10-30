@@ -300,6 +300,9 @@ if(APPLE AND NOT IOS)
     set_target_properties(farcaster_client PROPERTIES MACOSX_BUNDLE TRUE)
 endif()
 target_compile_features(farcaster_client PRIVATE cxx_std_26)
+if(TARGET farcaster::platform_custody_recovery)
+    target_link_libraries(farcaster_client PRIVATE farcaster::platform_custody_recovery)
+endif()
 
 # GCC 16 can exhaust memory on small Linux builders while emitting DWARF
 # for the C++26 runtime module and the unusually large Qt composition root.
