@@ -169,7 +169,7 @@
         </message>
         <message id="genycaster.topic.design">
             <source>Design</source>
-            <translation>Design</translation>
+            <translation>Conception</translation>
         </message>
         <message id="genycaster.topic.technology">
             <source>Technology</source>
@@ -249,7 +249,7 @@
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
-            <translation>GENY Token</translation>
+            <translation>Jeton GENY</translation>
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
@@ -413,7 +413,7 @@
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
-            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+            <translation>LinkedIn ne partage pas l’URL du profil public lors d’une connexion standard. La fonction Rechercher effectue une recherche sur LinkedIn à partir du nom du compte lié.</translation>
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
@@ -522,8 +522,8 @@
         <message id="genycaster.profile.links_placeholder">
             <source>Personal | https://example.com
 Company | https://company.com</source>
-            <translation>Personal | https://example.com
-Company | https://company.com</translation>
+            <translation>Personnel | https://example.com
+Entreprise | https://company.com</translation>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
@@ -5727,7 +5727,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.apps.category.trading">
             <source>Trading</source>
-            <translation>Trading</translation>
+            <translation>Négociation</translation>
         </message>
         <message id="genycaster.apps.category.education">
             <source>Education</source>
@@ -6219,15 +6219,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
-            <translation>1Y</translation>
+            <translation>1 an</translation>
         </message>
         <message id="genycaster.activity.range_month">
             <source>1M</source>
-            <translation>1M</translation>
+            <translation>1 mois</translation>
         </message>
         <message id="genycaster.activity.range_three_months">
             <source>3M</source>
-            <translation>3M</translation>
+            <translation>3 mois</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
