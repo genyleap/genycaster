@@ -1,2 +1,0 @@
-GitHub-hosted Ubuntu runner availability check for GenyCaster.
-Requested at 2026-10-30. This marker only starts the isolated 5-minute diagnostic workflow.
