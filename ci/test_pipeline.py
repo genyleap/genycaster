@@ -124,6 +124,12 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "AArch64"):
             validate_android_elf_alignment("wrong-arch.so", bytes(data))
 
+    def test_windows_deploy_disables_conflicting_vcpkg_applocal(self) -> None:
+        workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn('"-DVCPKG_APPLOCAL_DEPS=OFF"', workflow)
+        self.assertIn("Copy-Item $keychain.FullName dist/app/", workflow)
+        self.assertIn("Copy-Item $dll.FullName dist/app/", workflow)
+
     def test_windows_portable_zip_structure(self) -> None:
         with TemporaryDirectory() as folder:
             archive = Path(folder) / "genycaster-windows.zip"

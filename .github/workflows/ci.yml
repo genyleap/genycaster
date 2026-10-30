@@ -344,6 +344,9 @@ jobs:
           if (-not (Test-Path $scanner)) { throw 'Clang module scanner not available on runner' }
           & $clang --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # vcpkg z-applocal assumes QtKeychain lives in the official Qt bin,
+          # although it is fetched and built separately. Copy all runtime DLLs
+          # explicitly below instead of invoking vcpkg's incorrect app-local step.
           cmake -S . -B build/native -G Ninja `
             "-DCMAKE_C_COMPILER=$clang" `
             "-DCMAKE_CXX_COMPILER=$clang" `
@@ -352,6 +355,7 @@ jobs:
             "-DCMAKE_PREFIX_PATH=$env:QT_ROOT_DIR" `
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             "-DVCPKG_TARGET_TRIPLET=x64-windows" `
+            "-DVCPKG_APPLOCAL_DEPS=OFF" `
             "-DFARCASTER_BUILD_TESTS=OFF" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
