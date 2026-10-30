@@ -37,6 +37,9 @@ INTENTIONALLY_IDENTICAL_IDS = {
     # The product brand and numeric version are proper identifiers, not prose.
     "genycaster.brand.genyleap",
     "genycaster.release.beta_version_number",
+    # Protocol names and token standards are intentionally untranslated.
+    "genycaster.home.idea_nft_topic",
+    "genycaster.home.idea_farcaster_topic",
     "genycaster.settings.contract_address_placeholder",
     "genycaster.settings.custom_color_placeholder",
     "genycaster.collectible.nft_badge",
