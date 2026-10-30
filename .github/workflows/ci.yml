@@ -77,6 +77,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 ci/check_localization_catalog.py
+          # A broken server deployment script must fail before any paid builders start.
+          bash -n ci/build_deploy_wasm_server.sh
           python3 ci/check_architecture.py
           python3 ci/verify_ci.py
           python3 -m unittest ci.test_pipeline -v

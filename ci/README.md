@@ -37,11 +37,13 @@ is never deleted or overwritten.
 | Target | Runner | Result |
 |---|---|---|
 | Core tests | Ubuntu 24.04, GCC 16 | C++26 + CTest + architecture guards |
-| Linux x86_64 | Ubuntu 24.04, GCC 16 | Qt AppImage |
-| macOS arm64 | macOS 15, Homebrew LLVM | Qt DMG |
-| Windows x86_64 | Windows 2022, Clang-CL/MSVC ABI and vcpkg | Portable ZIP |
-| Android arm64-v8a | Ubuntu 24.04, NDK 27.2.12479018 | APK |
+| Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage |
+| macOS arm64 / x86_64 | macOS 15 ARM / Intel, LLVM | Architecture-specific DMG |
+| Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | Portable ZIP |
+| Android arm64-v8a / armeabi-v7a | Ubuntu 24.04, NDK 27.2.12479018 | ABI-specific APK |
 | WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Static-site tar.gz |
+| iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
+| NixOS x86_64 / arm64 | Native Nix GCC 16 + Qt on Linux x64 / ARM | Nix package build and closure manifest |
 
 Qt 6.12.0 and CMake 4.4.4 are pinned in the workflow. GitHub Ubuntu
 runners need GCC 16 from the Ubuntu toolchain PPA for GenyCaster's C++26
@@ -61,6 +63,69 @@ module from official SHA-256-verified source archives; the standalone Web
 module build is still an acceptance gate. Linux/Windows set GENYCASTER_FETCH_QTKEYCHAIN=ON
 explicitly, so ordinary developer machines without libsecret do not become
 broken. Release configurations require a secure signer vault.
+
+## Building and updating the WebAssembly site on the VPS
+
+Unlike the GitHub-hosted workflow, `ci/build_deploy_wasm_server.sh` compiles
+the **current server checkout** using the VPS's **installed** Qt 6.12.0
+single-thread WebAssembly SDK, matching Qt host tools and Emscripten 5.0.5.
+It **does not require GitHub Actions minutes**. It is not a remote-deployment
+API and cannot install missing SDKs by itself. If WebAssembly Qt ShaderTools
+or Multimedia is missing, it uses the existing pinned SHA-256-verified
+`ci/build_qt_wasm_multimedia.sh` build.
+
+First verify that the VPS checkout is clean and current on `main`:
+
+```bash
+cd /opt/genycaster/repository
+git fetch origin main
+git switch main
+git pull --ff-only origin main
+git status --short
+```
+
+Activate the VPS's installed Emscripten 5.0.5 environment and use **actual**
+Qt paths (do not guess from the example below):
+
+```bash
+source /path/to/emsdk/emsdk_env.sh
+export QT_ROOT_DIR=/path/to/Qt/6.12.0/wasm_singlethread
+export QT_HOST_PATH=/path/to/Qt/6.12.0/gcc_64
+bash ci/build_deploy_wasm_server.sh
+```
+
+This creates and verifies `dist/GenyCaster-v<version>-web-wasm.tar.gz`,
+including the hashed WASM, loader, manifest and Service Worker, **without
+changing the website**. Only after the archive passes verification, publish
+to the **actual Nginx static root** (check the live vhost configuration first):
+
+```bash
+GENYCASTER_SITE_URL=https://genycaster.xyz \
+  bash ci/build_deploy_wasm_server.sh --web-root /ACTUAL/NGINX/STATIC/ROOT
+```
+
+The process needs write access to the live static directory and its parent.
+The deploy step stages the full archive outside the public root, installs
+new immutable WASM first, atomically replaces mutable assets with backups,
+and promotes `farcaster_client.html` last. Existing content-hashed WASM
+is retained for open tabs. Failed file updates restore previously changed
+mutable files; on success, backups remain in a sibling
+`.genycaster-backup.*` directory to support manual rollback.
+
+**Never use the example Nginx path in documentation as the real webroot
+without inspecting the live server.** No server changes happen when
+`--web-root` is omitted. Check `nginx -t` and the deployed
+`/farcaster_client.html`, `/genycaster-assets.json` and WASM MIME/cache
+headers over HTTPS. Static-file promotion needs no Nginx reload when its
+configuration is unchanged.
+
+## Billing discipline
+
+GitHub Free has a finite monthly Actions compute allowance. The organization
+may exhaust its allowance even though the billable subtotal is $0. Keep
+manual `core`/single-family runs as the normal development workflow;
+the `all` checkbox is a deliberate expensive release-candidate check.
+A paid budget increase is **not** required for VPS-local WASM builds.
 
 ## How to build without releasing
 

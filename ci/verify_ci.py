@@ -18,6 +18,7 @@ def main() -> None:
     gate = workflow.split("  gate:", 1)[1].split("  core:", 1)[0]
     assert "ci/check_localization_catalog.py" in gate
     assert "ci/verify_ci.py" in gate
+    assert "bash -n ci/build_deploy_wasm_server.sh" in gate
     assert "ci.test_pipeline" in gate
     assert "home_compose_mobile_settings.test.mjs" in gate
     # Every ordinary main commit remains exempt from the expensive matrix.
