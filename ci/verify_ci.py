@@ -9,9 +9,13 @@ import re
 def main() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
-    assert re.search(r"^  push:\n    tags:\n      - 'v\*'", workflow, re.M)
-    assert not re.search(r"^  (branches|pull_request|schedule|release):", workflow, re.M)
-    assert not re.search(r"^    branches:", workflow, re.M)
+    # Explicit matrix requests, not arbitrary branch pushes, trigger CI.
+    assert re.search(
+        r"^  push:\n    branches:\n      - main\n    paths:\n"
+        r"      - 'ci/matrix-run-request\.txt'\n    tags:\n      - 'v\*'",
+        workflow, re.M,
+    )
+    assert not re.search(r"^  (pull_request|schedule|release):", workflow, re.M)
     assert re.search(r"^  publish:\n", workflow, re.M)
     assert "github.event_name == 'push' && needs.gate.outputs.release == 'true'" in workflow
     assert "needs: [gate, core, linux, macos, windows, android, web]" in workflow
