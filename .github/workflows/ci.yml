@@ -105,10 +105,22 @@ jobs:
           python3 -m unittest ci.test_pipeline -v
 
   linux:
-    name: Linux x86_64 AppImage
+    name: Linux ${{ matrix.arch }} AppImage
     needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            qt_arch: linux_gcc_64
+            appimage_arch: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            qt_arch: linux_gcc_arm64
+            appimage_arch: aarch64
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'linux'
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -137,7 +149,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           target: desktop
-          arch: linux_gcc_64
+          arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
           cache: true
       - name: Verify Android icon rasterization and alpha preservation
@@ -199,10 +211,10 @@ jobs:
             > AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
             -o build/ci-linuxdeploy/linuxdeploy.AppImage \
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage
           curl --fail --location --retry 3 \
             -o build/ci-linuxdeploy/linuxdeploy-plugin-qt.AppImage \
-            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-${{ matrix.appimage_arch }}.AppImage
           chmod +x build/ci-linuxdeploy/*.AppImage
           export APPIMAGE_EXTRACT_AND_RUN=1
           export QMAKE="$QT_ROOT_DIR/bin/qmake6"
@@ -211,7 +223,7 @@ jobs:
           cp build/ci-linuxdeploy/linuxdeploy-plugin-qt.AppImage build/ci-linuxdeploy/linuxdeploy-plugin-qt
           chmod +x build/ci-linuxdeploy/linuxdeploy-plugin-qt
           export PATH="$PWD/build/ci-linuxdeploy:$PATH"
-          export OUTPUT="GenyCaster-v${VERSION}-linux-x86_64.AppImage"
+          export OUTPUT="GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.AppImage"
           ./build/ci-linuxdeploy/linuxdeploy.AppImage \
             --appdir AppDir \
             --desktop-file AppDir/usr/share/applications/genycaster.desktop \
@@ -223,16 +235,24 @@ jobs:
           (cd dist && sha256sum *.AppImage > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
-          name: GenyCaster-linux-x86_64
+          name: GenyCaster-linux-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
           retention-days: 14
 
   macos:
-    name: macOS arm64 DMG
+    name: macOS ${{ matrix.arch }} DMG
     needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'macos'
-    runs-on: macos-15
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -262,7 +282,7 @@ jobs:
           export CC="$(brew --prefix llvm)/bin/clang"
           export CXX="$(brew --prefix llvm)/bin/clang++"
           cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
             -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"
           cmake --build build/custody-vectors --parallel 2
@@ -278,7 +298,7 @@ jobs:
           cmake -S . -B build/native -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
-            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
             -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
             -DOPENSSL_USE_STATIC_LIBS=TRUE \
@@ -287,16 +307,18 @@ jobs:
           cmake --build build/native --target farcaster_client --parallel 3
           APP=build/native/bin/farcaster_client.app
           test -d "$APP"
+          # Fail if a cross-architecture Qt library or toolchain leaked in.
+          /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/farcaster_client"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
           mkdir -p dist
           DMG=build/native/bin/farcaster_client.dmg
           test -s "$DMG"
-          cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-arm64.dmg"
-          python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-arm64.dmg"
+          cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
+          python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
-          name: GenyCaster-macos-arm64
+          name: GenyCaster-macos-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
           retention-days: 14
