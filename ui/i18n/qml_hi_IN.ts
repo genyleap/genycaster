@@ -245,139 +245,139 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>बीटा</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
-            <translation>GENY Token</translation>
+            <translation>GENY टोकन</translation>
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
-            <translation>Additional Genycaster details</translation>
+            <translation>GenyCaster की अतिरिक्त जानकारी</translation>
         </message>
         <message id="genycaster.profile.extras_description">
             <source>Your professional category and personal links are kept with your Genycaster account.</source>
-            <translation>Your professional category and personal links are kept with your Genycaster account.</translation>
+            <translation>आपकी पेशेवर श्रेणी और निजी लिंक आपके GenyCaster खाते में रखे जाते हैं।</translation>
         </message>
         <message id="genycaster.profile.save_additional_details">
             <source>Save additional details</source>
-            <translation>Save additional details</translation>
+            <translation>अतिरिक्त जानकारी सहेजें</translation>
         </message>
         <message id="genycaster.connections.copy_ethereum_wallet">
             <source>Ethereum wallet</source>
-            <translation>Ethereum wallet</translation>
+            <translation>Ethereum वॉलेट</translation>
         </message>
         <message id="genycaster.connections.copy_social_account">
             <source>Social account</source>
-            <translation>Social account</translation>
+            <translation>सोशल खाता</translation>
         </message>
         <message id="genycaster.connections.copy_developer_profile">
             <source>Developer profile</source>
-            <translation>Developer profile</translation>
+            <translation>डेवलपर प्रोफ़ाइल</translation>
         </message>
         <message id="genycaster.connections.copy_google_account">
             <source>Google account</source>
-            <translation>Google account</translation>
+            <translation>Google खाता</translation>
         </message>
         <message id="genycaster.connections.copy_professional_profile">
             <source>Professional profile</source>
-            <translation>Professional profile</translation>
+            <translation>पेशेवर प्रोफ़ाइल</translation>
         </message>
         <message id="genycaster.connections.copy_messaging_account">
             <source>Messaging account</source>
-            <translation>Messaging account</translation>
+            <translation>मैसेजिंग खाता</translation>
         </message>
         <message id="genycaster.connections.copy_protocol_identity">
             <source>Protocol identity</source>
-            <translation>Protocol identity</translation>
+            <translation>प्रोटोकॉल पहचान</translation>
         </message>
         <message id="genycaster.connections.copy_on_chain_identity">
             <source>On-chain identity</source>
-            <translation>On-chain identity</translation>
+            <translation>ऑन-चेन पहचान</translation>
         </message>
         <message id="genycaster.connections.copy_external_account">
             <source>External account</source>
-            <translation>External account</translation>
+            <translation>बाहरी खाता</translation>
         </message>
         <message id="genycaster.connections.copy_farcaster_verification">
             <source>Farcaster verification</source>
-            <translation>Farcaster verification</translation>
+            <translation>Farcaster सत्यापन</translation>
         </message>
         <message id="genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections">
             <source>Confirm this Farcaster account in your wallet app to manage connections.</source>
-            <translation>Confirm this Farcaster account in your wallet app to manage connections.</translation>
+            <translation>कनेक्शन प्रबंधित करने के लिए अपने वॉलेट ऐप में इस Farcaster खाते की पुष्टि करें।</translation>
         </message>
         <message id="genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster">
             <source>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</source>
-            <translation>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</translation>
+            <translation>ये लिंक आपके GenyCaster खाते में सहेजे जाते हैं। प्रदाताओं को प्रबंधित करने या उनकी वर्तमान स्थिति की पुष्टि के लिए Farcaster से सत्यापन करें।</translation>
         </message>
         <message id="genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a">
             <source>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</source>
-            <translation>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</translation>
+            <translation>कनेक्शन प्रबंधित करने के लिए Farcaster से स्वामित्व सत्यापित करें। Genyleap खाता या पासवर्ड आवश्यक नहीं है।</translation>
         </message>
         <message id="genycaster.connections.copy_waiting_for_confirmation">
             <source>Waiting for confirmation…</source>
-            <translation>Waiting for confirmation…</translation>
+            <translation>पुष्टि की प्रतीक्षा…</translation>
         </message>
         <message id="genycaster.connections.copy_open_farcaster_verification">
             <source>Open Farcaster verification</source>
-            <translation>Open Farcaster verification</translation>
+            <translation>Farcaster सत्यापन खोलें</translation>
         </message>
         <message id="genycaster.connections.copy_verified">
             <source>Verified</source>
-            <translation>Verified</translation>
+            <translation>सत्यापित</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_links">
             <source>Saved account links</source>
-            <translation>Saved account links</translation>
+            <translation>सहेजे गए खाता लिंक</translation>
         </message>
         <message id="genycaster.connections.copy_hide_verification">
             <source>Hide verification</source>
-            <translation>Hide verification</translation>
+            <translation>सत्यापन छिपाएँ</translation>
         </message>
         <message id="genycaster.connections.copy_edit_connections">
             <source>Edit connections</source>
-            <translation>Edit connections</translation>
+            <translation>कनेक्शन संपादित करें</translation>
         </message>
         <message id="genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_">
             <source>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</source>
-            <translation>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</translation>
+            <translation>%1 से कनेक्ट हो रहा है। प्रदाता की विंडो में पुष्टि करें; GenyCaster यह सूची अपने आप अपडेट करेगा।</translation>
         </message>
         <message id="genycaster.connections.copy_saved_link_1">
             <source>Saved link: %1</source>
-            <translation>Saved link: %1</translation>
+            <translation>सहेजा गया लिंक: %1</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link">
             <source>Saved account link</source>
-            <translation>Saved account link</translation>
+            <translation>सहेजा गया खाता लिंक</translation>
         </message>
         <message id="genycaster.connections.copy_signed_proof_required">
             <source>Signed proof required</source>
-            <translation>Signed proof required</translation>
+            <translation>हस्ताक्षरित प्रमाण आवश्यक है</translation>
         </message>
         <message id="genycaster.connections.copy_verified_account">
             <source>Verified account</source>
-            <translation>Verified account</translation>
+            <translation>सत्यापित खाता</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link_verification_required_for_changes">
             <source>Saved account link — verification required for changes</source>
-            <translation>Saved account link — verification required for changes</translation>
+            <translation>सहेजा गया खाता लिंक — बदलाव के लिए सत्यापन ज़रूरी है</translation>
         </message>
         <message id="genycaster.connections.copy_view">
             <source>View</source>
-            <translation>View</translation>
+            <translation>देखें</translation>
         </message>
         <message id="genycaster.connections.copy_find">
             <source>Find</source>
-            <translation>Find</translation>
+            <translation>खोजें</translation>
         </message>
         <message id="genycaster.connections.copy_reconnect">
             <source>Reconnect</source>
-            <translation>Reconnect</translation>
+            <translation>फिर से कनेक्ट करें</translation>
         </message>
         <message id="genycaster.connections.copy_confirm">
             <source>Confirm</source>
-            <translation>Confirm</translation>
+            <translation>पुष्टि करें</translation>
         </message>
         <message id="genycaster.connections.copy_remove">
             <source>Remove</source>
@@ -385,7 +385,7 @@
         </message>
         <message id="genycaster.connections.copy_connect">
             <source>Connect</source>
-            <translation>Connect</translation>
+            <translation>कनेक्ट करें</translation>
         </message>
         <message id="genycaster.connections.copy_cancel">
             <source>Cancel</source>
@@ -397,11 +397,11 @@
         </message>
         <message id="genycaster.connections.copy_proof_only">
             <source>Proof only</source>
-            <translation>Proof only</translation>
+            <translation>केवल प्रमाण</translation>
         </message>
         <message id="genycaster.connections.copy_public_linkedin_profile_url">
             <source>Public LinkedIn profile URL</source>
-            <translation>Public LinkedIn profile URL</translation>
+            <translation>सार्वजनिक LinkedIn प्रोफ़ाइल URL</translation>
         </message>
         <message id="genycaster.connections.copy_save">
             <source>Save</source>
@@ -409,7 +409,7 @@
         </message>
         <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
             <source>Add your public LinkedIn profile URL.</source>
-            <translation>Add your public LinkedIn profile URL.</translation>
+            <translation>अपने सार्वजनिक LinkedIn प्रोफ़ाइल का URL जोड़ें।</translation>
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
@@ -417,19 +417,19 @@
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
-            <translation>Showing saved provider list. Refresh when online.</translation>
+            <translation>सहेजी गई प्रदाता सूची दिखाई जा रही है। ऑनलाइन होने पर रीफ़्रेश करें।</translation>
         </message>
         <message id="genycaster.connections.copy_connected_accounts_share_your_secure_identity">
             <source>Connected accounts share your secure identity.</source>
-            <translation>Connected accounts share your secure identity.</translation>
+            <translation>जुड़े हुए खाते आपकी सुरक्षित पहचान साझा करते हैं।</translation>
         </message>
         <message id="genycaster.home.scope_feed">
             <source>Feed</source>
-            <translation>Feed</translation>
+            <translation>फ़ीड</translation>
         </message>
         <message id="genycaster.home.scope_everyone">
             <source>Everyone</source>
-            <translation>Everyone</translation>
+            <translation>सभी लोग</translation>
         </message>
         <message id="genycaster.home.scope_following">
             <source>Following</source>
@@ -437,11 +437,11 @@
         </message>
         <message id="genycaster.profile.edit_image_url">
             <source>Edit your media URLs</source>
-            <translation>Edit your media URLs</translation>
+            <translation>मीडिया URL संपादित करें</translation>
         </message>
         <message id="genycaster.profile.hide_image_url">
             <source>Hide image URLs</source>
-            <translation>Hide image URLs</translation>
+            <translation>छवि URL छिपाएँ</translation>
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
@@ -449,67 +449,67 @@
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
-            <translation>Edit Farcaster profile and personal links</translation>
+            <translation>Farcaster प्रोफ़ाइल और निजी लिंक संपादित करें</translation>
         </message>
         <message id="genycaster.profile.conflict_notice">
             <source>Another device has newer profile details. Your previous local edit was preserved.</source>
-            <translation>Another device has newer profile details. Your previous local edit was preserved.</translation>
+            <translation>दूसरे डिवाइस पर प्रोफ़ाइल की नई जानकारी है। आपका पिछला स्थानीय बदलाव सुरक्षित रखा गया है।</translation>
         </message>
         <message id="genycaster.profile.profession_limit">
             <source>Profession must be 80 characters or fewer.</source>
-            <translation>Profession must be 80 characters or fewer.</translation>
+            <translation>पेशा 80 अक्षरों या उससे कम का होना चाहिए।</translation>
         </message>
         <message id="genycaster.profile.links_limit">
             <source>Use up to five HTTPS links. Optional format: Personal | https://example.com</source>
-            <translation>Use up to five HTTPS links. Optional format: Personal | https://example.com</translation>
+            <translation>अधिकतम पाँच HTTPS लिंक इस्तेमाल करें। वैकल्पिक प्रारूप: निजी | https://example.com</translation>
         </message>
         <message id="genycaster.profile.local_save_failed">
             <source>Could not save local profile details.</source>
-            <translation>Could not save local profile details.</translation>
+            <translation>स्थानीय प्रोफ़ाइल की जानकारी सहेजी नहीं जा सकी।</translation>
         </message>
         <message id="genycaster.profile.network_manual_url">
             <source> · URL entered by you (not LinkedIn-verified)</source>
-            <translation> · URL entered by you (not LinkedIn-verified)</translation>
+            <translation> · आपके द्वारा दर्ज URL (LinkedIn से सत्यापित नहीं)</translation>
         </message>
         <message id="genycaster.profile.network_linked_profile">
             <source> · linked profile</source>
-            <translation> · linked profile</translation>
+            <translation> · जुड़ी प्रोफ़ाइल</translation>
         </message>
         <message id="genycaster.profile.network_previously_linked">
             <source> · previously linked</source>
-            <translation> · previously linked</translation>
+            <translation> · पहले जुड़ा था</translation>
         </message>
         <message id="genycaster.profile.network_search_linkedin">
             <source> · search LinkedIn by name</source>
-            <translation> · search LinkedIn by name</translation>
+            <translation> · नाम से LinkedIn पर खोजें</translation>
         </message>
         <message id="genycaster.profile.network_manage_connection">
             <source> · manage connection</source>
-            <translation> · manage connection</translation>
+            <translation> · कनेक्शन प्रबंधित करें</translation>
         </message>
         <message id="genycaster.profile.network_open_verified">
             <source>Open verified network profile</source>
-            <translation>Open verified network profile</translation>
+            <translation>सत्यापित नेटवर्क प्रोफ़ाइल खोलें</translation>
         </message>
         <message id="genycaster.profile.network_find_linkedin">
             <source>Find the linked account on LinkedIn</source>
-            <translation>Find the linked account on LinkedIn</translation>
+            <translation>LinkedIn पर जुड़ा खाता खोजें</translation>
         </message>
         <message id="genycaster.profile.network_manage">
             <source>Manage connection</source>
-            <translation>Manage connection</translation>
+            <translation>कनेक्शन प्रबंधित करें</translation>
         </message>
         <message id="genycaster.profile.verified_geny_holder">
             <source>Verified GENY holder</source>
-            <translation>Verified GENY holder</translation>
+            <translation>सत्यापित GENY धारक</translation>
         </message>
         <message id="genycaster.profile.save_retry_notice">
             <source>Your profile changes could not be saved yet. Edit your profile to retry.</source>
-            <translation>Your profile changes could not be saved yet. Edit your profile to retry.</translation>
+            <translation>आपके प्रोफ़ाइल बदलाव अभी सहेजे नहीं जा सके। फिर कोशिश करने के लिए प्रोफ़ाइल संपादित करें।</translation>
         </message>
         <message id="genycaster.profile.saving_details">
             <source>Saving your profile changes…</source>
-            <translation>Saving your profile changes…</translation>
+            <translation>प्रोफ़ाइल बदलाव सहेजे जा रहे हैं…</translation>
         </message>
         <message id="genycaster.profile.following">
             <source>Following</source>
@@ -522,12 +522,11 @@
         <message id="genycaster.profile.links_placeholder">
             <source>Personal | https://example.com
 Company | https://company.com</source>
-            <translation>Personal | https://example.com
-Company | https://company.com</translation>
+            <translation>निजी | https://example.com&#10;कंपनी | https://company.com</translation>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
-            <translation>in</translation>
+            <translation>में</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
@@ -535,15 +534,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.protocol_description">
             <source>These details are signed and published to Farcaster for all clients.</source>
-            <translation>These details are signed and published to Farcaster for all clients.</translation>
+            <translation>इस जानकारी पर हस्ताक्षर करके इसे सभी क्लाइंट के लिए Farcaster पर प्रकाशित किया जाता है।</translation>
         </message>
         <message id="genycaster.profile.display_name">
             <source>Display name</source>
-            <translation>Display name</translation>
+            <translation>दिखने वाला नाम</translation>
         </message>
         <message id="genycaster.profile.bio">
             <source>Bio</source>
-            <translation>Bio</translation>
+            <translation>परिचय</translation>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
@@ -555,59 +554,59 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
-            <translation>Upload profile photo</translation>
+            <translation>प्रोफ़ाइल फ़ोटो अपलोड करें</translation>
         </message>
         <message id="genycaster.profile.upload_banner">
             <source>Upload banner</source>
-            <translation>Upload banner</translation>
+            <translation>बैनर अपलोड करें</translation>
         </message>
         <message id="genycaster.profile.uploading_image">
             <source>Uploading image…</source>
-            <translation>Uploading image…</translation>
+            <translation>छवि अपलोड हो रही है…</translation>
         </message>
         <message id="genycaster.profile.saving_to_farcaster">
             <source>Publishing changes to Farcaster…</source>
-            <translation>Publishing changes to Farcaster…</translation>
+            <translation>Farcaster पर बदलाव प्रकाशित हो रहे हैं…</translation>
         </message>
         <message id="genycaster.profile.protocol_confirmed">
             <source>Confirmed on Farcaster. Profile will refresh.</source>
-            <translation>Confirmed on Farcaster. Profile will refresh.</translation>
+            <translation>Farcaster पर पुष्टि हो गई। प्रोफ़ाइल रीफ़्रेश होगी।</translation>
         </message>
         <message id="genycaster.profile.update_farcaster">
             <source>Update Farcaster profile</source>
-            <translation>Update Farcaster profile</translation>
+            <translation>Farcaster प्रोफ़ाइल अपडेट करें</translation>
         </message>
         <message id="genycaster.profile.no_protocol_changes">
             <source>No Farcaster profile changes.</source>
-            <translation>No Farcaster profile changes.</translation>
+            <translation>Farcaster प्रोफ़ाइल में कोई बदलाव नहीं।</translation>
         </message>
         <message id="genycaster.profile.value_too_long">
             <source>A value exceeds the Farcaster byte limit.</source>
-            <translation>A value exceeds the Farcaster byte limit.</translation>
+            <translation>किसी मान ने Farcaster की बाइट सीमा पार कर दी है।</translation>
         </message>
         <message id="genycaster.profile.protocol_write_failed">
             <source>Farcaster rejected the profile changes.</source>
-            <translation>Farcaster rejected the profile changes.</translation>
+            <translation>Farcaster ने प्रोफ़ाइल बदलाव अस्वीकार कर दिए।</translation>
         </message>
         <message id="genycaster.profile.protocol_signer_required">
             <source>A Farcaster signer with profile-edit permission is required.</source>
-            <translation>A Farcaster signer with profile-edit permission is required.</translation>
+            <translation>प्रोफ़ाइल संपादन की अनुमति वाला Farcaster हस्ताक्षरकर्ता ज़रूरी है।</translation>
         </message>
         <message id="genycaster.profile.protocol_native_unavailable">
             <source>Protocol profile editing is not yet available in the native runtime.</source>
-            <translation>Protocol profile editing is not yet available in the native runtime.</translation>
+            <translation>नेटिव ऐप में प्रोटोकॉल प्रोफ़ाइल संपादन अभी उपलब्ध नहीं है।</translation>
         </message>
         <message id="genycaster.profile.select_image">
             <source>Choose a profile image</source>
-            <translation>Choose a profile image</translation>
+            <translation>प्रोफ़ाइल छवि चुनें</translation>
         </message>
         <message id="genycaster.profile.invalid_uploaded_image">
             <source>The uploaded image URL is not a verified public media asset.</source>
-            <translation>The uploaded image URL is not a verified public media asset.</translation>
+            <translation>अपलोड की गई छवि का URL सत्यापित सार्वजनिक मीडिया एसेट नहीं है।</translation>
         </message>
         <message id="genycaster.profile.option.select_category">
             <source>Select category</source>
-            <translation>Select category</translation>
+            <translation>श्रेणी चुनें</translation>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
@@ -663,19 +662,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.select_role">
             <source>Select role</source>
-            <translation>Select role</translation>
+            <translation>भूमिका चुनें</translation>
         </message>
         <message id="genycaster.profile.option.artist">
             <source>Artist</source>
-            <translation>Artist</translation>
+            <translation>कलाकार</translation>
         </message>
         <message id="genycaster.profile.option.author">
             <source>Author</source>
-            <translation>Author</translation>
+            <translation>लेखक</translation>
         </message>
         <message id="genycaster.profile.option.creator">
             <source>Creator</source>
-            <translation>Creator</translation>
+            <translation>निर्माता</translation>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
@@ -731,35 +730,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
-            <translation>and %1 more</translation>
+            <translation>और %1</translation>
         </message>
         <message id="genycaster.profile.show_all_links">
             <source>Show all profile links</source>
-            <translation>Show all profile links</translation>
+            <translation>प्रोफ़ाइल के सभी लिंक दिखाएँ</translation>
         </message>
         <message id="genycaster.profile.options">
             <source>Profile options</source>
-            <translation>Profile options</translation>
+            <translation>प्रोफ़ाइल विकल्प</translation>
         </message>
         <message id="genycaster.profile.links_editor_hint">
             <source>Links — optional title | HTTPS URL, one per line</source>
-            <translation>Links — optional title | HTTPS URL, one per line</translation>
+            <translation>लिंक — वैकल्पिक शीर्षक | HTTPS URL, हर पंक्ति में एक</translation>
         </message>
         <message id="genycaster.share.copy_profile_link">
             <source>Copy profile link</source>
-            <translation>Copy profile link</translation>
+            <translation>प्रोफ़ाइल लिंक कॉपी करें</translation>
         </message>
         <message id="genycaster.share.open_farcaster">
             <source>Open in Farcaster</source>
-            <translation>Open in Farcaster</translation>
+            <translation>Farcaster में खोलें</translation>
         </message>
         <message id="genycaster.share.cast">
             <source>Share cast</source>
-            <translation>Share cast</translation>
+            <translation>पोस्ट साझा करें</translation>
         </message>
         <message id="genycaster.share.share_action">
             <source>Share…</source>
-            <translation>Share…</translation>
+            <translation>साझा करें…</translation>
         </message>
         <message id="genycaster.share.copy_link">
             <source>Copy link</source>
@@ -767,11 +766,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.share.copy_farcaster_link">
             <source>Copy Farcaster link</source>
-            <translation>Copy Farcaster link</translation>
+            <translation>Farcaster लिंक कॉपी करें</translation>
         </message>
         <message id="genycaster.share.open_quorum">
             <source>Open in Quorum</source>
-            <translation>Open in Quorum</translation>
+            <translation>Quorum में खोलें</translation>
         </message>
         <message id="genycaster.brand.genyleap">
             <source>Genyleap</source>
@@ -2723,11 +2722,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_one">
             <source>Discover GENY in the Genyleap ecosystem.</source>
-            <translation>Discover GENY in the Genyleap ecosystem.</translation>
+            <translation>Genyleap इकोसिस्टम में GENY खोजें।</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_two">
             <source>A new chapter for decentralized experiences.</source>
-            <translation>A new chapter for decentralized experiences.</translation>
+            <translation>विकेंद्रीकृत अनुभवों का नया अध्याय।</translation>
         </message>
         <message id="genycaster.composer.channel">
             <source>Channel</source>
@@ -2747,27 +2746,27 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
-            <translation>My channels &amp; discovery</translation>
+            <translation>मेरे चैनल और खोज</translation>
         </message>
         <message id="genycaster.composer.home_channel">
             <source>Home</source>
-            <translation>Home</translation>
+            <translation>होम</translation>
         </message>
         <message id="genycaster.composer.no_channel">
             <source>Post without a channel</source>
-            <translation>Post without a channel</translation>
+            <translation>बिना चैनल पोस्ट करें</translation>
         </message>
         <message id="genycaster.composer.joined_channel">
             <source>Joined</source>
-            <translation>Joined</translation>
+            <translation>शामिल हैं</translation>
         </message>
         <message id="genycaster.composer.not_joined_channel">
             <source>Not joined</source>
-            <translation>Not joined</translation>
+            <translation>शामिल नहीं हैं</translation>
         </message>
         <message id="genycaster.composer.channel_member_count">
             <source>%1 members</source>
-            <translation>%1 members</translation>
+            <translation>%1 सदस्य</translation>
         </message>
         <message id="genycaster.composer.channel_follower_count">
             <source>%1 followers</source>
@@ -2775,15 +2774,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
-            <translation>Choose a channel</translation>
+            <translation>चैनल चुनें</translation>
         </message>
         <message id="genycaster.composer.channel_picker_hint">
             <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
-            <translation>Choose a channel from the network. Your cast will be published to its verified parent URL.</translation>
+            <translation>नेटवर्क से चैनल चुनें। आपकी पोस्ट उसके सत्यापित पैरेंट URL पर प्रकाशित होगी।</translation>
         </message>
         <message id="genycaster.composer.channel_search">
             <source>Search channels by name or ID</source>
-            <translation>Search channels by name or ID</translation>
+            <translation>नाम या ID से चैनल खोजें</translation>
         </message>
         <message id="genycaster.composer.channel_suggestions">
             <source>Channels</source>
@@ -2791,11 +2790,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_no_results">
             <source>No channels found. Try another search.</source>
-            <translation>No channels found. Try another search.</translation>
+            <translation>कोई चैनल नहीं मिला। दूसरी खोज आज़माएँ।</translation>
         </message>
         <message id="genycaster.composer.channel_search_prompt">
             <source>Type two or more letters to search.</source>
-            <translation>Type two or more letters to search.</translation>
+            <translation>खोजने के लिए दो या अधिक अक्षर लिखें।</translation>
         </message>
         <message id="genycaster.composer.category">
             <source>Category</source>
@@ -2803,19 +2802,19 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.composer.clear_content">
             <source>Clear content</source>
-            <translation>Clear content</translation>
+            <translation>सामग्री साफ़ करें</translation>
         </message>
         <message id="genycaster.composer.clear_all_title">
             <source>Clear this cast?</source>
-            <translation>Clear this cast?</translation>
+            <translation>यह पोस्ट साफ़ करें?</translation>
         </message>
         <message id="genycaster.composer.clear_all_confirmation">
             <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
-            <translation>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</translation>
+            <translation>इस ड्राफ़्ट का टेक्स्ट, अटैचमेंट और अतिरिक्त पोस्ट हटाएँ? इसे वापस नहीं किया जा सकता। जवाब का गंतव्य नहीं बदलेगा।</translation>
         </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
-            <translation>Clear</translation>
+            <translation>साफ़ करें</translation>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
@@ -4059,15 +4058,15 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.settings.text_selection">
             <source>Text selection</source>
-            <translation>Text selection</translation>
+            <translation>टेक्स्ट चयन</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
             <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>Choose how you select and copy text in casts and the composer.</translation>
+            <translation>पोस्ट और एडिटर में टेक्स्ट चुनने और कॉपी करने का तरीका चुनें।</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
-            <translation>Genycaster</translation>
+            <translation>GenyCaster</translation>
         </message>
         <message id="genycaster.settings.selection_system">
             <source>System</source>
@@ -4075,7 +4074,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
             <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</translation>
+            <translation>Qt/WASM कैनवास में रेंडर होता है, इसलिए यहाँ Safari या ब्राउज़र का मूल टेक्स्ट चयन उपलब्ध नहीं है। GenyCaster का चयन सक्रिय रहता है।</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -5655,15 +5654,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.setup.node_online">
             <source>Online · responsive</source>
-            <translation>Online · responsive</translation>
+            <translation>ऑनलाइन · प्रतिक्रिया दे रहा है</translation>
         </message>
         <message id="genycaster.setup.recovery_signer_ready">
             <source>Publishing is active on this device.</source>
-            <translation>Publishing is active on this device.</translation>
+            <translation>इस डिवाइस पर पोस्ट करना सक्रिय है।</translation>
         </message>
         <message id="genycaster.setup.recovery_why_no_words">
             <source>How do I view my recovery words?</source>
-            <translation>How do I view my recovery words?</translation>
+            <translation>मैं अपने रिकवरी शब्द कैसे देखूँ?</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
             <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
@@ -5671,19 +5670,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
-            <translation>Mini App preview unavailable</translation>
+            <translation>मिनी ऐप का पूर्वावलोकन उपलब्ध नहीं है</translation>
         </message>
         <message id="genycaster.miniapp.launch_failed">
             <source>Mini App could not be opened</source>
-            <translation>Mini App could not be opened</translation>
+            <translation>मिनी ऐप नहीं खुल सका</translation>
         </message>
         <message id="genycaster.search.no_channel_results">
             <source>No channels match this search.</source>
-            <translation>No channels match this search.</translation>
+            <translation>इस खोज से कोई चैनल मेल नहीं खाता।</translation>
         </message>
         <message id="genycaster.search.no_profile_results">
             <source>No profiles match this search.</source>
-            <translation>No profiles match this search.</translation>
+            <translation>इस खोज से कोई प्रोफ़ाइल मेल नहीं खाती।</translation>
         </message>
         <message id="genycaster.settings.power_save_description">
             <source>Reduce background animation and animated media to save battery.</source>
@@ -6215,19 +6214,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.activity.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>पोस्ट</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
-            <translation>1Y</translation>
+            <translation>1 साल</translation>
         </message>
         <message id="genycaster.activity.range_month">
             <source>1M</source>
-            <translation>1M</translation>
+            <translation>1 महीना</translation>
         </message>
         <message id="genycaster.activity.range_three_months">
             <source>3M</source>
-            <translation>3M</translation>
+            <translation>3 महीने</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
@@ -6299,35 +6298,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.mobile_action_title">
             <source>Mobile Action Button</source>
-            <translation>Mobile Action Button</translation>
+            <translation>मोबाइल एक्शन बटन</translation>
         </message>
         <message id="genycaster.settings.mobile_action_description">
             <source>Choose what the floating button does and its color. Saved on this device.</source>
-            <translation>Choose what the floating button does and its color. Saved on this device.</translation>
+            <translation>फ़्लोटिंग बटन की कार्रवाई और रंग चुनें। इस डिवाइस पर सहेजा जाएगा।</translation>
         </message>
         <message id="genycaster.settings.mobile_action_function">
             <source>Button action</source>
-            <translation>Button action</translation>
+            <translation>बटन की कार्रवाई</translation>
         </message>
         <message id="genycaster.settings.mobile_action_search">
             <source>Search</source>
-            <translation>Search</translation>
+            <translation>खोजें</translation>
         </message>
         <message id="genycaster.settings.mobile_action_color">
             <source>Button color</source>
-            <translation>Button color</translation>
+            <translation>बटन का रंग</translation>
         </message>
         <message id="genycaster.settings.mobile_action_blue">
             <source>Blue</source>
-            <translation>Blue</translation>
+            <translation>नीला</translation>
         </message>
         <message id="genycaster.settings.mobile_action_coral">
             <source>Red</source>
-            <translation>Red</translation>
+            <translation>लाल</translation>
         </message>
         <message id="genycaster.settings.mobile_action_theme">
             <source>Theme</source>
-            <translation>Theme</translation>
+            <translation>थीम</translation>
         </message>
         <message id="genycaster.navigation.back_to_top">
             <source>Back to top</source>
