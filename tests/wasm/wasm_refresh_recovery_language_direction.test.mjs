@@ -45,6 +45,10 @@ test('setup wheel preserves native script direction, accessible selection and ke
   assert.match(selector, /Accessible.role: Accessible.RadioButton/);
   assert.match(selector, /Keys.onUpPressed/);
   assert.match(selector, /Keys.onDownPressed/);
+  assert.match(selector, /Keys.onPressed: event =>/);
+  assert.match(selector, /Qt.Key_Home/);
+  assert.match(selector, /Qt.Key_End/);
+  assert.doesNotMatch(selector, /Keys.onHomePressed|Keys.onEndPressed/);
   assert.doesNotMatch(selector, /TextField|languageGrid/);
   for (const t of ['fa', 'ar', 'en', 'fr']) assert.ok(setup.includes('tag: "'+t+'"'));
 });
