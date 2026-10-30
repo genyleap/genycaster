@@ -18,6 +18,7 @@ Button {
     property bool selected: false
     property bool busy: false
     property bool showChevron: true
+    property bool showSelectionMark: true
     property bool compactCard: false
 
     hoverEnabled: true
@@ -39,7 +40,7 @@ Button {
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
     readonly property color foreground: visuallyDisabled ? Theme.inkMuted
-                                      : primary ? (Theme.dark ? "#111315" : "#FFFFFF") : Theme.ink
+                                      : primary ? Theme.accentInk : Theme.ink
     readonly property color secondaryForeground: visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
@@ -48,12 +49,12 @@ Button {
         fillColor: root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
-                     ? (root.down ? (Theme.dark ? "#DCDDE0" : "#34373B")
-                                  : root.hovered ? (Theme.dark ? "#E8E9EB" : "#24272B")
-                                                 : (Theme.dark ? "#F6F7F8" : "#16191D"))
+                     ? (root.down ? Theme.primaryPressed
+                                  : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
-        borderWidth: root.primary && !root.visuallyDisabled ? 0 : (Theme.keyboardFocusVisible(root) ? 2 : Theme.strokeStandard)
+        borderWidth: Theme.keyboardFocusVisible(root) ? 2
+                     : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
         borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
@@ -122,7 +123,7 @@ Button {
         }
 
         Icon {
-            visible: root.selected
+            visible: root.selected && root.showSelectionMark
             text: Theme.iconCheck
             color: root.primary ? root.foreground : Theme.accent
             preferredSize: Theme.iconSize
@@ -136,7 +137,8 @@ Button {
         }
 
         Icon {
-            visible: root.showChevron && !root.complete && !root.selected && !root.busy
+            visible: root.showChevron && !root.complete
+                     && (!root.selected || !root.showSelectionMark) && !root.busy
             text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
             color: root.visuallyDisabled ? Theme.inkMuted
                    : root.primary ? root.secondaryForeground : Theme.inkSubtle
