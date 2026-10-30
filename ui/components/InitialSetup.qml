@@ -51,6 +51,7 @@ Item {
     property string accountIntent: "existing"
     property bool alternateMethodsExpanded: false
     property bool nativeRecoveryExpanded: false
+    property bool existingAccountExpanded: false
     property bool showAdvancedNodes: false
 
     property bool legalTermsChecked: false
@@ -79,7 +80,7 @@ Item {
     // Setup design-system layer: every stage composes the same neutral surfaces,
     // typography scale and spacing rhythm. Accent is reserved for focus/action,
     // while semantic colors are used only for compact status feedback.
-    readonly property int setupContentWidth: 600
+    readonly property int setupContentWidth: 560
     readonly property int setupPageTitleSize: Theme.typeTitle2Size
     readonly property int setupBodySize: Theme.typeLabelSize
     readonly property int setupSectionTitleSize: Theme.typeTitle3Size
@@ -653,7 +654,7 @@ Item {
                     Item {
                         id: stageCanvas
                         width: Math.min(stageFlick.width - (root.phone ? Theme.space4 * 2 : Theme.space6 * 2),
-                                        root.compact ? root.setupContentWidth : 720)
+                                        root.setupContentWidth)
                         x: Math.max(root.phone ? Theme.space4 : Theme.space6,
                                     Math.round((stageFlick.width - width) / 2))
                         height: Math.max(stageFlick.height,
@@ -838,7 +839,7 @@ Item {
 
                         GridLayout {
                             Layout.fillWidth: true
-                            columns: root.phone ? 1 : 2
+                            columns: 1
                             columnSpacing: Theme.space3
                             rowSpacing: Theme.space3
                             layoutDirection: Theme.uiDirection
@@ -947,12 +948,13 @@ Item {
 
                                     background: Superellipse {
                                         fillColor: modeButton.selected
-                                                   ? Theme.primaryFill
+                                                   ? Theme.surfaceSelected
                                                    : modeButton.down ? Theme.surfacePressed
                                                    : modeButton.hovered ? Theme.surfaceHover : Theme.surface
-                                        borderWidth: modeButton.selected ? 0
-                                                   : Theme.keyboardFocusVisible(modeButton) ? 2 : Theme.strokeStandard
-                                        borderColor: Theme.keyboardFocusVisible(modeButton) ? Theme.focus : Theme.borderMuted
+                                        borderWidth: modeButton.selected || Theme.keyboardFocusVisible(modeButton)
+                                                     ? 2 : Theme.strokeStandard
+                                        borderColor: modeButton.selected || Theme.keyboardFocusVisible(modeButton)
+                                                     ? Theme.focus : Theme.borderMuted
                                         curveDepth: Theme.curveControl
                                     }
 
@@ -962,16 +964,14 @@ Item {
 
                                         Icon {
                                             text: modeButton.modelData.icon
-                                            color: modeButton.selected
-                                                   ? Theme.accentInk : Theme.inkMuted
+                                            color: modeButton.selected ? Theme.accent : Theme.inkMuted
                                             preferredSize: Theme.iconSizeSmall
                                         }
 
                                         Label {
                                             Layout.fillWidth: true
                                             text: modeButton.modelData.label
-                                            color: modeButton.selected
-                                                   ? Theme.accentInk : Theme.ink
+                                            color: Theme.ink
                                             font.pixelSize: Theme.typeCaptionSize
                                             font.weight: Theme.weightDemiBold
                                             horizontalAlignment: Text.AlignHCenter
@@ -1082,9 +1082,17 @@ Item {
                 subtitle: qsTrId("genycaster.setup.privacy_compact_intro")
             }
 
-            ColumnLayout {
+            Superellipse {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                implicitHeight: termsSection.implicitHeight + Theme.space4 * 2
+                fillColor: Theme.surfaceMuted
+                borderWidth: 0
+                curveDepth: Theme.curveContainer
+                ColumnLayout {
+                    id: termsSection
+                    anchors.fill: parent
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space2
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -1110,15 +1118,19 @@ Item {
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.borderMuted
             }
 
-            ColumnLayout {
+            Superellipse {
                 Layout.fillWidth: true
-                spacing: Theme.space2
+                implicitHeight: privacySection.implicitHeight + Theme.space4 * 2
+                fillColor: Theme.surfaceMuted
+                borderWidth: 0
+                curveDepth: Theme.curveContainer
+                ColumnLayout {
+                    id: privacySection
+                    anchors.fill: parent
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space2
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -1142,6 +1154,8 @@ Item {
                     text: qsTrId("genycaster.setup.open_privacy")
                     onClicked: Qt.openUrlExternally("https://genyleap.com/privacy")
                 }
+            }
+
             }
 
             CheckBox {
@@ -1179,10 +1193,10 @@ Item {
                     }
                 }
                 background: Superellipse {
-                    fillColor: "transparent"
-                    borderWidth: Theme.keyboardFocusVisible(legalCheck) ? 2 : 0
-                    borderColor: Theme.focus
-                    curveDepth: Theme.curveControl
+                    fillColor: Theme.surfaceRaised
+                    borderWidth: Theme.keyboardFocusVisible(legalCheck) ? 2 : Theme.strokeStandard
+                    borderColor: Theme.keyboardFocusVisible(legalCheck) ? Theme.focus : Theme.borderMuted
+                    curveDepth: Theme.curveContainer
                 }
                 contentItem: DirectionAwareLabel {
                     id: consentText
@@ -1213,9 +1227,9 @@ Item {
 
             GridLayout {
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 2
+                columns: 1
                 columnSpacing: Theme.space2
-                rowSpacing: Theme.space2
+                rowSpacing: Theme.space3
                 layoutDirection: Theme.uiDirection
 
                 SetupActionCard {
@@ -1223,7 +1237,7 @@ Item {
                     title: qsTrId("genycaster.setup.network_hypersnap_category").arg(qsTrId("genycaster.setup.decentralized_label"))
                     subtitle: qsTrId("genycaster.setup.hypersnap_explainer")
                     iconGlyph: nodeProviderIcon
-                    primary: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
+                    primary: false
                     selected: presentationBridge.preferredNetwork === presentationBridge.independentNetworkKey
                     onClicked: presentationBridge.setPreferredNetwork(presentationBridge.independentNetworkKey)
                 }
@@ -1235,7 +1249,7 @@ Item {
                               ? qsTrId("genycaster.setup.farcaster_explainer")
                               : qsTrId("genycaster.setup.farcaster_not_configured")
                     iconGlyph: "brands/farcaster"
-                    primary: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
+                    primary: false
                     selected: presentationBridge.preferredNetwork === presentationBridge.hostedNetworkKey
                     onClicked: presentationBridge.setPreferredNetwork(presentationBridge.hostedNetworkKey)
                 }
@@ -1484,8 +1498,8 @@ Item {
                        ? qsTrId("genycaster.setup.recovery_title")
                        : root.authenticated
                          ? qsTrId("genycaster.setup.account_verified")
-                         : root.accountIntent === "new"
-                           ? qsTrId("genycaster.setup.new_profile")
+                         : !root.existingAccountExpanded && !root.browserReadOnly
+                           ? qsTrId("genycaster.header.account")
                            : qsTrId("genycaster.setup.sign_in_required")
                 subtitle: root.browserReadOnly && !root.authenticated
                           ? qsTrId("genycaster.setup.recovery_description")
@@ -1691,6 +1705,7 @@ Item {
 
                 ColumnLayout {
                     visible: !root.browserReadOnly && root.accountIntent === "existing"
+                             && root.existingAccountExpanded
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
@@ -1700,7 +1715,7 @@ Item {
                         title: qsTrId("genycaster.setup.recovery_button")
                         subtitle: qsTrId("genycaster.setup.native_recovery_description")
                         iconGlyph: Theme.iconUser
-                        primary: root.nativeRecoveryExpanded
+                        primary: false
                         selected: root.nativeRecoveryExpanded
                         enabled: root.runtimeReady && !root.authenticationInProgress
                         onClicked: root.nativeRecoveryExpanded = !root.nativeRecoveryExpanded
@@ -1780,11 +1795,16 @@ Item {
                         title: qsTrId("genycaster.setup.existing_profile")
                         subtitle: qsTrId("genycaster.setup.existing_profile_body")
                         iconGlyph: ""
-                        primary: root.accountIntent === "existing"
+                        primary: root.existingAccountExpanded
                         selected: false
                         showChevron: true
                         enabled: !root.authenticationInProgress
-                        onClicked: root.accountIntent = "existing"
+                        onClicked: {
+                            root.accountIntent = "existing"
+                            root.existingAccountExpanded = !root.existingAccountExpanded
+                            if (!root.existingAccountExpanded)
+                                root.nativeRecoveryExpanded = false
+                        }
                     }
                 }
 
@@ -1816,7 +1836,8 @@ Item {
 
                 ColumnLayout {
                     visible: root.accountIntent === "existing"
-                             && (!root.browserReadOnly || root.alternateMethodsExpanded)
+                             && (root.browserReadOnly ? root.alternateMethodsExpanded
+                                                      : root.existingAccountExpanded)
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
@@ -1826,7 +1847,7 @@ Item {
                         title: qsTrId("genycaster.shell.continue_with_genyleap")
                         subtitle: qsTrId("genycaster.setup.account_genyleap_body")
                         iconGlyph: root.genyBrandIcon
-                        primary: root.activeSignInRoute === "openproof"
+                        primary: false
                         busy: root.authenticationInProgress && root.authenticationRoute === "openproof"
                         showChevron: !root.authenticationInProgress
                         enabled: root.authenticationAvailable && !root.authenticationInProgress
@@ -1839,7 +1860,7 @@ Item {
                         title: qsTrId("genycaster.shell.sign_in_with_farcaster")
                         subtitle: qsTrId("genycaster.setup.account_farcaster_body")
                         iconGlyph: "brands/farcaster"
-                        primary: root.activeSignInRoute === "farcaster"
+                        primary: false
                         busy: root.authenticationInProgress && root.authenticationRoute === "farcaster"
                         showChevron: !root.authenticationInProgress
                         enabled: root.authenticationAvailable && !root.authenticationInProgress
@@ -2081,9 +2102,9 @@ Item {
 
             GridLayout {
                 Layout.fillWidth: true
-                columns: root.phone ? 1 : 2
+                columns: 1
                 columnSpacing: Theme.space2
-                rowSpacing: Theme.space2
+                rowSpacing: Theme.space3
                 layoutDirection: Theme.uiDirection
 
                 SetupActionCard {
