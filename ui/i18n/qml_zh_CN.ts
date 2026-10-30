@@ -445,7 +445,7 @@
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
-            <translation>Preview and upload a new photo</translation>
+            <translation>预览并上传新照片</translation>
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
@@ -546,11 +546,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
-            <translation>Profile photo</translation>
+            <translation>个人头像</translation>
         </message>
         <message id="genycaster.profile.banner">
             <source>Profile banner</source>
-            <translation>Profile banner</translation>
+            <translation>个人资料封面</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
@@ -610,11 +610,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
-            <translation>Arts &amp; entertainment</translation>
+            <translation>艺术与娱乐</translation>
         </message>
         <message id="genycaster.profile.option.business">
             <source>Business</source>
-            <translation>Business</translation>
+            <translation>商业</translation>
         </message>
         <message id="genycaster.profile.option.education">
             <source>Education</source>
@@ -626,19 +626,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.food_beverage">
             <source>Food &amp; beverage</source>
-            <translation>Food &amp; beverage</translation>
+            <translation>食品与饮料</translation>
         </message>
         <message id="genycaster.profile.option.health_wellness">
             <source>Health &amp; wellness</source>
-            <translation>Health &amp; wellness</translation>
+            <translation>健康与保健</translation>
         </message>
         <message id="genycaster.profile.option.media_news">
             <source>Media &amp; news</source>
-            <translation>Media &amp; news</translation>
+            <translation>媒体与新闻</translation>
         </message>
         <message id="genycaster.profile.option.science_technology">
             <source>Science &amp; technology</source>
-            <translation>Science &amp; technology</translation>
+            <translation>科学与技术</translation>
         </message>
         <message id="genycaster.profile.option.technology">
             <source>Technology</source>
@@ -646,7 +646,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.professional_services">
             <source>Professional services</source>
-            <translation>Professional services</translation>
+            <translation>专业服务</translation>
         </message>
         <message id="genycaster.profile.option.sports">
             <source>Sports</source>
@@ -654,7 +654,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.travel_transportation">
             <source>Travel &amp; transportation</source>
-            <translation>Travel &amp; transportation</translation>
+            <translation>旅行与交通</translation>
         </message>
         <message id="genycaster.profile.option.other">
             <source>Other</source>
@@ -678,7 +678,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
-            <translation>Designer</translation>
+            <translation>设计师</translation>
         </message>
         <message id="genycaster.profile.option.developer">
             <source>Developer</source>
@@ -686,47 +686,47 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.engineer">
             <source>Engineer</source>
-            <translation>Engineer</translation>
+            <translation>工程师</translation>
         </message>
         <message id="genycaster.profile.option.entrepreneur">
             <source>Entrepreneur</source>
-            <translation>Entrepreneur</translation>
+            <translation>创业者</translation>
         </message>
         <message id="genycaster.profile.option.founder">
             <source>Founder</source>
-            <translation>Founder</translation>
+            <translation>创始人</translation>
         </message>
         <message id="genycaster.profile.option.investor">
             <source>Investor</source>
-            <translation>Investor</translation>
+            <translation>投资者</translation>
         </message>
         <message id="genycaster.profile.option.journalist">
             <source>Journalist</source>
-            <translation>Journalist</translation>
+            <translation>记者</translation>
         </message>
         <message id="genycaster.profile.option.photographer">
             <source>Photographer</source>
-            <translation>Photographer</translation>
+            <translation>摄影师</translation>
         </message>
         <message id="genycaster.profile.option.researcher">
             <source>Researcher</source>
-            <translation>Researcher</translation>
+            <translation>研究人员</translation>
         </message>
         <message id="genycaster.profile.option.student">
             <source>Student</source>
-            <translation>Student</translation>
+            <translation>学生</translation>
         </message>
         <message id="genycaster.profile.option.teacher">
             <source>Teacher</source>
-            <translation>Teacher</translation>
+            <translation>教师</translation>
         </message>
         <message id="genycaster.profile.option.consultant">
             <source>Consultant</source>
-            <translation>Consultant</translation>
+            <translation>顾问</translation>
         </message>
         <message id="genycaster.profile.option.organization">
             <source>Organization</source>
-            <translation>Organization</translation>
+            <translation>组织</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
@@ -2734,15 +2734,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.ticker">
             <source>Ticker</source>
-            <translation>Ticker</translation>
+            <translation>代币代码</translation>
         </message>
         <message id="genycaster.composer.channel_url_hint">
             <source>Paste the verified channel parent URL, not just its name.</source>
-            <translation>Paste the verified channel parent URL, not just its name.</translation>
+            <translation>粘贴已验证的频道父级网址，而不仅是频道名称。</translation>
         </message>
         <message id="genycaster.composer.ticker_contract_hint">
             <source>Enter the token contract address (0x…); choose its network.</source>
-            <translation>Enter the token contract address (0x…); choose its network.</translation>
+            <translation>输入代币合约地址（0x…），并选择所属网络。</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
@@ -2818,7 +2818,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
-            <translation>Use a valid channel URL or token contract address.</translation>
+            <translation>请输入有效的频道网址或代币合约地址。</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
             <source>The next chapter</source>
@@ -2830,7 +2830,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_agent">
             <source>Agent</source>
-            <translation>Agent</translation>
+            <translation>智能助手</translation>
         </message>
         <message id="genycaster.home.hub_agent_detail">
             <source>Your intelligent Farcaster companion.</source>
@@ -2838,7 +2838,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_studio">
             <source>Studio</source>
-            <translation>Studio</translation>
+            <translation>创作工作室</translation>
         </message>
         <message id="genycaster.home.hub_studio_detail">
             <source>Create and manage rich content.</source>
