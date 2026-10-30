@@ -73,3 +73,37 @@ test('web update copy is present in all supported locales', () => {
       assert.ok(ts.includes('id="genycaster.settings.'+key+'"'), locale + ': '+ key);
   }
 });
+
+test('Setup CTAs and action cards follow the active accent palette', () => {
+  const button = file('ui/components/SetupPrimaryButton.qml');
+  const card = file('ui/components/SetupActionCard.qml');
+  const setup = file('ui/components/InitialSetup.qml');
+  for (const code of [button, card]) {
+    assert.match(code, /Theme.primaryFill/);
+    assert.match(code, /Theme.primaryFillHover/);
+    assert.match(code, /Theme.primaryPressed/);
+    assert.match(code, /Theme.accentInk/);
+    assert.doesNotMatch(code, /#111315|#FFFFFF|#F6F7F8|#16191D/);
+  }
+  assert.match(setup, /modeButton.selected\s+\? Theme.surfaceSelected/);
+  assert.match(setup, /color: modeButton.selected \? Theme.accent : Theme.inkMuted/);
+  assert.match(setup, /id: termsSection/);
+  assert.match(setup, /id: privacySection/);
+  assert.match(setup, /columns: 1[\s\S]*?genycaster.setup.network_hypersnap_category/);
+});
+
+test('account Setup and drawer share a staged, accessible existing-account flow', () => {
+  const setup = file('ui/components/InitialSetup.qml');
+  const shell = file('ui/components/AppShell.qml');
+  assert.match(setup, /property bool existingAccountExpanded: false/);
+  assert.match(setup, /root.existingAccountExpanded = !root.existingAccountExpanded/);
+  assert.match(setup, /root.browserReadOnly \? root.alternateMethodsExpanded\s+: root.existingAccountExpanded/);
+  assert.match(shell, /id: accountPopup[\s\S]*?property bool existingMethodsExpanded: false/);
+  assert.match(shell, /id: accountScroll[\s\S]*?id: accountActions/);
+  assert.match(shell, /SetupPageHeader \{[\s\S]*?genycaster.shell.sign_in_to_interact/);
+  assert.match(shell, /trailingText: qsTrId\("genycaster.shell.coming_soon"\)\s+enabled: false/);
+  assert.match(shell, /visible: accountPopup.existingMethodsExpanded && !presentationBridge.isAuthenticated/);
+  assert.match(shell, /onClicked: presentationBridge.beginSignIn\(\)/);
+  assert.match(shell, /onClicked: presentationBridge.beginFarcasterSignIn\(\)/);
+  assert.match(shell, /onClicked: presentationBridge.openAuthenticationApproval\(\)/);
+});
