@@ -246,6 +246,19 @@ jobs:
           arch: clang_64
           modules: qtmultimedia
           cache: true
+      - name: Verify native recovery proof on macOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/generate_bip39_custody_header.py --check
+          export CC="$(brew --prefix llvm)/bin/clang"
+          export CXX="$(brew --prefix llvm)/bin/clang++"
+          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
+            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"
+          cmake --build build/custody-vectors --parallel 2
+          ctest --test-dir build/custody-vectors --output-on-failure
       - name: Build and deploy macOS application
         shell: bash
         env:
@@ -339,6 +352,26 @@ jobs:
             $file = Join-Path $include $header
             if (-not (Test-Path $file)) { throw "Windows CI dependency missing: $file" }
           }
+      - name: Verify native recovery proof on Windows
+        shell: pwsh
+        run: |
+          python ci/generate_bip39_custody_header.py --check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $llvm = "$env:ProgramFiles/LLVM/bin"
+          $clang = Join-Path $llvm 'clang-cl.exe'
+          $scanner = Join-Path $llvm 'clang-scan-deps.exe'
+          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja `
+            "-DCMAKE_C_COMPILER=$clang" `
+            "-DCMAKE_CXX_COMPILER=$clang" `
+            "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=$scanner" `
+            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            "-DVCPKG_TARGET_TRIPLET=x64-windows" `
+            "-DVCPKG_APPLOCAL_DEPS=OFF"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/custody-vectors --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/custody-vectors --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compile and deploy
         shell: pwsh
         env:
