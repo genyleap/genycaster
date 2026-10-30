@@ -5028,6 +5028,86 @@ Company | https://company.com</source>
             <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
             <translation>OpenProof 是您的账户身份权威；Farcaster 是必须关联的协议身份。</translation>
         </message>
+        <message id="genycaster.setup.design_welcome_description">
+            <source>A native Farcaster client for the decentralized social web.</source>
+            <translation>对话无界。用你的语言交流。</translation>
+        </message>
+        <message id="genycaster.setup.design_language_title">
+            <source>Select your language</source>
+            <translation>语言</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_title">
+            <source>Terms &amp; Privacy</source>
+            <translation>隐私与条款</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_description">
+            <source>Please review and accept our terms to continue.</source>
+            <translation>只需确认两项明确权限。完整文档一键即可查看。</translation>
+        </message>
+        <message id="genycaster.setup.design_account_title">
+            <source>Choose an account</source>
+            <translation>账户</translation>
+        </message>
+        <message id="genycaster.setup.design_account_description">
+            <source>How do you want to continue with GenyCaster?</source>
+            <translation>使用 Farcaster 身份或 Genyleap 账户。每次登录都会独立验证，且不会改变读取网络。</translation>
+        </message>
+        <message id="genycaster.setup.design_create_account">
+            <source>Create new account</source>
+            <translation>创建新资料</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_account">
+            <source>Use existing account</source>
+            <translation>使用现有资料</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_description">
+            <source>Connect your Genyleap or Farcaster identity.</source>
+            <translation>连接你已有的 Farcaster 身份。</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_title">
+            <source>Sign in</source>
+            <translation>登录后继续</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_description">
+            <source>Connect your identity using Genyleap or another supported provider.</source>
+            <translation>通过经验证的钱包签名直接登录 Farcaster，或使用 Genyleap/OpenProof 账户。发布内容需要单独的签名者授权。</translation>
+        </message>
+        <message id="genycaster.setup.design_recovery_title">
+            <source>Use recovery phrase</source>
+            <translation>使用恢复词继续</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_title">
+            <source>Verifying your credentials...</source>
+            <translation>正在准备 Farcaster 账户</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_description">
+            <source>Please wait while we securely verify your identity.</source>
+            <translation>正在核验账户所有权和签名密钥注册状态，请等待网络确认。</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_title">
+            <source>Choose an appearance</source>
+            <translation>外观</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_description">
+            <source>You can change this later in Settings.</source>
+            <translation>保留默认设置，或只调整少数会改变 Genycaster 使用体验的选项。</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_title">
+            <source>You&#x27;re all set!</source>
+            <translation>就绪</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_description">
+            <source>GenyCaster is ready to use. Enjoy the decentralized social web.</source>
+            <translation>全部设置完成。</translation>
+        </message>
+        <message id="genycaster.setup.design_get_started">
+            <source>Get started</source>
+            <translation>继续</translation>
+        </message>
+        <message id="genycaster.setup.design_start">
+            <source>Start using GenyCaster</source>
+            <translation>完成设置</translation>
+        </message>
         <message id="genycaster.setup.title">
             <source>Set up Genycaster</source>
             <translation>设置 Genycaster</translation>
