@@ -2822,8 +2822,8 @@ Company | https://company.com</source>
             <translation>آدرس معتبر کانال یا قرارداد توکن را وارد کنید.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
-            <source>Your workspace</source>
-            <translation>فضای شخصی شما</translation>
+            <source>The next chapter</source>
+            <translation>فصل بعدی</translation>
         </message>
         <message id="genycaster.home.hub_coming_soon">
             <source>Coming soon</source>
