@@ -2775,39 +2775,72 @@ void connectRuntime(
                     }
                     const std::uint64_t fid = verified->fid.value;
                     const auto authenticatedAt = foundation::time::now();
-                    application::session::SessionState state{};
-                    state.phase = application::session::SessionPhase::Authenticated;
-                    state.session = domain::session::ClientSession{
+                    domain::session::ClientSession session{
                         .identityIssuer = std::move(verified->issuer),
                         .identitySubject = verified->subject,
                         .fid = domain::identity::Fid{fid},
+                        .custodyAddress = verified->custodyAddress,
                         .method = domain::session::AuthenticationMethod::Custody,
                         .authenticatedAt = authenticatedAt,
                         .expiresAt = authenticatedAt
                             + std::chrono::duration_cast<std::chrono::milliseconds>(
                                 std::chrono::seconds{verified->expiresSeconds}),
                     };
-                    // The session observer first queues its verified identity
-                    // update; the account grant must follow it in FIFO order.
-                    sessionObserver(std::move(state));
-                    QByteArray ticket = QByteArray::fromStdString(verified->accountTicket);
+                    // Only SessionService may commit the verified login. It
+                    // persists this public snapshot before publishing the
+                    // account to Runtime, signer gates and presentation.
+                    auto ticket = std::make_shared<QByteArray>(
+                        QByteArray::fromStdString(verified->accountTicket));
                     std::fill(verified->accountTicket.begin(),
                               verified->accountTicket.end(), char{0});
-                    QString subject = QString::fromStdString(verified->subject);
+                    const QString subject = QString::fromStdString(verified->subject);
                     const int expires = verified->expiresSeconds;
-                    QMetaObject::invokeMethod(&bridge,
-                        [&bridge, &connections, ticket = std::move(ticket),
-                         subject = std::move(subject), fid, expires]() mutable {
-                            if (bridge.isAuthenticated()
-                                && bridge.accountFid() == fid
-                                && bridge.authenticationRoute() == QStringLiteral("recovery")
-                                && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
-                                connections.acceptRecoveryGrant(
-                                    std::move(ticket), std::move(subject), fid, expires);
-                            } else {
-                                ticket.fill(char{0});
-                            }
-                        }, Qt::QueuedConnection);
+                    const auto persistedObserver =
+                        [&bridge, &connections, sessionObserver,
+                         nativeRecoveryGeneration, generation, ticket,
+                         subject, fid, expires]
+                        (application::session::SessionState state) mutable {
+                        const bool approved =
+                            state.phase == application::session::SessionPhase::Authenticated
+                            && state.session && state.session->fid.value == fid
+                            && state.session->identityIssuer
+                            && *state.session->identityIssuer
+                                == "https://openproof.genyleap.com";
+                        if (nativeRecoveryGeneration->load(std::memory_order_acquire)
+                            != generation) {
+                            ticket->fill(char{0});
+                            return;
+                        }
+                        sessionObserver(std::move(state));
+                        if (!approved) {
+                            ticket->fill(char{0});
+                            return;
+                        }
+                        // Both transitions are queued to one GUI thread, so
+                        // the grant cannot arrive before the persisted session.
+                        QMetaObject::invokeMethod(&bridge,
+                            [&bridge, &connections, ticket, subject, fid,
+                             expires, nativeRecoveryGeneration, generation]() mutable {
+                                if (nativeRecoveryGeneration->load(std::memory_order_acquire)
+                                        == generation
+                                    && bridge.isAuthenticated()
+                                    && bridge.accountFid() == fid
+                                    && bridge.authenticationRoute() == QStringLiteral("recovery")
+                                    && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
+                                    connections.acceptRecoveryGrant(
+                                        std::move(*ticket), subject, fid, expires);
+                                } else {
+                                    ticket->fill(char{0});
+                                }
+                            }, Qt::QueuedConnection);
+                    };
+                    auto committed = runtime->sessionService->acceptVerifiedRecovery(
+                        std::move(session), persistedObserver);
+                    if (!committed) {
+                        ticket->fill(char{0});
+                        bridge.applyAuthenticationError(
+                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                    }
                 });
             watcher->setFuture(QtConcurrent::run(
                 [runtime, gateway = configuredGateway.toStdString(),
@@ -2848,6 +2881,7 @@ void connectRuntime(
                             std::move(proof->signature));
                     if (!verified || verified->fid.value != fid->value)
                         return std::unexpected(failure());
+                    verified->custodyAddress = std::move(*address);
                     return verified;
                 }));
         });
@@ -2886,27 +2920,18 @@ void connectRuntime(
     QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge,
         [&bridge, runtime, sessionObserver] {
             if (bridge.authenticationRoute() == QStringLiteral("recovery")) {
-                // Direct recovery did not begin a SessionService relay attempt.
-                // Its cancellation must still clear the transient UI phase.
-                sessionObserver(application::session::SessionState{
-                    .phase = application::session::SessionPhase::Guest,
-                });
+                // Even if a one-shot proof completed concurrently, a
+                // cancellation must invalidate its persisted session.
+                (void)runtime->sessionService->signOut(sessionObserver);
                 return;
             }
             (void)runtime->sessionService->cancelSignIn(sessionObserver);
         });
 
     QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
-        [&bridge, runtime, sessionObserver] {
-            if (bridge.authenticationRoute() == QStringLiteral("recovery")) {
-                // This account was verified by an independent one-shot
-                // OpenProof ceremony. SessionService did not install it, so
-                // its signOut() alone would leave a phantom authenticated UI.
-                sessionObserver(application::session::SessionState{
-                    .phase = application::session::SessionPhase::Guest,
-                });
-                return;
-            }
+        [runtime, sessionObserver] {
+            // All native routes now share the authoritative persisted
+            // session store and exactly the same sign-out behavior.
             (void)runtime->sessionService->signOut(sessionObserver);
         });
 #endif

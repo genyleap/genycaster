@@ -58,6 +58,9 @@ struct RecoveryIdentity final {
     domain::identity::Fid fid{};
     std::string issuer{};
     std::string subject{};
+    // Populated by trusted native composition after IdRegistry verification.
+    // The gateway does not return custody keys or recovery words.
+    std::string custodyAddress{};
     std::string accountTicket{}; // C++-only ephemeral account grant
     int expiresSeconds{};
 };

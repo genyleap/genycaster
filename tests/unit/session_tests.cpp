@@ -553,6 +553,69 @@ void missingCompatibilityAuthDoesNotCreateSession()
     assert(!store.value);
 }
 
+void verifiedNativeRecoveryUsesAuthoritativeSessionStore()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    application::session::SessionService service{executor, store, nullptr, nullptr};
+    std::vector<application::session::SessionState> states{};
+    const auto observer = [&states](auto state) {
+        states.push_back(std::move(state));
+    };
+
+    auto recovered = makeSession(123);
+    recovered.identityIssuer = "https://openproof.genyleap.com";
+    recovered.identitySubject = "account-123";
+    recovered.expiresAt = recovered.authenticatedAt + std::chrono::minutes{35};
+    assert(service.acceptVerifiedRecovery(recovered, observer));
+    assert(store.saveCount == 1U);
+    assert(store.value && store.value->fid.value == 123U);
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session
+        && states.back().session->custodyAddress == recovered.custodyAddress);
+
+    // The same store is durable across SessionService reconstruction and
+    // signOut must clear it for recovery just as for ordinary sign-in.
+    {
+        application::session::SessionService restored{executor, store, nullptr, nullptr};
+        assert(restored.restore(observer));
+        assert(states.back().session && states.back().session->fid.value == 123U);
+    }
+    assert(service.signOut(observer));
+    assert(!store.value && store.clearCount == 1U);
+    assert(states.back().phase == application::session::SessionPhase::Guest);
+
+    // Invalid issuer, owner, address and expired/overlong proof never publish
+    // a login or overwrite an existing stored session.
+    const auto rejected = [&](domain::session::ClientSession input) {
+        const auto count = store.saveCount;
+        assert(service.acceptVerifiedRecovery(std::move(input), observer));
+        assert(store.saveCount == count);
+        assert(states.back().phase == application::session::SessionPhase::Failed);
+        assert(!states.back().session);
+        assert(states.back().error);
+        assert(states.back().error->code == foundation::error::ErrorCode::Unauthorized);
+    };
+    auto invalid = recovered;
+    invalid.identityIssuer = "https://attacker.example";
+    rejected(invalid);
+    invalid = recovered;
+    invalid.fid = domain::identity::Fid{0};
+    rejected(invalid);
+    invalid = recovered;
+    invalid.identitySubject = "";
+    rejected(invalid);
+    invalid = recovered;
+    invalid.custodyAddress = "0xNOTVALID";
+    rejected(invalid);
+    invalid = recovered;
+    invalid.expiresAt = foundation::time::now() - std::chrono::seconds{1};
+    rejected(invalid);
+    invalid = recovered;
+    invalid.expiresAt = foundation::time::now() + std::chrono::hours{2};
+    rejected(invalid);
+}
+
 void sqliteSessionRoundTrip()
 {
     DatabaseFixture database{};
@@ -601,6 +664,7 @@ int main()
     independentFarcasterSignInDoesNotInvokeOpenProof();
     missingDirectFarcasterProviderNeverFallsBackToOpenProof();
     missingCompatibilityAuthDoesNotCreateSession();
+    verifiedNativeRecoveryUsesAuthoritativeSessionStore();
     sqliteSessionRoundTrip();
     return 0;
 }

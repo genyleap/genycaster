@@ -1,5 +1,6 @@
 module;
 
+#include <algorithm>
 #include <chrono>
 #include <expected>
 #include <memory>
@@ -264,6 +265,57 @@ foundation::result::Status SessionService::pollSignIn(
             grantObserver(std::move(*polled->accountGrant));
         }
     });
+}
+
+foundation::result::Status SessionService::acceptVerifiedRecovery(
+    domain::session::ClientSession session,
+    Observer observer)
+{
+    return m_impl->executor.post(
+        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            const auto now = foundation::time::now();
+            // This is an application commit boundary, not a second
+            // authentication endpoint. Only accept the specifically
+            // OpenProof-verified custody identity with a bounded lifetime.
+            const auto validAddress = [](const std::optional<std::string>& address) {
+                if (!address || address->size() != 42U
+                    || !address->starts_with("0x")) {
+                    return false;
+                }
+                return std::all_of(address->begin() + 2, address->end(),
+                    [](const char ch) {
+                        return (ch >= '0' && ch <= '9')
+                            || (ch >= 'a' && ch <= 'f');
+                    });
+            };
+            if (session.fid.value == 0U
+                || session.method != domain::session::AuthenticationMethod::Custody
+                || !session.identityIssuer
+                || *session.identityIssuer != "https://openproof.genyleap.com"
+                || !session.identitySubject || session.identitySubject->empty()
+                || session.identitySubject->size() > 512U
+                || !validAddress(session.custodyAddress)
+                || session.authenticatedAt > now
+                || domain::session::isExpired(session, now)
+                || session.expiresAt - now > std::chrono::hours{1}) {
+                observer(failedState(foundation::error::Error::make(
+                    foundation::error::ErrorCode::Unauthorized,
+                    "A complete, current OpenProof custody recovery proof is required."),
+                    m_impl->current));
+                return;
+            }
+            if (auto stored = m_impl->store.save(session); !stored) {
+                observer(failedState(std::move(stored.error()), m_impl->current));
+                return;
+            }
+            m_impl->current = std::move(session);
+            m_impl->attempt.reset();
+            m_impl->approvalUrl.clear();
+            observer(SessionState{
+                .phase = SessionPhase::Authenticated,
+                .session = m_impl->current,
+            });
+        });
 }
 
 foundation::result::Status SessionService::cancelSignIn(Observer observer)

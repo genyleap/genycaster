@@ -34,6 +34,12 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("nativeRecoveryGeneration->fetch_add", wiring)
         self.assertIn('bridge.authenticationRoute() == QStringLiteral("recovery")', wiring)
         self.assertIn("connections.acceptRecoveryGrant(", wiring)
+        self.assertIn("runtime->sessionService->acceptVerifiedRecovery(", wiring)
+        self.assertIn("runtime->sessionService->signOut(sessionObserver)", wiring)
+        service = Path("src/application/session.cpp").read_text(encoding="utf-8")
+        self.assertIn("SessionService::acceptVerifiedRecovery(", service)
+        self.assertIn("m_impl->store.save(session)", service)
+        self.assertIn("m_impl->current = std::move(session)", service)
 
     def test_native_custody_wordlist_and_module_boundary(self) -> None:
         # The native BIP39 table is generated from the reviewed browser

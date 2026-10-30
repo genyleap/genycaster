@@ -94,6 +94,18 @@ public:
     [[nodiscard]] foundation::result::Status pollSignIn(
         Observer observer, AccountGrantObserver grantObserver = {});
 
+    /**
+     * @brief Commit an independently verified, short-lived custody session.
+     *
+     * The trusted native composition boundary calls this ONLY after Optimism
+     * IdRegistry verification and completion of a one-time OpenProof challenge.
+     * No recovery words, custody keys, signatures or account bearer enter
+     * this service or the persistent session store.
+     */
+    [[nodiscard]] foundation::result::Status acceptVerifiedRecovery(
+        domain::session::ClientSession session,
+        Observer observer);
+
     /** @brief Cancels transient approval state while retaining any prior session. */
     [[nodiscard]] foundation::result::Status cancelSignIn(Observer observer);
 
