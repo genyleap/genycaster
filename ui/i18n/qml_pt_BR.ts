@@ -5028,6 +5028,86 @@ Company | https://company.com</source>
             <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
             <translation>O OpenProof é a autoridade da identidade da sua conta; o Farcaster é a identidade de protocolo vinculada obrigatória.</translation>
         </message>
+        <message id="genycaster.setup.design_welcome_description">
+            <source>A native Farcaster client for the decentralized social web.</source>
+            <translation>Um mundo de conversas. No seu idioma.</translation>
+        </message>
+        <message id="genycaster.setup.design_language_title">
+            <source>Select your language</source>
+            <translation>Idioma</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_title">
+            <source>Terms &amp; Privacy</source>
+            <translation>Privacidade e Termos</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_description">
+            <source>Please review and accept our terms to continue.</source>
+            <translation>Duas permissões claras. Os documentos completos ficam a um toque.</translation>
+        </message>
+        <message id="genycaster.setup.design_account_title">
+            <source>Choose an account</source>
+            <translation>Conta</translation>
+        </message>
+        <message id="genycaster.setup.design_account_description">
+            <source>How do you want to continue with GenyCaster?</source>
+            <translation>Use sua identidade Farcaster ou conta Genyleap. Cada login é verificado independentemente e nenhum altera sua rede de leitura.</translation>
+        </message>
+        <message id="genycaster.setup.design_create_account">
+            <source>Create new account</source>
+            <translation>Criar novo</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_account">
+            <source>Use existing account</source>
+            <translation>Usar existente</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_description">
+            <source>Connect your Genyleap or Farcaster identity.</source>
+            <translation>Conecte a identidade Farcaster que você já possui.</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_title">
+            <source>Sign in</source>
+            <translation>Entre para continuar</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_description">
+            <source>Connect your identity using Genyleap or another supported provider.</source>
+            <translation>Entre diretamente com o Farcaster usando uma assinatura verificada da carteira ou use sua conta Genyleap/OpenProof. Publicar requer permissão separada para o assinante.</translation>
+        </message>
+        <message id="genycaster.setup.design_recovery_title">
+            <source>Use recovery phrase</source>
+            <translation>Continuar com palavras de recuperação</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_title">
+            <source>Verifying your credentials...</source>
+            <translation>Preparando sua conta Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_description">
+            <source>Please wait while we securely verify your identity.</source>
+            <translation>Verificando a posse da conta e o registro da chave de assinatura. Aguarde a confirmação da rede.</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_title">
+            <source>Choose an appearance</source>
+            <translation>Aparência</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_description">
+            <source>You can change this later in Settings.</source>
+            <translation>Mantenha os padrões ou ajuste apenas o que muda a experiência do Genycaster.</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_title">
+            <source>You&#x27;re all set!</source>
+            <translation>Pronto</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_description">
+            <source>GenyCaster is ready to use. Enjoy the decentralized social web.</source>
+            <translation>Tudo está pronto.</translation>
+        </message>
+        <message id="genycaster.setup.design_get_started">
+            <source>Get started</source>
+            <translation>Continuar</translation>
+        </message>
+        <message id="genycaster.setup.design_start">
+            <source>Start using GenyCaster</source>
+            <translation>Concluir configuração</translation>
+        </message>
         <message id="genycaster.setup.title">
             <source>Set up Genycaster</source>
             <translation>Configurar o Genycaster</translation>
