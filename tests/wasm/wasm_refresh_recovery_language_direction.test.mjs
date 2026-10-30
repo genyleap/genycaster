@@ -34,13 +34,29 @@ test('WASM Updates refreshes current deployed application instead of a desktop i
   assert.match(source, /new URL\(window\.location\.href\)/);
 });
 
-test('each setup language card aligns by its own script, independent of interface language', () => {
+test('setup wheel preserves native script direction, accessible selection and keyboard navigation', () => {
   const selector = file('ui/components/SetupLanguageSelector.qml');
   const setup = file('ui/components/InitialSetup.qml');
+  assert.match(selector, /objectName: "setupLanguageWheel"/);
+  assert.match(selector, /snapMode: ListView.SnapToItem/);
+  assert.match(selector, /onMovementEnded: root.choose\(currentIndex\)/);
   assert.match(selector, /readonly property bool nativeRtl: \["fa", "ar", "he", "ur", "ps"\]/);
-  assert.match(selector, /layoutDirection: languageCard\.nativeRtl \? Qt\.RightToLeft : Qt\.LeftToRight/);
-  assert.equal((selector.match(/horizontalAlignment: languageCard\.nativeRtl \? Text\.AlignRight : Text\.AlignLeft/g) || []).length, 2);
+  assert.match(selector, /layoutDirection: languageRow.nativeRtl \? Qt.RightToLeft : Qt.LeftToRight/);
+  assert.match(selector, /Accessible.role: Accessible.RadioButton/);
+  assert.match(selector, /Keys.onUpPressed/);
+  assert.match(selector, /Keys.onDownPressed/);
+  assert.doesNotMatch(selector, /TextField|languageGrid/);
   for (const t of ['fa', 'ar', 'en', 'fr']) assert.ok(setup.includes('tag: "'+t+'"'));
+});
+
+test('setup account choices are stacked and do not advertise unimplemented registration', () => {
+  const setup = file('ui/components/InitialSetup.qml');
+  const account = setup.slice(setup.indexOf('id: accountStage'));
+  assert.match(account, /ColumnLayout \{\s+visible: !root.browserReadOnly/);
+  assert.match(account, /title: qsTrId\("genycaster.setup.new_profile"\)/);
+  assert.match(account, /trailingText: qsTrId\("genycaster.shell.coming_soon"\)\s+enabled: false/);
+  assert.match(account, /title: qsTrId\("genycaster.setup.existing_profile"\)/);
+  assert.match(setup, /visible: false \/\/ Minimal, single-task canvas on desktop/);
 });
 
 test('web update copy is present in all supported locales', () => {
