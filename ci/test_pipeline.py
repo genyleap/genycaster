@@ -199,7 +199,11 @@ class PipelineTests(unittest.TestCase):
                 verify("windows", archive)
 
     def test_release_package_contract(self) -> None:
-        self.assertEqual(len(EXPECTED), 5)
+        self.assertEqual(len(EXPECTED), 9)
+        self.assertEqual(EXPECTED["GenyCaster-linux-arm64"], ".AppImage")
+        self.assertEqual(EXPECTED["GenyCaster-windows-arm64"], ".zip")
+        self.assertEqual(EXPECTED["GenyCaster-android-armeabi-v7a"], ".apk")
+        self.assertEqual(EXPECTED["GenyCaster-macos-x86_64"], ".dmg")
         self.assertEqual(EXPECTED["GenyCaster-android-arm64-v8a"], ".apk")
         self.assertEqual(EXPECTED["GenyCaster-web-wasm"], ".tar.gz")
         with TemporaryDirectory() as temporary:

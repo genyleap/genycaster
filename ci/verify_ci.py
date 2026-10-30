@@ -44,7 +44,9 @@ def main() -> None:
     assert '"android-genycaster-arm64" =>' in workflow
     assert 'inherit_from => [ "android-arm64" ]' in workflow
     assert 'shlib_variant => "_3"' in workflow
-    assert "./Configure android-genycaster-arm64 shared no-tests" in workflow
+    assert './Configure "android-genycaster-${{ matrix.openssl_arch }}" shared no-tests' in workflow
+    assert '"android-genycaster-arm" =>' in workflow
+    assert "arm64-v8a" in workflow and "armeabi-v7a" in workflow
     assert "patchelf --set-soname" not in workflow
     assert "patchelf --page-size" not in workflow
     assert 'llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"' in workflow
