@@ -18,3 +18,14 @@ target_compile_features(genycaster_custody_vectors PRIVATE cxx_std_26)
 target_link_libraries(genycaster_custody_vectors PRIVATE native_custody_vectors_support)
 enable_testing()
 add_test(NAME custody.bip39_bip32_vectors COMMAND genycaster_custody_vectors)
+
+# A second, independent implementation must recover the same public address
+# from the signed native EIP-191 proof. Never test only the code that signed it.
+find_program(GENYCASTER_NODE_EXECUTABLE node REQUIRED)
+add_executable(genycaster_custody_proof proof_interop.cpp)
+target_compile_features(genycaster_custody_proof PRIVATE cxx_std_26)
+target_link_libraries(genycaster_custody_proof PRIVATE native_custody_vectors_support)
+add_test(NAME custody.eip191_noble_interop
+    COMMAND "${GENYCASTER_NODE_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/interop.test.mjs"
+    "$<TARGET_FILE:genycaster_custody_proof>")

@@ -6,6 +6,9 @@ module;
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
+#include <openssl/core_names.h>
+#include <openssl/ecdsa.h>
+#include <openssl/param_build.h>
 #include <openssl/evp.h>
 #include <openssl/obj_mac.h>
 
@@ -16,6 +19,7 @@ module;
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <vector>
 #include <span>
 #include <string>
 #include <string_view>
@@ -33,6 +37,19 @@ struct Sensitive final {
     Sensitive() = default;
     Sensitive(const Sensitive&) = delete;
     Sensitive& operator=(const Sensitive&) = delete;
+    Sensitive(Sensitive&& other) noexcept : bytes(other.bytes)
+    {
+        OPENSSL_cleanse(other.bytes.data(), other.bytes.size());
+    }
+    Sensitive& operator=(Sensitive&& other) noexcept
+    {
+        if (this != &other) {
+            OPENSSL_cleanse(bytes.data(), bytes.size());
+            bytes = other.bytes;
+            OPENSSL_cleanse(other.bytes.data(), other.bytes.size());
+        }
+        return *this;
+    }
 };
 
 struct SensitiveText final {
@@ -66,10 +83,30 @@ struct FreeGroup final {
 struct FreePoint final {
     void operator()(EC_POINT* p) const noexcept { EC_POINT_free(p); }
 };
+struct FreePkey final {
+    void operator()(EVP_PKEY* p) const noexcept { EVP_PKEY_free(p); }
+};
+struct FreePkeyCtx final {
+    void operator()(EVP_PKEY_CTX* p) const noexcept { EVP_PKEY_CTX_free(p); }
+};
+struct FreeParamBld final {
+    void operator()(OSSL_PARAM_BLD* p) const noexcept { OSSL_PARAM_BLD_free(p); }
+};
+struct FreeParams final {
+    void operator()(OSSL_PARAM* p) const noexcept { OSSL_PARAM_free(p); }
+};
+struct FreeSignature final {
+    void operator()(ECDSA_SIG* p) const noexcept { ECDSA_SIG_free(p); }
+};
 using BigNumber = std::unique_ptr<BIGNUM, ClearBn>;
 using Context = std::unique_ptr<BN_CTX, FreeCtx>;
 using Group = std::unique_ptr<EC_GROUP, FreeGroup>;
 using Point = std::unique_ptr<EC_POINT, FreePoint>;
+using Pkey = std::unique_ptr<EVP_PKEY, FreePkey>;
+using PkeyContext = std::unique_ptr<EVP_PKEY_CTX, FreePkeyCtx>;
+using ParameterBuilder = std::unique_ptr<OSSL_PARAM_BLD, FreeParamBld>;
+using Parameters = std::unique_ptr<OSSL_PARAM, FreeParams>;
+using Signature = std::unique_ptr<ECDSA_SIG, FreeSignature>;
 
 [[nodiscard]] bool hmac512(std::span<const unsigned char> key,
                            std::span<const unsigned char> message,
@@ -243,10 +280,19 @@ validateMnemonic(const std::string_view phrase)
     }
     return result;
 }
-} // namespace
 
-std::expected<std::string, Error>
-derivePublicCustodyAddress(const std::string_view phrase)
+struct CustodyMaterial final {
+    Sensitive<32> privateKey{};
+    std::string address{};
+    CustodyMaterial(Sensitive<32>&& key, std::string publicAddress)
+        : privateKey(std::move(key)), address(std::move(publicAddress)) {}
+    CustodyMaterial(CustodyMaterial&&) noexcept = default;
+    CustodyMaterial(const CustodyMaterial&) = delete;
+    CustodyMaterial& operator=(const CustodyMaterial&) = delete;
+};
+
+[[nodiscard]] std::expected<CustodyMaterial, Error>
+deriveMaterial(const std::string_view phrase)
 {
     auto normalized = validateMnemonic(phrase);
     if (!normalized) return std::unexpected(normalized.error());
@@ -331,6 +377,200 @@ derivePublicCustodyAddress(const std::string_view phrase)
         return std::unexpected(Error::KeyDerivationFailed);
     const auto addressHash = keccak256(
         std::span<const unsigned char>{publicKey.bytes}.subspan(1));
-    return lowerHex(std::span<const unsigned char>{addressHash}.last(20));
+    return CustodyMaterial{std::move(privateKey),
+                           lowerHex(std::span<const unsigned char>{addressHash}.last(20))};
 }
+[[nodiscard]] bool matchesTrustedRecoveryChallenge(
+    const std::string_view message, const std::uint64_t fid,
+    const std::string_view localAddress)
+{
+    if (fid == 0U || message.size() < 80 || message.size() > 8192
+        || message.find('\0') != std::string_view::npos)
+        return false;
+    constexpr std::string_view heading =
+        "genyleap.com wants you to sign in with your Ethereum account:\n";
+    if (!message.starts_with(heading)) return false;
+    const auto addressEnd = message.find('\n', heading.size());
+    if (addressEnd == std::string_view::npos
+        || addressEnd - heading.size() != 42)
+        return false;
+    const auto declared = message.substr(heading.size(), 42);
+    if (declared.substr(0, 2) != "0x") return false;
+    const auto equivalentAddress = std::equal(
+        declared.begin(), declared.end(), localAddress.begin(), localAddress.end(),
+        [](const char a, const char b) {
+            return std::tolower(static_cast<unsigned char>(a))
+                == std::tolower(static_cast<unsigned char>(b));
+        });
+    if (!equivalentAddress
+        || message.find("\n\nFarcaster Auth\n") == std::string_view::npos
+        || message.find("\nChain ID: 10\n") == std::string_view::npos
+        || message.find("\nURI: https://") == std::string_view::npos
+        || message.find("\nNonce: ") == std::string_view::npos
+        || message.find("\nIssued At: ") == std::string_view::npos)
+        return false;
+    const std::string resource =
+        "\n- farcaster://fid/" + std::to_string(fid);
+    const auto resourceAt = message.find(resource);
+    if (resourceAt == std::string_view::npos) return false;
+    const auto next = resourceAt + resource.size();
+    return next == message.size() || message[next] == '\n' || message[next] == '\r';
+}
+
+[[nodiscard]] std::expected<std::string, Error> signDigest(
+    const Sensitive<32>& privateKey,
+    const std::span<const unsigned char, 32> digest)
+{
+    Group group{EC_GROUP_new_by_curve_name(NID_secp256k1)};
+    Context ctx{BN_CTX_secure_new()};
+    BigNumber order{BN_secure_new()};
+    BigNumber secret{BN_bin2bn(privateKey.bytes.data(), 32, BN_secure_new())};
+    Point publicPoint{group ? EC_POINT_new(group.get()) : nullptr};
+    Sensitive<65> publicKey{};
+    if (!group || !ctx || !order || !secret || !publicPoint
+        || EC_GROUP_get_order(group.get(), order.get(), ctx.get()) != 1
+        || EC_POINT_mul(group.get(), publicPoint.get(), secret.get(),
+                        nullptr, nullptr, ctx.get()) != 1
+        || EC_POINT_point2oct(group.get(), publicPoint.get(),
+                              POINT_CONVERSION_UNCOMPRESSED,
+                              publicKey.bytes.data(), publicKey.bytes.size(),
+                              ctx.get()) != publicKey.bytes.size())
+        return std::unexpected(Error::SigningFailed);
+
+    // Provider-backed OpenSSL 3 EC key import (no deprecated EC_KEY API).
+    ParameterBuilder paramsBuilder{OSSL_PARAM_BLD_new()};
+    if (!paramsBuilder
+        || OSSL_PARAM_BLD_push_utf8_string(
+               paramsBuilder.get(), OSSL_PKEY_PARAM_GROUP_NAME, "secp256k1", 0) != 1
+        || OSSL_PARAM_BLD_push_BN(
+               paramsBuilder.get(), OSSL_PKEY_PARAM_PRIV_KEY, secret.get()) != 1
+        || OSSL_PARAM_BLD_push_octet_string(
+               paramsBuilder.get(), OSSL_PKEY_PARAM_PUB_KEY,
+               publicKey.bytes.data(), publicKey.bytes.size()) != 1)
+        return std::unexpected(Error::SigningFailed);
+    Parameters params{OSSL_PARAM_BLD_to_param(paramsBuilder.get())};
+    PkeyContext importContext{EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr)};
+    EVP_PKEY* rawKey{};
+    if (!params || !importContext
+        || EVP_PKEY_fromdata_init(importContext.get()) <= 0
+        || EVP_PKEY_fromdata(importContext.get(), &rawKey,
+                            EVP_PKEY_KEYPAIR, params.get()) <= 0) {
+        EVP_PKEY_free(rawKey);
+        return std::unexpected(Error::SigningFailed);
+    }
+    Pkey signingKey{rawKey};
+    PkeyContext signingContext{EVP_PKEY_CTX_new(signingKey.get(), nullptr)};
+    if (!signingContext || EVP_PKEY_sign_init(signingContext.get()) <= 0
+        || EVP_PKEY_CTX_set_signature_md(signingContext.get(), EVP_sha256()) <= 0)
+        return std::unexpected(Error::SigningFailed);
+
+    BigNumber halfOrder{BN_dup(order.get())};
+    BigNumber z{BN_bin2bn(digest.data(), 32, BN_secure_new())};
+    BigNumber inv{BN_secure_new()};
+    BigNumber u1{BN_secure_new()};
+    BigNumber u2{BN_secure_new()};
+    BigNumber x{BN_new()};
+    BigNumber y{BN_new()};
+    Point noncePoint{EC_POINT_new(group.get())};
+    if (!halfOrder || !z || !inv || !u1 || !u2 || !x || !y || !noncePoint
+        || BN_rshift1(halfOrder.get(), halfOrder.get()) != 1)
+        return std::unexpected(Error::SigningFailed);
+
+    // Low-S canonicalization is mandatory for Ethereum. Derive v from the
+    // actual (r,s,z,Q) elliptic-curve equation, not from a guessed parity.
+    for (unsigned attempt{}; attempt < 4U; ++attempt) {
+        std::size_t derLength{};
+        if (EVP_PKEY_sign(signingContext.get(), nullptr, &derLength,
+                          digest.data(), digest.size()) <= 0
+            || derLength == 0 || derLength > 256)
+            return std::unexpected(Error::SigningFailed);
+        std::vector<unsigned char> der(derLength);
+        if (EVP_PKEY_sign(signingContext.get(), der.data(), &derLength,
+                          digest.data(), digest.size()) <= 0)
+            return std::unexpected(Error::SigningFailed);
+        const unsigned char* cursor = der.data();
+        Signature signature{d2i_ECDSA_SIG(nullptr, &cursor,
+                                         static_cast<long>(derLength))};
+        const BIGNUM* r{};
+        const BIGNUM* s{};
+        if (!signature || cursor != der.data() + derLength)
+            return std::unexpected(Error::SigningFailed);
+        ECDSA_SIG_get0(signature.get(), &r, &s);
+        if (!r || !s || BN_is_zero(r) || BN_is_zero(s)
+            || BN_is_negative(r) || BN_is_negative(s)
+            || BN_cmp(r, order.get()) >= 0 || BN_cmp(s, order.get()) >= 0)
+            return std::unexpected(Error::SigningFailed);
+        BigNumber lowS{BN_dup(s)};
+        if (!lowS) return std::unexpected(Error::SigningFailed);
+        if (BN_cmp(lowS.get(), halfOrder.get()) > 0
+            && BN_sub(lowS.get(), order.get(), lowS.get()) != 1)
+            return std::unexpected(Error::SigningFailed);
+        if (!BN_mod_inverse(inv.get(), lowS.get(), order.get(), ctx.get())
+            || BN_mod_mul(u1.get(), z.get(), inv.get(), order.get(), ctx.get()) != 1
+            || BN_mod_mul(u2.get(), r, inv.get(), order.get(), ctx.get()) != 1
+            || EC_POINT_mul(group.get(), noncePoint.get(), u1.get(),
+                            publicPoint.get(), u2.get(), ctx.get()) != 1
+            || EC_POINT_get_affine_coordinates(group.get(), noncePoint.get(),
+                                               x.get(), y.get(), ctx.get()) != 1)
+            return std::unexpected(Error::SigningFailed);
+        // Recovery IDs 2/3 require x>=n, a negligibly rare case unsupported
+        // by 27/28 personal-sign. Resign with fresh CSPRNG entropy instead.
+        if (BN_cmp(x.get(), order.get()) >= 0) continue;
+        if (BN_cmp(x.get(), r) != 0)
+            return std::unexpected(Error::SigningFailed);
+        Sensitive<65> bytes{};
+        if (BN_bn2binpad(r, bytes.bytes.data(), 32) != 32
+            || BN_bn2binpad(lowS.get(), bytes.bytes.data() + 32, 32) != 32)
+            return std::unexpected(Error::SigningFailed);
+        bytes.bytes[64] = static_cast<unsigned char>(
+            27 + BN_is_odd(y.get()));
+        return lowerHex(bytes.bytes);
+    }
+    return std::unexpected(Error::SigningFailed);
+}
+} // namespace
+
+std::expected<std::string, Error>
+derivePublicCustodyAddress(const std::string_view phrase)
+{
+    auto custody = deriveMaterial(phrase);
+    if (!custody) return std::unexpected(custody.error());
+    return std::move(custody->address);
+}
+
+std::expected<RecoveryProof, Error>
+signOneTimeIdentityProof(const std::string_view phrase,
+                         const std::uint64_t fid,
+                         const std::string_view challenge)
+{
+    // Refuse malformed or unrelated messages before the expensive BIP39 KDF.
+    if (fid == 0U || challenge.size() < 80 || challenge.size() > 8192
+        || !challenge.starts_with(
+            "genyleap.com wants you to sign in with your Ethereum account:\n"))
+        return std::unexpected(Error::InvalidChallenge);
+    auto custody = deriveMaterial(phrase);
+    if (!custody) return std::unexpected(custody.error());
+    if (!matchesTrustedRecoveryChallenge(challenge, fid, custody->address))
+        return std::unexpected(Error::InvalidChallenge);
+
+    // EIP-191 personal_sign signs the exact UTF-8 bytes supplied by the
+    // verified HTTPS gateway. Neither the phrase nor the custody private key
+    // enters the network request, QML properties, a log, or persistent storage.
+    std::string prefix{"\x19" "Ethereum Signed Message:\n"};
+    prefix += std::to_string(challenge.size());
+    std::vector<unsigned char> input{};
+    input.reserve(prefix.size() + challenge.size());
+    for (const char ch : prefix)
+        input.push_back(static_cast<unsigned char>(ch));
+    for (const char ch : challenge)
+        input.push_back(static_cast<unsigned char>(ch));
+    const auto hash = keccak256(input);
+    auto signature = signDigest(custody->privateKey, hash);
+    if (!signature) return std::unexpected(signature.error());
+    return RecoveryProof{
+        .address = std::move(custody->address),
+        .signature = std::move(*signature),
+    };
+}
+
 } // namespace farcaster::platform::custody_recovery

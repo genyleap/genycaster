@@ -17,6 +17,40 @@ int main()
         std::cerr << "Native BIP32/Keccak diverged: " << (address ? *address : "error=" + std::to_string(static_cast<int>(address.error()))) << "\n";
         return 1;
     }
+    // A one-shot OpenProof SIWE challenge must be signed locally, with no
+    // exported phrase or private key and only the canonical public proof.
+    const std::string challenge =
+        "genyleap.com wants you to sign in with your Ethereum account:\n"
+        + *address + "\n\nFarcaster Auth\n\n"
+        "URI: https://genyleap.com/account\n"
+        "Version: 1\n"
+        "Chain ID: 10\n"
+        "Nonce: abcdefgh123456\n"
+        "Issued At: 2026-10-30T00:00:00Z\n"
+        "Resources:\n- farcaster://fid/123";
+    using farcaster::platform::custody_recovery::signOneTimeIdentityProof;
+    const auto proof = signOneTimeIdentityProof(known, 123, challenge);
+    if (!proof) {
+        std::cerr << "Native EIP-191 proof refused: " << static_cast<int>(proof.error()) << '\n';
+        return 11;
+    }
+    if (proof->address != *address || proof->signature.size() != 132
+        || proof->signature.substr(0, 2) != "0x"
+        || (proof->signature.substr(130) != "1b"
+            && proof->signature.substr(130) != "1c"))
+        return 12;
+    const auto wrongFid = signOneTimeIdentityProof(known, 124, challenge);
+    if (wrongFid || wrongFid.error() != Error::InvalidChallenge) return 13;
+    std::string modified = challenge;
+    modified.replace(modified.find("Chain ID: 10"), 12, "Chain ID: 1 ");
+    const auto wrongChain = signOneTimeIdentityProof(known, 123, modified);
+    if (wrongChain || wrongChain.error() != Error::InvalidChallenge) return 14;
+    modified = challenge;
+    modified.replace(modified.find(*address), address->size(),
+                     "0x2222222222222222222222222222222222222222");
+    const auto wrongAddress = signOneTimeIdentityProof(known, 123, modified);
+    if (wrongAddress || wrongAddress.error() != Error::InvalidChallenge) return 15;
+
     const auto uppercase = derivePublicCustodyAddress(
         "  TEST  TEST TEST TEST TEST TEST TEST TEST TEST TEST TEST JUNK  ");
     if (!uppercase || *uppercase != *address) return 2;
