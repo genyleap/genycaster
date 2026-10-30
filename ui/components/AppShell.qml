@@ -2715,6 +2715,8 @@ Item {
         onCancelAuthentication: presentationBridge.cancelSignIn()
         onAuthorizeSigner: presentationBridge.provisionSigner()
         onRecoverAccount: presentationBridge.beginRecoverySetup()
+        onNativeRecoverAccount: (recoveryWords) =>
+            presentationBridge.beginNativeRecoverySetup(recoveryWords)
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
             presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()

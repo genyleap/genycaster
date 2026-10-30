@@ -307,8 +307,11 @@ public:
     Q_INVOKABLE void beginSignIn();
     /** @brief Starts the direct Farcaster onboarding route through OpenProof. */
     Q_INVOKABLE void beginFarcasterSignIn();
-    /** @brief Browser-only direct Farcaster recovery; no Sign In ceremony. */
+    /** @brief Browser direct Farcaster recovery; no Sign In ceremony. */
     Q_INVOKABLE void beginRecoverySetup();
+    /** @brief Native-only explicit custody recovery, with a transient input.
+     * Never retain the phrase in the presentation model or settings. */
+    Q_INVOKABLE void beginNativeRecoverySetup(QString recoveryWords);
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();
@@ -483,6 +486,8 @@ signals:
     void viewerReactionInterestReleased(QString castId, qulonglong viewerFid);
     void profileRequested(qulonglong fid, bool allowRecoveryProbe);
     void signInRequested(QString route);
+    /** A one-shot phrase delivered to the native recovery executor, never to a provider. */
+    void nativeRecoveryRequested(QString recoveryWords);
     void signInCancelRequested();
     void signOutRequested();
     void signerProvisionRequested();

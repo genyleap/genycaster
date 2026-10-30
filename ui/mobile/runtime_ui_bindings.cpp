@@ -1,5 +1,9 @@
 #include <QCoreApplication>
 #include <QDateTime>
+#if !defined(__EMSCRIPTEN__)
+#include <QFutureWatcher>
+#include <QtConcurrent>
+#endif
 #include <QDesktopServices>
 #include <QDir>
 #include <QDebug>
@@ -116,6 +120,10 @@ import farcaster.domain.write;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
+#if !defined(__EMSCRIPTEN__) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+import farcaster.platform.custody_recovery;
+import farcaster.provider.compatibility.auth;
+#endif
 import farcaster.local.write;
 import farcaster.presentation.media;
 import farcaster.routing.policy;
@@ -2708,6 +2716,148 @@ void connectRuntime(
                          });
                      });
 #else
+#if FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+    // Native recovery remains off the GUI thread. This composition layer is
+    // the only place that may briefly hold the phrase, and the provider sees
+    // public custody identity plus a one-time signature only.
+    using RecoveryIdentity = farcaster::provider::compatibility::auth::RecoveryIdentity;
+    using RecoveryOutcome = foundation::result::Result<RecoveryIdentity>;
+    auto nativeRecoveryGeneration = std::make_shared<std::atomic_uint64_t>(0U);
+    QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge,
+        [nativeRecoveryGeneration] {
+            nativeRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
+        [nativeRecoveryGeneration] {
+            nativeRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    QObject::connect(&bridge, &PresentationBridge::nativeRecoveryRequested, &bridge,
+        [&bridge, &connections, runtime, sessionObserver,
+         nativeRecoveryGeneration](QString words) {
+            const std::uint64_t generation =
+                nativeRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel) + 1U;
+            const QString configuredGateway = connections.recoveryGatewayOrigin();
+            if (configuredGateway.isEmpty()) {
+                words.fill(QChar{char16_t{0}});
+                bridge.applyAuthenticationError(
+                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                return;
+            }
+            QByteArray utf8 = words.toUtf8();
+            words.fill(QChar{char16_t{0}});
+            sessionObserver(application::session::SessionState{
+                .phase = application::session::SessionPhase::Starting,
+            });
+
+            auto* watcher = new QFutureWatcher<RecoveryOutcome>(&bridge);
+            QObject::connect(watcher, &QFutureWatcher<RecoveryOutcome>::finished,
+                &bridge,
+                [&bridge, &connections, sessionObserver,
+                 nativeRecoveryGeneration, generation, watcher] {
+                    RecoveryOutcome verified = watcher->result();
+                    watcher->deleteLater();
+                    if (nativeRecoveryGeneration->load(std::memory_order_acquire)
+                        != generation
+                        || bridge.authenticationRoute() != QStringLiteral("recovery")
+                        || bridge.isAuthenticated()) {
+                        if (verified) {
+                            std::fill(verified->accountTicket.begin(),
+                                      verified->accountTicket.end(), char{0});
+                        }
+                        return;
+                    }
+                    if (!verified) {
+                        // Never present raw gateway diagnostics that could
+                        // contain a challenge or an authorization signature.
+                        bridge.applyAuthenticationError(
+                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                        return;
+                    }
+                    const std::uint64_t fid = verified->fid.value;
+                    const auto authenticatedAt = foundation::time::now();
+                    application::session::SessionState state{};
+                    state.phase = application::session::SessionPhase::Authenticated;
+                    state.session = domain::session::ClientSession{
+                        .identityIssuer = std::move(verified->issuer),
+                        .identitySubject = verified->subject,
+                        .fid = domain::identity::Fid{fid},
+                        .method = domain::session::AuthenticationMethod::Custody,
+                        .authenticatedAt = authenticatedAt,
+                        .expiresAt = authenticatedAt
+                            + std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::seconds{verified->expiresSeconds}),
+                    };
+                    // The session observer first queues its verified identity
+                    // update; the account grant must follow it in FIFO order.
+                    sessionObserver(std::move(state));
+                    QByteArray ticket = QByteArray::fromStdString(verified->accountTicket);
+                    std::fill(verified->accountTicket.begin(),
+                              verified->accountTicket.end(), char{0});
+                    QString subject = QString::fromStdString(verified->subject);
+                    const int expires = verified->expiresSeconds;
+                    QMetaObject::invokeMethod(&bridge,
+                        [&bridge, &connections, ticket = std::move(ticket),
+                         subject = std::move(subject), fid, expires]() mutable {
+                            if (bridge.isAuthenticated()
+                                && bridge.accountFid() == fid
+                                && bridge.authenticationRoute() == QStringLiteral("recovery")
+                                && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
+                                connections.acceptRecoveryGrant(
+                                    std::move(ticket), std::move(subject), fid, expires);
+                            } else {
+                                ticket.fill(char{0});
+                            }
+                        }, Qt::QueuedConnection);
+                });
+            watcher->setFuture(QtConcurrent::run(
+                [runtime, gateway = configuredGateway.toStdString(),
+                 words = std::move(utf8)]() mutable -> RecoveryOutcome {
+                    std::string mnemonic{words.constData(),
+                                         static_cast<std::size_t>(words.size())};
+                    words.fill(char{0});
+                    struct EraseOnExit final {
+                        std::string& value;
+                        ~EraseOnExit()
+                        {
+                            volatile char* const data = value.data();
+                            for (std::size_t i{}; i < value.size(); ++i)
+                                data[i] = 0;
+                        }
+                    } erase{mnemonic};
+                    const auto failure = [] {
+                        return foundation::error::Error::make(
+                            foundation::error::ErrorCode::Unauthorized,
+                            "Native recovery verification failed.");
+                    };
+                    auto address = farcaster::platform::custody_recovery::
+                        derivePublicCustodyAddress(mnemonic);
+                    if (!address) return std::unexpected(failure());
+                    auto fid = farcaster::provider::compatibility::auth::
+                        resolveRecoveryCustodyFid(*runtime->transport, *address);
+                    if (!fid) return std::unexpected(failure());
+                    auto challenge = farcaster::provider::compatibility::auth::
+                        startRecoveryChallenge(*runtime->transport, gateway, *fid, *address);
+                    if (!challenge) return std::unexpected(failure());
+                    auto proof = farcaster::platform::custody_recovery::
+                        signOneTimeIdentityProof(mnemonic, fid->value, challenge->message);
+                    if (!proof || proof->address != *address)
+                        return std::unexpected(failure());
+                    auto verified = farcaster::provider::compatibility::auth::
+                        completeRecoveryChallenge(
+                            *runtime->transport, gateway, *challenge,
+                            std::move(proof->signature));
+                    if (!verified || verified->fid.value != fid->value)
+                        return std::unexpected(failure());
+                    return verified;
+                }));
+        });
+#else
+    QObject::connect(&bridge, &PresentationBridge::nativeRecoveryRequested, &bridge,
+        [&bridge](QString words) {
+            words.fill(QChar{char16_t{0}});
+            bridge.applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
+        });
+#endif
     QObject::connect(&bridge, &PresentationBridge::signInRequested, &bridge,
         [&bridge, runtime, sessionObserver, siwfDomain, siwfUri](const QString& route) {
             if (route == QStringLiteral("recovery")) {
@@ -2734,12 +2884,29 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge,
-        [runtime, sessionObserver] {
+        [&bridge, runtime, sessionObserver] {
+            if (bridge.authenticationRoute() == QStringLiteral("recovery")) {
+                // Direct recovery did not begin a SessionService relay attempt.
+                // Its cancellation must still clear the transient UI phase.
+                sessionObserver(application::session::SessionState{
+                    .phase = application::session::SessionPhase::Guest,
+                });
+                return;
+            }
             (void)runtime->sessionService->cancelSignIn(sessionObserver);
         });
 
     QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
-        [runtime, sessionObserver] {
+        [&bridge, runtime, sessionObserver] {
+            if (bridge.authenticationRoute() == QStringLiteral("recovery")) {
+                // This account was verified by an independent one-shot
+                // OpenProof ceremony. SessionService did not install it, so
+                // its signOut() alone would leave a phantom authenticated UI.
+                sessionObserver(application::session::SessionState{
+                    .phase = application::session::SessionPhase::Guest,
+                });
+                return;
+            }
             (void)runtime->sessionService->signOut(sessionObserver);
         });
 #endif

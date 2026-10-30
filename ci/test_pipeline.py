@@ -17,6 +17,24 @@ from ci.release_gate import project_version, release_version
 
 
 class PipelineTests(unittest.TestCase):
+    def test_native_recovery_session_is_pinned_and_cancelable(self) -> None:
+        bridge = Path("src/presentation/qt/presentation_bridge.cpp").read_text(encoding="utf-8")
+        wiring = Path("ui/mobile/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
+        setup = Path("ui/components/InitialSetup.qml").read_text(encoding="utf-8")
+        self.assertIn("void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)", bridge)
+        self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
+        self.assertIn("Qt.ImhSensitiveData", setup)
+        self.assertIn("nativeRecoveryField.clear()", setup)
+        self.assertIn("root.nativeRecoverAccount(words)", setup)
+        self.assertIn("QFutureWatcher<RecoveryOutcome>", wiring)
+        self.assertIn("resolveRecoveryCustodyFid(*runtime->transport, *address)", wiring)
+        self.assertIn("startRecoveryChallenge(*runtime->transport, gateway, *fid, *address)", wiring)
+        self.assertIn("signOneTimeIdentityProof(mnemonic, fid->value, challenge->message)", wiring)
+        self.assertIn("completeRecoveryChallenge(", wiring)
+        self.assertIn("nativeRecoveryGeneration->fetch_add", wiring)
+        self.assertIn('bridge.authenticationRoute() == QStringLiteral("recovery")', wiring)
+        self.assertIn("connections.acceptRecoveryGrant(", wiring)
+
     def test_native_custody_wordlist_and_module_boundary(self) -> None:
         # The native BIP39 table is generated from the reviewed browser
         # dictionary; never allow a drifted or hand-edited second wordlist.

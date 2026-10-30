@@ -6341,5 +6341,21 @@ Company | https://company.com</translation>
             <source>GENY</source>
             <translation>GENY</translation>
         </message>
+        <message id="genycaster.setup.native_recovery_description">
+            <source>Verify your Farcaster account with recovery words. Signing access may still require a device signer.</source>
+            <translation>Verifique sua conta Farcaster com as palavras de recuperação. A assinatura também pode exigir uma chave no dispositivo.</translation>
+        </message>
+        <message id="genycaster.setup.native_recovery_privacy">
+            <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
+            <translation>As palavras de recuperação permanecem neste dispositivo. Apenas o endereço público de custódia e uma prova assinada de uso único são enviados. Use teclado e área de transferência confiáveis.</translation>
+        </message>
+        <message id="genycaster.setup.native_recovery_placeholder">
+            <source>Enter your 12 or 24 recovery words</source>
+            <translation>Digite suas 12 ou 24 palavras de recuperação</translation>
+        </message>
+        <message id="genycaster.setup.show_recovery_words">
+            <source>Show recovery words</source>
+            <translation>Mostrar palavras de recuperação</translation>
+        </message>
     </context>
 </TS>

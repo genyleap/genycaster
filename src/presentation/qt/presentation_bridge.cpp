@@ -2764,6 +2764,22 @@ void PresentationBridge::beginRecoverySetup()
     emit signInRequested(QStringLiteral("recovery"));
 }
 
+void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
+{
+    if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
+        || !initialSetupRequired() || authenticationBusy()
+        || recoveryWords.isEmpty() || recoveryWords.size() > 4095) {
+        recoveryWords.fill(QChar{char16_t{0}});
+        return;
+    }
+    m_authenticationRoute = QStringLiteral("recovery");
+    m_authenticationErrorText.clear();
+    emit authenticationStateChanged();
+    // Direct, same-thread delivery to the Qt composition layer. The bridge
+    // has no property, field, logging or persistence for custody words.
+    emit nativeRecoveryRequested(std::move(recoveryWords));
+}
+
 void PresentationBridge::cancelSignIn()
 {
     emit signInCancelRequested();

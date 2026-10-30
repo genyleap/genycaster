@@ -50,6 +50,7 @@ Item {
     // The chosen transport preference is separate from the verified identity and signer.
     property string accountIntent: "existing"
     property bool alternateMethodsExpanded: false
+    property bool nativeRecoveryExpanded: false
     property bool showAdvancedNodes: false
 
     property bool legalTermsChecked: false
@@ -67,6 +68,7 @@ Item {
     signal cancelAuthentication()
     signal authorizeSigner()
     signal recoverAccount()
+    signal nativeRecoverAccount(string recoveryWords)
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
 
@@ -1682,6 +1684,73 @@ Item {
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    visible: !root.browserReadOnly && root.accountIntent === "existing"
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+
+                    SetupActionCard {
+                        Layout.fillWidth: true
+                        compactCard: root.phone
+                        title: qsTrId("genycaster.setup.recovery_button")
+                        subtitle: qsTrId("genycaster.setup.native_recovery_description")
+                        iconGlyph: Theme.iconUser
+                        primary: root.nativeRecoveryExpanded
+                        selected: root.nativeRecoveryExpanded
+                        enabled: root.runtimeReady && !root.authenticationInProgress
+                        onClicked: root.nativeRecoveryExpanded = !root.nativeRecoveryExpanded
+                    }
+
+                    ColumnLayout {
+                        visible: root.nativeRecoveryExpanded
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.native_recovery_privacy")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+
+                        TextField {
+                            id: nativeRecoveryField
+                            Layout.fillWidth: true
+                            maximumLength: 4095
+                            echoMode: nativeRecoveryReveal.checked ? TextInput.Normal : TextInput.Password
+                            inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                            placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
+                            enabled: !root.authenticationInProgress
+                            onVisibleChanged: if (!visible) clear()
+                            Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+                        }
+
+                        CheckBox {
+                            id: nativeRecoveryReveal
+                            text: qsTrId("genycaster.setup.show_recovery_words")
+                            enabled: !root.authenticationInProgress
+                            checked: false
+                            onVisibleChanged: if (!visible) checked = false
+                        }
+
+                        ActionButton {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_button")
+                            enabled: root.runtimeReady && !root.authenticationInProgress
+                                     && (nativeRecoveryField.text.trim().split(/\s+/).length === 12
+                                         || nativeRecoveryField.text.trim().split(/\s+/).length === 24)
+                            onClicked: {
+                                let words = nativeRecoveryField.text
+                                nativeRecoveryField.clear()
+                                nativeRecoveryReveal.checked = false
+                                root.nativeRecoverAccount(words)
+                                words = ""
+                            }
                         }
                     }
                 }
