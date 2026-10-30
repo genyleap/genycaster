@@ -340,6 +340,7 @@ Item {
     property bool notificationBusySnapshot: false
     readonly property bool localeSettingsOpen: localePopupLoader.item !== null && localePopupLoader.item.opened
     readonly property bool dataStorageSettingsOpen: dataStoragePopupLoader.item !== null && dataStoragePopupLoader.item.opened
+    property bool setupReviewOpen: false
     readonly property bool initialSetupOpen: initialSetup.visible
     readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
                                         || composerDrawer.opened || accountPopup.opened
@@ -357,7 +358,21 @@ Item {
         onTriggered: presentationBridge.refreshNotificationBadge()
     }
 
+    function openSetupReview(step) {
+        // Reopen the same eight stages without resetting account credentials
+        // or claiming initial onboarding is incomplete.
+        if (localePopupLoader.item !== null)
+            localePopupLoader.item.close()
+        accountPopup.close()
+        setupReviewOpen = true
+        Qt.callLater(() => initialSetup.switchStep(step === undefined ? 0 : Number(step)))
+    }
+
     function openAccountPopup() {
+        if (!presentationBridge.isAuthenticated) {
+            root.openSetupReview(3)
+            return
+        }
         accountPopup.open()
     }
 
@@ -2517,7 +2532,7 @@ Item {
                         Layout.fillWidth: true
                         title: qsTrId("genycaster.shell.continue_with_genyleap")
                         subtitle: qsTrId("genycaster.setup.account_genyleap_body")
-                        iconGlyph: "brands/geny" 
+                        iconGlyph: "brands/geny"
                         primary: false
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
                         onClicked: presentationBridge.beginSignIn()
@@ -2592,6 +2607,15 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: 1
                     color: Theme.divider
+                }
+
+                ActionButton {
+                    visible: presentationBridge.isAuthenticated
+                    Layout.fillWidth: true
+                    quiet: true
+                    iconGlyph: Theme.iconPalette
+                    text: qsTrId("genycaster.setup.title")
+                    onClicked: root.openSetupReview(6)
                 }
 
                 // Keep profile navigation and session management reachable
@@ -2736,7 +2760,9 @@ Item {
         id: initialSetup
         anchors.fill: parent
         z: 10_000
-        visible: presentationBridge.initialSetupRequired
+        visible: presentationBridge.initialSetupRequired || root.setupReviewOpen
+        reviewMode: root.setupReviewOpen && !presentationBridge.initialSetupRequired
+        onCloseReviewRequested: root.setupReviewOpen = false
         runtimeReady: presentationBridge.runtimeReady
         authenticationAvailable: presentationBridge.authenticationAvailable
         authenticated: presentationBridge.isAuthenticated
