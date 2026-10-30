@@ -1,7 +1,7 @@
 name: GenyCaster cross-platform builds
 
-# Ordinary main commits do not trigger CI. Only changing the one-shot request marker
-# runs the full matrix; version tags retain their existing release gate.
+# Only manual invocations and version-tag pushes trigger cross-platform builds.
+# Never run the full matrix for ordinary commits or pull requests.
 on:
   workflow_dispatch:
     inputs:
@@ -21,10 +21,6 @@ on:
           - ios
           - nixos
   push:
-    branches:
-      - main
-    paths:
-      - 'ci/matrix-run-request.txt'
     tags:
       - 'v*'
 
@@ -783,7 +779,7 @@ jobs:
     name: iOS arm64 unsigned device app (CI only)
     needs: gate
     # Unsigned .app archives are NOT installable release IPA packages.
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'ios'))
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'ios')
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -874,7 +870,7 @@ jobs:
   nixos:
     name: NixOS ${{ matrix.system }} native package
     needs: gate
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'nixos'))
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'nixos')
     strategy:
       fail-fast: false
       matrix:

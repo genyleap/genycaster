@@ -1,7 +1,0 @@
-Cross-platform CI run request
-Date: 2026-10-30
-Base main commit: f8cdc4f968d74aaeca28fa641963f1b90c8b0afb
-Requested targets: core; Linux x86_64/arm64; macOS arm64/x86_64; Windows x86_64/arm64; Android arm64-v8a/armeabi-v7a; iOS arm64 unsigned; NixOS x86_64/aarch64; WebAssembly.
-This file is the explicit one-shot main-branch CI trigger. Its changes are the only non-tag push that can start the workflow.
-
-Retry after GitHub workflow self-referential Windows matrix fix: 2026-10-30 (main).
