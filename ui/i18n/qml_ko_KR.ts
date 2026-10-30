@@ -445,7 +445,7 @@
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
-            <translation>Preview and upload a new photo</translation>
+            <translation>새 사진 미리보기 및 업로드</translation>
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
@@ -546,11 +546,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
-            <translation>Profile photo</translation>
+            <translation>프로필 사진</translation>
         </message>
         <message id="genycaster.profile.banner">
             <source>Profile banner</source>
-            <translation>Profile banner</translation>
+            <translation>프로필 배너</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
@@ -610,7 +610,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
-            <translation>Arts &amp; entertainment</translation>
+            <translation>예술 및 엔터테인먼트</translation>
         </message>
         <message id="genycaster.profile.option.business">
             <source>Business</source>
@@ -626,19 +626,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.food_beverage">
             <source>Food &amp; beverage</source>
-            <translation>Food &amp; beverage</translation>
+            <translation>식음료</translation>
         </message>
         <message id="genycaster.profile.option.health_wellness">
             <source>Health &amp; wellness</source>
-            <translation>Health &amp; wellness</translation>
+            <translation>건강 및 웰빙</translation>
         </message>
         <message id="genycaster.profile.option.media_news">
             <source>Media &amp; news</source>
-            <translation>Media &amp; news</translation>
+            <translation>미디어 및 뉴스</translation>
         </message>
         <message id="genycaster.profile.option.science_technology">
             <source>Science &amp; technology</source>
-            <translation>Science &amp; technology</translation>
+            <translation>과학 및 기술</translation>
         </message>
         <message id="genycaster.profile.option.technology">
             <source>Technology</source>
@@ -646,7 +646,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.professional_services">
             <source>Professional services</source>
-            <translation>Professional services</translation>
+            <translation>전문 서비스</translation>
         </message>
         <message id="genycaster.profile.option.sports">
             <source>Sports</source>
@@ -654,7 +654,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.travel_transportation">
             <source>Travel &amp; transportation</source>
-            <translation>Travel &amp; transportation</translation>
+            <translation>여행 및 교통</translation>
         </message>
         <message id="genycaster.profile.option.other">
             <source>Other</source>
@@ -678,7 +678,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
-            <translation>Designer</translation>
+            <translation>디자이너</translation>
         </message>
         <message id="genycaster.profile.option.developer">
             <source>Developer</source>
@@ -686,47 +686,47 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.engineer">
             <source>Engineer</source>
-            <translation>Engineer</translation>
+            <translation>엔지니어</translation>
         </message>
         <message id="genycaster.profile.option.entrepreneur">
             <source>Entrepreneur</source>
-            <translation>Entrepreneur</translation>
+            <translation>기업가</translation>
         </message>
         <message id="genycaster.profile.option.founder">
             <source>Founder</source>
-            <translation>Founder</translation>
+            <translation>창립자</translation>
         </message>
         <message id="genycaster.profile.option.investor">
             <source>Investor</source>
-            <translation>Investor</translation>
+            <translation>투자자</translation>
         </message>
         <message id="genycaster.profile.option.journalist">
             <source>Journalist</source>
-            <translation>Journalist</translation>
+            <translation>기자</translation>
         </message>
         <message id="genycaster.profile.option.photographer">
             <source>Photographer</source>
-            <translation>Photographer</translation>
+            <translation>사진작가</translation>
         </message>
         <message id="genycaster.profile.option.researcher">
             <source>Researcher</source>
-            <translation>Researcher</translation>
+            <translation>연구원</translation>
         </message>
         <message id="genycaster.profile.option.student">
             <source>Student</source>
-            <translation>Student</translation>
+            <translation>학생</translation>
         </message>
         <message id="genycaster.profile.option.teacher">
             <source>Teacher</source>
-            <translation>Teacher</translation>
+            <translation>교사</translation>
         </message>
         <message id="genycaster.profile.option.consultant">
             <source>Consultant</source>
-            <translation>Consultant</translation>
+            <translation>컨설턴트</translation>
         </message>
         <message id="genycaster.profile.option.organization">
             <source>Organization</source>
-            <translation>Organization</translation>
+            <translation>조직</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
@@ -2734,15 +2734,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.ticker">
             <source>Ticker</source>
-            <translation>Ticker</translation>
+            <translation>티커 심볼</translation>
         </message>
         <message id="genycaster.composer.channel_url_hint">
             <source>Paste the verified channel parent URL, not just its name.</source>
-            <translation>Paste the verified channel parent URL, not just its name.</translation>
+            <translation>채널 이름만 입력하지 말고 검증된 채널 상위 URL을 붙여넣으세요.</translation>
         </message>
         <message id="genycaster.composer.ticker_contract_hint">
             <source>Enter the token contract address (0x…); choose its network.</source>
-            <translation>Enter the token contract address (0x…); choose its network.</translation>
+            <translation>토큰 컨트랙트 주소(0x…)를 입력하고 네트워크를 선택하세요.</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
@@ -2818,7 +2818,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
-            <translation>Use a valid channel URL or token contract address.</translation>
+            <translation>유효한 채널 URL 또는 토큰 컨트랙트 주소를 입력하세요.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
             <source>The next chapter</source>
@@ -2830,7 +2830,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_agent">
             <source>Agent</source>
-            <translation>Agent</translation>
+            <translation>어시스턴트</translation>
         </message>
         <message id="genycaster.home.hub_agent_detail">
             <source>Your intelligent Farcaster companion.</source>
@@ -2838,7 +2838,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_studio">
             <source>Studio</source>
-            <translation>Studio</translation>
+            <translation>제작 스튜디오</translation>
         </message>
         <message id="genycaster.home.hub_studio_detail">
             <source>Create and manage rich content.</source>
