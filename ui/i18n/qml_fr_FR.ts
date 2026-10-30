@@ -109,7 +109,7 @@
         </message>
         <message id="genycaster.filters.audience">
             <source>Audience</source>
-            <translation>Audience</translation>
+            <translation>Public</translation>
         </message>
         <message id="genycaster.filters.content">
             <source>Content type</source>
@@ -185,7 +185,7 @@
         </message>
         <message id="genycaster.topic.science">
             <source>Science</source>
-            <translation>Science</translation>
+            <translation>Sciences</translation>
         </message>
         <message id="genycaster.topic.business">
             <source>Business</source>
@@ -245,7 +245,7 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>Bêta</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
@@ -253,131 +253,131 @@
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
-            <translation>Additional Genycaster details</translation>
+            <translation>Informations complémentaires GenyCaster</translation>
         </message>
         <message id="genycaster.profile.extras_description">
             <source>Your professional category and personal links are kept with your Genycaster account.</source>
-            <translation>Your professional category and personal links are kept with your Genycaster account.</translation>
+            <translation>Votre catégorie professionnelle et vos liens personnels sont conservés avec votre compte GenyCaster.</translation>
         </message>
         <message id="genycaster.profile.save_additional_details">
             <source>Save additional details</source>
-            <translation>Save additional details</translation>
+            <translation>Enregistrer les informations complémentaires</translation>
         </message>
         <message id="genycaster.connections.copy_ethereum_wallet">
             <source>Ethereum wallet</source>
-            <translation>Ethereum wallet</translation>
+            <translation>Portefeuille Ethereum</translation>
         </message>
         <message id="genycaster.connections.copy_social_account">
             <source>Social account</source>
-            <translation>Social account</translation>
+            <translation>Compte de réseau social</translation>
         </message>
         <message id="genycaster.connections.copy_developer_profile">
             <source>Developer profile</source>
-            <translation>Developer profile</translation>
+            <translation>Profil de développeur</translation>
         </message>
         <message id="genycaster.connections.copy_google_account">
             <source>Google account</source>
-            <translation>Google account</translation>
+            <translation>Compte Google</translation>
         </message>
         <message id="genycaster.connections.copy_professional_profile">
             <source>Professional profile</source>
-            <translation>Professional profile</translation>
+            <translation>Profil professionnel</translation>
         </message>
         <message id="genycaster.connections.copy_messaging_account">
             <source>Messaging account</source>
-            <translation>Messaging account</translation>
+            <translation>Compte de messagerie</translation>
         </message>
         <message id="genycaster.connections.copy_protocol_identity">
             <source>Protocol identity</source>
-            <translation>Protocol identity</translation>
+            <translation>Identité du protocole</translation>
         </message>
         <message id="genycaster.connections.copy_on_chain_identity">
             <source>On-chain identity</source>
-            <translation>On-chain identity</translation>
+            <translation>Identité sur la blockchain</translation>
         </message>
         <message id="genycaster.connections.copy_external_account">
             <source>External account</source>
-            <translation>External account</translation>
+            <translation>Compte externe</translation>
         </message>
         <message id="genycaster.connections.copy_farcaster_verification">
             <source>Farcaster verification</source>
-            <translation>Farcaster verification</translation>
+            <translation>Vérification Farcaster</translation>
         </message>
         <message id="genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections">
             <source>Confirm this Farcaster account in your wallet app to manage connections.</source>
-            <translation>Confirm this Farcaster account in your wallet app to manage connections.</translation>
+            <translation>Confirmez ce compte Farcaster dans votre application de portefeuille pour gérer les connexions.</translation>
         </message>
         <message id="genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster">
             <source>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</source>
-            <translation>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</translation>
+            <translation>Ces liens sont enregistrés avec votre compte GenyCaster. Vérifiez votre identité avec Farcaster pour gérer les fournisseurs ou confirmer leur statut actuel.</translation>
         </message>
         <message id="genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a">
             <source>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</source>
-            <translation>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</translation>
+            <translation>Vérifiez que vous êtes titulaire du compte avec Farcaster pour gérer vos connexions. Aucun compte ni mot de passe Genyleap n’est nécessaire.</translation>
         </message>
         <message id="genycaster.connections.copy_waiting_for_confirmation">
             <source>Waiting for confirmation…</source>
-            <translation>Waiting for confirmation…</translation>
+            <translation>En attente de confirmation…</translation>
         </message>
         <message id="genycaster.connections.copy_open_farcaster_verification">
             <source>Open Farcaster verification</source>
-            <translation>Open Farcaster verification</translation>
+            <translation>Ouvrir la vérification Farcaster</translation>
         </message>
         <message id="genycaster.connections.copy_verified">
             <source>Verified</source>
-            <translation>Verified</translation>
+            <translation>Vérifié</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_links">
             <source>Saved account links</source>
-            <translation>Saved account links</translation>
+            <translation>Liens de comptes enregistrés</translation>
         </message>
         <message id="genycaster.connections.copy_hide_verification">
             <source>Hide verification</source>
-            <translation>Hide verification</translation>
+            <translation>Masquer la vérification</translation>
         </message>
         <message id="genycaster.connections.copy_edit_connections">
             <source>Edit connections</source>
-            <translation>Edit connections</translation>
+            <translation>Modifier les connexions</translation>
         </message>
         <message id="genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_">
             <source>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</source>
-            <translation>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</translation>
+            <translation>Connexion à %1. Confirmez dans la fenêtre du fournisseur ; GenyCaster actualisera cette liste automatiquement.</translation>
         </message>
         <message id="genycaster.connections.copy_saved_link_1">
             <source>Saved link: %1</source>
-            <translation>Saved link: %1</translation>
+            <translation>Lien enregistré : %1</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link">
             <source>Saved account link</source>
-            <translation>Saved account link</translation>
+            <translation>Lien de compte enregistré</translation>
         </message>
         <message id="genycaster.connections.copy_signed_proof_required">
             <source>Signed proof required</source>
-            <translation>Signed proof required</translation>
+            <translation>Preuve signée requise</translation>
         </message>
         <message id="genycaster.connections.copy_verified_account">
             <source>Verified account</source>
-            <translation>Verified account</translation>
+            <translation>Compte vérifié</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link_verification_required_for_changes">
             <source>Saved account link — verification required for changes</source>
-            <translation>Saved account link — verification required for changes</translation>
+            <translation>Lien de compte enregistré : vérification requise pour le modifier</translation>
         </message>
         <message id="genycaster.connections.copy_view">
             <source>View</source>
-            <translation>View</translation>
+            <translation>Voir</translation>
         </message>
         <message id="genycaster.connections.copy_find">
             <source>Find</source>
-            <translation>Find</translation>
+            <translation>Rechercher</translation>
         </message>
         <message id="genycaster.connections.copy_reconnect">
             <source>Reconnect</source>
-            <translation>Reconnect</translation>
+            <translation>Reconnecter</translation>
         </message>
         <message id="genycaster.connections.copy_confirm">
             <source>Confirm</source>
-            <translation>Confirm</translation>
+            <translation>Confirmer</translation>
         </message>
         <message id="genycaster.connections.copy_remove">
             <source>Remove</source>
@@ -385,7 +385,7 @@
         </message>
         <message id="genycaster.connections.copy_connect">
             <source>Connect</source>
-            <translation>Connect</translation>
+            <translation>Connecter</translation>
         </message>
         <message id="genycaster.connections.copy_cancel">
             <source>Cancel</source>
@@ -397,11 +397,11 @@
         </message>
         <message id="genycaster.connections.copy_proof_only">
             <source>Proof only</source>
-            <translation>Proof only</translation>
+            <translation>Preuve uniquement</translation>
         </message>
         <message id="genycaster.connections.copy_public_linkedin_profile_url">
             <source>Public LinkedIn profile URL</source>
-            <translation>Public LinkedIn profile URL</translation>
+            <translation>URL du profil LinkedIn public</translation>
         </message>
         <message id="genycaster.connections.copy_save">
             <source>Save</source>
@@ -409,7 +409,7 @@
         </message>
         <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
             <source>Add your public LinkedIn profile URL.</source>
-            <translation>Add your public LinkedIn profile URL.</translation>
+            <translation>Ajoutez l’URL de votre profil LinkedIn public.</translation>
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
@@ -417,19 +417,19 @@
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
-            <translation>Showing saved provider list. Refresh when online.</translation>
+            <translation>Liste des fournisseurs enregistrés affichée. Actualisez-la une fois en ligne.</translation>
         </message>
         <message id="genycaster.connections.copy_connected_accounts_share_your_secure_identity">
             <source>Connected accounts share your secure identity.</source>
-            <translation>Connected accounts share your secure identity.</translation>
+            <translation>Les comptes connectés partagent votre identité sécurisée.</translation>
         </message>
         <message id="genycaster.home.scope_feed">
             <source>Feed</source>
-            <translation>Feed</translation>
+            <translation>Fil</translation>
         </message>
         <message id="genycaster.home.scope_everyone">
             <source>Everyone</source>
-            <translation>Everyone</translation>
+            <translation>Tout le monde</translation>
         </message>
         <message id="genycaster.home.scope_following">
             <source>Following</source>
@@ -437,11 +437,11 @@
         </message>
         <message id="genycaster.profile.edit_image_url">
             <source>Edit your media URLs</source>
-            <translation>Edit your media URLs</translation>
+            <translation>Modifier les URL de vos médias</translation>
         </message>
         <message id="genycaster.profile.hide_image_url">
             <source>Hide image URLs</source>
-            <translation>Hide image URLs</translation>
+            <translation>Masquer les URL des images</translation>
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
@@ -449,67 +449,67 @@
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
-            <translation>Edit Farcaster profile and personal links</translation>
+            <translation>Modifier le profil Farcaster et les liens personnels</translation>
         </message>
         <message id="genycaster.profile.conflict_notice">
             <source>Another device has newer profile details. Your previous local edit was preserved.</source>
-            <translation>Another device has newer profile details. Your previous local edit was preserved.</translation>
+            <translation>Un autre appareil dispose d’informations de profil plus récentes. Votre modification locale précédente a été conservée.</translation>
         </message>
         <message id="genycaster.profile.profession_limit">
             <source>Profession must be 80 characters or fewer.</source>
-            <translation>Profession must be 80 characters or fewer.</translation>
+            <translation>La profession doit comporter 80 caractères au maximum.</translation>
         </message>
         <message id="genycaster.profile.links_limit">
             <source>Use up to five HTTPS links. Optional format: Personal | https://example.com</source>
-            <translation>Use up to five HTTPS links. Optional format: Personal | https://example.com</translation>
+            <translation>Utilisez jusqu’à cinq liens HTTPS. Format facultatif : Personnel | https://example.com</translation>
         </message>
         <message id="genycaster.profile.local_save_failed">
             <source>Could not save local profile details.</source>
-            <translation>Could not save local profile details.</translation>
+            <translation>Impossible d’enregistrer les informations locales du profil.</translation>
         </message>
         <message id="genycaster.profile.network_manual_url">
             <source> · URL entered by you (not LinkedIn-verified)</source>
-            <translation> · URL entered by you (not LinkedIn-verified)</translation>
+            <translation> · URL saisie par vous (non vérifiée par LinkedIn)</translation>
         </message>
         <message id="genycaster.profile.network_linked_profile">
             <source> · linked profile</source>
-            <translation> · linked profile</translation>
+            <translation> · profil lié</translation>
         </message>
         <message id="genycaster.profile.network_previously_linked">
             <source> · previously linked</source>
-            <translation> · previously linked</translation>
+            <translation> · anciennement lié</translation>
         </message>
         <message id="genycaster.profile.network_search_linkedin">
             <source> · search LinkedIn by name</source>
-            <translation> · search LinkedIn by name</translation>
+            <translation> · rechercher par nom sur LinkedIn</translation>
         </message>
         <message id="genycaster.profile.network_manage_connection">
             <source> · manage connection</source>
-            <translation> · manage connection</translation>
+            <translation> · gérer la connexion</translation>
         </message>
         <message id="genycaster.profile.network_open_verified">
             <source>Open verified network profile</source>
-            <translation>Open verified network profile</translation>
+            <translation>Ouvrir le profil réseau vérifié</translation>
         </message>
         <message id="genycaster.profile.network_find_linkedin">
             <source>Find the linked account on LinkedIn</source>
-            <translation>Find the linked account on LinkedIn</translation>
+            <translation>Rechercher le compte lié sur LinkedIn</translation>
         </message>
         <message id="genycaster.profile.network_manage">
             <source>Manage connection</source>
-            <translation>Manage connection</translation>
+            <translation>Gérer la connexion</translation>
         </message>
         <message id="genycaster.profile.verified_geny_holder">
             <source>Verified GENY holder</source>
-            <translation>Verified GENY holder</translation>
+            <translation>Détenteur de GENY vérifié</translation>
         </message>
         <message id="genycaster.profile.save_retry_notice">
             <source>Your profile changes could not be saved yet. Edit your profile to retry.</source>
-            <translation>Your profile changes could not be saved yet. Edit your profile to retry.</translation>
+            <translation>Les modifications de votre profil n’ont pas encore pu être enregistrées. Modifiez votre profil pour réessayer.</translation>
         </message>
         <message id="genycaster.profile.saving_details">
             <source>Saving your profile changes…</source>
-            <translation>Saving your profile changes…</translation>
+            <translation>Enregistrement des modifications du profil…</translation>
         </message>
         <message id="genycaster.profile.following">
             <source>Following</source>
@@ -527,7 +527,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
-            <translation>in</translation>
+            <translation>dans</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
@@ -535,15 +535,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.protocol_description">
             <source>These details are signed and published to Farcaster for all clients.</source>
-            <translation>These details are signed and published to Farcaster for all clients.</translation>
+            <translation>Ces informations sont signées et publiées sur Farcaster pour tous les clients.</translation>
         </message>
         <message id="genycaster.profile.display_name">
             <source>Display name</source>
-            <translation>Display name</translation>
+            <translation>Nom affiché</translation>
         </message>
         <message id="genycaster.profile.bio">
             <source>Bio</source>
-            <translation>Bio</translation>
+            <translation>Biographie</translation>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
@@ -555,59 +555,59 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
-            <translation>Upload profile photo</translation>
+            <translation>Importer une photo de profil</translation>
         </message>
         <message id="genycaster.profile.upload_banner">
             <source>Upload banner</source>
-            <translation>Upload banner</translation>
+            <translation>Importer une bannière</translation>
         </message>
         <message id="genycaster.profile.uploading_image">
             <source>Uploading image…</source>
-            <translation>Uploading image…</translation>
+            <translation>Importation de l’image…</translation>
         </message>
         <message id="genycaster.profile.saving_to_farcaster">
             <source>Publishing changes to Farcaster…</source>
-            <translation>Publishing changes to Farcaster…</translation>
+            <translation>Publication des modifications sur Farcaster…</translation>
         </message>
         <message id="genycaster.profile.protocol_confirmed">
             <source>Confirmed on Farcaster. Profile will refresh.</source>
-            <translation>Confirmed on Farcaster. Profile will refresh.</translation>
+            <translation>Confirmé sur Farcaster. Le profil va être actualisé.</translation>
         </message>
         <message id="genycaster.profile.update_farcaster">
             <source>Update Farcaster profile</source>
-            <translation>Update Farcaster profile</translation>
+            <translation>Mettre à jour le profil Farcaster</translation>
         </message>
         <message id="genycaster.profile.no_protocol_changes">
             <source>No Farcaster profile changes.</source>
-            <translation>No Farcaster profile changes.</translation>
+            <translation>Aucune modification du profil Farcaster.</translation>
         </message>
         <message id="genycaster.profile.value_too_long">
             <source>A value exceeds the Farcaster byte limit.</source>
-            <translation>A value exceeds the Farcaster byte limit.</translation>
+            <translation>Une valeur dépasse la limite d’octets de Farcaster.</translation>
         </message>
         <message id="genycaster.profile.protocol_write_failed">
             <source>Farcaster rejected the profile changes.</source>
-            <translation>Farcaster rejected the profile changes.</translation>
+            <translation>Farcaster a rejeté les modifications du profil.</translation>
         </message>
         <message id="genycaster.profile.protocol_signer_required">
             <source>A Farcaster signer with profile-edit permission is required.</source>
-            <translation>A Farcaster signer with profile-edit permission is required.</translation>
+            <translation>Un signataire Farcaster autorisé à modifier le profil est requis.</translation>
         </message>
         <message id="genycaster.profile.protocol_native_unavailable">
             <source>Protocol profile editing is not yet available in the native runtime.</source>
-            <translation>Protocol profile editing is not yet available in the native runtime.</translation>
+            <translation>La modification du profil protocolaire n’est pas encore disponible dans l’application native.</translation>
         </message>
         <message id="genycaster.profile.select_image">
             <source>Choose a profile image</source>
-            <translation>Choose a profile image</translation>
+            <translation>Choisir une photo de profil</translation>
         </message>
         <message id="genycaster.profile.invalid_uploaded_image">
             <source>The uploaded image URL is not a verified public media asset.</source>
-            <translation>The uploaded image URL is not a verified public media asset.</translation>
+            <translation>L’URL de l’image importée ne correspond pas à un média public vérifié.</translation>
         </message>
         <message id="genycaster.profile.option.select_category">
             <source>Select category</source>
-            <translation>Select category</translation>
+            <translation>Choisir une catégorie</translation>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
@@ -663,19 +663,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.select_role">
             <source>Select role</source>
-            <translation>Select role</translation>
+            <translation>Choisir un rôle</translation>
         </message>
         <message id="genycaster.profile.option.artist">
             <source>Artist</source>
-            <translation>Artist</translation>
+            <translation>Artiste</translation>
         </message>
         <message id="genycaster.profile.option.author">
             <source>Author</source>
-            <translation>Author</translation>
+            <translation>Auteur</translation>
         </message>
         <message id="genycaster.profile.option.creator">
             <source>Creator</source>
-            <translation>Creator</translation>
+            <translation>Créateur</translation>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
@@ -731,35 +731,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
-            <translation>and %1 more</translation>
+            <translation>et %1 autres</translation>
         </message>
         <message id="genycaster.profile.show_all_links">
             <source>Show all profile links</source>
-            <translation>Show all profile links</translation>
+            <translation>Afficher tous les liens du profil</translation>
         </message>
         <message id="genycaster.profile.options">
             <source>Profile options</source>
-            <translation>Profile options</translation>
+            <translation>Options du profil</translation>
         </message>
         <message id="genycaster.profile.links_editor_hint">
             <source>Links — optional title | HTTPS URL, one per line</source>
-            <translation>Links — optional title | HTTPS URL, one per line</translation>
+            <translation>Liens : titre facultatif | URL HTTPS, un par ligne</translation>
         </message>
         <message id="genycaster.share.copy_profile_link">
             <source>Copy profile link</source>
-            <translation>Copy profile link</translation>
+            <translation>Copier le lien du profil</translation>
         </message>
         <message id="genycaster.share.open_farcaster">
             <source>Open in Farcaster</source>
-            <translation>Open in Farcaster</translation>
+            <translation>Ouvrir dans Farcaster</translation>
         </message>
         <message id="genycaster.share.cast">
             <source>Share cast</source>
-            <translation>Share cast</translation>
+            <translation>Partager la publication</translation>
         </message>
         <message id="genycaster.share.share_action">
             <source>Share…</source>
-            <translation>Share…</translation>
+            <translation>Partager…</translation>
         </message>
         <message id="genycaster.share.copy_link">
             <source>Copy link</source>
@@ -767,11 +767,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.share.copy_farcaster_link">
             <source>Copy Farcaster link</source>
-            <translation>Copy Farcaster link</translation>
+            <translation>Copier le lien Farcaster</translation>
         </message>
         <message id="genycaster.share.open_quorum">
             <source>Open in Quorum</source>
-            <translation>Open in Quorum</translation>
+            <translation>Ouvrir dans Quorum</translation>
         </message>
         <message id="genycaster.brand.genyleap">
             <source>Genyleap</source>
@@ -2723,11 +2723,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_one">
             <source>Discover GENY in the Genyleap ecosystem.</source>
-            <translation>Discover GENY in the Genyleap ecosystem.</translation>
+            <translation>Découvrez GENY dans l’écosystème Genyleap.</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_two">
             <source>A new chapter for decentralized experiences.</source>
-            <translation>A new chapter for decentralized experiences.</translation>
+            <translation>Un nouveau chapitre pour les expériences décentralisées.</translation>
         </message>
         <message id="genycaster.composer.channel">
             <source>Channel</source>
@@ -2747,27 +2747,27 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
-            <translation>My channels &amp; discovery</translation>
+            <translation>Mes canaux et découvertes</translation>
         </message>
         <message id="genycaster.composer.home_channel">
             <source>Home</source>
-            <translation>Home</translation>
+            <translation>Accueil</translation>
         </message>
         <message id="genycaster.composer.no_channel">
             <source>Post without a channel</source>
-            <translation>Post without a channel</translation>
+            <translation>Publier sans canal</translation>
         </message>
         <message id="genycaster.composer.joined_channel">
             <source>Joined</source>
-            <translation>Joined</translation>
+            <translation>Rejoint</translation>
         </message>
         <message id="genycaster.composer.not_joined_channel">
             <source>Not joined</source>
-            <translation>Not joined</translation>
+            <translation>Non rejoint</translation>
         </message>
         <message id="genycaster.composer.channel_member_count">
             <source>%1 members</source>
-            <translation>%1 members</translation>
+            <translation>%1 membres</translation>
         </message>
         <message id="genycaster.composer.channel_follower_count">
             <source>%1 followers</source>
@@ -2775,27 +2775,27 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
-            <translation>Choose a channel</translation>
+            <translation>Choisir un canal</translation>
         </message>
         <message id="genycaster.composer.channel_picker_hint">
             <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
-            <translation>Choose a channel from the network. Your cast will be published to its verified parent URL.</translation>
+            <translation>Choisissez un canal du réseau. Votre publication sera publiée sous son URL parente vérifiée.</translation>
         </message>
         <message id="genycaster.composer.channel_search">
             <source>Search channels by name or ID</source>
-            <translation>Search channels by name or ID</translation>
+            <translation>Rechercher des canaux par nom ou ID</translation>
         </message>
         <message id="genycaster.composer.channel_suggestions">
             <source>Channels</source>
-            <translation>Channels</translation>
+            <translation>Canaux</translation>
         </message>
         <message id="genycaster.composer.channel_no_results">
             <source>No channels found. Try another search.</source>
-            <translation>No channels found. Try another search.</translation>
+            <translation>Aucun canal trouvé. Essayez une autre recherche.</translation>
         </message>
         <message id="genycaster.composer.channel_search_prompt">
             <source>Type two or more letters to search.</source>
-            <translation>Type two or more letters to search.</translation>
+            <translation>Saisissez au moins deux lettres pour rechercher.</translation>
         </message>
         <message id="genycaster.composer.category">
             <source>Category</source>
@@ -2803,19 +2803,19 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.composer.clear_content">
             <source>Clear content</source>
-            <translation>Clear content</translation>
+            <translation>Effacer le contenu</translation>
         </message>
         <message id="genycaster.composer.clear_all_title">
             <source>Clear this cast?</source>
-            <translation>Clear this cast?</translation>
+            <translation>Effacer cette publication ?</translation>
         </message>
         <message id="genycaster.composer.clear_all_confirmation">
             <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
-            <translation>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</translation>
+            <translation>Supprimer le texte, les pièces jointes et les publications supplémentaires de ce brouillon ? Cette action est irréversible. Le destinataire de la réponse reste inchangé.</translation>
         </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
-            <translation>Clear</translation>
+            <translation>Effacer</translation>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
@@ -4059,15 +4059,15 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.settings.text_selection">
             <source>Text selection</source>
-            <translation>Text selection</translation>
+            <translation>Sélection de texte</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
             <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>Choose how you select and copy text in casts and the composer.</translation>
+            <translation>Choisissez comment sélectionner et copier le texte des publications et de l’éditeur.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
-            <translation>Genycaster</translation>
+            <translation>GenyCaster</translation>
         </message>
         <message id="genycaster.settings.selection_system">
             <source>System</source>
@@ -4075,7 +4075,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
             <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</translation>
+            <translation>Qt/WASM s’affiche dans un canevas : la sélection de texte native de Safari ou du navigateur n’est pas disponible ici. La sélection GenyCaster reste active.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -5655,15 +5655,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.setup.node_online">
             <source>Online · responsive</source>
-            <translation>Online · responsive</translation>
+            <translation>En ligne · disponible</translation>
         </message>
         <message id="genycaster.setup.recovery_signer_ready">
             <source>Publishing is active on this device.</source>
-            <translation>Publishing is active on this device.</translation>
+            <translation>La publication est active sur cet appareil.</translation>
         </message>
         <message id="genycaster.setup.recovery_why_no_words">
             <source>How do I view my recovery words?</source>
-            <translation>How do I view my recovery words?</translation>
+            <translation>Comment afficher mes mots de récupération ?</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
             <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
@@ -5671,19 +5671,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
-            <translation>Mini App preview unavailable</translation>
+            <translation>Aperçu de la mini-application indisponible</translation>
         </message>
         <message id="genycaster.miniapp.launch_failed">
             <source>Mini App could not be opened</source>
-            <translation>Mini App could not be opened</translation>
+            <translation>Impossible d’ouvrir la mini-application</translation>
         </message>
         <message id="genycaster.search.no_channel_results">
             <source>No channels match this search.</source>
-            <translation>No channels match this search.</translation>
+            <translation>Aucun canal ne correspond à cette recherche.</translation>
         </message>
         <message id="genycaster.search.no_profile_results">
             <source>No profiles match this search.</source>
-            <translation>No profiles match this search.</translation>
+            <translation>Aucun profil ne correspond à cette recherche.</translation>
         </message>
         <message id="genycaster.settings.power_save_description">
             <source>Reduce background animation and animated media to save battery.</source>
@@ -5771,7 +5771,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.apps.category.shopping">
             <source>Shopping</source>
-            <translation>Shopping</translation>
+            <translation>Achats</translation>
         </message>
         <message id="genycaster.apps.category.health">
             <source>Health &amp; Fitness</source>
@@ -6215,7 +6215,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.activity.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>Publications</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
@@ -6299,35 +6299,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.mobile_action_title">
             <source>Mobile Action Button</source>
-            <translation>Mobile Action Button</translation>
+            <translation>Bouton d’action mobile</translation>
         </message>
         <message id="genycaster.settings.mobile_action_description">
             <source>Choose what the floating button does and its color. Saved on this device.</source>
-            <translation>Choose what the floating button does and its color. Saved on this device.</translation>
+            <translation>Choisissez l’action et la couleur du bouton flottant. Enregistrées sur cet appareil.</translation>
         </message>
         <message id="genycaster.settings.mobile_action_function">
             <source>Button action</source>
-            <translation>Button action</translation>
+            <translation>Action du bouton</translation>
         </message>
         <message id="genycaster.settings.mobile_action_search">
             <source>Search</source>
-            <translation>Search</translation>
+            <translation>Rechercher</translation>
         </message>
         <message id="genycaster.settings.mobile_action_color">
             <source>Button color</source>
-            <translation>Button color</translation>
+            <translation>Couleur du bouton</translation>
         </message>
         <message id="genycaster.settings.mobile_action_blue">
             <source>Blue</source>
-            <translation>Blue</translation>
+            <translation>Bleu</translation>
         </message>
         <message id="genycaster.settings.mobile_action_coral">
             <source>Red</source>
-            <translation>Red</translation>
+            <translation>Rouge</translation>
         </message>
         <message id="genycaster.settings.mobile_action_theme">
             <source>Theme</source>
-            <translation>Theme</translation>
+            <translation>Thème</translation>
         </message>
         <message id="genycaster.navigation.back_to_top">
             <source>Back to top</source>
