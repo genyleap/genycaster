@@ -56,9 +56,9 @@ test('setup wheel preserves native script direction, accessible selection and ke
 test('account choices follow wireframe and unimplemented creation uses a handoff', () => {
     const setup=file('ui/components/InitialSetup.qml');
     const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
-    assert.match(account,/genycaster.setup.new_profile/);
-    assert.match(account,/genycaster.setup.existing_profile/);
-    assert.match(account,/genycaster.shell.coming_soon/);
+    assert.match(account,/genycaster.setup.design_create_account/);
+    assert.match(account,/genycaster.setup.design_existing_account/);
+    assert.match(account,/neutralPrimary: true/);
     assert.match(account,/root.accountIntent = "existing"/);
     assert.match(account,/root.openRegistration\(\)/);
 });
@@ -84,7 +84,7 @@ test('Setup surfaces use the active accent and actual theme controller',()=>{
         assert.doesNotMatch(s,/#111315|#FFFFFF|#F6F7F8/);
     }
     assert.match(setup,/appearanceController.setThemeMode/);
-    assert.match(setup,/appearanceController.setColorThemeId/);
+    assert.doesNotMatch(setup,/appearanceController.setColorThemeId/);
     assert.match(setup,/id: appearanceStage/);
 });
 
