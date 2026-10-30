@@ -6231,15 +6231,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
-            <translation>New collection</translation>
+            <translation>Nueva colección</translation>
         </message>
         <message id="genycaster.bookmarks.refresh_collections">
             <source>Refresh collections</source>
-            <translation>Refresh collections</translation>
+            <translation>Actualizar colecciones</translation>
         </message>
         <message id="genycaster.bookmarks.rename">
             <source>Rename</source>
-            <translation>Rename</translation>
+            <translation>Cambiar nombre</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
@@ -6247,19 +6247,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
-            <translation>Delete collection</translation>
+            <translation>Eliminar colección</translation>
         </message>
         <message id="genycaster.bookmarks.collection_name">
             <source>Collection name</source>
-            <translation>Collection name</translation>
+            <translation>Nombre de la colección</translation>
         </message>
         <message id="genycaster.bookmarks.delete_confirmation">
             <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
-            <translation>Delete this collection? Saved casts will remain in Bookmarks.</translation>
+            <translation>¿Eliminar esta colección? Los casts guardados permanecerán en Marcadores.</translation>
         </message>
         <message id="genycaster.bookmarks.confirm_delete">
             <source>Confirm delete</source>
-            <translation>Confirm delete</translation>
+            <translation>Confirmar eliminación</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
@@ -6271,23 +6271,23 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
-            <translation>Add to collection…</translation>
+            <translation>Añadir a una colección…</translation>
         </message>
         <message id="genycaster.bookmarks.remove_from_collection">
             <source>Remove from collection</source>
-            <translation>Remove from collection</translation>
+            <translation>Quitar de la colección</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_title">
             <source>Save to collection</source>
-            <translation>Save to collection</translation>
+            <translation>Guardar en colección</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_description">
             <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
-            <translation>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</translation>
+            <translation>Tu marcador se ha guardado. Elige una colección personal o déjalo sin clasificar.</translation>
         </message>
         <message id="genycaster.bookmarks.uncategorized">
             <source>Uncategorized</source>
-            <translation>Uncategorized</translation>
+            <translation>Sin clasificar</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>

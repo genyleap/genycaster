@@ -6231,15 +6231,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
-            <translation>New collection</translation>
+            <translation>新しいコレクション</translation>
         </message>
         <message id="genycaster.bookmarks.refresh_collections">
             <source>Refresh collections</source>
-            <translation>Refresh collections</translation>
+            <translation>コレクションを更新</translation>
         </message>
         <message id="genycaster.bookmarks.rename">
             <source>Rename</source>
-            <translation>Rename</translation>
+            <translation>名前を変更</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
@@ -6247,19 +6247,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
-            <translation>Delete collection</translation>
+            <translation>コレクションを削除</translation>
         </message>
         <message id="genycaster.bookmarks.collection_name">
             <source>Collection name</source>
-            <translation>Collection name</translation>
+            <translation>コレクション名</translation>
         </message>
         <message id="genycaster.bookmarks.delete_confirmation">
             <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
-            <translation>Delete this collection? Saved casts will remain in Bookmarks.</translation>
+            <translation>このコレクションを削除しますか？保存したキャストはブックマークに残ります。</translation>
         </message>
         <message id="genycaster.bookmarks.confirm_delete">
             <source>Confirm delete</source>
-            <translation>Confirm delete</translation>
+            <translation>削除を確認</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
@@ -6271,23 +6271,23 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
-            <translation>Add to collection…</translation>
+            <translation>コレクションに追加…</translation>
         </message>
         <message id="genycaster.bookmarks.remove_from_collection">
             <source>Remove from collection</source>
-            <translation>Remove from collection</translation>
+            <translation>コレクションから削除</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_title">
             <source>Save to collection</source>
-            <translation>Save to collection</translation>
+            <translation>コレクションに保存</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_description">
             <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
-            <translation>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</translation>
+            <translation>ブックマークを保存しました。自分のコレクションを選ぶか、未分類のままにできます。</translation>
         </message>
         <message id="genycaster.bookmarks.uncategorized">
             <source>Uncategorized</source>
-            <translation>Uncategorized</translation>
+            <translation>未分類</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>

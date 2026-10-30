@@ -6231,15 +6231,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
-            <translation>New collection</translation>
+            <translation>새 컬렉션</translation>
         </message>
         <message id="genycaster.bookmarks.refresh_collections">
             <source>Refresh collections</source>
-            <translation>Refresh collections</translation>
+            <translation>컬렉션 새로고침</translation>
         </message>
         <message id="genycaster.bookmarks.rename">
             <source>Rename</source>
-            <translation>Rename</translation>
+            <translation>이름 바꾸기</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
@@ -6247,19 +6247,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
-            <translation>Delete collection</translation>
+            <translation>컬렉션 삭제</translation>
         </message>
         <message id="genycaster.bookmarks.collection_name">
             <source>Collection name</source>
-            <translation>Collection name</translation>
+            <translation>컬렉션 이름</translation>
         </message>
         <message id="genycaster.bookmarks.delete_confirmation">
             <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
-            <translation>Delete this collection? Saved casts will remain in Bookmarks.</translation>
+            <translation>이 컬렉션을 삭제할까요? 저장된 캐스트는 북마크에 남습니다.</translation>
         </message>
         <message id="genycaster.bookmarks.confirm_delete">
             <source>Confirm delete</source>
-            <translation>Confirm delete</translation>
+            <translation>삭제 확인</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
@@ -6271,23 +6271,23 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
-            <translation>Add to collection…</translation>
+            <translation>컬렉션에 추가…</translation>
         </message>
         <message id="genycaster.bookmarks.remove_from_collection">
             <source>Remove from collection</source>
-            <translation>Remove from collection</translation>
+            <translation>컬렉션에서 제거</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_title">
             <source>Save to collection</source>
-            <translation>Save to collection</translation>
+            <translation>컬렉션에 저장</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_description">
             <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
-            <translation>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</translation>
+            <translation>북마크가 저장되었습니다. 개인 컬렉션을 선택하거나 미분류 상태로 둘 수 있습니다.</translation>
         </message>
         <message id="genycaster.bookmarks.uncategorized">
             <source>Uncategorized</source>
-            <translation>Uncategorized</translation>
+            <translation>미분류</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>

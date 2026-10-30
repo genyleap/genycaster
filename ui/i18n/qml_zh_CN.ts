@@ -6231,15 +6231,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
-            <translation>New collection</translation>
+            <translation>新建收藏集</translation>
         </message>
         <message id="genycaster.bookmarks.refresh_collections">
             <source>Refresh collections</source>
-            <translation>Refresh collections</translation>
+            <translation>刷新收藏集</translation>
         </message>
         <message id="genycaster.bookmarks.rename">
             <source>Rename</source>
-            <translation>Rename</translation>
+            <translation>重命名</translation>
         </message>
         <message id="genycaster.bookmarks.delete">
             <source>Delete</source>
@@ -6247,19 +6247,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.delete_collection">
             <source>Delete collection</source>
-            <translation>Delete collection</translation>
+            <translation>删除收藏集</translation>
         </message>
         <message id="genycaster.bookmarks.collection_name">
             <source>Collection name</source>
-            <translation>Collection name</translation>
+            <translation>收藏集名称</translation>
         </message>
         <message id="genycaster.bookmarks.delete_confirmation">
             <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
-            <translation>Delete this collection? Saved casts will remain in Bookmarks.</translation>
+            <translation>确定删除此收藏集？已保存的 Cast 仍会保留在书签中。</translation>
         </message>
         <message id="genycaster.bookmarks.confirm_delete">
             <source>Confirm delete</source>
-            <translation>Confirm delete</translation>
+            <translation>确认删除</translation>
         </message>
         <message id="genycaster.bookmarks.save">
             <source>Save</source>
@@ -6271,23 +6271,23 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.bookmarks.add_to_collection">
             <source>Add to collection…</source>
-            <translation>Add to collection…</translation>
+            <translation>添加到收藏集…</translation>
         </message>
         <message id="genycaster.bookmarks.remove_from_collection">
             <source>Remove from collection</source>
-            <translation>Remove from collection</translation>
+            <translation>从收藏集中移除</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_title">
             <source>Save to collection</source>
-            <translation>Save to collection</translation>
+            <translation>保存到收藏集</translation>
         </message>
         <message id="genycaster.bookmarks.chooser_description">
             <source>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</source>
-            <translation>Your bookmark is saved. Choose a personal collection, or leave it uncategorized.</translation>
+            <translation>书签已保存。选择个人收藏集，或保持未分类。</translation>
         </message>
         <message id="genycaster.bookmarks.uncategorized">
             <source>Uncategorized</source>
-            <translation>Uncategorized</translation>
+            <translation>未分类</translation>
         </message>
         <message id="genycaster.bookmarks.create">
             <source>Create</source>
