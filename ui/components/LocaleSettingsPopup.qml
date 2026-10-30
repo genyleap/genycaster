@@ -103,12 +103,21 @@ GenyDrawer {
     // A 790dp cap left phone Settings floating well above the navigation
     // gesture area and exposed the underlying compose FAB. Use the available
     // viewport, not a desktop dialog maximum, for phone settings.
+    // Keep the bottom sheet inside the actual overlay even in landscape
+    // and when an on-screen keyboard temporarily shrinks the viewport.
     height: parent ? (mobilePresentation
-                     ? Math.max(320, parent.height - Math.max(Theme.space7,
-                           parent.SafeArea.margins.top + Theme.space3))
+                     ? Math.min(parent.height, Math.max(320,
+                           parent.height - Math.max(Theme.space7,
+                           parent.SafeArea.margins.top + Theme.space3)))
                      : parent.height) : 820
+    // Drawer/Popup inherits QtObject rather than Item. SafeArea belongs to
+    // the overlay Item (or its Window.contentItem), never to the popup root.
+    readonly property real navigationInset: root.mobilePresentation && parent
+        ? Math.max(parent.SafeArea.margins.bottom,
+                   parent.Window.contentItem
+                       ? parent.Window.contentItem.SafeArea.margins.bottom : 0) : 0
     bottomPadding: root.contentPadding + (root.mobilePresentation
-                   ? Math.max(Theme.space3, root.SafeArea.margins.bottom) : 0)
+                   ? Math.max(Theme.space3, root.navigationInset) : 0)
 
     onOpened: {
         if (!presentationBridge.isAuthenticated && root.currentSection === 5) {

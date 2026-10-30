@@ -22,7 +22,11 @@ test('Mobile Settings remains full-height with grouped index navigation', () => 
     const settings = source('LocaleSettingsPopup.qml');
     const shell = source('AppShell.qml');
     assert.match(settings, /height: parent \? \(mobilePresentation[\s\S]*?parent\.SafeArea\.margins\.top \+ Theme\.space3/);
+    assert.match(settings, /Math\.min\(parent\.height, Math\.max\(320,/);
     assert.match(settings, /bottomPadding: root\.contentPadding \+ \(root\.mobilePresentation/);
+    assert.match(settings, /readonly property real navigationInset/);
+    assert.match(settings, /parent\.Window\.contentItem\.SafeArea\.margins\.bottom : 0/);
+    assert.doesNotMatch(settings, /root\.SafeArea\.margins/);
     assert.match(settings, /component MobileSettingsGroup: ColumnLayout/);
     assert.match(settings, /id: mobileSettingsIndex/);
     assert.match(settings, /visible: root\.mobilePresentation && root\.mobileIndexOpen/);
