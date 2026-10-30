@@ -99,7 +99,7 @@ test('Setup anchors footer outside scroll viewport and wraps translated labels',
     const main=read('ui/mobile/Main.qml');
     assert.match(setup,/id: stageScroll/);
     assert.match(setup,/Layout\.minimumHeight: 0/);
-    assert.match(setup,/Layout\.preferredHeight: root\.phone \? 90 : 100/);
+    assert.match(setup,/Layout\.preferredHeight: visible \? \(root\.phone \? 82 : 86\) : 0/);
     assert.match(setup,/onClicked: root\.previousStep\(\)/);
     assert.match(language,/objectName: "setupLanguageWheel"/);
     assert.match(language,/highlightRangeMode: ListView\.StrictlyEnforceRange/);
