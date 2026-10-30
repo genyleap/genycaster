@@ -19,16 +19,14 @@ Button {
 
     Accessible.name: text
 
-    readonly property color foreground: enabled
-                                        ? (Theme.dark ? "#111315" : "#FFFFFF")
-                                        : Theme.inkDisabled
+    readonly property color foreground: enabled ? Theme.accentInk : Theme.inkDisabled
 
     background: Superellipse {
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
-                   : root.down ? (Theme.dark ? "#DCDDE0" : "#34373B")
-                               : root.hovered ? (Theme.dark ? "#E8E9EB" : "#24272B")
-                                              : (Theme.dark ? "#F6F7F8" : "#16191D")
+                   : root.down ? Theme.primaryPressed
+                               : root.hovered ? Theme.primaryFillHover
+                                              : Theme.primaryFill
         borderWidth: Theme.keyboardFocusVisible(root) ? 2 : 0
         borderColor: Theme.focusOnAccent
         curveDepth: Theme.curveContainer
