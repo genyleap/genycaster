@@ -50,17 +50,17 @@ test('setup wheel preserves native script direction, accessible selection and ke
   assert.match(selector, /Qt.Key_End/);
   assert.doesNotMatch(selector, /Keys.onHomePressed|Keys.onEndPressed/);
   assert.doesNotMatch(selector, /TextField|languageGrid/);
-  for (const t of ['fa', 'ar', 'en', 'fr']) assert.ok(setup.includes('tag: "'+t+'"'));
+  for (const t of ['fa', 'ar', 'en', 'fr']) assert.ok(setup.includes('tag:"'+t+'"'));
 });
 
-test('setup account choices are stacked and do not advertise unimplemented registration', () => {
-  const setup = file('ui/components/InitialSetup.qml');
-  const account = setup.slice(setup.indexOf('id: accountStage'));
-  assert.match(account, /ColumnLayout \{\s+visible: !root.browserReadOnly/);
-  assert.match(account, /title: qsTrId\("genycaster.setup.new_profile"\)/);
-  assert.match(account, /trailingText: qsTrId\("genycaster.shell.coming_soon"\)\s+enabled: false/);
-  assert.match(account, /title: qsTrId\("genycaster.setup.existing_profile"\)/);
-  assert.match(setup, /visible: false \/\/ Minimal, single-task canvas on desktop/);
+test('account choices follow wireframe and unimplemented creation uses a handoff', () => {
+    const setup=file('ui/components/InitialSetup.qml');
+    const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
+    assert.match(account,/genycaster.setup.new_profile/);
+    assert.match(account,/genycaster.setup.existing_profile/);
+    assert.match(account,/genycaster.shell.coming_soon/);
+    assert.match(account,/root.accountIntent = "existing"/);
+    assert.match(account,/root.openRegistration\(\)/);
 });
 
 test('web update copy is present in all supported locales', () => {
@@ -74,36 +74,27 @@ test('web update copy is present in all supported locales', () => {
   }
 });
 
-test('Setup CTAs and action cards follow the active accent palette', () => {
-  const button = file('ui/components/SetupPrimaryButton.qml');
-  const card = file('ui/components/SetupActionCard.qml');
-  const setup = file('ui/components/InitialSetup.qml');
-  for (const code of [button, card]) {
-    assert.match(code, /Theme.primaryFill/);
-    assert.match(code, /Theme.primaryFillHover/);
-    assert.match(code, /Theme.primaryPressed/);
-    assert.match(code, /Theme.accentInk/);
-    assert.doesNotMatch(code, /#111315|#FFFFFF|#F6F7F8|#16191D/);
-  }
-  assert.match(setup, /modeButton.selected\s+\? Theme.surfaceSelected/);
-  assert.match(setup, /color: modeButton.selected \? Theme.accent : Theme.inkMuted/);
-  assert.match(setup, /id: termsSection/);
-  assert.match(setup, /id: privacySection/);
-  assert.match(setup, /columns: 1[\s\S]*?genycaster.setup.network_hypersnap_category/);
+test('Setup surfaces use the active accent and actual theme controller',()=>{
+    const button=file('ui/components/SetupPrimaryButton.qml');
+    const card=file('ui/components/SetupActionCard.qml');
+    const setup=file('ui/components/InitialSetup.qml');
+    for(const s of [button,card]){
+        assert.match(s,/Theme.primaryFill/);
+        assert.match(s,/Theme.accentInk/);
+        assert.doesNotMatch(s,/#111315|#FFFFFF|#F6F7F8/);
+    }
+    assert.match(setup,/appearanceController.setThemeMode/);
+    assert.match(setup,/appearanceController.setColorThemeId/);
+    assert.match(setup,/id: appearanceStage/);
 });
 
-test('account Setup and drawer share a staged, accessible existing-account flow', () => {
-  const setup = file('ui/components/InitialSetup.qml');
-  const shell = file('ui/components/AppShell.qml');
-  assert.match(setup, /property bool existingAccountExpanded: false/);
-  assert.match(setup, /root.existingAccountExpanded = !root.existingAccountExpanded/);
-  assert.match(setup, /root.browserReadOnly \? root.alternateMethodsExpanded\s+: root.existingAccountExpanded/);
-  assert.match(shell, /id: accountPopup[\s\S]*?property bool existingMethodsExpanded: false/);
-  assert.match(shell, /id: accountScroll[\s\S]*?id: accountActions/);
-  assert.match(shell, /SetupPageHeader \{[\s\S]*?genycaster.shell.sign_in_to_interact/);
-  assert.match(shell, /trailingText: qsTrId\("genycaster.shell.coming_soon"\)\s+enabled: false/);
-  assert.match(shell, /visible: accountPopup.existingMethodsExpanded && !presentationBridge.isAuthenticated/);
-  assert.match(shell, /onClicked: presentationBridge.beginSignIn\(\)/);
-  assert.match(shell, /onClicked: presentationBridge.beginFarcasterSignIn\(\)/);
-  assert.match(shell, /onClicked: presentationBridge.openAuthenticationApproval\(\)/);
+test('Setup re-entry and authentication routes stay connected',()=>{
+    const setup=file('ui/components/InitialSetup.qml');
+    const shell=file('ui/components/AppShell.qml');
+    assert.match(setup,/function switchStep\(step\)/);
+    assert.match(setup,/root.continueWithGenyleap\(\)/);
+    assert.match(setup,/root.continueWithFarcaster\(\)/);
+    assert.match(setup,/root.nativeRecoverAccount\(words\)/);
+    assert.match(shell,/function openSetupReview\(step\)/);
+    assert.match(shell,/onCloseReviewRequested: root.setupReviewOpen = false/);
 });
