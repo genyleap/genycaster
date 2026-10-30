@@ -30,7 +30,7 @@ test('Setup allows return and review without resetting the account', () => {
 test('existing authentication and secure recovery stay connected to the bridge', () => {
   for(const s of ['root.continueWithGenyleap()', 'root.continueWithFarcaster()',
                   'root.nativeRecoverAccount(words)','root.openApproval()',
-                  'root.cancelAuthentication()','phraseField.clear()'])
+                  'root.cancelAuthentication()','recoveryField.clear()'])
     assert.ok(setup.includes(s),s);
   assert.match(setup, /Qt.ImhSensitiveData/);
   assert.match(shell, /presentationBridge.beginNativeRecoverySetup\(recoveryWords\)/);
@@ -47,22 +47,22 @@ test('legal consent and guest access are respected', () => {
 
 test('unimplemented account creation uses registration handoff only', () => {
   assert.match(setup, /root.accountIntent = "new"/);
-  assert.match(setup, /genycaster.shell.coming_soon/);
-  assert.match(setup, /genycaster.setup.registration_handoff/);
+  assert.match(setup, /genycaster.setup.design_create_account/);
+  assert.match(setup, /genycaster.setup.new_profile_body/);
   assert.match(setup, /root.openRegistration\(\)/);
 });
 
 test('shared theme, native project icons and all three theme modes are present', () => {
   assert.match(setup, /qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg/);
-  for(const token of ['Theme.primaryFill','Theme.accentInk','Theme.ink',
-                       'appearanceController.setThemeMode','appearanceController.setColorThemeId'])
+  for(const token of ['Theme.accent','Theme.accentInk','Theme.ink',
+                       'appearanceController.setThemeMode','Theme.ink'])
     assert.ok(setup.includes(token));
   assert.match(setup, /model: root.greetings/);
 });
 
 test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
-  assert.match(setup, /Layout.preferredHeight: root.phone \? 90 : 100/);
+  assert.match(setup, /Layout.preferredHeight: visible \? \(root.phone \? 82 : 86\) : 0/);
   assert.match(setup, /visible: !root.phone && root.width >= 1100 && root.currentStep === 0/);
   assert.match(setup, /Layout.fillWidth: root.phone/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
