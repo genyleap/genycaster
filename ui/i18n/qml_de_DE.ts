@@ -5988,49 +5988,9 @@ Company | https://company.com</source>
             <source>Less</source>
             <translation>Weniger</translation>
         </message>
-        <message id="genycaster.activity.farcaster_title">
-            <source>Farcaster activity</source>
-            <translation>Farcaster-Aktivität</translation>
-        </message>
-        <message id="genycaster.activity.farcaster_detail">
-            <source>Casts &amp; replies</source>
-            <translation>Casts und Antworten</translation>
-        </message>
-        <message id="genycaster.activity.sample_summary">
-            <source>%1 loaded casts · %2 observed days</source>
-            <translation>%1 geladene Casts · %2 beobachtete Tage</translation>
-        </message>
-        <message id="genycaster.activity.open_posts">
-            <source>Open Posts to see observed activity</source>
-            <translation>Beiträge öffnen, um Aktivitäten zu sehen</translation>
-        </message>
-        <message id="genycaster.activity.preview">
-            <source>Preview</source>
-            <translation>Vorschau</translation>
-        </message>
         <message id="genycaster.activity.day_summary">
             <source>%1 · %2 loaded casts</source>
             <translation>%1 · %2 geladene Casts</translation>
-        </message>
-        <message id="genycaster.activity.offline">
-            <source>Loaded posts only · Offline snapshot</source>
-            <translation>Nur geladene Beiträge · Offline-Snapshot</translation>
-        </message>
-        <message id="genycaster.activity.disclaimer">
-            <source>Loaded posts only · Not a complete history or streak</source>
-            <translation>Nur geladene Beiträge · Kein vollständiger Verlauf oder Streak</translation>
-        </message>
-        <message id="genycaster.activity.github_detail">
-            <source>Commits &amp; pull requests</source>
-            <translation>Commits und Pull Requests</translation>
-        </message>
-        <message id="genycaster.activity.onchain_detail">
-            <source>Wallet transactions</source>
-            <translation>Wallet-Transaktionen</translation>
-        </message>
-        <message id="genycaster.activity.linked">
-            <source>Linked</source>
-            <translation>Verbunden</translation>
         </message>
         <message id="genycaster.activity.not_linked">
             <source>Not linked</source>
@@ -6039,18 +5999,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.unavailable">
             <source>Unavailable</source>
             <translation>Nicht verfügbar</translation>
-        </message>
-        <message id="genycaster.activity.index_pending">
-            <source>Account verified · Activity indexing not enabled yet</source>
-            <translation>Konto bestätigt · Aktivitätsindex noch nicht aktiv</translation>
-        </message>
-        <message id="genycaster.activity.connect_hint">
-            <source>Connect your account to prepare activity tracking</source>
-            <translation>Verbinde dein Konto, um das Tracking vorzubereiten</translation>
-        </message>
-        <message id="genycaster.activity.no_history">
-            <source>No public activity history available</source>
-            <translation>Kein öffentlicher Aktivitätsverlauf verfügbar</translation>
         </message>
         <message id="genycaster.activity.manage">
             <source>Manage connections</source>
@@ -6076,18 +6024,6 @@ Company | https://company.com</source>
             <source>%1 casts · %2 replies</source>
             <translation>%1 Casts · %2 Antworten</translation>
         </message>
-        <message id="genycaster.activity.limited">
-            <source>Partial</source>
-            <translation>Teilweise</translation>
-        </message>
-        <message id="genycaster.activity.events">
-            <source>%1 events</source>
-            <translation>%1 Ereignisse</translation>
-        </message>
-        <message id="genycaster.activity.github_window">
-            <source>Public events · last 30 days (not annual contributions)</source>
-            <translation>Öffentliche Ereignisse · 30 Tage, kein Jahreskalender</translation>
-        </message>
         <message id="genycaster.activity.wallet_pending">
             <source>Verified wallet · chain indexer not connected</source>
             <translation>Wallet verifiziert · Chain-Indexer nicht verbunden</translation>
@@ -6099,10 +6035,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.active_days">
             <source>Observed days</source>
             <translation>Beobachtete Tage</translation>
-        </message>
-        <message id="genycaster.activity.reply_count">
-            <source>Replies</source>
-            <translation>Antworten</translation>
         </message>
         <message id="genycaster.activity.github_identity_pending">
             <source>Connected · Public GitHub login not available</source>
@@ -6123,10 +6055,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.contributions_count">
             <source>%1 contributions</source>
             <translation>%1 Beiträge</translation>
-        </message>
-        <message id="genycaster.activity.contributions_label">
-            <source>contributions</source>
-            <translation>Beiträge</translation>
         </message>
         <message id="genycaster.activity.day_contributions">
             <source>%1 · %2 contributions</source>
