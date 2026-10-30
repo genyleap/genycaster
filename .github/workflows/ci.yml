@@ -369,6 +369,18 @@ jobs:
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Build the source-provided QtKeychain first. Some vcpkg toolchains
+          # still perform z-applocal dependency scans despite the OFF switch.
+          # The scanner expects a Qt-dependent DLL beside the official Qt
+          # libraries; stage the real built DLL there before linking the app.
+          cmake --build build/native --target qt6keychain --parallel 3
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $keychainBuilt = Get-ChildItem build/native -Recurse -File -Filter 'qt6keychain.dll' |
+            Select-Object -First 1
+          if (-not $keychainBuilt) { throw 'QtKeychain DLL missing after building its target' }
+          $qtBin = Join-Path $env:QT_ROOT_DIR 'bin'
+          if (-not (Test-Path $qtBin)) { throw "Missing Qt bin directory: $qtBin" }
+          Copy-Item $keychainBuilt.FullName (Join-Path $qtBin 'qt6keychain.dll') -Force
           cmake --build build/native --target farcaster_client --parallel 3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist/app | Out-Null

@@ -1977,9 +1977,9 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("providerProfiles"), &providerProfilesController);
     engine.rootContext()->setContextProperty(QStringLiteral("updateController"), &updateController);
 #if defined(__EMSCRIPTEN__)
-    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), true);
+    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{true});
 #else
-    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), false);
+    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{false});
 #endif
     engine.rootContext()->setContextProperty(QStringLiteral("appearanceController"), &appearanceController);
     engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);

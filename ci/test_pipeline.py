@@ -145,6 +145,9 @@ class PipelineTests(unittest.TestCase):
         workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn('"-DVCPKG_APPLOCAL_DEPS=OFF"', workflow)
         self.assertIn("Copy-Item $keychain.FullName dist/app/", workflow)
+        self.assertIn("cmake --build build/native --target qt6keychain", workflow)
+        self.assertIn("Copy-Item $keychainBuilt.FullName", workflow)
+        self.assertIn("Join-Path $qtBin 'qt6keychain.dll'", workflow)
         self.assertIn("Copy-Item $dll.FullName dist/app/", workflow)
 
     def test_windows_portable_zip_structure(self) -> None:
