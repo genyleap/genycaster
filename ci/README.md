@@ -13,9 +13,19 @@ matrix/deployment/artifact structure of GenyConnect, but deliberately has
 | Actions > GenyCaster cross-platform builds > Run workflow | Selected platform only | No |
 | Push of vMAJOR.MINOR.PATCH version tag | All required platforms | Only if all jobs succeed |
 
-The manual run offers `all`, `core`, `linux`, `macos`,
-`windows`, `android`, and `web`. Manual runs upload artifacts
-for 14 days, but cannot create GitHub Releases.
+The manual run offers `core` (default), `web`, `linux`, `macos`,
+`windows`, `android`, `ios`, `nixos`, and `all`. Selecting `all`
+requires checking **confirm_full_matrix** to acknowledge its macOS/Windows
+runner cost. Each family can be tested separately without running every
+architecture. Repeat manual runs of the same family/ref cancel the older
+in-progress run; version-tag releases are never cancelled.
+
+The lightweight source, localization, architecture, JavaScript and Python
+contract checks execute in the shared **gate** before any compiler, Qt SDK,
+Homebrew or vcpkg installation. If they fail, expensive builds are skipped.
+GitHub Actions' billing quota still applies: this design does not bypass
+GitHub Free compute limits. Manual runs upload artifacts for 14 days,
+but cannot create GitHub Releases.
 
 For tag runs, `ci/release_gate.py` checks that the tag matches
 `project(Genycaster VERSION ...)`, and that the tagged commit is an ancestor

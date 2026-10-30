@@ -9,6 +9,17 @@ import re
 def main() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
+    assert "default: core" in workflow
+    assert "confirm_full_matrix:" in workflow
+    assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
+    assert "Fast cross-platform source and localization checks" in workflow
+    assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
+    # Checks must run in the release gate before spending Qt/MSVC/macOS minutes.
+    gate = workflow.split("  gate:", 1)[1].split("  core:", 1)[0]
+    assert "ci/check_localization_catalog.py" in gate
+    assert "ci/verify_ci.py" in gate
+    assert "ci.test_pipeline" in gate
+    assert "home_compose_mobile_settings.test.mjs" in gate
     # Every ordinary main commit remains exempt from the expensive matrix.
     assert re.search(r"^  push:\n    tags:\n      - 'v\*'", workflow, re.M)
     assert not re.search(r"^  (pull_request|schedule|release):", workflow, re.M)

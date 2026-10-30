@@ -9,7 +9,7 @@ on:
         description: Build platform (never publishes a Release)
         type: choice
         required: true
-        default: all
+        default: core
         options:
           - all
           - core
@@ -20,6 +20,11 @@ on:
           - web
           - ios
           - nixos
+      confirm_full_matrix:
+        description: Confirm costly all-platform build (uses multiple macOS/Windows runners)
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
       - 'v*'
@@ -28,10 +33,10 @@ permissions:
   contents: read
 
 concurrency:
-  # Separate manual invocations by run ID; never serialize unrelated platform checks.
-  # Version tags still serialize by ref to avoid overlapping releases.
-  group: genycaster-cross-platform-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
-  cancel-in-progress: false
+  # Repeat dispatches for the same ref/platform supersede earlier manual runs.
+  # Never cancel tag-triggered release jobs and never overlap unrelated platforms.
+  group: genycaster-cross-platform-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'tag' }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 env:
   QT_VERSION: '6.12.0'
@@ -44,6 +49,7 @@ jobs:
   gate:
     name: Validate version and event
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     outputs:
       version: ${{ steps.release.outputs.version }}
       release: ${{ steps.release.outputs.release }}
@@ -54,6 +60,28 @@ jobs:
           persist-credentials: false
       - id: release
         run: python3 ci/release_gate.py
+      # Gate is the only job that must pass before Qt/toolchain installations.
+      # Catch known source regressions while they cost seconds, not macOS hours.
+      - name: Confirm explicit full-matrix budget approval
+        if: github.event_name == 'workflow_dispatch' && inputs.platform == 'all'
+        env:
+          GENYCASTER_FULL_MATRIX_CONFIRMED: ${{ inputs.confirm_full_matrix }}
+        shell: bash
+        run: |
+          if [[ "$GENYCASTER_FULL_MATRIX_CONFIRMED" != "true" ]]; then
+            echo "::error::All-platform build requires the full-matrix budget checkbox."
+            exit 1
+          fi
+      - name: Fast cross-platform source and localization checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/check_localization_catalog.py
+          python3 ci/check_architecture.py
+          python3 ci/verify_ci.py
+          python3 -m unittest ci.test_pipeline -v
+          node --test tests/wasm/home_compose_mobile_settings.test.mjs \
+            tests/wasm/filter_sheet_regressions.test.mjs
       - name: Release commits must originate from main
         if: steps.release.outputs.release == 'true'
         shell: bash
@@ -72,14 +100,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      # Fast deterministic checks before the costly compiler installation.
-      # The manual/tag-only cross-platform trigger policy remains unchanged.
-      - name: Verify localization and mobile layout contracts
-        run: |
-          set -euo pipefail
-          python3 ci/check_localization_catalog.py
-          node --test tests/wasm/home_compose_mobile_settings.test.mjs \
-            tests/wasm/filter_sheet_regressions.test.mjs
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
@@ -101,12 +121,6 @@ jobs:
           cmake --preset core-release
           cmake --build --preset core-release --parallel 3
           ctest --test-dir build/core-release --output-on-failure --parallel 2
-      - name: Architecture and CI checks
-        run: |
-          python3 ci/check_architecture.py
-          python3 ci/verify_ci.py
-          python3 -m unittest ci.test_pipeline -v
-
   linux:
     name: Linux ${{ matrix.arch }} AppImage
     needs: gate
