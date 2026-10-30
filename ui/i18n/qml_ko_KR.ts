@@ -2821,8 +2821,8 @@ Company | https://company.com</source>
             <translation>Use a valid channel URL or token contract address.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
-            <source>Your workspace</source>
-            <translation>나의 작업 공간</translation>
+            <source>The next chapter</source>
+            <translation>다음 장</translation>
         </message>
         <message id="genycaster.home.hub_coming_soon">
             <source>Coming soon</source>
