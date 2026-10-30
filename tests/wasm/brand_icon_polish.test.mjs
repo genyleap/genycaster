@@ -20,7 +20,7 @@ test("Home greeting displays authenticated account avatar and DNA for guests",()
     assert.match(shell,/avatarUrl: presentationBridge\.accountAvatarUrl/);
     assert.match(shell,/authenticated: presentationBridge\.isAuthenticated/);
     assert.match(home,/avatarSize: 62/);
-    assert.match(home,/avatarSize: root\.densePhone \? 56 : 76/);
+    assert.match(home,/avatarSize: root\.androidCompact[\s\S]*?root\.densePhone \? 56 : 76/);
     assert.equal((home.match(/sourceUrl: root\.avatarUrl/g)||[]).length,2);
     assert.equal((home.match(/visible: root\.authenticated && root\.avatarUrl\.length > 0/g)||[]).length,2);
     assert.equal((home.match(/visible: !root\.authenticated \|\| root\.avatarUrl\.length === 0/g)||[]).length,2);
@@ -47,8 +47,8 @@ test("Welcome uses a focused language picker without promotional preview, and lo
     assert.doesNotMatch(selector,/id: orbit|NumberAnimation on rotation|Animation\.Infinite/);
     assert.match(selector,/objectName: "setupLanguageWheel"/);
     assert.doesNotMatch(selector,/@genyleap|@compez\.eth|id: previewTab/);
-    assert.match(setup,/LocaleFormat\.formatInteger\(root\.wizardSteps\.indexOf\(root\.currentStep\) \+ 1\)/);
-    assert.match(setup,/LocaleFormat\.formatInteger\(root\.wizardSteps\.length\)/);
+    assert.match(setup,/wizardSteps: \[0,1,2,3,4,5,6,7\]/);
+    assert.match(setup,/sourceComponent: root\.currentStep === 0 \? welcomeStage/);
 });
 
 test("Browser tab and installed app icon use actual brand DNA and a clean version title",()=>{
