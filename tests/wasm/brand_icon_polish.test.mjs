@@ -41,13 +41,12 @@ test("Mini App artwork supports manifest aliases and a visible offline fallback"
     assert.match(placeholder,/text: Theme\.iconApps/);
 });
 
-test("Welcome has no orbital animation, previews official mentions, and localizes step count",()=>{
+test("Welcome uses a focused language picker without promotional preview, and localizes step count",()=>{
     const selector=read("ui/components/SetupLanguageSelector.qml");
     const setup=read("ui/components/InitialSetup.qml");
     assert.doesNotMatch(selector,/id: orbit|NumberAnimation on rotation|Animation\.Infinite/);
-    assert.match(selector,/@genyleap/);
-    assert.match(selector,/@compez\.eth/);
-    assert.doesNotMatch(selector,/"@geny"/);
+    assert.match(selector,/objectName: "setupLanguageWheel"/);
+    assert.doesNotMatch(selector,/@genyleap|@compez\.eth|id: previewTab/);
     assert.match(setup,/LocaleFormat\.formatInteger\(root\.wizardSteps\.indexOf\(root\.currentStep\) \+ 1\)/);
     assert.match(setup,/LocaleFormat\.formatInteger\(root\.wizardSteps\.length\)/);
 });
