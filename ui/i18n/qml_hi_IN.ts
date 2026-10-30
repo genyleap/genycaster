@@ -5988,49 +5988,9 @@ Company | https://company.com</source>
             <source>Less</source>
             <translation>कम देखें</translation>
         </message>
-        <message id="genycaster.activity.farcaster_title">
-            <source>Farcaster activity</source>
-            <translation>Farcaster गतिविधि</translation>
-        </message>
-        <message id="genycaster.activity.farcaster_detail">
-            <source>Casts &amp; replies</source>
-            <translation>कास्ट और उत्तर</translation>
-        </message>
-        <message id="genycaster.activity.sample_summary">
-            <source>%1 loaded casts · %2 observed days</source>
-            <translation>%1 लोड किए गए कास्ट · %2 सक्रिय दिन देखे गए</translation>
-        </message>
-        <message id="genycaster.activity.open_posts">
-            <source>Open Posts to see observed activity</source>
-            <translation>गतिविधि देखने के लिए पोस्ट खोलें</translation>
-        </message>
-        <message id="genycaster.activity.preview">
-            <source>Preview</source>
-            <translation>पूर्वावलोकन</translation>
-        </message>
         <message id="genycaster.activity.day_summary">
             <source>%1 · %2 loaded casts</source>
             <translation>%1 · %2 लोड किए गए कास्ट</translation>
-        </message>
-        <message id="genycaster.activity.offline">
-            <source>Loaded posts only · Offline snapshot</source>
-            <translation>केवल लोड किए गए पोस्ट · ऑफ़लाइन डेटा</translation>
-        </message>
-        <message id="genycaster.activity.disclaimer">
-            <source>Loaded posts only · Not a complete history or streak</source>
-            <translation>केवल लोड किए गए पोस्ट · पूरा इतिहास या स्ट्रीक नहीं</translation>
-        </message>
-        <message id="genycaster.activity.github_detail">
-            <source>Commits &amp; pull requests</source>
-            <translation>कमिट और पुल अनुरोध</translation>
-        </message>
-        <message id="genycaster.activity.onchain_detail">
-            <source>Wallet transactions</source>
-            <translation>वॉलेट लेनदेन</translation>
-        </message>
-        <message id="genycaster.activity.linked">
-            <source>Linked</source>
-            <translation>जुड़ा हुआ</translation>
         </message>
         <message id="genycaster.activity.not_linked">
             <source>Not linked</source>
@@ -6039,18 +5999,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.unavailable">
             <source>Unavailable</source>
             <translation>उपलब्ध नहीं</translation>
-        </message>
-        <message id="genycaster.activity.index_pending">
-            <source>Account verified · Activity indexing not enabled yet</source>
-            <translation>खाता सत्यापित · गतिविधि अनुक्रमण अभी चालू नहीं</translation>
-        </message>
-        <message id="genycaster.activity.connect_hint">
-            <source>Connect your account to prepare activity tracking</source>
-            <translation>गतिविधि ट्रैक करने हेतु खाता जोड़ें</translation>
-        </message>
-        <message id="genycaster.activity.no_history">
-            <source>No public activity history available</source>
-            <translation>सार्वजनिक गतिविधि इतिहास उपलब्ध नहीं</translation>
         </message>
         <message id="genycaster.activity.manage">
             <source>Manage connections</source>
@@ -6076,18 +6024,6 @@ Company | https://company.com</source>
             <source>%1 casts · %2 replies</source>
             <translation>%1 कास्ट · %2 उत्तर</translation>
         </message>
-        <message id="genycaster.activity.limited">
-            <source>Partial</source>
-            <translation>आंशिक</translation>
-        </message>
-        <message id="genycaster.activity.events">
-            <source>%1 events</source>
-            <translation>%1 घटनाएँ</translation>
-        </message>
-        <message id="genycaster.activity.github_window">
-            <source>Public events · last 30 days (not annual contributions)</source>
-            <translation>सार्वजनिक घटनाएँ · पिछले 30 दिन, वार्षिक योगदान नहीं</translation>
-        </message>
         <message id="genycaster.activity.wallet_pending">
             <source>Verified wallet · chain indexer not connected</source>
             <translation>सत्यापित वॉलेट · चेन इंडेक्सर जुड़ा नहीं</translation>
@@ -6099,10 +6035,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.active_days">
             <source>Observed days</source>
             <translation>देखे गए दिन</translation>
-        </message>
-        <message id="genycaster.activity.reply_count">
-            <source>Replies</source>
-            <translation>उत्तर</translation>
         </message>
         <message id="genycaster.activity.github_identity_pending">
             <source>Connected · Public GitHub login not available</source>
@@ -6123,10 +6055,6 @@ Company | https://company.com</source>
         <message id="genycaster.activity.contributions_count">
             <source>%1 contributions</source>
             <translation>%1 योगदान</translation>
-        </message>
-        <message id="genycaster.activity.contributions_label">
-            <source>contributions</source>
-            <translation>योगदान</translation>
         </message>
         <message id="genycaster.activity.day_contributions">
             <source>%1 · %2 contributions</source>
