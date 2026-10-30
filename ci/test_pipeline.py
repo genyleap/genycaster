@@ -27,6 +27,11 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("nativeRecoveryField.clear()", setup)
         self.assertIn("root.nativeRecoverAccount(words)", setup)
         self.assertIn("QFutureWatcher<RecoveryOutcome>", wiring)
+        self.assertIn(
+            "[&bridge, &connections, runtime, sessionObserver,",
+            wiring,
+            "The recovery completion callback must capture the Runtime it commits into.",
+        )
         self.assertIn("resolveRecoveryCustodyFid(*runtime->transport, *address)", wiring)
         self.assertIn("startRecoveryChallenge(*runtime->transport, gateway, *fid, *address)", wiring)
         self.assertIn("signOneTimeIdentityProof(mnemonic, fid->value, challenge->message)", wiring)

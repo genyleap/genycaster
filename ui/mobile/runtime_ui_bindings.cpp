@@ -2752,7 +2752,7 @@ void connectRuntime(
             auto* watcher = new QFutureWatcher<RecoveryOutcome>(&bridge);
             QObject::connect(watcher, &QFutureWatcher<RecoveryOutcome>::finished,
                 &bridge,
-                [&bridge, &connections, sessionObserver,
+                [&bridge, &connections, runtime, sessionObserver,
                  nativeRecoveryGeneration, generation, watcher] {
                     RecoveryOutcome verified = watcher->result();
                     watcher->deleteLater();
