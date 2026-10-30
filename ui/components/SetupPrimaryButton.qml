@@ -12,7 +12,7 @@ Button {
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    implicitHeight: Math.max(54, primaryLabel.implicitHeight + Theme.space3 * 2)
+    implicitHeight: Math.max(58, primaryLabel.implicitHeight + Theme.space3 * 2)
     implicitWidth: Math.max(168, primaryLabel.implicitWidth + Theme.space8)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
@@ -20,15 +20,15 @@ Button {
     Accessible.name: text
 
     readonly property color foreground: enabled
-                                        ? Theme.accentInk
+                                        ? (Theme.dark ? "#111315" : "#FFFFFF")
                                         : Theme.inkDisabled
 
     background: Superellipse {
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
-                   : root.down ? Theme.primaryPressed
-                               : root.hovered ? Theme.primaryFillHover
-                                              : Theme.primaryFill
+                   : root.down ? (Theme.dark ? "#DCDDE0" : "#34373B")
+                               : root.hovered ? (Theme.dark ? "#E8E9EB" : "#24272B")
+                                              : (Theme.dark ? "#F6F7F8" : "#16191D")
         borderWidth: Theme.keyboardFocusVisible(root) ? 2 : 0
         borderColor: Theme.focusOnAccent
         curveDepth: Theme.curveContainer
@@ -65,7 +65,7 @@ Button {
             color: root.foreground
             font.pixelSize: Theme.typeLabelSize
             font.weight: Theme.weightDemiBold
-            horizontalAlignment: Theme.textStartAlignment
+            horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
             maximumLineCount: 2
