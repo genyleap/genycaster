@@ -155,7 +155,7 @@ Item {
     function actionEnabled() {
         if (currentStep === 2) return legalConsentAccepted || consentChecked
         if (currentStep === 3) return accountIntent === "existing"
-        if (currentStep === 4) return false
+        if (currentStep === 4) return authenticated
         if (currentStep === 5) return authenticated || guestSelected || reviewMode
         if (currentStep === 7) return reviewMode || legalConsentAccepted && (authenticated || guestSelected)
         return true
@@ -336,7 +336,7 @@ Item {
                 Item { Layout.fillWidth: !root.phone }
 
                 SetupPrimaryButton {
-                    visible: root.currentStep !== 4
+                    visible: root.currentStep !== 4 || root.authenticated
                     Layout.fillWidth: root.phone
                     Layout.maximumWidth: root.phone ? 16777215 : 440
                     Layout.minimumWidth: root.phone ? 0 : 240
@@ -547,6 +547,16 @@ Item {
             }
             Item { Layout.preferredHeight: Theme.space4 }
             SetupActionCard {
+                visible: root.authenticated
+                Layout.fillWidth: true
+                title: qsTrId("genycaster.setup.account_verified")
+                subtitle: qsTrId("genycaster.setup.account_verified_body")
+                iconGlyph: Theme.iconCheck
+                complete: true
+                onClicked: root.switchStep(5)
+            }
+            SetupActionCard {
+                visible: !root.authenticated
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.shell.continue_with_genyleap")
                 subtitle: qsTrId("genycaster.setup.account_genyleap_body")
@@ -558,6 +568,7 @@ Item {
                 }
             }
             SetupActionCard {
+                visible: !root.authenticated
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.shell.sign_in_with_farcaster")
                 subtitle: qsTrId("genycaster.setup.account_farcaster_body")
@@ -569,6 +580,7 @@ Item {
                 }
             }
             SetupActionCard {
+                visible: !root.authenticated
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.setup.recovery_button")
                 subtitle: qsTrId("genycaster.setup.recovery_button_body")
@@ -583,7 +595,7 @@ Item {
                 }
             }
             ColumnLayout {
-                visible: root.showRecovery && !root.browserReadOnly
+                visible: root.showRecovery && !root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
                 spacing: Theme.space3
                 DirectionAwareLabel {
@@ -627,7 +639,7 @@ Item {
                 }
             }
             SetupPrimaryButton {
-                visible: root.browserReadOnly
+                visible: root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.continue_as_guest")
                 onClicked: {
@@ -657,7 +669,7 @@ Item {
                     anchors.centerIn: parent
                     width: 56; height: 56
                     strokeWidth: 4
-                    running: !root.authenticated
+                    running: root.authenticationInProgress
                     color: root.authenticated ? Theme.success : Theme.accent
                 }
                 Icon {
