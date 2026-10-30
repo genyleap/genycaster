@@ -98,7 +98,7 @@ def validate_android_elf_alignment(
 
 def validate_android_elf32_arm(name: str, data: bytes) -> None:
     """Confirm a 32-bit ARM library; 64-bit ELF alignment rules do not apply."""
-    require(len(data) >= 52 and data[:4] == b"\\x7fELF",
+    require(len(data) >= 52 and data[:4] == b"\x7fELF",
             f"{name}: not an ELF library")
     require(data[4] == 1 and data[5] == 1,
             f"{name}: expected 32-bit little-endian ELF")
