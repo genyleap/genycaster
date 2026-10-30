@@ -72,6 +72,6 @@ test('Mobile search reads the actual host window status safe area', () => {
     const search = source('SearchPalette.qml');
     assert.match(search, /import QtQuick\.Window/);
     assert.match(search, /parent \? parent\.SafeArea\.margins\.top : 0/);
-    assert.match(search, /root\.Window\.window\.contentItem\.SafeArea\.margins\.top : 0/);
+    assert.match(search, /parent\.Window\.contentItem\.SafeArea\.margins\.top : 0/);
     assert.match(search, /topPadding: \(root\.compact \? Theme\.space3 : Theme\.space5\) \+ root\.statusInset/);
 });
