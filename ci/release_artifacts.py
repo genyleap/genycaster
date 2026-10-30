@@ -9,9 +9,12 @@ import sys
 
 EXPECTED = {
     "GenyCaster-linux-x86_64": ".AppImage",
+    "GenyCaster-linux-arm64": ".AppImage",
     "GenyCaster-macos-arm64": ".dmg",
+    "GenyCaster-macos-x86_64": ".dmg",
     "GenyCaster-windows-x86_64": ".zip",
     "GenyCaster-android-arm64-v8a": ".apk",
+    "GenyCaster-android-armeabi-v7a": ".apk",
     "GenyCaster-web-wasm": ".tar.gz",
 }
 

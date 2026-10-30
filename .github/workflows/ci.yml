@@ -486,8 +486,20 @@ jobs:
           retention-days: 14
 
   android:
-    name: Android ARM64 APK
+    name: Android ${{ matrix.abi }} APK
     needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - abi: arm64-v8a
+            qt_arch: android_arm64_v8a
+            openssl_arch: arm64
+            machine: AArch64
+          - abi: armeabi-v7a
+            qt_arch: android_armv7
+            openssl_arch: arm
+            machine: ARM
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -532,7 +544,7 @@ jobs:
         with:
           version: ${{ env.QT_VERSION }}
           target: android
-          arch: android_arm64_v8a
+          arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia qtwebview
           cache: true
       - name: Reject Android SDKs without Qt Network TLS
@@ -587,9 +599,14 @@ jobs:
                   shared_extension => ".so",
                   shlib_variant => "_3",
               },
+              "android-genycaster-arm" => {
+                  inherit_from => [ "android-arm" ],
+                  shared_extension => ".so",
+                  shlib_variant => "_3",
+              },
           );
           OPENSSL_TARGET
-            ./Configure android-genycaster-arm64 shared no-tests -D__ANDROID_API__="${ANDROID_API}"
+            ./Configure "android-genycaster-${{ matrix.openssl_arch }}" shared no-tests -D__ANDROID_API__="${ANDROID_API}"
             echo "::group::OpenSSL generated shared-library targets"
             grep -E '^(SHLIBS|SHLIB_VERSION_NUMBER|SHLIB_INFO|build_libs_nodep):' Makefile || true
             echo "::endgroup::"
@@ -610,8 +627,8 @@ jobs:
           for lib in libcrypto_3.so libssl_3.so; do
             "$toolchain/llvm-readelf" -h "$libdir/$lib" > "$libdir/$lib.header.txt"
             "$toolchain/llvm-readelf" -d "$libdir/$lib" > "$libdir/$lib.dynamic.txt"
-            grep -Eq 'Machine:[[:space:]]+AArch64' "$libdir/$lib.header.txt" || {
-              cat "$libdir/$lib.header.txt"; echo "::error::$lib is not AArch64"; exit 1;
+            grep -Eq 'Machine:[[:space:]]+${{ matrix.machine }}' "$libdir/$lib.header.txt" || {
+              cat "$libdir/$lib.header.txt"; echo "::error::$lib has an incorrect architecture"; exit 1;
             }
             grep -Fq "Library soname: [$lib]" "$libdir/$lib.dynamic.txt" || {
               cat "$libdir/$lib.dynamic.txt"; echo "::error::$lib has an unexpected SONAME"; exit 1;
@@ -623,7 +640,7 @@ jobs:
             exit 1
           }
           test -s build/android-deps/include/openssl/opensslv.h
-          echo "Android ARM64 OpenSSL ${version} verified for APK deployment"
+          echo "Android ${{ matrix.abi }} OpenSSL ${version} verified for APK deployment"
       - name: Prepare signing for release tags only
         if: needs.gate.outputs.release == 'true'
         shell: bash
@@ -657,7 +674,7 @@ jobs:
             "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake"
             "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR"
             "-DQT_HOST_PATH=$QT_HOST_PATH"
-            -DANDROID_ABI=arm64-v8a
+            -DANDROID_ABI=${{ matrix.abi }}
             "-DANDROID_PLATFORM=android-${ANDROID_API}"
             "-DANDROID_SDK_ROOT=$ANDROID_HOME"
             "-DANDROID_NDK=$ANDROID_NDK_ROOT"
@@ -719,16 +736,16 @@ jobs:
           # An APK can pass signing and all CMake checks while failing the
           # native loader on devices with 16 KiB pages.
           "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 -v 4 "$selected"
-          artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a.apk"
+          artifact="dist/GenyCaster-v${VERSION}-android-${{ matrix.abi }}.apk"
           if [[ "$SIGN_RELEASE" != true ]]; then
-            artifact="dist/GenyCaster-v${VERSION}-android-arm64-v8a-CI-TEST.apk"
+            artifact="dist/GenyCaster-v${VERSION}-android-${{ matrix.abi }}-CI-TEST.apk"
           fi
           cp "$selected" "$artifact"
           python3 ci/verify_platform_package.py android "$artifact"
           (cd dist && sha256sum *.apk > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
-          name: GenyCaster-android-arm64-v8a
+          name: GenyCaster-android-${{ matrix.abi }}
           path: dist/*
           if-no-files-found: error
           retention-days: 14
@@ -825,8 +842,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in GenyCaster-linux-x86_64 GenyCaster-macos-arm64 \
-                      GenyCaster-windows-x86_64 GenyCaster-android-arm64-v8a \
+          for name in GenyCaster-linux-x86_64 GenyCaster-linux-arm64 \
+                      GenyCaster-macos-arm64 GenyCaster-macos-x86_64 \
+                      GenyCaster-windows-x86_64 \
+                      GenyCaster-android-arm64-v8a GenyCaster-android-armeabi-v7a \
                       GenyCaster-web-wasm; do
             test -d "artifacts/$name"
             test -n "$(find "artifacts/$name" -type f -print -quit)"

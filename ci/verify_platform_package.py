@@ -96,18 +96,31 @@ def validate_android_elf_alignment(
     require(load_segments > 0, f"{name}: missing ELF LOAD segment")
 
 
+def validate_android_elf32_arm(name: str, data: bytes) -> None:
+    """Confirm a 32-bit ARM library; 64-bit ELF alignment rules do not apply."""
+    require(len(data) >= 52 and data[:4] == b"\\x7fELF",
+            f"{name}: not an ELF library")
+    require(data[4] == 1 and data[5] == 1,
+            f"{name}: expected 32-bit little-endian ELF")
+    require(struct.unpack_from("<H", data, 18)[0] == 40,
+            f"{name}: expected ARM machine type")
+    header_size = struct.unpack_from("<H", data, 40)[0]
+    require(header_size >= 52, f"{name}: invalid ELF32 header")
+
+
 def validate_android(path: Path) -> None:
     require(path.suffix == ".apk", "Android package must be an APK")
+    abi = "armeabi-v7a" if "-android-armeabi-v7a" in path.name else "arm64-v8a"
     with zipfile.ZipFile(path) as apk:
         names = set(apk.namelist())
         required = (
             "AndroidManifest.xml",
-            "lib/arm64-v8a/libfarcaster_client_arm64-v8a.so",
-            "lib/arm64-v8a/libQt6Network_arm64-v8a.so",
-            "lib/arm64-v8a/libqt6keychain.so",
-            "lib/arm64-v8a/libssl_3.so",
-            "lib/arm64-v8a/libcrypto_3.so",
-            "lib/arm64-v8a/libplugins_tls_qopensslbackend_arm64-v8a.so",
+            f"lib/{abi}/libfarcaster_client_{abi}.so",
+            f"lib/{abi}/libQt6Network_{abi}.so",
+            f"lib/{abi}/libqt6keychain.so",
+            f"lib/{abi}/libssl_3.so",
+            f"lib/{abi}/libcrypto_3.so",
+            f"lib/{abi}/libplugins_tls_qopensslbackend_{abi}.so",
         )
         for member in required:
             require(member in names, f"Android APK missing {member}")
@@ -115,8 +128,11 @@ def validate_android(path: Path) -> None:
         # Verify every native library, including provider DLL equivalents and
         # bundled OpenSSL; checking only Qt6Core misses real startup failures.
         libraries = sorted(name for name in names
-                           if name.startswith("lib/arm64-v8a/") and name.endswith(".so"))
-        require(bool(libraries), "Android APK contains no ARM64 native libraries")
+                           if name.startswith(f"lib/{abi}/") and name.endswith(".so"))
+        require(bool(libraries), f"Android APK contains no {abi} native libraries")
+        require(not any(name.startswith("lib/") and name.endswith(".so")
+                        and not name.startswith(f"lib/{abi}/") for name in names),
+                "Android APK mixes native ABIs")
         for library in libraries:
             # Qt 6.12's vendor-prebuilt libavformat.so has an invalid
             # post-link PT_LOAD mapping. It is not loaded by QtLoader at
@@ -130,10 +146,13 @@ def validate_android(path: Path) -> None:
             if vendor_ffmpeg_ci_exception:
                 print("WARNING: vendor Qt FFmpeg libavformat.so has an "
                       "unresolved 16 KiB LOAD mapping defect (CI test only)")
-            validate_android_elf_alignment(
-                library, apk.read(library),
-                check_load_mapping=not vendor_ffmpeg_ci_exception,
-            )
+            if abi == "arm64-v8a":
+                validate_android_elf_alignment(
+                    library, apk.read(library),
+                    check_load_mapping=not vendor_ffmpeg_ci_exception,
+                )
+            else:
+                validate_android_elf32_arm(library, apk.read(library))
 
         manifest = apk.read("AndroidManifest.xml")
         # Android binary XML can use either UTF-8 or UTF-16LE string pools.
@@ -144,7 +163,7 @@ def validate_android(path: Path) -> None:
                 "Android APK missing INTERNET permission")
         require(any(name.endswith(".dex") for name in names), "Android APK missing DEX")
         require(not any(name.startswith("lib/x86") for name in names),
-                "Unexpected x86 libraries in ARM64-only APK")
+                "Unexpected x86 libraries in ARM-only APK")
 
 
 def validate_windows(path: Path) -> None:
