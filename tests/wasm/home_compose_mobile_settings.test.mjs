@@ -26,6 +26,7 @@ test('Mobile Settings remains full-height with grouped index navigation', () => 
     assert.match(settings, /bottomPadding: root\.contentPadding \+ \(root\.mobilePresentation/);
     assert.match(settings, /readonly property real navigationInset/);
     assert.match(settings, /parent\.Window\.contentItem\.SafeArea\.margins\.bottom : 0/);
+    assert.match(settings, /parent\.Window\.window\.SafeArea\.margins\.bottom : 0/);
     assert.doesNotMatch(settings, /root\.SafeArea\.margins/);
     assert.match(settings, /component MobileSettingsGroup: ColumnLayout/);
     assert.match(settings, /id: mobileSettingsIndex/);
@@ -77,5 +78,6 @@ test('Mobile search reads the actual host window status safe area', () => {
     assert.match(search, /import QtQuick\.Window/);
     assert.match(search, /parent \? parent\.SafeArea\.margins\.top : 0/);
     assert.match(search, /parent\.Window\.contentItem\.SafeArea\.margins\.top : 0/);
+    assert.match(search, /parent\.Window\.window\.SafeArea\.margins\.top : 0/);
     assert.match(search, /topPadding: \(root\.compact \? Theme\.space3 : Theme\.space5\) \+ root\.statusInset/);
 });

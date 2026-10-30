@@ -116,8 +116,11 @@ Drawer {
     readonly property real statusInset: root.compact
         ? Math.max(Qt.platform.os === "android" ? 24 : 0,
                    parent ? parent.SafeArea.margins.top : 0,
-                   // An overlay can report zero inset even when the host
-                   // window still reserves a notched system status area.
+                   // Read the OS inset from the Window itself; Qt may already
+                   // have padded its ApplicationWindow contentItem.
+                   parent && parent.Window.window
+                       ? parent.Window.window.SafeArea.margins.top : 0,
+                   // The overlay/content item may also have custom safe insets.
                    parent && parent.Window.contentItem
                        ? parent.Window.contentItem.SafeArea.margins.top : 0) : 0
     topPadding: (root.compact ? Theme.space3 : Theme.space5) + root.statusInset

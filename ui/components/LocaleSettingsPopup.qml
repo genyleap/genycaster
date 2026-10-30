@@ -114,6 +114,10 @@ GenyDrawer {
     // the overlay Item (or its Window.contentItem), never to the popup root.
     readonly property real navigationInset: root.mobilePresentation && parent
         ? Math.max(parent.SafeArea.margins.bottom,
+                   // OS gesture navigation can be inset at Window level
+                   // even when ApplicationWindow padded its content item.
+                   parent.Window.window
+                       ? parent.Window.window.SafeArea.margins.bottom : 0,
                    parent.Window.contentItem
                        ? parent.Window.contentItem.SafeArea.margins.bottom : 0) : 0
     bottomPadding: root.contentPadding + (root.mobilePresentation
