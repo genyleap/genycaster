@@ -1,0 +1,2 @@
+Diagnostic request: assess runner provisioning on Ubuntu, Windows, macOS at 2026-10-30.
+No product compile or deployment.
