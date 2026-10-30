@@ -9,7 +9,9 @@ import unittest
 import zipfile
 import struct
 
-from ci.verify_platform_package import validate_android_elf_alignment, verify
+from ci.verify_platform_package import (
+    validate_android_elf_alignment, validate_android_elf32_arm, verify,
+)
 from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, main as assemble_release
@@ -169,6 +171,43 @@ class PipelineTests(unittest.TestCase):
         struct.pack_into("<H", data, 18, 62)  # Wrong architecture (x86_64)
         with self.assertRaisesRegex(ValueError, "AArch64"):
             validate_android_elf_alignment("wrong-arch.so", bytes(data))
+
+    def test_android_armv7_elf_type_and_machine(self) -> None:
+        elf = bytearray(52)
+        elf[:6] = b"\x7fELF\x01\x01"
+        struct.pack_into("<H", elf, 18, 40)  # EM_ARM
+        struct.pack_into("<H", elf, 40, 52)  # ELF32 header size
+        validate_android_elf32_arm("armeabi-v7a.so", bytes(elf))
+
+        elf[4] = 2
+        with self.assertRaisesRegex(ValueError, "32-bit"):
+            validate_android_elf32_arm("wrong-class.so", bytes(elf))
+        elf[4] = 1
+        struct.pack_into("<H", elf, 18, 183)
+        with self.assertRaisesRegex(ValueError, "ARM machine"):
+            validate_android_elf32_arm("wrong-machine.so", bytes(elf))
+        with self.assertRaisesRegex(ValueError, "not an ELF"):
+            validate_android_elf32_arm("truncated.so", b"hello")
+
+    def test_windows_qt_architecture_manifest(self) -> None:
+        from ci.install_qt_windows import archive_layout
+        amd64, pkgs64 = archive_layout("x86_64")
+        arm64, pkgsarm = archive_layout("arm64")
+        self.assertIn("/windows_x86/", amd64)
+        self.assertIn("/windows_arm64/", arm64)
+        self.assertTrue(any("win64_msvc2022_64" in key for key in pkgs64))
+        self.assertTrue(any("win64_msvc2022_arm64" in key for key in pkgsarm))
+
+    def test_nixos_and_ios_build_contracts(self) -> None:
+        workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+        flake = Path("flake.nix").read_text(encoding="utf-8")
+        self.assertTrue(flake.rstrip().endswith("}"))
+        self.assertIn("gcc16Stdenv.mkDerivation", flake)
+        self.assertIn("qt.qtkeychain", flake)
+        self.assertIn("name: NixOS", workflow)
+        self.assertIn("name: iOS arm64 unsigned", workflow)
+        self.assertIn("ios-arm64-unsigned-app.tar.gz", workflow)
+        self.assertNotIn("ios-arm64.ipa", workflow)
 
     def test_windows_deploy_disables_conflicting_vcpkg_applocal(self) -> None:
         workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")

@@ -20,6 +20,15 @@ def main() -> None:
     assert "github.event_name == 'push' && needs.gate.outputs.release == 'true'" in workflow
     assert "needs: [gate, core, linux, macos, windows, android, web]" in workflow
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
+    assert "linux_gcc_arm64" in workflow
+    assert "macos-15-intel" in workflow
+    assert "windows-11-arm" in workflow
+    assert "android_armv7" in workflow
+    assert "name: iOS arm64 unsigned device app" in workflow
+    assert "name: NixOS" in workflow
+    assert "GenyCaster-linux-arm64" in workflow
+    assert "GenyCaster-windows-arm64" in workflow
+    assert "GenyCaster-android-armeabi-v7a" in workflow
     assert "            vcpkg_triplet: x64-windows" in workflow
     assert "            vcpkg_triplet: arm64-windows" in workflow
     assert "            vcpkg_triplet: ${{ matrix.vcpkg_triplet }}" not in workflow
