@@ -644,6 +644,41 @@ public:
         return custodyAddressForFid(fid);
     }
 
+    [[nodiscard]] foundation::result::Result<domain::identity::Fid>
+    resolveRecoveryFid(const std::string& address)
+    {
+        // Invalid addresses cannot trigger even a chain-ID request.
+        auto verifiedWord = addressWord(address);
+        if (!verifiedWord) return std::unexpected(std::move(verifiedWord.error()));
+
+        // A custom RPC endpoint could point at Ethereum or a fork. Never
+        // infer Farcaster custody from registry-looking responses on chain != 10.
+        auto chainId = rpc("eth_chainId", "[]");
+        if (!chainId) return std::unexpected(std::move(chainId.error()));
+        if (lower(*chainId) != "0xa") {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::ProtocolFailure,
+                "Custody recovery requires Optimism mainnet (chain ID 10)."));
+        }
+
+        auto fid = fidForCustody(address);
+        if (!fid) return std::unexpected(std::move(fid.error()));
+        if (*fid == 0U) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "This custody address has no registered Farcaster FID."));
+        }
+        const domain::identity::Fid identity{*fid};
+        auto registered = custodyAddressForFid(identity);
+        if (!registered) return std::unexpected(std::move(registered.error()));
+        if (lower(*registered) != lower(address)) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::Unauthorized,
+                "Farcaster IdRegistry does not confirm custody for this FID."));
+        }
+        return identity;
+    }
+
 private:
     [[nodiscard]] foundation::result::Result<std::string> rpc(
         const std::string_view method,
@@ -1247,6 +1282,28 @@ makeAuthentication(transport::http::IHttpTransport& transport, Config config)
     std::unique_ptr<capability::auth::ICompatibilityAuthentication> authentication =
         std::make_unique<Authentication>(transport, std::move(config));
     return authentication;
+}
+
+foundation::result::Result<domain::identity::Fid>
+resolveRecoveryCustodyFid(
+    transport::http::IHttpTransport& transport,
+    std::string custodyAddress,
+    Config config)
+{
+    config.optimismRpcUrl = normalizeConfigurationValue(std::move(config.optimismRpcUrl));
+    // Custody verification is an authentication operation; reject HTTP
+    // endpoints instead of accepting the more permissive SIWF test transport.
+    if (!config.optimismRpcUrl.starts_with("https://") ||
+        !isValidHttpUri(config.optimismRpcUrl) ||
+        config.optimismRpcUrl.find_first_of("?#") != std::string::npos ||
+        config.requestTimeout <= std::chrono::milliseconds::zero()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Custody recovery requires a trusted HTTPS Optimism RPC endpoint."));
+    }
+    EthereumVerifier verifier{transport, std::move(config.optimismRpcUrl),
+                              config.requestTimeout};
+    return verifier.resolveRecoveryFid(custodyAddress);
 }
 
 }

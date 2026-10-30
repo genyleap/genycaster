@@ -562,8 +562,74 @@ void quotedLocalhostConfigurationIsNormalizedBeforeRelayRequest()
 
 }
 
+void nativeRecoveryMustVerifyOptimismAndRoundTripCustody()
+{
+    const std::string address = "0x" + std::string(40, '1');
+    const auto config = provider::Config{
+        .optimismRpcUrl = "https://rpc.example",
+    };
+    {
+        FakeTransport chain{};
+        chain.enqueue(200, R"({"jsonrpc":"2.0","id":1,"result":"0xa"})");
+        chain.enqueue(200,
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiWord(42) + "\"}");
+        chain.enqueue(200,
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiAddressWord('1') + "\"}");
+        const auto verified = provider::resolveRecoveryCustodyFid(chain, address, config);
+        assert(verified && verified->value == 42);
+        const auto& calls = chain.calls();
+        assert(calls.size() == 3U);
+        assert(calls[0].url == "https://rpc.example");
+        assert(calls[0].body.find("\"eth_chainId\"") != std::string::npos);
+        assert(calls[1].body.find("d94fe832") != std::string::npos); // idOf(address)
+        assert(calls[2].body.find("65269e47") != std::string::npos); // custodyOf(fid)
+    }
+    {
+        FakeTransport chain{};
+        chain.enqueue(200, R"({"jsonrpc":"2.0","id":1,"result":"0x1"})");
+        const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
+        assert(!result);
+        assert(result.error().code == foundation::error::ErrorCode::ProtocolFailure);
+        assert(chain.calls().size() == 1U);
+    }
+    {
+        FakeTransport chain{};
+        chain.enqueue(200, R"({"jsonrpc":"2.0","id":1,"result":"0xa"})");
+        chain.enqueue(200,
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiWord(42) + "\"}");
+        chain.enqueue(200,
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiAddressWord('2') + "\"}");
+        const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
+        assert(!result);
+        assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
+        assert(chain.calls().size() == 3U);
+    }
+    {
+        FakeTransport chain{};
+        chain.enqueue(200, R"({"jsonrpc":"2.0","id":1,"result":"0xa"})");
+        chain.enqueue(200,
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x" + abiWord(0) + "\"}");
+        const auto result = provider::resolveRecoveryCustodyFid(chain, address, config);
+        assert(!result);
+        assert(result.error().code == foundation::error::ErrorCode::Unauthorized);
+        assert(chain.calls().size() == 2U);
+    }
+    {
+        FakeTransport chain{};
+        const auto result = provider::resolveRecoveryCustodyFid(
+            chain, "0xnot-an-ethereum-address", config);
+        assert(!result);
+        assert(chain.calls().empty());
+        const auto insecure = provider::resolveRecoveryCustodyFid(
+            chain, address, provider::Config{.optimismRpcUrl = "http://rpc.example"});
+        assert(!insecure);
+        assert(chain.calls().empty());
+    }
+}
+
 int main()
 {
+    nativeRecoveryMustVerifyOptimismAndRoundTripCustody();
     verifiedCustodyFlowReturnsNormalizedSession();
     currentCustodyCanBeResolvedWithoutNewSignIn();
     activeAuthAddressIsPreferredOverCustodyFallback();

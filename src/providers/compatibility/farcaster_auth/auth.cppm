@@ -7,6 +7,7 @@ module;
 export module farcaster.provider.compatibility.auth;
 
 import farcaster.capability.auth;
+import farcaster.domain.identity;
 import farcaster.foundation.result;
 import farcaster.transport.http;
 
@@ -30,5 +31,17 @@ struct Config final {
  */
 [[nodiscard]] foundation::result::Result<std::unique_ptr<capability::auth::ICompatibilityAuthentication>>
 makeAuthentication(transport::http::IHttpTransport& transport, Config config = {});
+
+/**
+ * Resolve an already locally derived PUBLIC custody address on Optimism.
+ * Requires chain 10, a nonzero idOf(address) and the inverse custodyOf(fid).
+ * Does not accept or transmit a mnemonic, sign a challenge, or start a session.
+ * This check is mandatory before native custody-recovery authorization.
+ */
+[[nodiscard]] foundation::result::Result<domain::identity::Fid>
+resolveRecoveryCustodyFid(
+    transport::http::IHttpTransport& transport,
+    std::string custodyAddress,
+    Config config = {});
 
 }
