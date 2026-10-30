@@ -5028,6 +5028,86 @@ Company | https://company.com</source>
             <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
             <translation>OpenProof がアカウント ID の基準です。Farcaster は必須のリンク済みプロトコル ID です。</translation>
         </message>
+        <message id="genycaster.setup.design_welcome_description">
+            <source>A native Farcaster client for the decentralized social web.</source>
+            <translation>会話が広がる世界。あなたの言葉で。</translation>
+        </message>
+        <message id="genycaster.setup.design_language_title">
+            <source>Select your language</source>
+            <translation>言語</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_title">
+            <source>Terms &amp; Privacy</source>
+            <translation>プライバシーと利用規約</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_description">
+            <source>Please review and accept our terms to continue.</source>
+            <translation>確認する権限は2つだけです。全文はワンタップで開けます。</translation>
+        </message>
+        <message id="genycaster.setup.design_account_title">
+            <source>Choose an account</source>
+            <translation>アカウント</translation>
+        </message>
+        <message id="genycaster.setup.design_account_description">
+            <source>How do you want to continue with GenyCaster?</source>
+            <translation>Farcaster ID または Genyleap アカウントを使用してください。各サインインは個別に検証され、読み取りネットワークは変更されません。</translation>
+        </message>
+        <message id="genycaster.setup.design_create_account">
+            <source>Create new account</source>
+            <translation>新規作成</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_account">
+            <source>Use existing account</source>
+            <translation>既存のものを使用</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_description">
+            <source>Connect your Genyleap or Farcaster identity.</source>
+            <translation>所有している Farcaster ID を連携してください。</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_title">
+            <source>Sign in</source>
+            <translation>続行するにはサインイン</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_description">
+            <source>Connect your identity using Genyleap or another supported provider.</source>
+            <translation>検証済みウォレット署名で Farcaster に直接サインインするか、Genyleap/OpenProof アカウントを使用してください。投稿には別途署名者の承認が必要です。</translation>
+        </message>
+        <message id="genycaster.setup.design_recovery_title">
+            <source>Use recovery phrase</source>
+            <translation>リカバリーワードで続行</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_title">
+            <source>Verifying your credentials...</source>
+            <translation>Farcaster アカウントを準備しています</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_description">
+            <source>Please wait while we securely verify your identity.</source>
+            <translation>アカウント所有権と署名鍵の登録を確認中です。ネットワークの確認をお待ちください。</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_title">
+            <source>Choose an appearance</source>
+            <translation>外観</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_description">
+            <source>You can change this later in Settings.</source>
+            <translation>初期設定のまま使うか、Genycaster の使い心地に関わる項目だけ調整してください。</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_title">
+            <source>You&#x27;re all set!</source>
+            <translation>準備完了</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_description">
+            <source>GenyCaster is ready to use. Enjoy the decentralized social web.</source>
+            <translation>準備が整いました。</translation>
+        </message>
+        <message id="genycaster.setup.design_get_started">
+            <source>Get started</source>
+            <translation>続行</translation>
+        </message>
+        <message id="genycaster.setup.design_start">
+            <source>Start using GenyCaster</source>
+            <translation>セットアップを完了</translation>
+        </message>
         <message id="genycaster.setup.title">
             <source>Set up Genycaster</source>
             <translation>Genycaster をセットアップ</translation>
