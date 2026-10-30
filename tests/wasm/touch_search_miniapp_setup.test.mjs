@@ -58,11 +58,12 @@ test('account summary has an aligned avatar and visible text target',()=>{
   assert.match(qml,/sourceUrl: presentationBridge\.accountAvatarUrl/);
   assert.match(qml,/forceLeftToRight: true\s*horizontalAlignment: Text\.AlignLeft/);
 });
-test('network setup reveals measured public nodes by default, advanced proxy is optional',()=>{
-  const qml=read('ui/components/InitialSetup.qml');
-  assert.match(qml,/visible: presentationBridge\.preferredNetwork === presentationBridge\.independentNetworkKey[\s\S]*?model: nodeSelectionController\.nodes/);
-  assert.match(qml,/latencyMs: Number\(modelData\.latencyMs \|\| -1\)/);
-  assert.match(qml,/visible: root\.showAdvancedNodes[\s\S]*?genycaster\.setup\.network_connection/);
+test('approved onboarding stays minimal while advanced nodes remain available in Settings',()=>{
+  const setup=read('ui/components/InitialSetup.qml');
+  const settings=read('ui/components/LocaleSettingsPopup.qml');
+  assert.doesNotMatch(setup,/nodeSelectionController\.nodes/);
+  assert.doesNotMatch(setup,/genycaster\.setup\.advanced_nodes/);
+  assert.match(settings,/NodeManagementPanel \{/);
   assert.match(read('ui/components/SetupActionCard.qml'),/root\.latencyMs <= 300 \? Theme\.success/);
 });
 test('Persian setup translations do not use English brand or setup names',()=>{
