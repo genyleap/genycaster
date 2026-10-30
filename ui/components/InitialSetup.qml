@@ -480,8 +480,8 @@ Item {
             layoutDirection: Theme.uiDirection
 
             Rectangle {
-                visible: !root.compact
-                Layout.preferredWidth: 252
+                visible: false // Minimal, single-task canvas on desktop as well as mobile.
+                Layout.preferredWidth: 0
                 Layout.fillHeight: true
                 color: Theme.surface
                 border.width: 0
@@ -662,8 +662,9 @@ Item {
                         Loader {
                             id: stageLoader
                             width: parent.width
-                            y: root.phone ? Theme.space3 : Math.max(Theme.space7,
-                                (stageFlick.height - stageLoader.implicitHeight) * 0.16)
+                            y: Math.max(root.phone ? Theme.space4 : Theme.space7,
+                                (stageFlick.height - stageLoader.implicitHeight)
+                                * (root.phone ? 0.16 : 0.22))
                             sourceComponent: root.currentStep === 0 ? welcomeStage
                                            : root.currentStep === 1 ? personalizeStage
                                            : root.currentStep === 2 ? privacyStage
@@ -712,12 +713,12 @@ Item {
                         SetupPrimaryButton {
                             visible: root.currentStep !== 4 || root.authenticated || root.browserReadOnly
                             Layout.fillWidth: root.phone
-                            Layout.maximumWidth: root.phone ? 420 : 300
-                            Layout.minimumWidth: root.phone ? 0 : 168
+                            Layout.maximumWidth: root.phone ? 420 : 380
+                            Layout.minimumWidth: root.phone ? 0 : 210
                             text: root.primaryActionText()
                             enabled: root.primaryActionEnabled()
                             iconGlyph: root.currentStep === 5 ? Theme.iconCheck : ""
-                            showArrow: root.currentStep !== 5
+                            showArrow: false
                             onClicked: root.nextStep()
                         }
                     }
@@ -1755,35 +1756,35 @@ Item {
                     }
                 }
 
-                GridLayout {
+                // World App-inspired stacked actions: one decision per row.
+                // A new FID cannot yet be registered inside Genycaster;
+                // retain an honest disabled state rather than a dead tap target.
+                ColumnLayout {
                     visible: !root.browserReadOnly
                     Layout.fillWidth: true
-                    columns: root.phone ? 1 : 2
-                    columnSpacing: Theme.space2
-                    rowSpacing: Theme.space2
-                    layoutDirection: Theme.uiDirection
-
-                    SetupActionCard {
-                        Layout.fillWidth: true
-                        compactCard: root.phone
-                        title: qsTrId("genycaster.setup.existing_profile")
-                        subtitle: qsTrId("genycaster.setup.existing_profile_body")
-                        iconGlyph: Theme.iconSignIn
-                        primary: root.accountIntent === "existing"
-                        selected: root.accountIntent === "existing"
-                        enabled: !root.authenticationInProgress
-                        onClicked: root.accountIntent = "existing"
-                    }
+                    spacing: Theme.space3
 
                     SetupActionCard {
                         Layout.fillWidth: true
                         title: qsTrId("genycaster.setup.new_profile")
                         subtitle: qsTrId("genycaster.setup.new_profile_body")
-                        iconGlyph: Theme.iconUser
+                        iconGlyph: ""
                         primary: false
                         selected: false
                         trailingText: qsTrId("genycaster.shell.coming_soon")
                         enabled: false
+                    }
+
+                    SetupActionCard {
+                        Layout.fillWidth: true
+                        title: qsTrId("genycaster.setup.existing_profile")
+                        subtitle: qsTrId("genycaster.setup.existing_profile_body")
+                        iconGlyph: ""
+                        primary: root.accountIntent === "existing"
+                        selected: false
+                        showChevron: true
+                        enabled: !root.authenticationInProgress
+                        onClicked: root.accountIntent = "existing"
                     }
                 }
 
