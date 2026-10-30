@@ -32,11 +32,11 @@
         </message>
         <message id="genycaster.profile.option.trader">
             <source>Trader</source>
-            <translation>Trader</translation>
+            <translation>Börsenhändler</translation>
         </message>
         <message id="genycaster.profile.option.analyst">
             <source>Analyst</source>
-            <translation>Analyst</translation>
+            <translation>Analytiker</translation>
         </message>
         <message id="genycaster.profile.option.product_manager">
             <source>Product Manager</source>
@@ -48,7 +48,7 @@
         </message>
         <message id="genycaster.profile.option.content_creator">
             <source>Content Creator</source>
-            <translation>Content Creator</translation>
+            <translation>Inhaltsersteller</translation>
         </message>
         <message id="genycaster.profile.roles_hint">
             <source>Choose up to five roles</source>
@@ -445,7 +445,7 @@
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
-            <translation>Preview and upload a new photo</translation>
+            <translation>Neues Foto ansehen und hochladen</translation>
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
@@ -546,11 +546,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
-            <translation>Profile photo</translation>
+            <translation>Profilfoto</translation>
         </message>
         <message id="genycaster.profile.banner">
             <source>Profile banner</source>
-            <translation>Profile banner</translation>
+            <translation>Profilbanner</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
@@ -610,11 +610,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
-            <translation>Arts &amp; entertainment</translation>
+            <translation>Kunst und Unterhaltung</translation>
         </message>
         <message id="genycaster.profile.option.business">
             <source>Business</source>
-            <translation>Business</translation>
+            <translation>Wirtschaft</translation>
         </message>
         <message id="genycaster.profile.option.education">
             <source>Education</source>
@@ -626,19 +626,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.food_beverage">
             <source>Food &amp; beverage</source>
-            <translation>Food &amp; beverage</translation>
+            <translation>Essen und Trinken</translation>
         </message>
         <message id="genycaster.profile.option.health_wellness">
             <source>Health &amp; wellness</source>
-            <translation>Health &amp; wellness</translation>
+            <translation>Gesundheit und Wohlbefinden</translation>
         </message>
         <message id="genycaster.profile.option.media_news">
             <source>Media &amp; news</source>
-            <translation>Media &amp; news</translation>
+            <translation>Medien und Nachrichten</translation>
         </message>
         <message id="genycaster.profile.option.science_technology">
             <source>Science &amp; technology</source>
-            <translation>Science &amp; technology</translation>
+            <translation>Wissenschaft und Technologie</translation>
         </message>
         <message id="genycaster.profile.option.technology">
             <source>Technology</source>
@@ -646,7 +646,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.professional_services">
             <source>Professional services</source>
-            <translation>Professional services</translation>
+            <translation>Professionelle Dienstleistungen</translation>
         </message>
         <message id="genycaster.profile.option.sports">
             <source>Sports</source>
@@ -654,7 +654,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.travel_transportation">
             <source>Travel &amp; transportation</source>
-            <translation>Travel &amp; transportation</translation>
+            <translation>Reisen und Verkehr</translation>
         </message>
         <message id="genycaster.profile.option.other">
             <source>Other</source>
@@ -678,7 +678,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
-            <translation>Designer</translation>
+            <translation>Gestalter</translation>
         </message>
         <message id="genycaster.profile.option.developer">
             <source>Developer</source>
@@ -686,47 +686,47 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.option.engineer">
             <source>Engineer</source>
-            <translation>Engineer</translation>
+            <translation>Ingenieur</translation>
         </message>
         <message id="genycaster.profile.option.entrepreneur">
             <source>Entrepreneur</source>
-            <translation>Entrepreneur</translation>
+            <translation>Unternehmer</translation>
         </message>
         <message id="genycaster.profile.option.founder">
             <source>Founder</source>
-            <translation>Founder</translation>
+            <translation>Gründer</translation>
         </message>
         <message id="genycaster.profile.option.investor">
             <source>Investor</source>
-            <translation>Investor</translation>
+            <translation>Anleger</translation>
         </message>
         <message id="genycaster.profile.option.journalist">
             <source>Journalist</source>
-            <translation>Journalist</translation>
+            <translation>Journalist/in</translation>
         </message>
         <message id="genycaster.profile.option.photographer">
             <source>Photographer</source>
-            <translation>Photographer</translation>
+            <translation>Fotograf/in</translation>
         </message>
         <message id="genycaster.profile.option.researcher">
             <source>Researcher</source>
-            <translation>Researcher</translation>
+            <translation>Forscher/in</translation>
         </message>
         <message id="genycaster.profile.option.student">
             <source>Student</source>
-            <translation>Student</translation>
+            <translation>Studierende/r</translation>
         </message>
         <message id="genycaster.profile.option.teacher">
             <source>Teacher</source>
-            <translation>Teacher</translation>
+            <translation>Lehrkraft</translation>
         </message>
         <message id="genycaster.profile.option.consultant">
             <source>Consultant</source>
-            <translation>Consultant</translation>
+            <translation>Berater/in</translation>
         </message>
         <message id="genycaster.profile.option.organization">
             <source>Organization</source>
-            <translation>Organization</translation>
+            <translation>Organisation</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
@@ -1458,7 +1458,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.current_beta_release">
             <source>GenyCaster Beta 1.0 · Version %1</source>
-            <translation>GenyCaster Beta 1.0 · Version %1</translation>
+            <translation>GenyCaster Betaversion 1.0 · Version %1</translation>
         </message>
         <message id="genycaster.settings.beta_program_info">
             <source>You are using a beta release. Features may change while improvements are tested.</source>
@@ -2706,7 +2706,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_trends">
             <source>Trends</source>
-            <translation>Trends</translation>
+            <translation>Aktuelle Themen</translation>
         </message>
         <message id="genycaster.home.hub_trends_detail">
             <source>See what is trending on Farcaster.</source>
@@ -2734,15 +2734,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.ticker">
             <source>Ticker</source>
-            <translation>Ticker</translation>
+            <translation>Börsenkürzel</translation>
         </message>
         <message id="genycaster.composer.channel_url_hint">
             <source>Paste the verified channel parent URL, not just its name.</source>
-            <translation>Paste the verified channel parent URL, not just its name.</translation>
+            <translation>Füge die verifizierte übergeordnete Kanal-URL ein, nicht nur den Namen.</translation>
         </message>
         <message id="genycaster.composer.ticker_contract_hint">
             <source>Enter the token contract address (0x…); choose its network.</source>
-            <translation>Enter the token contract address (0x…); choose its network.</translation>
+            <translation>Gib die Token-Vertragsadresse (0x…) ein und wähle das Netzwerk.</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
@@ -2818,7 +2818,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
-            <translation>Use a valid channel URL or token contract address.</translation>
+            <translation>Verwende eine gültige Kanal-URL oder Token-Vertragsadresse.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
             <source>The next chapter</source>
@@ -2830,7 +2830,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_agent">
             <source>Agent</source>
-            <translation>Agent</translation>
+            <translation>Assistent</translation>
         </message>
         <message id="genycaster.home.hub_agent_detail">
             <source>Your intelligent Farcaster companion.</source>
@@ -2838,7 +2838,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.hub_studio">
             <source>Studio</source>
-            <translation>Studio</translation>
+            <translation>Kreativstudio</translation>
         </message>
         <message id="genycaster.home.hub_studio_detail">
             <source>Create and manage rich content.</source>
