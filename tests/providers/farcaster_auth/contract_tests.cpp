@@ -37,6 +37,7 @@ public:
         m_responses.push_back(transport::HttpResponse{
             .statusCode = statusCode,
             .body = std::move(body),
+            .headers = {"Content-Type: application/json"},
         });
     }
 
@@ -627,8 +628,91 @@ void nativeRecoveryMustVerifyOptimismAndRoundTripCustody()
     }
 }
 
+void nativeRecoveryGatewayNeverReceivesCustodySecrets()
+{
+    constexpr std::string_view gateway{"https://storage-farcaster.genyleap.com"};
+    constexpr std::string_view address{"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"};
+    const auto fid = domain::identity::Fid{123};
+    const std::string ticket(43, 'A');
+    const std::string message =
+        "genyleap.com wants you to sign in with your Ethereum account:\n"
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\n\n"
+        "Farcaster Auth\n\nURI: https://genyleap.com/account\n"
+        "Version: 1\nChain ID: 10\nNonce: abcdefgh123456\n"
+        "Issued At: 2026-10-30T00:00:00Z\nResources:\n- farcaster://fid/123";
+    const auto startResult = [&] {
+        FakeTransport transport{};
+        transport.enqueue(200, "{\"ticket\":\"" + ticket
+            + "\",\"fid\":\"123\",\"message\":\"" + escapeJson(message) + "\"}");
+        auto started = provider::startRecoveryChallenge(transport,
+            std::string{gateway}, fid, std::string{address});
+        assert(started && started->fid.value == 123 && started->message == message);
+        assert(transport.calls().size() == 1);
+        assert(transport.calls()[0].url ==
+            "https://storage-farcaster.genyleap.com/v1/browser/farcaster/recovery/start");
+        assert(transport.calls()[0].body ==
+            "{\"fid\":\"123\",\"address\":\"0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266\"}");
+        assert(transport.calls()[0].body.find("test test") == std::string::npos);
+        return std::move(*started);
+    }();
+    const std::string signature = "0x" + std::string(128, 'a') + "1b";
+    {
+        FakeTransport transport{};
+        transport.enqueue(200,
+            "{\"authenticated\":true,\"fid\":\"123\",\"issuer\":\"https://openproof.genyleap.com\","
+            "\"subject\":\"account-123\",\"account_ticket\":\"recovery." + ticket
+            + "\",\"expires_in\":2700}");
+        const auto completed = provider::completeRecoveryChallenge(transport,
+            std::string{gateway}, startResult, signature);
+        assert(completed && completed->fid.value == 123);
+        assert(completed->subject == "account-123");
+        assert(completed->accountTicket == "recovery." + ticket);
+        assert(transport.calls().size() == 1);
+        assert(transport.calls()[0].url ==
+            "https://storage-farcaster.genyleap.com/v1/browser/farcaster/recovery/complete");
+        assert(transport.calls()[0].body ==
+            "{\"ticket\":\"" + ticket + "\",\"signature\":\"" + signature + "\"}");
+    }
+    {
+        FakeTransport transport{};
+        transport.enqueue(200,
+            "{\"authenticated\":true,\"fid\":\"456\",\"issuer\":\"https://openproof.genyleap.com\","
+            "\"subject\":\"account-123\",\"account_ticket\":\"recovery." + ticket
+            + "\",\"expires_in\":2700}");
+        const auto result = provider::completeRecoveryChallenge(transport,
+            std::string{gateway}, startResult, signature);
+        assert(!result && result.error().code == foundation::error::ErrorCode::Unauthorized);
+    }
+    {
+        FakeTransport transport{};
+        transport.enqueue(200,
+            "{\"authenticated\":true,\"fid\":\"123\",\"issuer\":\"https://attacker.example\","
+            "\"subject\":\"account-123\",\"account_ticket\":\"recovery." + ticket
+            + "\",\"expires_in\":2700}");
+        const auto result = provider::completeRecoveryChallenge(transport,
+            std::string{gateway}, startResult, signature);
+        assert(!result && result.error().code == foundation::error::ErrorCode::Unauthorized);
+    }
+    for (const auto& badGateway : {"http://storage-farcaster.genyleap.com",
+                                   "https://storage-farcaster.genyleap.com@evil.example",
+                                   "https://storage-farcaster.genyleap.com/secret",
+                                   "https://localhost"}) {
+        FakeTransport transport{};
+        const auto started = provider::startRecoveryChallenge(
+            transport, badGateway, fid, std::string{address});
+        assert(!started && transport.calls().empty());
+    }
+    {
+        FakeTransport transport{};
+        const auto result = provider::completeRecoveryChallenge(
+            transport, std::string{gateway}, startResult, "0x" + std::string(130, '0'));
+        assert(!result && transport.calls().empty());
+    }
+}
+
 int main()
 {
+    nativeRecoveryGatewayNeverReceivesCustodySecrets();
     nativeRecoveryMustVerifyOptimismAndRoundTripCustody();
     verifiedCustodyFlowReturnsNormalizedSession();
     currentCustodyCanBeResolvedWithoutNewSignIn();

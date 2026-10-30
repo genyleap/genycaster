@@ -1284,6 +1284,163 @@ makeAuthentication(transport::http::IHttpTransport& transport, Config config)
     return authentication;
 }
 
+namespace {
+
+/** Never permit an identity gateway URL to contain credentials or extra paths. */
+[[nodiscard]] bool validRecoveryOrigin(const std::string_view origin)
+{
+    if (!origin.starts_with("https://") || origin.size() > 253U
+        || origin.find_first_of("?#@\\ \t\r\n") != std::string_view::npos)
+        return false;
+    const auto authority = origin.substr(8);
+    if (authority.empty() || authority.starts_with('.')
+        || authority.ends_with('.') || authority.contains(".."))
+        return false;
+    const auto slash = authority.find('/');
+    if (slash != std::string_view::npos && slash != authority.size() - 1U)
+        return false;
+    const auto hostPort = authority.substr(0, slash);
+    if (hostPort.empty() || hostPort.front() == '[' || hostPort.contains(':')
+        || hostPort.find_first_not_of(
+               "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.")
+               != std::string_view::npos)
+        return false;
+    return hostPort.contains('.');
+}
+
+[[nodiscard]] bool validRecoveryTicket(const std::string_view value)
+{
+    return value.size() == 43U
+        && std::ranges::all_of(value, [](const unsigned char ch) {
+               return std::isalnum(ch) || ch == '_' || ch == '-';
+           });
+}
+
+[[nodiscard]] bool validRecoverySignature(const std::string_view value)
+{
+    return value.size() == 132U && value.starts_with("0x")
+        && std::ranges::all_of(value.substr(2), [](const unsigned char ch) {
+               return std::isxdigit(ch);
+           })
+        && (value.substr(130) == "1b" || value.substr(130) == "1c"
+            || value.substr(130) == "1B" || value.substr(130) == "1C");
+}
+
+[[nodiscard]] foundation::result::Result<boost::property_tree::ptree>
+recoveryPost(transport::http::IHttpTransport& transport,
+             std::string gatewayOrigin, const std::string_view path,
+             const std::string& body)
+{
+    if (!validRecoveryOrigin(gatewayOrigin)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "A configured HTTPS OpenProof recovery origin is required."));
+    }
+    if (gatewayOrigin.ends_with('/')) gatewayOrigin.pop_back();
+    auto response = transport.post(transport::http::HttpPostRequest{
+        .url = gatewayOrigin + std::string{path},
+        .headers = {"Content-Type: application/json", "Accept: application/json"},
+        .body = body,
+        .timeout = std::chrono::milliseconds{12'000},
+        .maxBodyBytes = 4096U,
+    });
+    if (!response) return std::unexpected(std::move(response.error()));
+    if (response->statusCode != 200 || response->body.size() > 4096U) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::ProtocolFailure,
+            "OpenProof custody recovery refused or returned an oversized result."));
+    }
+    const bool isJson = std::ranges::any_of(response->headers,
+        [](const std::string& header) {
+            return lower(header).starts_with("content-type: application/json");
+        });
+    if (!isJson) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::ProtocolFailure,
+            "OpenProof custody recovery response is not JSON."));
+    }
+    return parseJson(response->body);
+}
+
+} // namespace
+
+foundation::result::Result<RecoveryChallenge>
+startRecoveryChallenge(transport::http::IHttpTransport& transport,
+                       std::string gatewayOrigin,
+                       const domain::identity::Fid fid,
+                       std::string custodyAddress)
+{
+    if (fid.value == 0U || !validRecoveryOrigin(gatewayOrigin)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Invalid native recovery gateway or Farcaster identity."));
+    }
+    // A public address is sent to the gateway. The caller MUST already have
+    // verified the exact same address/FID pair on Optimism IdRegistry.
+    const auto checked = addressWord(custodyAddress);
+    if (!checked) return std::unexpected(std::move(checked.error()));
+    custodyAddress = lower(std::move(custodyAddress));
+    const std::string fidText = std::to_string(fid.value);
+    auto json = recoveryPost(transport, std::move(gatewayOrigin),
+        "/v1/browser/farcaster/recovery/start",
+        "{\"fid\":\"" + fidText + "\",\"address\":\"" + custodyAddress + "\"}");
+    if (!json) return std::unexpected(std::move(json.error()));
+    const auto ticket = json->get<std::string>("ticket", "");
+    const auto responseFid = json->get<std::string>("fid", "");
+    const auto message = json->get<std::string>("message", "");
+    if (!validRecoveryTicket(ticket) || responseFid != fidText
+        || message.size() < 80U || message.size() > 4096U
+        || message.find("\n- farcaster://fid/" + fidText) == std::string::npos) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "OpenProof returned an invalid or mismatched recovery challenge."));
+    }
+    return RecoveryChallenge{.fid = fid, .ticket = ticket, .message = message};
+}
+
+foundation::result::Result<RecoveryIdentity>
+completeRecoveryChallenge(transport::http::IHttpTransport& transport,
+                          std::string gatewayOrigin,
+                          const RecoveryChallenge& challenge,
+                          std::string signature)
+{
+    if (challenge.fid.value == 0U
+        || !validRecoveryTicket(challenge.ticket)
+        || !validRecoverySignature(signature)
+        || !validRecoveryOrigin(gatewayOrigin)) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Malformed or expired native recovery proof."));
+    }
+    auto json = recoveryPost(transport, std::move(gatewayOrigin),
+        "/v1/browser/farcaster/recovery/complete",
+        "{\"ticket\":\"" + challenge.ticket + "\",\"signature\":\"" + signature + "\"}");
+    if (!json) return std::unexpected(std::move(json.error()));
+    const auto responseFid = json->get<std::string>("fid", "");
+    const auto subject = json->get<std::string>("subject", "");
+    const auto issuer = json->get<std::string>("issuer", "");
+    const auto accountTicket = json->get<std::string>("account_ticket", "");
+    const auto expires = json->get<int>("expires_in", 0);
+    const auto authenticated = json->get<bool>("authenticated", false);
+    if (!authenticated || responseFid != std::to_string(challenge.fid.value)
+        || subject.empty() || subject.size() > 512U
+        || issuer != "https://openproof.genyleap.com"
+        || !accountTicket.starts_with("recovery.")
+        || !validRecoveryTicket(std::string_view{accountTicket}.substr(9))
+        || expires < 60 || expires > 3600) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "OpenProof identity did not match the verified Farcaster recovery."));
+    }
+    return RecoveryIdentity{
+        .fid = challenge.fid,
+        .issuer = issuer,
+        .subject = subject,
+        .accountTicket = accountTicket,
+        .expiresSeconds = expires,
+    };
+}
+
 foundation::result::Result<domain::identity::Fid>
 resolveRecoveryCustodyFid(
     transport::http::IHttpTransport& transport,

@@ -44,4 +44,35 @@ resolveRecoveryCustodyFid(
     std::string custodyAddress,
     Config config = {});
 
+/**
+ * A one-use OpenProof challenge. Contains only public identity and a short-
+ * lived opaque ticket. The custody phrase and key are NEVER passed here.
+ */
+struct RecoveryChallenge final {
+    domain::identity::Fid fid{};
+    std::string ticket{};
+    std::string message{};
+};
+
+struct RecoveryIdentity final {
+    domain::identity::Fid fid{};
+    std::string issuer{};
+    std::string subject{};
+    std::string accountTicket{}; // C++-only ephemeral account grant
+    int expiresSeconds{};
+};
+
+/** After IdRegistry verification, request a fresh gateway-bound proof. */
+[[nodiscard]] foundation::result::Result<RecoveryChallenge>
+startRecoveryChallenge(transport::http::IHttpTransport& transport,
+                       std::string gatewayOrigin, domain::identity::Fid fid,
+                       std::string custodyAddress);
+
+/** Submit only the EIP-191 signature for the exact, previously issued ticket. */
+[[nodiscard]] foundation::result::Result<RecoveryIdentity>
+completeRecoveryChallenge(transport::http::IHttpTransport& transport,
+                          std::string gatewayOrigin,
+                          const RecoveryChallenge& challenge,
+                          std::string signature);
+
 }
