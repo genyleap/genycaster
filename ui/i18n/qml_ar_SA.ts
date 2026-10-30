@@ -2821,8 +2821,8 @@ Company | https://company.com</source>
             <translation>أدخل رابط قناة أو عنوان عقد صالحاً.</translation>
         </message>
         <message id="genycaster.home.hub_workspace">
-            <source>Your workspace</source>
-            <translation>مساحة عملك</translation>
+            <source>The next chapter</source>
+            <translation>الفصل القادم</translation>
         </message>
         <message id="genycaster.home.hub_coming_soon">
             <source>Coming soon</source>
