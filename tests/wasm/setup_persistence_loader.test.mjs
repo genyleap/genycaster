@@ -97,10 +97,10 @@ test('Setup anchors footer outside scroll viewport and wraps translated labels',
     const setup=read('ui/components/InitialSetup.qml');
     const language=read('ui/components/SetupLanguageSelector.qml');
     const main=read('ui/mobile/Main.qml');
-    assert.match(setup,/id: stageFlick[\s\S]*?anchors\.bottom: setupFooter\.top/);
-    assert.match(setup,/id: setupFooter[\s\S]*?anchors\.bottom: parent\.bottom/);
+    assert.match(setup,/id: stageScroll/);
     assert.match(setup,/Layout\.minimumHeight: 0/);
-    assert.match(setup,/height: root\.phone \? 76 : 72/);
+    assert.match(setup,/Layout\.preferredHeight: root\.phone \? 90 : 100/);
+    assert.match(setup,/onClicked: root\.previousStep\(\)/);
     assert.match(language,/objectName: "setupLanguageWheel"/);
     assert.match(language,/highlightRangeMode: ListView\.StrictlyEnforceRange/);
     assert.match(language,/wrapMode: Text\.WordWrap/);
@@ -130,8 +130,8 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.doesNotMatch(observer,/restore-for-setup/);
     assert.match(observer,/browserSigner->start\(QStringLiteral\("restore"\)/);
     const setup=read('ui/components/InitialSetup.qml');
-    assert.match(setup,/genycaster\.setup\.viewer_description/);
-    assert.match(setup,/id: setupFooter/);
+    assert.match(setup,/root\.guestSelected = true/);
+    assert.match(setup,/signal closeReviewRequested\(\)/);
 });
 function fakeElement() {
     const classes=new Set();
@@ -283,33 +283,20 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
         /resetInitialSetupProgress\(/);
 });
 
-test('Setup wheel and single in-place Terms/Privacy checkbox remain accessible',()=>{
-    const h=read('ui/components/SetupPageHeader.qml');
-    const l=read('ui/components/SetupLanguageSelector.qml');
+test('eight-stage Setup preserves language wheel, legal consent and navigation',()=>{
     const setup=read('ui/components/InitialSetup.qml');
+    const picker=read('ui/components/SetupLanguageSelector.qml');
     const app=read('ui/components/AppShell.qml');
-    assert.match(h,/ColumnLayout \{/);
-    assert.match(h,/font\.weight: Theme\.weightBold/);
-    assert.match(l,/id: picker/);
-    assert.match(l,/snapMode: ListView\.SnapToItem/);
-    assert.match(l,/Accessible\.role: Accessible\.RadioButton/);
-    assert.match(l,/Keys\.onDownPressed/);
-    assert.match(setup,/id: privacyStage/);
-    assert.match(setup,/qsTrId\("genycaster\.setup\.terms_body"\)/);
-    assert.match(setup,/qsTrId\("genycaster\.setup\.privacy_body"\)/);
-    assert.match(setup,/qsTrId\("genycaster\.setup\.single_legal_consent"\)/);
-    assert.match(setup,/Qt\.openUrlExternally/);
-    assert.equal((setup.match(/\bCheckBox \{/g)||[]).length,1);
-    assert.doesNotMatch(setup,/id: legalReader|legalReaderReachedEnd|openLegalReader/);
-    assert.match(setup,/root\.legalTermsChecked = checked/);
-    assert.match(setup,/root\.legalPrivacyChecked = checked/);
-    assert.match(app,/BottomNavigation \{[\s\S]*?visible: root\.mobile && !root\.initialSetupOpen/);
-    assert.doesNotMatch(app,/parent: readingPane/);
-    assert.match(app,/anchors\.bottom: readingPane\.bottom/);
-    assert.ok(app.indexOf("id: mobileBottomNavigation") < app.indexOf("id: contextResizeHandle"),
-        "mobile dock must be declared inside readingPane, not in RowLayout");
-    assert.match(app,/anchors\.bottomMargin: 0/);
-    assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(setup,/wizardSteps: \[0,1,2,3,4,5,6,7\]/);
+    assert.match(picker,/id: picker/);
+    assert.match(picker,/snapMode: ListView.SnapToItem/);
+    assert.match(setup,/id: termsStage/);
+    assert.match(setup,/qsTrId\("genycaster.setup.single_legal_consent"\)/);
+    assert.match(setup,/onToggled: root.consentChecked = checked/);
+    assert.match(setup,/acceptLegalConsent\(true, true, true\)/);
+    assert.match(setup,/Qt.openUrlExternally/);
+    assert.match(setup,/function previousStep\(\)/);
+    assert.match(app,/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
 });
 
 test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet',()=>{
@@ -334,7 +321,7 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
     assert.doesNotMatch(app.slice(dock,handle),/parent:\s*(root|readingPane)/,
         'avoid runtime reparenting of layout-owned QML controls');
     assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
-    assert.match(app.slice(dock,handle),/blurSourceItem: readingContent/);
+    assert.match(app.slice(dock,handle),/blurSourceItem: readingBackdrop/);
     assert.match(app,/anchors\.bottomMargin: 0/);
     assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
@@ -388,14 +375,14 @@ test('mobile compose launcher avoids inline keyboard and desktop hover hints',()
     assert.match(button,/if \(control\.mobileViewport \|\| !control\.hovered/);
 });
 
-test('mobile Setup approval stays within one column while desktop uses two',()=>{
+test('verification provides an adaptive, accessible approval surface',()=>{
     const setup=read('ui/components/InitialSetup.qml');
-    const approval=setup.split('id: approvalRow')[1].split('ActionButton {')[0];
-    assert.match(approval,/columns: root\.phone \? 1 : 2/);
-    assert.match(approval,/Layout\.fillWidth: root\.phone/);
-    assert.match(approval,/Layout\.minimumWidth: 0/);
-    assert.match(approval,/Layout\.maximumWidth: root\.phone \? 16777215 : 300/);
-    assert.match(approval,/qsTrId\("genycaster\.shell\.open_farcaster"\)/);
+    const approval=setup.split('id: verifyingStage')[1].split('id: appearanceStage')[0];
+    assert.match(approval,/ColumnLayout \{/);
+    assert.match(approval,/Layout.fillWidth: true/);
+    assert.match(approval,/qsTrId\("genycaster.shell.open_farcaster"\)/);
+    assert.match(approval,/root.openApproval\(\)/);
+    assert.match(approval,/root.cancelAuthentication\(\)/);
 });
 
 test('Qt button rings use keyboard focus, never persistent pointer-focus borders',()=>{
