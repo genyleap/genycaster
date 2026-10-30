@@ -10,17 +10,19 @@ ColumnLayout {
     property string title: ""
     property string subtitle: ""
     property bool showIcon: iconGlyph.length > 0
+    property bool centered: false
     property int maximumTextWidth: 620
-    readonly property int iconSize: 27
-    spacing: Theme.space3
+    readonly property int iconSize: 24
+    spacing: Theme.space2
 
     Icon {
         visible: root.showIcon
         text: root.iconGlyph
-        color: Theme.ink
+        color: Theme.inkMuted
         preferredSize: root.iconSize
         Layout.preferredWidth: root.showIcon ? root.iconSize : 0
         Layout.preferredHeight: root.showIcon ? root.iconSize : 0
+        Layout.alignment: root.centered ? Qt.AlignHCenter : Qt.AlignLeft
         Accessible.name: root.title
     }
 
@@ -30,10 +32,10 @@ ColumnLayout {
         text: root.title
         color: Theme.ink
         font.family: Theme.fontFamilyForText(text)
-        font.pixelSize: Math.max(Theme.typeTitle2Size, 30)
+        font.pixelSize: Math.min(34, Math.max(27, Theme.typeTitle2Size))
         font.weight: Theme.weightBold
         lineHeight: Theme.typeTitle2LineHeight
-        horizontalAlignment: Theme.textStartAlignment
+        horizontalAlignment: root.centered ? Text.AlignHCenter : Theme.textStartAlignment
         wrapMode: Text.WordWrap
     }
 
@@ -47,7 +49,7 @@ ColumnLayout {
         font.pixelSize: Theme.typeLabelSize
         font.weight: Theme.weightRegular
         lineHeight: Theme.typeLabelLineHeight
-        horizontalAlignment: Theme.textStartAlignment
+        horizontalAlignment: root.centered ? Text.AlignHCenter : Theme.textStartAlignment
         wrapMode: Text.WordWrap
     }
 }
