@@ -34,6 +34,9 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.player.pause",
     "genycaster.player.volume",
     "genycaster.composer.fid",
+    # The product brand and numeric version are proper identifiers, not prose.
+    "genycaster.brand.genyleap",
+    "genycaster.release.beta_version_number",
     "genycaster.settings.contract_address_placeholder",
     "genycaster.settings.custom_color_placeholder",
     "genycaster.collectible.nft_badge",
@@ -52,18 +55,22 @@ INTENTIONALLY_IDENTICAL_BY_LOCALE = {
     "de_DE": {
         "Video", "IRT — Toman", "Cast", "Recast", "System", "Ember", "Geny",
         "Ocean", "Violet", "Live", "Offline", "Editor %1", "Link", "Smileys", "Updates",
+        "DeFi", "Memes",
     },
     "es_ES": {
         "Recast · %1 recasts", "Shahanshahi (Imperial)", "Popular", "Cast", "Recast",
-        "Ember", "Geny", "Editor %1", "Visual",
+        "Ember", "Geny", "Editor %1", "Visual", "DeFi", "Memes",
     },
     "fr_FR": {
         "Explorer", "Notifications", "Image", "Recast · %1 recasts", "IRT — Toman",
         "Messages", "Cast", "Recast", "Mode", "Geny", "Violet", "Mention", "Direct",
+        "Art", "Finance", "Sports", "Collections", "Mentions", "Trading",
+        "Maintenance", "%1 contributions", "%1 · %2 contributions",
     },
     "pt_BR": {
         "Recast · %1 recasts", "Shahanshahi (Imperial)", "IRT — Toman", "%1 toman",
         "Popular", "Cast", "Recast", "Geny", "Offline", "Editor %1", "Visual", "Link",
+        "Memes",
     },
     "ru_RU": {"Cast", "Geny"},
     "ar_SA": {"Cast", "Ember", "Geny", "Ocean", "Violet"},
