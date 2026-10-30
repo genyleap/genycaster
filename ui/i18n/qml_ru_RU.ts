@@ -245,139 +245,139 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>Бета</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
-            <translation>GENY Token</translation>
+            <translation>Токен GENY</translation>
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
-            <translation>Additional Genycaster details</translation>
+            <translation>Дополнительные данные GenyCaster</translation>
         </message>
         <message id="genycaster.profile.extras_description">
             <source>Your professional category and personal links are kept with your Genycaster account.</source>
-            <translation>Your professional category and personal links are kept with your Genycaster account.</translation>
+            <translation>Ваша профессиональная категория и личные ссылки хранятся в аккаунте GenyCaster.</translation>
         </message>
         <message id="genycaster.profile.save_additional_details">
             <source>Save additional details</source>
-            <translation>Save additional details</translation>
+            <translation>Сохранить дополнительные данные</translation>
         </message>
         <message id="genycaster.connections.copy_ethereum_wallet">
             <source>Ethereum wallet</source>
-            <translation>Ethereum wallet</translation>
+            <translation>Кошелёк Ethereum</translation>
         </message>
         <message id="genycaster.connections.copy_social_account">
             <source>Social account</source>
-            <translation>Social account</translation>
+            <translation>Аккаунт социальной сети</translation>
         </message>
         <message id="genycaster.connections.copy_developer_profile">
             <source>Developer profile</source>
-            <translation>Developer profile</translation>
+            <translation>Профиль разработчика</translation>
         </message>
         <message id="genycaster.connections.copy_google_account">
             <source>Google account</source>
-            <translation>Google account</translation>
+            <translation>Аккаунт Google</translation>
         </message>
         <message id="genycaster.connections.copy_professional_profile">
             <source>Professional profile</source>
-            <translation>Professional profile</translation>
+            <translation>Профессиональный профиль</translation>
         </message>
         <message id="genycaster.connections.copy_messaging_account">
             <source>Messaging account</source>
-            <translation>Messaging account</translation>
+            <translation>Аккаунт мессенджера</translation>
         </message>
         <message id="genycaster.connections.copy_protocol_identity">
             <source>Protocol identity</source>
-            <translation>Protocol identity</translation>
+            <translation>Идентичность протокола</translation>
         </message>
         <message id="genycaster.connections.copy_on_chain_identity">
             <source>On-chain identity</source>
-            <translation>On-chain identity</translation>
+            <translation>Идентичность в блокчейне</translation>
         </message>
         <message id="genycaster.connections.copy_external_account">
             <source>External account</source>
-            <translation>External account</translation>
+            <translation>Внешний аккаунт</translation>
         </message>
         <message id="genycaster.connections.copy_farcaster_verification">
             <source>Farcaster verification</source>
-            <translation>Farcaster verification</translation>
+            <translation>Подтверждение Farcaster</translation>
         </message>
         <message id="genycaster.connections.copy_confirm_this_farcaster_account_in_your_wallet_app_to_manage_connections">
             <source>Confirm this Farcaster account in your wallet app to manage connections.</source>
-            <translation>Confirm this Farcaster account in your wallet app to manage connections.</translation>
+            <translation>Подтвердите этот аккаунт Farcaster в приложении кошелька для управления связями.</translation>
         </message>
         <message id="genycaster.connections.copy_these_links_are_saved_with_your_genycaster_account_verify_with_farcaster">
             <source>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</source>
-            <translation>These links are saved with your Genycaster account. Verify with Farcaster to manage providers or confirm their current status.</translation>
+            <translation>Эти связи сохраняются в вашем аккаунте GenyCaster. Подтвердите личность через Farcaster, чтобы управлять провайдерами или проверить их состояние.</translation>
         </message>
         <message id="genycaster.connections.copy_verify_ownership_with_farcaster_to_manage_your_connections_no_genyleap_a">
             <source>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</source>
-            <translation>Verify ownership with Farcaster to manage your connections. No Genyleap account or password is required.</translation>
+            <translation>Подтвердите владение через Farcaster, чтобы управлять связями. Аккаунт или пароль Genyleap не требуется.</translation>
         </message>
         <message id="genycaster.connections.copy_waiting_for_confirmation">
             <source>Waiting for confirmation…</source>
-            <translation>Waiting for confirmation…</translation>
+            <translation>Ожидание подтверждения…</translation>
         </message>
         <message id="genycaster.connections.copy_open_farcaster_verification">
             <source>Open Farcaster verification</source>
-            <translation>Open Farcaster verification</translation>
+            <translation>Открыть подтверждение Farcaster</translation>
         </message>
         <message id="genycaster.connections.copy_verified">
             <source>Verified</source>
-            <translation>Verified</translation>
+            <translation>Подтверждено</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_links">
             <source>Saved account links</source>
-            <translation>Saved account links</translation>
+            <translation>Сохранённые связи аккаунтов</translation>
         </message>
         <message id="genycaster.connections.copy_hide_verification">
             <source>Hide verification</source>
-            <translation>Hide verification</translation>
+            <translation>Скрыть подтверждение</translation>
         </message>
         <message id="genycaster.connections.copy_edit_connections">
             <source>Edit connections</source>
-            <translation>Edit connections</translation>
+            <translation>Изменить связи</translation>
         </message>
         <message id="genycaster.connections.copy_connecting_1_confirm_in_the_provider_window_genycaster_will_update_this_">
             <source>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</source>
-            <translation>Connecting %1. Confirm in the provider window; Genycaster will update this list automatically.</translation>
+            <translation>Подключение %1. Подтвердите действие в окне провайдера. GenyCaster автоматически обновит список.</translation>
         </message>
         <message id="genycaster.connections.copy_saved_link_1">
             <source>Saved link: %1</source>
-            <translation>Saved link: %1</translation>
+            <translation>Сохранённая ссылка: %1</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link">
             <source>Saved account link</source>
-            <translation>Saved account link</translation>
+            <translation>Сохранённая связь аккаунта</translation>
         </message>
         <message id="genycaster.connections.copy_signed_proof_required">
             <source>Signed proof required</source>
-            <translation>Signed proof required</translation>
+            <translation>Требуется подписанное подтверждение</translation>
         </message>
         <message id="genycaster.connections.copy_verified_account">
             <source>Verified account</source>
-            <translation>Verified account</translation>
+            <translation>Подтверждённый аккаунт</translation>
         </message>
         <message id="genycaster.connections.copy_saved_account_link_verification_required_for_changes">
             <source>Saved account link — verification required for changes</source>
-            <translation>Saved account link — verification required for changes</translation>
+            <translation>Сохранённая связь аккаунта — для изменений требуется подтверждение</translation>
         </message>
         <message id="genycaster.connections.copy_view">
             <source>View</source>
-            <translation>View</translation>
+            <translation>Просмотреть</translation>
         </message>
         <message id="genycaster.connections.copy_find">
             <source>Find</source>
-            <translation>Find</translation>
+            <translation>Найти</translation>
         </message>
         <message id="genycaster.connections.copy_reconnect">
             <source>Reconnect</source>
-            <translation>Reconnect</translation>
+            <translation>Подключить снова</translation>
         </message>
         <message id="genycaster.connections.copy_confirm">
             <source>Confirm</source>
-            <translation>Confirm</translation>
+            <translation>Подтвердить</translation>
         </message>
         <message id="genycaster.connections.copy_remove">
             <source>Remove</source>
@@ -385,7 +385,7 @@
         </message>
         <message id="genycaster.connections.copy_connect">
             <source>Connect</source>
-            <translation>Connect</translation>
+            <translation>Подключить</translation>
         </message>
         <message id="genycaster.connections.copy_cancel">
             <source>Cancel</source>
@@ -397,11 +397,11 @@
         </message>
         <message id="genycaster.connections.copy_proof_only">
             <source>Proof only</source>
-            <translation>Proof only</translation>
+            <translation>Только подтверждение</translation>
         </message>
         <message id="genycaster.connections.copy_public_linkedin_profile_url">
             <source>Public LinkedIn profile URL</source>
-            <translation>Public LinkedIn profile URL</translation>
+            <translation>URL публичного профиля LinkedIn</translation>
         </message>
         <message id="genycaster.connections.copy_save">
             <source>Save</source>
@@ -409,7 +409,7 @@
         </message>
         <message id="genycaster.connections.copy_add_your_public_linkedin_profile_url">
             <source>Add your public LinkedIn profile URL.</source>
-            <translation>Add your public LinkedIn profile URL.</translation>
+            <translation>Добавьте URL своего публичного профиля LinkedIn.</translation>
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
@@ -417,19 +417,19 @@
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
-            <translation>Showing saved provider list. Refresh when online.</translation>
+            <translation>Показан сохранённый список провайдеров. Обновите его при подключении к сети.</translation>
         </message>
         <message id="genycaster.connections.copy_connected_accounts_share_your_secure_identity">
             <source>Connected accounts share your secure identity.</source>
-            <translation>Connected accounts share your secure identity.</translation>
+            <translation>Связанные аккаунты используют вашу защищённую цифровую личность.</translation>
         </message>
         <message id="genycaster.home.scope_feed">
             <source>Feed</source>
-            <translation>Feed</translation>
+            <translation>Лента</translation>
         </message>
         <message id="genycaster.home.scope_everyone">
             <source>Everyone</source>
-            <translation>Everyone</translation>
+            <translation>Все</translation>
         </message>
         <message id="genycaster.home.scope_following">
             <source>Following</source>
@@ -437,11 +437,11 @@
         </message>
         <message id="genycaster.profile.edit_image_url">
             <source>Edit your media URLs</source>
-            <translation>Edit your media URLs</translation>
+            <translation>Изменить URL медиафайлов</translation>
         </message>
         <message id="genycaster.profile.hide_image_url">
             <source>Hide image URLs</source>
-            <translation>Hide image URLs</translation>
+            <translation>Скрыть URL изображений</translation>
         </message>
         <message id="genycaster.profile.image_preview_hint">
             <source>Preview and upload a new photo</source>
@@ -449,67 +449,67 @@
         </message>
         <message id="genycaster.profile.edit_sections_subtitle">
             <source>Edit Farcaster profile and personal links</source>
-            <translation>Edit Farcaster profile and personal links</translation>
+            <translation>Изменить профиль Farcaster и личные ссылки</translation>
         </message>
         <message id="genycaster.profile.conflict_notice">
             <source>Another device has newer profile details. Your previous local edit was preserved.</source>
-            <translation>Another device has newer profile details. Your previous local edit was preserved.</translation>
+            <translation>На другом устройстве есть более свежие данные профиля. Ваше предыдущее локальное изменение сохранено.</translation>
         </message>
         <message id="genycaster.profile.profession_limit">
             <source>Profession must be 80 characters or fewer.</source>
-            <translation>Profession must be 80 characters or fewer.</translation>
+            <translation>Название профессии должно содержать не более 80 символов.</translation>
         </message>
         <message id="genycaster.profile.links_limit">
             <source>Use up to five HTTPS links. Optional format: Personal | https://example.com</source>
-            <translation>Use up to five HTTPS links. Optional format: Personal | https://example.com</translation>
+            <translation>Добавьте до пяти HTTPS-ссылок. Необязательный формат: Личное | https://example.com</translation>
         </message>
         <message id="genycaster.profile.local_save_failed">
             <source>Could not save local profile details.</source>
-            <translation>Could not save local profile details.</translation>
+            <translation>Не удалось сохранить локальные данные профиля.</translation>
         </message>
         <message id="genycaster.profile.network_manual_url">
             <source> · URL entered by you (not LinkedIn-verified)</source>
-            <translation> · URL entered by you (not LinkedIn-verified)</translation>
+            <translation> · URL введён вручную (не подтверждён LinkedIn)</translation>
         </message>
         <message id="genycaster.profile.network_linked_profile">
             <source> · linked profile</source>
-            <translation> · linked profile</translation>
+            <translation> · связанный профиль</translation>
         </message>
         <message id="genycaster.profile.network_previously_linked">
             <source> · previously linked</source>
-            <translation> · previously linked</translation>
+            <translation> · ранее связан</translation>
         </message>
         <message id="genycaster.profile.network_search_linkedin">
             <source> · search LinkedIn by name</source>
-            <translation> · search LinkedIn by name</translation>
+            <translation> · поиск в LinkedIn по имени</translation>
         </message>
         <message id="genycaster.profile.network_manage_connection">
             <source> · manage connection</source>
-            <translation> · manage connection</translation>
+            <translation> · управлять связью</translation>
         </message>
         <message id="genycaster.profile.network_open_verified">
             <source>Open verified network profile</source>
-            <translation>Open verified network profile</translation>
+            <translation>Открыть подтверждённый профиль сети</translation>
         </message>
         <message id="genycaster.profile.network_find_linkedin">
             <source>Find the linked account on LinkedIn</source>
-            <translation>Find the linked account on LinkedIn</translation>
+            <translation>Найти связанный аккаунт в LinkedIn</translation>
         </message>
         <message id="genycaster.profile.network_manage">
             <source>Manage connection</source>
-            <translation>Manage connection</translation>
+            <translation>Управлять связью</translation>
         </message>
         <message id="genycaster.profile.verified_geny_holder">
             <source>Verified GENY holder</source>
-            <translation>Verified GENY holder</translation>
+            <translation>Подтверждённый владелец GENY</translation>
         </message>
         <message id="genycaster.profile.save_retry_notice">
             <source>Your profile changes could not be saved yet. Edit your profile to retry.</source>
-            <translation>Your profile changes could not be saved yet. Edit your profile to retry.</translation>
+            <translation>Изменения профиля пока не удалось сохранить. Откройте редактирование профиля, чтобы повторить попытку.</translation>
         </message>
         <message id="genycaster.profile.saving_details">
             <source>Saving your profile changes…</source>
-            <translation>Saving your profile changes…</translation>
+            <translation>Сохранение изменений профиля…</translation>
         </message>
         <message id="genycaster.profile.following">
             <source>Following</source>
@@ -522,12 +522,11 @@
         <message id="genycaster.profile.links_placeholder">
             <source>Personal | https://example.com
 Company | https://company.com</source>
-            <translation>Personal | https://example.com
-Company | https://company.com</translation>
+            <translation>Личное | https://example.com&#10;Компания | https://company.com</translation>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
-            <translation>in</translation>
+            <translation>в</translation>
         </message>
         <message id="genycaster.profile.protocol_heading">
             <source>Farcaster profile</source>
@@ -535,7 +534,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.protocol_description">
             <source>These details are signed and published to Farcaster for all clients.</source>
-            <translation>These details are signed and published to Farcaster for all clients.</translation>
+            <translation>Эти данные подписываются и публикуются в Farcaster для всех клиентов.</translation>
         </message>
         <message id="genycaster.profile.display_name">
             <source>Display name</source>
@@ -543,7 +542,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.bio">
             <source>Bio</source>
-            <translation>Bio</translation>
+            <translation>О себе</translation>
         </message>
         <message id="genycaster.profile.avatar">
             <source>Profile photo</source>
@@ -555,59 +554,59 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.upload_avatar">
             <source>Upload profile photo</source>
-            <translation>Upload profile photo</translation>
+            <translation>Загрузить фото профиля</translation>
         </message>
         <message id="genycaster.profile.upload_banner">
             <source>Upload banner</source>
-            <translation>Upload banner</translation>
+            <translation>Загрузить обложку</translation>
         </message>
         <message id="genycaster.profile.uploading_image">
             <source>Uploading image…</source>
-            <translation>Uploading image…</translation>
+            <translation>Загрузка изображения…</translation>
         </message>
         <message id="genycaster.profile.saving_to_farcaster">
             <source>Publishing changes to Farcaster…</source>
-            <translation>Publishing changes to Farcaster…</translation>
+            <translation>Публикация изменений в Farcaster…</translation>
         </message>
         <message id="genycaster.profile.protocol_confirmed">
             <source>Confirmed on Farcaster. Profile will refresh.</source>
-            <translation>Confirmed on Farcaster. Profile will refresh.</translation>
+            <translation>Подтверждено в Farcaster. Профиль обновится.</translation>
         </message>
         <message id="genycaster.profile.update_farcaster">
             <source>Update Farcaster profile</source>
-            <translation>Update Farcaster profile</translation>
+            <translation>Обновить профиль Farcaster</translation>
         </message>
         <message id="genycaster.profile.no_protocol_changes">
             <source>No Farcaster profile changes.</source>
-            <translation>No Farcaster profile changes.</translation>
+            <translation>Нет изменений профиля Farcaster.</translation>
         </message>
         <message id="genycaster.profile.value_too_long">
             <source>A value exceeds the Farcaster byte limit.</source>
-            <translation>A value exceeds the Farcaster byte limit.</translation>
+            <translation>Значение превышает ограничение Farcaster по числу байтов.</translation>
         </message>
         <message id="genycaster.profile.protocol_write_failed">
             <source>Farcaster rejected the profile changes.</source>
-            <translation>Farcaster rejected the profile changes.</translation>
+            <translation>Farcaster отклонил изменения профиля.</translation>
         </message>
         <message id="genycaster.profile.protocol_signer_required">
             <source>A Farcaster signer with profile-edit permission is required.</source>
-            <translation>A Farcaster signer with profile-edit permission is required.</translation>
+            <translation>Требуется подписант Farcaster с разрешением на изменение профиля.</translation>
         </message>
         <message id="genycaster.profile.protocol_native_unavailable">
             <source>Protocol profile editing is not yet available in the native runtime.</source>
-            <translation>Protocol profile editing is not yet available in the native runtime.</translation>
+            <translation>Редактирование профиля протокола пока недоступно в нативном приложении.</translation>
         </message>
         <message id="genycaster.profile.select_image">
             <source>Choose a profile image</source>
-            <translation>Choose a profile image</translation>
+            <translation>Выбрать изображение профиля</translation>
         </message>
         <message id="genycaster.profile.invalid_uploaded_image">
             <source>The uploaded image URL is not a verified public media asset.</source>
-            <translation>The uploaded image URL is not a verified public media asset.</translation>
+            <translation>URL загруженного изображения не является подтверждённым общедоступным медиафайлом.</translation>
         </message>
         <message id="genycaster.profile.option.select_category">
             <source>Select category</source>
-            <translation>Select category</translation>
+            <translation>Выбрать категорию</translation>
         </message>
         <message id="genycaster.profile.option.arts_entertainment">
             <source>Arts &amp; entertainment</source>
@@ -663,19 +662,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.option.select_role">
             <source>Select role</source>
-            <translation>Select role</translation>
+            <translation>Выбрать роль</translation>
         </message>
         <message id="genycaster.profile.option.artist">
             <source>Artist</source>
-            <translation>Artist</translation>
+            <translation>Художник</translation>
         </message>
         <message id="genycaster.profile.option.author">
             <source>Author</source>
-            <translation>Author</translation>
+            <translation>Автор</translation>
         </message>
         <message id="genycaster.profile.option.creator">
             <source>Creator</source>
-            <translation>Creator</translation>
+            <translation>Создатель контента</translation>
         </message>
         <message id="genycaster.profile.option.designer">
             <source>Designer</source>
@@ -731,35 +730,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.profile.more_links">
             <source>and %1 more</source>
-            <translation>and %1 more</translation>
+            <translation>и ещё %1</translation>
         </message>
         <message id="genycaster.profile.show_all_links">
             <source>Show all profile links</source>
-            <translation>Show all profile links</translation>
+            <translation>Показать все ссылки профиля</translation>
         </message>
         <message id="genycaster.profile.options">
             <source>Profile options</source>
-            <translation>Profile options</translation>
+            <translation>Настройки профиля</translation>
         </message>
         <message id="genycaster.profile.links_editor_hint">
             <source>Links — optional title | HTTPS URL, one per line</source>
-            <translation>Links — optional title | HTTPS URL, one per line</translation>
+            <translation>Ссылки — необязательное название | HTTPS-адрес, по одному в строке</translation>
         </message>
         <message id="genycaster.share.copy_profile_link">
             <source>Copy profile link</source>
-            <translation>Copy profile link</translation>
+            <translation>Скопировать ссылку профиля</translation>
         </message>
         <message id="genycaster.share.open_farcaster">
             <source>Open in Farcaster</source>
-            <translation>Open in Farcaster</translation>
+            <translation>Открыть в Farcaster</translation>
         </message>
         <message id="genycaster.share.cast">
             <source>Share cast</source>
-            <translation>Share cast</translation>
+            <translation>Поделиться публикацией</translation>
         </message>
         <message id="genycaster.share.share_action">
             <source>Share…</source>
-            <translation>Share…</translation>
+            <translation>Поделиться…</translation>
         </message>
         <message id="genycaster.share.copy_link">
             <source>Copy link</source>
@@ -767,11 +766,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.share.copy_farcaster_link">
             <source>Copy Farcaster link</source>
-            <translation>Copy Farcaster link</translation>
+            <translation>Скопировать ссылку Farcaster</translation>
         </message>
         <message id="genycaster.share.open_quorum">
             <source>Open in Quorum</source>
-            <translation>Open in Quorum</translation>
+            <translation>Открыть в Quorum</translation>
         </message>
         <message id="genycaster.brand.genyleap">
             <source>Genyleap</source>
@@ -2723,11 +2722,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_one">
             <source>Discover GENY in the Genyleap ecosystem.</source>
-            <translation>Discover GENY in the Genyleap ecosystem.</translation>
+            <translation>Откройте для себя GENY в экосистеме Genyleap.</translation>
         </message>
         <message id="genycaster.home.geny_token_slide_two">
             <source>A new chapter for decentralized experiences.</source>
-            <translation>A new chapter for decentralized experiences.</translation>
+            <translation>Новая глава децентрализованных возможностей.</translation>
         </message>
         <message id="genycaster.composer.channel">
             <source>Channel</source>
@@ -2747,27 +2746,27 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.your_channels">
             <source>My channels &amp; discovery</source>
-            <translation>My channels &amp; discovery</translation>
+            <translation>Мои каналы и поиск</translation>
         </message>
         <message id="genycaster.composer.home_channel">
             <source>Home</source>
-            <translation>Home</translation>
+            <translation>Главная</translation>
         </message>
         <message id="genycaster.composer.no_channel">
             <source>Post without a channel</source>
-            <translation>Post without a channel</translation>
+            <translation>Опубликовать без канала</translation>
         </message>
         <message id="genycaster.composer.joined_channel">
             <source>Joined</source>
-            <translation>Joined</translation>
+            <translation>Вы участник</translation>
         </message>
         <message id="genycaster.composer.not_joined_channel">
             <source>Not joined</source>
-            <translation>Not joined</translation>
+            <translation>Вы не участник</translation>
         </message>
         <message id="genycaster.composer.channel_member_count">
             <source>%1 members</source>
-            <translation>%1 members</translation>
+            <translation>Участников: %1</translation>
         </message>
         <message id="genycaster.composer.channel_follower_count">
             <source>%1 followers</source>
@@ -2775,15 +2774,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_picker_title">
             <source>Choose a channel</source>
-            <translation>Choose a channel</translation>
+            <translation>Выбрать канал</translation>
         </message>
         <message id="genycaster.composer.channel_picker_hint">
             <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
-            <translation>Choose a channel from the network. Your cast will be published to its verified parent URL.</translation>
+            <translation>Выберите канал в сети. Ваша публикация будет размещена с его подтверждённым родительским URL.</translation>
         </message>
         <message id="genycaster.composer.channel_search">
             <source>Search channels by name or ID</source>
-            <translation>Search channels by name or ID</translation>
+            <translation>Поиск каналов по названию или ID</translation>
         </message>
         <message id="genycaster.composer.channel_suggestions">
             <source>Channels</source>
@@ -2791,11 +2790,11 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.composer.channel_no_results">
             <source>No channels found. Try another search.</source>
-            <translation>No channels found. Try another search.</translation>
+            <translation>Каналы не найдены. Попробуйте другой запрос.</translation>
         </message>
         <message id="genycaster.composer.channel_search_prompt">
             <source>Type two or more letters to search.</source>
-            <translation>Type two or more letters to search.</translation>
+            <translation>Для поиска введите не менее двух букв.</translation>
         </message>
         <message id="genycaster.composer.category">
             <source>Category</source>
@@ -2803,19 +2802,19 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.composer.clear_content">
             <source>Clear content</source>
-            <translation>Clear content</translation>
+            <translation>Очистить содержимое</translation>
         </message>
         <message id="genycaster.composer.clear_all_title">
             <source>Clear this cast?</source>
-            <translation>Clear this cast?</translation>
+            <translation>Очистить эту публикацию?</translation>
         </message>
         <message id="genycaster.composer.clear_all_confirmation">
             <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
-            <translation>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</translation>
+            <translation>Удалить текст, вложения и дополнительные публикации из черновика? Это действие нельзя отменить. Адресат ответа не изменится.</translation>
         </message>
         <message id="genycaster.composer.context_clear">
             <source>Clear</source>
-            <translation>Clear</translation>
+            <translation>Очистить</translation>
         </message>
         <message id="genycaster.composer.context_invalid">
             <source>Use a valid channel URL or token contract address.</source>
@@ -4059,15 +4058,15 @@ Company | https://company.com</translation>
         </message>
                 <message id="genycaster.settings.text_selection">
             <source>Text selection</source>
-            <translation>Text selection</translation>
+            <translation>Выделение текста</translation>
         </message>
         <message id="genycaster.settings.text_selection_description">
             <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>Choose how you select and copy text in casts and the composer.</translation>
+            <translation>Выберите способ выделения и копирования текста в публикациях и редакторе.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
-            <translation>Genycaster</translation>
+            <translation>GenyCaster</translation>
         </message>
         <message id="genycaster.settings.selection_system">
             <source>System</source>
@@ -4075,7 +4074,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.selection_browser_limit">
             <source>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</source>
-            <translation>Qt/WASM renders into a canvas, so Safari/browser-native text selection is unavailable here. Genycaster selection remains active.</translation>
+            <translation>Qt/WASM отображается на холсте, поэтому стандартное выделение текста Safari или браузера здесь недоступно. Выделение в GenyCaster остаётся активным.</translation>
         </message>
         <message id="genycaster.settings.appearance">
             <source>Appearance</source>
@@ -5655,15 +5654,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.setup.node_online">
             <source>Online · responsive</source>
-            <translation>Online · responsive</translation>
+            <translation>В сети · отвечает</translation>
         </message>
         <message id="genycaster.setup.recovery_signer_ready">
             <source>Publishing is active on this device.</source>
-            <translation>Publishing is active on this device.</translation>
+            <translation>Публикация доступна на этом устройстве.</translation>
         </message>
         <message id="genycaster.setup.recovery_why_no_words">
             <source>How do I view my recovery words?</source>
-            <translation>How do I view my recovery words?</translation>
+            <translation>Как посмотреть слова восстановления?</translation>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
             <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings &gt; Advanced &gt; Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
@@ -5671,19 +5670,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
-            <translation>Mini App preview unavailable</translation>
+            <translation>Предпросмотр мини-приложения недоступен</translation>
         </message>
         <message id="genycaster.miniapp.launch_failed">
             <source>Mini App could not be opened</source>
-            <translation>Mini App could not be opened</translation>
+            <translation>Не удалось открыть мини-приложение</translation>
         </message>
         <message id="genycaster.search.no_channel_results">
             <source>No channels match this search.</source>
-            <translation>No channels match this search.</translation>
+            <translation>По вашему запросу каналы не найдены.</translation>
         </message>
         <message id="genycaster.search.no_profile_results">
             <source>No profiles match this search.</source>
-            <translation>No profiles match this search.</translation>
+            <translation>По вашему запросу профили не найдены.</translation>
         </message>
         <message id="genycaster.settings.power_save_description">
             <source>Reduce background animation and animated media to save battery.</source>
@@ -6215,19 +6214,19 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.activity.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>Публикации</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
-            <translation>1Y</translation>
+            <translation>1 год</translation>
         </message>
         <message id="genycaster.activity.range_month">
             <source>1M</source>
-            <translation>1M</translation>
+            <translation>1 мес.</translation>
         </message>
         <message id="genycaster.activity.range_three_months">
             <source>3M</source>
-            <translation>3M</translation>
+            <translation>3 мес.</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
@@ -6299,35 +6298,35 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.mobile_action_title">
             <source>Mobile Action Button</source>
-            <translation>Mobile Action Button</translation>
+            <translation>Мобильная кнопка действия</translation>
         </message>
         <message id="genycaster.settings.mobile_action_description">
             <source>Choose what the floating button does and its color. Saved on this device.</source>
-            <translation>Choose what the floating button does and its color. Saved on this device.</translation>
+            <translation>Выберите действие и цвет плавающей кнопки. Настройка сохранится на этом устройстве.</translation>
         </message>
         <message id="genycaster.settings.mobile_action_function">
             <source>Button action</source>
-            <translation>Button action</translation>
+            <translation>Действие кнопки</translation>
         </message>
         <message id="genycaster.settings.mobile_action_search">
             <source>Search</source>
-            <translation>Search</translation>
+            <translation>Поиск</translation>
         </message>
         <message id="genycaster.settings.mobile_action_color">
             <source>Button color</source>
-            <translation>Button color</translation>
+            <translation>Цвет кнопки</translation>
         </message>
         <message id="genycaster.settings.mobile_action_blue">
             <source>Blue</source>
-            <translation>Blue</translation>
+            <translation>Синий</translation>
         </message>
         <message id="genycaster.settings.mobile_action_coral">
             <source>Red</source>
-            <translation>Red</translation>
+            <translation>Красный</translation>
         </message>
         <message id="genycaster.settings.mobile_action_theme">
             <source>Theme</source>
-            <translation>Theme</translation>
+            <translation>Тема</translation>
         </message>
         <message id="genycaster.navigation.back_to_top">
             <source>Back to top</source>
