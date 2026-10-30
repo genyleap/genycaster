@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQml.Models
@@ -114,7 +115,11 @@ Drawer {
     // on Android some window managers report zero after implicit padding.
     readonly property real statusInset: root.compact
         ? Math.max(Qt.platform.os === "android" ? 24 : 0,
-                   parent ? parent.SafeArea.margins.top : 0) : 0
+                   parent ? parent.SafeArea.margins.top : 0,
+                   // An overlay can report zero inset even when the host
+                   // window still reserves a notched system status area.
+                   root.Window.window && root.Window.window.contentItem
+                       ? root.Window.window.contentItem.SafeArea.margins.top : 0) : 0
     topPadding: (root.compact ? Theme.space3 : Theme.space5) + root.statusInset
     bottomPadding: root.compact ? Theme.space2 : Theme.space5
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside

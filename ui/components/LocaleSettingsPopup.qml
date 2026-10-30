@@ -865,6 +865,7 @@ GenyDrawer {
                                     Layout.minimumWidth: 0
                                     compact: true
                                     quiet: true
+                                    wrapText: root.mobilePresentation
                                     iconGlyph: modelData.icon
                                     selected: Theme.mobileAction === modelData.id
                                     text: modelData.label
@@ -881,8 +882,13 @@ GenyDrawer {
                         GridLayout {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
-                            columns: 3
+                            // Three labels and icons are too narrow on phones,
+                            // especially with translated text. Preserve the
+                            // compact desktop row while giving phones two columns.
+                            columns: root.mobilePresentation ? 2 : 3
+                            uniformCellWidths: true
                             columnSpacing: Theme.space2
+                            rowSpacing: Theme.space2
                             Repeater {
                                 model: [
                                     {id:"blue",color:"#3266FA",label:qsTrId("genycaster.settings.mobile_action_blue")},
@@ -896,6 +902,7 @@ GenyDrawer {
                                     Layout.minimumWidth: 0
                                     compact: true
                                     quiet: true
+                                    wrapText: root.mobilePresentation
                                     iconGlyph: Theme.iconCheck
                                     customIconColor: modelData.color
                                     selected: Theme.mobileActionColorPreset === modelData.id

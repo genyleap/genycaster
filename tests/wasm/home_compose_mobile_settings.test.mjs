@@ -21,7 +21,8 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
 test('Mobile Settings remains full-height with grouped index navigation', () => {
     const settings = source('LocaleSettingsPopup.qml');
     const shell = source('AppShell.qml');
-    assert.match(settings, /height: parent \? parent\.height : 820/);
+    assert.match(settings, /height: parent \? \(mobilePresentation[\s\S]*?parent\.SafeArea\.margins\.top \+ Theme\.space3/);
+    assert.match(settings, /bottomPadding: root\.contentPadding \+ \(root\.mobilePresentation/);
     assert.match(settings, /component MobileSettingsGroup: ColumnLayout/);
     assert.match(settings, /id: mobileSettingsIndex/);
     assert.match(settings, /visible: root\.mobilePresentation && root\.mobileIndexOpen/);
@@ -53,4 +54,24 @@ test('mobile Settings navigation categories are translated for every built-in lo
             assert.ok(ts.includes(needle),locale+' missing '+key);
         }
     }
+});
+
+test('Mobile action settings keep all function and color labels readable', () => {
+    const settings = source('LocaleSettingsPopup.qml');
+    const start = settings.indexOf('objectName: "mobileActionButtonPreferences"');
+    const end = settings.indexOf('objectName: "textSelectionPreference"', start);
+    assert.ok(start >= 0 && end > start);
+    const preferences = settings.slice(start, end);
+    assert.match(preferences, /columns: root\.mobilePresentation \? 2 : 4/);
+    assert.match(preferences, /columns: root\.mobilePresentation \? 2 : 3/);
+    assert.match(preferences, /uniformCellWidths: true/);
+    assert.equal((preferences.match(/wrapText: root\.mobilePresentation/g) || []).length, 2);
+});
+
+test('Mobile search reads the actual host window status safe area', () => {
+    const search = source('SearchPalette.qml');
+    assert.match(search, /import QtQuick\.Window/);
+    assert.match(search, /parent \? parent\.SafeArea\.margins\.top : 0/);
+    assert.match(search, /root\.Window\.window\.contentItem\.SafeArea\.margins\.top : 0/);
+    assert.match(search, /topPadding: \(root\.compact \? Theme\.space3 : Theme\.space5\) \+ root\.statusInset/);
 });
