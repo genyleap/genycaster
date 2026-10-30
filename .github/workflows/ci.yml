@@ -340,7 +340,7 @@ jobs:
           - arch: x86_64
             runner: windows-2022
             msvc_arch: amd64
-            vcpkg_triplet: ${{ matrix.vcpkg_triplet }}
+            vcpkg_triplet: x64-windows
           - arch: arm64
             runner: windows-11-arm
             msvc_arch: arm64
