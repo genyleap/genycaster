@@ -5028,6 +5028,86 @@ Company | https://company.com</source>
             <source>OpenProof owns your account identity; Farcaster is the required linked protocol identity.</source>
             <translation>OpenProof هو المرجع لهوية حسابك؛ وFarcaster هو هوية البروتوكول المرتبطة المطلوبة.</translation>
         </message>
+        <message id="genycaster.setup.design_welcome_description">
+            <source>A native Farcaster client for the decentralized social web.</source>
+            <translation>عميل فاركاستر أصلي للويب الاجتماعي اللامركزي.</translation>
+        </message>
+        <message id="genycaster.setup.design_language_title">
+            <source>Select your language</source>
+            <translation>اختر لغتك</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_title">
+            <source>Terms &amp; Privacy</source>
+            <translation>الشروط والخصوصية</translation>
+        </message>
+        <message id="genycaster.setup.design_terms_description">
+            <source>Please review and accept our terms to continue.</source>
+            <translation>يرجى مراجعة الشروط والموافقة عليها للمتابعة.</translation>
+        </message>
+        <message id="genycaster.setup.design_account_title">
+            <source>Choose an account</source>
+            <translation>اختر حسابًا</translation>
+        </message>
+        <message id="genycaster.setup.design_account_description">
+            <source>How do you want to continue with GenyCaster?</source>
+            <translation>كيف تريد المتابعة مع جني‌كاستر؟</translation>
+        </message>
+        <message id="genycaster.setup.design_create_account">
+            <source>Create new account</source>
+            <translation>إنشاء حساب جديد</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_account">
+            <source>Use existing account</source>
+            <translation>استخدام حساب موجود</translation>
+        </message>
+        <message id="genycaster.setup.design_existing_description">
+            <source>Connect your Genyleap or Farcaster identity.</source>
+            <translation>اربط هويتك في جني‌ليب أو فاركاستر.</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_title">
+            <source>Sign in</source>
+            <translation>تسجيل الدخول</translation>
+        </message>
+        <message id="genycaster.setup.design_signin_description">
+            <source>Connect your identity using Genyleap or another supported provider.</source>
+            <translation>اربط هويتك عبر جني‌ليب أو مزود آخر مدعوم.</translation>
+        </message>
+        <message id="genycaster.setup.design_recovery_title">
+            <source>Use recovery phrase</source>
+            <translation>استخدام عبارة الاسترداد</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_title">
+            <source>Verifying your credentials...</source>
+            <translation>جارٍ التحقق من بيانات اعتمادك…</translation>
+        </message>
+        <message id="genycaster.setup.design_verifying_description">
+            <source>Please wait while we securely verify your identity.</source>
+            <translation>يرجى الانتظار بينما نتحقق من هويتك بأمان.</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_title">
+            <source>Choose an appearance</source>
+            <translation>اختر المظهر</translation>
+        </message>
+        <message id="genycaster.setup.design_appearance_description">
+            <source>You can change this later in Settings.</source>
+            <translation>يمكنك تغيير ذلك لاحقًا من الإعدادات.</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_title">
+            <source>You&#x27;re all set!</source>
+            <translation>كل شيء جاهز!</translation>
+        </message>
+        <message id="genycaster.setup.design_complete_description">
+            <source>GenyCaster is ready to use. Enjoy the decentralized social web.</source>
+            <translation>جني‌كاستر جاهز للاستخدام. استمتع بالويب الاجتماعي اللامركزي.</translation>
+        </message>
+        <message id="genycaster.setup.design_get_started">
+            <source>Get started</source>
+            <translation>ابدأ</translation>
+        </message>
+        <message id="genycaster.setup.design_start">
+            <source>Start using GenyCaster</source>
+            <translation>ابدأ استخدام جني‌كاستر</translation>
+        </message>
         <message id="genycaster.setup.title">
             <source>Set up Genycaster</source>
             <translation>إعداد Genycaster</translation>
