@@ -169,7 +169,7 @@
         </message>
         <message id="genycaster.topic.design">
             <source>Design</source>
-            <translation>Design</translation>
+            <translation>Design gráfico</translation>
         </message>
         <message id="genycaster.topic.technology">
             <source>Technology</source>
@@ -245,7 +245,7 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>Versão beta</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
@@ -413,7 +413,7 @@
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
-            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+            <translation>O LinkedIn não compartilha a URL pública do perfil pelo login padrão. A opção Buscar pesquisa no LinkedIn pelo nome da conta vinculada.</translation>
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
@@ -822,7 +822,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.link_number">
             <source>Link %1</source>
-            <translation>Link %1</translation>
+            <translation>Vínculo %1</translation>
         </message>
         <message id="genycaster.profile.selection_error">
             <source>Choose a category and role from the lists.</source>
@@ -882,7 +882,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.links_title">
             <source>Links</source>
-            <translation>Links</translation>
+            <translation>Vínculos</translation>
         </message>
         <message id="genycaster.profile.links_subtitle">
             <source>Personal and professional websites</source>
@@ -1450,7 +1450,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.beta_release_short">
             <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · Beta 1.0</translation>
+            <translation>GenyCaster · Versão beta 1.0</translation>
         </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
