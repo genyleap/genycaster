@@ -20,6 +20,9 @@ def main() -> None:
     assert "github.event_name == 'push' && needs.gate.outputs.release == 'true'" in workflow
     assert "needs: [gate, core, linux, macos, windows, android, web]" in workflow
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
+    assert "            vcpkg_triplet: x64-windows" in workflow
+    assert "            vcpkg_triplet: arm64-windows" in workflow
+    assert "            vcpkg_triplet: ${{ matrix.vcpkg_triplet }}" not in workflow
     assert "ANDROID_KEYSTORE_BASE64" in workflow
     assert "if-no-files-found: error" in workflow
     assert "Refuse overwriting an existing release" in workflow
