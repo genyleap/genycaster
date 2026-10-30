@@ -1312,7 +1312,10 @@ namespace {
 {
     return value.size() == 43U
         && std::ranges::all_of(value, [](const unsigned char ch) {
-               return std::isalnum(ch) || ch == '_' || ch == '-';
+               return (ch >= 'A' && ch <= 'Z')
+                   || (ch >= 'a' && ch <= 'z')
+                   || (ch >= '0' && ch <= '9')
+                   || ch == '_' || ch == '-';
            });
 }
 
@@ -1342,10 +1345,10 @@ recoveryPost(transport::http::IHttpTransport& transport,
         .headers = {"Content-Type: application/json", "Accept: application/json"},
         .body = body,
         .timeout = std::chrono::milliseconds{12'000},
-        .maxBodyBytes = 4096U,
+        .maxBodyBytes = 12U * 1024U,
     });
     if (!response) return std::unexpected(std::move(response.error()));
-    if (response->statusCode != 200 || response->body.size() > 4096U) {
+    if (response->statusCode != 200 || response->body.size() > 12U * 1024U) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::ProtocolFailure,
             "OpenProof custody recovery refused or returned an oversized result."));
@@ -1389,7 +1392,7 @@ startRecoveryChallenge(transport::http::IHttpTransport& transport,
     const auto responseFid = json->get<std::string>("fid", "");
     const auto message = json->get<std::string>("message", "");
     if (!validRecoveryTicket(ticket) || responseFid != fidText
-        || message.size() < 80U || message.size() > 4096U
+        || message.size() < 80U || message.size() > 8192U
         || message.find("\n- farcaster://fid/" + fidText) == std::string::npos) {
         return std::unexpected(makeError(
             foundation::error::ErrorCode::Unauthorized,

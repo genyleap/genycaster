@@ -32,12 +32,13 @@ struct RecordedCall final {
 
 class FakeTransport final : public transport::IHttpTransport {
 public:
-    void enqueue(std::uint16_t statusCode, std::string body)
+    void enqueue(std::uint16_t statusCode, std::string body,
+                 std::vector<std::string> headers = {"Content-Type: application/json"})
     {
         m_responses.push_back(transport::HttpResponse{
             .statusCode = statusCode,
             .body = std::move(body),
-            .headers = {"Content-Type: application/json"},
+            .headers = std::move(headers),
         });
     }
 
@@ -640,6 +641,27 @@ void nativeRecoveryGatewayNeverReceivesCustodySecrets()
         "Farcaster Auth\n\nURI: https://genyleap.com/account\n"
         "Version: 1\nChain ID: 10\nNonce: abcdefgh123456\n"
         "Issued At: 2026-10-30T00:00:00Z\nResources:\n- farcaster://fid/123";
+    {
+        // Native challenge limits match the browser's 8 KiB protocol bound.
+        std::string extended = message;
+        extended.insert(extended.find("Resources:"), "Notice: " + std::string(7300, 'x') + "\n");
+        assert(extended.size() <= 8192);
+        FakeTransport transport{};
+        transport.enqueue(200, "{\"ticket\":\"" + ticket
+            + "\",\"fid\":\"123\",\"message\":\"" + escapeJson(extended) + "\"}");
+        const auto started = provider::startRecoveryChallenge(
+            transport, std::string{gateway}, fid, std::string{address});
+        assert(started && started->message == extended);
+    }
+    {
+        FakeTransport transport{};
+        transport.enqueue(200, "{\"ticket\":\"" + ticket
+            + "\",\"fid\":\"123\",\"message\":\"" + escapeJson(message) + "\"}",
+            {"Content-Type: text/html"});
+        const auto started = provider::startRecoveryChallenge(
+            transport, std::string{gateway}, fid, std::string{address});
+        assert(!started && started.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    }
     const auto startResult = [&] {
         FakeTransport transport{};
         transport.enqueue(200, "{\"ticket\":\"" + ticket
