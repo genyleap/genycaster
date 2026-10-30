@@ -11,7 +11,7 @@ ColumnLayout {
     property string subtitle: ""
     property bool showIcon: iconGlyph.length > 0
     property int maximumTextWidth: 620
-    readonly property int iconSize: 25
+    readonly property int iconSize: 27
     spacing: Theme.space3
 
     Icon {
@@ -30,7 +30,7 @@ ColumnLayout {
         text: root.title
         color: Theme.ink
         font.family: Theme.fontFamilyForText(text)
-        font.pixelSize: Theme.typeTitle2Size
+        font.pixelSize: Math.max(Theme.typeTitle2Size, 30)
         font.weight: Theme.weightBold
         lineHeight: Theme.typeTitle2LineHeight
         horizontalAlignment: Theme.textStartAlignment
