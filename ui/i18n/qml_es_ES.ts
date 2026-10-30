@@ -245,11 +245,11 @@
         </message>
         <message id="genycaster.release.beta_label">
             <source>Beta</source>
-            <translation>Beta</translation>
+            <translation>Versión beta</translation>
         </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
-            <translation>GENY Token</translation>
+            <translation>Token GENY</translation>
         </message>
         <message id="genycaster.profile.extras_heading">
             <source>Additional Genycaster details</source>
@@ -413,7 +413,7 @@
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
-            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+            <translation>LinkedIn no comparte la URL pública del perfil durante el inicio de sesión habitual. Buscar consulta LinkedIn por el nombre de la cuenta vinculada.</translation>
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
@@ -523,7 +523,7 @@
             <source>Personal | https://example.com
 Company | https://company.com</source>
             <translation>Personal | https://example.com
-Company | https://company.com</translation>
+Empresa | https://company.com</translation>
         </message>
         <message id="genycaster.cast.in_channel">
             <source>in</source>
@@ -1451,7 +1451,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.settings.beta_release_short">
             <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · Beta 1.0</translation>
+            <translation>GenyCaster · Versión beta 1.0</translation>
         </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
@@ -5707,7 +5707,7 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.apps.category.social">
             <source>Social</source>
-            <translation>Social</translation>
+            <translation>Redes sociales</translation>
         </message>
         <message id="genycaster.apps.category.games">
             <source>Games</source>
@@ -6219,15 +6219,15 @@ Company | https://company.com</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
-            <translation>1Y</translation>
+            <translation>1 año</translation>
         </message>
         <message id="genycaster.activity.range_month">
             <source>1M</source>
-            <translation>1M</translation>
+            <translation>1 mes</translation>
         </message>
         <message id="genycaster.activity.range_three_months">
             <source>3M</source>
-            <translation>3M</translation>
+            <translation>3 meses</translation>
         </message>
         <message id="genycaster.bookmarks.new_collection">
             <source>New collection</source>
