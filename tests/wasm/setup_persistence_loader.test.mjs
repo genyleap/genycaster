@@ -101,9 +101,9 @@ test('Setup anchors footer outside scroll viewport and wraps translated labels',
     assert.match(setup,/id: setupFooter[\s\S]*?anchors\.bottom: parent\.bottom/);
     assert.match(setup,/Layout\.minimumHeight: 0/);
     assert.match(setup,/height: root\.phone \? 76 : 72/);
-    assert.match(language,/columns: root\.width < 620 \? 1 : 2/);
-    assert.match(language,/id: languageGrid[\s\S]*?Layout\.minimumWidth: 0/);
-    assert.match(language,/text: root\.changedHint[\s\S]*?wrapMode: Text\.WordWrap/);
+    assert.match(language,/objectName: "setupLanguageWheel"/);
+    assert.match(language,/highlightRangeMode: ListView\.StrictlyEnforceRange/);
+    assert.match(language,/wrapMode: Text\.WordWrap/);
     assert.match(main,/minimumHeight: Qt\.platform\.os === "wasm" \? 0 : 640/);
 });
 
@@ -283,18 +283,17 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
         /resetInitialSetupProgress\(/);
 });
 
-test('Setup language cards and single in-place Terms/Privacy checkbox remain accessible',()=>{
+test('Setup wheel and single in-place Terms/Privacy checkbox remain accessible',()=>{
     const h=read('ui/components/SetupPageHeader.qml');
     const l=read('ui/components/SetupLanguageSelector.qml');
     const setup=read('ui/components/InitialSetup.qml');
     const app=read('ui/components/AppShell.qml');
-    assert.match(h,/RowLayout \{/);
-    assert.match(h,/Layout\.alignment: Qt\.AlignVCenter/);
-    assert.match(l,/id: languageGrid/);
-    assert.match(l,/id: search/);
-    assert.match(l,/id: previewTab/);
+    assert.match(h,/ColumnLayout \{/);
+    assert.match(h,/font\.weight: Theme\.weightBold/);
+    assert.match(l,/id: picker/);
+    assert.match(l,/snapMode: ListView\.SnapToItem/);
     assert.match(l,/Accessible\.role: Accessible\.RadioButton/);
-    assert.match(l,/Theme\.uiDirection/);
+    assert.match(l,/Keys\.onDownPressed/);
     assert.match(setup,/id: privacyStage/);
     assert.match(setup,/qsTrId\("genycaster\.setup\.terms_body"\)/);
     assert.match(setup,/qsTrId\("genycaster\.setup\.privacy_body"\)/);
