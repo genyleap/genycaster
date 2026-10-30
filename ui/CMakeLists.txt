@@ -296,8 +296,15 @@ target_sources(farcaster_client
 set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
 # macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
 # cannot be deployed into a DMG with the Qt plugin and QML payload.
-if(APPLE AND NOT IOS)
+if(APPLE)
+    # Keep a real Apple app bundle on both macOS and iOS. Qt generates
+    # the correct platform Info.plist for qt_add_executable.
     set_target_properties(farcaster_client PROPERTIES MACOSX_BUNDLE TRUE)
+    if(IOS)
+        set_target_properties(farcaster_client PROPERTIES
+            MACOSX_BUNDLE_GUI_IDENTIFIER "com.genyleap.genycaster"
+            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
+    endif()
 endif()
 target_compile_features(farcaster_client PRIVATE cxx_std_26)
 if(TARGET farcaster::platform_custody_recovery)

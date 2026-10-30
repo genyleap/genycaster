@@ -166,6 +166,21 @@ def validate_android(path: Path) -> None:
                 "Unexpected x86 libraries in ARM-only APK")
 
 
+def validate_ios(path: Path) -> None:
+    """Unsigned iOS CI bundle only. Real device distribution needs Apple signing."""
+    require(path.name.endswith("-ios-arm64-unsigned-app.tar.gz"),
+            "iOS CI package must be explicitly labeled unsigned")
+    with tarfile.open(path, "r:gz") as archive:
+        members = archive.getmembers()
+        names = {member.name.rstrip("/") for member in members}
+        root = "farcaster_client.app"
+        require(root + "/Info.plist" in names, "iOS bundle missing Info.plist")
+        require(root + "/farcaster_client" in names, "iOS bundle missing executable")
+        require(all(not PurePosixPath(name).is_absolute()
+                    and ".." not in PurePosixPath(name).parts
+                    for name in names), "Unsafe iOS bundle path")
+
+
 def validate_windows(path: Path) -> None:
     require(path.suffix == ".zip", "Windows package must be a ZIP")
     with zipfile.ZipFile(path) as archive:
@@ -185,6 +200,7 @@ def verify(platform: str, path: Path) -> None:
     require(path.is_file() and path.stat().st_size > 0, "Package missing or empty")
     validators = {
         "linux": validate_linux,
+        "ios": validate_ios,
         "macos": validate_macos,
         "windows": validate_windows,
         "android": validate_android,
@@ -195,7 +211,7 @@ def verify(platform: str, path: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("platform", choices=("linux", "macos", "windows", "android", "web"))
+    parser.add_argument("platform", choices=("linux", "macos", "windows", "android", "ios", "web"))
     parser.add_argument("path", type=Path)
     args = parser.parse_args()
     verify(args.platform, args.path)

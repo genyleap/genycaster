@@ -17,6 +17,7 @@ on:
           - windows
           - android
           - web
+          - ios
   push:
     tags:
       - 'v*'
@@ -767,6 +768,98 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: GenyCaster-android-${{ matrix.abi }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+
+  ios:
+    name: iOS arm64 unsigned device app (CI only)
+    needs: gate
+    # Unsigned .app archives are NOT installable release IPA packages.
+    if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'ios')
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: ${{ env.CMAKE_VERSION }}
+      - name: Install native C++26 build toolchain
+        run: brew install ninja llvm boost
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: desktop
+          arch: clang_64
+          cache: true
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          target: ios
+          arch: ios
+          modules: qtmultimedia
+          cache: true
+      - name: Build pinned static OpenSSL for iOS arm64
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=3.5.9
+          url="https://github.com/openssl/openssl/releases/download/openssl-${version}/openssl-${version}.tar.gz"
+          mkdir -p build/ios-openssl
+          curl --fail --location --retry 3 --silent --show-error "${url}" -o build/ios-openssl/openssl.tar.gz
+          curl --fail --location --retry 3 --silent --show-error "${url}.sha256" -o build/ios-openssl/openssl.tar.gz.sha256
+          expected="$(awk 'NR==1 {print $1}' build/ios-openssl/openssl.tar.gz.sha256)"
+          [[ "$expected" =~ ^[0-9a-fA-F]{64}$ ]]
+          echo "$expected  build/ios-openssl/openssl.tar.gz" | shasum -a 256 -c
+          tar -xzf build/ios-openssl/openssl.tar.gz -C build/ios-openssl
+          export CROSS_TOP="$(xcode-select -p)/Platforms/iPhoneOS.platform/Developer"
+          export CROSS_SDK="$(xcrun --sdk iphoneos --show-sdk-version)"
+          export CC="$(xcrun --find clang)"
+          export CFLAGS="-arch arm64 -mios-version-min=18.0"
+          (
+            cd "build/ios-openssl/openssl-${version}"
+            ./Configure ios64-cross no-shared no-tests --prefix="$GITHUB_WORKSPACE/build/ios-openssl/install"
+            make -j 3
+            make install_sw
+          )
+          test -s build/ios-openssl/install/lib/libcrypto.a
+      - name: Compile and inspect unsigned iOS device bundle
+        shell: bash
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+        run: |
+          set -euo pipefail
+          export CC="$(brew --prefix llvm)/bin/clang"
+          export CXX="$(brew --prefix llvm)/bin/clang++"
+          cmake -S . -B build/ios -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" \
+            "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
+            "-DQT_HOST_PATH=$QT_HOST_PATH" \
+            -DCMAKE_OSX_SYSROOT=iphoneos \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=18.0 \
+            -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
+            "-DOPENSSL_ROOT_DIR=$PWD/build/ios-openssl/install" \
+            -DFARCASTER_BUILD_TESTS=OFF \
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+          cmake --build build/ios --target farcaster_client --parallel 2
+          count="$(find build/ios -type d -name 'farcaster_client.app' | wc -l | tr -d ' ')"
+          test "$count" = 1
+          APP="$(find build/ios -type d -name 'farcaster_client.app' -print -quit)"
+          test -s "$APP/Info.plist"
+          test -s "$APP/farcaster_client"
+          /usr/bin/lipo -verify_arch arm64 "$APP/farcaster_client"
+          mkdir -p dist
+          tar -czf "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz" -C "$(dirname "$APP")" "$(basename "$APP")"
+          python3 ci/verify_platform_package.py ios "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz"
+          (cd dist && shasum -a 256 *.tar.gz > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GenyCaster-ios-arm64-unsigned-app
           path: dist/*
           if-no-files-found: error
           retention-days: 14
