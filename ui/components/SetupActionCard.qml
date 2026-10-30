@@ -22,12 +22,12 @@ Button {
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    implicitHeight: Math.max(compactCard ? 62 : 78,
+    implicitHeight: Math.max(compactCard ? 62 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
-    topPadding: Theme.space3
-    bottomPadding: Theme.space3
+    topPadding: compactCard ? Theme.space3 : Theme.space4
+    bottomPadding: compactCard ? Theme.space3 : Theme.space4
 
     Accessible.name: title
     Accessible.description: subtitle
@@ -39,7 +39,7 @@ Button {
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
     readonly property color foreground: visuallyDisabled ? Theme.inkMuted
-                                      : primary ? Theme.accentInk : Theme.ink
+                                      : primary ? (Theme.dark ? "#111315" : "#FFFFFF") : Theme.ink
     readonly property color secondaryForeground: visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
@@ -48,8 +48,9 @@ Button {
         fillColor: root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
-                     ? (root.down ? Theme.primaryPressed
-                                  : root.hovered ? Theme.primaryFillHover : Theme.primaryFill)
+                     ? (root.down ? (Theme.dark ? "#DCDDE0" : "#34373B")
+                                  : root.hovered ? (Theme.dark ? "#E8E9EB" : "#24272B")
+                                                 : (Theme.dark ? "#F6F7F8" : "#16191D"))
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
         borderWidth: root.primary && !root.visuallyDisabled ? 0 : (Theme.keyboardFocusVisible(root) ? 2 : Theme.strokeStandard)
@@ -89,7 +90,7 @@ Button {
                 Layout.fillWidth: true
                 text: root.title
                 color: root.foreground
-                font.pixelSize: Theme.typeLabelSize
+                font.pixelSize: root.compactCard ? Theme.typeLabelSize : Math.max(Theme.typeLabelSize, 17)
                 font.weight: Theme.weightDemiBold
                 horizontalAlignment: Theme.textStartAlignment
                 elide: Text.ElideRight
