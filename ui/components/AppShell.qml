@@ -2198,6 +2198,8 @@ Item {
 
     GenyDrawer {
         id: accountPopup
+        property bool existingMethodsExpanded: false
+        onClosed: existingMethodsExpanded = false
         bottomSheet: root.compact
         blurSourceItem: shellContent
         dimBackground: true
@@ -2222,9 +2224,17 @@ Item {
                 anchors.bottomMargin: accountPopup.bottomSheet ? Theme.space3 : Theme.space5
                 spacing: Theme.space3
 
-                ModalHeader {
+                RowLayout {
                     Layout.fillWidth: true
-                    title: presentationBridge.isAuthenticated
+                    Layout.minimumWidth: 0
+                    spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
+
+                    SetupPageHeader {
+                        Layout.fillWidth: true
+                        showIcon: true
+                        iconGlyph: Theme.iconUser
+                        title: presentationBridge.isAuthenticated
                            ? (presentationBridge.accountIdentityIssuer === "genycaster:device-local"
                               || presentationBridge.authenticationRoute === "farcaster"
                               || presentationBridge.authenticationRoute === "recovery"
@@ -2247,7 +2257,16 @@ Item {
                                    ? qsTrId("genycaster.shell.openproof_account_farcaster_protocol_identity")
                                    : qsTrId("genycaster.shell.this_verified_session_identifies_your_account_protocol"))
                               : qsTrId("genycaster.setup.subtitle")
-                    onCloseRequested: accountPopup.close()
+                    }
+
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconClose
+                        text: qsTrId("genycaster.locale.close")
+                        onClicked: accountPopup.close()
+                    }
                 }
 
                 ScrollView {
@@ -2434,30 +2453,46 @@ Item {
                             wrapMode: Text.Wrap
                         }
 
-                        Item { Layout.preferredHeight: Theme.space3 }
-                    }
-                }
-
-                Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 1
-                    color: Theme.divider
-                }
-
                 ColumnLayout {
                     id: accountActions
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
-                    ActionButton {
+                    SetupActionCard {
+                        visible: !presentationBridge.isAuthenticated
+                                 && presentationBridge.authenticationPhase !== "starting"
+                                 && presentationBridge.authenticationPhase !== "awaiting-approval"
+                                 && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        Layout.fillWidth: true
+                        title: qsTrId("genycaster.setup.new_profile")
+                        subtitle: qsTrId("genycaster.setup.new_profile_body")
+                        trailingText: qsTrId("genycaster.shell.coming_soon")
+                        enabled: false
+                    }
+
+                    SetupActionCard {
+                        visible: !presentationBridge.isAuthenticated
+                                 && presentationBridge.authenticationPhase !== "starting"
+                                 && presentationBridge.authenticationPhase !== "awaiting-approval"
+                                 && presentationBridge.authenticationPhase !== "linking-farcaster"
+                        Layout.fillWidth: true
+                        title: qsTrId("genycaster.setup.existing_profile")
+                        subtitle: qsTrId("genycaster.setup.existing_profile_body")
+                        primary: accountPopup.existingMethodsExpanded
+                        showSelectionMark: false
+                        enabled: !presentationBridge.signerBusy
+                        onClicked: accountPopup.existingMethodsExpanded = !accountPopup.existingMethodsExpanded
+                    }
+
+                    SetupPrimaryButton {
                         visible: presentationBridge.authenticationPhase === "awaiting-approval"
                                  || presentationBridge.authenticationPhase === "linking-farcaster"
                         Layout.fillWidth: true
+                        showArrow: false
                         text: presentationBridge.authenticationPhase === "linking-farcaster"
                               || presentationBridge.authenticationRoute === "farcaster"
                               ? qsTrId("genycaster.shell.open_farcaster")
                               : qsTrId("genycaster.shell.open_genyleap")
-                        prominent: true
                         enabled: presentationBridge.authenticationApprovalAvailable
                         onClicked: presentationBridge.openAuthenticationApproval()
                     }
@@ -2474,26 +2509,29 @@ Item {
                         }
                     }
 
-                    ActionButton {
-                        visible: !presentationBridge.isAuthenticated
+                    SetupActionCard {
+                        visible: accountPopup.existingMethodsExpanded && !presentationBridge.isAuthenticated
                                  && presentationBridge.authenticationPhase !== "starting"
                                  && presentationBridge.authenticationPhase !== "awaiting-approval"
                                  && presentationBridge.authenticationPhase !== "linking-farcaster"
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.shell.continue_with_genyleap")
-                        prominent: true
+                        title: qsTrId("genycaster.shell.continue_with_genyleap")
+                        subtitle: qsTrId("genycaster.setup.account_genyleap_body")
+                        iconGlyph: "brands/geny" 
+                        primary: false
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
                         onClicked: presentationBridge.beginSignIn()
                     }
 
-                    ActionButton {
-                        visible: !presentationBridge.isAuthenticated
+                    SetupActionCard {
+                        visible: accountPopup.existingMethodsExpanded && !presentationBridge.isAuthenticated
                                  && presentationBridge.authenticationPhase !== "starting"
                                  && presentationBridge.authenticationPhase !== "awaiting-approval"
                                  && presentationBridge.authenticationPhase !== "linking-farcaster"
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                        quiet: true
+                        title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                        subtitle: qsTrId("genycaster.setup.account_farcaster_body")
+                        iconGlyph: "brands/farcaster"
                         enabled: presentationBridge.runtimeReady && presentationBridge.authenticationAvailable
                         onClicked: presentationBridge.beginFarcasterSignIn()
                     }
@@ -2544,6 +2582,16 @@ Item {
                         quiet: true
                         onClicked: accountPopup.close()
                     }
+                }
+
+                        Item { Layout.preferredHeight: Theme.space3 }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Theme.divider
                 }
 
                 // Keep profile navigation and session management reachable
