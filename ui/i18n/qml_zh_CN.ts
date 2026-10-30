@@ -413,7 +413,7 @@
         </message>
         <message id="genycaster.connections.copy_linkedin_does_not_share_a_public_profile_url_through_standard_sign_in_fi">
             <source>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</source>
-            <translation>LinkedIn does not share a public profile URL through standard sign-in. Find searches LinkedIn by the linked account&#x27;s name.</translation>
+            <translation>LinkedIn 不会通过标准登录流程提供公开个人资料网址。“查找”功能会使用关联账户的名称搜索 LinkedIn。</translation>
         </message>
         <message id="genycaster.connections.copy_showing_saved_provider_list_refresh_when_online">
             <source>Showing saved provider list. Refresh when online.</source>
