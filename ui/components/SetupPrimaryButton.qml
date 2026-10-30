@@ -9,6 +9,7 @@ Button {
     property string iconGlyph: ""
     property bool showArrow: true
     property bool busy: false
+    property bool neutralPrimary: false
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
@@ -19,11 +20,14 @@ Button {
 
     Accessible.name: text
 
-    readonly property color foreground: enabled ? Theme.accentInk : Theme.inkDisabled
+    readonly property color foreground: enabled
+                                        ? neutralPrimary ? Theme.surface : Theme.accentInk
+                                        : Theme.inkDisabled
 
     background: Superellipse {
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
+                   : root.neutralPrimary ? Theme.ink
                    : root.down ? Theme.primaryPressed
                                : root.hovered ? Theme.primaryFillHover
                                               : Theme.primaryFill
