@@ -63,9 +63,10 @@ test('shared theme, native project icons and all three theme modes are present',
 
 test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
-  assert.match(setup, /Layout.preferredHeight: visible \? \(root.phone \? 82 : 86\) : 0/);
-  assert.match(setup, /visible: !root.phone && root.width >= 1100 && root.currentStep === 0/);
-  assert.match(setup, /Layout.fillWidth: root.phone/);
+  assert.match(setup, /id: stageAction/);
+  assert.match(setup, /id: desktopBrandPane/);
+  assert.match(setup, /width: parent.width \* 0.33/);
+  assert.match(setup, /anchors.bottom: parent.bottom/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
 
@@ -101,4 +102,42 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
   assert.match(setup,/genycaster\.setup\.privacy_body/);
   assert.match(setup,/onClicked: root\.consentChecked = !root\.consentChecked/);
   assert.doesNotMatch(setup,/Qt\.openUrlExternally/);
+});
+
+test('full-window setup removes shell chrome and has no fake desktop header or footer', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const app=source('ui/components/AppShell.qml');
+  assert.match(s,/id: setupCanvas/);
+  assert.match(s,/id: desktopBrandPane/);
+  assert.match(s,/width: parent\.width \* 0\.33/);
+  assert.match(s,/id: stageAction/);
+  assert.match(s,/anchors\.bottom: parent\.bottom/);
+  assert.doesNotMatch(s,/id: setupFooter/);
+  assert.match(app,/id: shellContent[\s\S]*?visible: !root\.initialSetupOpen/);
+  assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && !root\.initialSetupOpen/);
+});
+
+test('welcome step indicator represents all eight setup steps, including reduced motion', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
+  assert.match(s,/model: root\.progressCount/);
+  assert.match(s,/index === root\.currentStep/);
+  assert.doesNotMatch(s,/model: 3[\s\S]*?width: 6/);
+  assert.match(s,/id: stageTransitionTimer/);
+  assert.match(s,/root\.stageOpacity = 0|stageOpacity = 0/);
+  assert.match(s,/if \(!visible \|\| Theme\.reduceMotion\)/);
+  assert.match(s,/Behavior on opacity/);
+});
+
+test('mobile legal reader is a bottom sheet, desktop reader stays centered', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  assert.match(s,/id: legalReader/);
+  assert.match(s,/x: root\.phone \? 0/);
+  assert.match(s,/y: root\.phone \? \(parent \? parent\.height - height : 0\)/);
+  assert.match(s,/curveBottomLeft: !root\.phone/);
+  assert.match(s,/curveBottomRight: !root\.phone/);
+  assert.match(s,/enter: Transition/);
+  assert.match(s,/exit: Transition/);
+  assert.match(s,/onClicked: root\.consentChecked = !root\.consentChecked/);
+  assert.match(s,/property bool consentChecked: false/);
 });
