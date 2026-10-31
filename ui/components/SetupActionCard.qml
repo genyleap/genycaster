@@ -23,10 +23,12 @@ Button {
     property bool compactCard: false
     property bool onboardingStyle: false
     property bool neutralPrimary: false
+    property bool accountShowcase: false
+    property bool setupEmphasis: false
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    implicitHeight: Math.max(compactCard ? 62 : onboardingStyle ? 78 : 96,
+    implicitHeight: Math.max(accountShowcase ? 168 : compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
     leftPadding: Theme.space4
     rightPadding: Theme.space4
@@ -42,14 +44,17 @@ Button {
     // An in-flight action remains visually active while clicks are disabled.
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
-    readonly property color foreground: visuallyDisabled ? Theme.inkMuted
+    readonly property color foreground: setupEmphasis ? "#FCFCFE"
+                                      : visuallyDisabled ? Theme.inkMuted
                                       : primary ? (neutralPrimary ? Theme.surface : Theme.accentInk) : Theme.ink
-    readonly property color secondaryForeground: visuallyDisabled ? Theme.inkMuted
+    readonly property color secondaryForeground: setupEmphasis ? "#BABBC6"
+                                               : visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
 
     background: Superellipse {
-        fillColor: root.visuallyDisabled
+        fillColor: root.setupEmphasis ? (Theme.dark ? "#24252C" : "#22232A")
+                   : root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
                      ? (root.neutralPrimary ? Theme.ink
@@ -58,6 +63,7 @@ Button {
                      : root.down ? Theme.surfacePressed
                                  : root.hovered ? Theme.surfaceHover : Theme.surface
         borderWidth: Theme.keyboardFocusVisible(root) ? 2
+                     : root.setupEmphasis ? 0
                      : root.selected ? 2
                      : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
         borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus
@@ -70,9 +76,14 @@ Button {
         }
     }
 
-    contentItem: RowLayout {
-        spacing: Theme.space3
-        layoutDirection: Theme.uiDirection
+    contentItem: Item {
+        implicitHeight: root.accountShowcase ? 138 : standardCardRow.implicitHeight
+        RowLayout {
+            id: standardCardRow
+            anchors.fill: parent
+            visible: !root.accountShowcase
+            spacing: Theme.space3
+            layoutDirection: Theme.uiDirection
 
         GenySpinner {
             visible: root.busy
@@ -158,6 +169,45 @@ Button {
             color: root.visuallyDisabled ? Theme.inkMuted
                    : root.primary ? root.secondaryForeground : Theme.inkSubtle
             preferredSize: Theme.iconSizeSmall
+        }
+        }
+        ColumnLayout {
+            id: editorialAccountCard
+            anchors.fill: parent
+            visible: root.accountShowcase
+            spacing: Theme.space2
+            LayoutMirroring.enabled: Theme.rtl
+            LayoutMirroring.childrenInherit: true
+
+            Icon {
+                visible: root.iconGlyph.length > 0
+                text: root.iconGlyph
+                color: root.setupEmphasis ? "#FCFCFE" : Theme.ink
+                preferredSize: 27
+                Layout.preferredHeight: 30
+                Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+            }
+            Item { Layout.preferredHeight: 1 }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.title
+                color: root.foreground
+                font.pixelSize: Math.max(Theme.typeLabelSize, 17)
+                font.weight: Theme.weightBold
+                horizontalAlignment: Theme.textStartAlignment
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.subtitle
+                color: root.secondaryForeground
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Theme.textStartAlignment
+                maximumLineCount: 3
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 }
