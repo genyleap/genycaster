@@ -32,6 +32,28 @@ Item {
 
     property int currentStep: 0
     property int highestReachedStep: 0
+    property bool stageTransitioning: false
+    property real stageOpacity: 1.0
+    property real stageOffset: 0.0
+    property int pendingStep: -1
+    readonly property bool showsPrimaryCta: [0,1,2,6,7].indexOf(currentStep) >= 0
+    readonly property int progressCount: wizardSteps.length
+    Timer {
+        id: stageTransitionTimer
+        interval: 135
+        repeat: false
+        onTriggered: {
+            if (root.pendingStep < 0) return
+            root.currentStep = root.pendingStep
+            root.highestReachedStep = Math.max(root.highestReachedStep, root.currentStep)
+            stageScroll.contentY = 0
+            root.pendingStep = -1
+            root.stageOffset = 0
+            root.stageOpacity = 1
+            root.stageTransitioning = false
+        }
+    }
+    function progressWidth(index) { return currentStep === index ? 18 : 5 }
     property string accountIntent: ""
     property bool showRecovery: false
     property string legalDocument: ""
@@ -112,9 +134,26 @@ Item {
             target = 2
         if (!reviewMode && !authenticated && !guestSelected && target > 5)
             target = 5
-        currentStep = target
-        highestReachedStep = Math.max(highestReachedStep, target)
-        stageScroll.contentY = 0
+        if (target === currentStep && !stageTransitioning)
+            return
+        if (!visible || Theme.reduceMotion) {
+            stageTransitionTimer.stop()
+            pendingStep = -1
+            stageTransitioning = false
+            stageOpacity = 1
+            stageOffset = 0
+            currentStep = target
+            highestReachedStep = Math.max(highestReachedStep, target)
+            stageScroll.contentY = 0
+            return
+        }
+        // Defer component replacement until its predecessor has faded out.
+        // This also prevents rapid taps from destroying a form mid-transition.
+        stageTransitioning = true
+        pendingStep = target
+        stageOpacity = 0
+        stageOffset = target > currentStep ? -12 : 12
+        stageTransitionTimer.restart()
     }
     function nextStep() {
         if (currentStep === 0) { switchStep(1); return }
@@ -171,7 +210,13 @@ Item {
         return true
     }
     onVisibleChanged: {
-        if (!visible) return
+        if (!visible) {
+            stageTransitionTimer.stop()
+            stageTransitioning = false
+            pendingStep = -1
+            stageOpacity = 1
+            return
+        }
         if (reviewMode) {
             switchStep(0)
         } else if (returningAfterLogout || setupCompleted) {
@@ -228,19 +273,59 @@ Item {
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        x: parent ? Math.round((parent.width - width) / 2) : 0
-        y: parent ? Math.round((parent.height - height) / 2) : 0
-        width: Math.max(0, Math.min(root.width - 28, 600))
-        height: Math.max(0, Math.min(root.height - 56, 680))
-        padding: Theme.space4
+        x: root.phone ? 0 : parent ? Math.round((parent.width - width) / 2) : 0
+        y: root.phone ? (parent ? parent.height - height : 0)
+                      : parent ? Math.round((parent.height - height) / 2) : 0
+        width: root.phone ? root.width : Math.min(Math.max(0, root.width - 40), 620)
+        height: root.phone ? Math.min(root.height * 0.82, 720)
+                           : Math.min(Math.max(0, root.height - 100), 650)
+        padding: root.phone ? Theme.space5 : Theme.space6
+        enter: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.motionEmphasis }
+                NumberAnimation {
+                    property: "y"
+                    from: root.phone ? root.height : (root.height - legalReader.height) / 2 + 10
+                    to: legalReader.y
+                    duration: Theme.reduceMotion ? 0 : 240
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+        exit: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.motionStandard }
+                NumberAnimation {
+                    property: "y"
+                    from: legalReader.y
+                    to: root.phone ? root.height : (root.height - legalReader.height) / 2 + 10
+                    duration: Theme.reduceMotion ? 0 : 180
+                    easing.type: Easing.InCubic
+                }
+            }
+        }
         background: Superellipse {
             fillColor: Theme.surface
             borderWidth: Theme.strokeStandard
             borderColor: Theme.borderMuted
-            curveDepth: Theme.curveContainer
+            curveDepth: root.phone ? 26 : Theme.curveContainer
+            curveBottomLeft: !root.phone
+            curveBottomRight: !root.phone
         }
         contentItem: ColumnLayout {
             spacing: Theme.space3
+            Item {
+                visible: root.phone
+                Layout.fillWidth: true
+                Layout.preferredHeight: 12
+                Superellipse {
+                    anchors.centerIn: parent
+                    width: 38
+                    height: 5
+                    curveDepth: 3
+                    fillColor: Theme.borderStrong
+                }
+            }
             RowLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
@@ -297,161 +382,167 @@ Item {
         onWheel: wheel => wheel.accepted = true
     }
 
-    ColumnLayout {
+    Item {
+        id: setupCanvas
         anchors.fill: parent
-        spacing: 0
 
-        Item {
-            visible: !root.phone
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.phone ? 0 : 44
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 7
-                Repeater {
-                    model: 4
-                    delegate: Superellipse {
-                        required property int index
-                        width: index === Math.floor(root.currentStep / 2) ? 17 : 6
-                        height: 4
-                        curveDepth: 2
-                        fillColor: index === Math.floor(root.currentStep / 2) ? Theme.accent : Theme.borderStrong
-                    }
-                }
-            }
-        }
-
-        Item {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 0
-
-            Rectangle {
-                visible: !root.phone && root.width >= 1100 && root.currentStep === 0
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: Math.round(parent.width * 0.34)
-                color: Theme.dark ? Theme.surfaceMuted : Qt.rgba(Theme.swatchGeny.r, Theme.swatchGeny.g, Theme.swatchGeny.b, 0.10)
-                Image {
-                    anchors.centerIn: parent
-                    width: Math.min(180, parent.width * 0.56)
-                    height: width
-                    source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                    sourceSize: Qt.size(360, 360)
-                    fillMode: Image.PreserveAspectFit
-                    opacity: 0.85
-                }
-            }
-
-            ActionButton {
-                z: 20
-                visible: root.currentStep > 0
-                anchors.top: parent.top
-                anchors.topMargin: Theme.space2
-                anchors.left: parent.left
-                anchors.leftMargin: root.phone ? Theme.space2 : Theme.space6
-                compact: true
-                quiet: true
-                iconOnly: true
-                text: qsTrId("genycaster.setup.back")
-                iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
-                onClicked: root.previousStep()
-            }
-            ActionButton {
-                z: 20
-                visible: root.reviewMode
-                anchors.top: parent.top
-                anchors.topMargin: Theme.space2
-                anchors.right: parent.right
-                anchors.rightMargin: root.phone ? Theme.space2 : Theme.space6
-                compact: true
-                quiet: true
-                iconOnly: true
-                text: qsTrId("genycaster.locale.close")
-                iconGlyph: Theme.iconClose
-                onClicked: root.closeReviewRequested()
-            }
-
-            Flickable {
-                id: stageScroll
-                anchors.fill: parent
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.VerticalFlick
-                contentWidth: width
-                contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight + Theme.space6)
-                ScrollBar.vertical: GenyScrollBar {
-                    policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
-                }
-
-                Item {
-                    id: stagePanel
-                    width: Math.max(0, Math.min(root.phone ? 440 : 560,
-                                             stageScroll.width - root.setupGutter * 2))
-                    x: root.currentStep === 0 && !root.phone && root.width >= 1100
-                       ? Math.round(stageScroll.width * 0.30
-                                    + (stageScroll.width * 0.70 - width) / 2)
-                       : Math.round((stageScroll.width - width) / 2)
-                    // Optical position per scene from the approved storyboard.
-                    y: root.currentStep === 0 || root.currentStep === 7
-                       ? Math.max(48, (stageScroll.height - stageLoader.implicitHeight) * 0.40)
-                       : root.currentStep === 5
-                       ? Math.max(70, (stageScroll.height - stageLoader.implicitHeight) * 0.43)
-                       : root.currentStep === 1
-                       ? Math.max(62, (stageScroll.height - stageLoader.implicitHeight) * 0.20)
-                       : Math.max(44, Math.min(110, stageScroll.height * 0.12))
-                    implicitHeight: stageLoader.implicitHeight
-
-                    Loader {
-                        id: stageLoader
-                        width: parent.width
-                        sourceComponent: root.currentStep === 0 ? welcomeStage
-                                         : root.currentStep === 1 ? languageStage
-                                         : root.currentStep === 2 ? termsStage
-                                         : root.currentStep === 3 ? accountStage
-                                         : root.currentStep === 4 ? signInStage
-                                         : root.currentStep === 5 ? verifyingStage
-                                         : root.currentStep === 6 ? appearanceStage : completeStage
-                    }
-                }
-            }
-        }
-
+        // Split-screen composition from the approved desktop wireframe:
+        // the brand artwork occupies the left third, with content and a
+        // stage-local CTA on the right. No header, footer or shell chrome.
         Rectangle {
-            visible: [0,1,2,6,7].indexOf(root.currentStep) >= 0
-            Layout.fillWidth: true
-            Layout.preferredHeight: visible ? (root.phone ? 82 : 86) : 0
-            color: Theme.dark ? Theme.background : Theme.surface
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: root.phone ? Theme.space5 : Theme.space8
-                anchors.rightMargin: root.phone ? Theme.space5 : Theme.space8
-                anchors.bottomMargin: root.phone ? Theme.space4 : Theme.space5
-                spacing: Theme.space3
-                layoutDirection: Theme.uiDirection
-
-                Item { Layout.fillWidth: !root.phone }
-
-                SetupPrimaryButton {
-                    visible: root.currentStep !== 4 || root.authenticated
-                    Layout.fillWidth: root.phone
-                    Layout.maximumWidth: root.phone ? 16777215 : 420
-                    Layout.minimumWidth: root.phone ? 0 : 240
-                    text: root.actionText()
-                    enabled: root.actionEnabled()
-                    neutralPrimary: true
-                    showArrow: root.currentStep === 0
-                    onClicked: root.nextStep()
-                }
-
-                Item { Layout.fillWidth: !root.phone }
+            id: desktopBrandPane
+            visible: !root.phone && root.width >= 980 && root.currentStep === 0
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * 0.33
+            color: Theme.dark ? Theme.surfaceMuted
+                              : Qt.rgba(Theme.swatchGeny.r, Theme.swatchGeny.g, Theme.swatchGeny.b, 0.10)
+            Rectangle {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                x: -width * 0.32
+                width: Math.min(desktopBrandPane.width * 1.22, 510)
+                height: width
+                radius: width / 2
+                color: Theme.dark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.58)
             }
+            Image {
+                anchors.centerIn: parent
+                width: Math.min(desktopBrandPane.width * 0.67, 330)
+                height: width
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                fillMode: Image.PreserveAspectFit
+                sourceSize: Qt.size(400,400)
+                opacity: Theme.dark ? 0.20 : 0.14
+            }
+        }
+
+        // Functional step progress: the same eight-state source of truth on
+        // every platform. It belongs to the content, never a global header.
+        Row {
+            id: setupProgress
+            visible: !root.phone && root.currentStep !== 0
+            anchors.top: parent.top
+            anchors.topMargin: 34
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 7
+            z: 5
+            Repeater {
+                model: root.progressCount
+                delegate: Superellipse {
+                    required property int index
+                    width: root.progressWidth(index)
+                    height: 5
+                    curveDepth: 3
+                    fillColor: index === root.currentStep ? Theme.accent
+                               : index < root.currentStep ? Theme.inkMuted : Theme.borderStrong
+                    Behavior on width {
+                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                    }
+                }
+            }
+        }
+
+        ActionButton {
+            z: 20
+            visible: root.currentStep > 0
+            anchors.top: parent.top
+            anchors.topMargin: Theme.space4
+            anchors.left: parent.left
+            anchors.leftMargin: root.phone ? Theme.space2 : Theme.space5
+            compact: true
+            quiet: true
+            iconOnly: true
+            text: qsTrId("genycaster.setup.back")
+            iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
+            onClicked: root.previousStep()
+        }
+        ActionButton {
+            z: 20
+            visible: root.reviewMode
+            anchors.top: parent.top
+            anchors.topMargin: Theme.space4
+            anchors.right: parent.right
+            anchors.rightMargin: root.phone ? Theme.space2 : Theme.space5
+            compact: true
+            quiet: true
+            iconOnly: true
+            text: qsTrId("genycaster.locale.close")
+            iconGlyph: Theme.iconClose
+            onClicked: root.closeReviewRequested()
+        }
+
+        Flickable {
+            id: stageScroll
+            anchors.fill: parent
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            contentWidth: width
+            contentHeight: Math.max(height, stagePanel.y + stagePanel.implicitHeight
+                                    + (root.showsPrimaryCta ? 116 : 32))
+            ScrollBar.vertical: GenyScrollBar {
+                policy: stageScroll.contentHeight > stageScroll.height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+            }
+
+            Item {
+                id: stagePanel
+                width: Math.max(0, Math.min(root.phone ? 440 : 570,
+                                             stageScroll.width - root.setupGutter * 2))
+                x: desktopBrandPane.visible
+                   ? desktopBrandPane.width + (stageScroll.width - desktopBrandPane.width - width) / 2
+                   : (stageScroll.width - width) / 2
+                y: root.currentStep === 0 || root.currentStep === 7
+                   ? Math.max(root.phone ? 110 : 52, (stageScroll.height - stageLoader.implicitHeight) * 0.39)
+                   : root.currentStep === 5
+                   ? Math.max(96, (stageScroll.height - stageLoader.implicitHeight) * 0.38)
+                   : root.currentStep === 1
+                   ? Math.max(76, (stageScroll.height - stageLoader.implicitHeight) * 0.21)
+                   : Math.max(root.phone ? 100 : 105, Math.min(145, stageScroll.height * 0.15))
+                implicitHeight: stageLoader.implicitHeight
+
+                Loader {
+                    id: stageLoader
+                    width: parent.width
+                    opacity: root.stageOpacity
+                    x: root.stageOffset
+                    Behavior on opacity {
+                        NumberAnimation { duration: Theme.reduceMotion ? 0 : 150; easing.type: Easing.OutCubic }
+                    }
+                    Behavior on x {
+                        NumberAnimation { duration: Theme.reduceMotion ? 0 : 190; easing.type: Easing.OutCubic }
+                    }
+                    sourceComponent: root.currentStep === 0 ? welcomeStage
+                                     : root.currentStep === 1 ? languageStage
+                                     : root.currentStep === 2 ? termsStage
+                                     : root.currentStep === 3 ? accountStage
+                                     : root.currentStep === 4 ? signInStage
+                                     : root.currentStep === 5 ? verifyingStage
+                                     : root.currentStep === 6 ? appearanceStage : completeStage
+                }
+            }
+        }
+
+        // An action belonging to the active onboarding stage, not a footer bar.
+        SetupPrimaryButton {
+            id: stageAction
+            visible: root.showsPrimaryCta
+            z: 10
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: root.phone ? Theme.space5 : Math.max(38, root.height * 0.085)
+            width: root.phone ? Math.min(root.width - root.setupGutter * 2, 440)
+                              : Math.min(300, stagePanel.width * 0.65)
+            x: desktopBrandPane.visible
+               ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
+               : (parent.width - width) / 2
+            text: root.actionText()
+            neutralPrimary: true
+            enabled: !root.stageTransitioning && root.actionEnabled()
+            showArrow: root.currentStep === 0
+            onClicked: root.nextStep()
         }
     }
-
 
     Component {
         id: welcomeStage
@@ -460,8 +551,8 @@ Item {
             LayoutMirroring.enabled: Theme.rtl
 
             Image {
-                Layout.preferredWidth: 62
-                Layout.preferredHeight: 62
+                Layout.preferredWidth: root.phone ? 62 : 42
+                Layout.preferredHeight: root.phone ? 62 : 42
                 Layout.alignment: root.phone ? Qt.AlignLeft : Qt.AlignHCenter
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 fillMode: Image.PreserveAspectFit
@@ -492,13 +583,14 @@ Item {
                 Layout.topMargin: Theme.space6
                 spacing: 7
                 Repeater {
-                    model: 3
+                    model: root.progressCount
                     delegate: Superellipse {
                         required property int index
-                        width: 6
+                        width: root.progressWidth(index)
                         height: 6
                         curveDepth: 3
-                        fillColor: index === 0 ? Theme.ink : Theme.borderStrong
+                        fillColor: index === root.currentStep ? Theme.accent
+                                   : index < root.currentStep ? Theme.inkMuted : Theme.borderStrong
                     }
                 }
             }
@@ -537,6 +629,8 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
             SetupPageHeader {
+                storyboardStyle: true
+                compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
                 iconGlyph: "system/lock"
                 title: qsTrId("genycaster.setup.design_terms_title")
@@ -613,6 +707,8 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
             SetupPageHeader {
+                storyboardStyle: true
+                compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
                 title: qsTrId("genycaster.setup.design_account_title")
@@ -659,6 +755,8 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
             SetupPageHeader {
+                storyboardStyle: true
+                compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconLink
                 title: qsTrId("genycaster.setup.design_signin_title")
@@ -818,6 +916,16 @@ Item {
                     text: Theme.iconCheck
                     color: Theme.accent
                     preferredSize: 44
+                    scale: visible ? 1 : 0.7
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Theme.reduceMotion ? 0 : 260
+                            easing.type: Easing.OutBack
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation { duration: Theme.motionEmphasis }
+                    }
                 }
             }
             DirectionAwareLabel {
@@ -906,6 +1014,8 @@ Item {
         ColumnLayout {
             spacing: Theme.space3
             SetupPageHeader {
+                storyboardStyle: true
+                compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconMoon
                 title: qsTrId("genycaster.setup.design_appearance_title")
