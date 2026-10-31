@@ -9,6 +9,7 @@ Button {
     property string title: ""
     property string subtitle: ""
     property string iconGlyph: ""
+    property url brandImageSource: ""
     property string trailingText: ""
     // Optional measured response-time hint used by read-node selection.
     property int latencyMs: -1
@@ -82,10 +83,19 @@ Button {
         }
 
         Icon {
-            visible: !root.busy && root.iconGlyph.length > 0
+            visible: !root.busy && root.iconGlyph.length > 0 && root.brandImageSource.toString().length === 0
             text: root.iconGlyph
             color: !root.visuallyDisabled && !root.primary ? Theme.inkMuted : root.foreground
             preferredSize: Theme.iconSize
+        }
+
+        Image {
+            visible: !root.busy && root.brandImageSource.toString().length > 0
+            source: root.brandImageSource
+            Layout.preferredWidth: Theme.iconSize + 4
+            Layout.preferredHeight: Theme.iconSize + 4
+            sourceSize: Qt.size(96, 96)
+            fillMode: Image.PreserveAspectFit
         }
 
         ColumnLayout {
