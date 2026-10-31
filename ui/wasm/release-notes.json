@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Seamless Glass G identity",
+  "title": "Faithful 3D GenyCaster logo",
   "changes": [
-    "Merge the directional arrow and G ring into one filleted volumetric solid inside the real Qt Setup sidebar.",
-    "Use identical extrusion depth and bevel profile so the arrow no longer sits above the G when rotated.",
-    "Blend the turquoise and silver finishes across the shared joint while preserving auto-orbit, drag controls and both appearance themes."
+    "The Setup GPU brand now uses the exact white G and gray directional arrow contours from the official GenyCaster SVG, not approximate circles and triangles.",
+    "Preserve the official front silhouette and colors while keeping native GPU depth, subtle bevels, light/dark themes, pointer drag and automatic rotation.",
+    "Improve edge-distance sampling so the contours remain cleaner when rotated sideways."
   ]
 }

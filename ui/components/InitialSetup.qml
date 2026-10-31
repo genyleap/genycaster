@@ -484,6 +484,16 @@ Item {
                 property real orbitYaw: desktopBrandPane.orbitYaw
                 property real dragYaw: desktopBrandPane.dragYaw
                 property real dragPitch: desktopBrandPane.dragPitch
+                // The atlas is derived from the EXACT paths in the official
+                // genycaster-icon.svg, not circular/triangular approximations.
+                // Its R/G channels preserve the two independent contours.
+                property var logoDistanceMap: Image {
+                    source: "qrc:/qt/qml/Farcaster/Client/shaders/genycaster_logo_sdf.png"
+                    sourceSize.width: 832
+                    sourceSize.height: 832
+                    smooth: true
+                    visible: false
+                }
                 fragmentShader: "qrc:/qt/qml/Farcaster/Client/shaders/setup_glass_g.frag.qsb"
                 blending: false
             }

@@ -1,30 +1,42 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
+import {readFileSync,statSync} from "node:fs";
 import {fileURLToPath} from "node:url";
-const src=fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../../ui/shaders/setup_glass_g.frag"),"utf8");
+const path=new URL("../../ui/",import.meta.url);
+const src=readFileSync(new URL("shaders/setup_glass_g.frag",path),"utf8");
+const svg=readFileSync(new URL("wasm/genycaster-icon.svg",path),"utf8");
+const generator=readFileSync(new URL("shaders/generate_logo_sdf.mjs",path),"utf8");
 
-test("G and forward arrow share one extrusion and continuous bevel",()=>{
-    assert.match(src,/const float halfDepth=\.118;/);
-    assert.match(src,/const float bevel=\.019;/);
-    assert.match(src,/vec2 g=vec2\(ring,abs\(p\.z\)-halfDepth\)/);
-    assert.match(src,/vec2 a=vec2\(direction,abs\(p\.z\)-halfDepth\)/);
-    assert.doesNotMatch(src,/p\.z-\.14/);
+test("the exact master SVG G and directional mark supply GPU geometry",()=>{
+ assert.match(svg,/<path fill="#FFFFFF" d="M 366 204/);
+ assert.match(svg,/<path fill="#BEBEBE" d="M 254 231/);
+ assert.match(generator,/const g=paths.find\(x=>x\[1\]==="#FFFFFF"\)/);
+ assert.match(generator,/const arrow=paths.find\(x=>x\[1\]==="#BEBEBE"\)/);
+ assert.match(generator,/new Path2D\(path\)/);
+ assert.ok(statSync(new URL("shaders/genycaster_logo_sdf.png",path)).size>10000);
+ assert.match(src,/uniform sampler2D logoDistanceMap/);
+ assert.match(src,/vec2 canonicalDistance\(/);
+ assert.match(src,/float merged=min\(dg,da\)/);
+ assert.doesNotMatch(src,/sdTriangle|abs\(length\(p\.xy|fillet=\.072/);
 });
-test("SDF uses an actual filleted union rather than touching separate components",()=>{
-    assert.match(src,/const float fillet=\.072;/);
-    assert.match(src,/float h=clamp\(\.5\+\.5\*\(dg-da\)\/fillet,0\.0,1\.0\)/);
-    assert.match(src,/float merged=mix\(dg,da,h\)-fillet\*h\*\(1\.0-h\)/);
-    assert.match(src,/float arrowTint=smoothstep\(\.06,\.94,h\)/);
-    assert.match(src,/return vec2\(merged,arrowTint\)/);
-    assert.doesNotMatch(src,/vec2\(min\(dg,da\), da<dg/);
+
+test("extrusion bevel is inset rather than growing the official glyph silhouette",()=>{
+ assert.match(src,/const float halfDepth=\.112/);
+ assert.match(src,/const float bevel=\.007/);
+ assert.match(src,/contour\.x\+bevel/);
+ assert.match(src,/contour\.y\+bevel/);
+ assert.match(src,/float dg=length\(max\(a,0\.0\)\)/);
+ assert.match(src,/float da=length\(max\(b,0\.0\)\)/);
 });
-test("pointer rotation and dark/light presentation remain GPU-driven",()=>{
-    assert.match(src,/float orbitYaw/);
-    assert.match(src,/float dragYaw/);
-    assert.match(src,/float dragPitch/);
-    assert.match(src,/surfaceNormal\(/);
-    assert.match(src,/darkMode/);
-    assert.match(src,/qt_Opacity/);
+test("rotation, presentation and GPU texture all remain native Qt driven",()=>{
+ const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
+ const cmake=readFileSync(new URL("CMakeLists.txt",path),"utf8");
+ assert.match(qml,/property var logoDistanceMap: Image/);
+ assert.match(qml,/shaders\/genycaster_logo_sdf\.png/);
+ assert.match(cmake,/shaders\/genycaster_logo_sdf\.png/);
+ assert.match(src,/float orbitYaw/);
+ assert.match(src,/float dragYaw/);
+ assert.match(src,/float dragPitch/);
+ assert.match(qml,/id: automaticRotation/);
+ assert.match(qml,/!Theme\.reduceMotion/);
 });
