@@ -176,16 +176,22 @@ Button {
             anchors.fill: parent
             visible: root.accountShowcase
             spacing: Theme.space2
-            LayoutMirroring.enabled: Theme.rtl
-            LayoutMirroring.childrenInherit: true
+            // Explicit leading-edge positioning avoids the double reversal
+            // caused by LayoutMirroring + Qt.AlignRight on RTL languages.
+            LayoutMirroring.enabled: false
+            LayoutMirroring.childrenInherit: false
 
-            Icon {
-                visible: root.iconGlyph.length > 0
-                text: root.iconGlyph
-                color: root.setupEmphasis ? "#FCFCFE" : Theme.ink
-                preferredSize: 27
+            Item {
+                Layout.fillWidth: true
                 Layout.preferredHeight: 30
-                Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                Icon {
+                    visible: root.iconGlyph.length > 0
+                    text: root.iconGlyph
+                    color: root.setupEmphasis ? "#FCFCFE" : Theme.ink
+                    preferredSize: 27
+                    x: Theme.rtl ? parent.width - width : 0
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
             Item { Layout.preferredHeight: 1 }
             DirectionAwareLabel {
