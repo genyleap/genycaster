@@ -151,7 +151,9 @@ test('desktop brand visual persists across all stages without blocking RTL title
   const card=source('ui/components/SetupActionCard.qml');
   assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
   assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
-  assert.match(s,/id: desktopBrandArt[\s\S]*?brands\/setup-motif\.svg/);
+  assert.match(s,/id: desktopBrandArt[\s\S]*?wasm\/genycaster-icon\.svg/);
+  assert.match(s,/opacity: Theme\.dark \? 0\.18 : 0\.13/);
+  assert.doesNotMatch(s,/source: .*setup-motif\.svg/);
   assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
   assert.match(s,/iconGlyph: Theme.iconPalette/);
