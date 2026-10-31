@@ -1,4 +1,4 @@
-import {setTheme as setArtTheme} from "./art.js";
+import {setTheme as setArtTheme} from "./art.js?v=glass-g-arc-1";
 const app=document.getElementById("app");
 const dark=document.getElementById("darkTheme");
 const light=document.getElementById("lightTheme");

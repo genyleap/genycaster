@@ -19,7 +19,7 @@ test('dual-theme reference is a genuine page with semantic controls, not a scree
   assert.match(page,/<a href="https:\/\/genyleap\.com\/"/);
   assert.match(page,/Beta 1\.0 · v1\.0\.0/);
   assert.match(page,/src="\.\/assets\/genycaster-icon\.svg"/);
-  assert.match(page,/type="module" src="\.\/page\.js"/);
+  assert.match(page,/type="module" src="\.\/page\.js\?v=glass-g-arc-1"/);
   assert.match(page,/noindex,nofollow/);
   assert.doesNotMatch(page,/\.png"[^>]*class="setup-panel"/);
 });
@@ -38,9 +38,12 @@ test('artwork is a real GPU WebGL renderer that respects reduced-motion',()=>{
   assert.match(js,/THREE\.WebGLRenderer/);
   assert.match(js,/canvas\.addEventListener\("pointermove"/);
   assert.match(js,/prefers-reduced-motion: reduce/);
-  assert.match(js,/THREE\.SphereGeometry/);
-  assert.match(js,/THREE\.BufferGeometry/);
-  assert.match(js,/THREE\.ShaderMaterial/);
+  assert.match(js,/THREE\.ExtrudeGeometry/);
+  assert.match(js,/THREE\.MeshPhysicalMaterial/);
+  assert.match(js,/function exactG\(\)/);
+  assert.match(js,/function exactDirection\(\)/);
+  assert.match(js,/bevelEnabled:true/);
+  assert.doesNotMatch(js,/addOrb\(|makeRibbon\(|SphereGeometry|CatmullRomCurve3/);
   assert.match(js,/requestAnimationFrame/);
   assert.match(js,/canvas\.style\.display="none"/);
   assert.doesNotMatch(js,/fetch\(|WebSocket|https?:\/\//);

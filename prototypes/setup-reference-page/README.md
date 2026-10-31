@@ -1,38 +1,46 @@
-# GenyCaster — interactive Setup concept page
+# GenyCaster Glass G Arc — interactive Setup design preview
 
-This is the live **page**, not a rendered image. It follows the approved split
-composition with GPU-accelerated curved glass artwork on the left, real HTML
-content and navigation on the right, and separately designed light/dark themes.
+**Review-only, not production onboarding:** the 4-step design sample does not
+read user identities, accept a recovery phrase, or change the native/WASM Qt
+application. The real 8-step Setup remains unchanged.
 
-- Preview: https://caster.genyleap.com/preview/setup-concept/index.html
-- Compare both themes: https://caster.genyleap.com/preview/setup-concept/compare.html
+## Design direction
 
-## Structure
+The only hero object is a 3D reconstruction of the **actual GenyCaster G and
+directional arrow paths** in `ui/wasm/genycaster-icon.svg`. The geometry is
+extruded with beveled edges, glass/metal Physical Materials, and a locally
+generated studio-light environment. Previous unrelated spheres, planes, ribbon
+waves, particles and fog were intentionally removed.
 
-- `index.html` — accessible real UI with actual buttons, links and
-  a canvas for the GPU artwork.
-- `styles.css` — dark/light visual system and responsive layout.
-- `page.js` — four-step **design demonstration**, working Continue/Back
-  navigation and a theme switch. It does **not** authenticate, store or alter
-  account information.
-- `art.js` — WebGL / Three.js procedural curved glass ribbon, depth and
-  pointer interaction. Reduced-motion preference is respected and a static
-  gradient remains visible when WebGL is unsupported.
-- `compare.html` — simultaneous dark/light view through live page frames.
-- `assets/three.module.js` — pinned self-hosted Three.js source, MIT license
-  in `THREE_LICENSE.txt`. No external JS/CDN dependencies.
-- `assets/genycaster-icon.svg` — from the project icon package.
+- Dark: luminous ivory glass and cool turquoise arrow, on a quiet navy panel.
+- Light: satin blue-grey glass and teal arrow on an icy-white panel.
+- Same camera, same composition, stable negative space in both modes.
+- Pointer-responsive restrained parallax; click pulse; no perpetual animation.
+- Reduced-motion system preference disables parallax and pulsing.
+- Original logo, footer and version are accessible DOM overlays.
+- A large but subtle original-SVG fallback appears when WebGL is unavailable.
 
-The production GenyCaster onboarding has more stages than this *four-step
-visual prototype*; no change to `InitialSetup.qml` or the production WASM
-bundle is made until design and UX are approved.
+## Files
 
-## Tests
+- `index.html`, `styles.css`: real responsive design-review page
+- `page.js`: 4 example steps, Back/Continue, Light/Dark controls
+- `art.js`: WebGL 2 / locally vendored Three.js GPU scene
+- `compare.html`: both themes rendered side by side
+- `assets/genycaster-icon.svg`: exact icon from project
+- `assets/three.module.js`: pinned Three.js release, local/no CDN
+- `assets/THREE_LICENSE.txt`: MIT license
 
-```bash
-node --test tests/wasm/setup_reference_page.test.mjs tests/wasm/setup_reference_preview.test.mjs
+Browser entry: https://caster.genyleap.com/preview/brand3d/index.html
+
+This is a GPU-based **brand sculpture**, not a claim of pixel-perfect physically
+correct ray-traced glass. Integration in the native Qt Setup requires a separate
+cross-platform implementation and user design approval.
+
+## Verification
+
+```sh
+node --test tests/wasm/setup_reference_preview.test.mjs tests/wasm/setup_reference_page.test.mjs
 ```
 
-Browser QA on Chromium exercised rendering (WebGL 2), the two themes,
-Continue/Back and mobile sizing without JS errors. Native Quick 3D integration
-is a separate task requiring module availability in all targeted Qt kits.
+Use WebGL 2 Chromium/SwiftShader to validate visual appearance, theme switching,
+parallax, navigation and responsiveness. Production Setup is not modified.

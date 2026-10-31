@@ -138,3 +138,28 @@ body.comparison{padding:0;display:block;background:transparent;min-height:0}
 .comparison .continue-button,.comparison .back-button{min-height:49px;font-size:13px}
 .comparison .setup-actions{gap:6px}
 .comparison .back-button{padding:0 10px}
+
+/* Glass G Arc: one premium brand object, no disconnected ribbons or spheres. */
+.app{--railTop:#091724;--railMid:#12283a;--railBottom:#0c1c2c}
+.app.light{--railTop:#f3f8fc;--railMid:#e6f1f8;--railBottom:#edf5fa}
+.brand-rail{
+ background:
+   radial-gradient(ellipse 68% 42% at 55% 46%,rgba(49,156,187,.12),transparent 84%),
+   linear-gradient(155deg,var(--railTop) 4%,var(--railMid) 55%,var(--railBottom) 100%);
+}
+.light .brand-rail{
+ background:
+   radial-gradient(ellipse 65% 46% at 58% 46%,rgba(108,182,216,.15),transparent 82%),
+   linear-gradient(155deg,var(--railTop),var(--railMid) 56%,var(--railBottom));
+}
+.gpu-art:before{display:none}
+.ambient-shine{background:radial-gradient(ellipse 50% 50% at 52% 53%,rgba(127,235,240,.055),transparent 86%)}
+.light .ambient-shine{background:radial-gradient(ellipse 54% 54% at 53% 54%,rgba(65,140,184,.045),transparent 86%)}
+.brand-gpu-fallback{
+ width:min(72%,420px);position:absolute;top:50%;left:50%;
+ transform:translate(-50%,-50%);filter:drop-shadow(4px 10px 15px #00172728);
+ opacity:.5;pointer-events:none;z-index:1;
+}
+.light .brand-gpu-fallback{opacity:.26}
+.brand-interaction-tip{opacity:.57;letter-spacing:.13em}
+.brand-footer{z-index:6}

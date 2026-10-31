@@ -1,207 +1,217 @@
 import * as THREE from "./assets/three.module.js";
 
-const canvas=document.getElementById("scene");
-const rail=document.querySelector(".brand-rail");
-const app=document.getElementById("app");
-const prefersReducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)");
-let renderer,scene,camera,group,envTarget,raf=0,lastT=0,frameInvalidated=true,active=true;
-const target={x:0,y:0},current={x:0,y:0};
-let dark=app.classList.contains("dark"),gpuReady=false;
-const materials=[];const disposables=[];
+// A single cohesive object: the exact curved G and directional cut of the
+// shipped GenyCaster SVG, extruded with polished bevels. Nothing decorative
+// floats beside the mark; this IS the brand, not a random abstract scene.
+const canvas = document.getElementById("scene");
+const rail = document.querySelector(".brand-rail");
+const app = document.getElementById("app");
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+let renderer, scene, camera, identity, probe, lights, raf=0;
+let dark=app.classList.contains("dark");
+let targetX=0,targetY=0, frameX=0,frameY=0, pulse=0;
+let alive=true;
+let lastTime=0;
+let fallback;
 
-function createFilmMaterial({color,opacity=.70,glow=.3,shade=1}) {
-  return new THREE.ShaderMaterial({
-    uniforms:{
-      tint:{value:new THREE.Color(color)},
-      alpha:{value:opacity},
-      luminous:{value:glow},
-      shade:{value:shade}
-    },
-    side:THREE.DoubleSide,depthWrite:false,transparent:true,
-    vertexShader:`
-      varying vec3 vNormal;
-      varying vec3 vView;
-      varying vec3 vWorld;
-      varying vec2 vUv;
-      void main(){
-        vec4 mv=modelViewMatrix*vec4(position,1.);
-        vView=normalize(-mv.xyz);
-        vNormal=normalize(normalMatrix*normal);
-        vWorld=position;
-        vUv=uv;
-        gl_Position=projectionMatrix*mv;
-      }`,
-    fragmentShader:`
-      precision highp float;
-      uniform vec3 tint;
-      uniform float alpha;
-      uniform float luminous;
-      uniform float shade;
-      varying vec3 vNormal;
-      varying vec3 vView;
-      varying vec3 vWorld;
-      varying vec2 vUv;
-      void main(){
-        vec3 n=normalize(vNormal);
-        float f=pow(1.0-abs(dot(n,normalize(vView))),2.5);
-        float g=pow(max(dot(reflect(normalize(vec3(-0.6,0.7,-0.8)),n),normalize(vView)),0.0),24.0);
-        float w=pow(max(dot(reflect(normalize(vec3(0.9,0.14,-0.85)),n),normalize(vView)),0.0),48.0);
-        float sheen=0.50+0.20*sin(vUv.y*3.14159+0.7)+0.17*sin(vUv.x*5.3);
-        vec3 col=tint*(0.52+sheen*0.42)*shade;
-        col+=vec3(0.65,1.0,.98)*(f*0.31+g*0.6)*luminous;
-        col+=vec3(1.0,.74,.43)*w*.38*luminous;
-        float opa=clamp(alpha*(0.53+0.45*sheen)+f*.18+g*.12,.02,.87);
-        gl_FragColor=vec4(col,opa);
-      }`
+const svgScale=1.76;
+const px=x=>(x-256)*svgScale;
+const py=y=>(256-y)*svgScale;
+function move(s,x,y){s.moveTo(px(x),py(y));}
+function line(s,x,y){s.lineTo(px(x),py(y));}
+function bez(s,a,b,c,d,x,y){s.bezierCurveTo(px(a),py(b),px(c),py(d),px(x),py(y));}
+
+function exactG(){
+ const s=new THREE.Shape();
+ move(s,366,204);
+ bez(s,342,157,298,128,249,128);
+ bez(s,178.30,128,121,185.30,121,256);
+ bez(s,121,326.70,178.30,384,249,384);
+ bez(s,294,384,331.8,365.4,354.3,349.5);
+ line(s,322,315.2);
+ bez(s,303.6,330.2,281.4,336,249,336);
+ bez(s,204.82,336,169,300.18,169,256);
+ bez(s,169,211.82,204.82,176,249,176);
+ bez(s,278,176,299.5,185,315.5,204);
+ s.closePath();
+ return s;
+}
+function exactDirection(){
+ const s=new THREE.Shape();
+ move(s,254,231);line(s,376,231);
+ bez(s,382.08,231,385,233.92,385,240);
+ line(s,385,362);
+ bez(s,385,367.7,383.1,367.25,379.4,363.3);
+ bez(s,341.2,321.9,296.6,280.8,252.2,245.8);
+ bez(s,245.6,240.8,247,231,254,231);
+ s.closePath();
+ return s;
+}
+function studioEnvironment(isDark){
+ // Baked-in lighting layout: broad white softbox, cyan rim, narrow warm
+ // reflection; generated locally so no images, network textures or timing.
+ const c=document.createElement("canvas");c.width=768;c.height=384;
+ const g=c.getContext("2d",{alpha:false});
+ g.fillStyle=isDark?"#0b1b2b":"#b1ccd9";g.fillRect(0,0,c.width,c.height);
+ function box(x,y,w,h,color){
+   const grd=g.createRadialGradient(x,y,3,x,y,Math.max(w,h));
+   grd.addColorStop(0,color);grd.addColorStop(0.5,color.replace(/,\s*([.\d]+)\)$/," ,0.32)"));grd.addColorStop(1,"rgba(0,0,0,0)");
+   g.fillStyle=grd;g.fillRect(x-w,y-h,2*w,2*h);
+ }
+ box(160,128,115,190,"rgba(255,255,255,0.95)");
+ box(375,105,220,110,"rgba(142,242,255,0.85)");
+ box(614,169,90,240,"rgba(255,199,137,0.87)");
+ box(460,320,200,90,"rgba(94,219,242,0.75)");
+ const t=new THREE.CanvasTexture(c);
+ t.mapping=THREE.EquirectangularReflectionMapping;
+ t.colorSpace=THREE.SRGBColorSpace;
+ return t;
+}
+function makeMaterial(isArrow){
+ if(isArrow){
+  return new THREE.MeshPhysicalMaterial({
+   color:dark?"#38C6E3":"#1B84B0",metalness:dark?0.32:0.42,
+   roughness:0.115,transmission:dark?0.12:0.06,
+   thickness:6,ior:1.46,clearcoat:1,clearcoatRoughness:0.055,
+   envMapIntensity:dark?2.2:1.6
   });
+ }
+ return new THREE.MeshPhysicalMaterial({
+  color:dark?"#D0F2F7":"#7196B4",metalness:dark?0.44:0.53,
+  roughness:0.14,transmission:dark?0.16:0.05,
+  thickness:7,ior:1.45,clearcoat:1,clearcoatRoughness:0.06,
+  envMapIntensity:dark?2.5:1.9
+ });
 }
-
-function makeRibbon(points,widthBase,zDepth,material,{radius=3.5,color="#7df5ff",opacity=.85}={}){
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)),false,"catmullrom",.46);
-  const positions=[],uv=[],indices=[],edgeA=[],edgeB=[];
-  const seg=140,slices=13;
-  for(let i=0;i<=seg;i++){
-    const t=i/seg,center=curve.getPoint(t),tangent=curve.getTangent(t).normalize();
-    // Lateral tangent in XY plane forms an extruded broad folded glass surface.
-    const side=new THREE.Vector3(-tangent.y,tangent.x,0).normalize();
-    const flare=.82+.18*Math.sin(Math.PI*t),width=widthBase*flare;
-    for(let j=0;j<=slices;j++){
-      const v=j/slices,across=(v-.5)*width;
-      const q=center.clone().addScaledVector(side,across);
-      q.z+=zDepth*Math.sin(Math.PI*v)+14*Math.sin(t*4.2+v*2.5);
-      positions.push(q.x,q.y,q.z);uv.push(v,t);
-      if(j===0)edgeA.push(q.clone().add(new THREE.Vector3(0,0,3)));
-      if(j===slices)edgeB.push(q.clone().add(new THREE.Vector3(0,0,3)));
-    }
-  }
-  for(let i=0;i<seg;i++)for(let j=0;j<slices;j++){
-    const a=i*(slices+1)+j,b=a+slices+1;
-    indices.push(a,b,a+1,b,b+1,a+1);
-  }
-  const geo=new THREE.BufferGeometry();
-  geo.setAttribute("position",new THREE.Float32BufferAttribute(positions,3));
-  geo.setAttribute("uv",new THREE.Float32BufferAttribute(uv,2));
-  geo.setIndex(indices);geo.computeVertexNormals();
-  const surf=new THREE.Mesh(geo,material);surf.frustumCulled=false;
-  group.add(surf);disposables.push(geo,material);
-  const trace=(edge,r,op)=>{
-    const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge),135,r,6,false);
-    const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
-    const obj=new THREE.Mesh(g,m);obj.frustumCulled=false;group.add(obj);disposables.push(g,m);
-  };
-  trace(edgeA,radius,opacity*.77);trace(edgeB,radius*.66,opacity*.57);
+function addPiece(shape,isArrow){
+ const geo=new THREE.ExtrudeGeometry(shape,{
+   depth:isArrow?23:30,steps:1,
+   bevelEnabled:true,bevelThickness:5.5,bevelSize:4.6,
+   bevelSegments:6,curveSegments:40
+ });
+ geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,makeMaterial(isArrow));
+ mesh.position.z=isArrow?36:0;
+ mesh.castShadow=false;mesh.receiveShadow=false;
+ mesh.frustumCulled=false;
+ identity.add(mesh);
 }
-
-function addOrb(x,y,z,radius,color,alpha=1){
-  const geo=new THREE.SphereGeometry(radius,46,34);
-  const mat=new THREE.MeshPhysicalMaterial({
-    color,roughness:.065,metalness:.03,
-    transmission:.68,thickness:4,ior:1.45,clearcoat:1,clearcoatRoughness:.045,
-    envMapIntensity:2.8,transparent:alpha<1,opacity:alpha
-  });
-  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);group.add(m);disposables.push(geo,mat);
+function buildIdentity(){
+ identity=new THREE.Group();
+ scene.add(identity);
+ addPiece(exactG(),false);
+ addPiece(exactDirection(),true);
+ identity.rotation.set(-.06,-.12,-.015);
+ identity.position.set(0,-7,0);
 }
-
-function buildScene(){
-  scene=new THREE.Scene();group=new THREE.Group();scene.add(group);
-  const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
-  camera=new THREE.PerspectiveCamera(42,width/height,.1,4000);
-  camera.position.set(0,0,1080);camera.lookAt(0,0,0);
-  const hemi=new THREE.HemisphereLight("#C7FAFF","#14537C",2.3);scene.add(hemi);
-  const key=new THREE.DirectionalLight("#C1FFFF",6);key.position.set(-410,380,690);scene.add(key);
-  const warm=new THREE.DirectionalLight("#FFD6A6",3.3);warm.position.set(480,220,470);scene.add(warm);
-  const cyan=new THREE.PointLight("#54DDFA",24000,1200);cyan.position.set(-200,-130,540);scene.add(cyan);
-  group.position.set(-15,-3,0);
-  // The composition is deliberately one continuous visual family, not
-  // isolated tubes, panels and disconnected objects.
-  makeRibbon(
-    [[-365,355,-140],[-286,215,-40],[-150,105,0],[5,75,90],[138,-10,90],[215,-160,-20],[265,-365,-130]],
-    200,50,createFilmMaterial({color:"#2aaec6",opacity:.49,glow:.83}),
-    {radius:2.5,color:"#4defff",opacity:.93}
-  );
-  makeRibbon(
-    [[-410,85,120],[-315,45,170],[-135,-105,188],[75,-185,185],[248,-238,96],[330,-360,-40]],
-    150,47,createFilmMaterial({color:"#59bde5",opacity:.65,glow:1.0}),
-    {radius:3.8,color:"#81efff",opacity:.95}
-  );
-  makeRibbon(
-    [[355,370,-80],[220,190,-10],[250,45,85],[340,-130,20],[380,-320,-60]],
-    148,52,createFilmMaterial({color:"#bce5ff",opacity:.36,glow:.72}),
-    {radius:1.8,color:"#effbff",opacity:.64}
-  );
-  addOrb(145,-105,238,119,"#7ebcfb",.93);
-  addOrb(-230,-380,125,118,"#99d6fa",.75);
-  invalidate();
+function configureEnvironment(){
+ if(probe){probe.dispose();probe=null;}
+ const texture=studioEnvironment(dark);
+ const pmrem=new THREE.PMREMGenerator(renderer);
+ probe=pmrem.fromEquirectangular(texture);
+ pmrem.dispose();texture.dispose();
+ scene.environment=probe.texture;
+ renderer.toneMappingExposure=dark?1.48:1.28;
 }
-
-function setTheme(value){
-  dark=value;app.classList.toggle("dark",dark);app.classList.toggle("light",!dark);
-  updateBackground();
-  invalidate();
-}
-function updateBackground(){
-  if(!scene)return;
-  for(const l of scene.children.filter(x=>x.isLight)){
-    if(l.isHemisphereLight)l.intensity=dark?2.3:2.1;
-    if(l.isDirectionalLight)l.intensity=dark?6:4;
-  }
-  group.traverse(obj=>{
-    if(!obj.isMesh)return;
-    const m=obj.material;
-    if(m.uniforms){
-      m.uniforms.shade.value=dark?1:.82;
-    } else if(m.isMeshPhysicalMaterial){
-      m.envMapIntensity=dark?2.8:2;
-    }
-  });
-}
-function invalidate(){if(!raf&&active)raf=requestAnimationFrame(frame)}
-function frame(time){
-  raf=0;if(!renderer)return;
-  const reduced=prefersReducedMotion.matches;
-  if(!reduced){
-    current.x+=(target.x-current.x)*.13;
-    current.y+=(target.y-current.y)*.13;
-  }else{current.x=0;current.y=0}
-  group.rotation.y=current.x;
-  group.rotation.x=current.y;
-  renderer.render(scene,camera);
-  if(!reduced && (Math.abs(current.x-target.x)>.00045||Math.abs(current.y-target.y)>.00045)) invalidate();
+function configureTheme(){
+ app.classList.toggle("dark",dark);
+ app.classList.toggle("light",!dark);
+ if(!renderer)return;
+ configureEnvironment();
+ const [g,arrow]=identity.children;
+ g.material.dispose();arrow.material.dispose();
+ g.material=makeMaterial(false);arrow.material=makeMaterial(true);
+ lights.key.intensity=dark?3.2:2.4;
+ lights.rim.intensity=dark?2.1:1.35;
+ lights.warm.intensity=dark?2.0:1.1;
+ lights.hemi.intensity=dark?1.35:1.45;
+ invalidate();
 }
 function resize(){
-  if(!renderer)return;
-  const width=Math.max(1,canvas.clientWidth),height=Math.max(1,canvas.clientHeight);
-  renderer.setSize(width,height,false);
-  camera.aspect=width/height;camera.updateProjectionMatrix();invalidate();
+ if(!renderer)return;
+ const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);
+ renderer.setSize(w,h,false);
+ camera.aspect=w/h;
+ // Hold the sculpture in the central safe area, with clear top lockup and
+ // bottom footer at every responsive width. Never crop its extrema.
+ const fov=35*Math.PI/180;
+ const occupiedHeight=550;
+ const distance=Math.max(1050,occupiedHeight/(2*Math.tan(fov/2)) * 1.45,
+   (625/Math.max(.58,w/h))/(2*Math.tan(fov/2)));
+ camera.position.set(0,0,distance);
+ camera.lookAt(0,0,0);
+ camera.updateProjectionMatrix();
+ invalidate();
+}
+function invalidate(){if(!raf&&alive)raf=requestAnimationFrame(render)}
+function render(t){
+ raf=0;
+ if(!renderer)return;
+ const settled=reduced.matches;
+ const friction=settled?1:.14;
+ frameX+=( (settled?0:targetX)-frameX)*friction;
+ frameY+=( (settled?0:targetY)-frameY)*friction;
+ identity.rotation.y=-.12+frameX;
+ identity.rotation.x=-.06+frameY;
+ identity.rotation.z=-.015;
+ if(pulse>0){
+    pulse=Math.max(0,pulse-.07);
+    identity.scale.setScalar(1+.014*Math.sin(Math.PI*pulse));
+ }else identity.scale.setScalar(1);
+ renderer.render(scene,camera);
+ if(!settled&&(Math.abs(targetX-frameX)>.00035||Math.abs(targetY-frameY)>.00035||pulse>0))invalidate();
+}
+function createFallback(){
+ const img=document.createElement("img");
+ img.src="./assets/genycaster-icon.svg";
+ img.alt="";
+ img.className="brand-gpu-fallback";
+ img.setAttribute("aria-hidden","true");
+ rail.querySelector(".gpu-art").appendChild(img);
+ fallback=img;
 }
 function init(){
-  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-  renderer.setPixelRatio(Math.min(1.5,devicePixelRatio||1));
-  renderer.setSize(Math.max(1,canvas.clientWidth),Math.max(1,canvas.clientHeight),false);
-  renderer.outputColorSpace=THREE.SRGBColorSpace;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.6;
-  buildScene();
-  updateBackground();
-  resize();
-  canvas.addEventListener("pointermove",e=>{
-    if(prefersReducedMotion.matches)return;
-    const rect=canvas.getBoundingClientRect();
-    target.x=((e.clientX-rect.left)/rect.width-.5)*.23;
-    target.y=((e.clientY-rect.top)/rect.height-.5)*.11;
+ renderer=new THREE.WebGLRenderer({
+   canvas,alpha:true,antialias:true,powerPreference:"high-performance"
+ });
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;
+ scene=new THREE.Scene();
+ camera=new THREE.PerspectiveCamera(35,1,.1,4000);
+ const hemi=new THREE.HemisphereLight("#e2ffff","#17415a",1.35);
+ const key=new THREE.DirectionalLight("#e8faff",3.2);key.position.set(-350,540,680);
+ const rim=new THREE.DirectionalLight("#64f6f1",2.1);rim.position.set(410,-230,-330);
+ const warm=new THREE.DirectionalLight("#ffdbab",2.0);warm.position.set(490,360,470);
+ [hemi,key,rim,warm].forEach(x=>scene.add(x));
+ lights={hemi,key,rim,warm};
+ buildIdentity();configureTheme();resize();
+ canvas.addEventListener("pointermove",e=>{
+    if(reduced.matches)return;
+    const r=canvas.getBoundingClientRect();
+    targetX=((e.clientX-r.left)/r.width-.5)*.17;
+    targetY=((e.clientY-r.top)/r.height-.5)*.10;
     invalidate();
-  });
-  canvas.addEventListener("pointerleave",()=>{target.x=0;target.y=0;invalidate()});
-  window.addEventListener("resize",resize);
-  new ResizeObserver(resize).observe(rail);
-  document.addEventListener("visibilitychange",()=>{active=!document.hidden;if(active)invalidate()});
-  canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();active=false;console.warn("WebGL context lost")},{passive:false});
+ });
+ canvas.addEventListener("pointerleave",()=>{targetX=0;targetY=0;invalidate()});
+ canvas.addEventListener("click",()=>{if(reduced.matches)return;pulse=1;invalidate()});
+ canvas.addEventListener("webglcontextlost",e=>{
+    e.preventDefault();alive=false;cancelAnimationFrame(raf);
+    canvas.style.display="none";createFallback();
+ },{passive:false});
+ window.addEventListener("resize",resize);
+ new ResizeObserver(resize).observe(rail);
+ reduced.addEventListener?.("change",()=>{targetX=0;targetY=0;invalidate()});
+ document.addEventListener("visibilitychange",()=>{
+    alive=!document.hidden;
+    if(alive)invalidate();
+ });
 }
-
-try{init()}catch(error){
-  // Accessible static CSS gradient remains visible on weak GPUs; the actual
-  // setup controls do not depend on WebGL initialization.
-  console.warn("[GenyCaster setup concept] GPU unavailable:",error.message);
-  canvas.style.display="none";
+function setTheme(value){
+ dark=value;configureTheme();
+}
+try{init();}catch(e){
+ console.warn("[GenyCaster Glass G Arc] WebGL unavailable; SVG fallback:",e);
+ canvas.style.display="none";createFallback();
 }
 export {setTheme};

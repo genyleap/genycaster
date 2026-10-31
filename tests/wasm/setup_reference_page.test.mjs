@@ -16,15 +16,18 @@ test('preview is standalone and uses real semantic page controls',()=>{
  assert.match(html,/id="lightTheme"/);
  assert.match(html,/© 2026/);
  assert.match(html,/https:\/\/genyleap\.com\//);
- assert.match(html,/type="module" src="\.\/page\.js"/);
+ assert.match(html,/type="module" src="\.\/page\.js\?v=glass-g-arc-1"/);
  assert.match(html,/noindex,nofollow/);
  assert.match(html,/real Setup remains unchanged|existing GenyCaster Setup and account data are unchanged/i);
 });
 test('the reference is a GPU-driven theme-aware page with functional navigation',()=>{
  const art=src('art.js'),script=src('page.js');
  assert.match(art,/THREE\.WebGLRenderer/);
- assert.match(art,/CatmullRomCurve3/);
+ assert.match(art,/THREE\.ExtrudeGeometry/);
+ assert.match(art,/function exactG\(\)/);
+ assert.match(art,/function exactDirection\(\)/);
  assert.match(art,/THREE\.MeshPhysicalMaterial/);
+ assert.doesNotMatch(art,/CatmullRomCurve3|addOrb\(|makeRibbon\(/);
  assert.match(art,/pointermove/);
  assert.match(art,/prefers-reduced-motion/);
  assert.match(script,/const steps=\[/);
