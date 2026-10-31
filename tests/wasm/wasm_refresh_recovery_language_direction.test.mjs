@@ -53,14 +53,15 @@ test('setup wheel preserves native script direction, accessible selection and ke
   for (const t of ['fa', 'ar', 'en', 'fr']) assert.ok(setup.includes('tag:"'+t+'"'));
 });
 
-test('account choices follow wireframe and unimplemented creation uses a handoff', () => {
+test('account choices follow storyboard and pending registration cannot launch Farcaster', () => {
     const setup=file('ui/components/InitialSetup.qml');
     const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
     assert.match(account,/genycaster.setup.design_create_account/);
     assert.match(account,/genycaster.setup.design_existing_account/);
-    assert.match(account,/neutralPrimary: true/);
+    assert.match(account,/genycaster.shell.coming_soon/);
+    assert.match(account,/enabled: false/);
     assert.match(account,/root.accountIntent = "existing"/);
-    assert.match(account,/root.openRegistration\(\)/);
+    assert.doesNotMatch(account,/root.openRegistration\(\)/);
 });
 
 test('web update copy is present in all supported locales', () => {
