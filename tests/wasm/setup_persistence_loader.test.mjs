@@ -305,10 +305,10 @@ test('eight-stage Setup preserves language wheel, legal consent and navigation',
     assert.match(app,/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
 });
 
-test('recovery phrase uses trailing-edge desktop drawer and mobile bottom sheet',()=>{
+test('recovery phrase uses centered desktop modal and matching mobile full-screen stage',()=>{
     const dialog=read('ui/wasm/recovery-phrase-dialog.mjs');
-    assert.match(dialog,/justify-content:flex-end/);
-    assert.match(dialog,/width:min\(540px,100%\)/);
+    assert.match(dialog,/justify-content:center/);
+    assert.match(dialog,/width:min\(620px,calc\(100% - 48px\)\)/);
     assert.match(dialog,/@media\(max-width:680px\)/);
     assert.match(dialog,/genycaster-sheet-in/);
     assert.match(dialog,/flex:1 1 auto;min-height:0;overflow-y:auto/);
