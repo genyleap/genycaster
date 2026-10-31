@@ -147,7 +147,7 @@ test('desktop brand visual persists across all stages without blocking RTL title
   const card=source('ui/components/SetupActionCard.qml');
   assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
   assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
-  assert.match(s,/id: brandMotif[\s\S]*?ctx\.arc/);
+  assert.match(s,/id: desktopBrandArt[\s\S]*?brands\/setup-motif\.svg/);
   assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
   assert.match(s,/iconGlyph: Theme.iconPalette/);
@@ -167,4 +167,46 @@ test('signout returns immediately to Welcome and legal consent accepts a deliber
   assert.match(s,/function openLegalDocument\(kind\)/);
   assert.match(s,/legalReader\.open\(\)/);
   assert.match(s,/onClicked: root.openLegalDocument\("privacy"\)/);
+});
+
+test('RTL back and close do not occupy the same top corner', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const nav=s.slice(s.indexOf('        ActionButton {\n            z: 20'),s.indexOf('        Flickable {\n            id: stageScroll'));
+  assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
+  assert.match(nav,/x: Theme\.rtl \? \(root\.phone \? Theme\.space2 : Theme\.space5\)/);
+  assert.match(nav,/iconGlyph: Theme\.rtl \? Theme\.iconArrowRight : Theme\.iconArrowLeft/);
+});
+
+test('acceptance toggle is borderless unless keyboard focused', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const start=s.indexOf('id: consentCheck');
+  const end=s.indexOf('id: accountStage');
+  const terms=s.slice(start,end);
+  assert.match(terms,/borderWidth: Theme\.keyboardFocusVisible\(consentCheck\) \? 2 : 0/);
+  assert.match(terms,/fillColor: consentCheck\.down \? Theme\.surfacePressed/);
+  assert.match(terms,/onClicked: root\.consentChecked = !root\.consentChecked/);
+});
+
+test('desktop account is a balanced editorial dark/light pair, with no fake new signup', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const card=source('ui/components/SetupActionCard.qml');
+  const account=s.slice(s.indexOf('id: accountStage'),s.indexOf('id: signInStage'));
+  assert.match(account,/accountShowcase: true[\s\S]*?setupEmphasis: true/);
+  assert.match(account,/iconGlyph: Theme\.iconUser/);
+  assert.match(account,/enabled: false/);
+  assert.match(account,/iconGlyph: Theme\.iconLink/);
+  assert.match(card,/property bool accountShowcase: false/);
+  assert.match(card,/property bool setupEmphasis: false/);
+  assert.match(card,/id: editorialAccountCard/);
+  assert.match(card,/LayoutMirroring\.enabled: Theme\.rtl/);
+});
+
+test('desktop progress compresses eight real steps to four paired editorial milestones', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const track=s.slice(s.indexOf('id: setupProgress'),s.indexOf('        ActionButton {\n            z: 20'));
+  assert.match(track,/model: Math\.ceil\(root\.progressCount \/ 2\)/);
+  assert.match(track,/root\.currentStep - index \* 2 \+ 1/);
+  assert.match(track,/root\.stepTitle\(root\.currentStep\)/);
+  assert.match(track,/root\.progressCount/);
+  assert.match(track,/Behavior on width/);
 });
