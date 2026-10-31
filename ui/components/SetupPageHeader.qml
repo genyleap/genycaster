@@ -11,9 +11,11 @@ ColumnLayout {
     property string subtitle: ""
     property bool showIcon: iconGlyph.length > 0
     property bool centered: false
+    property bool storyboardStyle: false
+    property bool compactDesktopStyle: false
     property int maximumTextWidth: 620
-    readonly property int iconSize: 24
-    spacing: Theme.space2
+    readonly property int iconSize: storyboardStyle ? (compactDesktopStyle ? 32 : 36) : 24
+    spacing: storyboardStyle ? Theme.space3 : Theme.space2
 
     Icon {
         visible: root.showIcon
@@ -23,6 +25,7 @@ ColumnLayout {
         Layout.preferredWidth: root.showIcon ? root.iconSize : 0
         Layout.preferredHeight: root.showIcon ? root.iconSize : 0
         Layout.alignment: root.centered ? Qt.AlignHCenter : Qt.AlignLeft
+        Layout.bottomMargin: root.storyboardStyle ? Theme.space2 : 0
         Accessible.name: root.title
     }
 
@@ -32,7 +35,9 @@ ColumnLayout {
         text: root.title
         color: Theme.ink
         font.family: Theme.fontFamilyForText(text)
-        font.pixelSize: Math.min(34, Math.max(27, Theme.typeTitle2Size))
+        font.pixelSize: root.storyboardStyle
+                        ? (root.compactDesktopStyle ? 26 : 31)
+                        : Math.min(34, Math.max(27, Theme.typeTitle2Size))
         font.weight: Theme.weightBold
         lineHeight: Theme.typeTitle2LineHeight
         horizontalAlignment: root.centered ? Text.AlignHCenter : Theme.textStartAlignment
