@@ -1113,6 +1113,7 @@ qt_add_qml_module(farcaster_client
         mobile/feed_rows_model.cpp
         mobile/feed_rows_model.hpp
     RESOURCES
+        shaders/setup_glass_g.frag.qsb
         wasm/genycaster-icon.svg
         wasm/setup-mist.svg
         wasm/genycaster-wordmark.svg

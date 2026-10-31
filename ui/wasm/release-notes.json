@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Interactive brand identity for Setup",
+  "title": "Glass G Arc is now part of GenyCaster Setup",
   "changes": [
-    "Replace atmospheric fog and drifting particles with a precise geometric identity based on the GenyCaster logo.",
-    "Add pointer-responsive logo parallax and a brief click or keyboard activation for the desktop Setup sidebar.",
-    "Match light, dark and custom accent colors, show real Setup progress and honor reduced-motion preferences."
+    "Render the GenyCaster G and directional arrow as a GPU-backed volumetric identity inside the real eight-step Setup.",
+    "Adapt lighting and material tones to light and dark modes, with pointer parallax and reduced-motion support.",
+    "Remove the separate experimental brand3d preview and keep account onboarding, recovery, and Genyleap copyright unchanged."
   ]
 }

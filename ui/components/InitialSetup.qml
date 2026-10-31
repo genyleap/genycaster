@@ -420,15 +420,13 @@ Item {
             width: Math.min(parent.width * 0.29, 430)
             border.width: brandInteraction.activeFocus ? 2 : 0
             border.color: Theme.accent
-            // The mark and the geometric field respond to the pointer, not
-            // an unrelated continuous particle animation.
+            // Pointer-driven volumetric G and arrow. The shader only
+            // repaints when its theme, pointer or interaction changes.
             property real pointerX: 0.5
             property real pointerY: 0.5
             property bool pointerInside: false
             property real tapImpulse: 0
             readonly property bool motionAllowed: root.visible && visible && !Theme.reduceMotion
-            readonly property real offsetX: motionAllowed && pointerInside ? (pointerX - 0.5) * 18 : 0
-            readonly property real offsetY: motionAllowed && pointerInside ? (pointerY - 0.5) * 14 : 0
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.dark ? "#111622" : "#F7F9FC" }
                 GradientStop { position: 0.56; color: Theme.dark ? "#1A2232" : "#EDF1F8" }
@@ -441,97 +439,21 @@ Item {
             // Keep this pane and its metadata above the full-screen
             // transparent Flickable, which is created later in setupCanvas.
             z: 2
-            // GENYCASTER / Kinetic Identity
-            // Etched circles echo the G silhouette. They follow the cursor in
-            // different depths and use the active theme accent. No fog,
-            // procedural particles, looping animation, or expensive effects.
-            Item {
-                id: brandGeometry
-                z: 0
-                width: desktopBrandPane.width * 1.64
-                height: width
-                x: -width * 0.39 + desktopBrandPane.offsetX * 0.42
-                y: (desktopBrandPane.height - height) / 2 + desktopBrandPane.offsetY * 0.40
-                Behavior on x {
-                    enabled: !Theme.reduceMotion
-                    NumberAnimation { duration: 270; easing.type: Easing.OutCubic }
-                }
-                Behavior on y {
-                    enabled: !Theme.reduceMotion
-                    NumberAnimation { duration: 270; easing.type: Easing.OutCubic }
-                }
-                Repeater {
-                    model: 3
-                    delegate: Rectangle {
-                        required property int index
-                        width: brandGeometry.width * (0.57 + index * 0.19)
-                        height: width
-                        x: (brandGeometry.width - width) / 2
-                        y: (brandGeometry.height - height) / 2
-                        radius: width / 2
-                        color: "transparent"
-                        border.width: index === 1 ? 1.5 : 1
-                        border.color: index === 1 ? Theme.accent
-                                     : Theme.dark ? "#7A8BA9" : "#A6B3CB"
-                        opacity: index === 1
-                                 ? (Theme.dark ? 0.23 : 0.25) + desktopBrandPane.tapImpulse * 0.30
-                                 : (Theme.dark ? 0.16 : 0.24)
-                    }
-                }
-                Rectangle {
-                    x: brandGeometry.width * 0.43
-                    y: brandGeometry.height * 0.73
-                    width: brandGeometry.width * 0.42
-                    height: 1
-                    color: Theme.accent
-                    opacity: Theme.dark ? 0.43 : 0.36
-                    rotation: -17
-                    transformOrigin: Item.Left
-                }
-            }
-
-            Image {
+            // GenyCaster's canonical G/forward-arrow is volumetrically
+            // raymarched by Qt's GPU scene graph: one scene, one shader, no
+            // DOM overlay or WebGL-only branch. This QSB contains portable
+            // SPIR-V, GLES, HLSL and Metal code for native and WebAssembly.
+            ShaderEffect {
                 id: desktopBrandArt
-                z: 1
-                width: Math.min(760, desktopBrandPane.width * 1.68)
-                height: width
-                x: -width * 0.39 + desktopBrandPane.offsetX
-                y: (desktopBrandPane.height - height) / 2
-                   - Math.min(20, desktopBrandPane.height * 0.025)
-                   + desktopBrandPane.offsetY
-                rotation: -17
-                transformOrigin: Item.Center
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                sourceSize: Qt.size(960, 960)
-                asynchronous: false
-                smooth: true
-                mipmap: true
-                fillMode: Image.PreserveAspectFit
-                opacity: (Theme.dark ? 0.29 : 0.155) + desktopBrandPane.tapImpulse * 0.07
-                Behavior on x {
-                    enabled: !Theme.reduceMotion
-                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
-                }
-                Behavior on y {
-                    enabled: !Theme.reduceMotion
-                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
-                }
-            }
-
-            // A quiet accent rule signals that the visual identity is live
-            // on hover. It is a line, not a glow or a detached decorative dot.
-            Rectangle {
-                z: 1
-                width: 66
-                height: 2
-                radius: 1
-                x: desktopBrandPane.width * 0.17 + desktopBrandPane.offsetX * 0.36
-                y: desktopBrandPane.height * 0.77 + desktopBrandPane.offsetY * 0.30
-                color: Theme.accent
-                opacity: desktopBrandPane.pointerInside ? 0.9 : 0.40
-                Behavior on opacity {
-                    NumberAnimation { duration: Theme.reduceMotion ? 0 : 180 }
-                }
+                z: 0
+                anchors.fill: parent
+                property vector2d paneSize: Qt.vector2d(width, height)
+                property vector2d pointer: Qt.vector2d(
+                    desktopBrandPane.pointerX, desktopBrandPane.pointerY)
+                property real darkMode: Theme.dark ? 1.0 : 0.0
+                property real pulseValue: desktopBrandPane.tapImpulse
+                fragmentShader: "qrc:/qt/qml/Farcaster/Client/shaders/setup_glass_g.frag.qsb"
+                blending: false
             }
 
             // Edge progression is connected to the actual Setup stage.
