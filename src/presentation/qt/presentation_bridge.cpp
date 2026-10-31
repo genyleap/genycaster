@@ -24,6 +24,31 @@
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
+// A script-opened approval tab can otherwise remain an empty white page
+// after Farcaster verifies the session on iOS Safari. Keep an opener-held
+// handle only for closing that tab; no tokens or session data cross it.
+EM_JS(int, openGenycasterSetupApproval, (const char* destination), {
+    try {
+        const url = new URL(UTF8ToString(destination));
+        if (url.protocol !== 'https:' ||
+            !['farcaster.xyz','warpcast.com','openproof.genyleap.com'].includes(url.hostname))
+            return 0;
+        const previous = window.__genycasterSetupApproval;
+        if (previous && !previous.closed) previous.close();
+        const tab = window.open(url.href, '_blank');
+        if (!tab) return 0;
+        try { tab.opener = null; } catch (_) {}
+        window.__genycasterSetupApproval = tab;
+        return 1;
+    } catch (_) { return 0; }
+});
+EM_JS(void, closeGenycasterSetupApproval, (), {
+    const tab = window.__genycasterSetupApproval;
+    window.__genycasterSetupApproval = null;
+    if (tab && !tab.closed) {
+        try { tab.close(); } catch (_) {}
+    }
+});
 #endif
 
 import farcaster.application.configuration;
@@ -3172,6 +3197,11 @@ void PresentationBridge::openAuthenticationApproval()
         emit stateChanged();
         return;
     }
+#if defined(__EMSCRIPTEN__)
+    const QByteArray approvedUrl = parsed.toString(QUrl::FullyEncoded).toUtf8();
+    if (openGenycasterSetupApproval(approvedUrl.constData()) != 0)
+        return;
+#endif
     if (!QDesktopServices::openUrl(parsed)) {
         m_authenticationErrorText = qtTrId("genycaster.bridge.the_system_could_not_open_the_farcaster_approval_link");
         emit authenticationStateChanged();
@@ -3220,6 +3250,12 @@ void PresentationBridge::applyAuthenticationState(
     // session. Starting a replacement/re-authentication flow must not make a
     // verified current account appear signed out until a new proof succeeds.
     m_isAuthenticated = fid > 0;
+#if defined(__EMSCRIPTEN__)
+    if (m_isAuthenticated || m_authenticationPhase == QStringLiteral("failed")
+        || m_authenticationPhase == QStringLiteral("signed-out")) {
+        closeGenycasterSetupApproval();
+    }
+#endif
     if (!m_isAuthenticated && m_signOutRequestedByUser
         && m_authenticationPhase == QStringLiteral("signed-out")) {
         m_showSetupAfterSignOut = true;
