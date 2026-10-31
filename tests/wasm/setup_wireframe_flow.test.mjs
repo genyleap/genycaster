@@ -256,13 +256,19 @@ test('final blue check has a soft layered shadow without affecting phone GPU', (
   assert.match(complete,/shadowBlur: 0\.74/);
 });
 
-test('sidebar metadata is bottom anchored and only exists on desktop', () => {
+test('copyright and Beta version remain readable at the bottom of the desktop left sidebar', () => {
   const s=source('ui/components/InitialSetup.qml');
   const pane=s.slice(s.indexOf('id: desktopBrandPane'), s.indexOf('id: setupProgress'));
+  assert.match(pane,/visible: !root\.phone && root\.width >= 980/);
+  assert.match(pane,/clip: true\s+\/\/ Keep this pane[\s\S]*?z: 2/);
   assert.match(pane,/id: desktopBrandMetadata/);
   assert.match(pane,/anchors\.bottom: parent\.bottom/);
+  assert.match(pane,/anchors\.left: parent\.left/);
+  assert.match(pane,/anchors\.right: parent\.right/);
   assert.match(pane,/visible: desktopBrandPane\.visible/);
-  assert.match(pane,/System version/);
+  assert.match(pane,/new Date\(\)\.getFullYear\(\)/);
+  assert.match(pane,/Beta 1\.0  ·  v/);
   assert.match(pane,/Qt\.application\.version/);
+  assert.match(pane,/Theme\.dark \? "#E2E3F2" : "#4B4E6C"/);
   assert.match(pane,/GenyCaster/);
 });

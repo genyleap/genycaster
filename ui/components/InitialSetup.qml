@@ -428,6 +428,9 @@ Item {
             // Roughly 40% extends beyond the left edge; the rest is softly
             // cropped by the pane, never scaled as a small standalone icon.
             clip: true
+            // Keep this pane and its metadata above the full-screen
+            // transparent Flickable, which is created later in setupCanvas.
+            z: 2
             Image {
                 id: desktopBrandArt
                 width: Math.min(760, desktopBrandPane.width * 1.68)
@@ -445,30 +448,42 @@ Item {
                 opacity: Theme.dark ? 0.15 : 0.085
             }
 
-            // Persistent, unobtrusive metadata belongs to the sidebar alone,
-            // not a full-width setup footer or a phone safe-area overlay.
+            // Product metadata is pinned inside the desktop left rail,
+            // independent of the scrolling form and bottom-right CTA.
             Column {
                 id: desktopBrandMetadata
-                anchors.left: parent.left
-                anchors.leftMargin: 30
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 27
-                spacing: 5
+                z: 3
                 visible: desktopBrandPane.visible
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 32
+                anchors.rightMargin: 24
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 28
+                spacing: 7
 
-                Text {
-                    text: "© " + new Date().getFullYear() + " GenyCaster"
-                    color: Theme.inkMuted
-                    opacity: Theme.dark ? 0.85 : 0.72
-                    font.family: Theme.latinFontFamily
-                    font.pixelSize: 12
+                Rectangle {
+                    width: 36
+                    height: 1
+                    color: Theme.dark ? "#6E718D" : "#A0A0C4"
+                    opacity: 0.75
                 }
                 Text {
-                    text: "System version " + (Qt.application.version || "1.0.0")
-                    color: Theme.inkMuted
-                    opacity: Theme.dark ? 0.65 : 0.55
+                    width: parent.width
+                    text: "© " + new Date().getFullYear() + " GenyCaster"
+                    color: Theme.dark ? "#E2E3F2" : "#4B4E6C"
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: 12
+                    font.weight: Font.Medium
+                    elide: Text.ElideRight
+                }
+                Text {
+                    width: parent.width
+                    text: "Beta 1.0  ·  v" + (Qt.application.version || "1.0.0")
+                    color: Theme.dark ? "#ACB0CA" : "#6B6E8D"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 11
+                    elide: Text.ElideRight
                 }
             }
         }
