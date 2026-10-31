@@ -151,6 +151,12 @@ else
         "Checking application files and preparing the Qt runtime…",
         "Preparing runtime");
 const originalFetch=window.fetch.bind(window);
+// WKWebView and Safari have stricter cache/service-worker semantics for large
+// streaming WASM bodies. Keep browser HTTP caching, but disable app worker
+// interception on WebKit until this path can be tested on those engines.
+const isWebKitRuntime=typeof navigator!=="undefined"
+    && /AppleWebKit/i.test(navigator.userAgent||"")
+    && !/Chrome\/|Chromium\/|Edg\/|OPR\//i.test(navigator.userAgent||"");
 const hashedWasm=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
 const requestedAsset=window.__genycasterAssets?.wasm;
 const verifiedAsset=typeof requestedAsset==="string" && hashedWasm.test(requestedAsset)
@@ -275,13 +281,10 @@ window.fetch=async function(input,options) {
     const nativeRequest=changed
         ? typeof input==="string" ? url.href : new Request(url.href,input)
         : input;
-    const nativeOptions={
-        ...options,
-        // An immutable content-hashed URL may safely reuse an HTTP entry
-        // even under emrun/localhost, where revalidation headers are minimal.
-        ...(hashedWasm.test(url.pathname.split("/").pop())
-            ? {cache:"force-cache",credentials:"omit"} : {})
-    };
+    // Preserve the Emscripten factory's same-origin credentials and
+    // browser-default HTTP cache. Forcing "omit"/"force-cache" on WebKit
+    // can cause cross-mode cache rejects even with a same-origin URL.
+    const nativeOptions={...options};
     if(installing)showPhase("download",
         updating?"Downloading Runtime Update":"Downloading Social Runtime",
         "Checking the browser cache and retrieving any missing engine files…",
@@ -289,7 +292,18 @@ window.fetch=async function(input,options) {
     else showPhase("initialize","Initializing Social Workspace",
         "Retrieving the WebAssembly engine from cache or network…",
         "Preparing runtime");
-    const response=await originalFetch(nativeRequest,nativeOptions);
+    let response;
+    try {
+        response=await originalFetch(nativeRequest,nativeOptions);
+    } catch(error) {
+        // A corrupted/blocked old HTTP or SW-cached WASM should not make
+        // the whole Qt runtime fail. One network revalidation bypass is
+        // permitted, never a retry loop and never a private-data reset.
+        if(!hashedWasm.test(url.pathname.split("/").pop()))throw error;
+        console.warn("[Genycaster] Retrying WASM with fresh HTTP fetch",
+            String(error?.message||error));
+        response=await originalFetch(nativeRequest,{...nativeOptions,cache:"reload"});
+    }
     if(!response.ok)return response;
     wasmResourceUrl=response.url||url.href;
     // The native Response remains untouched for streaming and code caching.
@@ -322,7 +336,30 @@ window.visualViewport?.addEventListener("scroll",fit);
 fit();
 retry.addEventListener("click",()=>location.reload());
 async function enableOfflineCache() {
-    if(!window.isSecureContext || !navigator.serviceWorker)return;
+    if(!window.isSecureContext || typeof navigator==="undefined" || !navigator.serviceWorker)return false;
+    if(isWebKitRuntime){
+        try {
+            const registration=await navigator.serviceWorker.getRegistration(location.href);
+            if(registration)await registration.unregister();
+            // A former controller stays attached to an already-open tab
+            // after unregister(). Navigate exactly once to obtain an
+            // uncontrolled page before Qt fetches the large WASM engine.
+            if(navigator.serviceWorker.controller){
+                const marker="genycaster.webkit.network-boot.v1";
+                const stamp=currentVersion||"unknown";
+                if(window.sessionStorage.getItem(marker)!==stamp){
+                    window.sessionStorage.setItem(marker,stamp);
+                    const next=new URL(location.href);
+                    next.searchParams.set("genycaster-network-boot",stamp);
+                    location.replace(next.href);
+                    return true;
+                }
+            }
+        }catch(error){
+            console.warn("[Genycaster] WebKit native-network preparation unavailable",error);
+        }
+        return false;
+    }
     try {
         const version=window.__genycasterAssets?.version;
         const suffix=typeof version==="string" && /^[0-9a-f]{20}$/.test(version)
@@ -332,6 +369,7 @@ async function enableOfflineCache() {
     } catch(error) {
         console.warn("[Genycaster] Offline asset cache unavailable",error);
     }
+    return false;
 }
 const cacheStartup=enableOfflineCache();
 // An already-running PWA keeps its old Qt/WASM instance even when a new build
@@ -551,7 +589,8 @@ async function start() {
         // Loading farcaster_client.js alone does NOT select that factory.
         if(typeof window.farcaster_client_entry!=="function")
             throw new Error("farcaster_client.js did not expose farcaster_client_entry");
-        if(!seen && window.isSecureContext && navigator.serviceWorker
+        if(isWebKitRuntime && await cacheStartup)return;
+        if(!isWebKitRuntime && !seen && window.isSecureContext && navigator.serviceWorker
             && !navigator.serviceWorker.controller) {
             // On first installation briefly allow the worker to activate
             // before the large WASM request. Otherwise it would miss that
