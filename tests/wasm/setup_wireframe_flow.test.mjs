@@ -117,12 +117,13 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && !root\.initialSetupOpen/);
 });
 
-test('welcome step indicator represents all eight setup steps, including reduced motion', () => {
+test('welcome dots match the approved three-dot wireframe while wizard still has eight stages', () => {
   const s=source('ui/components/InitialSetup.qml');
   assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
-  assert.match(s,/model: root\.progressCount/);
-  assert.match(s,/index === root\.currentStep/);
-  assert.doesNotMatch(s,/model: 3[\s\S]*?width: 6/);
+  const welcome=s.slice(s.indexOf('id: welcomeStage'),s.indexOf('id: languageStage'));
+  assert.match(welcome,/model: 3/);
+  assert.match(welcome,/width: 5/);
+  assert.match(welcome,/index === 0 \? Theme\.ink : Theme\.borderStrong/);
   assert.match(s,/id: stageTransitionTimer/);
   assert.match(s,/root\.stageOpacity = 0|stageOpacity = 0/);
   assert.match(s,/if \(!visible \|\| Theme\.reduceMotion\)/);
@@ -198,15 +199,26 @@ test('desktop account is a balanced editorial dark/light pair, with no fake new 
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
   assert.match(card,/id: editorialAccountCard/);
-  assert.match(card,/LayoutMirroring\.enabled: Theme\.rtl/);
+  assert.match(card,/LayoutMirroring\.enabled: false/);
+  assert.match(card,/x: Theme\.rtl \? parent\.width - width : 0/);
 });
 
-test('desktop progress compresses eight real steps to four paired editorial milestones', () => {
+test('desktop progress has the original bar-dot-dot-bar geometry with real grouped state', () => {
   const s=source('ui/components/InitialSetup.qml');
   const track=s.slice(s.indexOf('id: setupProgress'),s.indexOf('        ActionButton {\n            z: 20'));
-  assert.match(track,/model: Math\.ceil\(root\.progressCount \/ 2\)/);
-  assert.match(track,/root\.currentStep - index \* 2 \+ 1/);
+  assert.match(track,/model: 4/);
+  assert.match(track,/index === 0 \|\| index === 3/);
+  assert.match(track,/index <= Math\.floor\(root\.currentStep \* 4 \/ root\.progressCount\)/);
   assert.match(track,/root\.stepTitle\(root\.currentStep\)/);
   assert.match(track,/root\.progressCount/);
-  assert.match(track,/Behavior on width/);
+  assert.match(track,/Behavior on color/);
+});
+
+test('recovery form animates open in the mobile browser without exposing words to QML', () => {
+  const dialog=source('ui/wasm/recovery-phrase-dialog.mjs');
+  assert.match(dialog,/genycaster-recovery-enter \.23s/);
+  assert.match(dialog,/@keyframes genycaster-recovery-enter/);
+  assert.match(dialog,/prefers-reduced-motion:reduce/);
+  assert.match(dialog,/word\.autocomplete='off'/);
+  assert.doesNotMatch(dialog,/localStorage\.setItem/);
 });
