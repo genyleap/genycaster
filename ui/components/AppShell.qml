@@ -897,10 +897,12 @@ Item {
 
     RowLayout {
         id: shellContent
+        // Do not render shell navigation or header behind full-window Setup.
+        visible: !root.initialSetupOpen
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.bottom: root.mobile ? parent.bottom : globalStatus.top
+        anchors.bottom: root.mobile || root.initialSetupOpen ? parent.bottom : globalStatus.top
         spacing: 0
         layoutDirection: Theme.uiDirection
 
@@ -1950,7 +1952,7 @@ Item {
     StatusFooter {
         id: globalStatus
         z: 40
-        visible: !root.mobile
+        visible: !root.mobile && !root.initialSetupOpen
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
