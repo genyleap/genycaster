@@ -6,6 +6,7 @@ Idempotent; never reads or copies user data or a .git directory.
 """
 from __future__ import annotations
 import argparse
+import gzip
 import hashlib
 import json
 import re
@@ -62,6 +63,21 @@ asset_name = f"farcaster_client.{wasm_short}.wasm"
 target = directory / asset_name
 if not target.exists() or target.stat().st_size != wasm.stat().st_size:
     shutil.copy2(wasm, target)
+# Ship a deterministic, precompressed HTTP representation of the *same* URL.
+# nginx gzip_static serves it with Content-Encoding: gzip and the original
+# application/wasm MIME, so WebKit decodes it transparently before compilation.
+# The gzip sidecar is a transport detail, not a second WASM resource URL.
+compressed = directory / (asset_name + ".gz")
+if not compressed.is_file():
+    temporary = directory / (asset_name + ".gz.tmp")
+    try:
+        with target.open("rb") as input_file, temporary.open("wb") as output_file:
+            with gzip.GzipFile(filename="", mode="wb", fileobj=output_file,
+                               compresslevel=6, mtime=0) as zipper:
+                shutil.copyfileobj(input_file, zipper, length=1024*1024)
+        temporary.replace(compressed)
+    finally:
+        temporary.unlink(missing_ok=True)
 # Keep older hashed binaries until operators retire older deployments:
 # tabs that loaded an older JS version can still request those exact URLs.
 # Never auto-delete an active content-addressed release during packaging.
@@ -121,6 +137,9 @@ html_path.write_text(html, encoding="utf-8")
 checksums["farcaster_client.html"] = digest(html_path)
 release = {"version": fingerprint, "wasm": asset_name,
            "wasmBytes": wasm.stat().st_size,
+           "wasmGzip": compressed.name,
+           "wasmGzipBytes": compressed.stat().st_size,
+           "wasmGzipSha256": digest(compressed),
            "buildId": fingerprint[:8],
            "files": sorted(public + [asset_name, "genycaster-assets.js"]),
            "integrity": checksums}
@@ -136,7 +155,10 @@ manifest.write_text(json.dumps(release, indent=2, sort_keys=True) + "\n", encodi
 (directory / "genycaster-assets.js").write_text(
     "window.__genycasterAssets=" + json.dumps({
         "version": fingerprint, "wasm": asset_name,
-        "wasmBytes": wasm.stat().st_size, "buildId": fingerprint[:8],
+        "wasmBytes": wasm.stat().st_size,
+        "wasmGzip": compressed.name,
+        "wasmGzipBytes": compressed.stat().st_size,
+        "buildId": fingerprint[:8],
         **({"appVersion": args.app_version} if args.app_version else {}),
         **({"releaseLabel": args.release_label} if args.release_label else {}),
     }) + ";\n",

@@ -70,7 +70,7 @@ test("WASM wrapper preserves native request credentials and retries once without
             return native;
         },
         verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
-        isWebKitRuntime:false,releaseInfo:{wasmBytes:8},Headers,
+        isWebKitRuntime:false,compressedWebKitEngine:async()=>null,releaseInfo:{wasmBytes:8},Headers,
         installing:false,updating:false,finished:false,bootPhase:"initialize",wasmResourceUrl:null,
         showPhase(){},observeEngine(){},preparing(){},measureFirstDownload(){},console};
     vm.runInNewContext(source.slice(begin,end),ctx);
@@ -105,7 +105,7 @@ test("WebKit startup unregisters only app worker and navigates once before Qt bo
     assert.equal(navigations.length,1);
 });
 
-test("WebKit requests an identity full-body WASM range and preserves streaming Response",async()=>{
+test("WebKit preserves native streaming Response on its first ordinary WASM request",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
     const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
@@ -117,6 +117,7 @@ test("WebKit requests an identity full-body WASM range and preserves streaming R
     }});
     const calls=[];
     const ctx={window:{},URL,Headers,Response,isWebKitRuntime:true,
+        compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
         originalFetch:async(input,options)=>{calls.push({input,options});return native;},
         verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
@@ -127,17 +128,18 @@ test("WebKit requests an identity full-body WASM range and preserves streaming R
     const r=await ctx.window.fetch(wasmURL,{credentials:"same-origin"});
     assert.equal(r,native,"do not rewrap streaming response");
     assert.equal(calls.length,1);
-    assert.equal(calls[0].options.headers.get("range"),"bytes=0-");
+    assert.equal(calls[0].options.headers,undefined,"normal fetch permits precompressed gzip");
     assert.equal(calls[0].options.credentials,"same-origin");
     const mod=await WebAssembly.compileStreaming(Promise.resolve(r));
     assert.ok(mod instanceof WebAssembly.Module,"206 full-body response streams as wasm");
 });
 
-test("WebKit rejects incomplete ranges and falls back to an ordinary request if Range is blocked",async()=>{
+test("WebKit rejects incomplete fallback ranges and uses Range only after ordinary fetch fails",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
     const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
     const makeCtx=(impl)=>({window:{},URL,Headers,isWebKitRuntime:true,
+        compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
         originalFetch:impl,verifiedAsset:new URL(wasmURL),
         hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
@@ -146,7 +148,8 @@ test("WebKit rejects incomplete ranges and falls back to an ordinary request if 
         measureFirstDownload(){},console});
     const truncated=new Response(new Uint8Array(4),{status:206,headers:{
         "Content-Type":"application/wasm","Content-Range":"bytes 0-3/8"}});
-    const ctx=makeCtx(async()=>truncated);
+    let n=0;
+    const ctx=makeCtx(async()=>{if(!n++)throw new TypeError("Load failed");return truncated;});
     vm.runInNewContext(source.slice(begin,end),ctx);
     await assert.rejects(ctx.window.fetch(wasmURL),/Incomplete WebAssembly range response/);
     const normal=new Response(new Uint8Array([0,97,115,109,1,0,0,0]),
@@ -159,7 +162,44 @@ test("WebKit rejects incomplete ranges and falls back to an ordinary request if 
     });
     vm.runInNewContext(source.slice(begin,end),fallback);
     assert.equal(await fallback.window.fetch(wasmURL),normal);
-    assert.equal(calls[0].headers.get("range"),"bytes=0-");
-    assert.equal(calls[1].headers,undefined,"fallback is an ordinary uncompressed-or-compressed fetch");
+    assert.equal(calls[0].headers,undefined,"initial request permits gzip");
+    assert.equal(calls[1].headers.get("range"),"bytes=0-","fallback requests identity WASM");
     assert.equal(calls[1].cache,"reload");
+});
+
+test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning full engine",async()=>{
+    const begin=source.indexOf("async function compressedWebKitEngine(");
+    const end=source.indexOf("window.fetch=async function(input,options) {",begin);
+    assert.ok(begin>=0 && end>begin);
+    const {gzipSync}=await import("node:zlib");
+    const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
+    const compressed=gzipSync(binary);
+    const wasm="farcaster_client.0123456789abcdef0123.wasm";
+    const url="https://caster.genyleap.com/"+wasm;
+    const assetRequests=[];
+    const ctx={
+        URL,Response,TransformStream,DecompressionStream,
+        isWebKitRuntime:true,hashedWasm:new RegExp("^farcaster_client[.][0-9a-f]{20}[.]wasm$"),
+        releaseInfo:{wasmGzip:wasm+".gz",wasmGzipBytes:compressed.length},
+        location:{href:"https://caster.genyleap.com/"},
+        originalFetch:async(request,options)=>{
+            assetRequests.push({request,options});
+            return new Response(compressed,{headers:{
+                "Content-Length":String(compressed.length),
+                "Content-Type":"application/octet-stream"
+            }});
+        },
+        installing:true,finished:false,failed:false,bootPhase:"download",
+        fill:{classList:{add(){}},style:{}},percent:{textContent:""},
+        track:{setAttribute(){}},performance:{now:()=>200},showPhase(){},console
+    };
+    vm.runInNewContext(source.slice(begin,end)+"\nthis.loadCompressed=compressedWebKitEngine;",ctx);
+    const result=await ctx.loadCompressed(new URL(url),{credentials:"same-origin"});
+    assert.ok(result);
+    assert.equal(result.response.headers.get("content-type"),"application/wasm");
+    const module=await WebAssembly.compileStreaming(Promise.resolve(result.response));
+    assert.ok(module instanceof WebAssembly.Module);
+    assert.equal(assetRequests.length,1);
+    assert.equal(assetRequests[0].request,url+".gz");
+    assert.equal(assetRequests[0].options.cache,"force-cache");
 });

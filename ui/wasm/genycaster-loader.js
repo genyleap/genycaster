@@ -264,9 +264,64 @@ function observeEngine(url){
         console.debug("[Genycaster] Resource Timing observer unavailable",error);
     }
 }
-// Don't wrap a large WASM response in a ReadableStream: replacing the native
-// Response can disable the browser's optimized instantiateStreaming/module
-// compilation cache and duplicates the work on every refresh.
+// WebKit can abort a very large uncompressed WASM response partway through
+// transfer. Prefer our immutable gzip transport sidecar when streaming gzip
+// decoding is available. Transform the ONE incoming compressed stream (never
+// tee an 80 MiB response); the runtime still receives application/wasm bytes.
+// Other browsers retain their normal native fetch and compiler cache.
+async function compressedWebKitEngine(url,options) {
+    const name=url.pathname.split("/").pop();
+    const gzipName=releaseInfo.wasmGzip;
+    const gzipBytes=Number(releaseInfo.wasmGzipBytes);
+    if(!isWebKitRuntime || typeof DecompressionStream!=="function"
+       || typeof TransformStream!=="function"
+       || !hashedWasm.test(name) || gzipName!==name+".gz"
+       || !Number.isSafeInteger(gzipBytes) || gzipBytes<=0)return null;
+    const gzipUrl=new URL(gzipName,location.href);
+    let source;
+    try{
+        source=await originalFetch(gzipUrl.href,{...options,cache:"force-cache"});
+    }catch(error){
+        console.warn("[Genycaster] Compressed WASM unavailable; using native fetch",
+            String(error?.message||error));
+        return null;
+    }
+    if(!source.ok || !source.body || /text\/html/i.test(source.headers.get("content-type")||""))
+        return null;
+    let received=0, lastPaint=0;
+    const wireBytes=source.headers.get("content-encoding")?0
+        : Number(source.headers.get("content-length"));
+    const measure=installing && Number.isSafeInteger(wireBytes)
+        && wireBytes===gzipBytes;
+    const compressed=source.body.pipeThrough(new TransformStream({
+        transform(chunk,controller){
+            received+=chunk.byteLength;
+            if(measure && !finished && !failed && bootPhase==="download"){
+                const now=performance.now();
+                if(now-lastPaint>120 || received>=wireBytes){
+                    lastPaint=now;
+                    const pct=Math.min(99,Math.floor(received*100/wireBytes));
+                    fill.classList.add("measured");
+                    fill.style.width=pct+"%";
+                    percent.textContent=pct+"%";
+                    track?.setAttribute?.("aria-valuenow",String(pct));
+                }
+            }
+            controller.enqueue(chunk);
+        },
+        flush(){
+            if(!failed && !finished && installing){
+                showPhase("install","Verifying compressed engine",
+                    "Application resources downloaded; preparing WebAssembly...",
+                    "Preparing runtime");
+            }
+        }
+    }));
+    return {response:new Response(
+        compressed.pipeThrough(new DecompressionStream("gzip")),
+        {headers:{"Content-Type":"application/wasm"}}),
+        resourceUrl:gzipUrl.href};
+}
 window.fetch=async function(input,options) {
     let originalUrl;
     try { originalUrl=new URL(typeof input==="string" ? input : input.url,location.href); }
@@ -281,20 +336,16 @@ window.fetch=async function(input,options) {
     const nativeRequest=changed
         ? typeof input==="string" ? url.href : new Request(url.href,input)
         : input;
-    // Preserve Emscripten's credentials and unmodified Response. On WebKit,
-    // request the *entire* immutable WASM as a single open-ended byte range.
-    // Cloudflare serves Range: bytes=0- with 206, Content-Length and no br/zstd
-    // recompression. A standards-compliant 206 is valid for wasm streaming;
-    // it also avoids WebKit's opaque compressed-fetch "Load failed" path.
+    // Keep the browser's native streaming Response and the ordinary immutable
+    // HTTP cache path. The origin serves a precompressed gzip representation
+    // of this URL to compatible clients; this avoids an ~80 MiB uncompressed
+    // full-range download on Safari and preserves WebAssembly code caching.
+    // If native fetch fails, retry once with a full identity Range on WebKit
+    // to bypass intermediaries that transform WASM response bodies.
     const nativeOptions={...options};
     const useIdentityRange=isWebKitRuntime
         && hashedWasm.test(url.pathname.split("/").pop());
-    if(useIdentityRange){
-        const headers=new Headers(options?.headers
-            || (typeof input==="string" ? undefined : input.headers));
-        headers.set("Range","bytes=0-");
-        nativeOptions.headers=headers;
-    }
+    let attemptedIdentityRange=false;
     if(installing)showPhase("download",
         updating?"Downloading Runtime Update":"Downloading Social Runtime",
         "Checking the browser cache and retrieving any missing engine files…",
@@ -304,7 +355,13 @@ window.fetch=async function(input,options) {
         "Preparing runtime");
     let response;
     try {
-        response=await originalFetch(nativeRequest,nativeOptions);
+        const zipped=await compressedWebKitEngine(url,nativeOptions);
+        if(zipped){
+            response=zipped.response;
+            wasmResourceUrl=zipped.resourceUrl;
+        }else{
+            response=await originalFetch(nativeRequest,nativeOptions);
+        }
     } catch(error) {
         // A corrupted/blocked old HTTP or SW-cached WASM should not make
         // the whole Qt runtime fail. One network revalidation bypass is
@@ -312,12 +369,18 @@ window.fetch=async function(input,options) {
         if(!hashedWasm.test(url.pathname.split("/").pop()))throw error;
         console.warn("[Genycaster] Retrying WASM with fresh HTTP fetch",
             String(error?.message||error));
-        const retryOptions=useIdentityRange
-            ? {...options,cache:"reload"} : {...nativeOptions,cache:"reload"};
+        const retryOptions={...nativeOptions,cache:"reload"};
+        if(useIdentityRange){
+            const headers=new Headers(options?.headers
+                || (typeof input==="string" ? undefined : input.headers));
+            headers.set("Range","bytes=0-");
+            retryOptions.headers=headers;
+            attemptedIdentityRange=true;
+        }
         response=await originalFetch(nativeRequest,retryOptions);
     }
     if(!response.ok)return response;
-    if(useIdentityRange && response.status===206){
+    if(attemptedIdentityRange && response.status===206){
         const range=response.headers.get("content-range")||"";
         const match=/^bytes 0-([0-9]+)\/([0-9]+)$/.exec(range);
         const expected=Number(releaseInfo.wasmBytes);
@@ -326,7 +389,7 @@ window.fetch=async function(input,options) {
                && Number(match[2])!==expected))
             throw new Error("Incomplete WebAssembly range response");
     }
-    wasmResourceUrl=response.url||url.href;
+    wasmResourceUrl=wasmResourceUrl||response.url||url.href;
     // The native Response remains untouched for streaming and code caching.
     // Installing is shown only after Resource Timing confirms completion.
     observeEngine(wasmResourceUrl);
@@ -534,6 +597,7 @@ function recoverFromStaleWasmServiceWorker(error) {
 }
 function fail(error) {
     if(finished||failed)return;
+    if(startupWatchdog!==undefined)window.clearInterval?.(startupWatchdog);
     failed=true;
     if(studioIntro)studioIntro.hidden=true;
     if(boot?.dataset)boot.dataset.intro='off';
@@ -555,6 +619,7 @@ function fail(error) {
 // silent black screen seen when a type in the AppShell dependency tree fails.
 function revealReady() {
     if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!studioComplete||!splashMinimumReached)return;
+    if(startupWatchdog!==undefined)window.clearInterval?.(startupWatchdog);
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}
     // Ready reflects Qt's actual initialization callback, not
@@ -601,6 +666,23 @@ return;
 qmlRootReady=true;
 revealReady();
 };
+// Fail visibly instead of leaving an endless animated "Downloading" state.
+ // Count only foreground time: background Safari tabs may suspend downloads.
+let visibleBootMs=0, lastBootCheck=performance.now();
+const startupWatchdog=window.setInterval?.(()=>{
+    if(finished||failed)return;
+    const now=performance.now();
+    if(document.visibilityState==="hidden"){lastBootCheck=now;return;}
+    visibleBootMs+=Math.min(Math.max(now-lastBootCheck,0),20000);
+    lastBootCheck=now;
+    const limit=bootPhase==="download"?240000:180000;
+    if(visibleBootMs>=limit){
+        const reason=bootPhase==="download"
+            ? "WebAssembly download did not complete. Check your connection, then retry."
+            : "The WebAssembly runtime did not become ready. Retry the application.";
+        fail(new Error(reason));
+    }
+},10000);
 async function start() {
     try {
         if(typeof qtLoad!=="function")
