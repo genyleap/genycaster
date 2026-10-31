@@ -117,17 +117,20 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && !root\.initialSetupOpen/);
 });
 
-test('welcome dots match the approved three-dot wireframe while wizard still has eight stages', () => {
+test('welcome uses the same real eight-stage indicator as the other setup stages', () => {
   const s=source('ui/components/InitialSetup.qml');
   assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
   const welcome=s.slice(s.indexOf('id: welcomeStage'),s.indexOf('id: languageStage'));
-  assert.match(welcome,/model: 3/);
-  assert.match(welcome,/width: 5/);
-  assert.match(welcome,/index === 0 \? Theme\.ink : Theme\.borderStrong/);
+  const header=s.slice(s.indexOf('id: setupProgress'),s.indexOf('        ActionButton {\n            z: 20'));
+  assert.match(header,/stepCount: root\.progressCount/);
+  assert.match(header,/currentStep: root\.currentStep/);
+  assert.match(welcome,/SetupStepIndicator \{/);
+  assert.match(welcome,/stepCount: root\.progressCount/);
+  assert.match(welcome,/currentStep: root\.currentStep/);
+  assert.equal((s.match(/SetupStepIndicator \{/g) || []).length, 2);
+  assert.doesNotMatch(welcome,/model: 3/);
   assert.match(s,/id: stageTransitionTimer/);
-  assert.match(s,/root\.stageOpacity = 0|stageOpacity = 0/);
   assert.match(s,/if \(!visible \|\| Theme\.reduceMotion\)/);
-  assert.match(s,/Behavior on opacity/);
 });
 
 test('mobile legal reader is a bottom sheet, desktop reader stays centered', () => {
@@ -203,15 +206,22 @@ test('desktop account is a balanced editorial dark/light pair, with no fake new 
   assert.match(card,/x: Theme\.rtl \? parent\.width - width : 0/);
 });
 
-test('desktop progress has the original bar-dot-dot-bar geometry with real grouped state', () => {
+test('shared marker geometry maintains a common vertical center for pill and eight dots', () => {
   const s=source('ui/components/InitialSetup.qml');
-  const track=s.slice(s.indexOf('id: setupProgress'),s.indexOf('        ActionButton {\n            z: 20'));
-  assert.match(track,/model: 4/);
-  assert.match(track,/index === 0 \|\| index === 3/);
-  assert.match(track,/index <= Math\.floor\(root\.currentStep \* 4 \/ root\.progressCount\)/);
-  assert.match(track,/root\.stepTitle\(root\.currentStep\)/);
-  assert.match(track,/root\.progressCount/);
-  assert.match(track,/Behavior on color/);
+  const component=source('ui/components/SetupStepIndicator.qml');
+  const manifest=source('ui/CMakeLists.txt');
+  assert.match(manifest,/components\/SetupStepIndicator\.qml/);
+  assert.match(s,/id: setupProgress/);
+  assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
+  assert.match(component,/model: root\.safeCount/);
+  assert.match(component,/readonly property int safeCount: Math\.max\(1, stepCount\)/);
+  assert.match(component,/readonly property int activeIndex: Math\.max\(0, Math\.min\(safeCount - 1, currentStep\)\)/);
+  assert.match(component,/anchors\.centerIn: parent/);
+  assert.match(component,/height: 16/);
+  assert.match(component,/width: marker\.active \? 22 : 6/);
+  assert.match(component,/height: marker\.active \? 4 : 6/);
+  assert.match(component,/Behavior on color/);
+  assert.match(component,/Theme\.reduceMotion/);
 });
 
 test('recovery form animates open in the mobile browser without exposing words to QML', () => {
