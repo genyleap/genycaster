@@ -71,6 +71,7 @@ set(farcasterQmlFiles
     components/MiniAppPresentationPreview.qml
     components/LanguageSelector.qml
     components/SetupLanguageSelector.qml
+    components/SetupStepIndicator.qml
     components/SetupActionCard.qml
     components/SetupPrimaryButton.qml
     components/SetupPageHeader.qml
