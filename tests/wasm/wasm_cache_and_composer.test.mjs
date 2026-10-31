@@ -124,17 +124,20 @@ test('service worker caches only same-origin public files, never API requests',a
         request,respondWith:p=>{answer=p;},
         waitUntil:p=>{background.push(p);}
     });
-    callbacks.fetch(fetchEvent(request));
-    assert.equal(await (await answer).text(),'body for '+manifest.wasm);
-    await Promise.all(background); // service-worker waitUntil commits the cloned body
-    background=[];
+    let wasmIntercepted=false;
+    callbacks.fetch({request,respondWith:()=>{wasmIntercepted=true;},
+                     waitUntil:p=>{background.push(p);}});
+    assert.equal(wasmIntercepted,false,
+        'large WASM must use the native browser fetch instead of respondWith');
+    callbacks.fetch({request:{url:base+'farcaster_client.wasm',
+                         method:'GET',credentials:'same-origin'},
+                     respondWith:()=>{wasmIntercepted=true;},
+                     waitUntil:p=>{background.push(p);}});
+    assert.equal(wasmIntercepted,false,'non-hashed WASM alias must bypass worker');
+    assert.equal(data.has(wasmURL),false,'never clone 80 MiB WASM into CacheStorage');
     const count=networkCount;
     callbacks.fetch(fetchEvent(request));
-    const cachedWasm=await answer;
-    assert.equal(cachedWasm.headers.get('x-genycaster-cache'),null,
-        'serve original browser response without rewriting headers');
-    assert.equal(await cachedWasm.text(),'body for '+manifest.wasm);
-    assert.equal(networkCount,count,'immutable WASM must come from local CacheStorage');
+    assert.equal(networkCount,count,'worker must not attempt WASM network fetch');
     responses.delete(base+'farcaster_client.html');
     callbacks.fetch(fetchEvent({url:base+'farcaster_client.html',method:'GET',
                         credentials:'same-origin'}));
