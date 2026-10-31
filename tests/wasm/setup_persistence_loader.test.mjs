@@ -292,9 +292,12 @@ test('eight-stage Setup preserves language wheel, legal consent and navigation',
     assert.match(picker,/snapMode: ListView.SnapToItem/);
     assert.match(setup,/id: termsStage/);
     assert.match(setup,/qsTrId\("genycaster.setup.single_legal_consent"\)/);
-    assert.match(setup,/onToggled: root.consentChecked = checked/);
+    assert.match(setup,/onClicked: root.consentChecked = !root.consentChecked/);
+    assert.match(setup,/id: legalReader/);
+    assert.match(setup,/root.openLegalDocument\("terms"\)/);
+    assert.match(setup,/root.openLegalDocument\("privacy"\)/);
     assert.match(setup,/acceptLegalConsent\(true, true, true\)/);
-    assert.match(setup,/Qt.openUrlExternally/);
+    assert.doesNotMatch(setup,/Qt.openUrlExternally/);
     assert.match(setup,/function previousStep\(\)/);
     assert.match(app,/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
 });
