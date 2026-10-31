@@ -60,6 +60,8 @@ Item {
     property bool recoverySubmitPending: false
     readonly property bool verifyingBusy: authenticationInProgress && !authenticated
     function openLegalDocument(kind) {
+        if (kind !== "terms" && kind !== "privacy")
+            return
         legalDocument = kind
         legalReader.open()
     }
@@ -159,9 +161,9 @@ Item {
         if (currentStep === 0) { switchStep(1); return }
         if (currentStep === 1) { switchStep(2); return }
         if (currentStep === 2) {
-            if (!legalConsentAccepted && !consentChecked) return
+            if (!consentChecked) return
             if (!legalConsentAccepted) acceptLegalConsent(true, true, true)
-            // The bridge persists consent asynchronously.
+            // Legal acknowledgement is persisted by the bridge before leaving.
             Qt.callLater(() => switchStep(3))
             return
         }
@@ -202,7 +204,7 @@ Item {
         return qsTrId("genycaster.setup.continue")
     }
     function actionEnabled() {
-        if (currentStep === 2) return legalConsentAccepted || consentChecked
+        if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
         if (currentStep === 4) return authenticated
         if (currentStep === 5) return authenticated || guestSelected || reviewMode
@@ -219,13 +221,21 @@ Item {
         }
         if (reviewMode) {
             switchStep(0)
-        } else if (returningAfterLogout || setupCompleted) {
-            switchStep(3)
         } else {
+            // Sign-out always restores Welcome immediately, never a stale
+            // choose-account screen or a deferred transition.
+            stageTransitionTimer.stop()
+            pendingStep = -1
+            stageTransitioning = false
+            stageOpacity = 1
+            stageOffset = 0
+            currentStep = 0
+            stageScroll.contentY = 0
+            highestReachedStep = 0
             accountIntent = ""
+            showRecovery = false
             guestSelected = false
-            consentChecked = false
-            switchStep(0)
+            consentChecked = legalConsentAccepted
         }
         forceActiveFocus()
     }
@@ -264,113 +274,126 @@ Item {
 
     Rectangle { anchors.fill: parent; color: Theme.dark ? Theme.background : Theme.surface }
 
-    // Full, in-app reading surface; documents are displayed without opening a
-    // new browser tab. A link to the publisher's canonical full document is
-    // optional and never the primary legal-reader interaction.
-    Popup {
+    // The legal reader is local to Setup rather than Overlay.overlay, which
+    // may belong to a different window/sheet in Qt WASM. Both documents use
+    // one reliably clickable surface; nothing opens in an external tab.
+    Item {
         id: legalReader
-        parent: Overlay.overlay
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        x: root.phone ? 0 : parent ? Math.round((parent.width - width) / 2) : 0
-        y: root.phone ? (parent ? parent.height - height : 0)
-                      : parent ? Math.round((parent.height - height) / 2) : 0
-        width: root.phone ? root.width : Math.min(Math.max(0, root.width - 40), 620)
-        height: root.phone ? Math.min(root.height * 0.82, 720)
-                           : Math.min(Math.max(0, root.height - 100), 650)
-        padding: root.phone ? Theme.space5 : Theme.space6
-        enter: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.motionEmphasis }
+        anchors.fill: parent
+        z: 20000
+        property bool opened: false
+        visible: opened
+        function open() {
+            opened = true
+            legalBodyScroll.contentY = 0
+        }
+        function close() { opened = false }
+        Keys.onEscapePressed: event => {
+            legalReader.close()
+            event.accepted = true
+        }
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0, 0, 0, 0.42)
+        }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: legalReader.close()
+        }
+        Superellipse {
+            id: legalSurface
+            z: 1
+            x: root.phone ? 0 : (legalReader.width - width) / 2
+            y: root.phone ? legalReader.height - height : (legalReader.height - height) / 2
+            width: root.phone ? legalReader.width : Math.min(650, legalReader.width - 48)
+            height: root.phone ? Math.min(legalReader.height * 0.87, 730)
+                               : Math.min(legalReader.height - 84, 660)
+            fillColor: Theme.surface
+            curveDepth: root.phone ? 28 : Theme.curveContainer
+            borderWidth: Theme.strokeStandard
+            borderColor: Theme.borderMuted
+            property real offset: legalReader.opened ? 0 : 20
+            transform: Translate { y: legalSurface.offset }
+            Behavior on offset {
                 NumberAnimation {
-                    property: "y"
-                    from: root.phone ? root.height : (root.height - legalReader.height) / 2 + 10
-                    to: legalReader.y
-                    duration: Theme.reduceMotion ? 0 : 240
+                    duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
                     easing.type: Easing.OutCubic
                 }
             }
-        }
-        exit: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "opacity"; from: 1; to: 0; duration: Theme.motionStandard }
-                NumberAnimation {
-                    property: "y"
-                    from: legalReader.y
-                    to: root.phone ? root.height : (root.height - legalReader.height) / 2 + 10
-                    duration: Theme.reduceMotion ? 0 : 180
-                    easing.type: Easing.InCubic
-                }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: mouse => mouse.accepted = true
             }
-        }
-        background: Superellipse {
-            fillColor: Theme.surface
-            borderWidth: Theme.strokeStandard
-            borderColor: Theme.borderMuted
-            curveDepth: root.phone ? 26 : Theme.curveContainer
-            curveBottomLeft: !root.phone
-            curveBottomRight: !root.phone
-        }
-        contentItem: ColumnLayout {
-            spacing: Theme.space3
-            Item {
-                visible: root.phone
-                Layout.fillWidth: true
-                Layout.preferredHeight: 12
-                Superellipse {
-                    anchors.centerIn: parent
-                    width: 38
-                    height: 5
-                    curveDepth: 3
-                    fillColor: Theme.borderStrong
-                }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                DirectionAwareLabel {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: root.phone ? Theme.space5 : Theme.space7
+                spacing: Theme.space4
+                Item {
+                    visible: root.phone
                     Layout.fillWidth: true
-                    text: root.legalDocument === "terms"
-                          ? qsTrId("genycaster.setup.terms_title")
-                          : qsTrId("genycaster.setup.privacy_title")
-                    color: Theme.ink
-                    font.pixelSize: 24
-                    font.weight: Theme.weightBold
-                    wrapMode: Text.WordWrap
+                    Layout.preferredHeight: 12
+                    Superellipse {
+                        anchors.centerIn: parent
+                        width: 42
+                        height: 5
+                        curveDepth: 3
+                        fillColor: Theme.borderStrong
+                    }
                 }
-                ActionButton {
-                    iconOnly: true
-                    quiet: true
-                    compact: true
-                    iconGlyph: Theme.iconClose
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: root.legalDocument === "terms"
+                              ? qsTrId("genycaster.setup.terms_title")
+                              : qsTrId("genycaster.setup.privacy_title")
+                        color: Theme.ink
+                        font.pixelSize: root.phone ? 23 : 27
+                        font.weight: Theme.weightBold
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconClose
+                        text: qsTrId("genycaster.locale.close")
+                        onClicked: legalReader.close()
+                    }
+                }
+                Flickable {
+                    id: legalBodyScroll
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    clip: true
+                    contentWidth: width
+                    contentHeight: legalBody.implicitHeight
+                    boundsBehavior: Flickable.StopAtBounds
+                    flickableDirection: Flickable.VerticalFlick
+                    DirectionAwareLabel {
+                        id: legalBody
+                        width: legalBodyScroll.width
+                        text: root.legalDocument === "terms"
+                              ? qsTrId("genycaster.setup.terms_body")
+                              : qsTrId("genycaster.setup.privacy_body")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        wrapMode: Text.WordWrap
+                        lineHeight: 1.55
+                    }
+                }
+                SetupPrimaryButton {
+                    Layout.fillWidth: true
+                    neutralPrimary: true
+                    showArrow: false
                     text: qsTrId("genycaster.locale.close")
                     onClicked: legalReader.close()
                 }
             }
-            ScrollView {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                contentWidth: availableWidth
-                DirectionAwareLabel {
-                    width: parent ? parent.width : 320
-                    text: root.legalDocument === "terms"
-                          ? qsTrId("genycaster.setup.terms_body")
-                          : qsTrId("genycaster.setup.privacy_body")
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeLabelSize
-                    lineHeight: 1.55
-                    wrapMode: Text.WordWrap
-                }
-            }
-            ActionButton {
-                Layout.fillWidth: true
-                quiet: true
-                text: qsTrId("genycaster.locale.close")
-                onClicked: legalReader.close()
-            }
         }
     }
+
     // Don't let touches on the empty full-screen backdrop fall through to casts.
     MouseArea {
         anchors.fill: parent
@@ -391,30 +414,47 @@ Item {
         // stage-local CTA on the right. No header, footer or shell chrome.
         Rectangle {
             id: desktopBrandPane
-            visible: !root.phone && root.width >= 980 && root.currentStep === 0
+            visible: !root.phone && root.width >= 980
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: parent.width * 0.33
+            width: Math.min(parent.width * 0.29, 430)
             color: Theme.dark ? Theme.surfaceMuted
                               : Qt.rgba(Theme.swatchGeny.r, Theme.swatchGeny.g, Theme.swatchGeny.b, 0.10)
-            Rectangle {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                x: -width * 0.32
-                width: Math.min(desktopBrandPane.width * 1.22, 510)
-                height: width
-                radius: width / 2
-                color: Theme.dark ? Qt.rgba(1,1,1,0.05) : Qt.rgba(1,1,1,0.58)
-            }
-            Image {
-                anchors.centerIn: parent
-                width: Math.min(desktopBrandPane.width * 0.67, 330)
-                height: width
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                fillMode: Image.PreserveAspectFit
-                sourceSize: Qt.size(400,400)
-                opacity: Theme.dark ? 0.20 : 0.14
+            // Oversized transparent brand motif from the project's native
+            // G-and-arrow geometry: no black rounded-square application icon.
+            Canvas {
+                id: brandMotif
+                anchors.fill: parent
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    const unit = Math.min(width, height)
+                    const cx = width * 0.43
+                    const cy = height * 0.50
+                    const r = unit * 0.45
+                    ctx.fillStyle = Theme.dark ? "#25293A" : "#F6F7FF"
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, r * 1.28, 0, 2 * Math.PI)
+                    ctx.fill()
+                    ctx.lineWidth = Math.max(10, unit * 0.105)
+                    ctx.strokeStyle = Theme.dark ? "#404658" : "#C8CCE9"
+                    ctx.lineCap = "round"
+                    ctx.beginPath()
+                    ctx.arc(cx, cy, r * 0.72, -0.23 * Math.PI, 1.58 * Math.PI, false)
+                    ctx.stroke()
+                    ctx.fillStyle = Theme.dark ? "#737B9C" : "#969FDC"
+                    ctx.beginPath()
+                    ctx.moveTo(cx + r * 0.04, cy - r * 0.13)
+                    ctx.lineTo(cx + r * 0.94, cy - r * 0.13)
+                    ctx.lineTo(cx + r * 0.94, cy + r * 0.74)
+                    ctx.closePath()
+                    ctx.fill()
+                }
+                Connections {
+                    target: Theme
+                    function onDarkChanged() { brandMotif.requestPaint() }
+                }
             }
         }
 
@@ -425,7 +465,9 @@ Item {
             visible: !root.phone && root.currentStep !== 0
             anchors.top: parent.top
             anchors.topMargin: 34
-            anchors.horizontalCenter: parent.horizontalCenter
+            x: desktopBrandPane.visible
+               ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
+               : (parent.width - width) / 2
             spacing: 7
             z: 5
             Repeater {
@@ -449,8 +491,8 @@ Item {
             visible: root.currentStep > 0
             anchors.top: parent.top
             anchors.topMargin: Theme.space4
-            anchors.left: parent.left
-            anchors.leftMargin: root.phone ? Theme.space2 : Theme.space5
+            x: Theme.rtl ? root.width - width - (root.phone ? Theme.space2 : Theme.space5)
+                         : (root.phone ? Theme.space2 : Theme.space5)
             compact: true
             quiet: true
             iconOnly: true
@@ -488,8 +530,11 @@ Item {
 
             Item {
                 id: stagePanel
-                width: Math.max(0, Math.min(root.phone ? 440 : 570,
-                                             stageScroll.width - root.setupGutter * 2))
+                width: Math.max(0, Math.min(
+                                   root.phone ? 440
+                                   : (root.currentStep === 3 || root.currentStep === 6) ? 810 : 650,
+                                   stageScroll.width - (desktopBrandPane.visible ? desktopBrandPane.width : 0)
+                                   - root.setupGutter * 2))
                 x: desktopBrandPane.visible
                    ? desktopBrandPane.width + (stageScroll.width - desktopBrandPane.width - width) / 2
                    : (stageScroll.width - width) / 2
@@ -659,10 +704,10 @@ Item {
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space3
                 implicitHeight: Math.max(56, consentLabel.implicitHeight + Theme.space3 * 2)
-                enabled: !root.legalConsentAccepted
+                enabled: true
                 focusPolicy: Qt.StrongFocus
                 Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
-                Accessible.checked: root.legalConsentAccepted || root.consentChecked
+                Accessible.checked: root.consentChecked
                 onClicked: root.consentChecked = !root.consentChecked
                 background: Superellipse {
                     fillColor: Theme.surface
@@ -676,13 +721,13 @@ Item {
                     Superellipse {
                         Layout.preferredWidth: 23
                         Layout.preferredHeight: 23
-                        fillColor: root.legalConsentAccepted || root.consentChecked ? Theme.ink : "transparent"
+                        fillColor: root.consentChecked ? Theme.ink : "transparent"
                         borderColor: Theme.inkMuted
                         borderWidth: 1
                         curveDepth: 5
                         Icon {
                             anchors.centerIn: parent
-                            visible: root.legalConsentAccepted || root.consentChecked
+                            visible: root.consentChecked
                             text: Theme.iconCheck
                             color: Theme.surface
                             preferredSize: 15
@@ -727,8 +772,8 @@ Item {
                     onboardingStyle: true
                     primary: false
                     title: qsTrId("genycaster.setup.design_create_account")
-                    subtitle: qsTrId("genycaster.setup.new_profile_body")
-                    trailingText: qsTrId("genycaster.shell.coming_soon")
+                    subtitle: qsTrId("genycaster.shell.coming_soon") + " · "
+                              + qsTrId("genycaster.setup.new_profile_body")
                     iconGlyph: root.phone ? "" : Theme.iconUser
                     showChevron: false
                     enabled: false
@@ -769,7 +814,7 @@ Item {
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
-                iconGlyph: "brands/geny"
+                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 title: qsTrId("genycaster.shell.continue_with_genyleap")
                 enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
                 onClicked: {
@@ -1017,7 +1062,7 @@ Item {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
-                iconGlyph: Theme.iconMoon
+                iconGlyph: Theme.iconPalette
                 title: qsTrId("genycaster.setup.design_appearance_title")
                 subtitle: qsTrId("genycaster.setup.design_appearance_description")
                 centered: !root.phone
