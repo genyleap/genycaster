@@ -423,17 +423,19 @@ Item {
                 GradientStop { position: 0.55; color: Theme.dark ? "#24253B" : "#E8E8FB" }
                 GradientStop { position: 1.0; color: Theme.dark ? "#181923" : "#F2F1FF" }
             }
+            // The real GenyCaster SVG, not a redrawn approximation. Keep it
+            // oversized and partially cropped as a quiet brand watermark.
             Image {
                 id: desktopBrandArt
-                width: Math.min(630, desktopBrandPane.width * 1.72)
+                width: Math.min(680, desktopBrandPane.width * 1.62)
                 height: width
-                x: -width * 0.34
+                x: -width * 0.33
                 y: (desktopBrandPane.height - height) / 2
-                source: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/setup-motif.svg"
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 sourceSize: Qt.size(768, 768)
                 asynchronous: false
                 fillMode: Image.PreserveAspectFit
-                opacity: Theme.dark ? 0.66 : 1
+                opacity: Theme.dark ? 0.18 : 0.13
             }
         }
 
