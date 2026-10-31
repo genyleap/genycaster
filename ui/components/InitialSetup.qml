@@ -430,8 +430,42 @@ Item {
             // Keep this pane and its metadata above the full-screen
             // transparent Flickable, which is created later in setupCanvas.
             z: 2
+            // Quiet, GPU-friendly atmosphere: two cached vector mist layers
+            // slowly cross the logo. No Canvas timer, shader loop, or blur
+            // effect is needed; Qt animates position/opacity only.
+            Image {
+                id: desktopMistBehind
+                z: 0
+                width: desktopBrandPane.width * 1.66
+                height: desktopBrandPane.height * 1.02
+                x: -width * 0.32
+                y: -height * 0.04
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/setup-mist.svg"
+                sourceSize: Qt.size(600, 900)
+                fillMode: Image.Stretch
+                smooth: true
+                opacity: Theme.dark ? 0.27 : 0.15
+                SequentialAnimation on x {
+                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
+                    loops: Animation.Infinite
+                    NumberAnimation {
+                        from: -desktopMistBehind.width * 0.32
+                        to: -desktopMistBehind.width * 0.22
+                        duration: 26000
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        from: -desktopMistBehind.width * 0.22
+                        to: -desktopMistBehind.width * 0.32
+                        duration: 26000
+                        easing.type: Easing.InOutSine
+                    }
+                }
+            }
+
             Image {
                 id: desktopBrandArt
+                z: 1
                 width: Math.min(760, desktopBrandPane.width * 1.68)
                 height: width
                 x: -width * 0.39
@@ -445,6 +479,98 @@ Item {
                 mipmap: true
                 fillMode: Image.PreserveAspectFit
                 opacity: Theme.dark ? 0.15 : 0.085
+                // A barely perceptible breathing motion keeps the giant mark
+                // alive without wobbling, glowing or distorting the SVG.
+                SequentialAnimation on opacity {
+                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
+                    loops: Animation.Infinite
+                    NumberAnimation {
+                        from: Theme.dark ? 0.15 : 0.085
+                        to: Theme.dark ? 0.195 : 0.115
+                        duration: 8000
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        from: Theme.dark ? 0.195 : 0.115
+                        to: Theme.dark ? 0.15 : 0.085
+                        duration: 8000
+                        easing.type: Easing.InOutSine
+                    }
+                }
+            }
+
+            // A second, faint veil drifts in the opposite direction to add
+            // depth without hiding the brand or the copyright below.
+            Image {
+                id: desktopMistInFront
+                z: 2
+                width: desktopBrandPane.width * 1.52
+                height: desktopBrandPane.height * 0.64
+                x: -width * 0.16
+                y: desktopBrandPane.height * 0.23
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/setup-mist.svg"
+                sourceSize: Qt.size(600, 900)
+                fillMode: Image.Stretch
+                smooth: true
+                opacity: Theme.dark ? 0.12 : 0.075
+                SequentialAnimation on x {
+                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
+                    loops: Animation.Infinite
+                    NumberAnimation {
+                        from: -desktopMistInFront.width * 0.16
+                        to: -desktopMistInFront.width * 0.27
+                        duration: 32000
+                        easing.type: Easing.InOutSine
+                    }
+                    NumberAnimation {
+                        from: -desktopMistInFront.width * 0.27
+                        to: -desktopMistInFront.width * 0.16
+                        duration: 32000
+                        easing.type: Easing.InOutSine
+                    }
+                }
+            }
+
+            // Eleven deterministic drifting motes. Simple Qt Quick
+            // rectangles and one transform per mote keep this inexpensive
+            // on native desktops and Qt WebAssembly.
+            Item {
+                id: desktopMistParticles
+                anchors.fill: parent
+                z: 2
+                visible: !Theme.reduceMotion
+                Repeater {
+                    model: 11
+                    delegate: Rectangle {
+                        id: mistMote
+                        required property int index
+                        readonly property real startY: desktopBrandPane.height
+                                                       * (0.12 + ((index * 37 + 17) % 73) / 100)
+                        x: desktopBrandPane.width * (0.09 + ((index * 31 + 9) % 83) / 100)
+                        y: startY
+                        width: 2 + (index % 3)
+                        height: width
+                        radius: width / 2
+                        color: Theme.dark ? "#D6DBFF" : "#717BB6"
+                        opacity: Theme.dark ? 0.25 : 0.18
+                        SequentialAnimation on y {
+                            running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
+                            loops: Animation.Infinite
+                            NumberAnimation {
+                                from: mistMote.startY
+                                to: mistMote.startY - 22
+                                duration: 9300 + mistMote.index * 610
+                                easing.type: Easing.InOutSine
+                            }
+                            NumberAnimation {
+                                from: mistMote.startY - 22
+                                to: mistMote.startY
+                                duration: 9300 + mistMote.index * 610
+                                easing.type: Easing.InOutSine
+                            }
+                        }
+                    }
+                }
             }
 
             // Product metadata is pinned inside the desktop left rail,

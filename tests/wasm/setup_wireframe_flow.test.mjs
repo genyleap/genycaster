@@ -299,3 +299,27 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/onClicked: Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
   assert.doesNotMatch(pane,/" GenyCaster"/);
 });
+
+test('Setup desktop sidebar has quiet animated mist and drifting motes without masking controls', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const pane=s.slice(s.indexOf('id: desktopBrandPane'),s.indexOf('id: setupProgress'));
+  const cmake=source('ui/CMakeLists.txt');
+  const mist=source('ui/wasm/setup-mist.svg');
+  assert.match(cmake,/wasm\/setup-mist\.svg/);
+  assert.match(mist,/<radialGradient/);
+  assert.match(mist,/<ellipse/);
+  assert.match(pane,/id: desktopMistBehind/);
+  assert.match(pane,/id: desktopMistInFront/);
+  assert.match(pane,/id: desktopMistParticles/);
+  assert.match(pane,/model: 11/);
+  assert.match(pane,/id: mistMote/);
+  assert.match(pane,/id: desktopBrandArt/);
+  assert.match(pane,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/setup-mist\.svg"/);
+  assert.match(pane,/running: root\.visible && desktopBrandPane\.visible && !Theme\.reduceMotion/);
+  assert.match(pane,/visible: !Theme\.reduceMotion/);
+  assert.match(pane,/z: 3\s+visible: desktopBrandPane\.visible/);
+  const atmosphere=pane.slice(0,pane.indexOf('// Product metadata is pinned'));
+  assert.doesNotMatch(atmosphere,/MouseArea\s*\{|Timer\s*\{|ShaderEffect\s*\{|Canvas\s*\{/);
+  assert.match(pane,/id: genyleapCopyrightLink/);
+  assert.match(pane,/Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+});

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" aria-hidden="true">
+  <!-- Atmospheric texture only. The real GenyCaster brand SVG is a separate layer.
+       Soft alpha gradients are portable across Qt's SVG and browser renderers. -->
+  <defs>
+    <radialGradient id="mist-indigo">
+      <stop offset="0" stop-color="#A8AFFF" stop-opacity=".62"/>
+      <stop offset=".38" stop-color="#9198EB" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#7D83DA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="mist-pearl">
+      <stop offset="0" stop-color="#F2F0FF" stop-opacity=".46"/>
+      <stop offset=".43" stop-color="#C6C8FB" stop-opacity=".19"/>
+      <stop offset="1" stop-color="#BABEF5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="228" cy="248" rx="278" ry="124" fill="url(#mist-indigo)"/>
+  <ellipse cx="404" cy="410" rx="256" ry="162" fill="url(#mist-pearl)"/>
+  <ellipse cx="180" cy="595" rx="304" ry="148" fill="url(#mist-indigo)"/>
+  <ellipse cx="440" cy="720" rx="250" ry="105" fill="url(#mist-pearl)"/>
+</svg>
