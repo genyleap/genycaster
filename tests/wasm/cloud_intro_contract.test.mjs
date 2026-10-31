@@ -39,6 +39,19 @@ test('Plain, readable studio credits precede actual WASM progress without decora
   assert.match(source('ui/wasm/genycaster-boot-icon.svg'),/fill="#989898"/);
   assert.doesNotMatch(html,/if \(seen && !\(current && previous && current!==previous\)\) return/);
 });
+
+test('Intro uses the Base network emblem from the project icon set, never the four-block app mark',()=>{
+  const intro=source('ui/wasm/intro-base.svg');
+  const canonical=source('ui/assets/icons/genyleap/icons/crypto/base.svg');
+  const html=source('ui/wasm/genycaster-shell.html');
+  assert.match(html,/<img class="studio-brand-logo" src="\.\/intro-base\.svg"/);
+  for(const geometry of ['viewBox="0 0 24 24"','<circle cx="12" cy="12" r="8"/>','<path d="M5 12h10.5"/>']) {
+    assert.ok(canonical.includes(geometry),'expected Base geometry in the project icon set: '+geometry);
+    assert.ok(intro.includes(geometry),'Intro must use the project Base emblem: '+geometry);
+  }
+  assert.match(intro,/stroke="#fff"/);
+  assert.doesNotMatch(intro,/1280 417\.43|cls-1|<rect/);
+});
 test('Cloud schema isolates all intended owner features, not speculative leaderboards',()=>{
   const first=source('services/account-sync/migrations/001_bookmarks.sql');
   const second=source('services/account-sync/migrations/002_cloud_state.sql');
