@@ -70,6 +70,7 @@ test("WASM wrapper preserves native request credentials and retries once without
             return native;
         },
         verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        isWebKitRuntime:false,releaseInfo:{wasmBytes:8},Headers,
         installing:false,updating:false,finished:false,bootPhase:"initialize",wasmResourceUrl:null,
         showPhase(){},observeEngine(){},preparing(){},measureFirstDownload(){},console};
     vm.runInNewContext(source.slice(begin,end),ctx);
@@ -102,4 +103,63 @@ test("WebKit startup unregisters only app worker and navigates once before Qt bo
     assert.match(navigations[0],/genycaster-network-boot=12345678901234567890/);
     assert.equal(await context.boot(),false);
     assert.equal(navigations.length,1);
+});
+
+test("WebKit requests an identity full-body WASM range and preserves streaming Response",async()=>{
+    const begin=source.indexOf("window.fetch=async function(input,options) {");
+    const end=source.indexOf('const screen=$("qt-screen");',begin);
+    const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
+    const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
+    const native=new Response(binary,{status:206,headers:{
+        "Content-Type":"application/wasm",
+        "Content-Length":"8",
+        "Content-Range":"bytes 0-7/8"
+    }});
+    const calls=[];
+    const ctx={window:{},URL,Headers,Response,isWebKitRuntime:true,
+        location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
+        originalFetch:async(input,options)=>{calls.push({input,options});return native;},
+        verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
+        bootPhase:"initialize",showPhase(){},observeEngine(){},preparing(){},
+        measureFirstDownload(){},console};
+    vm.runInNewContext(source.slice(begin,end),ctx);
+    const r=await ctx.window.fetch(wasmURL,{credentials:"same-origin"});
+    assert.equal(r,native,"do not rewrap streaming response");
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].options.headers.get("range"),"bytes=0-");
+    assert.equal(calls[0].options.credentials,"same-origin");
+    const mod=await WebAssembly.compileStreaming(Promise.resolve(r));
+    assert.ok(mod instanceof WebAssembly.Module,"206 full-body response streams as wasm");
+});
+
+test("WebKit rejects incomplete ranges and falls back to an ordinary request if Range is blocked",async()=>{
+    const begin=source.indexOf("window.fetch=async function(input,options) {");
+    const end=source.indexOf('const screen=$("qt-screen");',begin);
+    const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
+    const makeCtx=(impl)=>({window:{},URL,Headers,isWebKitRuntime:true,
+        location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
+        originalFetch:impl,verifiedAsset:new URL(wasmURL),
+        hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
+        bootPhase:"initialize",showPhase(){},observeEngine(){},preparing(){},
+        measureFirstDownload(){},console});
+    const truncated=new Response(new Uint8Array(4),{status:206,headers:{
+        "Content-Type":"application/wasm","Content-Range":"bytes 0-3/8"}});
+    const ctx=makeCtx(async()=>truncated);
+    vm.runInNewContext(source.slice(begin,end),ctx);
+    await assert.rejects(ctx.window.fetch(wasmURL),/Incomplete WebAssembly range response/);
+    const normal=new Response(new Uint8Array([0,97,115,109,1,0,0,0]),
+        {headers:{"Content-Type":"application/wasm"}});
+    const calls=[];
+    const fallback=makeCtx(async(_input,options)=>{
+        calls.push(options);
+        if(calls.length===1)throw new TypeError("Load failed");
+        return normal;
+    });
+    vm.runInNewContext(source.slice(begin,end),fallback);
+    assert.equal(await fallback.window.fetch(wasmURL),normal);
+    assert.equal(calls[0].headers.get("range"),"bytes=0-");
+    assert.equal(calls[1].headers,undefined,"fallback is an ordinary uncompressed-or-compressed fetch");
+    assert.equal(calls[1].cache,"reload");
 });
