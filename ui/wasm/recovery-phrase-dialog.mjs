@@ -29,7 +29,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
     const locale=(browser.__genycasterPreferredLanguage
         ||browser.navigator?.language||'en').split(/[-_]/)[0].toLowerCase();
     const lang=strings[locale]?locale:'en',s=strings[lang];
-    const light=browser.matchMedia?.('(prefers-color-scheme: light)').matches===true;
+    const light=browser.document?.documentElement?.dataset?.theme === 'light'
+        || (browser.document?.documentElement?.dataset?.theme !== 'dark'
+            && browser.matchMedia?.('(prefers-color-scheme: light)').matches===true);
     const foreground=light?'#1b2234':'#f4f6ff';
     const muted=light?'#586276':'#b7bdd0';
     const surface=light?'#ffffff':'#171a23';
@@ -50,11 +52,13 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         const style=document.createElement('style');
         style.textContent='@keyframes genycaster-drawer-in{from{transform:translateX(30px);opacity:.8}to{transform:none;opacity:1}}'
             +'@keyframes genycaster-sheet-in{from{transform:translateY(36px);opacity:.85}to{transform:none;opacity:1}}'
-            +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:flex-end!important;justify-content:center!important}'
-            +'#genycaster-farcaster-recovery>section{width:100%!important;height:min(92dvh,900px)!important;max-height:92dvh!important;min-height:0!important;'
-            +'border-radius:25px 25px 0 0!important;padding:20px 16px max(22px,env(safe-area-inset-bottom))!important;'
-            +'animation:genycaster-sheet-in .22s cubic-bezier(.22,1,.36,1) both!important;box-shadow:0 -14px 55px #0008!important}}'
-            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}}';
+            +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:stretch!important;justify-content:center!important;background:'+surface+'!important;backdrop-filter:none!important}'
+            +'#genycaster-farcaster-recovery>section{width:100%!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;'
+            +'border:0!important;border-radius:0!important;padding:max(22px,env(safe-area-inset-top)) 20px max(22px,env(safe-area-inset-bottom))!important;'
+            +'animation:none!important;box-shadow:none!important}}'
+            +'@keyframes genycaster-recovery-spin{to{transform:rotate(360deg)}}'
+            +'#genycaster-farcaster-recovery button[aria-busy="true"]::before{content:"";display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-inline-end:9px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:genycaster-recovery-spin .8s linear infinite}'
+            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}#genycaster-farcaster-recovery button[aria-busy="true"]::before{animation-duration:1.5s!important}}';
         // Scroll only the recovery words. Keep the action row outside this
         // scroller so 24 entries never displace or overlap Cancel / Import.
         const body=document.createElement('div');
@@ -232,7 +236,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             const phrase=words.join(' ');
             words.fill('');
             pending=true;submit.disabled=true;
-            submit.textContent=lang==='fa'?'در حال بررسی…':'Checking securely…';
+            submit.setAttribute('aria-busy','true');
+            submit.style.opacity='.75';
+            submit.textContent=lang==='fa'?'در حال بررسی امن…':'Verifying securely…';
             try{
                 const {validateRecoveryWords}=await import('./farcaster_recovery.mjs');
                 await validateRecoveryWords(phrase);
@@ -280,7 +286,8 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                     : (lang==='fa'?'واژه‌ها به‌صورت محلی معتبرند، اما فعال‌سازی حساب کامل نشد. ورودی‌ها حفظ شده‌اند؛ دوباره تلاش کنید.':
                         'The recovery words passed local validation, but account authorization did not complete. Your entries are preserved.'));
             }finally{
-                pending=false;submit.disabled=false;submit.textContent=s.import;
+                pending=false;submit.disabled=false;submit.setAttribute('aria-busy','false');
+                submit.style.opacity='1';submit.textContent=s.import;
             }
         });
         inputs[0]?.focus();
