@@ -210,8 +210,8 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     const wasm=await scope.window.fetch('https://example.test/farcaster_client.wasm');
     assert.equal(wasm,nativeResponse,'Native WASM response must remain streamable');
     assert.equal(requestedWasm,'https://example.test/'+hashedWasm);
-    assert.equal(requestedOptions.cache,'force-cache');
-    assert.equal(requestedOptions.credentials,'omit');
+    assert.equal(requestedOptions.cache,undefined,'allow native HTTP caching');
+    assert.equal(requestedOptions.credentials,undefined,'preserve Emscripten request credentials');
     const received=new Uint8Array(await wasm.arrayBuffer());
     assert.deepEqual(received,sample);
     // An 8-byte native response can complete immediately: the optional
