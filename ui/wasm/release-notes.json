@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Interactive 3D GenyCaster identity",
+  "title": "Seamless Glass G identity",
   "changes": [
-    "The real Qt Setup sidebar now uses a smoothly lit volumetric Glass G with more detailed bevel shading and cleaner edges.",
-    "The brand rotates slowly on its own and responds to mouse or touch dragging, with keyboard adjustments and a gentle return to automatic rotation.",
-    "Automatic movement respects Reduce Motion. The light and dark materials, setup navigation and Genyleap footer are preserved."
+    "Merge the directional arrow and G ring into one filleted volumetric solid inside the real Qt Setup sidebar.",
+    "Use identical extrusion depth and bevel profile so the arrow no longer sits above the G when rotated.",
+    "Blend the turquoise and silver finishes across the shared joint while preserving auto-orbit, drag controls and both appearance themes."
   ]
 }

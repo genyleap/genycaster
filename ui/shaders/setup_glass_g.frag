@@ -34,16 +34,33 @@ float sdTriangle(vec2 p,vec2 a,vec2 b,vec2 c) {
     return -sqrt(d.x)*sign(d.y);
 }
 vec2 logo(vec3 p) {
-    // Canonical G silhouette, dimensional with rounded extruded edges.
+    // Two contours are merged into ONE signed-distance solid. Previously
+    // the arrow was raised 0.14 units above the ring and differed in depth,
+    // leaving a visible ledge when the logo was rotated sideways.
     float ring=abs(length(p.xy+vec2(.035,.012))-.50)-.115;
     ring=max(ring,-sdBox(p.xy-vec2(.48,.38),vec2(.28,.31)));
     float direction=sdTriangle(p.xy,vec2(-.005,.128),
                                  vec2(.617,.128),vec2(.617,-.516));
-    vec2 g=vec2(ring,abs(p.z)-.118);
-    float dg=length(max(g,0.0))+min(max(g.x,g.y),0.0)-.019;
-    vec2 a=vec2(direction,abs(p.z-.14)-.092);
-    float da=length(max(a,0.0))+min(max(a.x,a.y),0.0)-.014;
-    return vec2(min(dg,da), da<dg ? 1.0 : 0.0);
+
+    // Shared extrusion and bevel depth so the surface cannot show a
+    // component-wise step at the joint (front OR rear).
+    const float halfDepth=.118;
+    const float bevel=.019;
+    vec2 g=vec2(ring,abs(p.z)-halfDepth);
+    float dg=length(max(g,0.0))+min(max(g.x,g.y),0.0)-bevel;
+    vec2 a=vec2(direction,abs(p.z)-halfDepth);
+    float da=length(max(a,0.0))+min(max(a.x,a.y),0.0)-bevel;
+
+    // Polynomial smooth union fillets the contact of arrow and ring without
+    // duplicating geometry or adding a second render pass.
+    const float fillet=.072;
+    float h=clamp(.5+.5*(dg-da)/fillet,0.0,1.0);
+    float merged=mix(dg,da,h)-fillet*h*(1.0-h);
+
+    // The two finishes are still distinguishable, but their transition
+    // follows the continuous fillet instead of a harsh material-ID seam.
+    float arrowTint=smoothstep(.06,.94,h);
+    return vec2(merged,arrowTint);
 }
 vec3 invRotation(vec3 p,vec2 angle) {
     // Inverse object orientation for SDF evaluation.
