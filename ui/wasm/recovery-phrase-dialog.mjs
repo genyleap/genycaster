@@ -46,8 +46,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         card.setAttribute('aria-labelledby','genycaster-recovery-title');
         card.dir=['ar','fa'].includes(lang)?'rtl':'ltr';
         card.style.cssText='width:min(620px,calc(100% - 48px));height:min(820px,calc(100dvh - 80px));max-height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:24px;padding:clamp(18px,3vw,30px);padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 20px 70px #0005;color:'+foreground+';animation:genycaster-drawer-in .22s cubic-bezier(.22,1,.36,1) both;';
-        // One adaptive recovery surface: trailing-edge drawer on desktop,
-        // keyboard-safe bottom sheet on phones. The rules contain no secrets
+        // One adaptive secure DOM surface: centered sheet on desktop and
+        // an animated full-screen form on phones. Sensitive words never cross
+        // into QML or the WebAssembly heap. The rules contain no secrets
         // and never interact with QML authentication state.
         const style=document.createElement('style');
         style.textContent='@keyframes genycaster-drawer-in{from{transform:translateY(18px);opacity:.7}to{transform:none;opacity:1}}'
@@ -55,10 +56,11 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:stretch!important;justify-content:center!important;background:'+surface+'!important;backdrop-filter:none!important}'
             +'#genycaster-farcaster-recovery>section{width:100%!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;'
             +'border:0!important;border-radius:0!important;padding:max(22px,env(safe-area-inset-top)) 20px max(22px,env(safe-area-inset-bottom))!important;'
-            +'animation:none!important;box-shadow:none!important}}'
+            +'animation:genycaster-recovery-enter .23s cubic-bezier(.22,1,.36,1) both!important;box-shadow:none!important}}'
+            +'@keyframes genycaster-recovery-enter{from{transform:translateY(20px);opacity:.35}to{transform:translateY(0);opacity:1}}'
             +'@keyframes genycaster-recovery-spin{to{transform:rotate(360deg)}}'
             +'#genycaster-farcaster-recovery button[aria-busy="true"]::before{content:"";display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-inline-end:9px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:genycaster-recovery-spin .8s linear infinite}'
-            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}#genycaster-farcaster-recovery button[aria-busy="true"]::before{animation-duration:1.5s!important}}';
+            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}#genycaster-farcaster-recovery button[aria-busy="true"]::before{animation:none!important}}';
         // Scroll only the recovery words. Keep the action row outside this
         // scroller so 24 entries never displace or overlap Cancel / Import.
         const body=document.createElement('div');
