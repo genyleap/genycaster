@@ -281,10 +281,20 @@ window.fetch=async function(input,options) {
     const nativeRequest=changed
         ? typeof input==="string" ? url.href : new Request(url.href,input)
         : input;
-    // Preserve the Emscripten factory's same-origin credentials and
-    // browser-default HTTP cache. Forcing "omit"/"force-cache" on WebKit
-    // can cause cross-mode cache rejects even with a same-origin URL.
+    // Preserve Emscripten's credentials and unmodified Response. On WebKit,
+    // request the *entire* immutable WASM as a single open-ended byte range.
+    // Cloudflare serves Range: bytes=0- with 206, Content-Length and no br/zstd
+    // recompression. A standards-compliant 206 is valid for wasm streaming;
+    // it also avoids WebKit's opaque compressed-fetch "Load failed" path.
     const nativeOptions={...options};
+    const useIdentityRange=isWebKitRuntime
+        && hashedWasm.test(url.pathname.split("/").pop());
+    if(useIdentityRange){
+        const headers=new Headers(options?.headers
+            || (typeof input==="string" ? undefined : input.headers));
+        headers.set("Range","bytes=0-");
+        nativeOptions.headers=headers;
+    }
     if(installing)showPhase("download",
         updating?"Downloading Runtime Update":"Downloading Social Runtime",
         "Checking the browser cache and retrieving any missing engine files…",
@@ -302,9 +312,20 @@ window.fetch=async function(input,options) {
         if(!hashedWasm.test(url.pathname.split("/").pop()))throw error;
         console.warn("[Genycaster] Retrying WASM with fresh HTTP fetch",
             String(error?.message||error));
-        response=await originalFetch(nativeRequest,{...nativeOptions,cache:"reload"});
+        const retryOptions=useIdentityRange
+            ? {...options,cache:"reload"} : {...nativeOptions,cache:"reload"};
+        response=await originalFetch(nativeRequest,retryOptions);
     }
     if(!response.ok)return response;
+    if(useIdentityRange && response.status===206){
+        const range=response.headers.get("content-range")||"";
+        const match=/^bytes 0-([0-9]+)\/([0-9]+)$/.exec(range);
+        const expected=Number(releaseInfo.wasmBytes);
+        if(!match || Number(match[1])+1!==Number(match[2])
+           || (Number.isSafeInteger(expected) && expected>0
+               && Number(match[2])!==expected))
+            throw new Error("Incomplete WebAssembly range response");
+    }
     wasmResourceUrl=response.url||url.href;
     // The native Response remains untouched for streaming and code caching.
     // Installing is shown only after Resource Timing confirms completion.
