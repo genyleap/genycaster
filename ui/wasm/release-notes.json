@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Refined onboarding atmosphere and Base branding",
+  "title": "Interactive brand identity for Setup",
   "changes": [
-    "Use the Base network emblem instead of the Base App logo in Intro.",
-    "Add subtle animated mist and drifting particles behind the desktop Setup brand artwork.",
-    "Honor reduced-motion preferences and preserve legibility of the Genyleap copyright and version."
+    "Replace atmospheric fog and drifting particles with a precise geometric identity based on the GenyCaster logo.",
+    "Add pointer-responsive logo parallax and a brief click or keyboard activation for the desktop Setup sidebar.",
+    "Match light, dark and custom accent colors, show real Setup progress and honor reduced-motion preferences."
   ]
 }

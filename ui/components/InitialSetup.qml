@@ -418,10 +418,21 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: Math.min(parent.width * 0.29, 430)
+            border.width: brandInteraction.activeFocus ? 2 : 0
+            border.color: Theme.accent
+            // The mark and the geometric field respond to the pointer, not
+            // an unrelated continuous particle animation.
+            property real pointerX: 0.5
+            property real pointerY: 0.5
+            property bool pointerInside: false
+            property real tapImpulse: 0
+            readonly property bool motionAllowed: root.visible && visible && !Theme.reduceMotion
+            readonly property real offsetX: motionAllowed && pointerInside ? (pointerX - 0.5) * 18 : 0
+            readonly property real offsetY: motionAllowed && pointerInside ? (pointerY - 0.5) * 14 : 0
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.dark ? "#1B1C2A" : "#F3F1FF" }
-                GradientStop { position: 0.55; color: Theme.dark ? "#24253B" : "#E8E8FB" }
-                GradientStop { position: 1.0; color: Theme.dark ? "#181923" : "#F2F1FF" }
+                GradientStop { position: 0.0; color: Theme.dark ? "#111622" : "#F7F9FC" }
+                GradientStop { position: 0.56; color: Theme.dark ? "#1A2232" : "#EDF1F8" }
+                GradientStop { position: 1.0; color: Theme.dark ? "#111824" : "#E6ECF6" }
             }
             // The canonical SVG becomes an oversized, angled brand canvas.
             // Roughly 40% extends beyond the left edge; the rest is softly
@@ -430,36 +441,52 @@ Item {
             // Keep this pane and its metadata above the full-screen
             // transparent Flickable, which is created later in setupCanvas.
             z: 2
-            // Quiet, GPU-friendly atmosphere: two cached vector mist layers
-            // slowly cross the logo. No Canvas timer, shader loop, or blur
-            // effect is needed; Qt animates position/opacity only.
-            Image {
-                id: desktopMistBehind
+            // GENYCASTER / Kinetic Identity
+            // Etched circles echo the G silhouette. They follow the cursor in
+            // different depths and use the active theme accent. No fog,
+            // procedural particles, looping animation, or expensive effects.
+            Item {
+                id: brandGeometry
                 z: 0
-                width: desktopBrandPane.width * 1.66
-                height: desktopBrandPane.height * 1.02
-                x: -width * 0.32
-                y: -height * 0.04
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/setup-mist.svg"
-                sourceSize: Qt.size(600, 900)
-                fillMode: Image.Stretch
-                smooth: true
-                opacity: Theme.dark ? 0.27 : 0.15
-                SequentialAnimation on x {
-                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        from: -desktopMistBehind.width * 0.32
-                        to: -desktopMistBehind.width * 0.22
-                        duration: 26000
-                        easing.type: Easing.InOutSine
+                width: desktopBrandPane.width * 1.64
+                height: width
+                x: -width * 0.39 + desktopBrandPane.offsetX * 0.42
+                y: (desktopBrandPane.height - height) / 2 + desktopBrandPane.offsetY * 0.40
+                Behavior on x {
+                    enabled: !Theme.reduceMotion
+                    NumberAnimation { duration: 270; easing.type: Easing.OutCubic }
+                }
+                Behavior on y {
+                    enabled: !Theme.reduceMotion
+                    NumberAnimation { duration: 270; easing.type: Easing.OutCubic }
+                }
+                Repeater {
+                    model: 3
+                    delegate: Rectangle {
+                        required property int index
+                        width: brandGeometry.width * (0.57 + index * 0.19)
+                        height: width
+                        x: (brandGeometry.width - width) / 2
+                        y: (brandGeometry.height - height) / 2
+                        radius: width / 2
+                        color: "transparent"
+                        border.width: index === 1 ? 1.5 : 1
+                        border.color: index === 1 ? Theme.accent
+                                     : Theme.dark ? "#7A8BA9" : "#A6B3CB"
+                        opacity: index === 1
+                                 ? (Theme.dark ? 0.23 : 0.25) + desktopBrandPane.tapImpulse * 0.30
+                                 : (Theme.dark ? 0.16 : 0.24)
                     }
-                    NumberAnimation {
-                        from: -desktopMistBehind.width * 0.22
-                        to: -desktopMistBehind.width * 0.32
-                        duration: 26000
-                        easing.type: Easing.InOutSine
-                    }
+                }
+                Rectangle {
+                    x: brandGeometry.width * 0.43
+                    y: brandGeometry.height * 0.73
+                    width: brandGeometry.width * 0.42
+                    height: 1
+                    color: Theme.accent
+                    opacity: Theme.dark ? 0.43 : 0.36
+                    rotation: -17
+                    transformOrigin: Item.Left
                 }
             }
 
@@ -468,8 +495,10 @@ Item {
                 z: 1
                 width: Math.min(760, desktopBrandPane.width * 1.68)
                 height: width
-                x: -width * 0.39
-                y: (desktopBrandPane.height - height) / 2 - Math.min(20, desktopBrandPane.height * 0.025)
+                x: -width * 0.39 + desktopBrandPane.offsetX
+                y: (desktopBrandPane.height - height) / 2
+                   - Math.min(20, desktopBrandPane.height * 0.025)
+                   + desktopBrandPane.offsetY
                 rotation: -17
                 transformOrigin: Item.Center
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
@@ -478,98 +507,111 @@ Item {
                 smooth: true
                 mipmap: true
                 fillMode: Image.PreserveAspectFit
-                opacity: Theme.dark ? 0.15 : 0.085
-                // A barely perceptible breathing motion keeps the giant mark
-                // alive without wobbling, glowing or distorting the SVG.
-                SequentialAnimation on opacity {
-                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        from: Theme.dark ? 0.15 : 0.085
-                        to: Theme.dark ? 0.195 : 0.115
-                        duration: 8000
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        from: Theme.dark ? 0.195 : 0.115
-                        to: Theme.dark ? 0.15 : 0.085
-                        duration: 8000
-                        easing.type: Easing.InOutSine
-                    }
+                opacity: (Theme.dark ? 0.29 : 0.155) + desktopBrandPane.tapImpulse * 0.07
+                Behavior on x {
+                    enabled: !Theme.reduceMotion
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+                }
+                Behavior on y {
+                    enabled: !Theme.reduceMotion
+                    NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
                 }
             }
 
-            // A second, faint veil drifts in the opposite direction to add
-            // depth without hiding the brand or the copyright below.
-            Image {
-                id: desktopMistInFront
+            // A quiet accent rule signals that the visual identity is live
+            // on hover. It is a line, not a glow or a detached decorative dot.
+            Rectangle {
+                z: 1
+                width: 66
+                height: 2
+                radius: 1
+                x: desktopBrandPane.width * 0.17 + desktopBrandPane.offsetX * 0.36
+                y: desktopBrandPane.height * 0.77 + desktopBrandPane.offsetY * 0.30
+                color: Theme.accent
+                opacity: desktopBrandPane.pointerInside ? 0.9 : 0.40
+                Behavior on opacity {
+                    NumberAnimation { duration: Theme.reduceMotion ? 0 : 180 }
+                }
+            }
+
+            // Edge progression is connected to the actual Setup stage.
+            // It follows the selected accent in light and dark themes.
+            Rectangle {
+                z: 1
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                width: 2
+                color: Theme.dark ? "#35435C" : "#C8D2E3"
+            }
+            Rectangle {
                 z: 2
-                width: desktopBrandPane.width * 1.52
-                height: desktopBrandPane.height * 0.64
-                x: -width * 0.16
-                y: desktopBrandPane.height * 0.23
-                source: "qrc:/qt/qml/Farcaster/Client/wasm/setup-mist.svg"
-                sourceSize: Qt.size(600, 900)
-                fillMode: Image.Stretch
-                smooth: true
-                opacity: Theme.dark ? 0.12 : 0.075
-                SequentialAnimation on x {
-                    running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
-                    loops: Animation.Infinite
-                    NumberAnimation {
-                        from: -desktopMistInFront.width * 0.16
-                        to: -desktopMistInFront.width * 0.27
-                        duration: 32000
-                        easing.type: Easing.InOutSine
-                    }
-                    NumberAnimation {
-                        from: -desktopMistInFront.width * 0.27
-                        to: -desktopMistInFront.width * 0.16
-                        duration: 32000
-                        easing.type: Easing.InOutSine
-                    }
+                anchors.right: parent.right
+                width: 2
+                height: desktopBrandPane.height / root.progressCount
+                y: height * root.currentStep
+                color: Theme.accent
+                Behavior on y {
+                    enabled: !Theme.reduceMotion
+                    NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
                 }
             }
 
-            // Eleven deterministic drifting motes. Simple Qt Quick
-            // rectangles and one transform per mote keep this inexpensive
-            // on native desktops and Qt WebAssembly.
-            Item {
-                id: desktopMistParticles
+            // The brand panel itself is an optional interactive surface:
+            // hover = restrained parallax; click = one brief precision pulse.
+            // The footer (z:3) and the setup navigation (z:20) remain on top.
+            MouseArea {
+                id: brandInteraction
                 anchors.fill: parent
                 z: 2
-                visible: !Theme.reduceMotion
-                Repeater {
-                    model: 11
-                    delegate: Rectangle {
-                        id: mistMote
-                        required property int index
-                        readonly property real startY: desktopBrandPane.height
-                                                       * (0.12 + ((index * 37 + 17) % 73) / 100)
-                        x: desktopBrandPane.width * (0.09 + ((index * 31 + 9) % 83) / 100)
-                        y: startY
-                        width: 2 + (index % 3)
-                        height: width
-                        radius: width / 2
-                        color: Theme.dark ? "#D6DBFF" : "#717BB6"
-                        opacity: Theme.dark ? 0.25 : 0.18
-                        SequentialAnimation on y {
-                            running: root.visible && desktopBrandPane.visible && !Theme.reduceMotion
-                            loops: Animation.Infinite
-                            NumberAnimation {
-                                from: mistMote.startY
-                                to: mistMote.startY - 22
-                                duration: 9300 + mistMote.index * 610
-                                easing.type: Easing.InOutSine
-                            }
-                            NumberAnimation {
-                                from: mistMote.startY - 22
-                                to: mistMote.startY
-                                duration: 9300 + mistMote.index * 610
-                                easing.type: Easing.InOutSine
-                            }
-                        }
-                    }
+                hoverEnabled: true
+                activeFocusOnTab: true
+                cursorShape: Qt.PointingHandCursor
+                Keys.onReturnPressed: {
+                    if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                }
+                Keys.onSpacePressed: {
+                    if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                }
+                Accessible.onPressAction: {
+                    if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                }
+                onEntered: desktopBrandPane.pointerInside = true
+                onExited: {
+                    desktopBrandPane.pointerInside = false
+                    desktopBrandPane.pointerX = 0.5
+                    desktopBrandPane.pointerY = 0.5
+                }
+                onPositionChanged: function(mouse) {
+                    if (!desktopBrandPane.motionAllowed) return
+                    desktopBrandPane.pointerX = Math.max(0, Math.min(1, mouse.x / width))
+                    desktopBrandPane.pointerY = Math.max(0, Math.min(1, mouse.y / height))
+                }
+                onClicked: {
+                    if (desktopBrandPane.motionAllowed)
+                        brandAccentTap.restart()
+                }
+                Accessible.role: Accessible.Button
+                Accessible.name: "GenyCaster interactive brand"
+            }
+            SequentialAnimation {
+                id: brandAccentTap
+                running: false
+                NumberAnimation {
+                    target: desktopBrandPane
+                    property: "tapImpulse"
+                    from: 0
+                    to: 1
+                    duration: 160
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    target: desktopBrandPane
+                    property: "tapImpulse"
+                    from: 1
+                    to: 0
+                    duration: 540
+                    easing.type: Easing.OutCubic
                 }
             }
 

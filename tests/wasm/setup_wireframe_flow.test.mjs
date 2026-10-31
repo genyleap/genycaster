@@ -160,7 +160,7 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/x: -width \* 0\.39/);
   assert.match(s,/rotation: -17/);
   assert.match(s,/transformOrigin: Item\.Center/);
-  assert.match(s,/opacity: Theme\.dark \? 0\.15 : 0\.085/);
+  assert.match(s,/opacity: \(Theme\.dark \? 0\.29 : 0\.155\) \+ desktopBrandPane\.tapImpulse \* 0\.07/);
   assert.match(s,/id: desktopBrandMetadata/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
   assert.match(s,/Qt\.application\.version \|\| "1\.0\.0"/);
@@ -300,26 +300,28 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.doesNotMatch(pane,/" GenyCaster"/);
 });
 
-test('Setup desktop sidebar has quiet animated mist and drifting motes without masking controls', () => {
+test('Setup brand is a cursor-reactive geometric identity in light and dark, not mist', () => {
   const s=source('ui/components/InitialSetup.qml');
-  const pane=s.slice(s.indexOf('id: desktopBrandPane'),s.indexOf('id: setupProgress'));
-  const cmake=source('ui/CMakeLists.txt');
-  const mist=source('ui/wasm/setup-mist.svg');
-  assert.match(cmake,/wasm\/setup-mist\.svg/);
-  assert.match(mist,/<radialGradient/);
-  assert.match(mist,/<ellipse/);
-  assert.match(pane,/id: desktopMistBehind/);
-  assert.match(pane,/id: desktopMistInFront/);
-  assert.match(pane,/id: desktopMistParticles/);
-  assert.match(pane,/model: 11/);
-  assert.match(pane,/id: mistMote/);
+  const pane=s.slice(s.indexOf('id: desktopBrandPane'), s.indexOf('id: setupProgress'));
+  assert.match(pane,/id: brandGeometry/);
   assert.match(pane,/id: desktopBrandArt/);
-  assert.match(pane,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/setup-mist\.svg"/);
-  assert.match(pane,/running: root\.visible && desktopBrandPane\.visible && !Theme\.reduceMotion/);
-  assert.match(pane,/visible: !Theme\.reduceMotion/);
-  assert.match(pane,/z: 3\s+visible: desktopBrandPane\.visible/);
-  const atmosphere=pane.slice(0,pane.indexOf('// Product metadata is pinned'));
-  assert.doesNotMatch(atmosphere,/MouseArea\s*\{|Timer\s*\{|ShaderEffect\s*\{|Canvas\s*\{/);
+  assert.match(pane,/model: 3/);
+  assert.match(pane,/border\.color: index === 1 \? Theme\.accent/);
+  assert.match(pane,/color: Theme\.accent/);
+  assert.match(pane,/Theme\.dark \? "#111622" : "#F7F9FC"/);
+  assert.match(pane,/Theme\.dark \? "#1A2232" : "#EDF1F8"/);
+  assert.match(pane,/id: brandInteraction/);
+  assert.match(pane,/hoverEnabled: true/);
+  assert.match(pane,/onPositionChanged: function\(mouse\)/);
+  assert.match(pane,/pointerX = Math\.max\(0, Math\.min\(1, mouse\.x \/ width\)\)/);
+  assert.match(pane,/onClicked: \{/);
+  assert.match(pane,/brandAccentTap\.restart\(\)/);
+  assert.match(pane,/Keys\.onReturnPressed:/);
+  assert.match(pane,/Accessible\.onPressAction:/);
+  assert.match(pane,/id: brandAccentTap/);
+  assert.match(pane,/root\.currentStep/);
+  assert.match(pane,/!Theme\.reduceMotion/);
+  assert.doesNotMatch(pane,/desktopMist|mistMote|setup-mist\.svg|Animation\.Infinite/);
   assert.match(pane,/id: genyleapCopyrightLink/);
-  assert.match(pane,/Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+  assert.match(pane,/z: 3\s+visible: desktopBrandPane\.visible/);
 });
