@@ -468,14 +468,40 @@ Item {
                     color: Theme.dark ? "#6E718D" : "#A0A0C4"
                     opacity: 0.75
                 }
-                Text {
+                // The company owns the copyright. Keep the link confined to
+                // the sidebar, keyboard-accessible and visually subtle.
+                Item {
+                    id: genyleapCopyrightLink
                     width: parent.width
-                    text: "© " + new Date().getFullYear() + " GenyCaster"
-                    color: Theme.dark ? "#E2E3F2" : "#4B4E6C"
-                    font.family: Theme.latinFontFamily
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
+                    height: 28
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Link
+                    Accessible.name: copyrightLabel.text
+                    Accessible.onPressAction: Qt.openUrlExternally("https://genyleap.com/")
+                    Keys.onReturnPressed: Qt.openUrlExternally("https://genyleap.com/")
+                    Keys.onEnterPressed: Qt.openUrlExternally("https://genyleap.com/")
+                    Keys.onSpacePressed: Qt.openUrlExternally("https://genyleap.com/")
+
+                    Text {
+                        id: copyrightLabel
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "© " + new Date().getFullYear() + " Genyleap"
+                        color: Theme.dark ? "#E2E3F2" : "#4B4E6C"
+                        font.family: Theme.latinFontFamily
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        font.underline: genyleapCopyrightMouse.containsMouse || genyleapCopyrightLink.activeFocus
+                        elide: Text.ElideRight
+                    }
+                    MouseArea {
+                        id: genyleapCopyrightMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Qt.openUrlExternally("https://genyleap.com/")
+                    }
                 }
                 Text {
                     width: parent.width

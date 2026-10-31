@@ -300,7 +300,9 @@ test('eight-stage Setup preserves language wheel, legal consent and navigation',
     assert.match(setup,/root.openLegalDocument\("terms"\)/);
     assert.match(setup,/root.openLegalDocument\("privacy"\)/);
     assert.match(setup,/acceptLegalConsent\(true, true, true\)/);
-    assert.doesNotMatch(setup,/Qt.openUrlExternally/);
+    const legal = setup.slice(setup.indexOf('id: legalReader'), setup.indexOf('id: setupCanvas'))
+        + setup.slice(setup.indexOf('id: termsStage'), setup.indexOf('id: accountStage'));
+    assert.doesNotMatch(legal,/Qt.openUrlExternally/);
     assert.match(setup,/function previousStep\(\)/);
     assert.match(app,/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
 });

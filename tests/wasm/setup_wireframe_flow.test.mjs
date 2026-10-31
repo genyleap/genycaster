@@ -101,7 +101,10 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
   assert.match(setup,/genycaster\.setup\.terms_body/);
   assert.match(setup,/genycaster\.setup\.privacy_body/);
   assert.match(setup,/onClicked: root\.consentChecked = !root\.consentChecked/);
-  assert.doesNotMatch(setup,/Qt\.openUrlExternally/);
+  // Legal content stays in-app; the independent company copyright link is external.
+  const legal = setup.slice(setup.indexOf('id: legalReader'), setup.indexOf('id: setupCanvas'))
+    + setup.slice(setup.indexOf('id: termsStage'), setup.indexOf('id: accountStage'));
+  assert.doesNotMatch(legal,/Qt\.openUrlExternally/);
 });
 
 test('full-window setup removes shell chrome and has no fake desktop header or footer', () => {
@@ -270,5 +273,12 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/Beta 1\.0  ·  v/);
   assert.match(pane,/Qt\.application\.version/);
   assert.match(pane,/Theme\.dark \? "#E2E3F2" : "#4B4E6C"/);
-  assert.match(pane,/GenyCaster/);
+  assert.match(pane,/id: genyleapCopyrightLink/);
+  assert.match(pane,/text: "© " \+ new Date\(\)\.getFullYear\(\) \+ " Genyleap"/);
+  assert.match(pane,/Accessible\.role: Accessible\.Link/);
+  assert.match(pane,/activeFocusOnTab: true/);
+  assert.match(pane,/Keys\.onReturnPressed: Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+  assert.match(pane,/cursorShape: Qt\.PointingHandCursor/);
+  assert.match(pane,/onClicked: Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+  assert.doesNotMatch(pane,/" GenyCaster"/);
 });
