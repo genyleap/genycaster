@@ -1,12 +1,12 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v10";
+const CACHE="genycaster-static-v11";
 const WASM_HASH=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
 const PUBLIC_FILES=new Set([
     "farcaster_client.html","farcaster_client.js","qtloader.js",
-    "farcaster_client.wasm","farcaster_client.worker.js","farcaster_client.data",
+    "farcaster_client.worker.js","farcaster_client.data",
     "genycaster-loader.js","genycaster-assets.json","genycaster-assets.js",
     "genycaster-sw.js","genycaster.webmanifest","genycaster-icon.svg",
     "genycaster-brand.svg","genycaster-wordmark.svg","genycaster-wordmark-dark.svg",
@@ -64,6 +64,13 @@ self.addEventListener("fetch",event=>{
     const request=event.request;
     if(request.method!=="GET" || request.credentials==="include")return;
     const url=new URL(request.url);
+    // Never intercept large WebAssembly binaries. Safari/WebKit can abort the
+    // streaming Response when the worker tees an ~80 MiB download into
+    // CacheStorage, yielding FetchEvent.respondWith / TypeError: Load failed.
+    // Let the native network/HTTP disk cache serve these immutable URLs.
+    const relative=url.pathname.startsWith(scopePath)
+        ? url.pathname.slice(scopePath.length) : "";
+    if(relative==="farcaster_client.wasm" || WASM_HASH.test(relative))return;
     if(!allowed(url))return;
     const key=withoutQuery(url);
     let cacheWrite=Promise.resolve();
@@ -78,11 +85,8 @@ self.addEventListener("fetch",event=>{
             cache=null;
             console.warn("[Genycaster] Static cache unavailable",error);
         }
-        // Immutable content-addressed WASM: no re-download on repeat visits.
-        // Return the original CacheStorage Response. Reconstructing it to add
-        // a diagnostic header loses URL/native metadata used by code caching.
-        if(WASM_HASH.test(key.pathname.slice(scopePath.length))&&saved)
-            return saved;
+        // WebAssembly is never handled here; all other public assets can
+        // still fall back to an offline cache when available.
         try{
             const response=await fetch(request);
             if(cache && cacheResponse(response)) {
