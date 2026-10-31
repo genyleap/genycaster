@@ -664,6 +664,12 @@ fail(new Error("Qt interface failed to load: "+String(detail||"unknown QML error
 return;
 }
 qmlRootReady=true;
+// QML cannot acknowledge readiness before its WASM engine has downloaded.
+// Resource Timing is advisory and is sometimes missing in Safari or after
+// service-worker/Cloudflare delivery: do not stay stuck at "Downloading".
+if(bootPhase==="download")
+    showPhase("interface","Opening Genycaster…","Qt interface is ready.",
+        "Opening interface");
 revealReady();
 };
 // Fail visibly instead of leaving an endless animated "Downloading" state.
@@ -675,11 +681,16 @@ const startupWatchdog=window.setInterval?.(()=>{
     if(document.visibilityState==="hidden"){lastBootCheck=now;return;}
     visibleBootMs+=Math.min(Math.max(now-lastBootCheck,0),20000);
     lastBootCheck=now;
-    const limit=bootPhase==="download"?240000:180000;
+    // Cold WASM is ~80 MiB uncompressed (and ~33 MiB compressed). On slow
+    // connections 4 minutes can be a normal transfer, and on WebKit the
+    // Resource Timing completion event can be absent entirely. Limit the
+    // foreground bootstrap to a realistic, finite horizon instead of
+    // treating a missing progress notification as a failed download.
+    const limit=bootPhase==="download"?900000:600000;
     if(visibleBootMs>=limit){
         const reason=bootPhase==="download"
-            ? "WebAssembly download did not complete. Check your connection, then retry."
-            : "The WebAssembly runtime did not become ready. Retry the application.";
+            ? "WebAssembly did not finish loading within 15 minutes. The connection may be slow or interrupted. Please retry."
+            : "The Qt interface did not become ready within 10 minutes. Please retry.";
         fail(new Error(reason));
     }
 },10000);
@@ -722,6 +733,13 @@ async function start() {
                 containerElements:[screen],
                 onLoaded:()=>{
                     qtRuntimeLoaded=true;
+                    // The runtime can only invoke this callback after the
+                    // full binary has been received and instantiated.
+                    // Treat this as stronger evidence than Resource Timing.
+                    if(bootPhase==="download")
+                        showPhase("interface","Opening Genycaster…",
+                            "WebAssembly engine is ready. Loading Qt interface…",
+                            "Opening interface");
                     revealReady();
                 },
                 onExit:exit=>{
