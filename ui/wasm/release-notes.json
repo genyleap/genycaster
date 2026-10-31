@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Glass G Arc is now part of GenyCaster Setup",
+  "title": "Interactive 3D GenyCaster identity",
   "changes": [
-    "Render the GenyCaster G and directional arrow as a GPU-backed volumetric identity inside the real eight-step Setup.",
-    "Adapt lighting and material tones to light and dark modes, with pointer parallax and reduced-motion support.",
-    "Remove the separate experimental brand3d preview and keep account onboarding, recovery, and Genyleap copyright unchanged."
+    "The real Qt Setup sidebar now uses a smoothly lit volumetric Glass G with more detailed bevel shading and cleaner edges.",
+    "The brand rotates slowly on its own and responds to mouse or touch dragging, with keyboard adjustments and a gentle return to automatic rotation.",
+    "Automatic movement respects Reduce Motion. The light and dark materials, setup navigation and Genyleap footer are preserved."
   ]
 }

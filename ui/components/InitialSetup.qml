@@ -426,7 +426,36 @@ Item {
             property real pointerY: 0.5
             property bool pointerInside: false
             property real tapImpulse: 0
+            // A complete 360° turn is available both automatically and by
+            // pointer/touch drag. Rotation stops during manual interaction and
+            // resumes gently; reduced-motion disables continuous animation.
+            property real orbitYaw: 0
+            property real dragYaw: 0
+            property real dragPitch: -5
+            property bool dragging: false
+            property real pressX: 0
+            property real pressY: 0
+            property bool movedByDrag: false
             readonly property bool motionAllowed: root.visible && visible && !Theme.reduceMotion
+            Timer {
+                id: rotationCooldown
+                interval: 1600
+                repeat: false
+            }
+            Timer {
+                id: automaticRotation
+                interval: 40
+                repeat: true
+                running: desktopBrandPane.motionAllowed
+                         && !desktopBrandPane.dragging
+                         && !rotationCooldown.running
+                onTriggered: {
+                    // One unhurried revolution per minute at a bounded
+                    // ~25 updates/second; WASM does not redraw off-screen.
+                    desktopBrandPane.orbitYaw =
+                            (desktopBrandPane.orbitYaw + 0.24) % 360
+                }
+            }
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.dark ? "#111622" : "#F7F9FC" }
                 GradientStop { position: 0.56; color: Theme.dark ? "#1A2232" : "#EDF1F8" }
@@ -452,6 +481,9 @@ Item {
                     desktopBrandPane.pointerX, desktopBrandPane.pointerY)
                 property real darkMode: Theme.dark ? 1.0 : 0.0
                 property real pulseValue: desktopBrandPane.tapImpulse
+                property real orbitYaw: desktopBrandPane.orbitYaw
+                property real dragYaw: desktopBrandPane.dragYaw
+                property real dragPitch: desktopBrandPane.dragPitch
                 fragmentShader: "qrc:/qt/qml/Farcaster/Client/shaders/setup_glass_g.frag.qsb"
                 blending: false
             }
@@ -488,12 +520,32 @@ Item {
                 z: 2
                 hoverEnabled: true
                 activeFocusOnTab: true
-                cursorShape: Qt.PointingHandCursor
+                acceptedButtons: Qt.LeftButton
+                preventStealing: true
+                cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
                 Keys.onReturnPressed: {
                     if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
                 }
                 Keys.onSpacePressed: {
                     if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                }
+                Keys.onLeftPressed: {
+                    desktopBrandPane.dragYaw -= 12
+                    rotationCooldown.restart()
+                }
+                Keys.onRightPressed: {
+                    desktopBrandPane.dragYaw += 12
+                    rotationCooldown.restart()
+                }
+                Keys.onUpPressed: {
+                    desktopBrandPane.dragPitch =
+                        Math.max(-65, desktopBrandPane.dragPitch - 9)
+                    rotationCooldown.restart()
+                }
+                Keys.onDownPressed: {
+                    desktopBrandPane.dragPitch =
+                        Math.min(65, desktopBrandPane.dragPitch + 9)
+                    rotationCooldown.restart()
                 }
                 Accessible.onPressAction: {
                     if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
@@ -504,17 +556,48 @@ Item {
                     desktopBrandPane.pointerX = 0.5
                     desktopBrandPane.pointerY = 0.5
                 }
+                onPressed: function(mouse) {
+                    desktopBrandPane.dragging = true
+                    desktopBrandPane.movedByDrag = false
+                    desktopBrandPane.pressX = mouse.x
+                    desktopBrandPane.pressY = mouse.y
+                    rotationCooldown.stop()
+                }
                 onPositionChanged: function(mouse) {
                     if (!desktopBrandPane.motionAllowed) return
-                    desktopBrandPane.pointerX = Math.max(0, Math.min(1, mouse.x / width))
-                    desktopBrandPane.pointerY = Math.max(0, Math.min(1, mouse.y / height))
+                    if (pressed) {
+                        const dx = mouse.x - desktopBrandPane.pressX
+                        const dy = mouse.y - desktopBrandPane.pressY
+                        if (Math.abs(dx) + Math.abs(dy) > 2)
+                            desktopBrandPane.movedByDrag = true
+                        desktopBrandPane.dragYaw =
+                            (desktopBrandPane.dragYaw + dx * 0.8) % 360
+                        desktopBrandPane.dragPitch = Math.max(-65,
+                            Math.min(65, desktopBrandPane.dragPitch + dy * 0.40))
+                        desktopBrandPane.pressX = mouse.x
+                        desktopBrandPane.pressY = mouse.y
+                    } else {
+                        desktopBrandPane.pointerX =
+                            Math.max(0, Math.min(1, mouse.x / width))
+                        desktopBrandPane.pointerY =
+                            Math.max(0, Math.min(1, mouse.y / height))
+                    }
+                }
+                onReleased: {
+                    desktopBrandPane.dragging = false
+                    rotationCooldown.restart()
+                }
+                onCanceled: {
+                    desktopBrandPane.dragging = false
+                    rotationCooldown.restart()
                 }
                 onClicked: {
-                    if (desktopBrandPane.motionAllowed)
+                    if (!desktopBrandPane.movedByDrag
+                            && desktopBrandPane.motionAllowed)
                         brandAccentTap.restart()
                 }
                 Accessible.role: Accessible.Button
-                Accessible.name: "GenyCaster interactive brand"
+                Accessible.name: "GenyCaster 3D brand. Drag to rotate."
             }
             SequentialAnimation {
                 id: brandAccentTap
