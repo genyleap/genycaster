@@ -34,6 +34,13 @@ Item {
     property int highestReachedStep: 0
     property string accountIntent: ""
     property bool showRecovery: false
+    property string legalDocument: ""
+    property bool recoverySubmitPending: false
+    readonly property bool verifyingBusy: authenticationInProgress && !authenticated
+    function openLegalDocument(kind) {
+        legalDocument = kind
+        legalReader.open()
+    }
     property bool showAdvanced: false
     property bool guestSelected: false
     property bool consentChecked: false
@@ -143,8 +150,10 @@ Item {
             return
         }
         if (currentStep === 6 && guestSelected) { switchStep(4); return }
-        if (currentStep === 5 && authenticationInProgress)
+        if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
             cancelAuthentication()
+            recoverySubmitPending = false
+        }
         switchStep(currentStep - 1)
     }
     function actionText() {
@@ -176,12 +185,31 @@ Item {
         forceActiveFocus()
     }
     onAuthenticationPhaseChanged: {
-        if (visible && authenticationInProgress && currentStep >= 4 && currentStep <= 5)
+        if (authenticationPhase === "failed" || authenticationPhase === "signed-out")
+            recoverySubmitPending = false
+        if (!visible || currentStep < 4 || currentStep > 5)
+            return
+        // The browser's recovery-word dialog lives in the current app page.
+        // Do not cover it with Verification while the words are being entered.
+        if (authenticationRoute === "recovery" && browserReadOnly && !authenticated)
+            return
+        if (authenticationInProgress)
             switchStep(5)
+        else if (!authenticated && currentStep === 5
+                 && authenticationPhase === "failed")
+            switchStep(4)
+    }
+    onAuthenticationErrorTextChanged: {
+        if (authenticationErrorText.length && authenticationRoute === "recovery" && !authenticated) {
+            recoverySubmitPending = false
+            if (currentStep === 5) switchStep(4)
+        }
     }
     onAuthenticatedChanged: {
-        if (visible && authenticated && currentStep >= 3 && currentStep <= 5)
+        if (visible && authenticated && currentStep >= 3 && currentStep <= 5) {
+            recoverySubmitPending = false
             switchStep(5)
+        }
     }
     Keys.onEscapePressed: event => {
         if (reviewMode) closeReviewRequested()
@@ -190,6 +218,74 @@ Item {
     }
 
     Rectangle { anchors.fill: parent; color: Theme.dark ? Theme.background : Theme.surface }
+
+    // Full, in-app reading surface; documents are displayed without opening a
+    // new browser tab. A link to the publisher's canonical full document is
+    // optional and never the primary legal-reader interaction.
+    Popup {
+        id: legalReader
+        parent: Overlay.overlay
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        x: parent ? Math.round((parent.width - width) / 2) : 0
+        y: parent ? Math.round((parent.height - height) / 2) : 0
+        width: Math.max(0, Math.min(root.width - 28, 600))
+        height: Math.max(0, Math.min(root.height - 56, 680))
+        padding: Theme.space4
+        background: Superellipse {
+            fillColor: Theme.surface
+            borderWidth: Theme.strokeStandard
+            borderColor: Theme.borderMuted
+            curveDepth: Theme.curveContainer
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.legalDocument === "terms"
+                          ? qsTrId("genycaster.setup.terms_title")
+                          : qsTrId("genycaster.setup.privacy_title")
+                    color: Theme.ink
+                    font.pixelSize: 24
+                    font.weight: Theme.weightBold
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.locale.close")
+                    onClicked: legalReader.close()
+                }
+            }
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                contentWidth: availableWidth
+                DirectionAwareLabel {
+                    width: parent ? parent.width : 320
+                    text: root.legalDocument === "terms"
+                          ? qsTrId("genycaster.setup.terms_body")
+                          : qsTrId("genycaster.setup.privacy_body")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    lineHeight: 1.55
+                    wrapMode: Text.WordWrap
+                }
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                text: qsTrId("genycaster.locale.close")
+                onClicked: legalReader.close()
+            }
+        }
+    }
     // Don't let touches on the empty full-screen backdrop fall through to casts.
     MouseArea {
         anchors.fill: parent
@@ -454,7 +550,7 @@ Item {
                 onboardingStyle: true
                 title: qsTrId("genycaster.setup.terms_title")
                 showChevron: true
-                onClicked: Qt.openUrlExternally("https://genyleap.com/terms-of-use")
+                onClicked: root.openLegalDocument("terms")
             }
             SetupActionCard {
                 Layout.fillWidth: true
@@ -462,50 +558,51 @@ Item {
                 onboardingStyle: true
                 title: qsTrId("genycaster.setup.privacy_title")
                 showChevron: true
-                onClicked: Qt.openUrlExternally("https://genyleap.com/privacy")
+                onClicked: root.openLegalDocument("privacy")
             }
-            CheckBox {
+            Button {
                 id: consentCheck
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space3
-                checked: root.legalConsentAccepted || root.consentChecked
+                implicitHeight: Math.max(56, consentLabel.implicitHeight + Theme.space3 * 2)
                 enabled: !root.legalConsentAccepted
-                text: qsTrId("genycaster.setup.single_legal_consent")
-                onToggled: root.consentChecked = checked
                 focusPolicy: Qt.StrongFocus
-                spacing: Theme.space2
-                LayoutMirroring.enabled: Theme.rtl
-                implicitHeight: Math.max(Theme.touchTarget, consentLabel.implicitHeight + Theme.space2 * 2)
-                indicator: Superellipse {
-                    implicitWidth: 21
-                    implicitHeight: 21
-                    x: consentCheck.leftPadding
-                    y: (consentCheck.height - height) / 2
-                    fillColor: consentCheck.checked ? Theme.ink : Theme.surface
-                    borderColor: consentCheck.checked ? Theme.ink : Theme.borderStrong
-                    borderWidth: 1
-                    curveDepth: 5
-                    Icon {
-                        anchors.centerIn: parent
-                        text: Theme.iconCheck
-                        visible: consentCheck.checked
-                        color: Theme.surface
-                        preferredSize: 14
-                    }
-                }
-                contentItem: DirectionAwareLabel {
-                    id: consentLabel
-                    text: consentCheck.text
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: consentCheck.indicator.width + consentCheck.spacing
-                }
+                Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
+                Accessible.checked: root.legalConsentAccepted || root.consentChecked
+                onClicked: root.consentChecked = !root.consentChecked
                 background: Superellipse {
-                    fillColor: "transparent"
-                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : 0
-                    borderColor: Theme.focus
+                    fillColor: Theme.surface
+                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : Theme.strokeStandard
+                    borderColor: Theme.keyboardFocusVisible(consentCheck) ? Theme.focus : Theme.borderMuted
+                    curveDepth: Theme.curveContainer
+                }
+                contentItem: RowLayout {
+                    spacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
+                    Superellipse {
+                        Layout.preferredWidth: 23
+                        Layout.preferredHeight: 23
+                        fillColor: root.legalConsentAccepted || root.consentChecked ? Theme.ink : "transparent"
+                        borderColor: Theme.inkMuted
+                        borderWidth: 1
+                        curveDepth: 5
+                        Icon {
+                            anchors.centerIn: parent
+                            visible: root.legalConsentAccepted || root.consentChecked
+                            text: Theme.iconCheck
+                            color: Theme.surface
+                            preferredSize: 15
+                        }
+                    }
+                    DirectionAwareLabel {
+                        id: consentLabel
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.single_legal_consent")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
             }
         }
@@ -532,16 +629,13 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
-                    primary: true
-                    neutralPrimary: true
+                    primary: false
                     title: qsTrId("genycaster.setup.design_create_account")
                     subtitle: qsTrId("genycaster.setup.new_profile_body")
+                    trailingText: qsTrId("genycaster.shell.coming_soon")
                     iconGlyph: root.phone ? "" : Theme.iconUser
-                    showChevron: true
-                    onClicked: {
-                        root.accountIntent = "new"
-                        root.openRegistration()
-                    }
+                    showChevron: false
+                    enabled: false
                 }
                 SetupActionCard {
                     Layout.fillWidth: true
@@ -607,8 +701,9 @@ Item {
                 title: qsTrId("genycaster.setup.design_recovery_title")
                 onClicked: {
                     if (root.browserReadOnly) {
+                        // Browser-only DOM phrase dialog, never marshal its
+                        // secret through Qt/WebAssembly or storage.
                         root.recoverAccount()
-                        root.switchStep(5)
                     } else {
                         root.showRecovery = !root.showRecovery
                     }
@@ -633,8 +728,19 @@ Item {
                     inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                     placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
                     enabled: !root.authenticationInProgress
+                    implicitHeight: 58
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeLabelSize
+                    leftPadding: Theme.space3
+                    rightPadding: Theme.space3
                     onVisibleChanged: if (!visible) clear()
                     Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+                    background: Superellipse {
+                        fillColor: Theme.surface
+                        borderWidth: recoveryField.activeFocus ? 2 : Theme.strokeStandard
+                        borderColor: recoveryField.activeFocus ? Theme.focus : Theme.borderMuted
+                        curveDepth: Theme.curveControl
+                    }
                 }
                 CheckBox {
                     id: revealWords
@@ -652,6 +758,7 @@ Item {
                         let words = recoveryField.text
                         recoveryField.clear()
                         revealWords.checked = false
+                        root.recoverySubmitPending = true
                         root.nativeRecoverAccount(words)
                         root.switchStep(5)
                         words = ""
@@ -701,8 +808,8 @@ Item {
                     width: 50
                     height: 50
                     strokeWidth: 3
-                    running: root.authenticationInProgress
-                    visible: !root.authenticated
+                    running: root.verifyingBusy || root.recoverySubmitPending
+                    visible: !root.authenticated && (root.verifyingBusy || root.recoverySubmitPending)
                     color: Theme.accent
                 }
                 Icon {
@@ -720,7 +827,9 @@ Item {
                     ? qsTrId("genycaster.shell.link_your_farcaster_account")
                     : root.authenticationPhase === "awaiting-approval"
                     ? qsTrId("genycaster.shell.approve_sign_in")
-                    : qsTrId("genycaster.setup.design_verifying_title")
+                    : root.verifyingBusy || root.recoverySubmitPending
+                    ? qsTrId("genycaster.setup.design_verifying_title")
+                    : qsTrId("genycaster.setup.sign_in_required")
                 color: Theme.ink
                 font.pixelSize: root.phone ? 25 : 30
                 font.weight: Theme.weightBold
@@ -735,6 +844,14 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
+            }
+            SetupPrimaryButton {
+                visible: root.authenticated
+                Layout.fillWidth: true
+                neutralPrimary: true
+                showArrow: false
+                text: qsTrId("genycaster.setup.continue")
+                onClicked: root.switchStep(6)
             }
             SetupPrimaryButton {
                 visible: !root.authenticated && root.authenticationApprovalAvailable
@@ -755,7 +872,7 @@ Item {
                 onClicked: root.authorizeSigner()
             }
             ActionButton {
-                visible: root.authenticationInProgress
+                visible: root.authenticationInProgress || root.recoverySubmitPending
                 Layout.alignment: Qt.AlignHCenter
                 quiet: true
                 compact: true
