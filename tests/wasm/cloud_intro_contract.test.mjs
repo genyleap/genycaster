@@ -44,7 +44,7 @@ test('Intro uses the Base network emblem from the project icon set, never the fo
   const intro=source('ui/wasm/intro-base.svg');
   const canonical=source('ui/assets/icons/genyleap/icons/crypto/base.svg');
   const html=source('ui/wasm/genycaster-shell.html');
-  assert.match(html,/<img class="studio-brand-logo" src="\.\/intro-base\.svg"/);
+  assert.match(html,/<img class="studio-brand-logo" src="\.\/intro-base\.svg\?v=e9013740d52a5f1811aa"/);
   for(const geometry of ['viewBox="0 0 24 24"','<circle cx="12" cy="12" r="8"/>','<path d="M5 12h10.5"/>']) {
     assert.ok(canonical.includes(geometry),'expected Base geometry in the project icon set: '+geometry);
     assert.ok(intro.includes(geometry),'Intro must use the project Base emblem: '+geometry);
