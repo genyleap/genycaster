@@ -24,7 +24,7 @@ ColumnLayout {
         preferredSize: root.iconSize
         Layout.preferredWidth: root.showIcon ? root.iconSize : 0
         Layout.preferredHeight: root.showIcon ? root.iconSize : 0
-        Layout.alignment: root.centered ? Qt.AlignHCenter : Qt.AlignLeft
+        Layout.alignment: root.centered ? Qt.AlignHCenter : Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
         Layout.bottomMargin: root.storyboardStyle ? Theme.space2 : 0
         Accessible.name: root.title
     }
