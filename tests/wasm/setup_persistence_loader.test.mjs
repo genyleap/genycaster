@@ -93,13 +93,16 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/src="genycaster-assets.js"/);
     assert.match(loader,/visualViewport/);
 });
-test('Setup anchors footer outside scroll viewport and wraps translated labels',()=>{
+test('Setup owns a borderless full-window stage with CTA in the stage, not a global footer',()=>{
     const setup=read('ui/components/InitialSetup.qml');
     const language=read('ui/components/SetupLanguageSelector.qml');
     const main=read('ui/mobile/Main.qml');
     assert.match(setup,/id: stageScroll/);
-    assert.match(setup,/Layout\.minimumHeight: 0/);
-    assert.match(setup,/Layout\.preferredHeight: visible \? \(root\.phone \? 82 : 86\) : 0/);
+    assert.match(setup,/id: setupCanvas/);
+    assert.match(setup,/id: desktopBrandPane/);
+    assert.match(setup,/id: stageAction/);
+    assert.match(setup,/anchors\.bottom: parent\.bottom/);
+    assert.doesNotMatch(setup,/Layout\.preferredHeight: visible \? \(root\.phone \? 82 : 86\) : 0/);
     assert.match(setup,/onClicked: root\.previousStep\(\)/);
     assert.match(language,/objectName: "setupLanguageWheel"/);
     assert.match(language,/highlightRangeMode: ListView\.StrictlyEnforceRange/);
