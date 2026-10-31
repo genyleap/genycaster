@@ -182,6 +182,10 @@ function measureFirstDownload(response,url){
     // from our own release packager, so we can measure the native stream even
     // behind Cloudflare or a Service Worker without guessing.
     const manifestBytes=Number(releaseInfo.wasmBytes);
+    // A second ReadableStream consumer for a large WASM can retain tens of
+    // megabytes while Safari is already compiling the original stream. Use
+    // native Resource Timing for large engines; never tee an ~80 MiB body.
+    if(Number.isFinite(manifestBytes) && manifestBytes>16*1024*1024)return;
     const trusted=verifiedAsset && url===verifiedAsset.href
         && Number.isSafeInteger(manifestBytes) && manifestBytes>0;
     const headersLength=Number(response.headers.get("content-length"));
@@ -447,6 +451,28 @@ function watchReleaseUpdates(){
     window.setInterval?.(checkForNewRelease,5*60*1000);
     window.setTimeout?.(checkForNewRelease,2500);
 }
+function recoverFromStaleWasmServiceWorker(error) {
+    const message=String(error?.message||error||"");
+    if(!/both async and sync fetching of the wasm failed|FetchEvent\.respondWith|Load failed/i.test(message))return;
+    if(typeof navigator==="undefined" || !navigator.serviceWorker?.controller)return;
+    if(!window.sessionStorage)return;
+    const marker="genycaster.wasm.sw-recovery.v1."+(currentVersion||"unknown");
+    try {
+        if(window.sessionStorage.getItem(marker)==="attempted")return;
+        window.sessionStorage.setItem(marker,"attempted");
+    }catch{return;}
+    // The previous worker may still control this document. Unregister only
+    // this app's scope, keep IndexedDB/account data intact, then navigate once
+    // so the next WASM fetch can bypass that stale controller.
+    void (async()=>{
+        const registration=await navigator.serviceWorker.getRegistration(location.href);
+        if(!registration)return;
+        await registration.unregister();
+        const next=new URL(location.href);
+        next.searchParams.set("genycaster-sw-recovery",currentVersion||"1");
+        location.replace(next.href);
+    })().catch(e=>console.warn("[Genycaster] WASM recovery could not reload",e));
+}
 function fail(error) {
     if(finished||failed)return;
     failed=true;
@@ -463,6 +489,7 @@ function fail(error) {
         "Start failed");
     retry.classList.add("visible");
     console.error("[Genycaster] startup failed",error);
+    recoverFromStaleWasmServiceWorker(error);
 }
 // The Qt loader signals only that WebAssembly bootstrapped, NOT that QML
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
