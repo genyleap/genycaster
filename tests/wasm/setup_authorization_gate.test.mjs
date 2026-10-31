@@ -182,3 +182,23 @@ test('mobile recovery opens local numbered-words dialog before signer initializa
     h.bridge.start('signed-out','','https://snapchain.example.test');
     await tick();
 });
+
+test('a repeated Setup recovery click produces a visible one-shot failure instead of a lost write event',async()=>{
+    const h=harness(false);
+    h.setDelayPrompt();
+    const first='aaaaaaaa-bbbb-4ccc-8ddd-000000000001';
+    const second='aaaaaaaa-bbbb-4ccc-8ddd-000000000002';
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+        JSON.stringify({requestId:first}));
+    await tick();
+    assert.equal(h.calls.filter(c=>c==='phrase-dialog').length,1);
+    h.bridge.start('recover-account','','https://snapchain.example.test',
+        JSON.stringify({requestId:second}));
+    await tick();
+    const failed=h.events.find(e=>e.kind==='setup-account'&&e.requestId===second);
+    assert.equal(failed?.phase,'failed');
+    assert.match(failed?.error||'',/in progress/);
+    assert.equal(h.events.some(e=>e.kind==='write'&&e.error),false);
+    h.bridge.start('signed-out','','https://snapchain.example.test','');
+    await tick();
+});

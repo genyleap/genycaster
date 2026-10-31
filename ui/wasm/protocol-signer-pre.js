@@ -155,12 +155,23 @@
             inFlight = false;
         }
         if (inFlight) {
-            // The first signed submission may already be at Snapchain.
-            // Do not start or cancel a second write and lose its outcome.
-            report({kind: action === "restore" || action === "restore-for-setup"
-                || action === "provision" || action === "revoke" ? "signer" : "write",
-                phase: "failed", fid, busy: true, ready: false,
-                error: "Another signer operation is in progress."});
+            // Never cancel an in-flight signed write. A Setup recovery is
+            // different from an ordinary signer action: Qt waits for a
+            // one-shot setup-account event, not a "write" error. Otherwise
+            // the tap appears to do absolutely nothing.
+            if (action === "recover-account") {
+                let requestId = "";
+                try { requestId = JSON.parse(payloadString).requestId || ""; }
+                catch { /* handled as an invalid request below */ }
+                report({kind: "setup-account", phase: "failed",
+                    requestId, fid: "",
+                    error: "Another signer operation is in progress. Please retry."});
+            } else {
+                report({kind: action === "restore" || action === "restore-for-setup"
+                    || action === "provision" || action === "revoke" ? "signer" : "write",
+                    phase: "failed", fid, busy: true, ready: false,
+                    error: "Another signer operation is in progress."});
+            }
             return;
         }
         owner = fid;

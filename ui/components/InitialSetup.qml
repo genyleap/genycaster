@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Effects
 import Farcaster.Client
 
 // Eight-stage onboarding. Every stage is a single task on one quiet canvas.
@@ -853,43 +852,22 @@ Item {
                 centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
+            // Local custody recovery is the preferred existing-account route.
+            // Keep it first, with clear visual emphasis; the two external
+            // identity methods are secondary alternatives.
             SetupActionCard {
                 visible: !root.authenticated
                 Layout.fillWidth: true
                 compactCard: true
                 onboardingStyle: true
-                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                title: qsTrId("genycaster.shell.continue_with_genyleap")
-                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                onClicked: {
-                    root.continueWithGenyleap()
-                    root.switchStep(5)
-                }
-            }
-            SetupActionCard {
-                visible: !root.authenticated
-                Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
-                iconGlyph: "brands/farcaster"
-                title: qsTrId("genycaster.shell.sign_in_with_farcaster")
-                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
-                onClicked: {
-                    root.continueWithFarcaster()
-                    root.switchStep(5)
-                }
-            }
-            SetupActionCard {
-                visible: !root.authenticated
-                Layout.fillWidth: true
-                compactCard: true
-                onboardingStyle: true
+                setupEmphasis: true
                 iconGlyph: "system/lock"
                 title: qsTrId("genycaster.setup.design_recovery_title")
+                enabled: !root.authenticationInProgress && !root.recoverySubmitPending
                 onClicked: {
                     if (root.browserReadOnly) {
-                        // Browser-only DOM phrase dialog, never marshal its
-                        // secret through Qt/WebAssembly or storage.
+                        // The DOM recovery dialog is presented only on an
+                        // explicit click. No phrase enters QML or C++.
                         root.recoverAccount()
                     } else {
                         root.showRecovery = !root.showRecovery
@@ -950,6 +928,32 @@ Item {
                         root.switchStep(5)
                         words = ""
                     }
+                }
+            }
+            SetupActionCard {
+                visible: !root.authenticated
+                Layout.fillWidth: true
+                compactCard: true
+                onboardingStyle: true
+                brandImageSource: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                title: qsTrId("genycaster.shell.continue_with_genyleap")
+                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                onClicked: {
+                    root.continueWithGenyleap()
+                    root.switchStep(5)
+                }
+            }
+            SetupActionCard {
+                visible: !root.authenticated
+                Layout.fillWidth: true
+                compactCard: true
+                onboardingStyle: true
+                iconGlyph: "brands/farcaster"
+                title: qsTrId("genycaster.shell.sign_in_with_farcaster")
+                enabled: root.runtimeReady && root.authenticationAvailable && !root.authenticationInProgress
+                onClicked: {
+                    root.continueWithFarcaster()
+                    root.switchStep(5)
                 }
             }
             SetupActionCard {
@@ -1215,16 +1219,6 @@ Item {
                     anchors.centerIn: parent
                     curveDepth: 20
                     fillColor: Theme.accent
-                    layer.enabled: !root.phone
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: Qt.rgba(0.19, 0.31, 0.81, Theme.dark ? 0.26 : 0.20)
-                        shadowBlur: 0.74
-                        shadowScale: 1.12
-                        shadowVerticalOffset: 8
-                        shadowHorizontalOffset: 0
-                        blurEnabled: false
-                    }
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconCheck

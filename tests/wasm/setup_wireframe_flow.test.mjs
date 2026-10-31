@@ -73,7 +73,7 @@ test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
 test('recovery phrase stays in the correct platform UI until verification really starts', () => {
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   const dialog=source('ui/wasm/recovery-phrase-dialog.mjs');
-  assert.match(setup,/if \(root\.browserReadOnly\) \{\s*\/\/ Browser-only DOM phrase dialog/);
+  assert.match(setup,/if \(root\.browserReadOnly\) \{/);
   assert.match(setup,/root\.recoverAccount\(\)/);
   assert.match(setup,/authenticationRoute === "recovery" && browserReadOnly && !authenticated/);
   assert.match(setup,/root\.nativeRecoverAccount\(words\)/);
@@ -247,16 +247,33 @@ test('recovery form animates open in the mobile browser without exposing words t
   assert.doesNotMatch(dialog,/localStorage\.setItem/);
 });
 
-test('final blue check has a soft layered shadow without affecting phone GPU', () => {
+test('completion badge is a flat accent check without glow or shadow', () => {
   const s=source('ui/components/InitialSetup.qml');
   const complete=s.slice(s.indexOf('id: completeStage'));
-  assert.match(s,/import QtQuick\.Effects/);
   assert.match(complete,/id: completionBadge/);
-  assert.match(complete,/layer.enabled: !root\.phone/);
-  assert.match(complete,/layer\.effect: MultiEffect/);
-  assert.match(complete,/shadowEnabled: true/);
-  assert.match(complete,/shadowVerticalOffset: 8/);
-  assert.match(complete,/shadowBlur: 0\.74/);
+  assert.match(complete,/fillColor: Theme\.accent/);
+  assert.doesNotMatch(complete,/layer\.effect:|shadowEnabled:|shadowColor:|shadowBlur:|MultiEffect/);
+  assert.doesNotMatch(s,/import QtQuick\.Effects/);
+});
+
+test('recovery appears before Genyleap and Farcaster, stays usable in review mode', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const stage=s.slice(s.indexOf('id: signInStage'),s.indexOf('id: verifyingStage'));
+  const recovery=stage.indexOf('genycaster.setup.design_recovery_title');
+  const genyleap=stage.indexOf('genycaster.shell.continue_with_genyleap');
+  const farcaster=stage.indexOf('genycaster.shell.sign_in_with_farcaster');
+  assert.ok(recovery>=0 && recovery<genyleap && genyleap<farcaster);
+  assert.match(stage,/setupEmphasis: true/);
+  assert.match(stage,/root\.recoverAccount\(\)/);
+  assert.match(stage,/root\.showRecovery = !root\.showRecovery/);
+  assert.ok(stage.indexOf('visible: root.showRecovery')<genyleap,
+    'Native recovery phrase field must expand immediately after the first card');
+  const bridge=source('src/presentation/qt/presentation_bridge.cpp');
+  const handler=bridge.slice(bridge.indexOf('void PresentationBridge::beginRecoverySetup()'),
+     bridge.indexOf('void PresentationBridge::beginNativeRecoverySetup('));
+  assert.doesNotMatch(handler,/!initialSetupRequired\(\)/);
+  assert.match(handler,/signInRequested\(QStringLiteral\("recovery"\)\)/);
+  assert.match(handler,/applyAuthenticationError/);
 });
 
 test('copyright and Beta version remain readable at the bottom of the desktop left sidebar', () => {

@@ -2779,8 +2779,19 @@ void PresentationBridge::beginFarcasterSignIn()
 
 void PresentationBridge::beginRecoverySetup()
 {
-    if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
-        || !initialSetupRequired() || authenticationBusy()) {
+    // Recovery is an explicit user action, also available when a guest
+    // reopens Setup after completing onboarding. Never silently discard it
+    // merely because the onboarding-completed flag was persisted.
+    if (!m_legalConsentAccepted) {
+        applyAuthenticationError(qtTrId("genycaster.setup.legal_required_before_sign_in"));
+        return;
+    }
+    if (!m_runtimeReady) {
+        applyAuthenticationError(qtTrId("genycaster.bridge.the_local_runtime_is_still_starting"));
+        return;
+    }
+    if (m_isAuthenticated || authenticationBusy()) {
+        applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
         return;
     }
     m_authenticationRoute = QStringLiteral("recovery");
@@ -2792,9 +2803,15 @@ void PresentationBridge::beginRecoverySetup()
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
-        || !initialSetupRequired() || authenticationBusy()
-        || recoveryWords.isEmpty() || recoveryWords.size() > 4095) {
+        || authenticationBusy() || recoveryWords.isEmpty()
+        || recoveryWords.size() > 4095) {
         recoveryWords.fill(QChar{char16_t{0}});
+        if (!m_legalConsentAccepted)
+            applyAuthenticationError(qtTrId("genycaster.setup.legal_required_before_sign_in"));
+        else if (!m_runtimeReady)
+            applyAuthenticationError(qtTrId("genycaster.bridge.the_local_runtime_is_still_starting"));
+        else
+            applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
         return;
     }
     m_authenticationRoute = QStringLiteral("recovery");
