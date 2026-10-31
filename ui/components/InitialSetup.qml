@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import Farcaster.Client
 
 // Eight-stage onboarding. Every stage is a single task on one quiet canvas.
@@ -423,25 +424,52 @@ Item {
                 GradientStop { position: 0.55; color: Theme.dark ? "#24253B" : "#E8E8FB" }
                 GradientStop { position: 1.0; color: Theme.dark ? "#181923" : "#F2F1FF" }
             }
-            // A calm, angled watermark using the canonical GenyCaster SVG.
-            // Keep the *rotated* bounding box inside the pane: no logo
-            // touching the sidebar seam, and no distracting perpetual motion.
+            // The canonical SVG becomes an oversized, angled brand canvas.
+            // Roughly 40% extends beyond the left edge; the rest is softly
+            // cropped by the pane, never scaled as a small standalone icon.
             clip: true
             Image {
                 id: desktopBrandArt
-                anchors.centerIn: parent
-                anchors.verticalCenterOffset: -Math.min(32, desktopBrandPane.height * 0.03)
-                width: Math.min(315, desktopBrandPane.width * 0.70)
+                width: Math.min(760, desktopBrandPane.width * 1.68)
                 height: width
-                rotation: -16
+                x: -width * 0.39
+                y: (desktopBrandPane.height - height) / 2 - Math.min(20, desktopBrandPane.height * 0.025)
+                rotation: -17
                 transformOrigin: Item.Center
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
-                sourceSize: Qt.size(768, 768)
+                sourceSize: Qt.size(960, 960)
                 asynchronous: false
                 smooth: true
                 mipmap: true
                 fillMode: Image.PreserveAspectFit
-                opacity: Theme.dark ? 0.15 : 0.09
+                opacity: Theme.dark ? 0.15 : 0.085
+            }
+
+            // Persistent, unobtrusive metadata belongs to the sidebar alone,
+            // not a full-width setup footer or a phone safe-area overlay.
+            Column {
+                id: desktopBrandMetadata
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 27
+                spacing: 5
+                visible: desktopBrandPane.visible
+
+                Text {
+                    text: "© " + new Date().getFullYear() + " GenyCaster"
+                    color: Theme.inkMuted
+                    opacity: Theme.dark ? 0.85 : 0.72
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: 12
+                }
+                Text {
+                    text: "System version " + (Qt.application.version || "1.0.0")
+                    color: Theme.inkMuted
+                    opacity: Theme.dark ? 0.65 : 0.55
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: 11
+                }
             }
         }
 
@@ -1140,11 +1168,22 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 90
                 Superellipse {
+                    id: completionBadge
                     width: 66
                     height: 66
                     anchors.centerIn: parent
                     curveDepth: 20
                     fillColor: Theme.accent
+                    layer.enabled: !root.phone
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: Qt.rgba(0.19, 0.31, 0.81, Theme.dark ? 0.26 : 0.20)
+                        shadowBlur: 0.74
+                        shadowScale: 1.12
+                        shadowVerticalOffset: 8
+                        shadowHorizontalOffset: 0
+                        blurEnabled: false
+                    }
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconCheck
