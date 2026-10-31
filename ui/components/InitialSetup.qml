@@ -437,37 +437,20 @@ Item {
             }
         }
 
-        // The approved desktop storyboard uses two short bars and two dots.
-        // Four visual milestones summarize eight real stages without morphing
-        // the markers into irregular half-filled circles.
-        Row {
+        // The exact same eight-stage indicator is used in Welcome.
+        SetupStepIndicator {
             id: setupProgress
             visible: !root.phone && root.currentStep !== 0
+            stepCount: root.progressCount
+            currentStep: root.currentStep
             anchors.top: parent.top
             anchors.topMargin: 44
             x: desktopBrandPane.visible
                ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
                : (parent.width - width) / 2
-            spacing: 7
             z: 5
             Accessible.name: root.stepTitle(root.currentStep)
                              + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
-            Repeater {
-                model: 4
-                delegate: Rectangle {
-                    id: progressMarker
-                    required property int index
-                    readonly property bool bar: index === 0 || index === 3
-                    readonly property bool completed: index <= Math.floor(root.currentStep * 4 / root.progressCount)
-                    width: bar ? 18 : 5
-                    height: bar ? 3 : 5
-                    radius: height / 2
-                    color: completed ? Theme.accent : Theme.borderMuted
-                    Behavior on color {
-                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionStandard }
-                    }
-                }
-            }
         }
 
         ActionButton {
@@ -610,23 +593,15 @@ Item {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: root.phone || desktopBrandPane.visible ? Theme.textStartAlignment : Text.AlignHCenter
             }
-            // Three tiny editorial dots from the approved Welcome wireframe.
-            // They are an overview of the three onboarding phases, not eight
-            // separate clickable wizard pages.
-            Row {
-                Layout.alignment: root.phone ? Qt.AlignHCenter : Qt.AlignLeft
+            // Welcome and all later pages share marker geometry and count.
+            SetupStepIndicator {
+                Layout.alignment: root.phone ? Qt.AlignHCenter
+                                  : desktopBrandPane.visible ? Qt.AlignLeft : Qt.AlignHCenter
                 Layout.topMargin: root.phone ? Theme.space6 : Theme.space3
-                spacing: 7
-                Repeater {
-                    model: 3
-                    delegate: Superellipse {
-                        required property int index
-                        width: 5
-                        height: 5
-                        curveDepth: 3
-                        fillColor: index === 0 ? Theme.ink : Theme.borderStrong
-                    }
-                }
+                stepCount: root.progressCount
+                currentStep: root.currentStep
+                Accessible.name: root.stepTitle(root.currentStep)
+                                 + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
             }
         }
     }
