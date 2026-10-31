@@ -44,6 +44,10 @@ ApplicationWindow {
                 backgroundMode: SceneEnvironment.Transparent
                 antialiasingMode: SceneEnvironment.MSAA
                 antialiasingQuality: SceneEnvironment.High
+                lightProbe: Texture {
+                    source: root.dark ? "assets/studio-dark.png" : "assets/studio-light.png"
+                }
+                probeExposure: root.dark ? 2.0 : 1.4
             }
             PerspectiveCamera {
                 id: camera
@@ -54,19 +58,19 @@ ApplicationWindow {
             camera: camera
             DirectionalLight {
                 eulerRotation: Qt.vector3d(-35, -30, 0)
-                brightness: root.dark ? 1.5 : 1.8
+                brightness: root.dark ? 2.8 : 1.8
                 color: root.dark ? "#A7FAF1" : "#FFFFFF"
             }
             DirectionalLight {
                 eulerRotation: Qt.vector3d(42, 25, 0)
-                brightness: root.dark ? 0.8 : 0.95
+                brightness: root.dark ? 2.4 : 1.5
                 color: root.dark ? "#FACB8B" : "#F7D6A2"
             }
             RuntimeLoader {
                 id: art
                 source: root.dark ? "assets/brand-dark.glb" : "assets/brand-light.glb"
                 eulerRotation: Qt.vector3d(root.pointerY * 3.5, root.pointerX * 7.5, 0)
-                x: -20
+                x: -15
                 y: 0
                 onStatusChanged: {
                     if (status === RuntimeLoader.Error)
