@@ -27,7 +27,9 @@ def select_files(source: Path) -> list[Path]:
         relative = path.relative_to(source)
         if any(part in BLOCKED or part.startswith(".") for part in relative.parts):
             continue
-        if path.suffix.lower() in EXTENSIONS or path.name.endswith(".LICENSE"):
+        if (path.suffix.lower() in EXTENSIONS
+                or path.name.endswith(".wasm.gz")
+                or path.name.endswith(".LICENSE")):
             result.append(path)
     return sorted(result)
 

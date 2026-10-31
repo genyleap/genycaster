@@ -139,11 +139,14 @@ class PipelineTests(unittest.TestCase):
             root = Path(path)
             (root / "farcaster_client.html").write_text("<html></html>")
             (root / "farcaster_client.wasm").write_bytes(b"\x00asm")
+            (root / "farcaster_client.0123456789abcdef0123.wasm.gz").write_bytes(b"compressed")
+            (root / "unrelated.tar.gz").write_bytes(b"ignored")
             (root / "farcaster_client_autogen").mkdir()
             (root / "farcaster_client_autogen" / "secret.js").write_text("ignored")
             (root / "farcaster_client.cpp.o").write_bytes(b"obj")
             selected = {p.name for p in select_files(root)}
-            self.assertEqual(selected, {"farcaster_client.html", "farcaster_client.wasm"})
+            self.assertEqual(selected, {"farcaster_client.html", "farcaster_client.wasm",
+                                        "farcaster_client.0123456789abcdef0123.wasm.gz"})
 
     def test_android_16k_elf_alignment(self) -> None:
         # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
