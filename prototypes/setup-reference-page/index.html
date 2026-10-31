@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex,nofollow">
+  <title>GenyCaster · Setup concept — interactive preview</title>
+  <link rel="icon" href="./assets/genycaster-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="preview-tools" aria-label="Preview tools">
+    <div class="preview-notice"><span class="live-dot"></span> LIVE PROTOTYPE <span class="separator">/</span> SETUP DESIGN</div>
+    <div class="preview-actions">
+      <div class="theme-switch" role="group" aria-label="Preview theme">
+        <button type="button" id="darkTheme" aria-pressed="true" title="Dark mode"><span aria-hidden="true">☾</span> Dark</button>
+        <button type="button" id="lightTheme" aria-pressed="false" title="Light mode"><span aria-hidden="true">☀</span> Light</button>
+      </div>
+      <a class="compare-link" href="./compare.html" title="View dark and light at the same time">Compare <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+  <main class="app dark" id="app" aria-label="GenyCaster interactive onboarding concept">
+    <aside class="brand-rail" aria-label="GenyCaster brand scene">
+      <div class="gpu-art" aria-hidden="true">
+        <canvas id="scene"></canvas>
+        <div class="ambient-shine"></div>
+      </div>
+      <header class="brand-lockup">
+        <img src="./assets/genycaster-icon.svg" width="49" height="49" alt="">
+        <div>
+          <div class="brand-name">GenyCaster</div>
+          <div class="brand-subtitle">A new home for Farcaster</div>
+        </div>
+      </header>
+      <div class="brand-interaction-tip" aria-hidden="true">DRAG TO EXPLORE <span class="drawn-arrow">↗</span></div>
+      <footer class="brand-footer">
+        <div class="foot-rule"></div>
+        <div>© 2026 <a href="https://genyleap.com/" rel="noopener noreferrer" target="_blank">Genyleap</a></div>
+        <div class="footer-version">Beta 1.0 · v1.0.0</div>
+      </footer>
+    </aside>
+    <section class="setup-panel" id="setupPanel" aria-live="polite" aria-atomic="false">
+      <div class="setup-progress">
+        <div id="stepCounter">Step 1 of 4</div>
+        <div class="progress-bars" aria-label="Setup progress: step 1 of 4">
+          <i class="active"></i><i></i><i></i><i></i>
+        </div>
+      </div>
+      <div class="setup-body">
+        <div class="step-content" id="stepContent">
+          <h1>Welcome to <span>GenyCaster</span></h1>
+          <p class="intro">A fast, native and privacy-first client for the decentralized social web.</p>
+          <div class="feature-stack">
+            <article class="feature">
+              <div class="feature-icon electric"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13.7 2.8-9 10.3a.85.85 0 0 0 .65 1.4h5.2l-.8 6.7a.66.66 0 0 0 1.15.5l8.65-10.4a.86.86 0 0 0-.66-1.4h-5.1l1.1-6.6a.67.67 0 0 0-1.19-.5Z"/></svg></div>
+              <div><h2>Fast &amp; Native</h2><p>Built for speed and a smooth experience on all your devices.</p></div>
+            </article>
+            <article class="feature">
+              <div class="feature-icon shield"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 20 6v5.3c0 5.3-3.3 8.2-8 10.2-4.7-2-8-4.9-8-10.2V6l8-3.5Zm0 3.2L6.8 8v3.3c0 3.5 2 5.9 5.2 7.4 3.2-1.5 5.2-3.9 5.2-7.4V8L12 5.7Z"/></svg></div>
+              <div><h2>Privacy First</h2><p>You control your data and identity.</p></div>
+            </article>
+            <article class="feature">
+              <div class="feature-icon community"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 20v-2.2a6.3 6.3 0 0 1 6.3-6.3h3.4a6.3 6.3 0 0 1 6.3 6.3V20H4Zm15.1-12.6a3.2 3.2 0 1 1-.8 6.2 8.9 8.9 0 0 0-1.3-1.1 5.9 5.9 0 0 0 2.1-5.1Z"/></svg></div>
+              <div><h2>Decentralized</h2><p>A new home for the Farcaster community.</p></div>
+            </article>
+          </div>
+        </div>
+      </div>
+      <div class="setup-actions">
+        <button class="back-button" type="button" id="backButton" hidden aria-label="Go back to previous step">
+          <span aria-hidden="true">←</span> Back
+        </button>
+        <button class="continue-button" type="button" id="continueButton">Continue <span aria-hidden="true">→</span></button>
+      </div>
+    </section>
+  </main>
+  <div class="preview-footnote" role="note">Interactive design preview · The existing GenyCaster Setup and account data are unchanged.</div>
+  <script type="module" src="./page.js"></script>
+</body>
+</html>
