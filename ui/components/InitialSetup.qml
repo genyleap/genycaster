@@ -53,7 +53,6 @@ Item {
             root.stageTransitioning = false
         }
     }
-    function progressWidth(index) { return currentStep === index ? 18 : 5 }
     property string accountIntent: ""
     property bool showRecovery: false
     property string legalDocument: ""
@@ -438,42 +437,34 @@ Item {
             }
         }
 
-        // Four linked editorial markers, each with two real substeps.
-        // The half/full fill represents all eight navigable stages.
+        // The approved desktop storyboard uses two short bars and two dots.
+        // Four visual milestones summarize eight real stages without morphing
+        // the markers into irregular half-filled circles.
         Row {
             id: setupProgress
             visible: !root.phone && root.currentStep !== 0
             anchors.top: parent.top
-            anchors.topMargin: 58
+            anchors.topMargin: 44
             x: desktopBrandPane.visible
                ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
                : (parent.width - width) / 2
-            spacing: 9
+            spacing: 7
             z: 5
             Accessible.name: root.stepTitle(root.currentStep)
                              + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
             Repeater {
-                model: Math.ceil(root.progressCount / 2)
+                model: 4
                 delegate: Rectangle {
                     id: progressMarker
                     required property int index
-                    readonly property real completion: Math.max(0, Math.min(
-                        1, (root.currentStep - index * 2 + 1) / 2))
-                    width: index === 0 || index === Math.ceil(root.progressCount / 2) - 1 ? 22 : 8
-                    height: index === 0 || index === Math.ceil(root.progressCount / 2) - 1 ? 4 : 8
+                    readonly property bool bar: index === 0 || index === 3
+                    readonly property bool completed: index <= Math.floor(root.currentStep * 4 / root.progressCount)
+                    width: bar ? 18 : 5
+                    height: bar ? 3 : 5
                     radius: height / 2
-                    color: Theme.borderMuted
-                    Rectangle {
-                        width: progressMarker.width * progressMarker.completion
-                        height: parent.height
-                        radius: parent.radius
-                        color: Theme.accent
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
-                                easing.type: Easing.OutCubic
-                            }
-                        }
+                    color: completed ? Theme.accent : Theme.borderMuted
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionStandard }
                     }
                 }
             }
@@ -592,7 +583,9 @@ Item {
             Image {
                 Layout.preferredWidth: root.phone ? 62 : 42
                 Layout.preferredHeight: root.phone ? 62 : 42
-                Layout.alignment: root.phone ? Qt.AlignLeft : Qt.AlignHCenter
+                Layout.alignment: desktopBrandPane.visible ? Qt.AlignLeft
+                                : root.phone ? (Theme.rtl ? Qt.AlignRight : Qt.AlignLeft)
+                                : Qt.AlignHCenter
                 source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
                 fillMode: Image.PreserveAspectFit
                 sourceSize: Qt.size(160,160)
@@ -606,7 +599,7 @@ Item {
                 lineHeight: 1.14
                 color: Theme.ink
                 wrapMode: Text.WordWrap
-                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
+                horizontalAlignment: root.phone || desktopBrandPane.visible ? Theme.textStartAlignment : Text.AlignHCenter
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -615,21 +608,23 @@ Item {
                 font.pixelSize: Theme.typeLabelSize
                 lineHeight: 1.36
                 wrapMode: Text.WordWrap
-                horizontalAlignment: root.phone ? Theme.textStartAlignment : Text.AlignHCenter
+                horizontalAlignment: root.phone || desktopBrandPane.visible ? Theme.textStartAlignment : Text.AlignHCenter
             }
+            // Three tiny editorial dots from the approved Welcome wireframe.
+            // They are an overview of the three onboarding phases, not eight
+            // separate clickable wizard pages.
             Row {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: Theme.space6
+                Layout.alignment: root.phone ? Qt.AlignHCenter : Qt.AlignLeft
+                Layout.topMargin: root.phone ? Theme.space6 : Theme.space3
                 spacing: 7
                 Repeater {
-                    model: root.progressCount
+                    model: 3
                     delegate: Superellipse {
                         required property int index
-                        width: root.progressWidth(index)
-                        height: 6
+                        width: 5
+                        height: 5
                         curveDepth: 3
-                        fillColor: index === root.currentStep ? Theme.accent
-                                   : index < root.currentStep ? Theme.inkMuted : Theme.borderStrong
+                        fillColor: index === 0 ? Theme.ink : Theme.borderStrong
                     }
                 }
             }
