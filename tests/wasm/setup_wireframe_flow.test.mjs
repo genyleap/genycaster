@@ -37,9 +37,9 @@ test('existing authentication and secure recovery stay connected to the bridge',
 });
 
 test('legal consent and guest access are respected', () => {
-  assert.match(setup, /root.legalConsentAccepted \|\| root.consentChecked/);
+  assert.match(setup, /if \(!consentChecked\) return/);
   assert.match(setup, /acceptLegalConsent\(true, true, true\)/);
-  assert.match(setup, /if \(currentStep === 2\) return legalConsentAccepted \|\| consentChecked/);
+  assert.match(setup, /if \(currentStep === 2\) return consentChecked/);
   assert.match(setup, /root.guestSelected = true/);
   assert.match(setup, /visible: root.browserReadOnly/);
   assert.match(setup, /finishSetup\(\)/);
@@ -65,7 +65,7 @@ test('mobile has a bottom CTA, desktop a two-pane welcome', () => {
   assert.match(setup, /id: stageScroll/);
   assert.match(setup, /id: stageAction/);
   assert.match(setup, /id: desktopBrandPane/);
-  assert.match(setup, /width: parent.width \* 0.33/);
+  assert.match(setup, /width: Math.min\(parent.width \* 0.29, 430\)/);
   assert.match(setup, /anchors.bottom: parent.bottom/);
   assert.match(setup, /onClicked: root.previousStep\(\)/);
 });
@@ -109,7 +109,7 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   const app=source('ui/components/AppShell.qml');
   assert.match(s,/id: setupCanvas/);
   assert.match(s,/id: desktopBrandPane/);
-  assert.match(s,/width: parent\.width \* 0\.33/);
+  assert.match(s,/width: Math\.min\(parent\.width \* 0\.29, 430\)/);
   assert.match(s,/id: stageAction/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
   assert.doesNotMatch(s,/id: setupFooter/);
@@ -132,12 +132,39 @@ test('welcome step indicator represents all eight setup steps, including reduced
 test('mobile legal reader is a bottom sheet, desktop reader stays centered', () => {
   const s=source('ui/components/InitialSetup.qml');
   assert.match(s,/id: legalReader/);
+  assert.match(s,/id: legalSurface/);
   assert.match(s,/x: root\.phone \? 0/);
-  assert.match(s,/y: root\.phone \? \(parent \? parent\.height - height : 0\)/);
-  assert.match(s,/curveBottomLeft: !root\.phone/);
-  assert.match(s,/curveBottomRight: !root\.phone/);
-  assert.match(s,/enter: Transition/);
-  assert.match(s,/exit: Transition/);
+  assert.match(s,/y: root\.phone \? legalReader\.height - height/);
+  assert.match(s,/Behavior on offset/);
+  assert.match(s,/id: legalBodyScroll/);
   assert.match(s,/onClicked: root\.consentChecked = !root\.consentChecked/);
   assert.match(s,/property bool consentChecked: false/);
+});
+
+test('desktop brand visual persists across all stages without blocking RTL title icons', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const header=source('ui/components/SetupPageHeader.qml');
+  const card=source('ui/components/SetupActionCard.qml');
+  assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
+  assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
+  assert.match(s,/id: brandMotif[\s\S]*?ctx\.arc/);
+  assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
+  assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
+  assert.match(s,/iconGlyph: Theme.iconPalette/);
+  assert.match(s,/brandImageSource: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon.svg"/);
+  assert.match(card,/property url brandImageSource/);
+});
+
+test('signout returns immediately to Welcome and legal consent accepts a deliberate tap', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  assert.match(s,/Sign-out always restores Welcome immediately/);
+  assert.match(s,/currentStep = 0/);
+  assert.match(s,/accountIntent = ""/);
+  assert.match(s,/consentChecked = legalConsentAccepted/);
+  assert.match(s,/enabled: true\s+focusPolicy: Qt.StrongFocus/);
+  assert.match(s,/Accessible.checked: root.consentChecked/);
+  assert.match(s,/if \(!consentChecked\) return/);
+  assert.match(s,/function openLegalDocument\(kind\)/);
+  assert.match(s,/legalReader\.open\(\)/);
+  assert.match(s,/onClicked: root.openLegalDocument\("privacy"\)/);
 });
