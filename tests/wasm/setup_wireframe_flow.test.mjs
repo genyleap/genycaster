@@ -152,7 +152,12 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
   assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
   assert.match(s,/id: desktopBrandArt[\s\S]*?wasm\/genycaster-icon\.svg/);
-  assert.match(s,/opacity: Theme\.dark \? 0\.18 : 0\.13/);
+  assert.match(s,/anchors\.centerIn: parent/);
+  assert.match(s,/width: Math\.min\(315, desktopBrandPane\.width \* 0\.70\)/);
+  assert.match(s,/rotation: -16/);
+  assert.match(s,/transformOrigin: Item\.Center/);
+  assert.match(s,/opacity: Theme\.dark \? 0\.15 : 0\.09/);
+  assert.doesNotMatch(s,/x: -width \* 0\.33/);
   assert.doesNotMatch(s,/source: .*setup-motif\.svg/);
   assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
