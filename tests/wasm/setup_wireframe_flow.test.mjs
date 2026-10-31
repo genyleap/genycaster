@@ -152,12 +152,16 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
   assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
   assert.match(s,/id: desktopBrandArt[\s\S]*?wasm\/genycaster-icon\.svg/);
-  assert.match(s,/anchors\.centerIn: parent/);
-  assert.match(s,/width: Math\.min\(315, desktopBrandPane\.width \* 0\.70\)/);
-  assert.match(s,/rotation: -16/);
+  assert.match(s,/clip: true/);
+  assert.match(s,/width: Math\.min\(760, desktopBrandPane\.width \* 1\.68\)/);
+  assert.match(s,/x: -width \* 0\.39/);
+  assert.match(s,/rotation: -17/);
   assert.match(s,/transformOrigin: Item\.Center/);
-  assert.match(s,/opacity: Theme\.dark \? 0\.15 : 0\.09/);
-  assert.doesNotMatch(s,/x: -width \* 0\.33/);
+  assert.match(s,/opacity: Theme\.dark \? 0\.15 : 0\.085/);
+  assert.match(s,/id: desktopBrandMetadata/);
+  assert.match(s,/anchors\.bottom: parent\.bottom/);
+  assert.match(s,/Qt\.application\.version \|\| "1\.0\.0"/);
+  assert.match(s,/new Date\(\)\.getFullYear\(\)/);
   assert.doesNotMatch(s,/source: .*setup-motif\.svg/);
   assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
   assert.match(header,/Theme.rtl \? Qt.AlignRight : Qt.AlignLeft/);
@@ -238,4 +242,27 @@ test('recovery form animates open in the mobile browser without exposing words t
   assert.match(dialog,/prefers-reduced-motion:reduce/);
   assert.match(dialog,/word\.autocomplete='off'/);
   assert.doesNotMatch(dialog,/localStorage\.setItem/);
+});
+
+test('final blue check has a soft layered shadow without affecting phone GPU', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const complete=s.slice(s.indexOf('id: completeStage'));
+  assert.match(s,/import QtQuick\.Effects/);
+  assert.match(complete,/id: completionBadge/);
+  assert.match(complete,/layer.enabled: !root\.phone/);
+  assert.match(complete,/layer\.effect: MultiEffect/);
+  assert.match(complete,/shadowEnabled: true/);
+  assert.match(complete,/shadowVerticalOffset: 8/);
+  assert.match(complete,/shadowBlur: 0\.74/);
+});
+
+test('sidebar metadata is bottom anchored and only exists on desktop', () => {
+  const s=source('ui/components/InitialSetup.qml');
+  const pane=s.slice(s.indexOf('id: desktopBrandPane'), s.indexOf('id: setupProgress'));
+  assert.match(pane,/id: desktopBrandMetadata/);
+  assert.match(pane,/anchors\.bottom: parent\.bottom/);
+  assert.match(pane,/visible: desktopBrandPane\.visible/);
+  assert.match(pane,/System version/);
+  assert.match(pane,/Qt\.application\.version/);
+  assert.match(pane,/GenyCaster/);
 });
