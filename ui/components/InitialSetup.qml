@@ -419,68 +419,61 @@ Item {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: Math.min(parent.width * 0.29, 430)
-            color: Theme.dark ? Theme.surfaceMuted
-                              : Qt.rgba(Theme.swatchGeny.r, Theme.swatchGeny.g, Theme.swatchGeny.b, 0.10)
-            // Oversized transparent brand motif from the project's native
-            // G-and-arrow geometry: no black rounded-square application icon.
-            Canvas {
-                id: brandMotif
-                anchors.fill: parent
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    const unit = Math.min(width, height)
-                    const cx = width * 0.43
-                    const cy = height * 0.50
-                    const r = unit * 0.45
-                    ctx.fillStyle = Theme.dark ? "#25293A" : "#F6F7FF"
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, r * 1.28, 0, 2 * Math.PI)
-                    ctx.fill()
-                    ctx.lineWidth = Math.max(10, unit * 0.105)
-                    ctx.strokeStyle = Theme.dark ? "#404658" : "#C8CCE9"
-                    ctx.lineCap = "round"
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, r * 0.72, -0.23 * Math.PI, 1.58 * Math.PI, false)
-                    ctx.stroke()
-                    ctx.fillStyle = Theme.dark ? "#737B9C" : "#969FDC"
-                    ctx.beginPath()
-                    ctx.moveTo(cx + r * 0.04, cy - r * 0.13)
-                    ctx.lineTo(cx + r * 0.94, cy - r * 0.13)
-                    ctx.lineTo(cx + r * 0.94, cy + r * 0.74)
-                    ctx.closePath()
-                    ctx.fill()
-                }
-                Connections {
-                    target: Theme
-                    function onDarkChanged() { brandMotif.requestPaint() }
-                }
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.dark ? "#1B1C2A" : "#F3F1FF" }
+                GradientStop { position: 0.55; color: Theme.dark ? "#24253B" : "#E8E8FB" }
+                GradientStop { position: 1.0; color: Theme.dark ? "#181923" : "#F2F1FF" }
+            }
+            Image {
+                id: desktopBrandArt
+                width: Math.min(630, desktopBrandPane.width * 1.72)
+                height: width
+                x: -width * 0.34
+                y: (desktopBrandPane.height - height) / 2
+                source: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/setup-motif.svg"
+                sourceSize: Qt.size(768, 768)
+                asynchronous: false
+                fillMode: Image.PreserveAspectFit
+                opacity: Theme.dark ? 0.66 : 1
             }
         }
 
-        // Functional step progress: the same eight-state source of truth on
-        // every platform. It belongs to the content, never a global header.
+        // Four linked editorial markers, each with two real substeps.
+        // The half/full fill represents all eight navigable stages.
         Row {
             id: setupProgress
             visible: !root.phone && root.currentStep !== 0
             anchors.top: parent.top
-            anchors.topMargin: 34
+            anchors.topMargin: 58
             x: desktopBrandPane.visible
                ? desktopBrandPane.width + (parent.width - desktopBrandPane.width - width) / 2
                : (parent.width - width) / 2
-            spacing: 7
+            spacing: 9
             z: 5
+            Accessible.name: root.stepTitle(root.currentStep)
+                             + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
             Repeater {
-                model: root.progressCount
-                delegate: Superellipse {
+                model: Math.ceil(root.progressCount / 2)
+                delegate: Rectangle {
+                    id: progressMarker
                     required property int index
-                    width: root.progressWidth(index)
-                    height: 5
-                    curveDepth: 3
-                    fillColor: index === root.currentStep ? Theme.accent
-                               : index < root.currentStep ? Theme.inkMuted : Theme.borderStrong
-                    Behavior on width {
-                        NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                    readonly property real completion: Math.max(0, Math.min(
+                        1, (root.currentStep - index * 2 + 1) / 2))
+                    width: index === 0 || index === Math.ceil(root.progressCount / 2) - 1 ? 22 : 8
+                    height: index === 0 || index === Math.ceil(root.progressCount / 2) - 1 ? 4 : 8
+                    radius: height / 2
+                    color: Theme.borderMuted
+                    Rectangle {
+                        width: progressMarker.width * progressMarker.completion
+                        height: parent.height
+                        radius: parent.radius
+                        color: Theme.accent
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+                                easing.type: Easing.OutCubic
+                            }
+                        }
                     }
                 }
             }
@@ -505,8 +498,8 @@ Item {
             visible: root.reviewMode
             anchors.top: parent.top
             anchors.topMargin: Theme.space4
-            anchors.right: parent.right
-            anchors.rightMargin: root.phone ? Theme.space2 : Theme.space5
+            x: Theme.rtl ? (root.phone ? Theme.space2 : Theme.space5)
+                         : root.width - width - (root.phone ? Theme.space2 : Theme.space5)
             compact: true
             quiet: true
             iconOnly: true
@@ -544,7 +537,8 @@ Item {
                    ? Math.max(96, (stageScroll.height - stageLoader.implicitHeight) * 0.38)
                    : root.currentStep === 1
                    ? Math.max(76, (stageScroll.height - stageLoader.implicitHeight) * 0.21)
-                   : Math.max(root.phone ? 100 : 105, Math.min(145, stageScroll.height * 0.15))
+                   : Math.max(root.phone ? 100 : 115, Math.min(root.phone ? 145 : 125,
+                                                                   stageScroll.height * 0.15))
                 implicitHeight: stageLoader.implicitHeight
 
                 Loader {
@@ -710,9 +704,11 @@ Item {
                 Accessible.checked: root.consentChecked
                 onClicked: root.consentChecked = !root.consentChecked
                 background: Superellipse {
-                    fillColor: Theme.surface
-                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : Theme.strokeStandard
-                    borderColor: Theme.keyboardFocusVisible(consentCheck) ? Theme.focus : Theme.borderMuted
+                    fillColor: consentCheck.down ? Theme.surfacePressed
+                               : consentCheck.hovered ? Theme.surfaceHover
+                               : Theme.surfaceMuted
+                    borderWidth: Theme.keyboardFocusVisible(consentCheck) ? 2 : 0
+                    borderColor: Theme.focus
                     curveDepth: Theme.curveContainer
                 }
                 contentItem: RowLayout {
@@ -770,22 +766,23 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
-                    primary: false
+                    accountShowcase: true
+                    setupEmphasis: true
                     title: qsTrId("genycaster.setup.design_create_account")
-                    subtitle: qsTrId("genycaster.shell.coming_soon") + " · "
-                              + qsTrId("genycaster.setup.new_profile_body")
-                    iconGlyph: root.phone ? "" : Theme.iconUser
+                    subtitle: qsTrId("genycaster.setup.new_profile_body") + " ("
+                              + qsTrId("genycaster.shell.coming_soon") + ")"
+                    iconGlyph: Theme.iconUser
                     showChevron: false
                     enabled: false
                 }
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
-                    primary: false
+                    accountShowcase: true
                     title: qsTrId("genycaster.setup.design_existing_account")
                     subtitle: qsTrId("genycaster.setup.design_existing_description")
-                    iconGlyph: root.phone ? "" : Theme.iconLink
-                    showChevron: true
+                    iconGlyph: Theme.iconLink
+                    showChevron: false
                     onClicked: {
                         root.accountIntent = "existing"
                         root.switchStep(4)
