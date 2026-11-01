@@ -9,25 +9,27 @@ import re
 def main() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
-    assert "default: core" in workflow
+    assert "default: web" in workflow
+    assert not re.search(r"^  core:\\n", workflow, re.M)
     assert "confirm_full_matrix:" in workflow
     assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
-    assert "Fast cross-platform source and localization checks" in workflow
+    # Hosted Actions only build/package; development tests run on the server.
+    for test_command in ("node --test", "ctest --test-dir",
+                         "python3 -m unittest", "cmake -S tests/"):
+        assert test_command not in workflow, test_command
     assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
-    # Checks must run in the release gate before spending Qt/MSVC/macOS minutes.
-    gate = workflow.split("  gate:", 1)[1].split("  core:", 1)[0]
-    assert "ci/check_localization_catalog.py" in gate
-    assert "ci/verify_ci.py" in gate
-    assert "bash -n ci/build_deploy_wasm_server.sh" in gate
-    assert "ci.test_pipeline" in gate
-    assert "home_compose_mobile_settings.test.mjs" in gate
+    # Release-gate checks prevent accidental tag or main-branch bypass.
+    gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
+    assert "ci/release_gate.py" in gate
+    assert "git merge-base --is-ancestor" in gate
+    assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in gate
     # Every ordinary main commit remains exempt from the expensive matrix.
     assert re.search(r"^  push:\n    tags:\n      - 'v\*'", workflow, re.M)
     assert not re.search(r"^  (pull_request|schedule|release):", workflow, re.M)
     assert not re.search(r"^    (branches|paths):", workflow, re.M)
     assert re.search(r"^  publish:\n", workflow, re.M)
     assert "github.event_name == 'push' && needs.gate.outputs.release == 'true'" in workflow
-    assert "needs: [gate, core, linux, macos, windows, android, web]" in workflow
+    assert "needs: [gate, linux, macos, windows, android, web]" in workflow
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
     assert "macos-15-intel" in workflow
