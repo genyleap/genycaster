@@ -918,7 +918,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: GenyCaster ${{ github.ref_name }}
-          generate_release_notes: true
+          body_path: release-notes/${{ github.ref_name }}.md
           prerelease: true
           files: release/*
           fail_on_unmatched_files: true
