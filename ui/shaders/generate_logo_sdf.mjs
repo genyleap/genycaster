@@ -64,20 +64,58 @@ const result=await page.evaluate(async ({g,arrow})=>{
  canvas.width=canvas.height=N;
  const ctx=canvas.getContext("2d");
  const img=ctx.createImageData(N,N);
+ const signed=new Float32Array(N*N);
  for(let i=0;i<N*N;i++){
   const dsG=(gm[i]?-go[i]:gi[i])/pixelsPerSvg;
   const dsA=(am[i]?-ao[i]:ai[i])/pixelsPerSvg;
+  signed[i]=Math.min(dsG,dsA);
   const j=i*4;
   img.data[j]=Math.max(0,Math.min(255,Math.round(127.5+dsG*127.5/maxDistance)));
   img.data[j+1]=Math.max(0,Math.min(255,Math.round(127.5+dsA*127.5/maxDistance)));
-  img.data[j+2]=0;img.data[j+3]=255;
+  // A separate, much narrower SDF for the union reduces 8-bit normal
+  // quantization on curved side walls, without changing the official shape.
+  // Keep alpha opaque: Qt Quick may premultiply imported PNG textures.
+  const fineDistance=6;
+  img.data[j+2]=Math.max(0,Math.min(255,Math.round(
+      127.5+Math.min(dsG,dsA)*127.5/fineDistance)));
+  img.data[j+3]=255;
  }
  ctx.putImageData(img,0,0);
- return {png:canvas.toDataURL("image/png"),width:N,
+ // Compute stable normals from float signed distances BEFORE 8-bit packing.
+ // A Gaussian-weighted 5px derivative avoids visible contour/isoline
+ // streaks on steep extrusion walls at oblique camera angles.
+ const normalCanvas=document.createElement("canvas");
+ normalCanvas.width=normalCanvas.height=N;
+ const nc=normalCanvas.getContext("2d");
+ const normalImage=nc.createImageData(N,N);
+ const sample=(x,y)=>signed[Math.max(0,Math.min(N-1,y))*N
+                           +Math.max(0,Math.min(N-1,x))];
+ for(let y=0;y<N;y++){
+  for(let x=0;x<N;x++){
+   const dx=(sample(x+2,y-1)-sample(x-2,y-1))
+        +2*(sample(x+2,y)-sample(x-2,y))
+        +(sample(x+2,y+1)-sample(x-2,y+1));
+   const dy=(sample(x-1,y+2)-sample(x-1,y-2))
+        +2*(sample(x,y+2)-sample(x,y-2))
+        +(sample(x+1,y+2)-sample(x+1,y-2));
+   const inv=1/Math.max(1e-5,Math.hypot(dx,dy));
+   const j=(y*N+x)*4;
+   normalImage.data[j]=Math.round(127.5+127.5*dx*inv);
+   normalImage.data[j+1]=Math.round(127.5+127.5*dy*inv);
+   normalImage.data[j+2]=127;
+   normalImage.data[j+3]=255;
+  }
+ }
+ nc.putImageData(normalImage,0,0);
+ return {png:canvas.toDataURL("image/png"),
+     normalPng:normalCanvas.toDataURL("image/png"),width:N,
      gPixels:gm.reduce((a,b)=>a+b,0),arrowPixels:am.reduce((a,b)=>a+b,0)};
 },{g,arrow});
 const bytes=Buffer.from(result.png.split(",")[1],"base64");
 const output=new URL("./genycaster_logo_sdf.png",import.meta.url);
 fs.writeFileSync(output,bytes);
-console.log("SVG MASTER SDF",result.width,result.gPixels,result.arrowPixels,bytes.length);
+const normals=Buffer.from(result.normalPng.split(",")[1],"base64");
+fs.writeFileSync(new URL("./genycaster_logo_normals.png",import.meta.url),normals);
+console.log("SVG MASTER SDF",result.width,result.gPixels,result.arrowPixels,
+            bytes.length,"NORMAL ATLAS",normals.length);
 await browser.close();

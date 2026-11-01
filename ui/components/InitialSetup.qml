@@ -432,7 +432,28 @@ Item {
             property real orbitYaw: 0
             property real dragYaw: 0
             property real dragPitch: -5
+            property real viewZoom: 1.0
+            property bool autoOrbitEnabled: true
             property bool dragging: false
+            function resetView() {
+                rotationCooldown.restart()
+                orbitYaw = 0
+                dragYaw = 0
+                dragPitch = -5
+                viewZoom = 1.0
+                pointerX = 0.5
+                pointerY = 0.5
+                tapImpulse = 0
+            }
+            function changeZoom(steps) {
+                viewZoom = Math.max(0.78, Math.min(1.40,
+                                                viewZoom + steps * 0.10))
+                rotationCooldown.restart()
+            }
+            Behavior on viewZoom {
+                enabled: !Theme.reduceMotion
+                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            }
             property real pressX: 0
             property real pressY: 0
             property bool movedByDrag: false
@@ -447,6 +468,7 @@ Item {
                 interval: 40
                 repeat: true
                 running: desktopBrandPane.motionAllowed
+                         && desktopBrandPane.autoOrbitEnabled
                          && !desktopBrandPane.dragging
                          && !rotationCooldown.running
                 onTriggered: {
@@ -484,11 +506,19 @@ Item {
                 property real orbitYaw: desktopBrandPane.orbitYaw
                 property real dragYaw: desktopBrandPane.dragYaw
                 property real dragPitch: desktopBrandPane.dragPitch
+                property real viewZoom: desktopBrandPane.viewZoom
                 // The atlas is derived from the EXACT paths in the official
                 // genycaster-icon.svg, not circular/triangular approximations.
-                // Its R/G channels preserve the two independent contours.
+                // R/G preserve both SVG paths; B smooths their combined normal.
                 property var logoDistanceMap: Image {
                     source: "qrc:/qt/qml/Farcaster/Client/shaders/genycaster_logo_sdf.png"
+                    sourceSize.width: 832
+                    sourceSize.height: 832
+                    smooth: true
+                    visible: false
+                }
+                property var logoNormalMap: Image {
+                    source: "qrc:/qt/qml/Farcaster/Client/shaders/genycaster_logo_normals.png"
                     sourceSize.width: 832
                     sourceSize.height: 832
                     smooth: true
@@ -537,7 +567,19 @@ Item {
                     if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
                 }
                 Keys.onSpacePressed: {
-                    if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                    desktopBrandPane.autoOrbitEnabled = !desktopBrandPane.autoOrbitEnabled
+                }
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_R || event.key === Qt.Key_Home) {
+                        desktopBrandPane.resetView()
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal) {
+                        desktopBrandPane.changeZoom(1)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Minus) {
+                        desktopBrandPane.changeZoom(-1)
+                        event.accepted = true
+                    }
                 }
                 Keys.onLeftPressed: {
                     desktopBrandPane.dragYaw -= 12
@@ -574,7 +616,7 @@ Item {
                     rotationCooldown.stop()
                 }
                 onPositionChanged: function(mouse) {
-                    if (!desktopBrandPane.motionAllowed) return
+                    if (!root.visible) return
                     if (pressed) {
                         const dx = mouse.x - desktopBrandPane.pressX
                         const dy = mouse.y - desktopBrandPane.pressY
@@ -593,6 +635,10 @@ Item {
                             Math.max(0, Math.min(1, mouse.y / height))
                     }
                 }
+                onWheel: function(wheel) {
+                    desktopBrandPane.changeZoom(wheel.angleDelta.y > 0 ? 1 : -1)
+                    wheel.accepted = true
+                }
                 onReleased: {
                     desktopBrandPane.dragging = false
                     rotationCooldown.restart()
@@ -607,7 +653,107 @@ Item {
                         brandAccentTap.restart()
                 }
                 Accessible.role: Accessible.Button
-                Accessible.name: "GenyCaster 3D brand. Drag to rotate."
+                Accessible.name: qsTr("3D GenyCaster logo. Drag to orbit, scroll to zoom. Press R to reset.")
+            }
+            // Precise GPU demonstration controls, independent of Setup navigation.
+            // The canonical path and signed-distance atlas are never modified
+            // when the user orbits, zooms or resets the viewer.
+            Rectangle {
+                id: gpuStageControls
+                z: 4
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 22
+                width: stageControlRow.width + 12
+                height: 46
+                radius: 14
+                color: Theme.dark ? "#18293C" : "#F1F6FB"
+                border.width: 1
+                border.color: Theme.dark ? "#36536B" : "#C8D7E5"
+                Row {
+                    id: stageControlRow
+                    anchors.centerIn: parent
+                    spacing: 3
+                    ActionButton {
+                        objectName: "gpuResetView"
+                        width: 35; height: 35
+                        compact: true; quiet: true; iconOnly: true
+                        iconSize: 17
+                        iconGlyph: Theme.iconRefresh
+                        text: qsTr("Reset 3D view")
+                        onClicked: desktopBrandPane.resetView()
+                    }
+                    ActionButton {
+                        objectName: "gpuAutoOrbit"
+                        width: 35; height: 35
+                        compact: true; quiet: true; iconOnly: true
+                        iconSize: 16
+                        iconGlyph: desktopBrandPane.autoOrbitEnabled
+                                   ? Theme.iconPause : Theme.iconPlay
+                        text: desktopBrandPane.autoOrbitEnabled
+                              ? qsTr("Pause rotation") : qsTr("Resume rotation")
+                        onClicked: {
+                            desktopBrandPane.autoOrbitEnabled =
+                                !desktopBrandPane.autoOrbitEnabled
+                            rotationCooldown.stop()
+                        }
+                    }
+                    ActionButton {
+                        objectName: "gpuZoomOut"
+                        width: 35; height: 35
+                        compact: true; quiet: true; iconOnly: true
+                        iconSize: 17
+                        iconGlyph: "actions/minus"
+                        text: qsTr("Zoom out")
+                        enabled: desktopBrandPane.viewZoom > 0.781
+                        onClicked: desktopBrandPane.changeZoom(-1)
+                    }
+                    ActionButton {
+                        objectName: "gpuZoomIn"
+                        width: 35; height: 35
+                        compact: true; quiet: true; iconOnly: true
+                        iconSize: 17
+                        iconGlyph: Theme.iconPlus
+                        text: qsTr("Zoom in")
+                        enabled: desktopBrandPane.viewZoom < 1.399
+                        onClicked: desktopBrandPane.changeZoom(1)
+                    }
+                }
+            }
+            Row {
+                z: 4
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.leftMargin: 24
+                anchors.topMargin: 35
+                spacing: 7
+                Rectangle {
+                    width: 7
+                    height: 7
+                    radius: 4
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: Theme.dark ? "#82D5CD" : "#297D8D"
+                }
+                Text {
+                    text: "LIVE GPU  /  WASM"
+                    color: Theme.dark ? "#AFC9DD" : "#41677C"
+                    font.family: Theme.latinFontFamily
+                    font.pixelSize: 10
+                    font.letterSpacing: 1.2
+                    font.weight: Font.DemiBold
+                }
+            }
+            Text {
+                z: 3
+                anchors.bottom: desktopBrandMetadata.top
+                anchors.bottomMargin: 33
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("DRAG TO ORBIT   ·   SCROLL TO ZOOM")
+                color: Theme.dark ? "#829CAF" : "#688094"
+                font.family: Theme.latinFontFamily
+                font.pixelSize: 10
+                font.letterSpacing: .75
+                font.weight: Font.Medium
             }
             SequentialAnimation {
                 id: brandAccentTap

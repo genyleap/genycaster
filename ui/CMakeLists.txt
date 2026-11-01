@@ -1115,6 +1115,7 @@ qt_add_qml_module(farcaster_client
     RESOURCES
         shaders/setup_glass_g.frag.qsb
         shaders/genycaster_logo_sdf.png
+        shaders/genycaster_logo_normals.png
         wasm/genycaster-icon.svg
         wasm/setup-mist.svg
         wasm/genycaster-wordmark.svg

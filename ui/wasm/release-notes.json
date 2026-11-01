@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "Faithful 3D GenyCaster logo",
+  "title": "GPU Studio — refined 3D GenyCaster identity",
   "changes": [
-    "The Setup GPU brand now uses the exact white G and gray directional arrow contours from the official GenyCaster SVG, not approximate circles and triangles.",
-    "Preserve the official front silhouette and colors while keeping native GPU depth, subtle bevels, light/dark themes, pointer drag and automatic rotation.",
-    "Improve edge-distance sampling so the contours remain cleaner when rotated sideways."
+    "Render the exact official SVG geometry with satin-aluminum and titanium PBR-style materials, studio softboxes and filmic highlight response.",
+    "Remove extrusion wall shading bands with a precomputed smooth normal atlas while preserving the precise branded silhouette.",
+    "Introduce a refined GPU studio backdrop and accessible orbit, zoom, pause/resume and reset-view controls in desktop Setup."
   ]
 }
