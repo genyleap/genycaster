@@ -100,7 +100,7 @@ Rectangle {
                     width: parent.width
                     x: 0
                     y: brandWordmark.height + Theme.scaleUi(2)
-                    text: "Genycaster v" + (Qt.application.version || "1.0.0-rc1")
+                    text: Qt.application.version ? "Genycaster v" + Qt.application.version : "Genycaster"
                     color: Theme.inkMuted
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
