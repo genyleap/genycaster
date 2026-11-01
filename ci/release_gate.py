@@ -24,7 +24,7 @@ def release_designation(root: Path) -> str:
     """Version in the canonical root release-notes filename."""
     cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
     match = re.search(
-        r'\\bset\\s*\\(\\s*GENYCASTER_RELEASE_CANDIDATE\\s+"(rc[1-9]\\d*)"',
+        r'\bset\s*\(\s*GENYCASTER_RELEASE_CANDIDATE\s+"(rc[1-9]\d*)"',
         cmake,
     )
     if not match:
@@ -39,7 +39,7 @@ def release_version(ref: str, expected: str) -> tuple[str, bool]:
     if not ref.startswith("refs/tags/"):
         return expected, False
     tag = ref.removeprefix("refs/tags/")
-    if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag):
+    if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc[1-9]\d*)?", tag):
         raise ValueError(f"Invalid release tag {tag!r}; use vMAJOR.MINOR.PATCH-rcN")
     version = tag.removeprefix("v")
     if version != expected:
