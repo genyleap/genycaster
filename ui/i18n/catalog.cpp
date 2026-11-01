@@ -1150,7 +1150,7 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.setup.recovery_title");
     //% "Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer."
     (void)qtTrId("genycaster.setup.recovery_description");
-    //% "Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored."
+    //% "Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored."
     (void)qtTrId("genycaster.setup.recovery_privacy");
     //% "Continue with recovery words"
     (void)qtTrId("genycaster.setup.recovery_button");

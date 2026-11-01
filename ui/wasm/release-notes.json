@@ -1,9 +1,9 @@
 {
-  "type": "improvement",
-  "title": "Setup account creation clearly marked unavailable",
+  "type": "fix",
+  "title": "Unified 24-word Farcaster recovery across WebAssembly and native",
   "changes": [
-    "Mute the inactive Create new account card instead of emphasizing a nonworking action.",
-    "Show a compact warm-orange, localized Temporarily unavailable badge in all supported Setup languages and screen reader descriptions.",
-    "Keep the existing-account entry active and unchanged on desktop, mobile, native and WebAssembly."
+    "Use one 24-word recovery flow: twenty-four numbered, secure, theme-styled input cells on desktop and mobile, and a fixed 24-word WebAssembly recovery sheet.",
+    "Replace the native platform checkbox with an accessible, theme-aware reveal-words control; mask secrets by default and support pasting the full phrase in sequence.",
+    "Require exactly 24 words at the browser BIP39 validator and the native Qt bridge, update translated onboarding copy and preserve zero-persistence custody handling."
   ]
 }

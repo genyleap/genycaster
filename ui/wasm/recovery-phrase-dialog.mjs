@@ -5,18 +5,26 @@ const knownWords=new Set(bip39Words);
 // Onboarding reference: Quorum Mobile FarcasterRecovery / ReimportSheet.
 // Invoked only after an explicit recovery / enable-publishing action.
 const strings={
- en:{title:'Import your Farcaster recovery phrase',subtitle:'Recover your Farcaster account and securely establish the same central OpenProof identity, with no extra registration.',label:'Farcaster recovery phrase (12 or 24 words)',placeholder:'Enter the recovery words in the correct order',privacy:'Your recovery phrase never leaves this device and is not stored. A fresh signed identity challenge—not your phrase—is sent to OpenProof to resolve or create your shared account. Only a separately authorized Ed25519 signer remains. Use a trusted device.',hint:'Use the recovery phrase for your Farcaster / Warpcast account — not your Genyleap or Quorum account.',cancel:'Cancel',import:'Import and authorize',invalid:'Enter exactly 12 or 24 recovery words.',close:'Close'},
- fa:{title:'بازیابی حساب فارکستر',subtitle:'حساب فارکستر را بازیابی کنید؛ جنی‌کستر با امضای امن، همان حساب مرکزی OpenProof را هم بدون ثبت‌نام جداگانه پیدا یا ایجاد می‌کند.',label:'عبارت بازیابی فارکستر (۱۲ یا ۲۴ کلمه)',placeholder:'کلمات بازیابی را به ترتیب وارد کنید',privacy:'عبارت بازیابی هرگز ارسال یا ذخیره نمی‌شود. فقط یک چالش تازه با کلید محلی امضا می‌شود تا OpenProof حساب مرکزی را شناسایی یا ایجاد کند. کلید انتشار مستقل باقی می‌ماند. فقط روی دستگاه مطمئن ادامه دهید.',hint:'عبارت بازیابی حساب فارکستر را وارد کنید؛ نه عبارت حساب جنی‌لیپ یا کیف پول دیگری.',cancel:'انصراف',import:'ورود و فعال‌سازی',invalid:'عبارت بازیابی باید دقیقاً ۱۲ یا ۲۴ کلمه باشد.',close:'بستن'},
- de:{title:'Farcaster-Wiederherstellungsphrase importieren',subtitle:'Genycaster ohne Wallet-Erweiterung zum Veröffentlichen autorisieren.',label:'Farcaster-Wiederherstellungsphrase (12 oder 24 Wörter)',placeholder:'Wörter in der richtigen Reihenfolge eingeben',privacy:'Die Phrase wird nur auf diesem Gerät verarbeitet, nicht hochgeladen und nicht gespeichert. Nur ein separat autorisierter Signer bleibt erhalten.',hint:'Verwende die Farcaster-/Warpcast-Phrase, nicht die Genyleap-/Quorum-Phrase.',cancel:'Abbrechen',import:'Importieren und autorisieren',invalid:'Gib genau 12 oder 24 Wörter ein.',close:'Schließen'},
- ar:{title:'استيراد عبارة استرداد Farcaster',subtitle:'السماح بالنشر من Genycaster دون فتح إضافة محفظة.',label:'عبارة Farcaster المكوّنة من 12 أو 24 كلمة',placeholder:'أدخل الكلمات بالترتيب الصحيح',privacy:'تُعالج العبارة على جهازك فقط؛ لا تُرفع ولا تُحفظ. سيُحتفظ فقط بمفتاح توقيع مستقل مُصرّح به.',hint:'استخدم عبارة Farcaster / Warpcast وليس Genyleap أو Quorum.',cancel:'إلغاء',import:'استيراد وتفويض',invalid:'أدخل 12 أو 24 كلمة بالضبط.',close:'إغلاق'},
- fr:{title:'Importer la phrase de récupération Farcaster',subtitle:'Autoriser Genycaster à publier sans ouvrir de portefeuille externe.',label:'Phrase de récupération (12 ou 24 mots)',placeholder:'Saisir les mots dans le bon ordre',privacy:'Votre phrase est traitée uniquement sur cet appareil, jamais envoyée ni stockée. Seule une clé de signature autorisée est conservée.',hint:'Utilisez la phrase Farcaster / Warpcast, pas celle de Genyleap / Quorum.',cancel:'Annuler',import:'Importer et autoriser',invalid:'Saisissez 12 ou 24 mots exactement.',close:'Fermer'},
- es:{title:'Importar frase de recuperación de Farcaster',subtitle:'Autoriza a Genycaster a publicar sin abrir una extensión de cartera.',label:'Frase de recuperación de 12 o 24 palabras',placeholder:'Escribe las palabras en orden',privacy:'La frase solo se procesa en este dispositivo; no se envía ni se guarda. Solo se conserva un firmante autorizado.',hint:'Usa la frase de Farcaster / Warpcast, no la de Genyleap / Quorum.',cancel:'Cancelar',import:'Importar y autorizar',invalid:'Introduce exactamente 12 o 24 palabras.',close:'Cerrar'},
- pt:{title:'Importar frase de recuperação Farcaster',subtitle:'Autorize o Genycaster a publicar sem abrir uma extensão de carteira.',label:'Frase de 12 ou 24 palavras',placeholder:'Digite as palavras na ordem correta',privacy:'Sua frase é processada apenas neste dispositivo; não é enviada nem armazenada. Só permanece uma chave de assinatura autorizada.',hint:'Use a frase do Farcaster / Warpcast, não do Genyleap / Quorum.',cancel:'Cancelar',import:'Importar e autorizar',invalid:'Digite exatamente 12 ou 24 palavras.',close:'Fechar'},
- ru:{title:'Импорт фразы восстановления Farcaster',subtitle:'Разрешите публикацию из Genycaster без расширения кошелька.',label:'Фраза восстановления (12 или 24 слова)',placeholder:'Введите слова по порядку',privacy:'Фраза обрабатывается только на этом устройстве и не передается и не сохраняется. Остается лишь отдельный разрешенный ключ подписи.',hint:'Используйте фразу Farcaster / Warpcast, а не Genyleap / Quorum.',cancel:'Отмена',import:'Импорт и разрешение',invalid:'Введите ровно 12 или 24 слова.',close:'Закрыть'},
- ja:{title:'Farcaster のリカバリーフレーズをインポート',subtitle:'外部ウォレットを開かずに Genycaster で投稿を有効にします。',label:'リカバリーフレーズ（12 または 24 語）',placeholder:'正しい順序で入力',privacy:'フレーズはこの端末のみで処理され、送信も保存もされません。承認済みの署名鍵だけを保持します。',hint:'Genyleap / Quorum ではなく Farcaster / Warpcast のフレーズを使用してください。',cancel:'キャンセル',import:'インポートして承認',invalid:'12 または 24 語を入力してください。',close:'閉じる'},
- ko:{title:'Farcaster 복구 구문 가져오기',subtitle:'외부 지갑을 열지 않고 Genycaster 게시 권한을 설정합니다.',label:'복구 구문 (12 또는 24개 단어)',placeholder:'단어를 순서대로 입력',privacy:'구문은 이 기기에서만 처리하며 전송하거나 저장하지 않습니다. 승인된 서명 키만 남습니다.',hint:'Genyleap / Quorum이 아닌 Farcaster / Warpcast의 복구 구문을 사용하세요.',cancel:'취소',import:'가져와서 승인',invalid:'12개 또는 24개의 단어를 입력하세요.',close:'닫기'},
- zh:{title:'导入 Farcaster 恢复短语',subtitle:'无需打开外部钱包扩展，即可授权 Genycaster 发布内容。',label:'恢复短语（12 或 24 个单词）',placeholder:'按正确顺序输入单词',privacy:'短语只在本设备处理，不上传也不保存。仅保留独立授权的签名密钥。',hint:'请使用 Farcaster / Warpcast 恢复短语，而非 Genyleap / Quorum。',cancel:'取消',import:'导入并授权',invalid:'请准确输入 12 或 24 个单词。',close:'关闭'},
- hi:{title:'Farcaster रिकवरी वाक्यांश आयात करें',subtitle:'बाहरी वॉलेट खोले बिना Genycaster में प्रकाशन अधिकृत करें।',label:'रिकवरी वाक्यांश (12 या 24 शब्द)',placeholder:'शब्द सही क्रम में दर्ज करें',privacy:'यह वाक्यांश केवल इसी डिवाइस पर संसाधित होता है; न अपलोड होता है, न संग्रहीत। केवल अधिकृत साइनर कुंजी रहती है।',hint:'Genyleap / Quorum नहीं, Farcaster / Warpcast वाला वाक्यांश इस्तेमाल करें।',cancel:'रद्द करें',import:'आयात और अधिकृत करें',invalid:'ठीक 12 या 24 शब्द दर्ज करें।',close:'बंद करें'},
+ en:{title:'Import your Farcaster recovery phrase',subtitle:'Recover your Farcaster account and securely establish the same central OpenProof identity, with no extra registration.',label:'Farcaster recovery phrase (24 words)',placeholder:'Enter the recovery words in the correct order',privacy:'Your recovery phrase never leaves this device and is not stored. A fresh signed identity challenge—not your phrase—is sent to OpenProof to resolve or create your shared account. Only a separately authorized Ed25519 signer remains. Use a trusted device.',hint:'Use the recovery phrase for your Farcaster / Warpcast account — not your Genyleap or Quorum account.',cancel:'Cancel',import:'Import and authorize',invalid:'Enter exactly 24 recovery words.',close:'Close'},
+ fa:{title:'بازیابی حساب فارکستر',subtitle:'حساب فارکستر را بازیابی کنید؛ جنی‌کستر با امضای امن، همان حساب مرکزی OpenProof را هم بدون ثبت‌نام جداگانه پیدا یا ایجاد می‌کند.',label:'عبارت بازیابی فارکستر (۲۴ واژه)',placeholder:'کلمات بازیابی را به ترتیب وارد کنید',privacy:'عبارت بازیابی هرگز ارسال یا ذخیره نمی‌شود. فقط یک چالش تازه با کلید محلی امضا می‌شود تا OpenProof حساب مرکزی را شناسایی یا ایجاد کند. کلید انتشار مستقل باقی می‌ماند. فقط روی دستگاه مطمئن ادامه دهید.',hint:'عبارت بازیابی حساب فارکستر را وارد کنید؛ نه عبارت حساب جنی‌لیپ یا کیف پول دیگری.',cancel:'انصراف',import:'ورود و فعال‌سازی',invalid:'عبارت بازیابی باید دقیقاً ۲۴ واژه باشد.',close:'بستن'},
+ de:{title:'Farcaster-Wiederherstellungsphrase importieren',subtitle:'Genycaster ohne Wallet-Erweiterung zum Veröffentlichen autorisieren.',label:'Farcaster-Wiederherstellungsphrase (24 Wörter)',placeholder:'Wörter in der richtigen Reihenfolge eingeben',privacy:'Die Phrase wird nur auf diesem Gerät verarbeitet, nicht hochgeladen und nicht gespeichert. Nur ein separat autorisierter Signer bleibt erhalten.',hint:'Verwende die Farcaster-/Warpcast-Phrase, nicht die Genyleap-/Quorum-Phrase.',cancel:'Abbrechen',import:'Importieren und autorisieren',invalid:'Gib genau 24 Wörter ein.',close:'Schließen'},
+ ar:{title:'استيراد عبارة استرداد Farcaster',subtitle:'السماح بالنشر من Genycaster دون فتح إضافة محفظة.',label:'عبارة Farcaster المكوّنة من 24 كلمة',placeholder:'أدخل الكلمات بالترتيب الصحيح',privacy:'تُعالج العبارة على جهازك فقط؛ لا تُرفع ولا تُحفظ. سيُحتفظ فقط بمفتاح توقيع مستقل مُصرّح به.',hint:'استخدم عبارة Farcaster / Warpcast وليس Genyleap أو Quorum.',cancel:'إلغاء',import:'استيراد وتفويض',invalid:'أدخل 24 كلمة بالضبط.',close:'إغلاق'},
+ fr:{title:'Importer la phrase de récupération Farcaster',subtitle:'Autoriser Genycaster à publier sans ouvrir de portefeuille externe.',label:'Phrase de récupération (24 mots)',placeholder:'Saisir les mots dans le bon ordre',privacy:'Votre phrase est traitée uniquement sur cet appareil, jamais envoyée ni stockée. Seule une clé de signature autorisée est conservée.',hint:'Utilisez la phrase Farcaster / Warpcast, pas celle de Genyleap / Quorum.',cancel:'Annuler',import:'Importer et autoriser',invalid:'Saisissez exactement 24 mots.',close:'Fermer'},
+ es:{title:'Importar frase de recuperación de Farcaster',subtitle:'Autoriza a Genycaster a publicar sin abrir una extensión de cartera.',label:'Frase de recuperación de 24 palabras',placeholder:'Escribe las palabras en orden',privacy:'La frase solo se procesa en este dispositivo; no se envía ni se guarda. Solo se conserva un firmante autorizado.',hint:'Usa la frase de Farcaster / Warpcast, no la de Genyleap / Quorum.',cancel:'Cancelar',import:'Importar y autorizar',invalid:'Introduce exactamente 24 palabras.',close:'Cerrar'},
+ pt:{title:'Importar frase de recuperação Farcaster',subtitle:'Autorize o Genycaster a publicar sem abrir uma extensão de carteira.',label:'Frase de 24 palavras',placeholder:'Digite as palavras na ordem correta',privacy:'Sua frase é processada apenas neste dispositivo; não é enviada nem armazenada. Só permanece uma chave de assinatura autorizada.',hint:'Use a frase do Farcaster / Warpcast, não do Genyleap / Quorum.',cancel:'Cancelar',import:'Importar e autorizar',invalid:'Digite exatamente 24 palavras.',close:'Fechar'},
+ ru:{title:'Импорт фразы восстановления Farcaster',subtitle:'Разрешите публикацию из Genycaster без расширения кошелька.',label:'Фраза восстановления (24 слова)',placeholder:'Введите слова по порядку',privacy:'Фраза обрабатывается только на этом устройстве и не передается и не сохраняется. Остается лишь отдельный разрешенный ключ подписи.',hint:'Используйте фразу Farcaster / Warpcast, а не Genyleap / Quorum.',cancel:'Отмена',import:'Импорт и разрешение',invalid:'Введите ровно 24 слова.',close:'Закрыть'},
+ ja:{title:'Farcaster のリカバリーフレーズをインポート',subtitle:'外部ウォレットを開かずに Genycaster で投稿を有効にします。',label:'リカバリーフレーズ（24 語）',placeholder:'正しい順序で入力',privacy:'フレーズはこの端末のみで処理され、送信も保存もされません。承認済みの署名鍵だけを保持します。',hint:'Genyleap / Quorum ではなく Farcaster / Warpcast のフレーズを使用してください。',cancel:'キャンセル',import:'インポートして承認',invalid:'24 語を入力してください。',close:'閉じる'},
+ ko:{title:'Farcaster 복구 구문 가져오기',subtitle:'외부 지갑을 열지 않고 Genycaster 게시 권한을 설정합니다.',label:'복구 구문 (24개 단어)',placeholder:'단어를 순서대로 입력',privacy:'구문은 이 기기에서만 처리하며 전송하거나 저장하지 않습니다. 승인된 서명 키만 남습니다.',hint:'Genyleap / Quorum이 아닌 Farcaster / Warpcast의 복구 구문을 사용하세요.',cancel:'취소',import:'가져와서 승인',invalid:'24개의 단어를 입력하세요.',close:'닫기'},
+ zh:{title:'导入 Farcaster 恢复短语',subtitle:'无需打开外部钱包扩展，即可授权 Genycaster 发布内容。',label:'恢复短语（24 个单词）',placeholder:'按正确顺序输入单词',privacy:'短语只在本设备处理，不上传也不保存。仅保留独立授权的签名密钥。',hint:'请使用 Farcaster / Warpcast 恢复短语，而非 Genyleap / Quorum。',cancel:'取消',import:'导入并授权',invalid:'请准确输入 24 个单词。',close:'关闭'},
+ hi:{title:'Farcaster रिकवरी वाक्यांश आयात करें',subtitle:'बाहरी वॉलेट खोले बिना Genycaster में प्रकाशन अधिकृत करें।',label:'रिकवरी वाक्यांश (24 शब्द)',placeholder:'शब्द सही क्रम में दर्ज करें',privacy:'यह वाक्यांश केवल इसी डिवाइस पर संसाधित होता है; न अपलोड होता है, न संग्रहीत। केवल अधिकृत साइनर कुंजी रहती है।',hint:'Genyleap / Quorum नहीं, Farcaster / Warpcast वाला वाक्यांश इस्तेमाल करें।',cancel:'रद्द करें',import:'आयात और अधिकृत करें',invalid:'ठीक 24 शब्द दर्ज करें。',close:'बंद करें'},
+};
+
+const revealLabels={
+ en:'Show recovery words',fa:'نمایش کلمات بازیابی',ar:'إظهار كلمات الاسترداد',
+ de:'Wiederherstellungswörter anzeigen',fr:'Afficher les mots de récupération',
+ es:'Mostrar palabras de recuperación',pt:'Mostrar palavras de recuperação',
+ ru:'Показать слова восстановления',ja:'復元フレーズを表示',
+ ko:'복구 단어 표시',zh:'显示恢复词',hi:'रिकवरी शब्द दिखाएँ',
 };
 
 export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuthorize=null) {
@@ -75,18 +83,14 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         text('h2',s.title,'margin:0 0 9px;font-size:26px;font-weight:700','genycaster-recovery-title');
         text('p',s.subtitle,'margin:0 0 24px;color:'+muted+';line-height:1.5');
         text('p',s.label,'margin:0 0 12px;font-weight:600');
-        const chooser=document.createElement('div');
-        chooser.setAttribute('role','group');
-        chooser.setAttribute('aria-label',s.label);
-        chooser.style.cssText='display:flex;gap:8px;margin:0 0 16px';
+        // One fixed 24-word form on desktop, phone and WASM.
         const grid=document.createElement('div');
         grid.id='genycaster-recovery-words';
         grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;direction:ltr';
         const inputs=[];
-        let count=12;
+        let count=24;
         let pending=false, settled=false;
-        const modeButtons=[];
-        const cellList=[];
+         const cellList=[];
         const badStyle='border:2px solid #e45966;background:rgba(227,67,80,.09)';
         const plainStyle='border:1px solid '+outline+';background:'+inputSurface;
         const mark=(index,bad)=>{
@@ -105,7 +109,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             number.textContent=String(index+1).padStart(2,'0');
             number.style.cssText='color:'+muted+';font:600 12px ui-monospace,monospace;flex-shrink:0';
             const word=document.createElement('input');
-            word.type='text';word.autocomplete='off';word.autocapitalize='off';
+            word.type='password';word.autocomplete='off';word.autocapitalize='off';
             word.spellcheck=false;word.setAttribute('data-lpignore','true');
             word.setAttribute('aria-label',s.label+' '+(index+1));
             word.style.cssText='width:100%;min-width:0;background:transparent;border:0;outline:0;color:'+foreground+';font:16px system-ui;direction:ltr;touch-action:manipulation;-webkit-text-size-adjust:100%';
@@ -113,7 +117,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             inputs.push(word);cellList.push(cell);
             const pasteWords=(raw)=>{
                 const words=raw.trim().toLowerCase().split(/\s+/u).filter(Boolean);
-                const entirePhrase=words.length===12||words.length===24;
+                const entirePhrase=words.length===24;
                 if(entirePhrase)renderWords(words.length);
                 const offset=entirePhrase ? 0 : index;
                 for(let i=0;i<words.length&&offset+i<count;i++)
@@ -161,27 +165,37 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 inputs[i].value=snapshot[i]||'';
             }
             snapshot.fill('');
-            for(const item of modeButtons){
-                item.setAttribute('aria-pressed',String(Number(item.textContent)===number));
-                item.style.background=Number(item.textContent)===number?(light?'#17181c':'#f4f6ff'):'transparent';
-                item.style.color=Number(item.textContent)===number?(light?'#fff':'#17181c'):foreground;
-            }
+         };
+        body.appendChild(grid);
+        const revealRow=document.createElement('label');
+        revealRow.style.cssText='display:flex;align-items:center;gap:10px;margin:15px 0 10px;cursor:pointer;color:'+foreground+';font:500 14px system-ui';
+        const reveal=document.createElement('input');
+        reveal.type='checkbox';reveal.checked=false;
+        reveal.id='genycaster-recovery-reveal';
+        reveal.style.cssText='appearance:none;width:22px;height:22px;border:1px solid '+outline+';border-radius:6px;background:'+surface+';cursor:pointer;flex:none;margin:0';
+        const indicator=document.createElement('span');
+        indicator.textContent='✓';
+        indicator.setAttribute('aria-hidden','true');
+        indicator.style.cssText='position:absolute;opacity:0;color:'+surface+';font-size:15px;pointer-events:none';
+        const caption=document.createElement('span');
+        caption.textContent=revealLabels[lang]||revealLabels.en;
+        const updateReveal=()=>{
+            for(const field of inputs)field.type=reveal.checked?'text':'password';
+            reveal.style.background=reveal.checked?foreground:surface;
+            reveal.style.borderColor=reveal.checked?foreground:outline;
+            indicator.style.opacity=reveal.checked?'1':'0';
         };
-        for(const number of [12,24]){
-            const item=document.createElement('button');
-            item.type='button';item.textContent=String(number);
-            item.style.cssText='padding:8px 18px;border-radius:9px;border:1px solid '+outline+';font:600 14px system-ui;cursor:pointer';
-            item.addEventListener('click',()=>{
-                if(number!==count){renderWords(number);inputs[0]?.focus();}
-            });
-            modeButtons.push(item);chooser.appendChild(item);
-        }
-        body.appendChild(chooser);body.appendChild(grid);
+        reveal.addEventListener('change',updateReveal);
+        const checkBox=document.createElement('span');
+        checkBox.style.cssText='position:relative;display:inline-flex;align-items:center;justify-content:center';
+        checkBox.appendChild(reveal);checkBox.appendChild(indicator);
+        revealRow.appendChild(checkBox);revealRow.appendChild(caption);
+        body.appendChild(revealRow);
         const hint=text('p',s.hint,'font-size:13px;color:'+muted+';margin:12px 0 10px;line-height:1.5');
         const warning=text('p',s.privacy,'font-size:13px;color:'+muted+';line-height:1.55;margin:0 0 20px');
         const error=text('p','','color:#ff8e90;min-height:1.3em;margin:0 0 10px;font-size:13px');
         error.setAttribute('aria-live','polite');
-        renderWords(12);
+        renderWords(24);
         const actions=document.createElement('div');
         actions.style.cssText='display:flex;flex:0 0 auto;gap:10px;justify-content:flex-end;flex-wrap:wrap;min-width:0;background:'+surface+';padding:14px 0 2px;border-top:1px solid '+outline+';z-index:2';
         const button=(value,primary)=>{
@@ -201,6 +215,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             if(settled)return;
             settled=true;
             for(const word of inputs){word.value='';word.placeholder='';}
+            reveal.checked=false;
             signal?.removeEventListener('abort',dismiss);
             backdrop.removeEventListener('keydown',keydown);
             backdrop.remove();document.body.style.overflow=oldOverflow;
@@ -210,7 +225,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         const keydown=event=>{
             if(event.key==='Escape'){event.preventDefault();dismiss();}
             if(event.key==='Tab'){
-                const targets=[...modeButtons,...inputs,cancel,submit],current=targets.indexOf(document.activeElement);
+                const targets=[reveal,...inputs,cancel,submit],current=targets.indexOf(document.activeElement);
                 if(current>=0){event.preventDefault();
                     targets[(current+(event.shiftKey?targets.length-1:1))%targets.length].focus();}
             }

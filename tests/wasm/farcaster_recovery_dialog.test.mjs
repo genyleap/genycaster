@@ -38,22 +38,29 @@ function browser(secure=true) {
     return {document:new FakeDocument(),isSecureContext:secure,
         navigator:{language:'fa-IR'}};
 }
-test('secure browser presents numbered 12-word fields without persisting secrets',async()=>{
+test('secure browser presents 24 masked numbered fields without persisting secrets',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const overlay=b.document.getElementById('genycaster-farcaster-recovery');
     assert.ok(overlay);
     const sheet=overlay.children[0];
     assert.equal(sheet.dir,'rtl');
     const grid=b.document.getElementById('genycaster-recovery-words');
-    assert.equal(grid.children.length,12);
+    assert.equal(grid.children.length,24);
     const words=grid.children.map(cell=>cell.children[1]);
     assert.equal(words[0].attributes['aria-label'].endsWith('1'),true);
     assert.equal(words[0].autocomplete,'off');
     // iOS Safari auto-zooms focused form controls below 16 CSS pixels.
     assert.match(words[0].style.cssText,/font:16px system-ui/);
     assert.match(words[0].style.cssText,/touch-action:manipulation/);
-    const vector=('test '.repeat(11)+'junk').trim().split(' ');
-    for(let i=0;i<12;i++)words[i].value=vector[i];
+    assert.equal(words[0].type,'password');
+    const reveal=b.document.getElementById('genycaster-recovery-reveal');
+    assert.ok(reveal);
+    reveal.checked=true;reveal.dispatch('change');
+    assert.equal(words[0].type,'text');
+    reveal.checked=false;reveal.dispatch('change');
+    assert.equal(words[0].type,'password');
+    const vector=[...Array(23).fill('abandon'),'art'];
+    for(let i=0;i<24;i++)words[i].value=vector[i];
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();
     assert.equal(await result,vector.join(' '));
@@ -61,11 +68,10 @@ test('secure browser presents numbered 12-word fields without persisting secrets
     assert.equal(b.document.getElementById('genycaster-farcaster-recovery'),undefined);
     assert.equal(b.document.body.style.overflow,'');
 });
-test('toggle 24 words and paste recovery words in numbered order',async()=>{
+test('paste a complete 24-word phrase in numbered order',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
-    const chooser=sheet.children[0].children.find(item=>item.attributes?.role==='group');
-    chooser.children[1].click();
+  // Fixed 24-word mode has no 12/24 switcher.
     const grid=b.document.getElementById('genycaster-recovery-words');
     assert.equal(grid.children.length,24);
     const words=grid.children.map(cell=>cell.children[1]);
@@ -115,9 +121,9 @@ test('unknown BIP39 word is highlighted and can be fixed without closing dialog'
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
     const grid=b.document.getElementById('genycaster-recovery-words');
     const words=grid.children.map(cell=>cell.children[1]);
-    const vector=[...Array(11).fill('abandon'),'about'];
+    const vector=[...Array(23).fill('abandon'),'art'];
     vector[4]='notaword';
-    for(let i=0;i<12;i++)words[i].value=vector[i];
+    for(let i=0;i<24;i++)words[i].value=vector[i];
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();
     await settle();
@@ -127,7 +133,7 @@ test('unknown BIP39 word is highlighted and can be fixed without closing dialog'
     assert.ok(b.document.getElementById('genycaster-farcaster-recovery'));
     words[4].value='abandon';
     submit.click();
-    assert.equal(await result,[...Array(11).fill('abandon'),'about'].join(' '));
+    assert.equal(await result,[...Array(23).fill('abandon'),'art'].join(' '));
 });
 test('invalid checksum explains uncertainty, preserves fields, and allows retry',async()=>{
     const b=browser();
@@ -142,9 +148,9 @@ test('invalid checksum explains uncertainty, preserves fields, and allows retry'
     assert.match(error.textContent,/جمع کنترل|checksum/);
     assert.equal(words.every(word=>word.value==='abandon'),true);
     assert.equal(words.every(word=>word.attributes['aria-invalid']==='false'),true);
-    words[11].value='about';
+    words[23].value='art';
     submit.click();
-    assert.equal((await result).split(' ').length,12);
+    assert.equal((await result).split(' ').length,24);
 });
 test('network verification error never dismisses words and retry can succeed',async()=>{
     const b=browser();
@@ -157,7 +163,7 @@ test('network verification error never dismisses words and retry can succeed',as
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
     const grid=b.document.getElementById('genycaster-recovery-words');
     const words=grid.children.map(cell=>cell.children[1]);
-    [...Array(11).fill('abandon'),'about'].forEach((word,i)=>words[i].value=word);
+    [...Array(23).fill('abandon'),'art'].forEach((word,i)=>words[i].value=word);
     const submit=sheet.children.at(-1).children.at(-1);
     submit.click();await settle();
     assert.equal(attempted,1);
@@ -194,7 +200,7 @@ test('recovery drawer distinguishes custody ownership and signer failures withou
         const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];
         const grid=b.document.getElementById('genycaster-recovery-words');
         const words=grid.children.map(cell=>cell.children[1]);
-        [...Array(11).fill('abandon'),'about'].forEach((word,i)=>words[i].value=word);
+        [...Array(23).fill('abandon'),'art'].forEach((word,i)=>words[i].value=word);
         const submit=sheet.children.at(-1).children.at(-1);
         submit.click();
         await settle();

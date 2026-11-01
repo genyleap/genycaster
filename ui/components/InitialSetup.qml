@@ -1218,44 +1218,166 @@ Item {
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
                 }
-                TextField {
-                    id: recoveryField
+                DirectionAwareLabel {
                     Layout.fillWidth: true
-                    maximumLength: 4095
-                    echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
-                    inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
-                    placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
-                    enabled: !root.authenticationInProgress
-                    implicitHeight: 58
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeLabelSize
-                    leftPadding: Theme.space3
-                    rightPadding: Theme.space3
-                    onVisibleChanged: if (!visible) clear()
-                    Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
-                    background: Superellipse {
-                        fillColor: Theme.surface
-                        borderWidth: recoveryField.activeFocus ? 2 : Theme.strokeStandard
-                        borderColor: recoveryField.activeFocus ? Theme.focus : Theme.borderMuted
-                        curveDepth: Theme.curveControl
+                    text: qsTrId("genycaster.setup.native_recovery_placeholder")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                Item {
+                    id: nativeRecoveryGrid
+                    objectName: "nativeRecoveryWordGrid"
+                    Layout.fillWidth: true
+                    implicitHeight: recoveryWordLayout.implicitHeight
+                    property bool distributing: false
+                    function clearAll() {
+                        for (let i = 0; i < 24; ++i) {
+                            const field = recoveryWordRepeater.itemAt(i)
+                            if (field) field.clear()
+                        }
+                        revealWords.checked = false
+                    }
+                    function countWords() {
+                        let result = 0
+                        for (let i = 0; i < 24; ++i) {
+                            const field = recoveryWordRepeater.itemAt(i)
+                            if (field && field.text.trim().length > 0) ++result
+                        }
+                        return result
+                    }
+                    function phrase() {
+                        let result = []
+                        for (let i = 0; i < 24; ++i) {
+                            const field = recoveryWordRepeater.itemAt(i)
+                            if (field) result.push(field.text.trim().toLowerCase())
+                        }
+                        const text = result.join(" ")
+                        result.fill("")
+                        return text
+                    }
+                    function distribute(raw, offset) {
+                        const words = String(raw).trim().toLowerCase().split(/\s+/).filter(Boolean)
+                        if (words.length === 0) return
+                        distributing = true
+                        const start = words.length === 24 ? 0 : offset
+                        for (let i = 0; i < words.length && start + i < 24; ++i) {
+                            const field = recoveryWordRepeater.itemAt(start + i)
+                            if (field) field.text = words[i].replace(/[^a-z]/g, "")
+                        }
+                        const pastedCount = words.length
+                        words.fill("")
+                        distributing = false
+                        if (start === 0 && countWords() === 24) revealWords.forceActiveFocus()
+                        else recoveryWordRepeater.itemAt(Math.min(23, start + pastedCount))?.forceActiveFocus()
+                    }
+                    onVisibleChanged: if (!visible) clearAll()
+                    GridLayout {
+                        id: recoveryWordLayout
+                        width: parent.width
+                        columns: root.phone ? 2 : 4
+                        columnSpacing: Theme.space2
+                        rowSpacing: Theme.space2
+                        layoutDirection: Qt.LeftToRight
+                        Repeater {
+                            id: recoveryWordRepeater
+                            model: 24
+                            delegate: TextField {
+                                id: wordField
+                                required property int index
+                                objectName: "nativeRecoveryWord" + (index + 1)
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: root.phone ? 100 : 112
+                                implicitHeight: 48
+                                maximumLength: 4095
+                                echoMode: revealWords.checked ? TextInput.Normal : TextInput.Password
+                                inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                                enabled: !root.authenticationInProgress && !root.recoverySubmitPending
+                                horizontalAlignment: TextInput.AlignLeft
+                                color: Theme.ink
+                                font.pixelSize: 15
+                                leftPadding: Theme.space3
+                                rightPadding: Theme.space2
+                                placeholderText: String(index + 1).padStart(2, "0")
+                                Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+                                                 + " " + (index + 1)
+                                background: Superellipse {
+                                    fillColor: Theme.surface
+                                    borderWidth: wordField.activeFocus ? 2 : Theme.strokeStandard
+                                    borderColor: wordField.activeFocus ? Theme.focus : Theme.borderMuted
+                                    curveDepth: Theme.curveControl
+                                }
+                                onTextEdited: {
+                                    if (nativeRecoveryGrid.distributing) return
+                                    if (/\s/.test(text))
+                                        nativeRecoveryGrid.distribute(text, index)
+                                    else
+                                        text = text.toLowerCase().replace(/[^a-z]/g, "")
+                                }
+                                Keys.onPressed: function(event) {
+                                    if ((event.key === Qt.Key_Space || event.key === Qt.Key_Return)
+                                        && index < 23) {
+                                        recoveryWordRepeater.itemAt(index + 1)?.forceActiveFocus()
+                                        event.accepted = true
+                                    } else if (event.key === Qt.Key_Backspace && !text && index > 0) {
+                                        recoveryWordRepeater.itemAt(index - 1)?.forceActiveFocus()
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                CheckBox {
+                Button {
                     id: revealWords
-                    text: qsTrId("genycaster.setup.show_recovery_words")
+                    objectName: "nativeRecoveryRevealWords"
+                    checkable: true
+                    checked: false
+                    hoverEnabled: true
+                    focusPolicy: Qt.StrongFocus
+                    Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                    implicitWidth: revealContent.implicitWidth + Theme.space2
+                    implicitHeight: 44
+                    Accessible.role: Accessible.CheckBox
+                    Accessible.name: qsTrId("genycaster.setup.show_recovery_words")
+                    Accessible.checked: checked
                     onVisibleChanged: if (!visible) checked = false
+                    background: Item {}
+                    contentItem: RowLayout {
+                        id: revealContent
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Superellipse {
+                            Layout.preferredWidth: 23
+                            Layout.preferredHeight: 23
+                            fillColor: revealWords.checked ? Theme.ink : Theme.surface
+                            borderColor: revealWords.activeFocus ? Theme.focus : Theme.borderMuted
+                            borderWidth: revealWords.activeFocus ? 2 : 1
+                            curveDepth: 6
+                            Icon {
+                                anchors.centerIn: parent
+                                visible: revealWords.checked
+                                text: Theme.iconCheck
+                                color: Theme.surface
+                                preferredSize: 15
+                            }
+                        }
+                        DirectionAwareLabel {
+                            text: qsTrId("genycaster.setup.show_recovery_words")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.ink
+                        }
+                    }
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true
                     neutralPrimary: true
                     text: qsTrId("genycaster.setup.recovery_button")
                     enabled: root.runtimeReady && !root.authenticationInProgress
-                          && (recoveryField.text.trim().split(/\s+/).length === 12
-                              || recoveryField.text.trim().split(/\s+/).length === 24)
+                          && !root.recoverySubmitPending
+                          && nativeRecoveryGrid.countWords() === 24
                     onClicked: {
-                        let words = recoveryField.text
-                        recoveryField.clear()
-                        revealWords.checked = false
+                        let words = nativeRecoveryGrid.phrase()
+                        nativeRecoveryGrid.clearAll()
                         root.recoverySubmitPending = true
                         root.nativeRecoverAccount(words)
                         root.switchStep(5)

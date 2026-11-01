@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>Digite suas palavras de recuperação do Farcaster durante a configuração. O Genycaster verifica a posse no Optimism e autoriza uma chave de assinatura para publicar.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Use sua frase de recuperação Farcaster de 12 ou 24 palavras apenas em um dispositivo confiável e site HTTPS. Ela nunca é enviada nem armazenada.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Use apenas sua frase de recuperação Farcaster de 24 palavras em um dispositivo confiável e site HTTPS. Ela nunca é enviada ou armazenada.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>As palavras de recuperação permanecem neste dispositivo. Apenas o endereço público de custódia e uma prova assinada de uso único são enviados. Use teclado e área de transferência confiáveis.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>Digite suas 12 ou 24 palavras de recuperação</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>Digite suas 24 palavras de recuperação na ordem</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

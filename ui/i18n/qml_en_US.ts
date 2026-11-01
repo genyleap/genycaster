@@ -5642,8 +5642,8 @@ Company | https://company.com</translation>
             <translation>Enter your Farcaster recovery words during setup. Genycaster verifies ownership on Optimism and authorizes a publishing signer.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6362,8 +6362,8 @@ Company | https://company.com</translation>
             <translation>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>Enter your 12 or 24 recovery words</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>Enter your 24 recovery words in order</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

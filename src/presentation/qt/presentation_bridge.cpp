@@ -2802,9 +2802,24 @@ void PresentationBridge::beginRecoverySetup()
 
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
+    // Count without allocating another copy of sensitive recovery material.
+    // All native entry points (desktop, Android, iOS) accept 24 words only.
+    const auto exactly24Words = [](const QString& phrase) {
+        int count{0};
+        bool inWord{false};
+        for (const QChar character : phrase) {
+            if (character.isSpace()) {
+                inWord = false;
+            } else if (!inWord) {
+                if (++count > 24) return false;
+                inWord = true;
+            }
+        }
+        return count == 24;
+    };
     if (!m_legalConsentAccepted || !m_runtimeReady || m_isAuthenticated
-        || authenticationBusy() || recoveryWords.isEmpty()
-        || recoveryWords.size() > 4095) {
+        || authenticationBusy() || recoveryWords.size() > 4095
+        || !exactly24Words(recoveryWords)) {
         recoveryWords.fill(QChar{char16_t{0}});
         if (!m_legalConsentAccepted)
             applyAuthenticationError(qtTrId("genycaster.setup.legal_required_before_sign_in"));

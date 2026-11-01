@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>أدخل كلمات استرداد Farcaster أثناء الإعداد. يتحقق Genycaster من الملكية على Optimism ويمنح صلاحية التوقيع للنشر.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>استخدم عبارة استرداد Farcaster المكونة من 12 أو 24 كلمة على جهاز موثوق وموقع HTTPS فقط. لن تُرفع العبارة أو تُخزّن.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>استخدم فقط عبارة استرداد Farcaster المكوّنة من 24 كلمة على جهاز موثوق وموقع HTTPS. لا تُرفع العبارة ولا تُخزّن.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>تبقى كلمات الاسترداد على هذا الجهاز. لا يُرسل سوى عنوان الحفظ العام وإثبات موقّع يُستخدم مرة واحدة. استخدم لوحة مفاتيح وحافظة موثوقتين.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>أدخل 12 أو 24 كلمة استرداد</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>أدخل كلمات الاسترداد الـ24 بالترتيب</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

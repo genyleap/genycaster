@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>Gib beim Einrichten deine Farcaster-Wiederherstellungswörter ein. Genycaster prüft das Eigentum auf Optimism und autorisiert einen Signaturschlüssel zum Veröffentlichen.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Verwende deine Farcaster-Wiederherstellungsphrase mit 12 oder 24 Wörtern nur auf einem vertrauenswürdigen Gerät und einer HTTPS-Seite. Sie wird weder hochgeladen noch gespeichert.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>Verwende nur deine 24-Wörter-Farcaster-Wiederherstellungsphrase auf einem vertrauenswürdigen Gerät und einer HTTPS-Seite. Die Phrase wird weder hochgeladen noch gespeichert.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>Die Wiederherstellungswörter bleiben auf diesem Gerät. Nur die öffentliche Custody-Adresse und ein einmalig signierter Nachweis werden gesendet. Nutze eine vertrauenswürdige Tastatur und Zwischenablage.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>Gib deine 12 oder 24 Wiederherstellungswörter ein</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>Gib deine 24 Wiederherstellungswörter ein</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

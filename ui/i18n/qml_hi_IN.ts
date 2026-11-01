@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>सेटअप के दौरान Farcaster के रिकवरी शब्द दर्ज करें। Genycaster Optimism पर स्वामित्व सत्यापित करके पोस्ट करने की हस्ताक्षर कुंजी अधिकृत करता है।</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Farcaster के 12 या 24 रिकवरी शब्द केवल विश्वसनीय डिवाइस और HTTPS साइट पर डालें। ये न अपलोड होते हैं, न सहेजे जाते हैं।</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>केवल भरोसेमंद डिवाइस और HTTPS साइट पर अपनी 24-शब्दों की Farcaster रिकवरी फ़्रेज़ उपयोग करें। यह फ़्रेज़ कभी अपलोड या सेव नहीं होती।</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>रिकवरी शब्द इस डिवाइस पर ही रहते हैं। केवल सार्वजनिक कस्टडी पता और एक बार इस्तेमाल होने वाला हस्ताक्षरित प्रमाण भेजा जाता है। भरोसेमंद कीबोर्ड और क्लिपबोर्ड इस्तेमाल करें।</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>अपने 12 या 24 रिकवरी शब्द दर्ज करें</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>अपने 24 रिकवरी शब्द क्रम से दर्ज करें</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

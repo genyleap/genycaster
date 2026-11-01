@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>在设置过程中输入 Farcaster 恢复词。Genycaster 会在 Optimism 上验证所有权，并授权用于发帖的签名密钥。</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>请仅在可信设备和 HTTPS 网站上输入 Farcaster 的 12 或 24 个恢复词。恢复词不会上传或存储。</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>请仅在可信设备及 HTTPS 网站上使用您的 24 词 Farcaster 恢复短语。短语不会上传或保存。</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>恢复助记词保留在本设备上。仅发送公开托管地址和一次性签名证明。请使用可信的键盘与剪贴板。</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>输入 12 或 24 个恢复助记词</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>按顺序输入您的 24 个恢复词</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

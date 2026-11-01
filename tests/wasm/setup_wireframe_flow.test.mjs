@@ -30,7 +30,7 @@ test('Setup allows return and review without resetting the account', () => {
 test('existing authentication and secure recovery stay connected to the bridge', () => {
   for(const s of ['root.continueWithGenyleap()', 'root.continueWithFarcaster()',
                   'root.nativeRecoverAccount(words)','root.openApproval()',
-                  'root.cancelAuthentication()','recoveryField.clear()'])
+                  'root.cancelAuthentication()','nativeRecoveryGrid.clearAll()'])
     assert.ok(setup.includes(s),s);
   assert.match(setup, /Qt.ImhSensitiveData/);
   assert.match(shell, /presentationBridge.beginNativeRecoverySetup\(recoveryWords\)/);
@@ -70,6 +70,28 @@ test('new-account registration is muted, clearly unavailable, and never clickabl
   assert.match(source('ui/i18n/qml_fa_IR.ts'),/<translation>فعلاً غیرفعال<\/translation>/);
 });
 
+test('native desktop and mobile recovery use 24 styled secret word slots', () => {
+  const bridge=source('src/presentation/qt/presentation_bridge.cpp');
+  assert.match(setup,/id: nativeRecoveryGrid/);
+  assert.match(setup,/objectName: "nativeRecoveryWordGrid"/);
+  assert.match(setup,/id: recoveryWordRepeater\s+model: 24/);
+  assert.match(setup,/columns: root.phone \? 2 : 4/);
+  assert.match(setup,/nativeRecoveryGrid\.countWords\(\) === 24/);
+  assert.match(setup,/nativeRecoveryGrid\.distribute\(text, index\)/);
+  assert.match(setup,/id: revealWords\s+objectName: "nativeRecoveryRevealWords"/);
+  assert.match(setup,/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(setup,/fillColor: revealWords\.checked \? Theme\.ink : Theme\.surface/);
+  assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
+  assert.match(bridge,/const auto exactly24Words = \[\]/);
+  assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translation=source('ui/i18n/qml_'+locale+'.ts');
+    assert.match(translation,/<message id="genycaster.setup.native_recovery_placeholder">/);
+    assert.match(translation,/<source>Enter your 24 recovery words in order<\/source>/);
+  }
+});
+
 test('shared theme, native project icons and all three theme modes are present', () => {
   assert.match(setup, /qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg/);
   for(const token of ['Theme.accent','Theme.accentInk','Theme.ink',
@@ -94,7 +116,7 @@ test('recovery phrase stays in the correct platform UI until verification really
   assert.match(setup,/root\.recoverAccount\(\)/);
   assert.match(setup,/authenticationRoute === "recovery" && browserReadOnly && !authenticated/);
   assert.match(setup,/root\.nativeRecoverAccount\(words\)/);
-  assert.match(setup,/recoveryField\.clear\(\)/);
+  assert.match(setup,/nativeRecoveryGrid\.clearAll\(\)/);
   assert.match(setup,/running: root\.verifyingBusy \|\| root\.recoverySubmitPending/);
   assert.match(setup,/onAuthenticationErrorTextChanged:/);
   assert.match(dialog,/id='genycaster-farcaster-recovery'/);

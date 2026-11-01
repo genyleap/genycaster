@@ -5642,8 +5642,8 @@ Company | https://company.com</source>
             <translation>با واژه‌های بازیابی می‌توانید مالکیت حساب را تأیید کنید.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>واژه‌های بازیابی فقط روی دستگاه شما بررسی می‌شوند و ذخیره نمی‌شوند.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>فقط عبارت بازیابی ۲۴ واژه‌ای فارکستر را در دستگاه مطمئن و سایت HTTPS وارد کنید. این عبارت هرگز ارسال یا ذخیره نمی‌شود.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6362,8 +6362,8 @@ Company | https://company.com</source>
             <translation>واژه‌های بازیابی روی همین دستگاه می‌مانند. فقط آدرس عمومی مالکیت و گواه امضاشدهٔ یک‌بارمصرف ارسال می‌شوند. از صفحه‌کلید و کلیپ‌بورد مطمئن استفاده کنید.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>۱۲ یا ۲۴ واژهٔ بازیابی خود را وارد کنید</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>۲۴ واژهٔ بازیابی را به‌ترتیب وارد کنید</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>

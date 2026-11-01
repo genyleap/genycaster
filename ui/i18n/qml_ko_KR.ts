@@ -5621,8 +5621,8 @@ Company | https://company.com</source>
             <translation>설정 중 Farcaster 복구 단어를 입력하세요. Genycaster가 Optimism에서 소유권을 확인하고 게시용 서명 키를 승인합니다.</translation>
         </message>
         <message id="genycaster.setup.recovery_privacy">
-            <source>Use only your Farcaster 12- or 24-word recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
-            <translation>Farcaster의 12개 또는 24개 복구 단어는 신뢰할 수 있는 기기와 HTTPS 사이트에서만 입력하세요. 업로드하거나 저장하지 않습니다.</translation>
+            <source>Use only your 24-word Farcaster recovery phrase on a trusted device and HTTPS site. The phrase is never uploaded or stored.</source>
+            <translation>신뢰할 수 있는 기기와 HTTPS 사이트에서 Farcaster 24단어 복구 구문만 사용하세요. 구문은 업로드하거나 저장하지 않습니다.</translation>
         </message>
         <message id="genycaster.setup.recovery_button">
             <source>Continue with recovery words</source>
@@ -6361,8 +6361,8 @@ Company | https://company.com</source>
             <translation>복구 구문은 이 기기에만 보관됩니다. 공개 커스터디 주소와 일회성 서명 증명만 전송됩니다. 신뢰할 수 있는 키보드와 클립보드를 사용하세요.</translation>
         </message>
         <message id="genycaster.setup.native_recovery_placeholder">
-            <source>Enter your 12 or 24 recovery words</source>
-            <translation>12개 또는 24개의 복구 단어 입력</translation>
+            <source>Enter your 24 recovery words in order</source>
+            <translation>24개의 복구 단어를 순서대로 입력하세요</translation>
         </message>
         <message id="genycaster.setup.show_recovery_words">
             <source>Show recovery words</source>
