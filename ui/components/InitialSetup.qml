@@ -733,7 +733,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "Genycaster v" + (Qt.application.version || "1.0.0") + "-rc1"
+                    text: "Genycaster v" + (Qt.application.version || "1.0.0-rc1")
                     color: Theme.dark ? "#A3B8CB" : "#AFC5D9"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 11
