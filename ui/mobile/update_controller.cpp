@@ -46,7 +46,7 @@ bool safeDigest(const QString& digest)
 
 // A release candidate is newer than an earlier RC but older than the stable
 // release with the same three numeric components. QVersionNumber alone ignores
-// suffixes and would otherwise treat 1.0.0-rc1 as identical to 1.0.0.
+// prerelease suffixes and would otherwise treat a candidate as its stable release.
 struct ReleaseVersion {
     QVersionNumber core{};
     int candidate{0};  // 0 means stable; >0 means rcN
