@@ -94,7 +94,7 @@ Rectangle {
                 }
 
                 // The release identifier remains LTR and stable in every locale.
-                // CMake owns the numeric version; this candidate is rc1.
+                // The complete semantic release version comes from CMake via Qt.application.
                 Text {
                     objectName: "appHeaderReleaseVersion"
                     width: parent.width
