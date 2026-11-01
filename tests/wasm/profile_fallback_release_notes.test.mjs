@@ -7,6 +7,12 @@ import {join} from 'node:path';
 
 const root=new URL('../../',import.meta.url);
 const read=file=>readFileSync(new URL(file,root),'utf8');
+const rootCmake=read('CMakeLists.txt');
+const numericVersion=rootCmake.match(/project\(\s*Genycaster\s+VERSION\s+(\d+\.\d+\.\d+)/)?.[1];
+const candidate=rootCmake.match(/set\(GENYCASTER_RELEASE_CANDIDATE\s+"(rc[1-9]\d*)"/)?.[1];
+assert.ok(numericVersion&&candidate,'CMake must declare product and candidate versions');
+const releaseVersion=numericVersion+'-'+candidate;
+const releaseLabel='Genycaster v'+releaseVersion;
 
 test('supplementary totals require consent and cannot replace source identity',()=>{
   const gateway=read('src/routing/read_async_gateway.cpp');
@@ -26,17 +32,20 @@ test('wasm manifest carries curated real update type and bounded changes',()=>{
   try{
     writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
     for(const name of ['farcaster_client.html','qtloader.js','farcaster_client.js','genycaster-loader.js','genycaster-sw.js'])
-      writeFileSync(join(dir,name),'test-'+name);
+      writeFileSync(join(dir,name),name==='farcaster_client.html' ? '<title>@@GENYCASTER_RELEASE_LABEL@@</title><span>@@GENYCASTER_RELEASE_LABEL@@</span>' : 'test-'+name);
     const args=[new URL('../../ci/package_wasm_assets.py',import.meta.url).pathname,
-      '--dir',dir,'--app-version','1.0.0-rc1','--release-label','Genycaster v1.0.0-rc1',
-      '--release-notes',new URL('../../release-notes/v1.0.0-rc1.md',import.meta.url).pathname];
+      '--dir',dir,'--app-version',releaseVersion,'--release-label',releaseLabel,
+      '--release-notes',new URL('../../release-notes/v'+releaseVersion+'.md',import.meta.url).pathname];
     const p=spawnSync('python3',args,{encoding:'utf8'});
     assert.equal(p.status,0,p.stderr);
     const metadata=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
     assert.equal(metadata.releaseNotes.type,'feature');
     assert.ok(metadata.releaseNotes.changes.length>=2);
-    assert.equal(metadata.releaseNotes.title,'Genycaster v1.0.0-rc1');
-    assert.equal(metadata.appVersion,'1.0.0-rc1');
+    assert.equal(metadata.releaseNotes.title,releaseLabel);
+    assert.equal(metadata.appVersion,releaseVersion);
+    const rendered=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+    assert.equal(rendered.split(releaseLabel).length-1,2);
+    assert.doesNotMatch(rendered,/@@GENYCASTER_RELEASE_LABEL@@/);
     assert.match(metadata.version,/^[a-f0-9]{20}$/);
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
