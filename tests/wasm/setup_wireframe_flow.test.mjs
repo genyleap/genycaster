@@ -76,7 +76,10 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(setup,/objectName: "nativeRecoveryWordGrid"/);
   assert.match(setup,/id: recoveryWordRepeater\s+model: 24/);
   assert.match(setup,/columns: root.phone \? 2 : 4/);
-  assert.match(setup,/nativeRecoveryGrid\.countWords\(\) === 24/);
+  assert.match(setup,/nativeRecoveryGrid\.completeWordCount === 24/);
+  assert.match(setup,/property int completeWordCount: 0/);
+  assert.match(setup,/onTextChanged: nativeRecoveryGrid\.refreshCompletion\(\)/);
+  assert.match(setup,/function refreshCompletion\(\)/);
   assert.match(setup,/nativeRecoveryGrid\.distribute\(text, index\)/);
   assert.match(setup,/id: revealWords\s+objectName: "nativeRecoveryRevealWords"/);
   assert.match(setup,/Accessible\.role: Accessible\.CheckBox/);
@@ -278,11 +281,14 @@ test('shared marker geometry maintains a common vertical center for pill and eig
   assert.match(component,/Theme\.reduceMotion/);
 });
 
-test('recovery form animates open in the mobile browser without exposing words to QML', () => {
+test('browser recovery occupies the native Setup pane without exposing secrets to QML', () => {
   const dialog=source('ui/wasm/recovery-phrase-dialog.mjs');
-  assert.match(dialog,/genycaster-recovery-enter \.23s/);
-  assert.match(dialog,/@keyframes genycaster-recovery-enter/);
-  assert.match(dialog,/prefers-reduced-motion:reduce/);
+  assert.match(dialog,/left:min\(29vw,430px\)/);
+  assert.match(dialog,/role','region'/);
+  assert.match(dialog,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(dialog,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(dialog,/genycaster-recovery-reveal:focus-visible/);
+  assert.doesNotMatch(dialog,/aria-modal|backdrop-filter:blur\(7px\)/);
   assert.match(dialog,/word\.autocomplete='off'/);
   assert.doesNotMatch(dialog,/localStorage\.setItem/);
 });

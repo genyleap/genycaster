@@ -48,31 +48,44 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
     return new Promise((resolve,reject)=>{
         const backdrop=document.createElement('div');
         backdrop.id='genycaster-farcaster-recovery';
-        backdrop.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:0;box-sizing:border-box;background:rgba(10,10,14,.54);backdrop-filter:blur(7px);font:15px system-ui,sans-serif;color:'+foreground;
+        // A secure DOM layer occupies the existing Setup content column.
+        // It never transports secret words to Qt/QML/WASM or covers the GPU rail.
+        backdrop.style.cssText='position:fixed;inset:0;z-index:2147483647;display:block;box-sizing:border-box;background:transparent;font:15px system-ui,sans-serif;color:'+foreground;
         const card=document.createElement('section');
-        card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
+        card.setAttribute('role','region');
         card.setAttribute('aria-labelledby','genycaster-recovery-title');
         card.dir=['ar','fa'].includes(lang)?'rtl':'ltr';
-        card.style.cssText='width:min(620px,calc(100% - 48px));height:min(820px,calc(100dvh - 80px));max-height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:1px solid '+outline+';border-radius:24px;padding:clamp(18px,3vw,30px);padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 20px 70px #0005;color:'+foreground+';animation:genycaster-drawer-in .22s cubic-bezier(.22,1,.36,1) both;';
-        // One adaptive secure DOM surface: centered sheet on desktop and
-        // an animated full-screen form on phones. Sensitive words never cross
-        // into QML or the WebAssembly heap. The rules contain no secrets
-        // and never interact with QML authentication state.
+        card.style.cssText='position:absolute;inset:0;width:100%;height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:none;border-radius:0;padding:clamp(80px,11vh,128px) clamp(24px,5vw,60px) max(28px,env(safe-area-inset-bottom));box-shadow:none;color:'+foreground+';';
+        // The desktop right pane starts at the same 29% (max 430px) rail
+        // boundary as InitialSetup.qml; intermediate and phone sizes fill
+        // the screen because the QML brand rail is hidden in those layouts.
         const style=document.createElement('style');
-        style.textContent='@keyframes genycaster-drawer-in{from{transform:translateY(18px);opacity:.7}to{transform:none;opacity:1}}'
-            +'@keyframes genycaster-sheet-in{from{transform:translateY(36px);opacity:.85}to{transform:none;opacity:1}}'
-            +'@media(max-width:680px){#genycaster-farcaster-recovery{align-items:stretch!important;justify-content:center!important;background:'+surface+'!important;backdrop-filter:none!important}'
-            +'#genycaster-farcaster-recovery>section{width:100%!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;'
-            +'border:0!important;border-radius:0!important;padding:max(22px,env(safe-area-inset-top)) 20px max(22px,env(safe-area-inset-bottom))!important;'
-            +'animation:genycaster-recovery-enter .23s cubic-bezier(.22,1,.36,1) both!important;box-shadow:none!important}}'
-            +'@keyframes genycaster-recovery-enter{from{transform:translateY(20px);opacity:.35}to{transform:translateY(0);opacity:1}}'
+        style.textContent=
+            '@media(min-width:980px){#genycaster-farcaster-recovery>section{'
+            +'left:min(29vw,430px)!important;right:0!important;width:auto!important;'
+            +'padding-top:clamp(94px,12vh,138px)!important}}'
+            +'#genycaster-farcaster-recovery input:focus-visible{outline:2px solid '
+            +(light?'#626c7c':'#b3c0d3')+';outline-offset:2px}'
+            +'@media(max-width:680px){#genycaster-recovery-words{grid-template-columns:repeat(2,minmax(0,1fr))!important}}'
+            +'#genycaster-recovery-reveal:focus-visible{outline:2px solid '
+            +(light?'#626c7c':'#b3c0d3')+'!important;outline-offset:3px!important}'
+            +'#genycaster-recovery-reveal{accent-color:'
+            +(light?'#24272d':'#e6edf5')+';box-shadow:none!important;-webkit-appearance:none!important;appearance:none!important}'
+            +'#genycaster-farcaster-recovery button:focus-visible{outline:2px solid '
+            +(light?'#626c7c':'#b3c0d3')+';outline-offset:2px}'
+            +'@media(max-width:680px){#genycaster-farcaster-recovery>section{'
+            +'padding:max(24px,env(safe-area-inset-top)) 20px max(18px,env(safe-area-inset-bottom))!important}}'
+            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery *{scroll-behavior:auto!important}}'
             +'@keyframes genycaster-recovery-spin{to{transform:rotate(360deg)}}'
-            +'#genycaster-farcaster-recovery button[aria-busy="true"]::before{content:"";display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-inline-end:9px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:genycaster-recovery-spin .8s linear infinite}'
-            +'@media(prefers-reduced-motion:reduce){#genycaster-farcaster-recovery>section{animation:none!important}#genycaster-farcaster-recovery button[aria-busy="true"]::before{animation:none!important}}';
+            +'#genycaster-farcaster-recovery button[aria-busy="true"]::before{content:"";'
+            +'display:inline-block;width:14px;height:14px;vertical-align:-2px;'
+            +'margin-inline-end:9px;border:2px solid currentColor;'
+            +'border-top-color:transparent;border-radius:50%;'
+            +'animation:genycaster-recovery-spin .8s linear infinite}';
         // Scroll only the recovery words. Keep the action row outside this
         // scroller so 24 entries never displace or overlap Cancel / Import.
         const body=document.createElement('div');
-        body.style.cssText='flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:0 1px 12px;';
+        body.style.cssText='flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:0 1px 12px;width:100%;max-width:650px;margin:0 auto;box-sizing:border-box;';
         card.appendChild(body);
         const text=(tag,value,css,id)=>{
             const el=document.createElement(tag);el.textContent=value;
@@ -80,13 +93,13 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
             if(id)el.id=id;
             body.appendChild(el);return el;
         };
-        text('h2',s.title,'margin:0 0 9px;font-size:26px;font-weight:700','genycaster-recovery-title');
+        text('h2',s.title,'margin:0 0 12px;font-size:clamp(23px,2.4vw,30px);font-weight:700','genycaster-recovery-title');
         text('p',s.subtitle,'margin:0 0 24px;color:'+muted+';line-height:1.5');
         text('p',s.label,'margin:0 0 12px;font-weight:600');
         // One fixed 24-word form on desktop, phone and WASM.
         const grid=document.createElement('div');
         grid.id='genycaster-recovery-words';
-        grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;direction:ltr';
+        grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;direction:ltr';
         const inputs=[];
         let count=24;
         let pending=false, settled=false;
@@ -172,7 +185,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         const reveal=document.createElement('input');
         reveal.type='checkbox';reveal.checked=false;
         reveal.id='genycaster-recovery-reveal';
-        reveal.style.cssText='appearance:none;width:22px;height:22px;border:1px solid '+outline+';border-radius:6px;background:'+surface+';cursor:pointer;flex:none;margin:0';
+        reveal.style.cssText='appearance:none;-webkit-appearance:none;outline:none;width:22px;height:22px;border:1px solid '+outline+';border-radius:6px;background:'+surface+';cursor:pointer;flex:none;margin:0;box-shadow:none';
         const indicator=document.createElement('span');
         indicator.textContent='✓';
         indicator.setAttribute('aria-hidden','true');
@@ -197,7 +210,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         error.setAttribute('aria-live','polite');
         renderWords(24);
         const actions=document.createElement('div');
-        actions.style.cssText='display:flex;flex:0 0 auto;gap:10px;justify-content:flex-end;flex-wrap:wrap;min-width:0;background:'+surface+';padding:14px 0 2px;border-top:1px solid '+outline+';z-index:2';
+        actions.style.cssText='display:flex;flex:0 0 auto;gap:10px;justify-content:flex-end;flex-wrap:wrap;min-width:0;width:100%;max-width:650px;box-sizing:border-box;margin:0 auto;background:'+surface+';padding:14px 0 2px;border-top:1px solid '+outline+';z-index:2';
         const button=(value,primary)=>{
             const el=document.createElement('button');el.type='button';el.textContent=value;
             el.style.cssText='cursor:pointer;flex:1 1 auto;min-width:0;max-width:100%;min-height:50px;white-space:normal;overflow-wrap:anywhere;border-radius:13px;padding:13px 16px;font:600 14px system-ui;border:1px solid '+(primary?(light?'#17181c':'#f4f6ff'):outline)+';background:'+(primary?(light?'#17181c':'#f4f6ff'):'transparent')+';color:'+(primary?(light?'#ffffff':'#17181c'):foreground);

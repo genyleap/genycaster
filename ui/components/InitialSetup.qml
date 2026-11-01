@@ -1231,11 +1231,18 @@ Item {
                     Layout.fillWidth: true
                     implicitHeight: recoveryWordLayout.implicitHeight
                     property bool distributing: false
+                    // Qt cannot track dynamically indexed Repeater children inside
+                    // a function binding. Publish the count on every field change.
+                    property int completeWordCount: 0
+                    function refreshCompletion() {
+                        completeWordCount = countWords()
+                    }
                     function clearAll() {
                         for (let i = 0; i < 24; ++i) {
                             const field = recoveryWordRepeater.itemAt(i)
                             if (field) field.clear()
                         }
+                        completeWordCount = 0
                         revealWords.checked = false
                     }
                     function countWords() {
@@ -1268,7 +1275,8 @@ Item {
                         const pastedCount = words.length
                         words.fill("")
                         distributing = false
-                        if (start === 0 && countWords() === 24) revealWords.forceActiveFocus()
+                        refreshCompletion()
+                        if (start === 0 && completeWordCount === 24) revealWords.forceActiveFocus()
                         else recoveryWordRepeater.itemAt(Math.min(23, start + pastedCount))?.forceActiveFocus()
                     }
                     onVisibleChanged: if (!visible) clearAll()
@@ -1307,6 +1315,7 @@ Item {
                                     borderColor: wordField.activeFocus ? Theme.focus : Theme.borderMuted
                                     curveDepth: Theme.curveControl
                                 }
+                                onTextChanged: nativeRecoveryGrid.refreshCompletion()
                                 onTextEdited: {
                                     if (nativeRecoveryGrid.distributing) return
                                     if (/\s/.test(text))
@@ -1374,7 +1383,7 @@ Item {
                     text: qsTrId("genycaster.setup.recovery_button")
                     enabled: root.runtimeReady && !root.authenticationInProgress
                           && !root.recoverySubmitPending
-                          && nativeRecoveryGrid.countWords() === 24
+                          && nativeRecoveryGrid.completeWordCount === 24
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
                         nativeRecoveryGrid.clearAll()

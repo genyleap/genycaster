@@ -78,7 +78,7 @@ test("smooth vector-driven walls and grounded studio shadows",()=>{
  assert.match(generator,/const S=4, N=416\*S/);
  assert.doesNotMatch(src,/backdropShadow|projected=screen|floorLine/);
  assert.match(src,/vec3 back=background\(screen,uv,dark\)/);
- assert.match(src,/float shadow=exp\(-dot\(ambient,ambient\)\*2\.45\)/);
+ assert.match(src,/float shadow=exp\(-dot\(ambient,ambient\)\*2\.3\)/);
  assert.match(src,/float roughness=mix\(\.34,\.40,arrow\)/);
  assert.match(src,/for\(int i=0;i<116;i\+\+\)/);
  assert.match(src,/if\(shape\.x<\.00016\)/);

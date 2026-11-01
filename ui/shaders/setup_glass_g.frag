@@ -86,22 +86,27 @@ float hash21(vec2 p){
 vec3 background(vec2 screen,vec2 uv,bool dark){
  // Continuous photographic cyclorama. The logo is suspended, so do NOT
  // project a duplicate silhouette onto an imaginary vertical wall.
- vec3 top=dark?vec3(.023,.045,.077):vec3(.78,.85,.92);
- vec3 bottom=dark?vec3(.042,.075,.110):vec3(.70,.78,.86);
+ // Refined atmospheric brand rail: cool porcelain/light sapphire in
+ // light mode and graphite/blue slate in dark mode. Three broad softboxes
+ // create depth without fake projected silhouettes or hard floor lines.
+ vec3 top=dark?vec3(.018,.035,.061):vec3(.795,.861,.936);
+ vec3 bottom=dark?vec3(.027,.060,.095):vec3(.666,.776,.877);
  vec3 col=mix(top,bottom,smoothstep(.04,.97,uv.y));
- vec2 key=(screen-vec2(-.32,.24))*vec2(.74,.82);
- float softbox=exp(-dot(key,key)*1.48);
- col+=(dark?vec3(.045,.072,.098):vec3(.091,.110,.120))*softbox;
- // The faint, very broad ambient occlusion envelope suggests depth,
- // without duplicating the glyph, angular artifacts, or floor lines.
- vec2 ambient=(screen-vec2(.11,-.19))*vec2(.96,1.57);
- float shadow=exp(-dot(ambient,ambient)*2.45);
- col*=1.0-(dark?.055:.080)*shadow;
- // Subtle cool bounce below the floating aluminum sculpture.
- vec2 bounce=(screen-vec2(.08,-.60))*vec2(.74,2.3);
- float pool=exp(-dot(bounce,bounce)*2.1);
- col+=(dark?vec3(.012,.029,.042):vec3(.020,.033,.046))*pool;
- col*=1.0-.115*smoothstep(.75,2.2,length(screen*vec2(.82,.90)));
+ vec2 key=(screen-vec2(-.38,.34))*vec2(.78,.84);
+ float softbox=exp(-dot(key,key)*1.28);
+ col+=(dark?vec3(.054,.080,.122):vec3(.110,.115,.125))*softbox;
+ vec2 fill=(screen-vec2(.79,-.29))*vec2(1.65,.97);
+ float edgeFill=exp(-dot(fill,fill)*1.85);
+ col+=(dark?vec3(.030,.071,.104):vec3(.065,.083,.104))*edgeFill;
+ vec2 backgroundArc=(screen-vec2(-.15,.06))*vec2(.88,1.12);
+ float halo=exp(-dot(backgroundArc,backgroundArc)*.96);
+ col+=(dark?vec3(.022,.035,.054):vec3(.023,.034,.056))*halo;
+ // Restrained optical falloff anchors the sculpture without a shadow
+ // that resembles a duplicate of its SVG silhouette.
+ vec2 ambient=(screen-vec2(.09,-.12))*vec2(.84,1.32);
+ float shadow=exp(-dot(ambient,ambient)*2.3);
+ col*=1.0-(dark?.027:.036)*shadow;
+ col*=1.0-.088*smoothstep(.86,2.55,length(screen*vec2(.84,.91)));
  float grain=hash21(floor(uv*params.paneSize))-.5;
  col+=grain*(dark?.0007:.0005);
  return max(col,vec3(0.));
