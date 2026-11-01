@@ -239,14 +239,6 @@
             <source>Remove topic</source>
             <translation>Remove topic</translation>
         </message>
-        <message id="genycaster.release.beta_version_number">
-            <source>1.0</source>
-            <translation>1.0</translation>
-        </message>
-        <message id="genycaster.release.beta_label">
-            <source>Beta</source>
-            <translation>Beta</translation>
-        </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
             <translation>GENY Token</translation>
@@ -1449,17 +1441,9 @@ Company | https://company.com</translation>
             <source>Your reply · Published</source>
             <translation>Your reply · Published</translation>
         </message>
-        <message id="genycaster.settings.beta_release_short">
-            <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · Beta 1.0</translation>
-        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>Formatting tools</translation>
-        </message>
-        <message id="genycaster.settings.current_beta_release">
-            <source>GenyCaster Beta 1.0 · Version %1</source>
-            <translation>GenyCaster Beta 1.0 · Version %1</translation>
         </message>
         <message id="genycaster.settings.beta_program_info">
             <source>You are using a beta release. Features may change while improvements are tested.</source>
@@ -5716,10 +5700,6 @@ Company | https://company.com</translation>
         <message id="genycaster.setup.open_privacy">
             <source>Open full Privacy Policy</source>
             <translation>Open full Privacy Policy</translation>
-        </message>
-        <message id="genycaster.release.beta_1_0">
-            <source>Beta 1.0</source>
-            <translation>Beta 1.0</translation>
         </message>
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
