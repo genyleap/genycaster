@@ -6,23 +6,26 @@ matrix/deployment/artifact structure of GenyConnect, but deliberately has
 
 ## When workflows run
 
-| Event | Expensive build/test | Publishes release |
+| Event | Hosted build | Publishes release |
 |---|---|---|
 | Ordinary commit pushed to main | No | No |
 | Pull request | No | No |
 | Actions > GenyCaster cross-platform builds > Run workflow | Selected platform only | No |
 | Push of vMAJOR.MINOR.PATCH version tag | All required platforms | Only if all jobs succeed |
 
-The manual run offers `core` (default), `web`, `linux`, `macos`,
+The manual run offers `web` (default), `linux`, `macos`,
 `windows`, `android`, `ios`, `nixos`, and `all`. Selecting `all`
 requires checking **confirm_full_matrix** to acknowledge its macOS/Windows
-runner cost. Each family can be tested separately without running every
+runner cost. Each family can be built separately without running every
 architecture. Repeat manual runs of the same family/ref cancel the older
 in-progress run; version-tag releases are never cancelled.
 
-The lightweight source, localization, architecture, JavaScript and Python
-contract checks execute in the shared **gate** before any compiler, Qt SDK,
-Homebrew or vcpkg installation. If they fail, expensive builds are skipped.
+The shared **gate** validates the version tag, main-branch ancestry and
+full-matrix budget consent. Dedicated unit, integration, cryptographic,
+UI and platform regression tests run on the GenyCaster server, **not** in
+GitHub Actions. Hosted workflows are reserved for building and packaging.
+Artifact integrity, dependency and release-signing checks remain mandatory
+because they protect the actual deliverables.
 GitHub Actions' billing quota still applies: this design does not bypass
 GitHub Free compute limits. Manual runs upload artifacts for 14 days,
 but cannot create GitHub Releases.
@@ -36,7 +39,6 @@ is never deleted or overwritten.
 
 | Target | Runner | Result |
 |---|---|---|
-| Core tests | Ubuntu 24.04, GCC 16 | C++26 + CTest + architecture guards |
 | Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage |
 | macOS arm64 / x86_64 | macOS 15 ARM / Intel, LLVM | Architecture-specific DMG |
 | Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | Portable ZIP |
@@ -123,7 +125,7 @@ configuration is unchanged.
 
 GitHub Free has a finite monthly Actions compute allowance. The organization
 may exhaust its allowance even though the billable subtotal is $0. Keep
-manual `core`/single-family runs as the normal development workflow;
+manual `web`/single-family runs as the normal build workflow;
 the `all` checkbox is a deliberate expensive release-candidate check.
 A paid budget increase is **not** required for VPS-local WASM builds.
 
@@ -176,7 +178,7 @@ Every platform job invokes `ci/verify_platform_package.py` **before** uploading
 its artifact. The validator inspects Linux AppImage ELF/type-2 signatures,
 macOS UDIF DMG trailers, WebAssembly bootstrap/loader/manifest files, Android
 ARM64 Qt/SSL/QtKeychain libraries and DEX/manifest, and Windows EXE/Qt/SSL/
-SQLite/curl/QtKeychain DLLs. The same checks are exercised by portable
+SQLite/curl/QtKeychain DLLs. The packaging checks are also covered by server-run
 `ci/test_pipeline.py` tests. Checksums remain separate and are recalculated
 for tagged releases. None of these checks establishes a working runtime,
 verified TLS handshake, a trusted signature, or completed user acceptance.
