@@ -63,9 +63,9 @@ test('wasm update UI uses same-origin manifest and never substitutes GitHub inst
   assert.match(controller,/m_releaseType = notes\.value/);
   assert.match(controller,/m_releaseNotes = lines\.join/);
   assert.match(controller,/QNetworkRequest::ManualRedirectPolicy/);
-  assert.match(controller,/releases\\?per_page=20/);
-  assert.match(controller,/compareReleaseVersions\\(parsed, current\\)/);
-  assert.match(controller,/loadBundledReleaseNotes\\(m_appVersion/);
+  assert.match(controller,/releases\?per_page=20/);
+  assert.match(controller,/compareReleaseVersions\(parsed, current\)/);
+  assert.match(controller,/loadBundledReleaseNotes\(m_appVersion/);
   assert.match(drawer,/genycaster\.update\.type_/);
   assert.match(settings,/updateController\.releaseNotes/);
   const pulse=read('ui/components/FeedPulseCard.qml');
