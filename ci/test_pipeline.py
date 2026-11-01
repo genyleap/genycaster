@@ -15,7 +15,7 @@ from ci.verify_platform_package import (
 from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, main as assemble_release
-from ci.release_gate import project_version, release_version
+from ci.release_gate import project_version, release_designation, release_version
 
 
 class PipelineTests(unittest.TestCase):
@@ -117,11 +117,14 @@ class PipelineTests(unittest.TestCase):
         self.assertNotIn('if (!miniAppHost.available && Qt.platform.os !== "wasm")', surface)
 
     def test_version_tag_gate(self) -> None:
-        version = project_version(Path.cwd())
+        self.assertEqual(project_version(Path.cwd()), "1.0.0")
+        version = release_designation(Path.cwd())
+        self.assertEqual(version, "1.0.0-rc1")
         self.assertEqual(release_version("refs/heads/main", version), (version, False))
         self.assertEqual(release_version(f"refs/tags/v{version}", version), (version, True))
         for bad in ("refs/tags/v1.2", "refs/tags/latest", "refs/tags/v01.2.3",
-                    "refs/tags/v1.2.3-rc1", "refs/tags/v999.0.0"):
+                    "refs/tags/v1.0.0", "refs/tags/v1.0.0-rc2",
+                    "refs/tags/v999.0.0"):
             with self.assertRaises(ValueError):
                 release_version(bad, version)
 
