@@ -43,6 +43,25 @@ test('native Farcaster recovery grant boots a verified account session before lo
   assert.doesNotMatch(body,/m_cloudSessionVerified=true/);
 });
 
+test('canceling in-flight native cloud login cannot dereference a reentrantly cleared reply',()=>{
+  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+  const header=read('ui/mobile/openproof_connections_controller.hpp');
+  const testSource=read('tests/ui/openproof_connections_tests.cpp');
+  const cancel=cpp.slice(cpp.indexOf('void cancelNetworkReply('),
+    cpp.indexOf('[[nodiscard]] bool validProviderName('));
+  assert.match(header,/void cancelAccountSessionRequest\(\)/);
+  assert.match(cpp,/void OpenProofConnectionsController::cancelAccountSessionRequest\(\)[\s\S]*?cancelNetworkReply\(m_sessionRequest, this\)/);
+  assert.match(cancel,/QPointer<QNetworkReply> pending = tracked;/);
+  assert.match(cancel,/tracked\.clear\(\);[\s\S]*?pending->abort\(\)/);
+  assert.match(cancel,/QObject::disconnect\(pending\.data\(\), nullptr, receiver, nullptr\)/);
+  assert.match(cancel,/if \(pending\) pending->deleteLater\(\)/);
+  assert.doesNotMatch(cpp,/m_[A-Za-z]+(?:Request|Read)->(?:abort|deleteLater)\(\)/);
+  assert.match(cpp,/if \(m_sessionRequest != reply\)/);
+  assert.equal((cpp.match(/    cancelAccountSessionRequest\(\);/g) || []).length, 2);
+  assert.ok((cpp.match(/cancelNetworkReply\(m_[A-Za-z]+(?:Request|Read), this\)/g)||[]).length >= 10);
+  assert.match(testSource,/Cancel POST while switching accounts/);
+});
+
 test('profile category and links save locally then replicate without sync controls',()=>{
   const profile=read('ui/components/ProfileSurface.qml');
   assert.match(profile,/category: "genycaster-profile-extras"/);

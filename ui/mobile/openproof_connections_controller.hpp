@@ -283,6 +283,8 @@ private:
     [[nodiscard]] QString topicOutboxKey() const;
     void sendBookmarkCollectionRequest(const QString& resource, const QVariantMap& body,
                                        bool upload, const QString& queryId = {});
+    // Cancel safely even when QNetworkReply::abort() emits finished() inline.
+    void cancelAccountSessionRequest();
     QPointer<QNetworkReply> m_sessionRequest{};
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};

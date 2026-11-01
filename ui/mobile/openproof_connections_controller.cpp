@@ -82,6 +82,20 @@ namespace {
         && url.fragment().isEmpty() && url.port() == -1;
 }
 
+// QNetworkReply::abort() may emit finished() synchronously on Qt/macOS.
+// Detach the QPointer and its callbacks before calling abort(), so neither
+// a reentrant completion nor a cancelled request can overwrite another
+// account's session or invalidate the pointer used for deferred deletion.
+void cancelNetworkReply(QPointer<QNetworkReply>& tracked, QObject* receiver)
+{
+    QPointer<QNetworkReply> pending = tracked;
+    tracked.clear();
+    if (!pending) return;
+    QObject::disconnect(pending.data(), nullptr, receiver, nullptr);
+    pending->abort();
+    if (pending) pending->deleteLater();
+}
+
 [[nodiscard]] bool validProviderName(const QString& value)
 {
     static const QRegularExpression allowed{QStringLiteral("^[a-z][a-z0-9-]{0,39}$")};
@@ -261,7 +275,12 @@ void OpenProofConnectionsController::restoreAccountSession()
     const auto generation=m_grantGeneration;
     const auto viewer=m_viewerFid;
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
-        if(m_sessionRequest==reply)m_sessionRequest=nullptr;
+        // An obsolete request can never adopt a new viewer/session.
+        if (m_sessionRequest != reply) {
+            reply->deleteLater();
+            return;
+        }
+        m_sessionRequest.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:
@@ -293,17 +312,18 @@ void OpenProofConnectionsController::restoreAccountSession()
     });
 }
 
+void OpenProofConnectionsController::cancelAccountSessionRequest()
+{
+    cancelNetworkReply(m_sessionRequest, this);
+}
+
 void OpenProofConnectionsController::bootstrapAccountSession()
 {
     if(!m_viewerFid || m_accountBearer.isEmpty()
         || !(m_verified || m_accountBearer.startsWith("recovery."))
         || m_sessionRevoking || m_cloudSessionVerified
         || !trustedHttpsEndpoint(m_cloudUrl))return;
-    if(m_sessionRequest) {
-        m_sessionRequest->abort();
-        m_sessionRequest->deleteLater();
-        m_sessionRequest=nullptr;
-    }
+    cancelAccountSessionRequest();
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/session"));
     auto request=QNetworkRequest{url};
@@ -317,7 +337,12 @@ void OpenProofConnectionsController::bootstrapAccountSession()
     const auto generation=m_grantGeneration;
     const auto viewer=m_viewerFid;
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
-        if(m_sessionRequest==reply)m_sessionRequest=nullptr;
+        // An obsolete request can never adopt a new viewer/session.
+        if (m_sessionRequest != reply) {
+            reply->deleteLater();
+            return;
+        }
+        m_sessionRequest.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:
@@ -1187,11 +1212,7 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
 {
     if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite) return;
-    if (m_profileStatusRead) {
-        m_profileStatusRead->abort();
-        m_profileStatusRead->deleteLater();
-        m_profileStatusRead=nullptr;
-    }
+    cancelNetworkReply(m_profileStatusRead, this);
     // Retain the last confirmed state for the SAME FID while refreshing.
     // A temporary timeout must never erase a successfully saved status.
     if(m_profileStatusFid!=profileFid) {
@@ -1897,36 +1918,12 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_connectionPoll.stop();
     m_bookmarkPoll.stop();
     m_linkedInReconciled = false;
-    if (m_request) {
-        m_request->abort();
-        m_request->deleteLater();
-        m_request = nullptr;
-    }
-    if (m_bookmarkSnapshotRequest) {
-        m_bookmarkSnapshotRequest->abort();
-        m_bookmarkSnapshotRequest->deleteLater();
-        m_bookmarkSnapshotRequest=nullptr;
-    }
-    if (m_portableConnectionsRequest) {
-        m_portableConnectionsRequest->abort();
-        m_portableConnectionsRequest->deleteLater();
-        m_portableConnectionsRequest=nullptr;
-    }
-    if (m_accountConnectionsRequest) {
-        m_accountConnectionsRequest->abort();
-        m_accountConnectionsRequest->deleteLater();
-        m_accountConnectionsRequest=nullptr;
-    }
-    if (m_cloudRequest) {
-        m_cloudRequest->abort();
-        m_cloudRequest->deleteLater();
-        m_cloudRequest = nullptr;
-    }
-    if (m_draftRequest) {
-        m_draftRequest->abort();
-        m_draftRequest->deleteLater();
-        m_draftRequest=nullptr;
-    }
+    cancelNetworkReply(m_request, this);
+    cancelNetworkReply(m_bookmarkSnapshotRequest, this);
+    cancelNetworkReply(m_portableConnectionsRequest, this);
+    cancelNetworkReply(m_accountConnectionsRequest, this);
+    cancelNetworkReply(m_cloudRequest, this);
+    cancelNetworkReply(m_draftRequest, this);
     m_draftRemoteInitialized=false;
     m_draftConflict=false;
     // Losing the short-lived OpenProof grant does not invalidate a verified
@@ -2014,11 +2011,7 @@ void OpenProofConnectionsController::fetchTopics()
 void OpenProofConnectionsController::clearCastTopic()
 {
     ++m_topicCastsGeneration;
-    if(m_topicCastsRequest) {
-        m_topicCastsRequest->abort();
-        m_topicCastsRequest->deleteLater();
-        m_topicCastsRequest=nullptr;
-    }
+    cancelNetworkReply(m_topicCastsRequest, this);
     m_activeCastTopic.clear();
     m_topicAuthorFid.clear();
     m_topicCastItems.clear();
@@ -2381,11 +2374,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
 {
     if (m_viewerFid == fid) return;
     if(m_viewerFid)revokeAccountSession();
-    if(m_sessionRequest) {
-        m_sessionRequest->abort();
-        m_sessionRequest->deleteLater();
-        m_sessionRequest=nullptr;
-    }
+    cancelAccountSessionRequest();
     m_cloudSessionVerified=false;
     m_cloudCsrf.clear();
     m_authorization.cancel();
@@ -2394,28 +2383,16 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
-    if(m_bookmarkCollectionRequest) {
-        m_bookmarkCollectionRequest->abort();
-        m_bookmarkCollectionRequest->deleteLater();
-        m_bookmarkCollectionRequest=nullptr;
-    }
+    cancelNetworkReply(m_bookmarkCollectionRequest, this);
     m_bookmarkCollections.clear();
     m_bookmarkCollectionItems.clear();
     m_bookmarkMembershipItems.clear();
     m_activeBookmarkCollection.clear();
     m_bookmarkCollectionsError.clear();
     emit bookmarkCollectionsChanged();
-    if(m_topicCatalogRequest) {
-        m_topicCatalogRequest->abort();
-        m_topicCatalogRequest->deleteLater();
-        m_topicCatalogRequest=nullptr;
-    }
+    cancelNetworkReply(m_topicCatalogRequest, this);
     m_topicCatalog = offlineTopicCatalog();
-    if(m_topicSaveRequest) {
-        m_topicSaveRequest->abort();
-        m_topicSaveRequest->deleteLater();
-        m_topicSaveRequest=nullptr;
-    }
+    cancelNetworkReply(m_topicSaveRequest, this);
     m_topicOutbox=topicOutboxKey().isEmpty() || !m_settings
         ? QVariantList{} : m_settings->value(topicOutboxKey()).toList();
     m_topicsError.clear();

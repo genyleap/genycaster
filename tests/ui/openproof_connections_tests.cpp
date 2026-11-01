@@ -44,6 +44,20 @@ int main(int argc, char** argv)
         QStringLiteral("subject-42"), 999, 2700);
     assert(!controller.authorized());
     assert(controller.connections().isEmpty());
+    // Regression: setViewerFid() starts a GET for an existing cloud session.
+    // A successful local recovery grant immediately supersedes it with POST.
+    // Qt/macOS may emit the cancelled GET's finished() synchronously from
+    // abort(); previously this reset m_sessionRequest and then caused a null
+    // dereference at m_sessionRequest->deleteLater().
+    controller.acceptRecoveryGrant(
+        QByteArrayLiteral("recovery.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+        QStringLiteral("subject-42"), 42, 2700);
+    controller.setViewerFid(43); // Cancel POST while switching accounts.
+    controller.acceptRecoveryGrant(
+        QByteArrayLiteral("recovery.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+        QStringLiteral("subject-43"), 43, 2700);
+    controller.setViewerFid(42); // Cancel second POST and restore original FID.
+    assert(!controller.authorized());
     controller.connectProvider(QStringLiteral("unknown-provider"));
     assert(!controller.actionBusy());
     controller.setViewerFid(0);
