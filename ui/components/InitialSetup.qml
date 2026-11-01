@@ -1145,11 +1145,11 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
+                    objectName: "setupCreateAccountUnavailable"
                     accountShowcase: true
-                    setupEmphasis: true
+                    unavailable: true
                     title: qsTrId("genycaster.setup.design_create_account")
-                    subtitle: qsTrId("genycaster.setup.new_profile_body") + " ("
-                              + qsTrId("genycaster.shell.coming_soon") + ")"
+                    subtitle: qsTrId("genycaster.setup.new_profile_body")
                     iconGlyph: Theme.iconUser
                     showChevron: false
                     enabled: false

@@ -5077,6 +5077,10 @@ Company | https://company.com</source>
             <source>Create new account</source>
             <translation>ایجاد حساب جدید</translation>
         </message>
+        <message id="genycaster.setup.temporarily_unavailable">
+            <source>Temporarily unavailable</source>
+            <translation>فعلاً غیرفعال</translation>
+        </message>
         <message id="genycaster.setup.design_existing_account">
             <source>Use existing account</source>
             <translation>استفاده از حساب موجود</translation>

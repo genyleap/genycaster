@@ -25,6 +25,9 @@ Button {
     property bool neutralPrimary: false
     property bool accountShowcase: false
     property bool setupEmphasis: false
+    // Disabled feature choice: muted card with a localized availability
+    // badge. Keeps the status visible without implying the card is clickable.
+    property bool unavailable: false
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
@@ -36,7 +39,8 @@ Button {
     bottomPadding: compactCard || onboardingStyle ? Theme.space3 : Theme.space4
 
     Accessible.name: title
-    Accessible.description: subtitle
+    Accessible.description: subtitle + (root.unavailable
+                            ? " · " + qsTrId("genycaster.setup.temporarily_unavailable") : "")
     Accessible.checked: root.selected
 
     // Disabled primary actions use a neutral card background; do not paint
@@ -44,16 +48,19 @@ Button {
     // An in-flight action remains visually active while clicks are disabled.
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
-    readonly property color foreground: setupEmphasis ? "#FCFCFE"
+    readonly property color foreground: root.unavailable ? Theme.inkMuted
+                                      : setupEmphasis ? "#FCFCFE"
                                       : visuallyDisabled ? Theme.inkMuted
                                       : primary ? (neutralPrimary ? Theme.surface : Theme.accentInk) : Theme.ink
-    readonly property color secondaryForeground: setupEmphasis ? "#BABBC6"
+    readonly property color secondaryForeground: root.unavailable ? Theme.inkSubtle
+                                               : setupEmphasis ? "#BABBC6"
                                                : visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
 
     background: Superellipse {
-        fillColor: root.setupEmphasis ? (Theme.dark ? "#24252C" : "#22232A")
+        fillColor: root.unavailable ? (Theme.dark ? "#23272E" : "#F5F6F8")
+                   : root.setupEmphasis ? (Theme.dark ? "#24252C" : "#22232A")
                    : root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
@@ -67,6 +74,7 @@ Button {
                      : root.selected ? 2
                      : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
         borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus
+                     : root.unavailable ? (Theme.dark ? "#3C444E" : "#E4E7EB")
                      : root.selected ? Theme.accent : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
@@ -187,10 +195,31 @@ Button {
                 Icon {
                     visible: root.iconGlyph.length > 0
                     text: root.iconGlyph
-                    color: root.setupEmphasis ? "#FCFCFE" : Theme.ink
+                    color: root.unavailable ? Theme.inkMuted
+                           : root.setupEmphasis ? "#FCFCFE" : Theme.ink
                     preferredSize: 27
                     x: Theme.rtl ? parent.width - width : 0
                     anchors.verticalCenter: parent.verticalCenter
+                }
+                Rectangle {
+                    id: unavailableBadge
+                    visible: root.unavailable
+                    width: unavailableText.implicitWidth + 20
+                    height: 24
+                    radius: 9
+                    x: Theme.rtl ? 0 : parent.width - width
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: Theme.dark ? "#3B2C20" : "#FFF1E4"
+                    border.width: 1
+                    border.color: Theme.dark ? "#765234" : "#F2D3B6"
+                    DirectionAwareLabel {
+                        id: unavailableText
+                        anchors.centerIn: parent
+                        text: qsTrId("genycaster.setup.temporarily_unavailable")
+                        color: Theme.dark ? "#F2B77C" : "#B3631D"
+                        font.pixelSize: 11
+                        font.weight: Theme.weightDemiBold
+                    }
                 }
             }
             Item { Layout.preferredHeight: 1 }

@@ -5056,6 +5056,10 @@ Company | https://company.com</source>
             <source>Create new account</source>
             <translation>Neu erstellen</translation>
         </message>
+        <message id="genycaster.setup.temporarily_unavailable">
+            <source>Temporarily unavailable</source>
+            <translation>Derzeit nicht verfügbar</translation>
+        </message>
         <message id="genycaster.setup.design_existing_account">
             <source>Use existing account</source>
             <translation>Vorhandene verwenden</translation>

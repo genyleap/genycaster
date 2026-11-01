@@ -1,9 +1,9 @@
 {
-  "type": "fix",
-  "title": "Refined Setup GPU lighting and unobstructed review navigation",
+  "type": "improvement",
+  "title": "Setup account creation clearly marked unavailable",
   "changes": [
-    "Keep Back and Close in the Setup content column for both RTL and LTR desktop layouts, never above the interactive 3D logo.",
-    "Remove the artificial duplicate glyph-shaped projected shadow and hard floor markings; use restrained ambient occlusion, soft studio bounce and a continuous background.",
-    "Give the anodized metal wider, lower-energy reflections while retaining official SVG geometry, normal atlas, orbit, zoom and reset controls."
+    "Mute the inactive Create new account card instead of emphasizing a nonworking action.",
+    "Show a compact warm-orange, localized Temporarily unavailable badge in all supported Setup languages and screen reader descriptions.",
+    "Keep the existing-account entry active and unchanged on desktop, mobile, native and WebAssembly."
   ]
 }

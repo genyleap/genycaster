@@ -5056,6 +5056,10 @@ Company | https://company.com</source>
             <source>Create new account</source>
             <translation>새로 만들기</translation>
         </message>
+        <message id="genycaster.setup.temporarily_unavailable">
+            <source>Temporarily unavailable</source>
+            <translation>현재 이용 불가</translation>
+        </message>
         <message id="genycaster.setup.design_existing_account">
             <source>Use existing account</source>
             <translation>기존 프로필 사용</translation>

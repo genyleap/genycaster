@@ -45,12 +45,29 @@ test('legal consent and guest access are respected', () => {
   assert.match(setup, /finishSetup\(\)/);
 });
 
-test('new-account registration stays disabled until backend registration exists', () => {
+test('new-account registration is muted, clearly unavailable, and never clickable', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
-  assert.match(account, /genycaster.setup.design_create_account/);
-  assert.match(account, /genycaster.shell.coming_soon/);
-  assert.match(account, /enabled: false/);
-  assert.doesNotMatch(account, /onClicked:[\s\S]*?root.openRegistration\(\)/);
+  const create=account.slice(account.indexOf('objectName: "setupCreateAccountUnavailable"'),
+                             account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
+  const card=source('ui/components/SetupActionCard.qml');
+  assert.match(create,/accountShowcase: true/);
+  assert.match(create,/unavailable: true/);
+  assert.match(create,/enabled: false/);
+  assert.doesNotMatch(create,/setupEmphasis: true|onClicked:|root.openRegistration/);
+  assert.match(card,/property bool unavailable: false/);
+  assert.match(card,/root.unavailable \? \(Theme.dark/);
+  assert.match(card,/id: unavailableBadge/);
+  assert.match(card,/text: qsTrId\("genycaster.setup.temporarily_unavailable"\)/);
+  assert.match(card,/x: Theme.rtl \? 0 : parent.width - width/);
+  assert.match(account,/root.accountIntent = "existing"/);
+  assert.match(account,/root.switchStep\(4\)/);
+  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
+    const translation=source('ui/i18n/qml_'+locale+'.ts');
+    assert.match(translation,/<message id="genycaster.setup.temporarily_unavailable">/);
+    assert.match(translation,/<source>Temporarily unavailable<\/source>\s*<translation>[^<]+<\/translation>/);
+  }
+  assert.match(source('ui/i18n/qml_fa_IR.ts'),/<translation>فعلاً غیرفعال<\/translation>/);
 });
 
 test('shared theme, native project icons and all three theme modes are present', () => {
@@ -207,9 +224,12 @@ test('desktop account is a balanced editorial dark/light pair, with no fake new 
   const s=source('ui/components/InitialSetup.qml');
   const card=source('ui/components/SetupActionCard.qml');
   const account=s.slice(s.indexOf('id: accountStage'),s.indexOf('id: signInStage'));
-  assert.match(account,/accountShowcase: true[\s\S]*?setupEmphasis: true/);
+  assert.match(account,/accountShowcase: true[\s\S]*?unavailable: true/);
+  assert.match(account,/objectName: "setupCreateAccountUnavailable"/);
   assert.match(account,/iconGlyph: Theme\.iconUser/);
   assert.match(account,/enabled: false/);
+  assert.doesNotMatch(account,/setupEmphasis: true/);
+  assert.match(account,/onClicked: \{\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
