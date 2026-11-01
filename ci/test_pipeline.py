@@ -26,7 +26,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)", bridge)
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
-        self.assertIn("nativeRecoveryField.clear()", setup)
+        self.assertIn("nativeRecoveryGrid.clearAll()", setup)
         self.assertIn("root.nativeRecoverAccount(words)", setup)
         self.assertIn("QFutureWatcher<RecoveryOutcome>", wiring)
         self.assertIn(
