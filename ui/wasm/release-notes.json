@@ -1,10 +1,12 @@
 {
-  "type": "fix",
-  "title": "Honor explicit protocol choices, HyperSnap as the default reader",
+  "type": "feature",
+  "title": "One-time recovery custody authorization for native device signers",
   "changes": [
-    "Set HyperSnap v2 as the explicit default indexed read selection in ordinary deployments; preserve explicit user choices, compatible read fallback opt-in and strict self-hosted policy.",
-    "Expose a configured compatible Farcaster hosted reader as a selectable provider while rejecting unconfigured endpoints.",
-    "Keep signing and message submission routed through user-selected capability-compatible writer adapters; never misrepresent an indexed reader as a signer provider.",
-    "Preserve automatic signature use of already authorized local device signers; no unsafe claim that entering a recovery phrase alone establishes network KEY_ADD authorization."
-  ]
+    "After verified 24-word Farcaster recovery, optionally authorize a per-device Ed25519 signer through a one-shot EIP-712 KEY_ADD and SignedKeyRequest.",
+    "Require explicit, localized device signer consent on the native setup screen.",
+    "Tie the temporary custody authorization to the exact verified FID and custody address, expire it within three minutes, and zeroize key material after one attempted authorization.",
+    "Continue to select the actual write/signing provider using user-pinned routing capabilities; HyperSnap is the default reader, never a silent signer fallback.",
+    "Verify cryptographic compatibility against independent Noble vectors and execute native C++ regression tests."
+  ],
+  "security": "Never persist custody phrase or private key; network confirmation and secure device signer vault remain mandatory."
 }

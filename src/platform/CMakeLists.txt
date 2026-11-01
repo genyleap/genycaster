@@ -10,7 +10,9 @@ target_sources(farcaster_platform_custody_recovery
     PRIVATE custody_recovery.cpp custody_bip39_english.hpp)
 add_library(farcaster::platform_custody_recovery ALIAS farcaster_platform_custody_recovery)
 target_compile_features(farcaster_platform_custody_recovery PUBLIC cxx_std_26)
-target_link_libraries(farcaster_platform_custody_recovery PRIVATE OpenSSL::Crypto)
+target_link_libraries(farcaster_platform_custody_recovery
+    PUBLIC farcaster::capabilities farcaster::protocol
+    PRIVATE OpenSSL::Crypto)
 farcaster_enable_warnings(farcaster_platform_custody_recovery)
 
 add_library(farcaster_platform_signer)

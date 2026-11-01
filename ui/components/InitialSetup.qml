@@ -1244,6 +1244,7 @@ Item {
                         }
                         completeWordCount = 0
                         revealWords.checked = false
+                        deviceSignerConsent.checked = false
                     }
                     function countWords() {
                         let result = 0
@@ -1377,6 +1378,45 @@ Item {
                         }
                     }
                 }
+                Button {
+                    id: deviceSignerConsent
+                    objectName: "nativeRecoveryDeviceSignerConsent"
+                    Layout.fillWidth: true
+                    checkable: true
+                    checked: false
+                    implicitHeight: 52
+                    Accessible.role: Accessible.CheckBox
+                    Accessible.checked: checked
+                    Accessible.name: qsTrId("genycaster.setup.recovery_signer_consent")
+                    background: Item {}
+                    contentItem: RowLayout {
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
+                        Superellipse {
+                            Layout.preferredWidth: 24
+                            Layout.preferredHeight: 24
+                            fillColor: deviceSignerConsent.checked ? Theme.ink : Theme.surface
+                            borderColor: deviceSignerConsent.activeFocus
+                                         ? Theme.focus : Theme.borderMuted
+                            borderWidth: deviceSignerConsent.activeFocus ? 2 : 1
+                            curveDepth: 6
+                            Icon {
+                                anchors.centerIn: parent
+                                visible: deviceSignerConsent.checked
+                                text: Theme.iconCheck
+                                color: Theme.surface
+                                preferredSize: 15
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_signer_consent")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.ink
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
                 SetupPrimaryButton {
                     Layout.fillWidth: true
                     neutralPrimary: true
@@ -1384,6 +1424,7 @@ Item {
                     enabled: root.runtimeReady && !root.authenticationInProgress
                           && !root.recoverySubmitPending
                           && nativeRecoveryGrid.completeWordCount === 24
+                          && deviceSignerConsent.checked
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
                         nativeRecoveryGrid.clearAll()

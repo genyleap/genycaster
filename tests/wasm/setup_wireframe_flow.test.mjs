@@ -70,6 +70,33 @@ test('new-account registration is muted, clearly unavailable, and never clickabl
   assert.match(source('ui/i18n/qml_fa_IR.ts'),/<translation>فعلاً غیرفعال<\/translation>/);
 });
 
+test('native recovery authorizes a device signer only with explicit user consent', () => {
+  const qml=source('ui/components/InitialSetup.qml');
+  const runtime=source('ui/mobile/runtime_ui_bindings.cpp');
+  const platform=source('src/platform/custody_recovery.cpp');
+  const app=source('src/application/signer.cpp');
+  assert.match(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);
+  assert.match(qml,/deviceSignerConsent\.checked/);
+  assert.match(qml,/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(qml,/genycaster.setup.recovery_signer_consent/);
+  assert.match(runtime,/makeOneShotRecoveryAuthorizer\(mnemonic,/);
+  assert.match(platform,/wordCount != 24/);
+  assert.match(platform,/request.fid.value != m_verifiedFid/);
+  assert.match(platform,/std::chrono::minutes\{3\}/);
+  assert.match(runtime,/completeRecoveryChallenge\([\s\S]*?makeOneShotRecoveryAuthorizer\(/);
+  assert.match(runtime,/acceptRecoveryGrant\([\s\S]*?signerService->provision\(/);
+  assert.match(runtime,/nativeRecoveryGeneration->load\(std::memory_order_acquire\)/);
+  assert.match(app,/oneShotAuthorizer\.reset\(\)/);
+  assert.match(platform,/if \(m_consumed\)/);
+  assert.match(platform,/OPENSSL_cleanse\(key.bytes.data\(\), key.bytes.size\(\)\)/);
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translations=source('ui/i18n/qml_'+locale+'.ts');
+    assert.match(translations,/<message id="genycaster.setup.recovery_signer_consent">/);
+    assert.match(translations,/<translation>[^<]+<\/translation>/);
+  }
+});
+
 test('native desktop and mobile recovery use 24 styled secret word slots', () => {
   const bridge=source('src/presentation/qt/presentation_bridge.cpp');
   assert.match(setup,/id: nativeRecoveryGrid/);

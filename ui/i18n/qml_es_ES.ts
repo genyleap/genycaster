@@ -6361,6 +6361,10 @@ Empresa | https://company.com</translation>
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>Las palabras de recuperación permanecen en este dispositivo. Solo se envían la dirección pública de custodia y una prueba firmada de un solo uso. Usa un teclado y portapapeles fiables.</translation>
         </message>
+        <message id="genycaster.setup.recovery_signer_consent">
+            <source>Authorize a signer for this device to publish and interact after network verification.</source>
+            <translation>Autorizo una clave de firma para este dispositivo para publicar e interactuar tras la verificación de la red.</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>Introduce tus 24 palabras de recuperación en orden</translation>

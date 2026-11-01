@@ -111,7 +111,8 @@ public:
     /** @brief Ensures a secure local key and provisions it when authorization/registry ports exist. */
     [[nodiscard]] foundation::result::Status provision(
         std::optional<domain::session::ClientSession> session,
-        Observer observer);
+        Observer observer,
+        std::shared_ptr<capability::signer::ICustodyAuthorizer> oneShotAuthorizer = {});
 
     /** @brief Self-revokes an active gasless signer, then removes its local secure key. */
     [[nodiscard]] foundation::result::Status revoke(

@@ -2721,7 +2721,16 @@ void connectRuntime(
     // the only place that may briefly hold the phrase, and the provider sees
     // public custody identity plus a one-time signature only.
     using RecoveryIdentity = farcaster::provider::compatibility::auth::RecoveryIdentity;
-    using RecoveryOutcome = foundation::result::Result<RecoveryIdentity>;
+    struct RecoveryBundle final {
+        domain::identity::Fid fid{};
+        std::string issuer{};
+        std::string subject{};
+        std::string custodyAddress{};
+        std::string accountTicket{};
+        int expiresSeconds{};
+        std::shared_ptr<capability::signer::ICustodyAuthorizer> oneShotSigner{};
+    };
+    using RecoveryOutcome = foundation::result::Result<RecoveryBundle>;
     auto nativeRecoveryGeneration = std::make_shared<std::atomic_uint64_t>(0U);
     QObject::connect(&bridge, &PresentationBridge::signInCancelRequested, &bridge,
         [nativeRecoveryGeneration] {
@@ -2732,7 +2741,7 @@ void connectRuntime(
             nativeRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel);
         });
     QObject::connect(&bridge, &PresentationBridge::nativeRecoveryRequested, &bridge,
-        [&bridge, &connections, runtime, sessionObserver,
+        [&bridge, &connections, runtime, sessionObserver, signerObserver,
          nativeRecoveryGeneration](QString words) {
             const std::uint64_t generation =
                 nativeRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel) + 1U;
@@ -2752,7 +2761,7 @@ void connectRuntime(
             auto* watcher = new QFutureWatcher<RecoveryOutcome>(&bridge);
             QObject::connect(watcher, &QFutureWatcher<RecoveryOutcome>::finished,
                 &bridge,
-                [&bridge, &connections, runtime, sessionObserver,
+                [&bridge, &connections, runtime, sessionObserver, signerObserver,
                  nativeRecoveryGeneration, generation, watcher] {
                     RecoveryOutcome verified = watcher->result();
                     watcher->deleteLater();
@@ -2796,7 +2805,8 @@ void connectRuntime(
                     const QString subject = QString::fromStdString(verified->subject);
                     const int expires = verified->expiresSeconds;
                     const auto persistedObserver =
-                        [&bridge, &connections, sessionObserver,
+                        [&bridge, &connections, runtime, sessionObserver, signerObserver,
+                         oneShotSigner = verified->oneShotSigner,
                          nativeRecoveryGeneration, generation, ticket,
                          subject, fid, expires]
                         (application::session::SessionState state) mutable {
@@ -2819,7 +2829,8 @@ void connectRuntime(
                         // Both transitions are queued to one GUI thread, so
                         // the grant cannot arrive before the persisted session.
                         QMetaObject::invokeMethod(&bridge,
-                            [&bridge, &connections, ticket, subject, fid,
+                            [&bridge, &connections, runtime, signerObserver,
+                             oneShotSigner, ticket, subject, fid,
                              expires, nativeRecoveryGeneration, generation]() mutable {
                                 if (nativeRecoveryGeneration->load(std::memory_order_acquire)
                                         == generation
@@ -2829,6 +2840,25 @@ void connectRuntime(
                                     && bridge.accountIdentityIssuer() == connections.identityIssuer()) {
                                     connections.acceptRecoveryGrant(
                                         std::move(*ticket), subject, fid, expires);
+                                    // Login, signer metadata restoration and the
+                                    // account grant all refer to the same FID.
+                                    // Use the ephemeral recovery signer only for
+                                    // one network-confirmed KEY_ADD registration.
+                                    if (runtime->signerService && oneShotSigner) {
+                                        auto active = runtime->currentSessionSnapshot();
+                                        if (active && active->fid.value == fid
+                                            && active->custodyAddress) {
+                                            auto started = runtime->signerService->provision(
+                                                std::move(active), signerObserver,
+                                                std::move(oneShotSigner));
+                                            if (!started) {
+                                                applySignerState(bridge,
+                                                    application::signer::SignerState{
+                                                        .phase = application::signer::SignerPhase::Unavailable,
+                                                        .error = std::move(started.error())});
+                                            }
+                                        }
+                                    }
                                 } else {
                                     ticket->fill(char{0});
                                 }
@@ -2882,7 +2912,23 @@ void connectRuntime(
                     if (!verified || verified->fid.value != fid->value)
                         return std::unexpected(failure());
                     verified->custodyAddress = std::move(*address);
-                    return verified;
+                    // Derive a single-use EIP-712 signing capability only
+                    // AFTER server-side FID/custody proof succeeds. No phrase
+                    // or custody key material leaves this secure C++ boundary.
+                    auto signer = farcaster::platform::custody_recovery::
+                        makeOneShotRecoveryAuthorizer(mnemonic,
+                                                      verified->custodyAddress,
+                                                      verified->fid.value);
+                    if (!signer) return std::unexpected(failure());
+                    return RecoveryBundle{
+                        .fid = verified->fid,
+                        .issuer = std::move(verified->issuer),
+                        .subject = std::move(verified->subject),
+                        .custodyAddress = std::move(verified->custodyAddress),
+                        .accountTicket = std::move(verified->accountTicket),
+                        .expiresSeconds = verified->expiresSeconds,
+                        .oneShotSigner = std::move(*signer),
+                    };
                 }));
         });
 #else

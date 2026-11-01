@@ -6361,6 +6361,10 @@ Company | https://company.com</source>
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>واژه‌های بازیابی روی همین دستگاه می‌مانند. فقط آدرس عمومی مالکیت و گواه امضاشدهٔ یک‌بارمصرف ارسال می‌شوند. از صفحه‌کلید و کلیپ‌بورد مطمئن استفاده کنید.</translation>
         </message>
+        <message id="genycaster.setup.recovery_signer_consent">
+            <source>Authorize a signer for this device to publish and interact after network verification.</source>
+            <translation>اجازه می‌دهم برای این دستگاه کلید امضای مستقل ساخته شود تا پس از تأیید شبکه، انتشار و تعاملات بدون تأیید تکراری انجام شوند.</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>۲۴ واژهٔ بازیابی را به‌ترتیب وارد کنید</translation>

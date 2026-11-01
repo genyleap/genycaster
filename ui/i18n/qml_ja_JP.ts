@@ -6360,6 +6360,10 @@ Company | https://company.com</source>
             <source>Your recovery words stay on this device. Only your public custody address and a one-time signed proof are sent. Use a trusted keyboard and clipboard.</source>
             <translation>リカバリーフレーズはこの端末内に留まります。公開Custodyアドレスと一度限りの署名証明のみ送信します。信頼できるキーボードとクリップボードを使用してください。</translation>
         </message>
+        <message id="genycaster.setup.recovery_signer_consent">
+            <source>Authorize a signer for this device to publish and interact after network verification.</source>
+            <translation>ネットワーク検証後、この端末で投稿やリアクションを行う署名鍵の作成を許可します。</translation>
+        </message>
         <message id="genycaster.setup.native_recovery_placeholder">
             <source>Enter your 24 recovery words in order</source>
             <translation>24個のリカバリー単語を順番に入力してください</translation>

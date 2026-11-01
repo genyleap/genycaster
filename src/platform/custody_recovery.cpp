@@ -16,9 +16,11 @@ module;
 #include <array>
 #include <bit>
 #include <cctype>
+#include <chrono>
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <span>
 #include <string>
@@ -26,6 +28,13 @@ module;
 #include <utility>
 
 module farcaster.platform.custody_recovery;
+
+import farcaster.capability.signer;
+import farcaster.capability.signer_attestation;
+import farcaster.protocol.key_authorization;
+import farcaster.protocol.message;
+import farcaster.foundation.error;
+import farcaster.foundation.result;
 
 namespace farcaster::platform::custody_recovery {
 namespace {
@@ -571,6 +580,218 @@ signOneTimeIdentityProof(const std::string_view phrase,
         .address = std::move(custody->address),
         .signature = std::move(*signature),
     };
+}
+
+
+// Strict, single-use EIP-712 signing for a network-approved device signer.
+// The typed-data hashes reproduce key_authorization::buildTypedData's domain,
+// field ordering and dynamic-array encoding; no JSON parser is trusted here.
+namespace {
+using Hash32 = std::array<unsigned char, 32>;
+
+[[nodiscard]] Hash32 hashLiteral(std::string_view value)
+{
+    return keccak256({reinterpret_cast<const unsigned char*>(value.data()), value.size()});
+}
+
+void appendHash(std::vector<unsigned char>& destination, const Hash32& hash)
+{
+    destination.insert(destination.end(), hash.begin(), hash.end());
+}
+
+void appendNumber(std::vector<unsigned char>& destination, std::uint64_t value)
+{
+    std::array<unsigned char, 32> word{};
+    for (std::size_t i{}; i < 8; ++i) {
+        word[31 - i] = static_cast<unsigned char>(value & 255U);
+        value >>= 8U;
+    }
+    appendHash(destination, word);
+}
+
+[[nodiscard]] std::optional<std::vector<unsigned char>>
+parseHex(std::string_view value, std::size_t bytes)
+{
+    if (value.starts_with("0x")) value.remove_prefix(2);
+    if (value.size() != bytes * 2) return std::nullopt;
+    const auto nibble = [](const char c) -> int {
+        if (c >= '0' && c <= '9') return c - '0';
+        if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+        if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+        return -1;
+    };
+    std::vector<unsigned char> decoded{};
+    decoded.reserve(bytes);
+    for (std::size_t i{}; i < value.size(); i += 2) {
+        const auto upper = nibble(value[i]), lower = nibble(value[i + 1]);
+        if (upper < 0 || lower < 0) return std::nullopt;
+        decoded.push_back(static_cast<unsigned char>((upper << 4) | lower));
+    }
+    return decoded;
+}
+
+[[nodiscard]] Hash32 typedDigest(
+    const farcaster::capability::signer::KeyAddRequest& request,
+    const std::uint32_t deadline,
+    const bool signedKeyRequest)
+{
+    auto key = parseHex(request.publicKey.hex, 32);
+    if (!key) return {};
+    const Hash32 domainType = hashLiteral(
+        "EIP712Domain(string name,string version,uint256 chainId)");
+    std::vector<unsigned char> domain{};
+    appendHash(domain, domainType);
+    appendHash(domain, hashLiteral("Farcaster KeyAdd"));
+    appendHash(domain, hashLiteral("1"));
+    appendNumber(domain, 1);
+    const auto domainHash = keccak256(domain);
+
+    std::vector<unsigned char> structure{};
+    if (signedKeyRequest) {
+        appendHash(structure, hashLiteral(
+            "SignedKeyRequest(uint256 requestFid,bytes key,uint256 deadline)"));
+        appendNumber(structure, request.requestFid.value);
+        appendHash(structure, keccak256(*key));
+        appendNumber(structure, deadline);
+    } else {
+        appendHash(structure, hashLiteral(
+            "KeyAdd(uint256 fid,bytes key,uint32 keyType,uint32[] scopes,uint32 ttl,uint32 nonce,uint256 deadline)"));
+        appendNumber(structure, request.fid.value);
+        appendHash(structure, keccak256(*key));
+        appendNumber(structure, 1);  // ED25519
+        std::vector<unsigned char> scopes{};
+        for (const auto scope : request.scopes)
+            appendNumber(scopes, static_cast<std::uint32_t>(scope));
+        appendHash(structure, keccak256(scopes));
+        appendNumber(structure, request.ttlSeconds);
+        appendNumber(structure, request.nonce);
+        appendNumber(structure, deadline);
+    }
+    const auto structHash = keccak256(structure);
+    std::vector<unsigned char> preimage{0x19, 0x01};
+    appendHash(preimage, domainHash);
+    appendHash(preimage, structHash);
+    return keccak256(preimage);
+}
+
+class OneShotRecoveryAuthorizer final
+    : public farcaster::capability::signer::ICustodyAuthorizer {
+public:
+    OneShotRecoveryAuthorizer(Sensitive<32>&& key, std::string address,
+                              const std::uint64_t verifiedFid)
+        : m_key(std::move(key)), m_address(std::move(address)),
+          m_verifiedFid(verifiedFid) {}
+
+    [[nodiscard]] farcaster::foundation::result::Result<
+        farcaster::capability::signer::KeyAddAuthorization>
+    authorize(const farcaster::capability::signer::KeyAddRequest& request,
+        std::optional<farcaster::capability::signer_attestation::SignedKeyRequestAttestation>
+            appAttestation) override
+    {
+        using farcaster::foundation::error::ErrorCode;
+        const auto invalid = [](std::string message) {
+            return std::unexpected(farcaster::foundation::error::Error::make(
+                ErrorCode::Unauthorized, std::move(message)));
+        };
+        if (m_consumed) return invalid("Recovery custody approval was already consumed.");
+        m_consumed = true;
+        struct CleanseAfterUse {
+            Sensitive<32>& key;
+            ~CleanseAfterUse() { OPENSSL_cleanse(key.bytes.data(), key.bytes.size()); }
+        } cleanse{m_key};
+
+        // Do not sign unrelated accounts, replayed requests or a silently
+        // swapped custody address after the verified recovery ceremony.
+        const auto expected = parseHex(m_address, 20);
+        const auto supplied = parseHex(request.custodyAddress, 20);
+        if (!expected || !supplied || *expected != *supplied
+            || request.fid.value == 0 || request.fid.value != m_verifiedFid)
+            return invalid("Recovery signer FID/custody differs from the verified account.");
+        if (std::chrono::steady_clock::now() - m_createdAt > std::chrono::minutes{3})
+            return invalid("One-time signer recovery authorization has expired.");
+        const auto deadline = farcaster::protocol::message::toFarcasterTimestamp(request.deadline);
+        if (!deadline) return std::unexpected(std::move(deadline.error()));
+        const farcaster::protocol::key_authorization::KeyAddInput input{
+            .fid = request.fid, .publicKey = request.publicKey,
+            .scopes = request.scopes, .ttlSeconds = request.ttlSeconds,
+            .nonce = request.nonce, .deadline = *deadline,
+            .requestFid = request.requestFid,
+        };
+        if (auto documents = farcaster::protocol::key_authorization::buildTypedData(input);
+            !documents) return std::unexpected(std::move(documents.error()));
+        if (request.requestFid.value != request.fid.value && !appAttestation)
+            return invalid("An app-attributed signer requires the independent app attestation.");
+        const auto custody = signDigest(m_key, typedDigest(request, *deadline, false));
+        if (!custody) return invalid("Custody key could not sign the exact KEY_ADD request.");
+        auto rawCustody = parseHex(*custody, 65);
+        if (!rawCustody) return invalid("Invalid custody signature encoding.");
+
+        std::string requestSignerAddress{};
+        std::string signedRequestSignature{};
+        if (appAttestation) {
+            requestSignerAddress = appAttestation->requestSignerAddress;
+            signedRequestSignature = appAttestation->signature;
+        } else {
+            const auto requestSignature =
+                signDigest(m_key, typedDigest(request, *deadline, true));
+            if (!requestSignature)
+                return invalid("Custody key could not authorize the SignedKeyRequest.");
+            const auto raw = parseHex(*requestSignature, 65);
+            if (!raw) return invalid("Invalid SignedKeyRequest signature.");
+            requestSignerAddress.assign(reinterpret_cast<const char*>(expected->data()),
+                                        expected->size());
+            signedRequestSignature.assign(
+                reinterpret_cast<const char*>(raw->data()), raw->size());
+        }
+        auto metadata = farcaster::protocol::key_authorization::
+            encodeSignedKeyRequestMetadata(request.requestFid, requestSignerAddress,
+                                           signedRequestSignature, *deadline);
+        if (!metadata) return std::unexpected(std::move(metadata.error()));
+        return farcaster::capability::signer::KeyAddAuthorization{
+            .custodySignature = std::string{
+                reinterpret_cast<const char*>(rawCustody->data()), rawCustody->size()},
+            .signedKeyRequestMetadata = std::move(*metadata),
+        };
+    }
+
+private:
+    Sensitive<32> m_key{};
+    std::string m_address{};
+    std::uint64_t m_verifiedFid{};
+    const std::chrono::steady_clock::time_point m_createdAt{
+        std::chrono::steady_clock::now()};
+    bool m_consumed{false};
+};
+}
+
+std::expected<std::shared_ptr<farcaster::capability::signer::ICustodyAuthorizer>, Error>
+makeOneShotRecoveryAuthorizer(const std::string_view phrase,
+                              const std::string_view verifiedCustodyAddress,
+                              const std::uint64_t verifiedFid)
+{
+    if (verifiedFid == 0) return std::unexpected(Error::SigningFailed);
+    std::size_t wordCount{};
+    bool inWord{false};
+    for (const unsigned char ch : phrase) {
+        if (std::isspace(ch)) {
+            inWord = false;
+        } else if (!inWord) {
+            if (++wordCount > 24) return std::unexpected(Error::InvalidWordCount);
+            inWord = true;
+        }
+    }
+    if (wordCount != 24) return std::unexpected(Error::InvalidWordCount);
+    auto custody = deriveMaterial(phrase);
+    if (!custody) return std::unexpected(custody.error());
+    const auto expected = parseHex(verifiedCustodyAddress, 20);
+    const auto actual = parseHex(custody->address, 20);
+    if (!expected || !actual || *expected != *actual)
+        return std::unexpected(Error::SigningFailed);
+    std::shared_ptr<capability::signer::ICustodyAuthorizer> authorizer =
+        std::make_shared<OneShotRecoveryAuthorizer>(
+            std::move(custody->privateKey), std::move(custody->address),
+            verifiedFid);
+    return authorizer;
 }
 
 } // namespace farcaster::platform::custody_recovery

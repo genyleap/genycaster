@@ -353,10 +353,12 @@ foundation::result::Status SignerService::restore(
 
 foundation::result::Status SignerService::provision(
     std::optional<domain::session::ClientSession> session,
-    Observer observer)
+    Observer observer,
+    std::shared_ptr<capability::signer::ICustodyAuthorizer> oneShotAuthorizer)
 {
     return m_impl->executor.post(
-        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+        [this, session = std::move(session), observer = std::move(observer),
+         oneShotAuthorizer = std::move(oneShotAuthorizer)]() mutable {
             if (!session) {
                 m_impl->current = SignerState{.phase = SignerPhase::SignedOut,
                     .requiredScopes = m_impl->policy.scopes};
@@ -462,7 +464,9 @@ foundation::result::Status SignerService::provision(
                 }
             }
 
-            if (m_impl->authorizer == nullptr) {
+            auto* const authorizer = oneShotAuthorizer
+                ? oneShotAuthorizer.get() : m_impl->authorizer;
+            if (authorizer == nullptr) {
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
                     .error = makeError(foundation::error::ErrorCode::Unsupported,
@@ -519,7 +523,10 @@ foundation::result::Status SignerService::provision(
                 }
                 appAttestation = std::move(*attestation);
             }
-            auto authorization = m_impl->authorizer->authorize(request, std::move(appAttestation));
+            auto authorization = authorizer->authorize(request, std::move(appAttestation));
+            // The one-shot custody key is no longer needed after signing;
+            // release it before network registration and confirmation polling.
+            oneShotAuthorizer.reset();
             if (!authorization) {
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
