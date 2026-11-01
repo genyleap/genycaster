@@ -127,7 +127,9 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
     });
     m_bookmarkPoll.setInterval(25'000);
     connect(&m_bookmarkPoll, &QTimer::timeout, this, [this] {
-        if(m_verified && !m_cloudSessionVerified && !m_sessionRequest)
+        if(!m_cloudSessionVerified && !m_sessionRequest
+            && !m_accountBearer.isEmpty()
+            && (m_verified || m_accountBearer.startsWith("recovery.")))
             bootstrapAccountSession();
         if (!m_cloudServiceAvailable) checkCloudService();
         else {
@@ -238,7 +240,8 @@ void OpenProofConnectionsController::authorizeCloudRequest(
 {
     if (m_cloudSessionVerified && !m_cloudCsrf.isEmpty())
         request.setRawHeader("X-Genycaster-CSRF", m_cloudCsrf);
-    else if (m_verified && !m_accountBearer.isEmpty())
+    else if (!m_accountBearer.isEmpty()
+             && (m_verified || m_accountBearer.startsWith("recovery.")))
         request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
 }
 
@@ -288,7 +291,8 @@ void OpenProofConnectionsController::restoreAccountSession()
 
 void OpenProofConnectionsController::bootstrapAccountSession()
 {
-    if(!m_viewerFid || !m_verified || m_accountBearer.isEmpty()
+    if(!m_viewerFid || m_accountBearer.isEmpty()
+        || !(m_verified || m_accountBearer.startsWith("recovery."))
         || m_sessionRevoking || m_cloudSessionVerified
         || !trustedHttpsEndpoint(m_cloudUrl))return;
     if(m_sessionRequest) {
@@ -2483,6 +2487,12 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
     m_accountSubject = std::move(subject);
     m_grantExpiry.start(std::clamp(expiresSeconds - 10, 1, 3'590) * 1'000);
     m_error.clear();
+    // The account server independently verifies the short-lived recovery
+    // bearer. Native devices need their own persistent authenticated session.
+    emit stateChanged();
+    m_bookmarkPoll.start();
+    bootstrapAccountSession();
+    if (!m_cloudServiceAvailable) checkCloudService();
     fetchTopics();
     refreshConnections();
     pumpTopicWrites();

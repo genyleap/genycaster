@@ -24,6 +24,23 @@ test('existing Farcaster/OpenProof authorization is reused, never exposed to QML
   assert.doesNotMatch(header,/Q_PROPERTY\([^\n]*[Bb]earer/);
 });
 
+test('native Farcaster recovery grant boots a verified account session before loading profile details',()=> {
+  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const api=read('services/account-sync/cloud_state.mjs');
+  const body=code.slice(code.indexOf('void OpenProofConnectionsController::acceptRecoveryGrant('),
+    code.indexOf('void OpenProofConnectionsController::stopAuthorization('));
+  assert.match(body,/m_accountBearer = std::move\(ticket\)/);
+  assert.match(body,/bootstrapAccountSession\(\)/);
+  assert.match(body,/checkCloudService\(\)/);
+  assert.match(code,/m_verified \|\| m_accountBearer.startsWith\("recovery\."\)/);
+  assert.match(code,/void OpenProofConnectionsController::restoreAccountSession\(\)/);
+  assert.match(code,/m_cloudSessionVerified=true/);
+  assert.match(api,/header.startsWith\('Bearer recovery\.'\)/);
+  assert.match(api,/if\(owner.cookieAuth \|\| typeof store.createSession/);
+  // A local recovered FID or an unverified ticket cannot bypass the API.
+  assert.doesNotMatch(body,/m_cloudSessionVerified=true/);
+});
+
 test('profile category and links save locally then replicate without sync controls',()=>{
   const profile=read('ui/components/ProfileSurface.qml');
   assert.match(profile,/category: "genycaster-profile-extras"/);

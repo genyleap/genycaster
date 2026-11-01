@@ -5,7 +5,7 @@ import { promptForFarcasterRecovery } from '../../ui/wasm/recovery-phrase-dialog
 class FakeElement {
     constructor(tag,document) {
         this.tagName=tag;this.document=document;this.listeners=new Map();
-        this.children=[];this.style={overflow:''};this.attributes={};
+        this.children=[];this.style={overflow:''};this.attributes={};this.dataset={};
         this.value='';this.textContent='';this.placeholder='';
     }
     setAttribute(name,value){this.attributes[name]=value;}
@@ -68,6 +68,19 @@ test('secure browser presents 24 masked numbered fields without persisting secre
     assert.equal(b.document.getElementById('genycaster-farcaster-recovery'),undefined);
     assert.equal(b.document.body.style.overflow,'');
 });
+test('post-revoke account recovery uses a real full-app form, not the Setup half-pane',async()=>{
+    const b=browser();
+    const result=promptForFarcasterRecovery(b,null,null,{presentation:'full'});
+    const root=b.document.getElementById('genycaster-farcaster-recovery');
+    const card=root.children[0];
+    assert.equal(root.dataset?.presentation,'full');
+    assert.equal(card.attributes['role'],'dialog');
+    assert.equal(card.attributes['aria-modal'],'true');
+    assert.match(root.children[1].textContent,/left:/);
+    root.children[0].children.at(-1).children[0].click();
+    await assert.rejects(result,/cancelled/);
+});
+
 test('paste a complete 24-word phrase in numbered order',async()=>{
     const b=browser(),result=promptForFarcasterRecovery(b);
     const sheet=b.document.getElementById('genycaster-farcaster-recovery').children[0];

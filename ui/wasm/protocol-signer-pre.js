@@ -93,8 +93,11 @@
             await import('./recovery-phrase-dialog.mjs');
         if (controller.signal.aborted ||
             epoch !== thisEpoch || owner !== fid) return;
+        // Re-provisioning from Account/Profile must cover the entire app,
+        // not reuse the onboarding split-pane layout over the live profile.
         await promptForFarcasterRecovery(window,controller.signal,
-            phrase=>current.provisionFromRecovery(fid,phrase));
+            phrase=>current.provisionFromRecovery(fid,phrase),
+            {presentation:'full'});
     }
 
     function start(action, fid, base, payloadString = "") {

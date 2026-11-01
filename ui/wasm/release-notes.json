@@ -1,10 +1,10 @@
 {
   "type": "fix",
-  "title": "One recovery experience, better GPU rail and reactive 24-word activation",
+  "title": "Reliable post-revoke recovery and native account-data parity",
   "changes": [
-    "Place the secure browser-only recovery form in the existing Setup content column while keeping the GPU identity rail visible; no full-screen modal or secrets passed into QML.",
-    "Style the WebAssembly reveal-words checkbox and keyboard focus to match GenyCaster's neutral theme rather than default browser-blue controls.",
-    "Make native recovery's Continue action react to every entered or pasted word using a live 24-field completion count.",
-    "Refine the light/dark GPU studio rail with tonal porcelain/sapphire lighting and restrained softboxes."
+    "Open the 24-word browser recovery as a full-window secure form when launched from an authenticated account after signer revoke; preserve the split-pane layout for initial onboarding.",
+    "On Native, bootstrap a server-verified GenyCaster account session from a short-lived verified recovery grant, then silently load profile extras, status and other account-owned data.",
+    "Retry the account-session handshake after transient network failures without treating local Farcaster identity or an unverified ticket as account authorization.",
+    "Add regression coverage for full-screen recovery and two-device account ownership."
   ]
 }

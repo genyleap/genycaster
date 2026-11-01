@@ -283,12 +283,13 @@ test('shared marker geometry maintains a common vertical center for pill and eig
 
 test('browser recovery occupies the native Setup pane without exposing secrets to QML', () => {
   const dialog=source('ui/wasm/recovery-phrase-dialog.mjs');
-  assert.match(dialog,/left:min\(29vw,430px\)/);
-  assert.match(dialog,/role','region'/);
+  assert.match(dialog,/accountMode\?'0':'min\(29vw,430px\)'/);
+  assert.match(dialog,/accountMode\?'dialog':'region'/);
   assert.match(dialog,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.match(dialog,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(dialog,/genycaster-recovery-reveal:focus-visible/);
-  assert.doesNotMatch(dialog,/aria-modal|backdrop-filter:blur\(7px\)/);
+  assert.match(dialog,/if\(accountMode\)card.setAttribute\('aria-modal','true'\)/);
+  assert.doesNotMatch(dialog,/backdrop-filter:blur\(7px\)/);
   assert.match(dialog,/word\.autocomplete='off'/);
   assert.doesNotMatch(dialog,/localStorage\.setItem/);
 });

@@ -7,7 +7,7 @@ import {fromHex,hex} from '../../ui/wasm/farcaster_protocol.mjs';
 import {keccak256} from '../../ui/wasm/browser_protocol_signer.mjs';
 
 test('custody EIP-191 personal-sign uses a recoverable signature and never exports phrase',async()=>{
-  const custody=await deriveFarcasterCustody('abandon '.repeat(11)+'about');
+  const custody=await deriveFarcasterCustody('abandon '.repeat(23)+'art');
   try{
     const message='genyleap.com wants you to sign in with your Ethereum account: Farcaster Auth farcaster://fid/123';
     const sig=await custody.signMessage(message);

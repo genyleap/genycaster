@@ -27,7 +27,7 @@ const revealLabels={
  ko:'복구 단어 표시',zh:'显示恢复词',hi:'रिकवरी शब्द दिखाएँ',
 };
 
-export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuthorize=null) {
+export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuthorize=null,options={}) {
     if(signal?.aborted) return Promise.reject(new Error('Recovery import cancelled'));
     const document=browser.document;
     if(!document?.body || browser.isSecureContext!==true)
@@ -52,7 +52,9 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         // It never transports secret words to Qt/QML/WASM or covers the GPU rail.
         backdrop.style.cssText='position:fixed;inset:0;z-index:2147483647;display:block;box-sizing:border-box;background:transparent;font:15px system-ui,sans-serif;color:'+foreground;
         const card=document.createElement('section');
-        card.setAttribute('role','region');
+        const accountMode=options?.presentation==='full';
+        card.setAttribute('role',accountMode?'dialog':'region');
+        if(accountMode)card.setAttribute('aria-modal','true');
         card.setAttribute('aria-labelledby','genycaster-recovery-title');
         card.dir=['ar','fa'].includes(lang)?'rtl':'ltr';
         card.style.cssText='position:absolute;inset:0;width:100%;height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:contain;box-sizing:border-box;background:'+surface+';border:none;border-radius:0;padding:clamp(80px,11vh,128px) clamp(24px,5vw,60px) max(28px,env(safe-area-inset-bottom));box-shadow:none;color:'+foreground+';';
@@ -60,9 +62,10 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
         // boundary as InitialSetup.qml; intermediate and phone sizes fill
         // the screen because the QML brand rail is hidden in those layouts.
         const style=document.createElement('style');
+        if(accountMode)backdrop.dataset.presentation='full';
         style.textContent=
             '@media(min-width:980px){#genycaster-farcaster-recovery>section{'
-            +'left:min(29vw,430px)!important;right:0!important;width:auto!important;'
+            +'left:'+ (accountMode?'0':'min(29vw,430px)') +'!important;right:0!important;width:auto!important;'
             +'padding-top:clamp(94px,12vh,138px)!important}}'
             +'#genycaster-farcaster-recovery input:focus-visible{outline:2px solid '
             +(light?'#626c7c':'#b3c0d3')+';outline-offset:2px}'
