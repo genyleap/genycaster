@@ -28,16 +28,29 @@ test('wasm manifest carries curated real update type and bounded changes',()=>{
     for(const name of ['farcaster_client.html','qtloader.js','farcaster_client.js','genycaster-loader.js','genycaster-sw.js'])
       writeFileSync(join(dir,name),'test-'+name);
     const args=[new URL('../../ci/package_wasm_assets.py',import.meta.url).pathname,
-      '--dir',dir,'--app-version','1.0.0','--release-label','Beta 1.0',
-      '--release-notes',new URL('../../ui/wasm/release-notes.json',import.meta.url).pathname];
+      '--dir',dir,'--app-version','1.0.0-rc1','--release-label','Genycaster v1.0.0-rc1',
+      '--release-notes',new URL('../../release-notes/v1.0.0-rc1.md',import.meta.url).pathname];
     const p=spawnSync('python3',args,{encoding:'utf8'});
     assert.equal(p.status,0,p.stderr);
     const metadata=JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
-    assert.equal(metadata.releaseNotes.type,'improvement');
+    assert.equal(metadata.releaseNotes.type,'feature');
     assert.ok(metadata.releaseNotes.changes.length>=2);
-    assert.equal(metadata.releaseNotes.title,'Readable Settings, clearer node status and server setup preview');
+    assert.equal(metadata.releaseNotes.title,'Genycaster v1.0.0-rc1');
+    assert.equal(metadata.appVersion,'1.0.0-rc1');
     assert.match(metadata.version,/^[a-f0-9]{20}$/);
   }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('native, WASM and tagged GitHub Releases share one root Markdown file',()=>{
+  const cmake=read('ui/CMakeLists.txt');
+  const rootCmake=read('CMakeLists.txt');
+  const native=read('ui/mobile/update_controller.cpp');
+  const workflow=read('.github/workflows/ci.yml');
+  assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.md/);
+  assert.match(cmake,/qt_add_resources\(farcaster_client genycaster_release_notes/);
+  assert.match(cmake,/--release-notes "\$\{GENYCASTER_RELEASE_NOTES_FILE\}"/);
+  assert.match(native,/genycaster-release-notes\/v%1\.md/);
+  assert.match(workflow,/body_path: release-notes\/\$\{\{ github\.ref_name \}\}\.md/);
 });
 
 test('wasm update UI uses same-origin manifest and never substitutes GitHub installer notes',()=>{
