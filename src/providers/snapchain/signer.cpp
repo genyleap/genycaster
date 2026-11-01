@@ -971,24 +971,35 @@ public:
             return std::unexpected(std::move(submitted.error()));
         }
 
-        auto observed = inspect(
-            fid,
-            domain::signer::PublicKey{*normalizedKey},
-            requestFid);
-        if (!observed) {
-            return std::unexpected(std::move(observed.error()));
+        // KEY_REMOVE submission and signer-index propagation are not atomic.
+        // Observe the authoritative state until both revocation and nonce
+        // advancement are confirmed, exactly as the KEY_ADD path does.
+        // Never report a successful revoke while the signer is still active.
+        const auto confirmationDeadline =
+            std::chrono::steady_clock::now() + m_config.confirmationTimeout;
+        while (true) {
+            auto observed = inspect(fid, domain::signer::PublicKey{*normalizedKey}, requestFid);
+            if (!observed) return std::unexpected(std::move(observed.error()));
+
+            const bool signerActive = observed->registration
+                && observed->registration->state == domain::signer::RegistrationState::Active;
+            const bool nonceConfirmed = observed->nonces.currentRequesterNonce
+                && *observed->nonces.currentRequesterNonce >= nonce;
+            if (!signerActive && nonceConfirmed) return {};
+
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= confirmationDeadline) {
+                return std::unexpected(makeError(
+                    foundation::error::ErrorCode::Timeout,
+                    "Snapchain accepted KEY_REMOVE but revocation is not yet confirmed. "
+                    "Signer active: " + std::string(signerActive ? "yes" : "no") +
+                    "; requester nonce advanced: " + std::string(nonceConfirmed ? "yes" : "no") +
+                    ". Do not reuse or reauthorize the key until network state is verified."));
+            }
+            std::this_thread::sleep_for(std::min(
+                m_config.confirmationPollInterval,
+                std::chrono::duration_cast<std::chrono::milliseconds>(confirmationDeadline - now)));
         }
-        if (observed->registration &&
-            observed->registration->state == domain::signer::RegistrationState::Active) {
-            return std::unexpected(protocolError(
-                "Snapchain accepted KEY_REMOVE but the signer remains active afterwards."));
-        }
-        if (!observed->nonces.currentRequesterNonce ||
-            *observed->nonces.currentRequesterNonce < nonce) {
-            return std::unexpected(protocolError(
-                "Snapchain post-revocation requester nonce did not advance to the submitted value."));
-        }
-        return {};
     }
 
 private:

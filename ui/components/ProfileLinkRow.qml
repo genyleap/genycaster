@@ -19,8 +19,8 @@ Button {
     hoverEnabled: true
     property var browserMetadata: ({})
     readonly property var metadata: {
-        const revision = linkPreviewResolver.revision
-        const native = linkPreviewResolver.previewFor(root.targetUrl)
+        const revision = linkPreviewResolver ? linkPreviewResolver.revision : 0
+        const native = linkPreviewResolver ? linkPreviewResolver.previewFor(root.targetUrl) : ({})
         return root.browserMetadata.resolved
                && root.browserMetadata.providerKind === "web"
                ? Object.assign({}, native, root.browserMetadata) : native
@@ -55,7 +55,7 @@ Button {
         const declared = String(metadata.favicon || "")
         if (declared.length > 0) return declared
         const matched = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
-        return matched ? linkPreviewResolver.imageSourceForUrl(
+        return matched && linkPreviewResolver ? linkPreviewResolver.imageSourceForUrl(
             "https://" + matched[1] + "/favicon.ico") : root.previewArtworkSource
     }
     readonly property string siteInitial: {

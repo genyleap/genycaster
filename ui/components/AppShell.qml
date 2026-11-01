@@ -858,7 +858,7 @@ Item {
                 interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
                 compact: root.compact
                 filterAvailable: presentationBridge.isAuthenticated
-                                 && openProofConnections.topicCatalog.length > 0
+                                 && (openProofConnections ? openProofConnections.topicCatalog : []).length > 0
                 onFilterRequested: explorerFilterSheet.open()
                 onModeRequested: mode => root.selectExplorerPresentationMode(mode)
                 onVisualFilterRequested: filter => root.explorerVisualFilter = filter
@@ -1440,9 +1440,9 @@ Item {
                                                 runtimeReady: presentationBridge.runtimeReady
                                                 socialMode: presentationBridge.activeView !== "feed"
                                                 busy: root.topicBrowseActive && root.topicBrowseScope==="explorer"
-                                                      ? openProofConnections.topicCastsBusy : presentationBridge.isBusy
+                                                      ? (openProofConnections ? openProofConnections.topicCastsBusy : false) : presentationBridge.isBusy
                                                 hasMore: root.topicBrowseActive && root.topicBrowseScope==="explorer"
-                                                         ? openProofConnections.topicCastsHasMore : presentationBridge.hasMore
+                                                         ? (openProofConnections ? openProofConnections.topicCastsHasMore : false) : presentationBridge.hasMore
                                                 cachedMore: presentationBridge.cachedFeedHasMore
                                                 offline: presentationBridge.isOffline
                                                 sourceUnavailable: presentationBridge.sourceUnavailable
@@ -1525,13 +1525,13 @@ Item {
                                             TopicBrowseSurface {
                                                 scopeName: root.topicBrowseScope==="profile" ? qsTrId("genycaster.side_nav.profile") : qsTrId("genycaster.side_nav.explorer")
                                                 topicSlug: root.topicBrowseSlug
-                                                topics: openProofConnections.topicCatalog
+                                                topics: (openProofConnections ? openProofConnections.topicCatalog : [])
                                                 items: openProofConnections.topicCastItems
                                                 cachedRows: presentationBridge.rows
                                                 hydratedRows: presentationBridge.topicPreviewCasts
                                                 bookmarkedRows: presentationBridge.bookmarkedCasts
-                                                busy: openProofConnections.topicCastsBusy
-                                                hasMore: openProofConnections.topicCastsHasMore
+                                                busy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
+                                                hasMore: (openProofConnections ? openProofConnections.topicCastsHasMore : false)
                                                 errorText: openProofConnections.topicCastsError
                                                 compact: root.compact
                                                 accountFid: presentationBridge.accountFid
@@ -1585,10 +1585,10 @@ Item {
                                                       ? root.topicInlineRows() : presentationBridge.rows
                                                 topicFilterActive: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                 topicFilterSlug: root.topicBrowseSlug
-                                                topicFilterBusy: openProofConnections.topicCastsBusy
-                                                topicFilterHasMore: openProofConnections.topicCastsHasMore
+                                                topicFilterBusy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
+                                                topicFilterHasMore: (openProofConnections ? openProofConnections.topicCastsHasMore : false)
                                                 profileFeed: presentationBridge.profileFeed
-                                                topicCatalog: openProofConnections.topicCatalog
+                                                topicCatalog: (openProofConnections ? openProofConnections.topicCatalog : [])
                                                 onTopicRequested: (slug,fid) => {
                                                     if(slug) root.openTopicBrowser(slug,"profile",fid)
                                                     else if(root.topicBrowseActive && root.topicBrowseScope==="profile")
@@ -1597,9 +1597,9 @@ Item {
                                                 runtimeReady: presentationBridge.runtimeReady
                                                 compact: root.compact
                                                 busy: root.topicBrowseActive && root.topicBrowseScope==="profile"
-                                                      ? openProofConnections.topicCastsBusy : presentationBridge.isBusy
+                                                      ? (openProofConnections ? openProofConnections.topicCastsBusy : false) : presentationBridge.isBusy
                                                 hasMore: root.topicBrowseActive && root.topicBrowseScope==="profile"
-                                                         ? openProofConnections.topicCastsHasMore : presentationBridge.hasMore
+                                                         ? (openProofConnections ? openProofConnections.topicCastsHasMore : false) : presentationBridge.hasMore
                                                 offline: presentationBridge.isOffline
                                                 sourceUnavailable: presentationBridge.sourceUnavailable
                                                 errorText: root.topicBrowseActive && root.topicBrowseScope==="profile"
@@ -2113,7 +2113,7 @@ Item {
         heading: qsTrId("genycaster.filters.explorer")
         sections: {
             const topicOptions=[{id:"",label:qsTrId("genycaster.filters.all_topics")}]
-            for (const entry of (openProofConnections ? openProofConnections.topicCatalog : [])) {
+            for (const entry of (openProofConnections ? (openProofConnections ? openProofConnections.topicCatalog : []) : [])) {
                 const slug=String(entry.slug || "")
                 if (!/^[a-z][a-z0-9-]{1,63}$/.test(slug)) continue
                 const names={

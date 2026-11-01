@@ -112,7 +112,7 @@ RowLayout {
         && Number(root.viewDescriptor.authorFid || 0) > 0
         && root.descriptorCastId.length > 0
     readonly property var castViewEntry: root.wantsDerivedViews
-        ? castViewController.entryFor(root.descriptorCastId) : null
+        ? (castViewController ? castViewController.entryFor(root.descriptorCastId) : null) : null
     property string retainedViewsCastId: ""
 
     readonly property var resolvedViewCount: root.hasCanonicalViewCount
@@ -122,17 +122,17 @@ RowLayout {
         const next = root.wantsDerivedViews ? root.descriptorCastId : ""
         if (root.retainedViewsCastId === next)
             return
-        if (root.retainedViewsCastId.length > 0)
+        if (root.retainedViewsCastId.length > 0 && castViewController)
             castViewController.release(root.retainedViewsCastId)
         root.retainedViewsCastId = next
-        if (next.length > 0)
+        if (next.length > 0 && castViewController)
             castViewController.retain(next)
     }
 
     function requestViews() {
         // One atomic castData map supplies identity, author and text. Separate
         // QML property bindings can otherwise transiently cross cast identities.
-        if (root.wantsDerivedViews && !root.scrollMoving)
+        if (root.wantsDerivedViews && !root.scrollMoving && castViewController)
             castViewController.ensure(root.descriptorCastId,
                                       Number(root.viewDescriptor.authorFid || 0),
                                       String(root.viewDescriptor.text || ""))
@@ -145,7 +145,7 @@ RowLayout {
         syncNativeInterest()
     }
     Component.onDestruction: {
-        if (root.retainedViewsCastId.length > 0)
+        if (root.retainedViewsCastId.length > 0 && castViewController)
             castViewController.release(root.retainedViewsCastId)
         if (root.retainedBrowserInterestKey.length > 0) {
             const previous = root.retainedBrowserInterestKey

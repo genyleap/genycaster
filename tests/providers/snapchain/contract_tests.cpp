@@ -580,6 +580,51 @@ void testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval()
     assert(transport.urls().size() == 1U);
 }
 
+void testSelfRevokePollsUntilNetworkConfirmsRemoval()
+{
+    FakeTransport transport{};
+    transport.enqueue(200, R"({"accepted":true})");
+    // The first read may still expose the active key and previous nonce.
+    transport.enqueue(200, R"({
+        "signers":[{
+            "source":"SIGNER_SOURCE_OFFCHAIN",
+            "key":"0x1111111111111111111111111111111111111111111111111111111111111111",
+            "keyType":1,
+            "fid":42,
+            "ttl":3600,
+            "expiresAt":4102443600,
+            "scopes":["MESSAGE_TYPE_CAST_ADD"],
+            "requestFid":42,
+            "nonce":7
+        }],
+        "gaslessSignerCount":1,
+        "gaslessSignerLimit":1000,
+        "currentUserNonce":7,
+        "requesterFidNonces":{"42":8}
+    })");
+    transport.enqueue(200, R"({
+        "signers":[],
+        "gaslessSignerCount":0,
+        "gaslessSignerLimit":1000,
+        "currentUserNonce":7,
+        "requesterFidNonces":{"42":9}
+    })");
+
+    auto config = testConfig();
+    config.confirmationPollInterval = std::chrono::milliseconds{1};
+    auto registry = provider::snapchain::signer::makeRegistry(transport, config);
+    FakeSigner signer{};
+    const auto result = registry->selfRevoke(
+        domain::identity::Fid{42},
+        domain::identity::Fid{42},
+        9U,
+        foundation::time::now() + std::chrono::hours{1},
+        signer);
+    assert(result);
+    assert(transport.posts().size() == 1U);
+    assert(transport.urls().size() == 2U);
+}
+
 void testWriteRejectsSignerMismatchBeforeTransport()
 {
     FakeTransport transport{};
@@ -649,6 +694,7 @@ int main()
     testGaslessRegistrationSubmitsCanonicalEnvelopeAndReReadsNetwork();
     testGaslessRegistrationPollsUntilSignerIsObservable();
     testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval();
+    testSelfRevokePollsUntilNetworkConfirmsRemoval();
     testWriteRejectsSignerMismatchBeforeTransport();
     testWriteMapsSubmitFailureAndDoesNotClaimNetworkSuccess();
     return 0;

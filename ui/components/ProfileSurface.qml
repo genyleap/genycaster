@@ -82,7 +82,7 @@ Item {
         return entry || root.moodOptions[root.moodOptions.length-1]
     }
     readonly property var displayedMood: {
-        const value=openProofConnections.profileStatus || ({})
+        const value=openProofConnections ? openProofConnections.profileStatus || ({}) : ({})
         return String(value.fid||'')===String(Number(root.activeDetail.fid||0))
             ? value : ({})
     }
@@ -103,7 +103,7 @@ Item {
             if(profileStatusEditor.visible || profileStatusEditor.awaitingSave)
                 return
             const fid=Number(root.activeDetail.fid||0)
-            if(fid>0 && !openProofConnections.profileStatusBusy)
+            if(fid>0 && openProofConnections && !openProofConnections.profileStatusBusy)
                 openProofConnections.fetchProfileStatus(fid)
         }
     }
@@ -324,7 +324,7 @@ Item {
             if (same) root.setCloudFlags(false, Number(item.revision || 0))
             else {
                 root.setCloudFlags(true)
-                if (!openProofConnections.cloudBusy)
+                if (openProofConnections && !openProofConnections.cloudBusy)
                     openProofConnections.fetchCloudProfileExtras()
             }
         }
@@ -346,7 +346,7 @@ Item {
                 stop()
                 return
             }
-            if (!openProofConnections.cloudBusy) {
+            if (openProofConnections && !openProofConnections.cloudBusy) {
                 stop()
                 openProofConnections.fetchCloudProfileExtras()
             }
@@ -358,10 +358,10 @@ Item {
         repeat: true
         triggeredOnStart: true
         running: root.visible && root.isOwnProfile
-                 && openProofConnections.cloudServiceAvailable
+                 && openProofConnections && openProofConnections.cloudServiceAvailable
                  && openProofConnections.cloudAuthorizationReady
         onTriggered: {
-            if (!openProofConnections.cloudBusy)
+            if (openProofConnections && !openProofConnections.cloudBusy)
                 openProofConnections.fetchCloudProfileExtras()
         }
     }
@@ -416,9 +416,9 @@ Item {
         // Live, account-verified API state is authoritative for a clean
         // profile. QSettings remains a durable offline outbox, never a
         // higher-priority display source than a known newer server revision.
-        const server = openProofConnections.cloudProfileExtras
+        const server = openProofConnections ? openProofConnections.cloudProfileExtras : null
         if (!root.cloudLocalDirty
-                && Number(openProofConnections.cloudRevision || 0) > 0
+                && Number(openProofConnections ? openProofConnections.cloudRevision || 0 : 0) > 0
                 && server && typeof server.category === "string"
                 && typeof server.profession === "string"
                 && server.links && typeof server.links.length === "number"
@@ -551,7 +551,7 @@ Item {
         }
         try {
             const wasDirty = root.cloudLocalDirty
-            const knownRevision = Number(openProofConnections.cloudRevision || 0)
+            const knownRevision = Number(openProofConnections ? openProofConnections.cloudRevision || 0 : 0)
             const entries = JSON.parse(profileExtrasSettings.entriesJson || "{}")
             const unique = prepared.filter((item,index)=>prepared.findIndex(e=>e.url===item.url)===index)
             entries[root.profileExtrasOwnerKey] = {
@@ -1991,9 +1991,9 @@ Item {
                         objectName: "profileSaveStatus"
                         visible: root.isOwnProfile && root.cloudLocalDirty
                         Layout.fillWidth: true
-                        color: openProofConnections.cloudError.length > 0
+                        color: openProofConnections && openProofConnections.cloudError.length > 0
                                ? Theme.negative : Theme.inkMuted
-                        text: openProofConnections.cloudError.length > 0
+                        text: openProofConnections && openProofConnections.cloudError.length > 0
                               ? qsTrId("genycaster.profile.save_retry_notice")
                               : qsTrId("genycaster.profile.saving_details")
                         wrapMode: Text.Wrap
@@ -2655,7 +2655,7 @@ Item {
                              y: 1
                              width: parent.width - 2
                              height: 144
-                             source: linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim())
+                             source: linkPreviewResolver ? linkPreviewResolver.imageSourceForUrl(bannerProtocolEditor.text.trim()) : ""
                              mediaCategory: "avatars"
                              forceAutomaticDownload: true
                              showLoadingIndicator: false
@@ -3027,7 +3027,7 @@ Item {
                 // GET completion must never be mistaken for a confirmed PUT.
                 if(profileStatusEditor.visible && !profileStatusEditor.dirtySelection
                           && !profileStatusEditor.awaitingSave
-                          && !openProofConnections.profileStatusBusy) {
+                          && openProofConnections && !openProofConnections.profileStatusBusy) {
                     const state=root.displayedMood
                     profileStatusEditor.selectedMood=String(state.mood||"none")
                     statusNoteEditor.text=String(state.note||"")
@@ -3139,7 +3139,7 @@ Item {
                 prominent: true
                 busy: profileStatusEditor.awaitingSave
                 enabled: !profileStatusEditor.awaitingSave
-                    && !openProofConnections.profileStatusBusy
+                    && openProofConnections && !openProofConnections.profileStatusBusy
                     && openProofConnections.cloudAuthorizationReady
                     && (profileStatusEditor.selectedMood!=="custom"
                         || statusNoteEditor.text.trim().length>0)
@@ -3241,16 +3241,16 @@ Item {
         providers: typeof openProofConnections !== "undefined"
                    && openProofConnections !== null
                    ? openProofConnections.providers : []
-        connections: openProofConnections.connections
-        catalogFallback: openProofConnections.catalogFallback
-        authorized: openProofConnections.authorized
-        cachedSnapshot: openProofConnections.cachedSnapshot
-        authorizing: openProofConnections.authorizing
-        approvalUrl: openProofConnections.approvalUrl
-        actionBusy: openProofConnections.actionBusy
-        pendingProvider: openProofConnections.pendingProvider
-        manualLinkedInUrl: openProofConnections.manualLinkedInUrl
-        errorText: openProofConnections.error
+        connections: openProofConnections ? openProofConnections.connections : []
+        catalogFallback: openProofConnections ? openProofConnections.catalogFallback : []
+        authorized: openProofConnections ? openProofConnections.authorized : false
+        cachedSnapshot: openProofConnections ? openProofConnections.cachedSnapshot : ({})
+        authorizing: openProofConnections ? openProofConnections.authorizing : false
+        approvalUrl: openProofConnections ? openProofConnections.approvalUrl : ""
+        actionBusy: openProofConnections ? openProofConnections.actionBusy : false
+        pendingProvider: openProofConnections ? openProofConnections.pendingProvider : ""
+        manualLinkedInUrl: openProofConnections ? openProofConnections.manualLinkedInUrl : ""
+        errorText: openProofConnections ? openProofConnections.error : ""
         onOpenProfileRequested: url => root.externalRequested(url)
         onAuthorizeRequested: openProofConnections.authorizeAccount()
         onApprovalRequested: url => Qt.openUrlExternally(url)

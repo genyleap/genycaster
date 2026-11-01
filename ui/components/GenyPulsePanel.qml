@@ -19,7 +19,7 @@ Item {
     property string selectedGithubDate: ""
     property int githubYear: new Date().getUTCFullYear()
     property string githubRange: compact ? "3m" : "1y"
-    readonly property var githubContributionData: genyPulseActivity.githubContributions
+    readonly property var githubContributionData: (genyPulseActivity ? genyPulseActivity.githubContributions : ({}))
     readonly property bool githubContributionsReady:
         githubContributionData.status==="ok"
         && String(githubContributionData.username || "").toLowerCase()===
@@ -81,9 +81,9 @@ Item {
 
     signal connectionsRequested()
 
-    readonly property var farcasterData: genyPulseActivity.farcaster
-    readonly property var githubData: genyPulseActivity.github
-    readonly property var walletData: genyPulseActivity.onchain
+    readonly property var farcasterData: (genyPulseActivity ? genyPulseActivity.farcaster : ({}))
+    readonly property var githubData: (genyPulseActivity ? genyPulseActivity.github : ({}))
+    readonly property var walletData: (genyPulseActivity ? genyPulseActivity.onchain : ({}))
     readonly property string providerIconRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
     readonly property int gapSize: 2
     readonly property int todayDay: Math.floor(Date.now()/86400000)
