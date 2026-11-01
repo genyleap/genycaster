@@ -129,11 +129,12 @@ Rectangle {
                 Text {
                     width: parent.width
                     y: navigationWordmark.y + navigationWordmark.height + Theme.space1
-                    text: qsTrId("genycaster.release.beta_1_0")
+                    text: "Genycaster v" + (Qt.application.version || "1.0.0") + "-rc1"
                     color: Theme.inkMuted
-                    font.family: Theme.fontFamilyForText(text)
+                    font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
                     horizontalAlignment: Theme.rtl ? Text.AlignRight : Text.AlignLeft
+                    elide: Text.ElideRight
                     renderType: Text.NativeRendering
                     Accessible.ignored: true
                 }
