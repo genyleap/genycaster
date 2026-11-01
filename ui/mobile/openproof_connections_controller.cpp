@@ -350,7 +350,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
         QStringLiteral("^[A-Za-z0-9_-]{43}$")};
     if(!fid || fid!=m_viewerFid || !csrfFormat.match(
             QString::fromLatin1(csrf)).hasMatch()) {
-        csrf.fill('\\0');
+        csrf.fill('\0');
         return;
     }
     // The browser only emits this after a verified signed challenge AND a
