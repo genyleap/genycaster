@@ -8,6 +8,9 @@ from pathlib import Path
 import re
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from ci.release_notes import load_release, render_markdown
+
 
 def project_version(root: Path) -> str:
     cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
@@ -23,15 +26,25 @@ def project_version(root: Path) -> str:
 def release_designation(root: Path) -> str:
     """Version in the canonical root release-notes filename."""
     cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
-    match = re.search(
-        r'\bset\s*\(\s*GENYCASTER_RELEASE_CANDIDATE\s+"(rc[1-9]\d*)"',
-        cmake,
-    )
-    if not match:
-        raise ValueError("Missing GENYCASTER_RELEASE_CANDIDATE")
-    designation = f"{project_version(root)}-{match.group(1)}"
-    if not (root / "release-notes" / f"v{designation}.md").is_file():
-        raise ValueError(f"Missing versioned release notes: {designation}")
+    channel_match = re.search(
+        r'\bset\s*\(\s*GENYCASTER_RELEASE_CHANNEL\s+"(stable|alpha|beta|rc)"', cmake)
+    index_match = re.search(
+        r'\bset\s*\(\s*GENYCASTER_RELEASE_CHANNEL_NUMBER\s+"([0-9]+)"', cmake)
+    if not channel_match or not index_match:
+        raise ValueError("Missing CMake release channel or channel number")
+    channel, index = channel_match.group(1), index_match.group(1)
+    if channel != "stable" and not re.fullmatch(r"[1-9]\d*", index):
+        raise ValueError("Invalid prerelease channel number")
+    designation = project_version(root) + (
+        "" if channel == "stable" else "-" + channel + index)
+    source = root / "release-notes" / f"v{designation}.json"
+    generated = source.with_suffix(".md")
+    if not source.is_file() or not generated.is_file():
+        raise ValueError(f"Missing canonical JSON or generated release notes: {designation}")
+    release = load_release(source)
+    expected = render_markdown(release, designation)
+    if generated.read_text(encoding="utf-8") != expected:
+        raise ValueError("GitHub release notes are out of sync with localized JSON")
     return designation
 
 
@@ -39,8 +52,8 @@ def release_version(ref: str, expected: str) -> tuple[str, bool]:
     if not ref.startswith("refs/tags/"):
         return expected, False
     tag = ref.removeprefix("refs/tags/")
-    if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc[1-9]\d*)?", tag):
-        raise ValueError(f"Invalid release tag {tag!r}; use vMAJOR.MINOR.PATCH-rcN")
+    if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:alpha|beta|rc)[1-9]\d*)?", tag):
+        raise ValueError(f"Invalid release tag {tag!r}; use vMAJOR.MINOR.PATCH[-alphaN|-betaN|-rcN]")
     version = tag.removeprefix("v")
     if version != expected:
         raise ValueError(

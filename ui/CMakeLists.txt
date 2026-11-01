@@ -384,6 +384,10 @@ target_compile_definitions(farcaster_client
     PRIVATE
         FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
         GENYCASTER_APP_VERSION="${GENYCASTER_RELEASE_VERSION}"
+        GENYCASTER_PRODUCT_NAME="${PROJECT_NAME}"
+        GENYCASTER_VERSION_NUMBER="${PROJECT_VERSION}"
+        GENYCASTER_RELEASE_CHANNEL="${GENYCASTER_RELEASE_CHANNEL}"
+        GENYCASTER_RELEASE_CHANNEL_NUMBER="${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
         GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
 )
 
@@ -570,7 +574,10 @@ if(EMSCRIPTEN)
             "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${GENYCASTER_RELEASE_VERSION}"
-            --release-label "Genycaster v${GENYCASTER_RELEASE_VERSION}"
+            --product-name "${PROJECT_NAME}"
+            --version-number "${PROJECT_VERSION}"
+            --release-channel "${GENYCASTER_RELEASE_CHANNEL}"
+            --release-channel-number "${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
             --release-notes "${GENYCASTER_RELEASE_NOTES_FILE}"
         COMMENT "Installing and hashing Genycaster WebAssembly public assets"
         VERBATIM
@@ -585,7 +592,10 @@ if(EMSCRIPTEN)
             --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
             --dir "$<TARGET_FILE_DIR:farcaster_client>"
             --app-version "${GENYCASTER_RELEASE_VERSION}"
-            --release-label "Genycaster v${GENYCASTER_RELEASE_VERSION}"
+            --product-name "${PROJECT_NAME}"
+            --version-number "${PROJECT_VERSION}"
+            --release-channel "${GENYCASTER_RELEASE_CHANNEL}"
+            --release-channel-number "${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
             --release-notes "${GENYCASTER_RELEASE_NOTES_FILE}"
         DEPENDS farcaster_client
         COMMENT "Refreshing versioned Genycaster WebAssembly static assets"
@@ -1095,7 +1105,7 @@ qt_add_resources(farcaster_client openproof_public_endpoints
         "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json"
 )
 
-# One versioned Markdown source for desktop, mobile and WebAssembly.
+# One structured multilingual JSON source for all targets; GitHub Markdown is generated.
 qt_add_resources(farcaster_client genycaster_release_notes
     PREFIX "/genycaster-release-notes"
     BASE "${CMAKE_SOURCE_DIR}/release-notes"

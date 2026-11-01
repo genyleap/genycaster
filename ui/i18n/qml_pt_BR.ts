@@ -5916,6 +5916,38 @@ Company | https://company.com</source>
             <source>Posted via %1</source>
             <translation>Publicado por %1</translation>
         </message>
+        <message id="genycaster.update.version_number">
+            <source>Application version %1</source>
+            <translation>Versão %1</translation>
+        </message>
+        <message id="genycaster.update.channel_alpha">
+            <source>Alpha release channel</source>
+            <translation>Alfa</translation>
+        </message>
+        <message id="genycaster.update.channel_beta">
+            <source>Beta release channel</source>
+            <translation>Beta</translation>
+        </message>
+        <message id="genycaster.update.channel_rc">
+            <source>Release candidate</source>
+            <translation>Candidata a lançamento</translation>
+        </message>
+        <message id="genycaster.update.channel_stable">
+            <source>Stable release channel</source>
+            <translation>Estável</translation>
+        </message>
+        <message id="genycaster.update.prerelease_info">
+            <source>You are using a prerelease build. Features may change as testing continues.</source>
+            <translation>Você está usando uma versão de pré-lançamento. Os recursos podem mudar durante os testes.</translation>
+        </message>
+        <message id="genycaster.update.up_to_date">
+            <source>You already have the latest available build.</source>
+            <translation>Você já tem a compilação mais recente disponível.</translation>
+        </message>
+        <message id="genycaster.update.build_label">
+            <source>Build identifier %1</source>
+            <translation>Compilação %1</translation>
+        </message>
         <message id="genycaster.update.type_fix">
             <source>Bug fixes</source>
             <translation>Correções de erros</translation>

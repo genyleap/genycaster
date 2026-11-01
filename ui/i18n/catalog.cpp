@@ -4,6 +4,22 @@ namespace {
 
 void registerTranslationSourceMetadata()
 {
+    //% "Application version %1"
+    (void)qtTrId("genycaster.update.version_number");
+    //% "Alpha release channel"
+    (void)qtTrId("genycaster.update.channel_alpha");
+    //% "Beta release channel"
+    (void)qtTrId("genycaster.update.channel_beta");
+    //% "Release candidate"
+    (void)qtTrId("genycaster.update.channel_rc");
+    //% "Stable release channel"
+    (void)qtTrId("genycaster.update.channel_stable");
+    //% "You are using a prerelease build. Features may change as testing continues."
+    (void)qtTrId("genycaster.update.prerelease_info");
+    //% "You already have the latest available build."
+    (void)qtTrId("genycaster.update.up_to_date");
+    //% "Build identifier %1"
+    (void)qtTrId("genycaster.update.build_label");
     //% "Loaded profile posts"
     (void)qtTrId("genycaster.feed_pulse.loaded_profile_posts");
     //% "Loaded feed snapshot"

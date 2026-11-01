@@ -17,7 +17,7 @@ const main=read(new URL('../../ui/components/AppShell.qml',import.meta.url),'utf
 test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
     const dir=mkdtempSync(join(tmpdir(),'genycaster-assets-'));
     const run=(appVersion='1.0.0')=>{
-        const result=spawnSync('python3',[pack.pathname,'--dir',dir,'--app-version',appVersion,'--release-label','Beta 1.0'],{encoding:'utf8'});
+        const result=spawnSync('python3',[pack.pathname,'--dir',dir,'--app-version',appVersion,'--product-name','Genycaster','--version-number',appVersion,'--release-channel','stable','--release-channel-number','0'],{encoding:'utf8'});
         assert.equal(result.status,0,result.stderr);
         return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
     };
@@ -28,7 +28,9 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         const a=run();
         assert.match(a.wasm,/^farcaster_client\.[0-9a-f]{20}\.wasm$/);
         assert.equal(a.appVersion,'1.0.0');
-        assert.equal(a.releaseLabel,'Beta 1.0');
+        assert.equal(a.productName,'Genycaster');
+        assert.equal(a.releaseChannel,'stable');
+        assert.equal(a.versionNumber,'1.0.0');
         assert.equal(a.wasmBytes,8);
         assert.match(a.buildId,/^[a-f0-9]{8}$/);
         assert.equal(a.buildId,a.version.slice(0,8));
@@ -51,12 +53,12 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         const config=readFileSync(join(dir,'genycaster-assets.js'),'utf8');
         assert.ok(config.includes(c.wasm));
         assert.match(config,/"appVersion": "1.0.0"/);
-        assert.match(config,/"releaseLabel": "Beta 1.0"/);
+        assert.match(config,/"releaseChannel": "stable"/);
         assert.match(config,/"wasmBytes": 8/);
         assert.ok(config.includes(c.buildId));
         const packSource=spawnSync('python3',[pack.pathname,'--source',
             new URL('../../ui/wasm/',import.meta.url).pathname,'--dir',dir,'--app-version','1.0.0',
-            '--release-label','Beta 1.0'],
+            '--product-name','Genycaster','--version-number','1.0.0','--release-channel','stable','--release-channel-number','0'],
             {encoding:'utf8'});
         assert.equal(packSource.status,0,packSource.stderr);
         const originalBrand=read(new URL('../../ui/wasm/genycaster-icon.svg',import.meta.url),'utf8');
@@ -230,7 +232,7 @@ test('release HTML cache-busts all boot scripts without changing WASM and is ide
         writeFileSync(join(dir,'farcaster_client.html'),markup);
         const packOnce=()=>{
             const result=spawnSync('python3',[pack.pathname,'--dir',dir,
-                '--app-version','1.0.0','--release-label','Beta 1.0'],{encoding:'utf8'});
+                '--app-version','1.0.0','--product-name','Genycaster','--version-number','1.0.0','--release-channel','stable','--release-channel-number','0'],{encoding:'utf8'});
             assert.equal(result.status,0,result.stderr);
             return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
         };

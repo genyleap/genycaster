@@ -49,64 +49,122 @@ bool safeDigest(const QString& digest)
 // prerelease suffixes and would otherwise treat a candidate as its stable release.
 struct ReleaseVersion {
     QVersionNumber core{};
-    int candidate{0};  // 0 means stable; >0 means rcN
+    int channelRank{3}; // alpha=0, beta=1, rc=2, stable=3
+    int channelNumber{0};
     bool valid{false};
 };
 
 ReleaseVersion parseReleaseVersion(const QString& value)
 {
     static const QRegularExpression pattern{
-        QStringLiteral(R"(^(\d+)\.(\d+)\.(\d+)(?:-rc([1-9]\d*))?$)")};
+        QStringLiteral(R"(^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc)([1-9]\d*))?$)")};
     const auto match = pattern.match(normalizeVersion(value));
     if (!match.hasMatch()) return {};
-    bool majorOk = false, minorOk = false, patchOk = false, candidateOk = true;
+    bool majorOk = false, minorOk = false, patchOk = false, indexOk = true;
     const int major = match.captured(1).toInt(&majorOk);
     const int minor = match.captured(2).toInt(&minorOk);
     const int patch = match.captured(3).toInt(&patchOk);
-    const int candidate = match.captured(4).isEmpty()
-        ? 0 : match.captured(4).toInt(&candidateOk);
-    if (!majorOk || !minorOk || !patchOk || !candidateOk) return {};
-    return {QVersionNumber{major, minor, patch}, candidate, true};
+    const QString channel = match.captured(4);
+    const int channelRank = channel == QStringLiteral("alpha") ? 0
+                          : channel == QStringLiteral("beta") ? 1
+                          : channel == QStringLiteral("rc") ? 2 : 3;
+    const int index = match.captured(5).isEmpty()
+        ? 0 : match.captured(5).toInt(&indexOk);
+    if (!majorOk || !minorOk || !patchOk || !indexOk) return {};
+    return {QVersionNumber{major, minor, patch}, channelRank, index, true};
 }
 
 int compareReleaseVersions(const ReleaseVersion& left, const ReleaseVersion& right)
 {
     const int core = QVersionNumber::compare(left.core, right.core);
     if (core != 0) return core;
-    if (left.candidate == right.candidate) return 0;
-    // A stable release (candidate 0) outranks every RC of the same version.
-    if (left.candidate == 0) return 1;
-    if (right.candidate == 0) return -1;
-    return left.candidate > right.candidate ? 1 : -1;
+    if (left.channelRank != right.channelRank)
+        return left.channelRank > right.channelRank ? 1 : -1;
+    if (left.channelNumber == right.channelNumber) return 0;
+    return left.channelNumber > right.channelNumber ? 1 : -1;
 }
 
-void loadBundledReleaseNotes(const QString& version,
-                             QString& title, QString& body)
+// Parse the canonical release JSON embedded by CMake for offline native and WASM use.
+QJsonObject loadBundledReleaseNotes(const QString& version)
 {
-    // The exact same repository-root Markdown is embedded in all Qt targets.
-    // The version is validated before forming a QRC path, not a disk URL.
-    static const QRegularExpression versionPattern{
-        QStringLiteral(R"(^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$)")};
-    if (!versionPattern.match(version).hasMatch()) return;
-    QFile resource{QStringLiteral(":/genycaster-release-notes/v%1.md").arg(version)};
-    if (!resource.open(QIODevice::ReadOnly)) return;
+    static const QRegularExpression validVersion{
+        QStringLiteral(R"(^[0-9]+\.[0-9]+\.[0-9]+(?:-(?:alpha|beta|rc)[1-9][0-9]*)?$)")};
+    if (!validVersion.match(version).hasMatch()) return {};
+    QFile resource{QStringLiteral(":/genycaster-release-notes/v%1.json").arg(version)};
+    if (!resource.open(QIODevice::ReadOnly)) return {};
+    const auto doc = QJsonDocument::fromJson(resource.readAll());
+    const auto object = doc.object();
+    if (!doc.isObject() || object.value(QStringLiteral("schemaVersion")).toInt() != 1)
+        return {};
+    return object;
+}
 
-    const QString markdown = QString::fromUtf8(resource.readAll());
-    QStringList changes;
-    for (const QString& line : markdown.split(QLatin1Char('\n'))) {
-        if (title.isEmpty() && line.startsWith(QStringLiteral("# "))) {
-            title = line.mid(2).trimmed().left(120);
-        } else if (line.startsWith(QStringLiteral("- ")) && changes.size() < 12) {
-            const QString item = line.mid(2).trimmed();
-            if (!item.isEmpty() && item.size() <= 300)
-                changes.push_back(QStringLiteral("• ") + item);
+// GitHub Release markdown is deterministically generated from the same JSON.
+// Locale markers keep future native update notices localized without requiring
+// a mutable web endpoint or a separately maintained changelog.
+QJsonObject parsePublishedNotes(const QString& body)
+{
+    if (body.size() > 100'000 || !body.contains(QStringLiteral("<!-- genycaster-locale:")))
+        return {};
+    QJsonObject translations;
+    QJsonArray changes;
+    QString releaseType;
+    for (const QString& raw : body.split(QLatin1Char('\n'))) {
+        const QString line = raw.trimmed();
+        if (line.startsWith(QStringLiteral("<!-- genycaster-release-type:"))
+            && line.endsWith(QStringLiteral(" -->"))) {
+            const QString kind = line.mid(29, line.size() - 33);
+            if (kind == QStringLiteral("security") || kind == QStringLiteral("feature")
+                || kind == QStringLiteral("fix") || kind == QStringLiteral("improvement")
+                || kind == QStringLiteral("maintenance"))
+                releaseType = kind;
+            break;
         }
     }
-    if (title != QStringLiteral("Genycaster v") + version || changes.isEmpty()) {
-        title.clear();
-        return;
+    QString locale;
+    QString title;
+    QString summary;
+    QJsonObject items;
+    int index = 0;
+    const auto store = [&] {
+        if (!locale.isEmpty() && !title.isEmpty() && !items.isEmpty()) {
+            translations.insert(locale, QJsonObject{
+                {QStringLiteral("title"), title},
+                {QStringLiteral("summary"), summary},
+                {QStringLiteral("items"), items}});
+        }
+    };
+    for (const QString& raw : body.split(QLatin1Char('\n'))) {
+        const QString line = raw.trimmed();
+        if (line.startsWith(QStringLiteral("<!-- genycaster-locale:"))
+            && line.endsWith(QStringLiteral(" -->"))) {
+            store();
+            locale = line.mid(23, line.size() - 27); // marker prefix + closing " -->"
+            if (!QRegularExpression{QStringLiteral(R"(^[a-z]{2}-[A-Z]{2}$)")}
+                     .match(locale).hasMatch())
+                locale.clear();
+            title.clear();
+            summary.clear();
+            items = {};
+            index = 0;
+        } else if (!locale.isEmpty() && line.startsWith(QStringLiteral("## "))) {
+            title = line.mid(3).left(120);
+        } else if (!locale.isEmpty() && line.startsWith(QStringLiteral("- ")) && index < 12) {
+            const QString key = QStringLiteral("change-%1").arg(index++);
+            items.insert(key, line.mid(2).left(400));
+            if (changes.size() < index) changes.push_back(
+                QJsonObject{{QStringLiteral("id"), key}});
+        } else if (!locale.isEmpty() && !title.isEmpty() && summary.isEmpty()
+                   && !line.isEmpty() && !line.startsWith(QLatin1Char('<'))) {
+            summary = line.left(220);
+        }
     }
-    body = changes.join(QLatin1Char('\n'));
+    store();
+    return translations.isEmpty() ? QJsonObject{} : QJsonObject{
+        {QStringLiteral("schemaVersion"), 1},
+        {QStringLiteral("type"), releaseType},
+        {QStringLiteral("changes"), changes},
+        {QStringLiteral("translations"), translations}};
 }
 
 bool matchingAsset(const QString& name)
@@ -165,8 +223,8 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
 {
     // Show the installed release's bundled notes offline, on both desktop
     // and mobile. Future update notes still come from their published release.
-    loadBundledReleaseNotes(m_appVersion, m_releaseTitle, m_releaseNotes);
-    if (!m_releaseTitle.isEmpty()) m_releaseType = QStringLiteral("feature");
+    m_releaseData = loadBundledReleaseNotes(m_appVersion);
+    applyReleaseTranslation();
     m_autoCheckEnabled = m_settings.value(QStringLiteral("updates/autoCheck"), true).toBool();
     m_periodic = new QTimer(this);
     m_periodic->setInterval(24 * 60 * 60 * 1000);
@@ -208,7 +266,60 @@ UpdateController::~UpdateController()
     if (!m_partialPath.isEmpty()) QFile::remove(m_partialPath);
 }
 
+QString UpdateController::productName() const { return QString::fromLatin1(GENYCASTER_PRODUCT_NAME); }
 QString UpdateController::appVersion() const { return m_appVersion; }
+QString UpdateController::versionNumber() const { return QString::fromLatin1(GENYCASTER_VERSION_NUMBER); }
+QString UpdateController::releaseChannel() const { return QString::fromLatin1(GENYCASTER_RELEASE_CHANNEL); }
+int UpdateController::releaseChannelNumber() const { return QString::fromLatin1(GENYCASTER_RELEASE_CHANNEL_NUMBER).toInt(); }
+QString UpdateController::releaseTag() const { return QStringLiteral("v") + m_appVersion; }
+QString UpdateController::releaseSummary() const { return m_releaseSummary; }
+QString UpdateController::webLatestBuild() const { return m_webLatestBuild; }
+bool UpdateController::webUpdateChecked() const { return m_webUpdateChecked; }
+
+void UpdateController::setLanguageTag(QString tag)
+{
+    tag = tag.trimmed().replace(QLatin1Char('_'), QLatin1Char('-'));
+    if (tag.compare(m_languageTag, Qt::CaseInsensitive) == 0) return;
+    m_languageTag = std::move(tag);
+    applyReleaseTranslation();
+}
+
+void UpdateController::applyReleaseTranslation()
+{
+    if (m_releaseData.isEmpty()) return;
+    const QJsonObject locales = m_releaseData.value(QStringLiteral("translations")).toObject();
+    QJsonObject localized;
+    for (auto it = locales.constBegin(); it != locales.constEnd(); ++it) {
+        if (it.key().compare(m_languageTag, Qt::CaseInsensitive) == 0) {
+            localized = it.value().toObject();
+            break;
+        }
+    }
+    if (localized.isEmpty()) {
+        const QString language = m_languageTag.section(QLatin1Char('-'), 0, 0);
+        for (auto it = locales.constBegin(); it != locales.constEnd(); ++it) {
+            if (it.key().startsWith(language + QLatin1Char('-'), Qt::CaseInsensitive)) {
+                localized = it.value().toObject();
+                break;
+            }
+        }
+    }
+    if (localized.isEmpty()) localized = locales.value(QStringLiteral("en-US")).toObject();
+    if (localized.isEmpty()) return;
+    m_releaseTitle = localized.value(QStringLiteral("title")).toString().left(120);
+    m_releaseSummary = localized.value(QStringLiteral("summary")).toString().left(220);
+    const auto items = localized.value(QStringLiteral("items")).toObject();
+    QStringList bullets;
+    for (const auto& change : m_releaseData.value(QStringLiteral("changes")).toArray()) {
+        const QString id = change.toObject().value(QStringLiteral("id")).toString();
+        const QString item = items.value(id).toString();
+        if (!item.isEmpty() && bullets.size() < 12)
+            bullets.append(QStringLiteral("• ") + item.left(400));
+    }
+    m_releaseNotes = bullets.join(QLatin1Char('\n'));
+    m_releaseType = m_releaseData.value(QStringLiteral("type")).toString();
+    emit changed();
+}
 bool UpdateController::autoCheckEnabled() const { return m_autoCheckEnabled; }
 bool UpdateController::checking() const { return m_checking; }
 bool UpdateController::downloading() const { return m_downloading; }
@@ -372,24 +483,24 @@ void UpdateController::checkWebManifest(const bool manual)
         if (error != QNetworkReply::NoError || status != 200
             || data.size() > 100'000 || !manifest.isObject()
             || fingerprint.size() != 20 || build != fingerprint.left(8)
-            || !root.value(QStringLiteral("files")).isArray()) {
+            || !root.value(QStringLiteral("files")).isArray()
+            || !QRegularExpression{QStringLiteral(R"(^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[1-9][0-9]*)?$)")}
+                    .match(root.value(QStringLiteral("appVersion")).toString()).hasMatch()) {
             if (manual) fail(QStringLiteral("Could not verify WebAssembly release metadata"));
             else { m_status = QStringLiteral("Web update check unavailable"); emit changed(); }
             return;
         }
         const QJsonObject notes = root.value(QStringLiteral("releaseNotes")).toObject();
-        m_releaseType = notes.value(QStringLiteral("type")).toString();
-        m_releaseTitle = notes.value(QStringLiteral("title")).toString().left(120);
-        const QJsonArray changes = notes.value(QStringLiteral("changes")).toArray();
-        QStringList lines;
-        for (const auto& change : changes) {
-            const QString entry = change.toString().trimmed();
-            if (!entry.isEmpty() && entry.size() <= 300 && lines.size() < 12)
-                lines.push_back(QStringLiteral("• ") + entry);
-        }
-        m_releaseNotes = lines.join(QLatin1Char('\n'));
+        m_releaseData = notes;
+        m_releaseTitle.clear();
+        m_releaseSummary.clear();
+        m_releaseNotes.clear();
+        m_releaseType.clear();
+        applyReleaseTranslation();
         m_releasePublishedAt.clear(); // A build hash does not prove a publication date.
-        m_latestVersion = build;
+        m_webUpdateChecked = true;
+        m_latestVersion = root.value(QStringLiteral("appVersion")).toString();
+        m_webLatestBuild = build;
         m_updateAvailable = !m_webCurrentBuild.isEmpty() && fingerprint != m_webCurrentBuild;
         m_status = m_updateAvailable
             ? QStringLiteral("New WebAssembly build available")
@@ -489,8 +600,16 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
     m_latestVersion = version;
     // Display only the selected GitHub release's actual title, date and
     // body. Do not invent a changelog based on a version-number comparison.
-    m_releaseTitle = obj.value(QStringLiteral("name")).toString().trimmed().left(120);
-    m_releaseNotes = obj.value(QStringLiteral("body")).toString().trimmed().left(1600);
+    m_releaseData = parsePublishedNotes(obj.value(QStringLiteral("body")).toString());
+    if (m_releaseData.isEmpty()) {
+        // Older releases without locale metadata remain readable in English.
+        m_releaseTitle = obj.value(QStringLiteral("name")).toString().trimmed().left(120);
+        m_releaseNotes = obj.value(QStringLiteral("body")).toString().trimmed().left(1600);
+        m_releaseSummary.clear();
+        m_releaseType.clear();
+    } else {
+        applyReleaseTranslation();
+    }
     m_releasePublishedAt = obj.value(QStringLiteral("published_at")).toString().left(10);
     m_updateAvailable = compareReleaseVersions(parsed, current) > 0;
     m_assetUrl.clear();

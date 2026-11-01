@@ -21,6 +21,18 @@ GenyDrawer {
         default: return ""
         }
     }
+    // Render localized channel independently from the numeric CMake version.
+    function releaseChannelLabel(channel, number) {
+        let label = ""
+        switch (String(channel || "")) {
+        case "alpha": label = qsTrId("genycaster.update.channel_alpha"); break
+        case "beta": label = qsTrId("genycaster.update.channel_beta"); break
+        case "rc": label = qsTrId("genycaster.update.channel_rc"); break
+        case "stable": label = qsTrId("genycaster.update.channel_stable"); break
+        default: return ""
+        }
+        return channel === "stable" ? label : label + " " + String(number)
+    }
     readonly property bool webAssembly: Qt.platform.os === "wasm"
     // Overlay.overlay measures the actual Qt window on both native desktop
     // and desktop WebAssembly. Popup parent widths may be transient during
@@ -2333,17 +2345,28 @@ GenyDrawer {
                             font.pixelSize: Theme.typeTitle2Size
                             font.weight: Theme.weightBold
                         }
-                        DirectionAwareLabel {
-                            objectName: "settingsBetaReleaseLabel"
+                        RowLayout {
                             Layout.fillWidth: true
-                            text: Qt.application.version ? "Genycaster v" + Qt.application.version : "Genycaster"
-                            color: Theme.accent
-                            font.pixelSize: Theme.typeMetaSize
-                            font.weight: Theme.weightDemiBold
+                            spacing: Theme.space2
+                            DirectionAwareLabel {
+                                objectName: "settingsBetaReleaseLabel"
+                                text: qsTrId("genycaster.update.version_number").arg(updateController.versionNumber)
+                                color: Theme.accent
+                                font.pixelSize: Theme.typeMetaSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                            DirectionAwareLabel {
+                                text: root.releaseChannelLabel(updateController.releaseChannel,
+                                                               updateController.releaseChannelNumber)
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeMetaSize
+                            }
+                            Item { Layout.fillWidth: true }
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.beta_program_info")
+                            visible: updateController.releaseChannel !== "stable"
+                            text: qsTrId("genycaster.update.prerelease_info")
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.WordWrap
@@ -2398,11 +2421,24 @@ GenyDrawer {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                visible: updateController.latestVersion.length > 0
-                                text: qsTrId("genycaster.update.current") + ": "
-                                      + String(updateController.webCurrentBuild || "—")
-                                      + "  →  " + qsTrId("genycaster.update.new") + ": "
-                                      + updateController.latestVersion
+                                visible: updateController.updateAvailable
+                                text: updateController.latestVersion === updateController.appVersion
+                                      ? qsTrId("genycaster.update.build_label").arg(updateController.webCurrentBuild)
+                                        + "  →  "
+                                        + qsTrId("genycaster.update.build_label").arg(updateController.webLatestBuild)
+                                      : qsTrId("genycaster.update.current") + ": v"
+                                        + updateController.appVersion + "  →  "
+                                        + qsTrId("genycaster.update.new") + ": v"
+                                        + updateController.latestVersion
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.webUpdateChecked
+                                         && !updateController.updateAvailable && !updateController.checking
+                                text: qsTrId("genycaster.update.up_to_date")
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
@@ -2414,6 +2450,14 @@ GenyDrawer {
                                       + (updateController.releaseTitle.length > 0
                                          ? " · " + updateController.releaseTitle : "")
                                 color: Theme.accent
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                visible: updateController.releaseSummary.length > 0
+                                text: updateController.releaseSummary
+                                color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
                             }

@@ -5916,6 +5916,38 @@ Company | https://company.com</source>
             <source>Posted via %1</source>
             <translation>通过 %1 发布</translation>
         </message>
+        <message id="genycaster.update.version_number">
+            <source>Application version %1</source>
+            <translation>版本 %1</translation>
+        </message>
+        <message id="genycaster.update.channel_alpha">
+            <source>Alpha release channel</source>
+            <translation>Alpha</translation>
+        </message>
+        <message id="genycaster.update.channel_beta">
+            <source>Beta release channel</source>
+            <translation>Beta</translation>
+        </message>
+        <message id="genycaster.update.channel_rc">
+            <source>Release candidate</source>
+            <translation>候选发布版</translation>
+        </message>
+        <message id="genycaster.update.channel_stable">
+            <source>Stable release channel</source>
+            <translation>稳定版</translation>
+        </message>
+        <message id="genycaster.update.prerelease_info">
+            <source>You are using a prerelease build. Features may change as testing continues.</source>
+            <translation>你正在使用预发布版本。功能可能在测试期间发生变化。</translation>
+        </message>
+        <message id="genycaster.update.up_to_date">
+            <source>You already have the latest available build.</source>
+            <translation>你已使用最新可用构建。</translation>
+        </message>
+        <message id="genycaster.update.build_label">
+            <source>Build identifier %1</source>
+            <translation>构建 %1</translation>
+        </message>
         <message id="genycaster.update.type_fix">
             <source>Bug fixes</source>
             <translation>错误修复</translation>

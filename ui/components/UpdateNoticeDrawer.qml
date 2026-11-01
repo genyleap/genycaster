@@ -138,8 +138,9 @@ Drawer {
                 }
                 DirectionAwareLabel {
                     text: Qt.platform.os === "wasm"
-                          ? String(updateController.webCurrentBuild || "—")
-                          : String(updateController.appVersion || "—")
+                          && updateController.latestVersion === updateController.appVersion
+                          ? qsTrId("genycaster.update.build_label").arg(updateController.webCurrentBuild)
+                          : "v" + String(updateController.appVersion || "—")
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.ink
@@ -158,7 +159,10 @@ Drawer {
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 DirectionAwareLabel {
-                    text: String(updateController.latestVersion || "—")
+                    text: Qt.platform.os === "wasm"
+                          && updateController.latestVersion === updateController.appVersion
+                          ? qsTrId("genycaster.update.build_label").arg(updateController.webLatestBuild)
+                          : "v" + String(updateController.latestVersion || "—")
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.accent
@@ -203,7 +207,9 @@ Drawer {
                     id: releaseNotesText
                     width: parent.width
                     text: updateController.releaseNotes.length > 0
-                          ? updateController.releaseNotes
+                          ? (updateController.releaseSummary.length > 0
+                             ? updateController.releaseSummary + "\n\n" + updateController.releaseNotes
+                             : updateController.releaseNotes)
                           : qsTrId("genycaster.update.no_notes")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize

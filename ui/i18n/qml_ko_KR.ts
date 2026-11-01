@@ -5916,6 +5916,38 @@ Company | https://company.com</source>
             <source>Posted via %1</source>
             <translation>%1에서 게시됨</translation>
         </message>
+        <message id="genycaster.update.version_number">
+            <source>Application version %1</source>
+            <translation>버전 %1</translation>
+        </message>
+        <message id="genycaster.update.channel_alpha">
+            <source>Alpha release channel</source>
+            <translation>알파</translation>
+        </message>
+        <message id="genycaster.update.channel_beta">
+            <source>Beta release channel</source>
+            <translation>베타</translation>
+        </message>
+        <message id="genycaster.update.channel_rc">
+            <source>Release candidate</source>
+            <translation>릴리스 후보</translation>
+        </message>
+        <message id="genycaster.update.channel_stable">
+            <source>Stable release channel</source>
+            <translation>안정판</translation>
+        </message>
+        <message id="genycaster.update.prerelease_info">
+            <source>You are using a prerelease build. Features may change as testing continues.</source>
+            <translation>시험판을 사용 중입니다. 테스트가 진행되면서 기능이 변경될 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.update.up_to_date">
+            <source>You already have the latest available build.</source>
+            <translation>이미 사용 가능한 최신 빌드를 사용 중입니다.</translation>
+        </message>
+        <message id="genycaster.update.build_label">
+            <source>Build identifier %1</source>
+            <translation>빌드 %1</translation>
+        </message>
         <message id="genycaster.update.type_fix">
             <source>Bug fixes</source>
             <translation>버그 수정</translation>

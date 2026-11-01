@@ -32,22 +32,31 @@ but cannot create GitHub Releases.
 
 For tag runs, `ci/release_gate.py` checks that the tag matches the
 `project(Genycaster VERSION ...)` numeric version plus the configured RC
-suffix, that `release-notes/vVERSION.md` exists, and that the tagged commit
+suffix, that the canonical `release-notes/vVERSION.json` and generated Markdown exist, and that the tagged commit
 is an ancestor of `main`. Missing/failed jobs prevent publishing. An existing release
 is never deleted or overwritten.
 
-## Canonical release notes
+## Canonical multilingual release notes
 
-GenyCaster follows GenyConnect's `release-notes/` directory layout:
-each release candidate has one human-readable Markdown file at the repository
-root, for example `release-notes/v1.0.0-rc1.md`. The file is **not**
-maintained inside `ui/wasm/` and no per-platform duplicate is authored.
+Each release has a **single authored JSON source**, for example
+`release-notes/v1.0.0-rc1.json`. It contains a typed release, stable
+change identifiers, and complete, independently translated titles, summaries
+and change descriptions for the application's 12 supported locales.
+The numeric version, channel and channel number are independent **CMake**
+fields, never duplicated in the authored notes.
 
-CMake embeds this file as a Qt resource for desktop and mobile platforms;
-the WASM packaging script derives the public JSON manifest from the same
-Markdown; the GitHub tag-release job uses it as its release body. Native
-update checks still fetch the actual GitHub Release metadata and only accept
-verified platform-matching download assets.
+Generate the GitHub Release body from the JSON source:
+
+```bash
+python3 ci/release_notes.py --source release-notes/v1.0.0-rc1.json \
+  --version 1.0.0-rc1 --markdown release-notes/v1.0.0-rc1.md
+```
+
+The release gate validates that every locale is complete and the generated
+Markdown matches the JSON byte-for-byte. Native and WebAssembly bundles embed
+the original JSON. Native updates parse generated locale sections from
+GitHub Releases; WASM update metadata carries the structured JSON. Switching
+the app's language reselects the release content immediately.
 
 ## Platform matrix
 

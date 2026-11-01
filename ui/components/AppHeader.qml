@@ -46,7 +46,7 @@ Rectangle {
             readonly property real wordmarkWidth: Theme.scaleUi(root.compact ? (Qt.platform.os === "android" ? 122 : 132) : 150)
             readonly property real brandGap: Theme.space2
             width: symbolSize + brandGap + wordmarkWidth
-            height: Theme.scaleUi(root.compact && Qt.platform.os === "android" ? 38 : 42)
+            height: Theme.scaleUi(root.compact ? 30 : 42)
             x: Theme.rtl ? parent.width - root.gutter - width : root.gutter
             y: (parent.height - height) / 2
             LayoutMirroring.enabled: false
@@ -93,14 +93,14 @@ Rectangle {
                     Accessible.name: qsTrId("genycaster.app.genycaster")
                 }
 
-                // The release identifier remains LTR and stable in every locale.
-                // The complete semantic release version comes from CMake via Qt.application.
+                // No version subtitle in mobile/compact chrome; version details belong in Settings.
                 Text {
+                    visible: !root.compact
                     objectName: "appHeaderReleaseVersion"
                     width: parent.width
                     x: 0
                     y: brandWordmark.height + Theme.scaleUi(2)
-                    text: Qt.application.version ? "Genycaster v" + Qt.application.version : "Genycaster"
+                    text: Qt.application.version ? "v" + Qt.application.version : ""
                     color: Theme.inkMuted
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize

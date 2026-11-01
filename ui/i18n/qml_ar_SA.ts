@@ -5916,6 +5916,38 @@ Company | https://company.com</source>
             <source>Posted via %1</source>
             <translation>نُشر عبر %1</translation>
         </message>
+        <message id="genycaster.update.version_number">
+            <source>Application version %1</source>
+            <translation>الإصدار %1</translation>
+        </message>
+        <message id="genycaster.update.channel_alpha">
+            <source>Alpha release channel</source>
+            <translation>ألفا</translation>
+        </message>
+        <message id="genycaster.update.channel_beta">
+            <source>Beta release channel</source>
+            <translation>بيتا</translation>
+        </message>
+        <message id="genycaster.update.channel_rc">
+            <source>Release candidate</source>
+            <translation>إصدار مرشح</translation>
+        </message>
+        <message id="genycaster.update.channel_stable">
+            <source>Stable release channel</source>
+            <translation>مستقر</translation>
+        </message>
+        <message id="genycaster.update.prerelease_info">
+            <source>You are using a prerelease build. Features may change as testing continues.</source>
+            <translation>أنت تستخدم إصدارًا تجريبيًا قبل الإطلاق. قد تتغير الميزات أثناء الاختبار.</translation>
+        </message>
+        <message id="genycaster.update.up_to_date">
+            <source>You already have the latest available build.</source>
+            <translation>لديك أحدث إصدار متاح بالفعل.</translation>
+        </message>
+        <message id="genycaster.update.build_label">
+            <source>Build identifier %1</source>
+            <translation>بناء %1</translation>
+        </message>
         <message id="genycaster.update.type_fix">
             <source>Bug fixes</source>
             <translation>إصلاحات الأخطاء</translation>

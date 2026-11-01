@@ -5916,6 +5916,38 @@ Company | https://company.com</source>
             <source>Posted via %1</source>
             <translation>%1 से पोस्ट किया गया</translation>
         </message>
+        <message id="genycaster.update.version_number">
+            <source>Application version %1</source>
+            <translation>संस्करण %1</translation>
+        </message>
+        <message id="genycaster.update.channel_alpha">
+            <source>Alpha release channel</source>
+            <translation>अल्फ़ा</translation>
+        </message>
+        <message id="genycaster.update.channel_beta">
+            <source>Beta release channel</source>
+            <translation>बीटा</translation>
+        </message>
+        <message id="genycaster.update.channel_rc">
+            <source>Release candidate</source>
+            <translation>रिलीज़ उम्मीदवार</translation>
+        </message>
+        <message id="genycaster.update.channel_stable">
+            <source>Stable release channel</source>
+            <translation>स्थिर</translation>
+        </message>
+        <message id="genycaster.update.prerelease_info">
+            <source>You are using a prerelease build. Features may change as testing continues.</source>
+            <translation>आप पूर्व-रिलीज़ संस्करण का उपयोग कर रहे हैं। परीक्षण के दौरान सुविधाएँ बदल सकती हैं।</translation>
+        </message>
+        <message id="genycaster.update.up_to_date">
+            <source>You already have the latest available build.</source>
+            <translation>आपके पास पहले से नवीनतम उपलब्ध बिल्ड है।</translation>
+        </message>
+        <message id="genycaster.update.build_label">
+            <source>Build identifier %1</source>
+            <translation>बिल्ड %1</translation>
+        </message>
         <message id="genycaster.update.type_fix">
             <source>Bug fixes</source>
             <translation>बग सुधार</translation>

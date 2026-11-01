@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "type": "security",
+  "changes": [
+    {"id": "verified-recovery", "category": "security"},
+    {"id": "explicit-consent", "category": "security"},
+    {"id": "short-lived-authorization", "category": "security"},
+    {"id": "provider-selection", "category": "improvement"},
+    {"id": "secret-protection", "category": "security"},
+    {"id": "compatibility-testing", "category": "maintenance"}
+  ],
+  "translations": {
+    "en-US": {
+      "title": "Safer device authorization",
+      "summary": "Improved account recovery, device signing, and provider control.",
+      "items": {
+        "verified-recovery": "After verified Farcaster recovery, you can optionally authorize a dedicated signer for your device.",
+        "explicit-consent": "Device signing requires your explicit approval before authorization.",
+        "short-lived-authorization": "Temporary authorization is tied to the verified account, expires quickly, and is cleared after one attempt.",
+        "provider-selection": "Your selected signing provider is respected; HyperSnap remains the default reader without silent write fallback.",
+        "secret-protection": "Recovery phrases and custody private keys are never stored by Genycaster; network confirmation and a secure device vault remain necessary.",
+        "compatibility-testing": "Signing compatibility is checked against independent cryptographic tests on the Genycaster server."
+      }
+    },
+    "fa-IR": {
+      "title": "مجوزدهی ایمن‌تر به دستگاه",
+      "summary": "بهبود بازیابی حساب، امضای دستگاه و کنترل ارائه‌دهندگان.",
+      "items": {
+        "verified-recovery": "پس از تأیید بازیابی حساب فارکستر، می‌توانید یک امضاکنندهٔ اختصاصی را برای دستگاه خود مجاز کنید.",
+        "explicit-consent": "فعال‌سازی امضای دستگاه تنها با تأیید صریح شما انجام می‌شود.",
+        "short-lived-authorization": "مجوز موقت به حساب تأییدشده محدود است، به‌سرعت منقضی می‌شود و پس از یک تلاش پاک می‌شود.",
+        "provider-selection": "انتخاب شما برای ارائه‌دهندهٔ امضا حفظ می‌شود؛ هایپراسنپ خوانندهٔ پیش‌فرض است و ارائه‌دهندهٔ ارسال بدون اجازه تغییر نمی‌کند.",
+        "secret-protection": "جنی‌کستر عبارت بازیابی یا کلید خصوصی حساب را ذخیره نمی‌کند؛ تأیید شبکه و مخزن امن امضاکنندهٔ دستگاه همچنان ضروری‌اند.",
+        "compatibility-testing": "سازگاری امضا با آزمون‌های رمزنگاری مستقل روی سرور جنی‌کستر بررسی می‌شود."
+      }
+    },
+    "ar-SA": {
+      "title": "تفويض أكثر أمانًا للأجهزة",
+      "summary": "تحسين استرداد الحساب وتوقيع الجهاز والتحكم في المزوّدين.",
+      "items": {
+        "verified-recovery": "بعد التحقق من استرداد حساب Farcaster، يمكنك تفويض موقّع مخصص لجهازك اختياريًا.",
+        "explicit-consent": "يتطلب توقيع الجهاز موافقتك الصريحة قبل التفويض.",
+        "short-lived-authorization": "يرتبط التفويض المؤقت بالحساب المتحقق منه، وتنتهي صلاحيته سريعًا ويُمحى بعد محاولة واحدة.",
+        "provider-selection": "يُحترم مزوّد التوقيع الذي اخترته؛ يظل HyperSnap قارئ البيانات الافتراضي دون تبديل صامت لمزوّد النشر.",
+        "secret-protection": "لا يخزّن Genycaster عبارة الاسترداد أو المفتاح الخاص للحساب؛ ويظل تأكيد الشبكة وخزنة التوقيع الآمنة مطلوبين.",
+        "compatibility-testing": "يُتحقق من توافق التوقيع باختبارات تشفير مستقلة على خادم Genycaster."
+      }
+    },
+    "de-DE": {
+      "title": "Sicherere Geräteautorisierung",
+      "summary": "Verbesserte Kontowiederherstellung, Gerätesignierung und Anbieterauswahl.",
+      "items": {
+        "verified-recovery": "Nach verifizierter Farcaster-Wiederherstellung kannst du optional einen eigenen Signierer für dein Gerät autorisieren.",
+        "explicit-consent": "Die Gerätesignierung erfordert vor der Autorisierung deine ausdrückliche Zustimmung.",
+        "short-lived-authorization": "Die temporäre Autorisierung ist an das verifizierte Konto gebunden, läuft rasch ab und wird nach einem Versuch gelöscht.",
+        "provider-selection": "Dein gewählter Signaturanbieter bleibt erhalten; HyperSnap ist standardmäßig der Datenleser, ohne stillen Wechsel des Schreibanbieters.",
+        "secret-protection": "Genycaster speichert weder Wiederherstellungsphrasen noch private Kontoschlüssel; Netzwerkbestätigung und sicherer Gerätespeicher bleiben erforderlich.",
+        "compatibility-testing": "Die Signaturkompatibilität wird mit unabhängigen kryptografischen Tests auf dem Genycaster-Server geprüft."
+      }
+    },
+    "es-ES": {
+      "title": "Autorización de dispositivos más segura",
+      "summary": "Mejoras en recuperación de cuentas, firmas y control de proveedores.",
+      "items": {
+        "verified-recovery": "Tras verificar la recuperación de Farcaster, puedes autorizar opcionalmente un firmante exclusivo para tu dispositivo.",
+        "explicit-consent": "La firma del dispositivo requiere tu consentimiento explícito antes de autorizarse.",
+        "short-lived-authorization": "La autorización temporal se vincula a la cuenta verificada, caduca pronto y se borra tras un intento.",
+        "provider-selection": "Se respeta tu proveedor de firma; HyperSnap sigue siendo el lector predeterminado sin cambiar silenciosamente el proveedor de escritura.",
+        "secret-protection": "Genycaster nunca guarda frases de recuperación ni claves privadas de la cuenta; siguen siendo necesarios la confirmación de red y un almacén seguro.",
+        "compatibility-testing": "La compatibilidad de las firmas se comprueba mediante pruebas criptográficas independientes en el servidor de Genycaster."
+      }
+    },
+    "fr-FR": {
+      "title": "Autorisation des appareils renforcée",
+      "summary": "Amélioration de la récupération de compte, des signatures et du choix du fournisseur.",
+      "items": {
+        "verified-recovery": "Après vérification de la récupération Farcaster, vous pouvez autoriser un signataire dédié à votre appareil.",
+        "explicit-consent": "La signature sur l’appareil exige votre consentement explicite avant toute autorisation.",
+        "short-lived-authorization": "L’autorisation temporaire est liée au compte vérifié, expire rapidement et est effacée après une tentative.",
+        "provider-selection": "Votre fournisseur de signature est respecté ; HyperSnap reste le lecteur par défaut, sans basculement silencieux du fournisseur d’écriture.",
+        "secret-protection": "Genycaster ne conserve ni phrase de récupération ni clé privée du compte ; une confirmation réseau et un coffre sécurisé restent nécessaires.",
+        "compatibility-testing": "La compatibilité des signatures est vérifiée par des tests cryptographiques indépendants sur le serveur Genycaster."
+      }
+    },
+    "hi-IN": {
+      "title": "अधिक सुरक्षित डिवाइस अनुमति",
+      "summary": "खाता रिकवरी, डिवाइस हस्ताक्षर और प्रदाता चयन में सुधार।",
+      "items": {
+        "verified-recovery": "Farcaster खाता रिकवरी सत्यापित होने के बाद आप चाहें तो अपने डिवाइस के लिए अलग हस्ताक्षरकर्ता अधिकृत कर सकते हैं।",
+        "explicit-consent": "डिवाइस हस्ताक्षर की अनुमति देने से पहले आपकी स्पष्ट सहमति आवश्यक है।",
+        "short-lived-authorization": "अस्थायी अनुमति सत्यापित खाते से जुड़ी होती है, जल्दी समाप्त होती है और एक प्रयास के बाद मिटा दी जाती है।",
+        "provider-selection": "आपका चुना हुआ हस्ताक्षर प्रदाता बना रहता है; HyperSnap डिफ़ॉल्ट रीडर है और लेखन प्रदाता बिना बताए नहीं बदलता।",
+        "secret-protection": "Genycaster रिकवरी वाक्यांश या खाते की निजी कुंजी संग्रहीत नहीं करता; नेटवर्क पुष्टि और सुरक्षित डिवाइस वॉल्ट आवश्यक हैं।",
+        "compatibility-testing": "Genycaster सर्वर पर स्वतंत्र क्रिप्टोग्राफ़िक परीक्षणों से हस्ताक्षर अनुकूलता जाँची जाती है।"
+      }
+    },
+    "ja-JP": {
+      "title": "デバイス認証の安全性を強化",
+      "summary": "アカウント復元、デバイス署名、プロバイダー選択を改善しました。",
+      "items": {
+        "verified-recovery": "Farcaster のアカウント復元を検証した後、デバイス専用の署名者を任意で認証できます。",
+        "explicit-consent": "デバイス署名を認証する前に、ユーザーの明示的な同意が必要です。",
+        "short-lived-authorization": "一時的な認証は検証済みアカウントに紐づき、短時間で失効し、1 回の試行後に消去されます。",
+        "provider-selection": "選択した署名プロバイダーを尊重します。HyperSnap は既定の閲覧元ですが、書き込み先を無断で切り替えません。",
+        "secret-protection": "Genycaster は復元フレーズやアカウントの秘密鍵を保存しません。ネットワーク確認と安全なデバイス保管庫が引き続き必要です。",
+        "compatibility-testing": "署名の互換性は Genycaster サーバー上の独立した暗号テストで確認します。"
+      }
+    },
+    "ko-KR": {
+      "title": "더 안전한 기기 인증",
+      "summary": "계정 복구, 기기 서명 및 공급자 선택 기능을 개선했습니다.",
+      "items": {
+        "verified-recovery": "Farcaster 계정 복구를 검증한 뒤 기기 전용 서명자를 선택적으로 승인할 수 있습니다.",
+        "explicit-consent": "기기 서명을 승인하려면 사용자의 명시적인 동의가 필요합니다.",
+        "short-lived-authorization": "임시 권한은 검증된 계정에 연결되고 빠르게 만료되며 한 번 시도한 후 삭제됩니다.",
+        "provider-selection": "선택한 서명 공급자를 유지합니다. HyperSnap은 기본 읽기 공급자이며 쓰기 공급자를 몰래 전환하지 않습니다.",
+        "secret-protection": "Genycaster는 복구 문구나 계정 개인 키를 저장하지 않습니다. 네트워크 확인과 안전한 기기 보관소는 계속 필요합니다.",
+        "compatibility-testing": "서명 호환성은 Genycaster 서버의 독립적인 암호화 테스트로 검증합니다."
+      }
+    },
+    "pt-BR": {
+      "title": "Autorização de dispositivos mais segura",
+      "summary": "Melhorias na recuperação de conta, assinatura e escolha de provedores.",
+      "items": {
+        "verified-recovery": "Após verificar a recuperação do Farcaster, você pode autorizar opcionalmente um assinador exclusivo para seu dispositivo.",
+        "explicit-consent": "A assinatura no dispositivo exige seu consentimento explícito antes da autorização.",
+        "short-lived-authorization": "A autorização temporária fica vinculada à conta verificada, expira rapidamente e é apagada após uma tentativa.",
+        "provider-selection": "Seu provedor de assinatura é respeitado; HyperSnap continua sendo o leitor padrão, sem troca silenciosa do provedor de escrita.",
+        "secret-protection": "O Genycaster nunca armazena frases de recuperação nem chaves privadas da conta; a confirmação da rede e um cofre seguro continuam necessários.",
+        "compatibility-testing": "A compatibilidade das assinaturas é verificada com testes criptográficos independentes no servidor Genycaster."
+      }
+    },
+    "ru-RU": {
+      "title": "Более безопасная авторизация устройств",
+      "summary": "Улучшены восстановление аккаунта, подпись на устройстве и выбор провайдера.",
+      "items": {
+        "verified-recovery": "После подтверждённого восстановления Farcaster можно при желании авторизовать отдельный подписант для устройства.",
+        "explicit-consent": "Для авторизации подписи на устройстве требуется ваше явное согласие.",
+        "short-lived-authorization": "Временное разрешение привязано к проверенному аккаунту, быстро истекает и удаляется после одной попытки.",
+        "provider-selection": "Выбранный провайдер подписи сохраняется; HyperSnap остаётся источником чтения по умолчанию без скрытой смены провайдера записи.",
+        "secret-protection": "Genycaster не хранит фразу восстановления или закрытый ключ аккаунта; подтверждение в сети и защищённое хранилище устройства по-прежнему необходимы.",
+        "compatibility-testing": "Совместимость подписей проверяется независимыми криптографическими тестами на сервере Genycaster."
+      }
+    },
+    "zh-CN": {
+      "title": "更安全的设备授权",
+      "summary": "改进账户恢复、设备签名及服务提供方选择。",
+      "items": {
+        "verified-recovery": "验证 Farcaster 账户恢复后，你可以选择为设备授权独立签名者。",
+        "explicit-consent": "设备签名授权前必须获得你的明确同意。",
+        "short-lived-authorization": "临时授权仅绑定已验证账户，会很快过期，并在一次尝试后清除。",
+        "provider-selection": "系统尊重你选择的签名提供方；HyperSnap 仍是默认读取来源，不会悄悄切换写入提供方。",
+        "secret-protection": "Genycaster 不存储恢复助记词或账户私钥；仍需网络确认及安全的设备密钥库。",
+        "compatibility-testing": "签名兼容性通过 Genycaster 服务器上的独立密码学测试进行验证。"
+      }
+    }
+  }
+}

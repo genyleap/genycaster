@@ -1467,6 +1467,12 @@ int main(int argc, char* argv[])
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
+    const auto updateReleaseLocale = [&] {
+        updateController.setLanguageTag(localizationController.effectiveLanguageTag());
+    };
+    updateReleaseLocale();
+    QObject::connect(&localizationController, &LocalizationController::localeChanged,
+                     &application, updateReleaseLocale);
 
     const auto applicationFontFamilyForLanguage = [&](QString languageTag) -> QString {
         languageTag = languageTag.trimmed().toLower();

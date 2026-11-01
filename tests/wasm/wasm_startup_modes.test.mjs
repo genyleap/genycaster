@@ -36,10 +36,10 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const scope={
         window:{
             __genycasterAssets:{version,wasm:binary,appVersion:"1.0.0",buildId:version.slice(0,8),
-                releaseLabel:"Beta 1.0",wasmBytes:8},
+                productName:"Genycaster",versionNumber:"1.0.0",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:8},
             farcaster_client_entry(){},
             fetch:async(input)=>String(input).includes("genycaster-assets.json")
-                ? new Response(JSON.stringify({version:latestVersion,releaseLabel:"Beta 1.1",wasmBytes:78643200}),
+                ? new Response(JSON.stringify({version:latestVersion,appVersion:"1.0.1",versionNumber:"1.0.1",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:78643200}),
                     {headers:{"Content-Type":"application/json"}})
                 : measured
                     ? new Response(new ReadableStream({
@@ -167,7 +167,7 @@ test("first launch uses real download → install → Qt initialize → ready mi
     assert.equal(h.phase(),"download");
     assert.equal(h.mode(),"install");
     assert.match(h.label(),/Download/i);
-    assert.equal(h.nodes.get("boot-build-credit").textContent,"Beta 1.0 · Build aaaaaaaa");
+    assert.equal(h.nodes.get("boot-build-credit").textContent,"v1.0.0 · Build aaaaaaaa");
     const response=await h.fetch();
     await response.arrayBuffer();
     assert.equal(h.phase(),"download","headers are not download completion");
@@ -327,9 +327,9 @@ test("installed PWA notices a new live release without discarding draft or ident
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
     assert.equal(h.nodes.get("genycaster-update-backdrop").hidden,false);
-    assert.equal(h.nodes.get("genycaster-update-current").textContent,"aaaaaaaa");
-    assert.equal(h.nodes.get("genycaster-update-next").textContent,"bbbbbbbb");
-    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"Beta 1.1");
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"1.0.0");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"1.0.1");
+    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"v1.0.1");
     assert.match(h.nodes.get("genycaster-update-details").textContent,/75\.0 MiB/);
     assert.equal(h.reloadedTo,"","update prompt cannot navigate without a user tap");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");

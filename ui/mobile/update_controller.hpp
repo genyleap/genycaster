@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QJsonObject>
 #include <QCryptographicHash>
 #include <QNetworkAccessManager>
 #include <QPointer>
@@ -22,7 +23,15 @@ class QTimer;
  */
 class UpdateController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString productName READ productName CONSTANT)
     Q_PROPERTY(QString appVersion READ appVersion CONSTANT)
+    Q_PROPERTY(QString versionNumber READ versionNumber CONSTANT)
+    Q_PROPERTY(QString releaseChannel READ releaseChannel CONSTANT)
+    Q_PROPERTY(int releaseChannelNumber READ releaseChannelNumber CONSTANT)
+    Q_PROPERTY(QString releaseTag READ releaseTag CONSTANT)
+    Q_PROPERTY(QString releaseSummary READ releaseSummary NOTIFY changed)
+    Q_PROPERTY(QString webLatestBuild READ webLatestBuild NOTIFY changed)
+    Q_PROPERTY(bool webUpdateChecked READ webUpdateChecked NOTIFY changed)
     Q_PROPERTY(bool autoCheckEnabled READ autoCheckEnabled NOTIFY changed)
     Q_PROPERTY(bool checking READ checking NOTIFY changed)
     Q_PROPERTY(bool downloading READ downloading NOTIFY changed)
@@ -45,7 +54,15 @@ class UpdateController final : public QObject {
 public:
     explicit UpdateController(QSettings& settings, bool startupCheck = true, QObject* parent = nullptr);
     ~UpdateController() override;
+    [[nodiscard]] QString productName() const;
     [[nodiscard]] QString appVersion() const;
+    [[nodiscard]] QString versionNumber() const;
+    [[nodiscard]] QString releaseChannel() const;
+    [[nodiscard]] int releaseChannelNumber() const;
+    [[nodiscard]] QString releaseTag() const;
+    [[nodiscard]] QString releaseSummary() const;
+    [[nodiscard]] QString webLatestBuild() const;
+    [[nodiscard]] bool webUpdateChecked() const;
     [[nodiscard]] bool autoCheckEnabled() const;
     [[nodiscard]] bool checking() const;
     [[nodiscard]] bool downloading() const;
@@ -65,6 +82,7 @@ public:
     [[nodiscard]] bool canDownload() const;
     [[nodiscard]] bool webRefreshing() const;
 
+    void setLanguageTag(QString tag);
     Q_INVOKABLE void setAutoCheckEnabled(bool enabled);
     Q_INVOKABLE void checkForUpdates();
     Q_INVOKABLE void refreshWebApp();
@@ -83,6 +101,7 @@ private:
     void handleRelease(QNetworkReply* reply, bool manual);
     void finishDownload(QNetworkReply* reply);
     void fail(QString message);
+    void applyReleaseTranslation();
     QSettings& m_settings;
     QNetworkAccessManager m_network;
     QPointer<QNetworkReply> m_checkReply;
@@ -91,6 +110,10 @@ private:
     QCryptographicHash m_hash{QCryptographicHash::Sha256};
     QString m_appVersion;
     QString m_latestVersion;
+    QJsonObject m_releaseData;
+    QString m_languageTag{QStringLiteral("en-US")};
+    QString m_releaseSummary;
+    QString m_webLatestBuild;
     QString m_releaseTitle;
     QString m_releaseNotes;
     QString m_releaseType;
@@ -108,6 +131,7 @@ private:
     bool m_downloading{false};
     bool m_updateAvailable{false};
     bool m_webRefreshing{false};
+    bool m_webUpdateChecked{false};
     qint64 m_received{0};
     qint64 m_total{0};
     QTimer* m_periodic{nullptr};

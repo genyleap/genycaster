@@ -6,16 +6,27 @@ project(Genycaster
     LANGUAGES CXX
 )
 
-# Single versioned release-notes source for native, WebAssembly and GitHub.
-# CMake's numeric PROJECT_VERSION remains 1.0.0; the release tag carries rc1.
-set(GENYCASTER_RELEASE_CANDIDATE "rc1")
-set(GENYCASTER_RELEASE_VERSION "${PROJECT_VERSION}-${GENYCASTER_RELEASE_CANDIDATE}")
+# Version identity has independent numeric, channel, and channel-number fields.
+# CMake alone constructs the serialized semantic tag used by update discovery.
+set(GENYCASTER_RELEASE_CHANNEL "rc")
+set(GENYCASTER_RELEASE_CHANNEL_NUMBER "1")
+set(GENYCASTER_RELEASE_SUFFIX "")
+if(NOT GENYCASTER_RELEASE_CHANNEL STREQUAL "stable")
+    if(NOT GENYCASTER_RELEASE_CHANNEL MATCHES "^(alpha|beta|rc)$"
+       OR NOT GENYCASTER_RELEASE_CHANNEL_NUMBER MATCHES "^[1-9][0-9]*$")
+        message(FATAL_ERROR "Invalid prerelease channel or channel number")
+    endif()
+    set(GENYCASTER_RELEASE_SUFFIX "-${GENYCASTER_RELEASE_CHANNEL}${GENYCASTER_RELEASE_CHANNEL_NUMBER}")
+endif()
+set(GENYCASTER_RELEASE_VERSION "${PROJECT_VERSION}${GENYCASTER_RELEASE_SUFFIX}")
 set(GENYCASTER_RELEASE_TAG "v${GENYCASTER_RELEASE_VERSION}")
 set(GENYCASTER_RELEASE_NOTES_FILE
+    "${CMAKE_SOURCE_DIR}/release-notes/${GENYCASTER_RELEASE_TAG}.json")
+set(GENYCASTER_RELEASE_MARKDOWN_FILE
     "${CMAKE_SOURCE_DIR}/release-notes/${GENYCASTER_RELEASE_TAG}.md")
-if(NOT EXISTS "${GENYCASTER_RELEASE_NOTES_FILE}")
-    message(FATAL_ERROR
-        "Missing release notes for ${GENYCASTER_RELEASE_TAG}: ${GENYCASTER_RELEASE_NOTES_FILE}")
+if(NOT EXISTS "${GENYCASTER_RELEASE_NOTES_FILE}"
+   OR NOT EXISTS "${GENYCASTER_RELEASE_MARKDOWN_FILE}")
+    message(FATAL_ERROR "Missing release notes JSON or generated GitHub Markdown for ${GENYCASTER_RELEASE_TAG}")
 endif()
 
 # Windows vcpkg's shared Boost package defines BOOST_ALL_DYN_LINK. Our

@@ -70,10 +70,15 @@ const buildId=typeof releaseInfo.buildId==="string"
     && /^[0-9a-f]{8}$/.test(releaseInfo.buildId)
     && currentVersion.startsWith(releaseInfo.buildId)
     ? releaseInfo.buildId : "";
-const releaseLabel=typeof releaseInfo.releaseLabel==="string"
-    && /^Genycaster v\d+\.\d+\.\d+-rc[1-9]\d*$/.test(releaseInfo.releaseLabel)
-    ? releaseInfo.releaseLabel : "";
-const buildLabel=(releaseLabel||(applicationVersion?"v"+applicationVersion:""))
+// Product, numeric version and release channel arrive independently from CMake.
+const numericVersion=typeof releaseInfo.versionNumber==="string"
+    && /^\d+\.\d+\.\d+$/.test(releaseInfo.versionNumber)
+    ? releaseInfo.versionNumber:"";
+const releaseChannel=["stable","alpha","beta","rc"].includes(releaseInfo.releaseChannel)
+    ? releaseInfo.releaseChannel:"";
+const releaseChannelNumber=Number.isInteger(releaseInfo.releaseChannelNumber)
+    ? releaseInfo.releaseChannelNumber:0;
+const buildLabel=(applicationVersion?"v"+applicationVersion:"")
     +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
 const creditBuild=$("boot-build-credit");
 if(creditBuild)creditBuild.textContent=buildLabel;
@@ -492,21 +497,31 @@ function fillReleaseDetails(fresh){
     latestReleaseDetails=fresh;
     const current=$("genycaster-update-current");
     const latest=$("genycaster-update-next");
-    if(current)current.textContent=currentVersion.slice(0,8);
-    if(latest)latest.textContent=String(fresh.version||"").slice(0,8);
+    if(current)current.textContent=numericVersion||applicationVersion||"—";
+    if(latest)latest.textContent=String(fresh.versionNumber||fresh.appVersion||"—");
     const oldChannel=$("genycaster-update-current-channel");
     const newChannel=$("genycaster-update-next-channel");
-    const validatedLabel=typeof fresh.releaseLabel==="string"
-      && /^Genycaster v\d+\.\d+\.\d+-rc[1-9]\d*$/.test(fresh.releaseLabel)
-        ? fresh.releaseLabel : (releaseLabel||"Genycaster");
-    if(oldChannel)oldChannel.textContent=releaseLabel||(applicationVersion?"v"+applicationVersion:"");
-    if(newChannel)newChannel.textContent=validatedLabel;
+    const newAppVersion=typeof fresh.appVersion==="string"
+        && /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[1-9]\d*)?$/.test(fresh.appVersion)
+        ? fresh.appVersion:"";
+    if(oldChannel)oldChannel.textContent=applicationVersion?"v"+applicationVersion:"";
+    if(newChannel)newChannel.textContent=newAppVersion?"v"+newAppVersion:"";
     const releaseNotes=fresh.releaseNotes;
-    const notes=releaseNotes && typeof releaseNotes==="object"
-        && Array.isArray(releaseNotes.changes)
-        ? releaseNotes.changes.filter(item=>typeof item==="string")
-            .slice(0,8).join("\n").slice(0,640)
-        : (typeof releaseNotes==="string" ? releaseNotes.trim().slice(0,640) : "");
+    const translations=releaseNotes && typeof releaseNotes==="object"
+        ? releaseNotes.translations:null;
+    const locale=translations && Object.keys(translations).find(tag=>
+        tag.split("-")[0].toLowerCase()===updateLanguage);
+    const localized=locale?translations[locale]:translations?.["en-US"];
+    const changeList=Array.isArray(releaseNotes?.changes)?releaseNotes.changes:[];
+    const bullets=localized?.items ? changeList
+        .map(change=>localized.items[change.id])
+        .filter(item=>typeof item==="string" && item.length>0)
+        .slice(0,12):[];
+    const notes=localized
+        ? [localized.summary,...bullets.map(item=>"• "+item)].filter(Boolean).join("\n\n").slice(0,3600)
+        : "";
+    const translatedTitle=$("genycaster-update-details-title");
+    if(translatedTitle && localized?.title)translatedTitle.textContent=localized.title;
     const bytes=Number(fresh.wasmBytes);
     const size=Number.isSafeInteger(bytes)&&bytes>0
         ? " (WASM: "+(bytes/1048576).toFixed(1)+" MiB)" : "";
