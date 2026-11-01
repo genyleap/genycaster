@@ -239,14 +239,6 @@
             <source>Remove topic</source>
             <translation>विषय हटाएँ</translation>
         </message>
-        <message id="genycaster.release.beta_version_number">
-            <source>1.0</source>
-            <translation>1.0</translation>
-        </message>
-        <message id="genycaster.release.beta_label">
-            <source>Beta</source>
-            <translation>बीटा</translation>
-        </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
             <translation>GENY टोकन</translation>
@@ -1448,17 +1440,9 @@ Company | https://company.com</source>
             <source>Your reply · Published</source>
             <translation>आपका उत्तर · प्रकाशित</translation>
         </message>
-        <message id="genycaster.settings.beta_release_short">
-            <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · बीटा 1.0</translation>
-        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>फ़ॉर्मैटिंग उपकरण</translation>
-        </message>
-        <message id="genycaster.settings.current_beta_release">
-            <source>GenyCaster Beta 1.0 · Version %1</source>
-            <translation>GenyCaster बीटा 1.0 · संस्करण %1</translation>
         </message>
         <message id="genycaster.settings.beta_program_info">
             <source>You are using a beta release. Features may change while improvements are tested.</source>
@@ -5695,10 +5679,6 @@ Company | https://company.com</source>
         <message id="genycaster.setup.open_privacy">
             <source>Open full Privacy Policy</source>
             <translation>पूरी गोपनीयता नीति खोलें</translation>
-        </message>
-        <message id="genycaster.release.beta_1_0">
-            <source>Beta 1.0</source>
-            <translation>बीटा 1.0</translation>
         </message>
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
