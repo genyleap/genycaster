@@ -261,8 +261,8 @@ test('sign-out racing with write rejects stale completion',async()=>{
     assert.equal(data.submitted.length,0);
 });
 
-const recoveredPhrase='test test test test test test test test test test test junk';
-const recoveredAddress='0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
+const recoveredPhrase='abandon '.repeat(23)+'art';
+const recoveredAddress='0xf278cf59f82edcf871d630f28ecc8056f25c1cdb';
 
 test('recovery phrase authorizes KEY_ADD without any browser wallet extension',async()=>{
     const data=fixture({noWallet:true});
@@ -325,7 +325,7 @@ test('invalid recovery BIP39 checksum fails closed without touching Snapchain',a
     const data=fixture({noWallet:true});
     const signer=data.create();
     await assert.rejects(signer.provisionFromRecovery(fid,
-        'test '.repeat(11)+'abandon'),/checksum/);
+        'abandon '.repeat(24).trim()),/checksum/);
     assert.equal(data.submitted.length,0);
 });
 
@@ -419,7 +419,7 @@ test('direct setup refuses unregistered or transferred custody before KEY_ADD',a
 test('invalid mnemonic cannot resolve identity or authorize a signer',async()=>{
     const data=fixture({noWallet:true});
     await assert.rejects(data.create().recoverAccountFromPhrase(
-        'test '.repeat(11)+'abandon'),/checksum/);
+        'abandon '.repeat(24).trim()),/checksum/);
     assert.equal(data.submitted.length,0);
 });
 
