@@ -84,38 +84,27 @@ float hash21(vec2 p){
  return fract(p.x*p.y);
 }
 vec3 background(vec2 screen,vec2 uv,bool dark){
- // Gradient cyclorama with a broad photographic softbox, a quiet floor
- // bounce and a controllable falloff. No DOM overlay or texture download.
- vec3 top=dark?vec3(.021,.039,.075):vec3(.858,.903,.949);
- vec3 bottom=dark?vec3(.040,.084,.128):vec3(.753,.826,.890);
- vec3 col=mix(top,bottom,smoothstep(.06,.98,uv.y));
- vec2 spot=(screen-vec2(-.28,.33))*vec2(.74,.85);
- float overhead=exp(-dot(spot,spot)*1.18);
- col+=(dark?vec3(.061,.108,.153):vec3(.107,.131,.149))*overhead;
- float floorGlow=exp(-pow((screen.y+.95)*3.5,2.))
-                 *exp(-pow(screen.x*.87,2.));
- col+=(dark?vec3(.020,.064,.090):vec3(.080,.096,.107))*floorGlow;
- float floorLine=exp(-pow((screen.y+.93)*22.,2.));
- col+=(dark?vec3(.019,.041,.060):vec3(.022,.044,.062))*floorLine*.35;
- // The grounding oval reads as an actual stage, not a hard circular stroke.
- vec2 floorPosition=(screen-vec2(.0,-1.04))*vec2(.85,4.2);
- float stage=exp(-dot(floorPosition,floorPosition)*1.7);
- col-=stage*(dark?vec3(.010,.024,.031):vec3(.085,.097,.108));
- col*=1.0-.16*smoothstep(.6,2.5,length(screen*vec2(.72,.88)));
+ // Continuous photographic cyclorama. The logo is suspended, so do NOT
+ // project a duplicate silhouette onto an imaginary vertical wall.
+ vec3 top=dark?vec3(.023,.045,.077):vec3(.78,.85,.92);
+ vec3 bottom=dark?vec3(.042,.075,.110):vec3(.70,.78,.86);
+ vec3 col=mix(top,bottom,smoothstep(.04,.97,uv.y));
+ vec2 key=(screen-vec2(-.32,.24))*vec2(.74,.82);
+ float softbox=exp(-dot(key,key)*1.48);
+ col+=(dark?vec3(.045,.072,.098):vec3(.091,.110,.120))*softbox;
+ // The faint, very broad ambient occlusion envelope suggests depth,
+ // without duplicating the glyph, angular artifacts, or floor lines.
+ vec2 ambient=(screen-vec2(.11,-.19))*vec2(.96,1.57);
+ float shadow=exp(-dot(ambient,ambient)*2.45);
+ col*=1.0-(dark?.055:.080)*shadow;
+ // Subtle cool bounce below the floating aluminum sculpture.
+ vec2 bounce=(screen-vec2(.08,-.60))*vec2(.74,2.3);
+ float pool=exp(-dot(bounce,bounce)*2.1);
+ col+=(dark?vec3(.012,.029,.042):vec3(.020,.033,.046))*pool;
+ col*=1.0-.115*smoothstep(.75,2.2,length(screen*vec2(.82,.90)));
  float grain=hash21(floor(uv*params.paneSize))-.5;
- col+=grain*(dark?.0011:.0008);
+ col+=grain*(dark?.0007:.0005);
  return max(col,vec3(0.));
-}
-vec3 backdropShadow(vec3 back,vec2 screen,vec2 rotation,bool dark) {
- // Soft projected logo-shaped shadow over the studio background.
- // Project through the same SVG field used for the solid, so shadow and
- // silhouette follow the user's orbit and do not need a shadow bitmap.
- vec2 projected=screen-vec2(.18,-.24);
- vec3 local=objectSpace(vec3(projected,0.0),rotation);
- float shape=canonicalDistance(local.xy).x;
- float soft=1.0-smoothstep(-.09,.28,shape);
- float shadowOpacity=dark?.25:.31;
- return back*(1.0-shadowOpacity*soft);
 }
 
 // Analytic HDR-looking light cards give a convincing surface response
@@ -131,7 +120,7 @@ vec3 studioEnv(vec3 r,bool dark) {
              *smoothstep(-.64,.19,r.y);
  float softbox=exp(-pow((r.y-.84)*6.,2.))
               *smoothstep(-.8,.5,r.z);
- env+=vec3(.90,.94,1.0)*(1.55*stripA+.96*stripB+.55*softbox);
+ env+=vec3(.90,.94,1.0)*(.85*stripA+.54*stripB+.35*softbox);
  float amber=exp(-pow((r.x-.88)*10.,2.)) * smoothstep(-.1,.7,r.y);
  env+=vec3(.94,.58,.34)*amber*.36;
  return env;
@@ -146,7 +135,8 @@ vec3 materialAt(vec3 p,vec3 ray,vec2 rotation,float arrow,bool dark){
  vec3 silver=dark?vec3(.73,.80,.88):vec3(.51,.62,.73);
  vec3 titanium=dark?vec3(.31,.37,.45):vec3(.26,.33,.41);
  vec3 albedo=mix(silver,titanium,arrow);
- float roughness=mix(.23,.31,arrow);
+ // Broader, lower-energy highlights are closer to satin metal than chrome.
+ float roughness=mix(.34,.40,arrow);
  float a=roughness*roughness;
  float a2=a*a;
  vec3 lightDir=normalize(vec3(-.54,.80,.66));
@@ -169,8 +159,8 @@ vec3 materialAt(vec3 p,vec3 ray,vec2 rotation,float arrow,bool dark){
  vec3 color=albedo*(dark?.27:.34);
  color+=albedo*max(dot(n,normalize(vec3(.40,-.48,.56))),0.)*.13;
  color+=albedo*nl*.14;
- color+=env*fresnel*(dark?.71:.58);
- color+=direct*nl*vec3(1.03,1.07,1.13)*.53;
+ color+=env*fresnel*(dark?.64:.50);
+ color+=direct*nl*vec3(1.03,1.07,1.13)*.40;
  float edge=pow(1.-nv,2.8);
  color+=vec3(.13,.27,.39)*edge*.25;
  // One near-invisible energy pulse on click, not a pulsing neon outline.
@@ -188,7 +178,7 @@ void main(){
  vec2 rotation=vec2(
   -(params.orbitYaw+params.dragYaw)*rad+(params.pointer.x-.5)*.055,
   -params.dragPitch*rad+(params.pointer.y-.5)*.040);
- vec3 back=backdropShadow(background(screen,uv,dark),screen,rotation,dark);
+ vec3 back=background(screen,uv,dark);
  vec3 origin=vec3(0.,0.,2.75);
  vec3 direction=normalize(vec3(screen,-2.75));
  float t=0.,nearest=10.,nearestT=0.,mat=0.;

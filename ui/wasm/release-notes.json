@@ -1,9 +1,9 @@
 {
-  "type": "improvement",
-  "title": "Precision GPU Studio: smooth 3D and soft shadows",
+  "type": "fix",
+  "title": "Refined Setup GPU lighting and unobstructed review navigation",
   "changes": [
-    "Smooth the exact GenyCaster SVG solid with a 1664px, 16-bit packed distance atlas and analytically sampled vector tangent normals to eliminate banded sidewalls.",
-    "Improve light and dark studio lighting with a soft projected logo shadow, floor bounce, and better metallic contrast while preserving portable Qt GPU rendering.",
-    "Move the accessible reset, rotation and zoom controls to the lower brand panel, above the copyright and version information."
+    "Keep Back and Close in the Setup content column for both RTL and LTR desktop layouts, never above the interactive 3D logo.",
+    "Remove the artificial duplicate glyph-shaped projected shadow and hard floor markings; use restrained ambient occlusion, soft studio bounce and a continuous background.",
+    "Give the anodized metal wider, lower-energy reflections while retaining official SVG geometry, normal atlas, orbit, zoom and reset controls."
   ]
 }

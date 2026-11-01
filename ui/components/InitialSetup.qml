@@ -863,8 +863,11 @@ Item {
             visible: root.currentStep > 0
             anchors.top: parent.top
             anchors.topMargin: Theme.space4
+            // Navigation belongs to the content column, not the GPU art.
+            // The opposite-side Review/Close action obeys the same inset.
             x: Theme.rtl ? root.width - width - (root.phone ? Theme.space2 : Theme.space5)
-                         : (root.phone ? Theme.space2 : Theme.space5)
+                         : (desktopBrandPane.visible ? desktopBrandPane.width + Theme.space5
+                                                    : (root.phone ? Theme.space2 : Theme.space5))
             compact: true
             quiet: true
             iconOnly: true
@@ -877,7 +880,8 @@ Item {
             visible: root.reviewMode
             anchors.top: parent.top
             anchors.topMargin: Theme.space4
-            x: Theme.rtl ? (root.phone ? Theme.space2 : Theme.space5)
+            x: Theme.rtl ? (desktopBrandPane.visible ? desktopBrandPane.width + Theme.space5
+                                                      : (root.phone ? Theme.space2 : Theme.space5))
                          : root.width - width - (root.phone ? Theme.space2 : Theme.space5)
             compact: true
             quiet: true

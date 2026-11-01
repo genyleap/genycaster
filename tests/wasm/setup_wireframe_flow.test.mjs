@@ -188,7 +188,8 @@ test('RTL back and close do not occupy the same top corner', () => {
   const s=source('ui/components/InitialSetup.qml');
   const nav=s.slice(s.indexOf('        ActionButton {\n            z: 20'),s.indexOf('        Flickable {\n            id: stageScroll'));
   assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
-  assert.match(nav,/x: Theme\.rtl \? \(root\.phone \? Theme\.space2 : Theme\.space5\)/);
+  assert.match(nav,/x: Theme\.rtl \? \(desktopBrandPane\.visible \? desktopBrandPane\.width \+ Theme\.space5/);
+  assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
   assert.match(nav,/iconGlyph: Theme\.rtl \? Theme\.iconArrowRight : Theme\.iconArrowLeft/);
 });
 

@@ -76,10 +76,17 @@ test("smooth vector-driven walls and grounded studio shadows",()=>{
  assert.match(generator,/const tokens=path\.match/);
  assert.match(generator,/addSegments\(g\);addSegments\(arrow\)/);
  assert.match(generator,/const S=4, N=416\*S/);
- assert.match(src,/vec3 backdropShadow\(/);
- assert.match(src,/backdropShadow\(background\(screen,uv,dark\),screen,rotation,dark\)/);
+ assert.doesNotMatch(src,/backdropShadow|projected=screen|floorLine/);
+ assert.match(src,/vec3 back=background\(screen,uv,dark\)/);
+ assert.match(src,/float shadow=exp\(-dot\(ambient,ambient\)\*2\.45\)/);
+ assert.match(src,/float roughness=mix\(\.34,\.40,arrow\)/);
  assert.match(src,/for\(int i=0;i<116;i\+\+\)/);
  assert.match(src,/if\(shape\.x<\.00016\)/);
  assert.match(src,/t\+=max\(shape\.x\*\.82,\.00024\)/);
  assert.match(qml,/sourceSize\.width: 1664/);
+ const buttons=qml.slice(qml.indexOf('        ActionButton {\n            z: 20'),
+                         qml.indexOf('        Flickable {\n            id: stageScroll'));
+ assert.match(buttons,/desktopBrandPane\.width \+ Theme\.space5/);
+ assert.match(buttons,/Theme\.rtl/);
+ assert.match(buttons,/root\.closeReviewRequested\(\)/);
 });
