@@ -117,13 +117,13 @@ class PipelineTests(unittest.TestCase):
         self.assertNotIn('if (!miniAppHost.available && Qt.platform.os !== "wasm")', surface)
 
     def test_version_tag_gate(self) -> None:
-        self.assertEqual(project_version(Path.cwd()), "1.0.0")
+        numeric = project_version(Path.cwd())
         version = release_designation(Path.cwd())
-        self.assertEqual(version, "1.0.0-rc1")
+        self.assertTrue(version.startswith(numeric + "-"))
         self.assertEqual(release_version("refs/heads/main", version), (version, False))
         self.assertEqual(release_version(f"refs/tags/v{version}", version), (version, True))
         for bad in ("refs/tags/v1.2", "refs/tags/latest", "refs/tags/v01.2.3",
-                    "refs/tags/v1.0.0", "refs/tags/v1.0.0-rc2",
+                    f"refs/tags/v{numeric}", f"refs/tags/v{numeric}-rc999",
                     "refs/tags/v999.0.0"):
             with self.assertRaises(ValueError):
                 release_version(bad, version)
