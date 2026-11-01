@@ -20,13 +20,27 @@ def project_version(root: Path) -> str:
         raise ValueError("CMakeLists.txt project(Genycaster VERSION x.y.z) missing")
     return match.group(1)
 
+def release_designation(root: Path) -> str:
+    """Version in the canonical root release-notes filename."""
+    cmake = (root / "CMakeLists.txt").read_text(encoding="utf-8")
+    match = re.search(
+        r'\\bset\\s*\\(\\s*GENYCASTER_RELEASE_CANDIDATE\\s+"(rc[1-9]\\d*)"',
+        cmake,
+    )
+    if not match:
+        raise ValueError("Missing GENYCASTER_RELEASE_CANDIDATE")
+    designation = f"{project_version(root)}-{match.group(1)}"
+    if not (root / "release-notes" / f"v{designation}.md").is_file():
+        raise ValueError(f"Missing versioned release notes: {designation}")
+    return designation
+
 
 def release_version(ref: str, expected: str) -> tuple[str, bool]:
     if not ref.startswith("refs/tags/"):
         return expected, False
     tag = ref.removeprefix("refs/tags/")
     if not re.fullmatch(r"v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", tag):
-        raise ValueError(f"Invalid release tag {tag!r}; use vMAJOR.MINOR.PATCH")
+        raise ValueError(f"Invalid release tag {tag!r}; use vMAJOR.MINOR.PATCH-rcN")
     version = tag.removeprefix("v")
     if version != expected:
         raise ValueError(
@@ -43,7 +57,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        version, tagged = release_version(args.ref, project_version(Path.cwd()))
+        version, tagged = release_version(args.ref, release_designation(Path.cwd()))
         if tagged and args.event != "push":
             # A manually dispatched run on a tag must never publish a release.
             tagged = False
