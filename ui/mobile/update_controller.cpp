@@ -44,6 +44,35 @@ bool safeDigest(const QString& digest)
     return pattern.match(digest.toLower()).hasMatch();
 }
 
+void loadBundledReleaseNotes(const QString& version,
+                             QString& title, QString& body)
+{
+    // The exact same repository-root Markdown is embedded in all Qt targets.
+    // The version is validated before forming a QRC path, not a disk URL.
+    static const QRegularExpression versionPattern{
+        QStringLiteral(R"(^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$)")};
+    if (!versionPattern.match(version).hasMatch()) return;
+    QFile resource{QStringLiteral(":/genycaster-release-notes/v%1.md").arg(version)};
+    if (!resource.open(QIODevice::ReadOnly)) return;
+
+    const QString markdown = QString::fromUtf8(resource.readAll());
+    QStringList changes;
+    for (const QString& line : markdown.split(QLatin1Char('\n'))) {
+        if (title.isEmpty() && line.startsWith(QStringLiteral("# "))) {
+            title = line.mid(2).trimmed().left(120);
+        } else if (line.startsWith(QStringLiteral("- ")) && changes.size() < 12) {
+            const QString item = line.mid(2).trimmed();
+            if (!item.isEmpty() && item.size() <= 300)
+                changes.push_back(QStringLiteral("• ") + item);
+        }
+    }
+    if (title != QStringLiteral("Genycaster v") + version || changes.isEmpty()) {
+        title.clear();
+        return;
+    }
+    body = changes.join(QLatin1Char('\n'));
+}
+
 bool matchingAsset(const QString& name)
 {
     const QString n = name.toLower();
@@ -98,6 +127,10 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
       m_appVersion{QCoreApplication::applicationVersion()},
       m_status{QStringLiteral("No update check yet")}
 {
+    // Show the installed release's bundled notes offline, on both desktop
+    // and mobile. Future update notes still come from their published release.
+    loadBundledReleaseNotes(m_appVersion, m_releaseTitle, m_releaseNotes);
+    if (!m_releaseTitle.isEmpty()) m_releaseType = QStringLiteral("feature");
     m_autoCheckEnabled = m_settings.value(QStringLiteral("updates/autoCheck"), true).toBool();
     m_periodic = new QTimer(this);
     m_periodic->setInterval(24 * 60 * 60 * 1000);
