@@ -1200,8 +1200,6 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.side_nav.explorer");
     //% "Genycaster"
     (void)qtTrId("genycaster.side_nav.genycaster");
-    //% "Beta 1.0"
-    (void)qtTrId("genycaster.release.beta_1_0");
     //% "Home"
     (void)qtTrId("genycaster.side_nav.home");
     //% "Messages"
