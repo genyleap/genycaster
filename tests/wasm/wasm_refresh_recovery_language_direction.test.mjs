@@ -58,7 +58,8 @@ test('account choices follow storyboard and pending registration cannot launch F
     const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
     assert.match(account,/genycaster.setup.design_create_account/);
     assert.match(account,/genycaster.setup.design_existing_account/);
-    assert.match(account,/genycaster.shell.coming_soon/);
+    assert.match(account,/objectName: "setupCreateAccountUnavailable"/);
+    assert.match(account,/unavailable: true/);
     assert.match(account,/enabled: false/);
     assert.match(account,/root.accountIntent = "existing"/);
     assert.doesNotMatch(account,/root.openRegistration\(\)/);

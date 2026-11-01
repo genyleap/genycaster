@@ -183,9 +183,9 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
     assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
     assert.match(cpp,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
     const js=read(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
-    const route=js.split('if (action === "recover-account") {')[1]
-        .split('} else {')[0];
-    assert.ok(route.indexOf("promptForFarcasterRecovery(")<route.indexOf("createClient(base)"),
+    const open=js.indexOf("const recoveredFid=await promptForFarcasterRecovery(");
+    const network=js.indexOf("const current=await createClient(base);",open);
+    assert.ok(open>=0 && network>open,
         'recovery form opens before network signer setup');
 });
 
