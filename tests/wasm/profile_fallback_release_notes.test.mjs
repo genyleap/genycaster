@@ -50,6 +50,25 @@ test('wasm manifest carries curated real update type and bounded changes',()=>{
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
 
+test('all visible product version labels are resolved from CMake, never hardcoded',()=>{
+  for(const path of [
+    'ui/components/SideNavigation.qml',
+    'ui/components/AppHeader.qml',
+    'ui/components/InitialSetup.qml',
+    'ui/components/LocaleSettingsPopup.qml'
+  ]){
+    const qml=read(path);
+    assert.match(qml,/Qt\.application\.version/,path);
+    assert.doesNotMatch(qml,/\b\d+\.\d+\.\d+(?:-rc\d+)?\b/,path);
+  }
+  const html=read('ui/wasm/genycaster-shell.html');
+  assert.equal(html.split('@@GENYCASTER_RELEASE_LABEL@@').length-1,2);
+  assert.doesNotMatch(html,/\b\d+\.\d+\.\d+(?:-rc\d+)?\b/);
+  assert.match(read('ci/package_wasm_assets.py'),/html\.replace\(release_placeholder, args\.release_label\)/);
+  assert.match(read('ui/CMakeLists.txt'),/GENYCASTER_APP_VERSION="\$\{GENYCASTER_RELEASE_VERSION\}"/);
+  assert.match(read('ui/CMakeLists.txt'),/--release-label "Genycaster v\$\{GENYCASTER_RELEASE_VERSION\}"/);
+});
+
 test('native, WASM and tagged GitHub Releases share one root Markdown file',()=>{
   const cmake=read('ui/CMakeLists.txt');
   const rootCmake=read('CMakeLists.txt');
