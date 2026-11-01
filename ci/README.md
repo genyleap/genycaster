@@ -11,7 +11,7 @@ matrix/deployment/artifact structure of GenyConnect, but deliberately has
 | Ordinary commit pushed to main | No | No |
 | Pull request | No | No |
 | Actions > GenyCaster cross-platform builds > Run workflow | Selected platform only | No |
-| Push of vMAJOR.MINOR.PATCH version tag | All required platforms | Only if all jobs succeed |
+| Push of vMAJOR.MINOR.PATCH-rcN version tag | All required platforms | Only if all jobs succeed |
 
 The manual run offers `web` (default), `linux`, `macos`,
 `windows`, `android`, `ios`, `nixos`, and `all`. Selecting `all`
@@ -30,10 +30,24 @@ GitHub Actions' billing quota still applies: this design does not bypass
 GitHub Free compute limits. Manual runs upload artifacts for 14 days,
 but cannot create GitHub Releases.
 
-For tag runs, `ci/release_gate.py` checks that the tag matches
-`project(Genycaster VERSION ...)`, and that the tagged commit is an ancestor
-of `main`. Missing/failed jobs prevent publishing. An existing release
+For tag runs, `ci/release_gate.py` checks that the tag matches the
+`project(Genycaster VERSION ...)` numeric version plus the configured RC
+suffix, that `release-notes/vVERSION.md` exists, and that the tagged commit
+is an ancestor of `main`. Missing/failed jobs prevent publishing. An existing release
 is never deleted or overwritten.
+
+## Canonical release notes
+
+GenyCaster follows GenyConnect's `release-notes/` directory layout:
+each release candidate has one human-readable Markdown file at the repository
+root, for example `release-notes/v1.0.0-rc1.md`. The file is **not**
+maintained inside `ui/wasm/` and no per-platform duplicate is authored.
+
+CMake embeds this file as a Qt resource for desktop and mobile platforms;
+the WASM packaging script derives the public JSON manifest from the same
+Markdown; the GitHub tag-release job uses it as its release body. Native
+update checks still fetch the actual GitHub Release metadata and only accept
+verified platform-matching download assets.
 
 ## Platform matrix
 
@@ -137,7 +151,12 @@ publishes a GitHub release even if you manually run it from a tag.
 
 ## How to publish a version-tag candidate
 
-1. Set the desired version in the top-level CMake `project()` declaration.
+1. Set the numeric version in the top-level CMake `project()` declaration,
+   and keep `GENYCASTER_RELEASE_CANDIDATE` in sync with the intended RC suffix.
+   Author the single versioned Markdown file `release-notes/v1.0.0-rc1.md`
+   (or its matching future version) in the repository root. It is embedded
+   into native desktop/mobile app resources, transformed into the WASM update
+   manifest, and used verbatim as the GitHub Release description.
 2. Push that code to main; this does not trigger a CI build.
 3. Prefer first running a manual `all` workflow.
 4. Configure GitHub Actions release signing secrets:
@@ -150,8 +169,8 @@ publishes a GitHub release even if you manually run it from a tag.
    ```bash
    git checkout main
    git pull --ff-only
-   git tag -a v1.0.0 -m "GenyCaster v1.0.0"
-   git push origin v1.0.0
+   git tag -a v1.0.0-rc1 -m "Genycaster v1.0.0-rc1"
+   git push origin v1.0.0-rc1
    ```
 
 6. Only that tag runs the complete matrix and, if all required jobs finish,
