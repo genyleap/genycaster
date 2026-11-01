@@ -71,7 +71,7 @@ const buildId=typeof releaseInfo.buildId==="string"
     && currentVersion.startsWith(releaseInfo.buildId)
     ? releaseInfo.buildId : "";
 const releaseLabel=typeof releaseInfo.releaseLabel==="string"
-    && /^Beta \d+(?:\.\d+){1,2}$/.test(releaseInfo.releaseLabel)
+    && /^Genycaster v\d+\.\d+\.\d+-rc[1-9]\d*$/.test(releaseInfo.releaseLabel)
     ? releaseInfo.releaseLabel : "";
 const buildLabel=(releaseLabel||(applicationVersion?"v"+applicationVersion:""))
     +(buildId?(applicationVersion?" · ":"")+"Build "+buildId:"");
@@ -497,12 +497,16 @@ function fillReleaseDetails(fresh){
     const oldChannel=$("genycaster-update-current-channel");
     const newChannel=$("genycaster-update-next-channel");
     const validatedLabel=typeof fresh.releaseLabel==="string"
-      && /^Beta \d+(?:\.\d+){1,2}$/.test(fresh.releaseLabel)
+      && /^Genycaster v\d+\.\d+\.\d+-rc[1-9]\d*$/.test(fresh.releaseLabel)
         ? fresh.releaseLabel : (releaseLabel||"Genycaster");
     if(oldChannel)oldChannel.textContent=releaseLabel||(applicationVersion?"v"+applicationVersion:"");
     if(newChannel)newChannel.textContent=validatedLabel;
-    const notes=typeof fresh.releaseNotes==="string"
-        ? fresh.releaseNotes.trim().slice(0,640) : "";
+    const releaseNotes=fresh.releaseNotes;
+    const notes=releaseNotes && typeof releaseNotes==="object"
+        && Array.isArray(releaseNotes.changes)
+        ? releaseNotes.changes.filter(item=>typeof item==="string")
+            .slice(0,8).join("\n").slice(0,640)
+        : (typeof releaseNotes==="string" ? releaseNotes.trim().slice(0,640) : "");
     const bytes=Number(fresh.wasmBytes);
     const size=Number.isSafeInteger(bytes)&&bytes>0
         ? " (WASM: "+(bytes/1048576).toFixed(1)+" MiB)" : "";
