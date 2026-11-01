@@ -335,7 +335,7 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/new Date\(\)\.getFullYear\(\)/);
   assert.match(pane,/Beta 1\.0  ·  v/);
   assert.match(pane,/Qt\.application\.version/);
-  assert.match(pane,/Theme\.dark \? "#E2E3F2" : "#4B4E6C"/);
+  assert.match(pane,/Theme\.dark \? "#E2EAF4" : "#DFE8F4"/);
   assert.match(pane,/id: genyleapCopyrightLink/);
   assert.match(pane,/text: "© " \+ new Date\(\)\.getFullYear\(\) \+ " Genyleap"/);
   assert.match(pane,/Accessible\.role: Accessible\.Link/);

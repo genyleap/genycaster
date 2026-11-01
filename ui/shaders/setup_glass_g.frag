@@ -86,21 +86,23 @@ float hash21(vec2 p){
 vec3 background(vec2 screen,vec2 uv,bool dark){
  // Continuous photographic cyclorama. The logo is suspended, so do NOT
  // project a duplicate silhouette onto an imaginary vertical wall.
- // Refined atmospheric brand rail: cool porcelain/light sapphire in
- // light mode and graphite/blue slate in dark mode. Three broad softboxes
+ // Refined atmospheric brand rail: sapphire/graphite in the light UI
+ // and deep slate in dark mode. Three broad softboxes
  // create depth without fake projected silhouettes or hard floor lines.
- vec3 top=dark?vec3(.018,.035,.061):vec3(.795,.861,.936);
- vec3 bottom=dark?vec3(.027,.060,.095):vec3(.666,.776,.877);
- vec3 col=mix(top,bottom,smoothstep(.04,.97,uv.y));
- vec2 key=(screen-vec2(-.38,.34))*vec2(.78,.84);
- float softbox=exp(-dot(key,key)*1.28);
- col+=(dark?vec3(.054,.080,.122):vec3(.110,.115,.125))*softbox;
- vec2 fill=(screen-vec2(.79,-.29))*vec2(1.65,.97);
- float edgeFill=exp(-dot(fill,fill)*1.85);
- col+=(dark?vec3(.030,.071,.104):vec3(.065,.083,.104))*edgeFill;
- vec2 backgroundArc=(screen-vec2(-.15,.06))*vec2(.88,1.12);
- float halo=exp(-dot(backgroundArc,backgroundArc)*.96);
- col+=(dark?vec3(.022,.035,.054):vec3(.023,.034,.056))*halo;
+ // The brand rail has its own dark studio surface even in the light
+ // app theme, echoing Setup's editorial charcoal primary cards.
+ vec3 top=dark?vec3(.010,.023,.041):vec3(.025,.047,.079);
+ vec3 bottom=dark?vec3(.025,.055,.092):vec3(.071,.112,.165);
+ vec3 col=mix(top,bottom,smoothstep(.04,.98,uv.y));
+ vec2 key=(screen-vec2(-.43,.31))*vec2(.78,.84);
+ float softbox=exp(-dot(key,key)*1.18);
+ col+=(dark?vec3(.038,.069,.113):vec3(.054,.097,.139))*softbox;
+ vec2 fill=(screen-vec2(.82,-.24))*vec2(1.60,.95);
+ float edgeFill=exp(-dot(fill,fill)*1.75);
+ col+=(dark?vec3(.034,.067,.100):vec3(.052,.094,.124))*edgeFill;
+ vec2 backgroundArc=(screen-vec2(-.11,.08))*vec2(.84,1.07);
+ float halo=exp(-dot(backgroundArc,backgroundArc)*.92);
+ col+=(dark?vec3(.013,.031,.055):vec3(.025,.054,.077))*halo;
  // Restrained optical falloff anchors the sculpture without a shadow
  // that resembles a duplicate of its SVG silhouette.
  vec2 ambient=(screen-vec2(.09,-.12))*vec2(.84,1.32);

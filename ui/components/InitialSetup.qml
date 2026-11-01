@@ -732,11 +732,11 @@ Item {
                     height: 7
                     radius: 4
                     anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.dark ? "#82D5CD" : "#297D8D"
+                    color: Theme.dark ? "#7FD0CF" : "#6FD3CC"
                 }
                 Text {
                     text: "LIVE GPU  /  WASM"
-                    color: Theme.dark ? "#AFC9DD" : "#41677C"
+                    color: Theme.dark ? "#B9D2E6" : "#B3D8E9"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 10
                     font.letterSpacing: 1.2
@@ -749,7 +749,7 @@ Item {
                 anchors.bottomMargin: 16
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("DRAG TO ORBIT   ·   SCROLL TO ZOOM")
-                color: Theme.dark ? "#829CAF" : "#688094"
+                color: Theme.dark ? "#95ADC5" : "#9CC1D9"
                 font.family: Theme.latinFontFamily
                 font.pixelSize: 10
                 font.letterSpacing: .75
@@ -793,7 +793,7 @@ Item {
                 Rectangle {
                     width: 36
                     height: 1
-                    color: Theme.dark ? "#6E718D" : "#A0A0C4"
+                    color: Theme.dark ? "#57758F" : "#63829F"
                     opacity: 0.75
                 }
                 // The company owns the copyright. Keep the link confined to
@@ -816,7 +816,7 @@ Item {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: "© " + new Date().getFullYear() + " Genyleap"
-                        color: Theme.dark ? "#E2E3F2" : "#4B4E6C"
+                        color: Theme.dark ? "#E2EAF4" : "#DFE8F4"
                         font.family: Theme.latinFontFamily
                         font.pixelSize: 12
                         font.weight: Font.Medium
@@ -834,7 +834,7 @@ Item {
                 Text {
                     width: parent.width
                     text: "Beta 1.0  ·  v" + (Qt.application.version || "1.0.0")
-                    color: Theme.dark ? "#ACB0CA" : "#6B6E8D"
+                    color: Theme.dark ? "#A3B8CB" : "#AFC5D9"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 11
                     elide: Text.ElideRight
