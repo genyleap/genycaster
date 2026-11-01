@@ -2336,7 +2336,7 @@ GenyDrawer {
                         DirectionAwareLabel {
                             objectName: "settingsBetaReleaseLabel"
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.settings.beta_release_short")
+                            text: Qt.application.version ? "Genycaster v" + Qt.application.version : "Genycaster"
                             color: Theme.accent
                             font.pixelSize: Theme.typeMetaSize
                             font.weight: Theme.weightDemiBold
