@@ -129,7 +129,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     y: navigationWordmark.y + navigationWordmark.height + Theme.space1
-                    text: "Genycaster v" + (Qt.application.version || "1.0.0-rc1")
+                    text: Qt.application.version ? "Genycaster v" + Qt.application.version : "Genycaster"
                     color: Theme.inkMuted
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
