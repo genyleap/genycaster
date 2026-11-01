@@ -6,6 +6,18 @@ project(Genycaster
     LANGUAGES CXX
 )
 
+# Single versioned release-notes source for native, WebAssembly and GitHub.
+# CMake's numeric PROJECT_VERSION remains 1.0.0; the release tag carries rc1.
+set(GENYCASTER_RELEASE_CANDIDATE "rc1")
+set(GENYCASTER_RELEASE_VERSION "${PROJECT_VERSION}-${GENYCASTER_RELEASE_CANDIDATE}")
+set(GENYCASTER_RELEASE_TAG "v${GENYCASTER_RELEASE_VERSION}")
+set(GENYCASTER_RELEASE_NOTES_FILE
+    "${CMAKE_SOURCE_DIR}/release-notes/${GENYCASTER_RELEASE_TAG}.md")
+if(NOT EXISTS "${GENYCASTER_RELEASE_NOTES_FILE}")
+    message(FATAL_ERROR
+        "Missing release notes for ${GENYCASTER_RELEASE_TAG}: ${GENYCASTER_RELEASE_NOTES_FILE}")
+endif()
+
 # Windows vcpkg's shared Boost package defines BOOST_ALL_DYN_LINK. Our
 # provider adapters instead compile one Boost.JSON implementation from
 # boost/json/src.hpp into their own library targets. Do not mark the JSON
