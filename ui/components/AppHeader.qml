@@ -93,52 +93,20 @@ Rectangle {
                     Accessible.name: qsTrId("genycaster.app.genycaster")
                 }
 
-                // Separate visual runs: Persian, punctuation and localized
-                // numerals must not be reordered by the surrounding RTL UI.
-                Row {
-                    id: localizedVersion
-                    visible: Theme.rtl
-                    // Mirror the LTR baseline alignment: the Persian caption
-                    // starts at the wordmark's RIGHT edge, not its left edge.
-                    x: parent.width - implicitWidth
-                    y: brandWordmark.height + Theme.scaleUi(2)
-                    spacing: Theme.scaleUi(3)
-                    layoutDirection: Qt.RightToLeft
-                    LayoutMirroring.enabled: false
-
-                    Text {
-                        text: qsTrId("genycaster.release.beta_label")
-                        color: Theme.inkMuted
-                        font.family: Theme.fontFamilyForText(text)
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightMedium
-                        renderType: Text.NativeRendering
-                    }
-                    Text {
-                        text: "·"
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        renderType: Text.NativeRendering
-                    }
-                    Text {
-                        text: qsTrId("genycaster.release.beta_version_number")
-                        color: Theme.inkMuted
-                        font.family: Theme.fontFamilyForText(text)
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightMedium
-                        renderType: Text.NativeRendering
-                    }
-                }
-
+                // The release identifier remains LTR and stable in every locale.
+                // CMake owns the numeric version; this candidate is rc1.
                 Text {
-                    visible: !Theme.rtl
+                    objectName: "appHeaderReleaseVersion"
+                    width: parent.width
                     x: 0
                     y: brandWordmark.height + Theme.scaleUi(2)
-                    text: qsTrId("genycaster.release.beta_1_0")
+                    text: "Genycaster v" + (Qt.application.version || "1.0.0") + "-rc1"
                     color: Theme.inkMuted
-                    font.family: Theme.fontFamilyForText(text)
+                    font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightMedium
+                    horizontalAlignment: Theme.rtl ? Text.AlignRight : Text.AlignLeft
+                    elide: Text.ElideRight
                     renderType: Text.NativeRendering
                 }
             }
