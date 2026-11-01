@@ -957,6 +957,20 @@ int main(int argc, char* argv[])
         preferredReadProviderText = settings.value(
             QStringLiteral("network/preferredReadProviderId")).toString().trimmed();
     }
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    // HyperSnap is the default *read* experience, never a forced signer or
+    // write adapter. Preserve explicit user choices and self-hosted policy.
+    if (preferredReadProviderText.isEmpty()
+        && farcaster::application::configuration::configuredDeploymentProfile()
+            != farcaster::application::configuration::DeploymentProfile::StrictSelfHosted) {
+        preferredReadProviderText = QStringLiteral("hypersnap-v2");
+        // Keep the settings UI in agreement with the actual applied runtime.
+        // In a read-only settings backend, the runtime preference still works.
+        settings.setValue(QStringLiteral("network/preferredReadProviderId"),
+                          preferredReadProviderText);
+        settings.sync();
+    }
+#endif
     if (!preferredReadProviderText.isEmpty() && !validProviderId(preferredReadProviderText)) {
         qCritical().noquote() << "Preferred read provider id is invalid.";
         return 2;
@@ -1447,7 +1461,8 @@ int main(int argc, char* argv[])
     providerProfilesControllerOwner = std::make_unique<ProviderProfilesController>(
         settings, providerProfilesJson, writeProfilesJson,
         preferredReadProviderText, preferredWriteProviderText,
-        allowCompatibleReadFallback, nullptr, appliedNodeEndpoint);
+        allowCompatibleReadFallback, nullptr, appliedNodeEndpoint,
+        farcasterReadBaseUrlText);
     ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);

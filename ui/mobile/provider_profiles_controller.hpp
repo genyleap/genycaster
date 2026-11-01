@@ -35,6 +35,7 @@ class ProviderProfilesController final : public QObject {
     Q_PROPERTY(bool compatibleReadFallback READ compatibleReadFallback NOTIFY selectionChanged)
     Q_PROPERTY(bool appliedCompatibleReadFallback READ appliedCompatibleReadFallback CONSTANT)
     Q_PROPERTY(bool indexedReadSupported READ indexedReadSupported CONSTANT)
+    Q_PROPERTY(bool hostedReadSupported READ hostedReadSupported CONSTANT)
     Q_PROPERTY(bool rawReadSupported READ rawReadSupported CONSTANT)
     Q_PROPERTY(bool writeSupported READ writeSupported CONSTANT)
     Q_PROPERTY(QString lastError READ lastError NOTIFY errorChanged)
@@ -61,7 +62,8 @@ public:
         QString appliedWriteProviderId,
         bool appliedCompatibleReadFallback = false,
         QObject* parent = nullptr,
-        QString defaultIndexedEndpoint = QStringLiteral("https://haatz.quilibrium.com"));
+        QString defaultIndexedEndpoint = QStringLiteral("https://haatz.quilibrium.com"),
+        QString hostedReadEndpoint = {});
 
     [[nodiscard]] QVariantList readProfiles() const;
     [[nodiscard]] QVariantList writeProfiles() const;
@@ -74,6 +76,7 @@ public:
     [[nodiscard]] bool readRestartRequired() const;
     [[nodiscard]] bool writeRestartRequired() const;
     [[nodiscard]] bool indexedReadSupported() const noexcept;
+    [[nodiscard]] bool hostedReadSupported() const noexcept;
     [[nodiscard]] bool rawReadSupported() const noexcept;
     [[nodiscard]] bool writeSupported() const noexcept;
     [[nodiscard]] QString lastError() const;
@@ -143,6 +146,7 @@ private:
     QString m_appliedWriteProfiles;
     QString m_appliedReadId;
     QString m_defaultIndexedEndpoint;
+    QString m_hostedReadEndpoint;
     bool m_appliedCompatibleReadFallback{false};
     bool m_sessionKeyChanged{false};
     QString m_appliedWriteId;

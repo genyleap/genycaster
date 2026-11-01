@@ -57,6 +57,29 @@ test('provider operations have complete native localization in all installed lan
   }
 });
 
+test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaster, and separately pinned signer writer', () => {
+  const bootstrap=read('ui/mobile/main.cpp');
+  const cpp=read('ui/mobile/provider_profiles_controller.cpp');
+  const h=read('ui/mobile/provider_profiles_controller.hpp');
+  const qml=read('ui/components/ProviderProfilesPanel.qml');
+  const composition=read('ui/mobile/runtime_composition.cpp');
+  assert.match(bootstrap,/preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
+  assert.match(bootstrap,/preferredWriteProviderId/);
+  assert.match(bootstrap,/farcasterReadBaseUrlText\);/);
+  assert.match(h,/Q_PROPERTY\(bool hostedReadSupported READ hostedReadSupported CONSTANT\)/);
+  assert.match(cpp,/return !m_hostedReadEndpoint.isEmpty\(\)/);
+  assert.match(cpp,/selected == QStringLiteral\("farcaster-snapchain"\) && !hostedReadSupported\(\)/);
+  assert.match(qml,/providerProfiles\.selectReadProvider\("farcaster-snapchain"\)/);
+  assert.match(qml,/providerProfiles\.selectReadProvider\("hypersnap-v2"\)/);
+  assert.match(composition,/\.provider = selected, \.require = true/);
+  assert.match(composition,/runtime->signerRegistry->bindRouter\(\*runtime->router\)/);
+  // HyperSnap is an indexed read adapter until a separate compatible writer
+  // contract exists: never mislabel it as a write signer provider.
+  const indexed=composition.slice(composition.indexOf('ProviderId{"hypersnap-v2"}'),
+      composition.indexOf('runtime->independentReadProviderId'));
+  assert.doesNotMatch(indexed,/protocolSignerManage\(\)/);
+});
+
 test('profile controller accepts known adapters only and refuses credential-bearing URLs', () => {
   const cpp = read('ui/mobile/provider_profiles_controller.cpp');
   assert.match(cpp, /knownContract\(contractId, writer\)/);

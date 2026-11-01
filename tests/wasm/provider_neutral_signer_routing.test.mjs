@@ -5,6 +5,28 @@ import {readFileSync} from 'node:fs';
 const root = new URL('../../', import.meta.url);
 const read = file => readFileSync(new URL(file, root), 'utf8');
 
+test('HyperSnap is the default indexed read route, without overriding a user-selected writer', () => {
+    const bootstrap = read('ui/mobile/main.cpp');
+    const composition = read('ui/mobile/runtime_composition.cpp');
+    const profiles = read('ui/mobile/provider_profiles_controller.cpp');
+
+    assert.match(bootstrap,/preferredReadProviderText\.isEmpty\(\)[\s\S]*?configuredDeploymentProfile\(\)[\s\S]*?StrictSelfHosted[\s\S]*?preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
+    assert.match(bootstrap,/network\/preferredReadProviderId/);
+    assert.match(bootstrap,/network\/preferredWriteProviderId/);
+    assert.match(composition,/\.independent = farcaster::provider::model::ProviderId\{"hypersnap-v2"\}/);
+    assert.match(composition,/if \(preferredWriteProviderId && !preferredWriteProviderId->empty\(\)\)/);
+    assert.match(composition,/setPreferredProviderForAccess\([\s\S]*?CapabilityAccess::Write,[\s\S]*?require = true/);
+    assert.match(composition,/runtime->signerRegistry->bindRouter\(\*runtime->router\)/);
+    assert.match(profiles,/selectedWriteProviderId\(\) const/);
+    // HyperSnap's indexed reader must never be impersonated as a signer
+    // backend until it declares an actual protocol.signer.manage adapter.
+    const readRegistration = composition.slice(
+       composition.indexOf('ProviderId{"hypersnap-v2"}'),
+       composition.indexOf('runtime->independentReadProviderId'));
+    assert.match(readRegistration,/hypersnap::registration::capabilities\(\)/);
+    assert.doesNotMatch(readRegistration,/protocolSignerManage\(\)/);
+});
+
 test('signer operations route through capability-neutral access contract', () => {
     const source = read('src/routing/signer_gateway.cpp');
     const api = read('src/routing/signer_gateway.cppm');

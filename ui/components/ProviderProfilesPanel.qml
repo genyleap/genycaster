@@ -91,6 +91,14 @@ ColumnLayout {
             selected: providerProfiles.selectedReadProviderId === "hypersnap-v2"
             onClicked: providerProfiles.selectReadProvider("hypersnap-v2")
         }
+        ActionButton {
+            visible: providerProfiles.hostedReadSupported
+            Layout.fillWidth: true
+            alignStart: true
+            text: qsTrId("genycaster.settings.farcaster_label")
+            selected: providerProfiles.selectedReadProviderId === "farcaster-snapchain"
+            onClicked: providerProfiles.selectReadProvider("farcaster-snapchain")
+        }
         RowLayout {
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection

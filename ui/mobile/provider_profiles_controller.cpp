@@ -137,13 +137,15 @@ ProviderProfilesController::ProviderProfilesController(
     QString appliedWriteProviderId,
     const bool appliedCompatibleReadFallback,
     QObject* parent,
-    QString defaultIndexedEndpoint)
+    QString defaultIndexedEndpoint,
+    QString hostedReadEndpoint)
     : QObject(parent),
       m_settings(settings),
       m_appliedReadProfiles(canonicalProfiles(appliedReadProfiles)),
       m_appliedWriteProfiles(canonicalProfiles(appliedWriteProfiles)),
       m_appliedReadId(std::move(appliedReadProviderId)),
       m_defaultIndexedEndpoint(std::move(defaultIndexedEndpoint)),
+      m_hostedReadEndpoint(std::move(hostedReadEndpoint)),
       m_appliedCompatibleReadFallback(appliedCompatibleReadFallback),
       m_appliedWriteId(std::move(appliedWriteProviderId))
 {
@@ -194,6 +196,15 @@ bool ProviderProfilesController::indexedReadSupported() const noexcept
 {
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     return true;
+#else
+    return false;
+#endif
+}
+
+bool ProviderProfilesController::hostedReadSupported() const noexcept
+{
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    return !m_hostedReadEndpoint.isEmpty();
 #else
     return false;
 #endif
@@ -399,7 +410,10 @@ bool ProviderProfilesController::selectReadProvider(const QString& id)
     if (selected == QStringLiteral("hypersnap-v2") && !indexedReadSupported())
         return fail(QStringLiteral("unsupported_contract"));
     // A custom/hosted provider ID can be persisted only when actually registered.
-    if (selected == QStringLiteral("farcaster-snapchain"))
+    // The hosted indexed API is available only when its compatible HTTPS
+    // endpoint was configured at bootstrap. Never silently route a generic
+    // Snapchain /v1 hub into a v2 indexed reader.
+    if (selected == QStringLiteral("farcaster-snapchain") && !hostedReadSupported())
         return fail(QStringLiteral("unknown_provider"));
     if (selectedReadProviderId() == selected) {
         clearError();
@@ -483,6 +497,9 @@ QVariantList ProviderProfilesController::connectionRows() const
     if (indexedReadSupported())
         append(QStringLiteral("hypersnap-v2"), QStringLiteral("HyperSnap v2"),
                m_defaultIndexedEndpoint, QStringLiteral("hypersnap-v2"));
+    if (hostedReadSupported())
+        append(QStringLiteral("farcaster-snapchain"), QStringLiteral("Farcaster hosted read API"),
+               m_hostedReadEndpoint, QStringLiteral("hypersnap-v2"));
     for (const auto& entry : parseProfiles(
              m_settings.value(settingKey(kReadProfiles)).toString())) {
         const auto profile = entry.toObject();
