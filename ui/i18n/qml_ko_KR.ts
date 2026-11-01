@@ -239,14 +239,6 @@
             <source>Remove topic</source>
             <translation>주제 제거</translation>
         </message>
-        <message id="genycaster.release.beta_version_number">
-            <source>1.0</source>
-            <translation>1.0</translation>
-        </message>
-        <message id="genycaster.release.beta_label">
-            <source>Beta</source>
-            <translation>베타</translation>
-        </message>
         <message id="genycaster.home.geny_token_title">
             <source>GENY Token</source>
             <translation>GENY 토큰</translation>
@@ -1448,17 +1440,9 @@ Company | https://company.com</source>
             <source>Your reply · Published</source>
             <translation>내 답글 · 게시됨</translation>
         </message>
-        <message id="genycaster.settings.beta_release_short">
-            <source>GenyCaster · Beta 1.0</source>
-            <translation>GenyCaster · 베타 1.0</translation>
-        </message>
         <message id="genycaster.composer.formatting_tools">
             <source>Formatting tools</source>
             <translation>서식 도구</translation>
-        </message>
-        <message id="genycaster.settings.current_beta_release">
-            <source>GenyCaster Beta 1.0 · Version %1</source>
-            <translation>GenyCaster 베타 1.0 · 버전 %1</translation>
         </message>
         <message id="genycaster.settings.beta_program_info">
             <source>You are using a beta release. Features may change while improvements are tested.</source>
@@ -5695,10 +5679,6 @@ Company | https://company.com</source>
         <message id="genycaster.setup.open_privacy">
             <source>Open full Privacy Policy</source>
             <translation>전체 개인정보 처리방침 보기</translation>
-        </message>
-        <message id="genycaster.release.beta_1_0">
-            <source>Beta 1.0</source>
-            <translation>베타 1.0</translation>
         </message>
         <message id="genycaster.home.search_description">
             <source>Find people, casts and channels</source>
