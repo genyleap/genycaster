@@ -655,106 +655,6 @@ Item {
                 Accessible.role: Accessible.Button
                 Accessible.name: qsTr("3D GenyCaster logo. Drag to orbit, scroll to zoom. Press R to reset.")
             }
-            // Precise GPU demonstration controls, independent of Setup navigation.
-            // The canonical path and signed-distance atlas are never modified
-            // when the user orbits, zooms or resets the viewer.
-            Rectangle {
-                id: gpuStageControls
-                z: 4
-                anchors.bottom: desktopBrandMetadata.top
-                anchors.bottomMargin: 86
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: stageControlRow.width + 14
-                height: 46
-                radius: 14
-                color: Theme.dark ? "#18293C" : "#F1F6FB"
-                border.width: 1
-                border.color: Theme.dark ? "#36536B" : "#C8D7E5"
-                Row {
-                    id: stageControlRow
-                    anchors.centerIn: parent
-                    spacing: 3
-                    ActionButton {
-                        objectName: "gpuResetView"
-                        width: 35; height: 35
-                        compact: true; quiet: true; iconOnly: true
-                        iconSize: 17
-                        iconGlyph: Theme.iconRefresh
-                        text: qsTr("Reset 3D view")
-                        onClicked: desktopBrandPane.resetView()
-                    }
-                    ActionButton {
-                        objectName: "gpuAutoOrbit"
-                        width: 35; height: 35
-                        compact: true; quiet: true; iconOnly: true
-                        iconSize: 16
-                        iconGlyph: desktopBrandPane.autoOrbitEnabled
-                                   ? Theme.iconPause : Theme.iconPlay
-                        text: desktopBrandPane.autoOrbitEnabled
-                              ? qsTr("Pause rotation") : qsTr("Resume rotation")
-                        onClicked: {
-                            desktopBrandPane.autoOrbitEnabled =
-                                !desktopBrandPane.autoOrbitEnabled
-                            rotationCooldown.stop()
-                        }
-                    }
-                    ActionButton {
-                        objectName: "gpuZoomOut"
-                        width: 35; height: 35
-                        compact: true; quiet: true; iconOnly: true
-                        iconSize: 17
-                        iconGlyph: "actions/minus"
-                        text: qsTr("Zoom out")
-                        enabled: desktopBrandPane.viewZoom > 0.781
-                        onClicked: desktopBrandPane.changeZoom(-1)
-                    }
-                    ActionButton {
-                        objectName: "gpuZoomIn"
-                        width: 35; height: 35
-                        compact: true; quiet: true; iconOnly: true
-                        iconSize: 17
-                        iconGlyph: Theme.iconPlus
-                        text: qsTr("Zoom in")
-                        enabled: desktopBrandPane.viewZoom < 1.399
-                        onClicked: desktopBrandPane.changeZoom(1)
-                    }
-                }
-            }
-            Row {
-                z: 4
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.leftMargin: 24
-                anchors.topMargin: 35
-                spacing: 7
-                Rectangle {
-                    width: 7
-                    height: 7
-                    radius: 4
-                    anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.dark ? "#7FD0CF" : "#6FD3CC"
-                }
-                Text {
-                    text: "LIVE GPU  /  WASM"
-                    color: Theme.dark ? "#B9D2E6" : "#B3D8E9"
-                    font.family: Theme.latinFontFamily
-                    font.pixelSize: 10
-                    font.letterSpacing: 1.2
-                    font.weight: Font.DemiBold
-                }
-            }
-            Text {
-                z: 3
-                anchors.bottom: gpuStageControls.top
-                anchors.bottomMargin: 16
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("DRAG TO ORBIT   ·   SCROLL TO ZOOM")
-                color: Theme.dark ? "#95ADC5" : "#9CC1D9"
-                font.family: Theme.latinFontFamily
-                font.pixelSize: 10
-                font.letterSpacing: .75
-                font.weight: Font.Medium
-            }
             SequentialAnimation {
                 id: brandAccentTap
                 running: false
@@ -833,7 +733,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: "Beta 1.0  ·  v" + (Qt.application.version || "1.0.0")
+                    text: "Genycaster v" + (Qt.application.version || "1.0.0") + "-rc1"
                     color: Theme.dark ? "#A3B8CB" : "#AFC5D9"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 11
