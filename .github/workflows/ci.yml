@@ -84,6 +84,22 @@ jobs:
           python3 -m unittest ci.test_pipeline -v
           node --test tests/wasm/home_compose_mobile_settings.test.mjs \
             tests/wasm/filter_sheet_regressions.test.mjs
+      # Run cryptographic and routing regressions before provisioning paid
+      # native builders. This guards 24-word recovery, KEY_ADD and explicit
+      # provider choices on every manual or release-tag CI invocation.
+      - name: Browser signer, recovery and provider routing regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/wasm/browser_protocol_signer.test.mjs \
+            tests/wasm/farcaster_recovery.test.mjs \
+            tests/wasm/secure_signer_vault.test.mjs \
+            tests/wasm/signer_browser_origin.test.mjs \
+            tests/wasm/provider_neutral_signer_routing.test.mjs \
+            tests/wasm/provider_neutral_write_routing.test.mjs \
+            tests/wasm/write_provider_routing_contract.test.mjs \
+            tests/wasm/account_signer_session_contract.test.mjs
       - name: Release commits must originate from main
         if: steps.release.outputs.release == 'true'
         shell: bash
