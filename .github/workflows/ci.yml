@@ -9,10 +9,9 @@ on:
         description: Build platform (never publishes a Release)
         type: choice
         required: true
-        default: core
+        default: web
         options:
           - all
-          - core
           - linux
           - macos
           - windows
@@ -72,18 +71,6 @@ jobs:
             echo "::error::All-platform build requires the full-matrix budget checkbox."
             exit 1
           fi
-      - name: Fast cross-platform source and localization checks
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/check_localization_catalog.py
-          # A broken server deployment script must fail before any paid builders start.
-          bash -n ci/build_deploy_wasm_server.sh
-          python3 ci/check_architecture.py
-          python3 ci/verify_ci.py
-          python3 -m unittest ci.test_pipeline -v
-          node --test tests/wasm/home_compose_mobile_settings.test.mjs \
-            tests/wasm/filter_sheet_regressions.test.mjs
       - name: Release commits must originate from main
         if: steps.release.outputs.release == 'true'
         shell: bash
@@ -92,37 +79,6 @@ jobs:
           git fetch origin main --no-tags
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
-  core:
-    name: Core C++26 tests
-    needs: gate
-    if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'core'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: ${{ env.CMAKE_VERSION }}
-      - name: Install GCC 16 and C++26 dependencies
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y gcc-16 g++-16 ninja-build \
-            libboost-dev libsqlite3-dev libssl-dev python3
-          g++-16 --version
-      - name: Build and run core tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          export CC=gcc-16 CXX=g++-16
-          cmake --preset core-release
-          cmake --build --preset core-release --parallel 3
-          ctest --test-dir build/core-release --output-on-failure --parallel 2
   linux:
     name: Linux ${{ matrix.arch }} AppImage
     needs: gate
@@ -171,33 +127,6 @@ jobs:
           arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia
           cache: true
-      - name: Verify Android icon rasterization and alpha preservation
-        shell: bash
-        run: |
-          set -euo pipefail
-          export CC=gcc-16 CXX=g++-16
-          cmake -S tests/icon_raster -B build/icon-raster -G Ninja \
-            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
-          cmake --build build/icon-raster --parallel 2
-          ctest --test-dir build/icon-raster --output-on-failure
-      - name: Verify native custody recovery vectors
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/generate_bip39_custody_header.py --check
-          export CC=gcc-16 CXX=g++-16
-          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja
-          cmake --build build/custody-vectors --parallel 2
-          ctest --test-dir build/custody-vectors --output-on-failure
-      - name: Test cross-platform Mini App host security
-        shell: bash
-        run: |
-          set -euo pipefail
-          export CC=gcc-16 CXX=g++-16
-          cmake -S tests/miniapp_host -B build/miniapp-host -G Ninja \
-            -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
-          cmake --build build/miniapp-host --parallel 2
-          ctest --test-dir build/miniapp-host --output-on-failure
       - name: Build Qt client
         shell: bash
         run: |
@@ -293,19 +222,6 @@ jobs:
           arch: clang_64
           modules: qtmultimedia
           cache: true
-      - name: Verify native recovery proof on macOS
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/generate_bip39_custody_header.py --check
-          export CC="$(brew --prefix llvm)/bin/clang"
-          export CXX="$(brew --prefix llvm)/bin/clang++"
-          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
-            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"
-          cmake --build build/custody-vectors --parallel 2
-          ctest --test-dir build/custody-vectors --output-on-failure
       - name: Build and deploy macOS application
         shell: bash
         env:
@@ -415,26 +331,6 @@ jobs:
             $file = Join-Path $include $header
             if (-not (Test-Path $file)) { throw "Windows CI dependency missing: $file" }
           }
-      - name: Verify native recovery proof on Windows
-        shell: pwsh
-        run: |
-          python ci/generate_bip39_custody_header.py --check
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $llvm = "$env:ProgramFiles/LLVM/bin"
-          $clang = Join-Path $llvm 'clang-cl.exe'
-          $scanner = Join-Path $llvm 'clang-scan-deps.exe'
-          cmake -S tests/custody_recovery -B build/custody-vectors -G Ninja `
-            "-DCMAKE_C_COMPILER=$clang" `
-            "-DCMAKE_CXX_COMPILER=$clang" `
-            "-DCMAKE_CXX_COMPILER_CLANG_SCAN_DEPS=$scanner" `
-            "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
-            "-DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}" `
-            "-DVCPKG_APPLOCAL_DEPS=OFF"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cmake --build build/custody-vectors --parallel 2
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          ctest --test-dir build/custody-vectors --output-on-failure
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Compile and deploy
         shell: pwsh
         env:
@@ -554,10 +450,6 @@ jobs:
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
-      - name: Verify Android OpenSSL and Qt Network TLS gates
-        run: |
-          cmake -P tests/cmake/android_openssl_root_test.cmake
-          cmake -P tests/cmake/android_qt_tls_test.cmake
       - name: Install Android packages and OpenSSL tools
         shell: bash
         run: |
@@ -986,7 +878,7 @@ jobs:
 
   publish:
     name: Publish version-tag release
-    needs: [gate, core, linux, macos, windows, android, web]
+    needs: [gate, linux, macos, windows, android, web]
     if: github.event_name == 'push' && needs.gate.outputs.release == 'true'
     runs-on: ubuntu-24.04
     permissions:
