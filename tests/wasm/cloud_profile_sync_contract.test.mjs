@@ -35,6 +35,8 @@ test('native Farcaster recovery grant boots a verified account session before lo
   assert.match(code,/m_verified \|\| m_accountBearer.startsWith\("recovery\."\)/);
   assert.match(code,/void OpenProofConnectionsController::restoreAccountSession\(\)/);
   assert.match(code,/m_cloudSessionVerified=true/);
+  assert.match(code,/status==200 && reply->isReadable\(\)/);
+  assert.match(code,/QNetworkReply::abort\(\) can synchronously emit finished\(\)/);
   assert.match(api,/header.startsWith\('Bearer recovery\.'\)/);
   assert.match(api,/if\(owner.cookieAuth \|\| typeof store.createSession/);
   // A local recovered FID or an unverified ticket cannot bypass the API.

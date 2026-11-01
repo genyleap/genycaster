@@ -263,7 +263,11 @@ void OpenProofConnectionsController::restoreAccountSession()
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
         if(m_sessionRequest==reply)m_sessionRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<8192?reply->readAll():QByteArray{};
+        // A previous account-session GET may be cancelled when a freshly
+        // verified recovery bearer arrives. Do not read a closed reply:
+        // QNetworkReply::abort() can synchronously emit finished() on macOS.
+        const auto bytes=status==200 && reply->isReadable()
+            && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
             return;
@@ -315,7 +319,11 @@ void OpenProofConnectionsController::bootstrapAccountSession()
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
         if(m_sessionRequest==reply)m_sessionRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<8192?reply->readAll():QByteArray{};
+        // A previous account-session GET may be cancelled when a freshly
+        // verified recovery bearer arrives. Do not read a closed reply:
+        // QNetworkReply::abort() can synchronously emit finished() on macOS.
+        const auto bytes=status==200 && reply->isReadable()
+            && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
             return;
