@@ -24,7 +24,7 @@
 #endif
 
 namespace {
-const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases/latest")};
+const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases?per_page=20")};
 const QUrl kReleasePage{QStringLiteral("https://github.com/genyleap/genycaster/releases")};
 #if defined(__EMSCRIPTEN__)
 // At most one browser refresh is pending; do not retain a dangling QObject.
@@ -42,6 +42,42 @@ bool safeDigest(const QString& digest)
 {
     static const QRegularExpression pattern{QStringLiteral("^[0-9a-f]{64}$")};
     return pattern.match(digest.toLower()).hasMatch();
+}
+
+// A release candidate is newer than an earlier RC but older than the stable
+// release with the same three numeric components. QVersionNumber alone ignores
+// suffixes and would otherwise treat 1.0.0-rc1 as identical to 1.0.0.
+struct ReleaseVersion {
+    QVersionNumber core{};
+    int candidate{0};  // 0 means stable; >0 means rcN
+    bool valid{false};
+};
+
+ReleaseVersion parseReleaseVersion(const QString& value)
+{
+    static const QRegularExpression pattern{
+        QStringLiteral(R"(^(\d+)\.(\d+)\.(\d+)(?:-rc([1-9]\d*))?$)")};
+    const auto match = pattern.match(normalizeVersion(value));
+    if (!match.hasMatch()) return {};
+    bool majorOk = false, minorOk = false, patchOk = false, candidateOk = true;
+    const int major = match.captured(1).toInt(&majorOk);
+    const int minor = match.captured(2).toInt(&minorOk);
+    const int patch = match.captured(3).toInt(&patchOk);
+    const int candidate = match.captured(4).isEmpty()
+        ? 0 : match.captured(4).toInt(&candidateOk);
+    if (!majorOk || !minorOk || !patchOk || !candidateOk) return {};
+    return {QVersionNumber{major, minor, patch}, candidate, true};
+}
+
+int compareReleaseVersions(const ReleaseVersion& left, const ReleaseVersion& right)
+{
+    const int core = QVersionNumber::compare(left.core, right.core);
+    if (core != 0) return core;
+    if (left.candidate == right.candidate) return 0;
+    // A stable release (candidate 0) outranks every RC of the same version.
+    if (left.candidate == 0) return 1;
+    if (right.candidate == 0) return -1;
+    return left.candidate > right.candidate ? 1 : -1;
 }
 
 void loadBundledReleaseNotes(const QString& version,
@@ -413,18 +449,41 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
         else { m_status = QStringLiteral("Update check unavailable"); emit changed(); }
         return;
     }
+    // The /releases/latest endpoint intentionally excludes release
+    // candidates. Select the highest actual, published semantic release from
+    // a bounded GitHub release list, including rcN while it is current.
     const auto doc = QJsonDocument::fromJson(body);
-    const auto obj = doc.object();
-    if (!doc.isObject() || obj.value(QStringLiteral("draft")).toBool() ||
-        obj.value(QStringLiteral("prerelease")).toBool()) {
-        fail(QStringLiteral("Invalid release metadata"));
+    if (!doc.isArray()) {
+        fail(QStringLiteral("Invalid GitHub release list"));
         return;
     }
-    const QString version = normalizeVersion(obj.value(QStringLiteral("tag_name")).toString());
-    const auto parsed = QVersionNumber::fromString(version);
-    const auto current = QVersionNumber::fromString(normalizeVersion(m_appVersion));
-    if (parsed.isNull() || current.isNull()) {
-        fail(QStringLiteral("Unrecognized release version"));
+    const ReleaseVersion current = parseReleaseVersion(m_appVersion);
+    if (!current.valid) {
+        fail(QStringLiteral("Unrecognized installed release version"));
+        return;
+    }
+    QJsonObject obj;
+    ReleaseVersion parsed;
+    QString version;
+    for (const QJsonValue& item : doc.array()) {
+        if (!item.isObject()) continue;
+        const QJsonObject candidate = item.toObject();
+        if (candidate.value(QStringLiteral("draft")).toBool()) continue;
+        const QString name = normalizeVersion(
+            candidate.value(QStringLiteral("tag_name")).toString());
+        const ReleaseVersion candidateVersion = parseReleaseVersion(name);
+        if (!candidateVersion.valid) continue;
+        if (!parsed.valid || compareReleaseVersions(candidateVersion, parsed) > 0) {
+            obj = candidate;
+            parsed = candidateVersion;
+            version = name;
+        }
+    }
+    if (!parsed.valid) {
+        m_updateAvailable = false;
+        m_status = QStringLiteral("No published release yet");
+        m_error.clear();
+        emit changed();
         return;
     }
     m_latestVersion = version;
@@ -433,7 +492,7 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
     m_releaseTitle = obj.value(QStringLiteral("name")).toString().trimmed().left(120);
     m_releaseNotes = obj.value(QStringLiteral("body")).toString().trimmed().left(1600);
     m_releasePublishedAt = obj.value(QStringLiteral("published_at")).toString().left(10);
-    m_updateAvailable = QVersionNumber::compare(parsed, current) > 0;
+    m_updateAvailable = compareReleaseVersions(parsed, current) > 0;
     m_assetUrl.clear();
     m_assetName.clear();
     m_assetDigest.clear();
