@@ -1,7 +1,8 @@
 #version 440
 // The authoritative front silhouette is generated directly from
-// ui/wasm/genycaster-icon.svg. R/G: wide signed distances (G/arrow).
-// B: a narrow signed distance to their union, for clean surface normals.
+// ui/wasm/genycaster-icon.svg. RG: 16-bit union signed distance.
+// B: arrow-only material boundary; A is permanently opaque.
+// The normals atlas derives from unquantized float distances.
 // Everything is GPU raymarched through the portable Qt ShaderEffect pipeline.
 layout(location=0) in vec2 qt_TexCoord0;
 layout(location=0) out vec4 fragColor;
@@ -27,42 +28,33 @@ vec3 objectSpace(vec3 p,vec2 rot) {
  c=cos(rot.y);s=sin(rot.y);
  return vec3(p.x,c*p.y+s*p.z,-s*p.y+c*p.z);
 }
-vec3 canonicalDistance(vec2 xy) {
- // Source SVG viewBox 48 48 416 416 and central origin 256,256.
+vec2 canonicalDistance(vec2 xy) {
+ // SVG viewBox 48 48 416 416, centered on 256,256.
  vec2 svg=vec2(256.0+xy.x*220.0,256.0-xy.y*220.0);
  vec2 uv=(svg-vec2(48.0))/416.0;
  vec2 bounded=clamp(uv,vec2(.001),vec2(.999));
- vec3 rgb=texture(logoDistanceMap,bounded).rgb;
- vec2 wide=(rgb.rg*255.0-127.5)*(48.0/127.5)/220.0;
- float fine=(rgb.b*255.0-127.5)*(6.0/127.5)/220.0;
- if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) {
-  float outside=length((uv-bounded)*416.0/220.0);
-  wide+=outside;
-  fine+=outside;
+ vec3 atlas=texture(logoDistanceMap,bounded).rgb;
+ // Preserve 16-bit distance precision across interpolation. Quantization
+ // falls below a tenth of a pixel even on oblique extruded surfaces.
+ float packed=atlas.r*65280.0+atlas.g*255.0;
+ float distance=(packed/65535.0*2.0-1.0)*32.0/220.0;
+ float arrowDistance=(atlas.b*2.0-1.0)*7.0/220.0;
+ if(any(lessThan(uv,vec2(0.0)))||any(greaterThan(uv,vec2(1.0)))) {
+  distance+=length((uv-bounded)*416.0/220.0);
  }
- return vec3(wide,fine);
+ return vec2(distance,arrowDistance);
 }
 vec2 logo(vec3 p) {
- vec3 contour=canonicalDistance(p.xy);
- // Identical extrusion for both exact path contours. Inset bevel
- // preserves the SVG outline on the front cap and at the arrow joint.
+ vec2 contour=canonicalDistance(p.xy);
+ // One *continuous* 3D solid for the G plus arrow: the original
+ // exact front outline, no hidden join, identical rear/cap bevel.
  const float halfDepth=.112;
  const float bevel=.007;
  float z=abs(p.z)-halfDepth;
- vec2 a=vec2(contour.x+bevel,z+bevel);
- vec2 b=vec2(contour.y+bevel,z+bevel);
- float dg=length(max(a,0.0))+min(max(a.x,a.y),0.0)-bevel;
- float da=length(max(b,0.0))+min(max(b.x,b.y),0.0)-bevel;
- float merged=min(dg,da);
- // Use a fine union field only close to the surface, where the
- // 8-bit wide SDF would otherwise create visible normal stripes.
- vec2 fineShape=vec2(contour.z+bevel,z+bevel);
- float fine=length(max(fineShape,0.0))
-           +min(max(fineShape.x,fineShape.y),0.0)-bevel;
- float nearSurface=1.0-smoothstep(.014,.027,abs(merged));
- merged=mix(merged,fine,nearSurface);
- float arrow=1.0-smoothstep(-.006,.006,da-dg);
- return vec2(merged,arrow);
+ vec2 q=vec2(contour.x+bevel,z+bevel);
+ float distance=length(max(q,0.0))+min(max(q.x,q.y),0.0)-bevel;
+ float arrow=1.0-smoothstep(-.005,.005,contour.y);
+ return vec2(distance,arrow);
 }
 vec2 scene(vec3 p,vec2 angles){return logo(objectSpace(p,angles));}
 
@@ -92,21 +84,38 @@ float hash21(vec2 p){
  return fract(p.x*p.y);
 }
 vec3 background(vec2 screen,vec2 uv,bool dark){
- // A quiet studio cyclorama: layered spotlights, subtle arc grid and
- // an edge vignette; never an image/DOM gimmick or a separate renderer.
- vec3 top=dark?vec3(.017,.029,.057):vec3(.914,.944,.974);
- vec3 bottom=dark?vec3(.046,.078,.119):vec3(.838,.885,.929);
- vec3 col=mix(top,bottom,smoothstep(0.,1.,uv.y));
- vec2 p=screen-vec2(-.04,.11);
- float spotlight=exp(-dot(p*vec2(1.15,.89),p*vec2(1.15,.89))*2.1);
- col+=(dark?vec3(.043,.086,.121):vec3(.065,.078,.083))*spotlight;
- float rim=length(screen*vec2(.83,1.18));
- float arc=exp(-pow((rim-.96)*170.,2.));
- col+=(dark?vec3(.050,.108,.161):vec3(.018,.045,.072))*arc*.25;
- col*=1.0-.105*smoothstep(.58,1.80,length(screen));
+ // Gradient cyclorama with a broad photographic softbox, a quiet floor
+ // bounce and a controllable falloff. No DOM overlay or texture download.
+ vec3 top=dark?vec3(.021,.039,.075):vec3(.858,.903,.949);
+ vec3 bottom=dark?vec3(.040,.084,.128):vec3(.753,.826,.890);
+ vec3 col=mix(top,bottom,smoothstep(.06,.98,uv.y));
+ vec2 spot=(screen-vec2(-.28,.33))*vec2(.74,.85);
+ float overhead=exp(-dot(spot,spot)*1.18);
+ col+=(dark?vec3(.061,.108,.153):vec3(.107,.131,.149))*overhead;
+ float floorGlow=exp(-pow((screen.y+.95)*3.5,2.))
+                 *exp(-pow(screen.x*.87,2.));
+ col+=(dark?vec3(.020,.064,.090):vec3(.080,.096,.107))*floorGlow;
+ float floorLine=exp(-pow((screen.y+.93)*22.,2.));
+ col+=(dark?vec3(.019,.041,.060):vec3(.022,.044,.062))*floorLine*.35;
+ // The grounding oval reads as an actual stage, not a hard circular stroke.
+ vec2 floorPosition=(screen-vec2(.0,-1.04))*vec2(.85,4.2);
+ float stage=exp(-dot(floorPosition,floorPosition)*1.7);
+ col-=stage*(dark?vec3(.010,.024,.031):vec3(.085,.097,.108));
+ col*=1.0-.16*smoothstep(.6,2.5,length(screen*vec2(.72,.88)));
  float grain=hash21(floor(uv*params.paneSize))-.5;
- col+=grain*(dark?.0021:.0013);
+ col+=grain*(dark?.0011:.0008);
  return max(col,vec3(0.));
+}
+vec3 backdropShadow(vec3 back,vec2 screen,vec2 rotation,bool dark) {
+ // Soft projected logo-shaped shadow over the studio background.
+ // Project through the same SVG field used for the solid, so shadow and
+ // silhouette follow the user's orbit and do not need a shadow bitmap.
+ vec2 projected=screen-vec2(.18,-.24);
+ vec3 local=objectSpace(vec3(projected,0.0),rotation);
+ float shape=canonicalDistance(local.xy).x;
+ float soft=1.0-smoothstep(-.09,.28,shape);
+ float shadowOpacity=dark?.25:.31;
+ return back*(1.0-shadowOpacity*soft);
 }
 
 // Analytic HDR-looking light cards give a convincing surface response
@@ -134,8 +143,8 @@ vec3 materialAt(vec3 p,vec3 ray,vec2 rotation,float arrow,bool dark){
  vec3 r=reflect(-v,n);
  // Two subtly different anodized finishes on the *same* extruded solid:
  // cool satin silver for G and darker titanium for the arrow.
- vec3 silver=dark?vec3(.73,.80,.88):vec3(.69,.77,.83);
- vec3 titanium=dark?vec3(.31,.37,.45):vec3(.34,.40,.47);
+ vec3 silver=dark?vec3(.73,.80,.88):vec3(.51,.62,.73);
+ vec3 titanium=dark?vec3(.31,.37,.45):vec3(.26,.33,.41);
  vec3 albedo=mix(silver,titanium,arrow);
  float roughness=mix(.23,.31,arrow);
  float a=roughness*roughness;
@@ -175,21 +184,23 @@ void main(){
  screen/=clamp(params.viewZoom,.75,1.5);
  screen.y+=.06;
  bool dark=params.darkMode>.5;
- vec3 back=background(screen,uv,dark);
  const float rad=.01745329252;
  vec2 rotation=vec2(
   -(params.orbitYaw+params.dragYaw)*rad+(params.pointer.x-.5)*.055,
   -params.dragPitch*rad+(params.pointer.y-.5)*.040);
+ vec3 back=backdropShadow(background(screen,uv,dark),screen,rotation,dark);
  vec3 origin=vec3(0.,0.,2.75);
  vec3 direction=normalize(vec3(screen,-2.75));
  float t=0.,nearest=10.,nearestT=0.,mat=0.;
  bool hit=false;
- for(int i=0;i<92;i++){
+ for(int i=0;i<116;i++){
   vec3 p=origin+direction*t;
   vec2 shape=scene(p,rotation);
   if(shape.x<nearest){nearest=shape.x;nearestT=t;}
-  if(shape.x<.00085){hit=true;mat=shape.y;break;}
-  t+=max(shape.x*.82,.0020);
+  if(shape.x<.00016){hit=true;mat=shape.y;break;}
+  // A coarse lower bound skipped curved silhouettes at near-grazing
+  // incidence. Smaller precision steps avoid staircase-like depth hits.
+  t+=max(shape.x*.82,.00024);
   if(t>5.5)break;
  }
  vec3 color=back;

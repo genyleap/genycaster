@@ -512,15 +512,15 @@ Item {
                 // R/G preserve both SVG paths; B smooths their combined normal.
                 property var logoDistanceMap: Image {
                     source: "qrc:/qt/qml/Farcaster/Client/shaders/genycaster_logo_sdf.png"
-                    sourceSize.width: 832
-                    sourceSize.height: 832
+                    sourceSize.width: 1664
+                    sourceSize.height: 1664
                     smooth: true
                     visible: false
                 }
                 property var logoNormalMap: Image {
                     source: "qrc:/qt/qml/Farcaster/Client/shaders/genycaster_logo_normals.png"
-                    sourceSize.width: 832
-                    sourceSize.height: 832
+                    sourceSize.width: 1664
+                    sourceSize.height: 1664
                     smooth: true
                     visible: false
                 }
@@ -661,10 +661,10 @@ Item {
             Rectangle {
                 id: gpuStageControls
                 z: 4
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: 22
-                width: stageControlRow.width + 12
+                anchors.bottom: desktopBrandMetadata.top
+                anchors.bottomMargin: 86
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: stageControlRow.width + 14
                 height: 46
                 radius: 14
                 color: Theme.dark ? "#18293C" : "#F1F6FB"
@@ -745,8 +745,8 @@ Item {
             }
             Text {
                 z: 3
-                anchors.bottom: desktopBrandMetadata.top
-                anchors.bottomMargin: 33
+                anchors.bottom: gpuStageControls.top
+                anchors.bottomMargin: 16
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: qsTr("DRAG TO ORBIT   ·   SCROLL TO ZOOM")
                 color: Theme.dark ? "#829CAF" : "#688094"

@@ -1,9 +1,9 @@
 {
   "type": "improvement",
-  "title": "GPU Studio — refined 3D GenyCaster identity",
+  "title": "Precision GPU Studio: smooth 3D and soft shadows",
   "changes": [
-    "Render the exact official SVG geometry with satin-aluminum and titanium PBR-style materials, studio softboxes and filmic highlight response.",
-    "Remove extrusion wall shading bands with a precomputed smooth normal atlas while preserving the precise branded silhouette.",
-    "Introduce a refined GPU studio backdrop and accessible orbit, zoom, pause/resume and reset-view controls in desktop Setup."
+    "Smooth the exact GenyCaster SVG solid with a 1664px, 16-bit packed distance atlas and analytically sampled vector tangent normals to eliminate banded sidewalls.",
+    "Improve light and dark studio lighting with a soft projected logo shadow, floor bounce, and better metallic contrast while preserving portable Qt GPU rendering.",
+    "Move the accessible reset, rotation and zoom controls to the lower brand panel, above the copyright and version information."
   ]
 }

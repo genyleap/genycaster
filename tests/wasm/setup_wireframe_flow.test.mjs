@@ -317,12 +317,12 @@ test('Setup GPU-rendered volumetric G is cross-platform, theme-aware and interac
   assert.match(pane,/root\.currentStep/);
   assert.doesNotMatch(pane,/desktopMist|mistMote|setup-mist\.svg|Animation\.Infinite/);
   assert.match(cmake,/shaders\/setup_glass_g\.frag\.qsb/);
-  assert.match(shader,/vec3 canonicalDistance\(/);
+  assert.match(shader,/vec2 canonicalDistance\(/);
   assert.match(pane,/logoDistanceMap: Image/);
   assert.match(cmake,/shaders\/genycaster_logo_sdf\.png/);
   assert.match(shader,/vec2 logo\(/);
   assert.match(shader,/vec2 scene\(/);
-  assert.match(shader,/for\(int i=0;i<92;i\+\+\)/);
+  assert.match(shader,/for\(int i=0;i<116;i\+\+\)/);
   assert.match(pane,/id: automaticRotation/);
   assert.match(pane,/id: rotationCooldown/);
   assert.match(pane,/onPressed: function\(mouse\)/);
