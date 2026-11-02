@@ -162,7 +162,7 @@ const originalFetch=window.fetch.bind(window);
 const isWebKitRuntime=typeof navigator!=="undefined"
     && /AppleWebKit/i.test(navigator.userAgent||"")
     && !/Chrome\/|Chromium\/|Edg\/|OPR\//i.test(navigator.userAgent||"");
-const hashedWasm=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
+const hashedWasm=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 const requestedAsset=window.__genycasterAssets?.wasm;
 const verifiedAsset=typeof requestedAsset==="string" && hashedWasm.test(requestedAsset)
     ? new URL(requestedAsset,location.href) : null;
@@ -332,10 +332,10 @@ window.fetch=async function(input,options) {
     try { originalUrl=new URL(typeof input==="string" ? input : input.url,location.href); }
     catch { return originalFetch(input,options); }
     if(originalUrl.origin!==location.origin ||
-       !/^farcaster_client(?:\.[0-9a-f]{20})?\.wasm$/.test(
+       !/^genycaster(?:\.[0-9a-f]{20})?\.wasm$/.test(
            originalUrl.pathname.split("/").pop()))
         return originalFetch(input,options);
-    const url=verifiedAsset && originalUrl.pathname.endsWith("/farcaster_client.wasm")
+    const url=verifiedAsset && originalUrl.pathname.endsWith("/genycaster.wasm")
         ? verifiedAsset : originalUrl;
     const changed=url.href!==originalUrl.href;
     const nativeRequest=changed
@@ -728,9 +728,9 @@ async function start() {
             throw new Error("qtloader.js is missing or did not load");
         // Qt 6.9+ generates an app-specific Emscripten factory:
         // <target>_entry. Qt 6.12 requires it in qt.entryFunction.
-        // Loading farcaster_client.js alone does NOT select that factory.
-        if(typeof window.farcaster_client_entry!=="function")
-            throw new Error("farcaster_client.js did not expose farcaster_client_entry");
+        // Loading genycaster.js alone does NOT select that factory.
+        if(typeof window.genycaster_entry!=="function")
+            throw new Error("genycaster.js did not expose genycaster_entry");
         if(isWebKitRuntime && await cacheStartup)return;
         if(!isWebKitRuntime && !seen && window.isSecureContext && navigator.serviceWorker
             && !navigator.serviceWorker.controller) {
@@ -750,14 +750,14 @@ async function start() {
             // Emscripten/Qt 6.12 allows an origin-safe content-addressed
             // binary path while retaining the stable generated JS factory.
             locateFile:(file,prefix)=>{
-                if(file==="farcaster_client.wasm" &&
+                if(file==="genycaster.wasm" &&
                    typeof window.__genycasterAssets?.wasm==="string" &&
-                   /^farcaster_client\.[0-9a-f]{20}\.wasm$/.test(window.__genycasterAssets.wasm))
+                   /^genycaster\.[0-9a-f]{20}\.wasm$/.test(window.__genycasterAssets.wasm))
                     return new URL(window.__genycasterAssets.wasm,location.href).href;
                 return (prefix||"")+file;
             },
             qt:{
-                entryFunction:window.farcaster_client_entry,
+                entryFunction:window.genycaster_entry,
                 containerElements:[screen],
                 onLoaded:()=>{
                     qtRuntimeLoaded=true;

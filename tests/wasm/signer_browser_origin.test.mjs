@@ -29,14 +29,14 @@ function runPreJs(origin) {
 }
 
 test('emrun 0.0.0.0 origin redirects to secure loopback, preserving path', () => {
-    const result = runPreJs('http://0.0.0.0:30000/farcaster_client.html?x=1#context');
+    const result = runPreJs('http://0.0.0.0:30000/genycaster.html?x=1#context');
     assert.equal(result.redirected,
-        'http://127.0.0.1:30000/farcaster_client.html?x=1#context');
+        'http://127.0.0.1:30000/genycaster.html?x=1#context');
     assert.equal(result.window.__genycasterBrowserSigning, undefined);
 });
 
 test('loopback secure origin does not redirect and exposes safe environment diagnostics', () => {
-    const result = runPreJs('http://127.0.0.1:30000/farcaster_client.html');
+    const result = runPreJs('http://127.0.0.1:30000/genycaster.html');
     assert.equal(result.redirected, '');
     assert.equal(result.window.__genycasterSignerEnvironment.secureContext, true);
     assert.equal(result.window.__genycasterSignerEnvironment.webCrypto, true);
@@ -47,7 +47,7 @@ test('loopback secure origin does not redirect and exposes safe environment diag
 });
 
 test('non-loopback insecure HTTP must not be silently sent to the client computer', () => {
-    const result = runPreJs('http://192.168.1.20:30000/farcaster_client.html');
+    const result = runPreJs('http://192.168.1.20:30000/genycaster.html');
     assert.equal(result.redirected, '');
     assert.equal(result.window.__genycasterSignerEnvironment.secureContext, false);
 });

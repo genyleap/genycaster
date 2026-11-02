@@ -31,9 +31,9 @@ test('supplementary totals require consent and cannot replace source identity',(
 test('WASM metadata carries independently versioned, fully localized release information',()=>{
   const dir=mkdtempSync(join(tmpdir(),'genycaster-release-notes-'));
   try{
-    writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
-    for(const name of ['farcaster_client.html','qtloader.js','farcaster_client.js','genycaster-loader.js','genycaster-sw.js'])
-      writeFileSync(join(dir,name),name==='farcaster_client.html'
+    writeFileSync(join(dir,'genycaster.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
+    for(const name of ['genycaster.html','qtloader.js','genycaster.js','genycaster-loader.js','genycaster-sw.js'])
+      writeFileSync(join(dir,name),name==='genycaster.html'
         ? '<title>@@GENYCASTER_PRODUCT_NAME@@</title><span>@@GENYCASTER_RELEASE_VERSION@@</span>'
         : 'test-'+name);
     const args=[new URL('../../ci/package_wasm_assets.py',import.meta.url).pathname,
@@ -54,7 +54,7 @@ test('WASM metadata carries independently versioned, fully localized release inf
     assert.equal(metadata.appVersion,releaseVersion);
     assert.equal(metadata.releaseNotes.translations['fa-IR'].title,'مجوزدهی ایمن‌تر به دستگاه');
     assert.notEqual(metadata.releaseNotes.translations['fa-IR'].title,'Genycaster v'+releaseVersion);
-    const rendered=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+    const rendered=readFileSync(join(dir,'genycaster.html'),'utf8');
     assert.match(rendered,/<title>Genycaster<\/title>/);
     assert.match(rendered,new RegExp('<span>v'+releaseVersion+'<\/span>'));
     assert.doesNotMatch(rendered,/@\@GENYCASTER_/);
@@ -90,7 +90,7 @@ test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
   const workflow=read('.github/workflows/ci.yml');
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.json/);
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.md/);
-  assert.match(cmake,/qt_add_resources\(farcaster_client genycaster_release_notes/);
+  assert.match(cmake,/qt_add_resources\(genycaster genycaster_release_notes/);
   assert.match(cmake,/--release-notes "\$\{GENYCASTER_RELEASE_NOTES_FILE\}"/);
   assert.match(native,/genycaster-release-notes\/v%1\.json/);
   assert.match(native,/genycaster-locale:/);

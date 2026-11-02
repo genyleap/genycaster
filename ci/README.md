@@ -132,7 +132,7 @@ GENYCASTER_SITE_URL=https://genycaster.xyz \
 The process needs write access to the live static directory and its parent.
 The deploy step stages the full archive outside the public root, installs
 new immutable WASM first, atomically replaces mutable assets with backups,
-and promotes `farcaster_client.html` last. Existing content-hashed WASM
+and promotes `genycaster.html` last. Existing content-hashed WASM
 is retained for open tabs. Failed file updates restore previously changed
 mutable files; on success, backups remain in a sibling
 `.genycaster-backup.*` directory to support manual rollback.
@@ -140,7 +140,7 @@ mutable files; on success, backups remain in a sibling
 **Never use the example Nginx path in documentation as the real webroot
 without inspecting the live server.** No server changes happen when
 `--web-root` is omitted. Check `nginx -t` and the deployed
-`/farcaster_client.html`, `/genycaster-assets.json` and WASM MIME/cache
+`/genycaster.html`, `/genycaster-assets.json` and WASM MIME/cache
 headers over HTTPS. Static-file promotion needs no Nginx reload when its
 configuration is unchanged.
 

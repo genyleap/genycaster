@@ -32,12 +32,12 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     let now=100;
     const timers=[];
     const listeners={};
-    const binary="farcaster_client.bbbbbbbbbbbbbbbbbbbb.wasm";
+    const binary="genycaster.bbbbbbbbbbbbbbbbbbbb.wasm";
     const scope={
         window:{
             __genycasterAssets:{version,wasm:binary,appVersion:"1.0.0",buildId:version.slice(0,8),
                 productName:"Genycaster",versionNumber:"1.0.0",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:8},
-            farcaster_client_entry(){},
+            genycaster_entry(){},
             fetch:async(input)=>String(input).includes("genycaster-assets.json")
                 ? new Response(JSON.stringify({version:latestVersion,appVersion:"1.0.1",versionNumber:"1.0.1",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:78643200}),
                     {headers:{"Content-Type":"application/json"}})
@@ -71,7 +71,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                     if(selector.includes("status-bar-style"))chrome.statusStyle=value;
                 }
             })},
-        location:{href:"https://example.test/farcaster_client.html",origin:"https://example.test",
+        location:{href:"https://example.test/genycaster.html",origin:"https://example.test",
                   replace(url){reloadedTo=url;}},
         performance:{now:()=>now,getEntriesByName:url=>resources.get(url)||[]},
         PerformanceObserver:class {
@@ -104,7 +104,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
         qmlReady:()=>scope.window.__genycasterQmlStartup(true, ""),
         qmlFailed:reason=>scope.window.__genycasterQmlStartup(false,reason),
-        fetch:()=>scope.window.fetch("https://example.test/farcaster_client.wasm"),
+        fetch:()=>scope.window.fetch("https://example.test/genycaster.wasm"),
         pushBytes(bytes){downloadStream.enqueue(new Uint8Array(bytes));},
         finishBytes(){downloadStream.close();},
         percent:()=>nodes.get("boot-percent").textContent,

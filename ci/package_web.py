@@ -12,11 +12,11 @@ EXTENSIONS = {
     ".ico", ".webmanifest", ".woff", ".woff2",
     ".ttf", ".otf", ".txt", ".map", ".license",
 }
-BLOCKED = {".qt", ".rcc", "CMakeFiles", "_deps", "CMakeFiles", "farcaster_client_autogen"}
+BLOCKED = {".qt", ".rcc", "CMakeFiles", "_deps", "CMakeFiles", "genycaster_autogen"}
 
 
 def select_files(source: Path) -> list[Path]:
-    required = ["farcaster_client.html", "farcaster_client.wasm"]
+    required = ["genycaster.html", "genycaster.wasm"]
     for name in required:
         if not (source / name).is_file():
             raise ValueError(f"WebAssembly packaging missing {source / name}")

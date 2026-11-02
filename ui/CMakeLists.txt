@@ -241,7 +241,7 @@ aimcpp_reject_final_qml_creatable_types(
         "${CMAKE_CURRENT_SOURCE_DIR}/render/scene_graph_superellipse_item.hpp"
 )
 
-qt_add_executable(farcaster_client
+qt_add_executable(genycaster
     mobile/main.cpp
     mobile/runtime_ui_bindings.cpp
     mobile/data_storage_controller.cpp
@@ -288,28 +288,28 @@ qt_add_executable(farcaster_client
     mobile/genypulse_activity_controller.hpp
 )
 
-target_sources(farcaster_client
+target_sources(genycaster
     PRIVATE
         mobile/runtime_composition.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         mobile/runtime_composition.cppm
 )
-set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
+set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
 # macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
 # cannot be deployed into a DMG with the Qt plugin and QML payload.
 if(APPLE)
     # Keep a real Apple app bundle on both macOS and iOS. Qt generates
     # the correct platform Info.plist for qt_add_executable.
-    set_target_properties(farcaster_client PROPERTIES MACOSX_BUNDLE TRUE)
+    set_target_properties(genycaster PROPERTIES MACOSX_BUNDLE TRUE)
     if(IOS)
-        set_target_properties(farcaster_client PROPERTIES
+        set_target_properties(genycaster PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.genyleap.genycaster"
             XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
     endif()
 endif()
-target_compile_features(farcaster_client PRIVATE cxx_std_26)
+target_compile_features(genycaster PRIVATE cxx_std_26)
 if(TARGET farcaster::platform_custody_recovery)
-    target_link_libraries(farcaster_client PRIVATE farcaster::platform_custody_recovery)
+    target_link_libraries(genycaster PRIVATE farcaster::platform_custody_recovery)
 endif()
 
 # GCC 16 can exhaust memory on small Linux builders while emitting DWARF
@@ -357,10 +357,10 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
         PRIVATE Qt6::Network farcaster_miniapp_browser)
     farcaster_enable_warnings(farcaster_miniapp_runtime)
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_MINIAPP_HOST=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster_miniapp_runtime)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=1)
+    target_link_libraries(genycaster PRIVATE farcaster_miniapp_runtime)
 else()
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_MINIAPP_HOST=0)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=0)
 endif()
 
 add_library(farcaster_emoji_runtime STATIC)
@@ -373,9 +373,9 @@ target_link_libraries(farcaster_emoji_runtime PUBLIC farcaster::presentation
 set_property(TARGET farcaster_emoji_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
 target_compile_features(farcaster_emoji_runtime PUBLIC cxx_std_26)
 farcaster_enable_warnings(farcaster_emoji_runtime)
-target_link_libraries(farcaster_client PRIVATE farcaster_emoji_runtime)
+target_link_libraries(genycaster PRIVATE farcaster_emoji_runtime)
 
-set_target_properties(farcaster_client
+set_target_properties(genycaster
     PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../bin"
 )
@@ -392,9 +392,9 @@ target_compile_definitions(genycaster_release_identity
         GENYCASTER_RELEASE_CHANNEL="${GENYCASTER_RELEASE_CHANNEL}"
         GENYCASTER_RELEASE_CHANNEL_NUMBER="${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
 )
-target_link_libraries(farcaster_client PRIVATE genycaster_release_identity)
+target_link_libraries(genycaster PRIVATE genycaster_release_identity)
 
-target_compile_definitions(farcaster_client
+target_compile_definitions(genycaster
     PRIVATE
         FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
         GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
@@ -402,24 +402,24 @@ target_compile_definitions(farcaster_client
 
 if(ANDROID)
     find_package(Qt6 6.12 REQUIRED COMPONENTS Svg)
-    target_link_libraries(farcaster_client PRIVATE Qt6::Svg)
+    target_link_libraries(genycaster PRIVATE Qt6::Svg)
 endif()
 
 if(ANDROID AND TARGET Qt6Keychain::Qt6Keychain)
     # Package the shared QtKeychain backend used by the static signer vault.
-    set_property(TARGET farcaster_client APPEND PROPERTY
+    set_property(TARGET genycaster APPEND PROPERTY
         QT_ANDROID_EXTRA_LIBS "$<TARGET_FILE:Qt6Keychain::Qt6Keychain>")
 endif()
 
 # Qt's TLS backend loads both shared OpenSSL libraries dynamically on Android.
 # Include them in the APK, even though Genycaster links only OpenSSL::Crypto.
 if(ANDROID AND TARGET OpenSSL::Crypto)
-    set_property(TARGET farcaster_client APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
+    set_property(TARGET genycaster APPEND PROPERTY QT_ANDROID_EXTRA_LIBS
         "${GENYCASTER_ANDROID_OPENSSL_CRYPTO_LIBRARY}"
         "${GENYCASTER_ANDROID_OPENSSL_SSL_LIBRARY}")
 endif()
 
-target_link_libraries(farcaster_client
+target_link_libraries(genycaster
     PRIVATE
         farcaster::presentation
         farcaster::application
@@ -445,12 +445,12 @@ if(EMSCRIPTEN)
     # Configure Qt's target property rather than appending a conflicting -s
     # option: qt_finalize_target adds INITIAL_MEMORY after link options.
     # 128 MB is page-aligned (64 KiB pages); ALLOW_MEMORY_GROWTH remains enabled.
-    set_target_properties(farcaster_client PROPERTIES
+    set_target_properties(genycaster PROPERTIES
         QT_WASM_INITIAL_MEMORY "128MB")
 
     # IDBFS must populate the virtual app directory before SQLite starts.
     # Emscripten provides the asynchronous IndexedDB file system.
-    target_link_options(farcaster_client PRIVATE
+    target_link_options(genycaster PRIVATE
         "-sFORCE_FILESYSTEM=1"
         "-lidbfs.js"
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/persistence-pre.js"
@@ -464,124 +464,124 @@ if(EMSCRIPTEN)
     # Qt loader. It remains deliberately separate from signer authorization:
     # publishing must not become ready until custody approval and a verified
     # scoped Snapchain registration complete.
-    add_custom_command(TARGET farcaster_client POST_BUILD
+    add_custom_command(TARGET genycaster POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/secure_signer_vault.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/secure_signer_vault.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/secure_signer_vault.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_protocol.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_protocol.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/farcaster_protocol.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_protocol_signer.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/browser_protocol_signer.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/browser_protocol_signer.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_device_session.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/browser_device_session.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/browser_device_session.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_account_session.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/browser_account_session.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/browser_account_session.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_media_upload.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/browser_media_upload.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/browser_media_upload.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_recovery.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/farcaster_recovery.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/openproof_recovery.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/openproof_recovery.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/openproof_recovery.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/recovery-phrase-dialog.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/recovery-phrase-dialog.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/recovery-phrase-dialog.mjs"
         COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:farcaster_client>/vendor"
+            "$<TARGET_FILE_DIR:genycaster>/vendor"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/noble-secp256k1.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/vendor/noble-secp256k1.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/vendor/noble-secp256k1.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/bip39-english.mjs"
-            "$<TARGET_FILE_DIR:farcaster_client>/vendor/bip39-english.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/vendor/bip39-english.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/noble-secp256k1.LICENSE"
-            "$<TARGET_FILE_DIR:farcaster_client>/vendor/noble-secp256k1.LICENSE"
+            "$<TARGET_FILE_DIR:genycaster>/vendor/noble-secp256k1.LICENSE"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/vendor/scure-bip39.LICENSE"
-            "$<TARGET_FILE_DIR:farcaster_client>/vendor/scure-bip39.LICENSE"
+            "$<TARGET_FILE_DIR:genycaster>/vendor/scure-bip39.LICENSE"
         COMMENT "Packaging browser Farcaster recovery, signer, canonical codec and pinned cryptography"
         VERBATIM
     )
 
     # Replace Qt's generic logo splash with the first-party branded boot
     # container after the target is linked. Keep the standard Qt loader API.
-    add_custom_command(TARGET farcaster_client POST_BUILD
+    add_custom_command(TARGET genycaster POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-shell.html"
-            "$<TARGET_FILE_DIR:farcaster_client>/farcaster_client.html"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster.html"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-loader.js"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-loader.js"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-loader.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-sw.js"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-sw.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster.webmanifest"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster.webmanifest"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster.webmanifest"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-icon.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon.ico"
-            "$<TARGET_FILE_DIR:farcaster_client>/favicon.ico"
+            "$<TARGET_FILE_DIR:genycaster>/favicon.ico"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-16x16.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/favicon-16x16.png"
+            "$<TARGET_FILE_DIR:genycaster>/favicon-16x16.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-32x32.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/favicon-32x32.png"
+            "$<TARGET_FILE_DIR:genycaster>/favicon-32x32.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/favicon-48x48.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/favicon-48x48.png"
+            "$<TARGET_FILE_DIR:genycaster>/favicon-48x48.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-192.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-192.png"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-192.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-512.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-512.png"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-512.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap/icons/actions/repost.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-update-icon.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-update-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/apple-touch-icon.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/apple-touch-icon.png"
+            "$<TARGET_FILE_DIR:genycaster>/apple-touch-icon.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/apple-touch-icon-precomposed.png"
-            "$<TARGET_FILE_DIR:farcaster_client>/apple-touch-icon-precomposed.png"
+            "$<TARGET_FILE_DIR:genycaster>/apple-touch-icon-precomposed.png"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-brand.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-brand.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-wordmark.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-wordmark.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-wordmark.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-wordmark-dark.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-wordmark-dark.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-wordmark-dark.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-boot-icon.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/genycaster-boot-icon.svg"
+            "$<TARGET_FILE_DIR:genycaster>/genycaster-boot-icon.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-base.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/intro-base.svg"
+            "$<TARGET_FILE_DIR:genycaster>/intro-base.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-farcaster.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/intro-farcaster.svg"
+            "$<TARGET_FILE_DIR:genycaster>/intro-farcaster.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-hypersnap.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/intro-hypersnap.svg"
+            "$<TARGET_FILE_DIR:genycaster>/intro-hypersnap.svg"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/intro-openproof.svg"
-            "$<TARGET_FILE_DIR:farcaster_client>/intro-openproof.svg"
+            "$<TARGET_FILE_DIR:genycaster>/intro-openproof.svg"
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
-            --dir "$<TARGET_FILE_DIR:farcaster_client>"
+            --dir "$<TARGET_FILE_DIR:genycaster>"
             --app-version "${GENYCASTER_RELEASE_VERSION}"
             --product-name "${PROJECT_NAME}"
             --version-number "${PROJECT_VERSION}"
@@ -599,113 +599,113 @@ if(EMSCRIPTEN)
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
             --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
-            --dir "$<TARGET_FILE_DIR:farcaster_client>"
+            --dir "$<TARGET_FILE_DIR:genycaster>"
             --app-version "${GENYCASTER_RELEASE_VERSION}"
             --product-name "${PROJECT_NAME}"
             --version-number "${PROJECT_VERSION}"
             --release-channel "${GENYCASTER_RELEASE_CHANNEL}"
             --release-channel-number "${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
             --release-notes "${GENYCASTER_RELEASE_NOTES_FILE}"
-        DEPENDS farcaster_client
+        DEPENDS genycaster
         COMMENT "Refreshing versioned Genycaster WebAssembly static assets"
         VERBATIM
     )
 endif()
 
 if(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_PUBLIC_DATA_PROVIDER=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_public_data)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_PUBLIC_DATA_PROVIDER=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_public_data)
 else()
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_PUBLIC_DATA_PROVIDER=0)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_PUBLIC_DATA_PROVIDER=0)
 endif()
 
 if(FARCASTER_ENABLE_HYPERSNAP_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_HYPERSNAP_PROVIDER=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_hypersnap)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_HYPERSNAP_PROVIDER=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_hypersnap)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_HYPERSNAP_PROVIDER=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_HYPERSNAP_PROVIDER=0)
 endif()
 
 if(GENYCASTER_ENABLE_OPENPROOF_AUTH)
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_openproof_auth)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_openproof_auth)
 else()
-    target_compile_definitions(farcaster_client PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=0)
+    target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_OPENPROOF_AUTH=0)
 endif()
 
 if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_FARCASTER_AUTH=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_compatibility_auth)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_FARCASTER_AUTH=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_auth)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_FARCASTER_AUTH=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_FARCASTER_AUTH=0)
 endif()
 
 if(FARCASTER_ENABLE_PROTOCOL_SIGNING)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_PROTOCOL_SIGNING=1)
-    target_link_libraries(farcaster_client PRIVATE
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_PROTOCOL_SIGNING=1)
+    target_link_libraries(genycaster PRIVATE
         farcaster::platform_signer
         farcaster::protocol_write
         farcaster::storage_write
     )
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_PROTOCOL_SIGNING=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_PROTOCOL_SIGNING=0)
 endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_READ_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_snapchain_read)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_snapchain_read)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_READ=0)
 endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_SIGNER=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_snapchain_signer)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_SIGNER=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_snapchain_signer)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_SIGNER=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_SIGNER=0)
 endif()
 
 if(FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_WRITE=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_snapchain_write)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_WRITE=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_snapchain_write)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SNAPCHAIN_WRITE=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SNAPCHAIN_WRITE=0)
 endif()
 
 if(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_compatibility_browser_wallet)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_browser_wallet)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=0)
 endif()
 
 if(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE AND FARCASTER_ENABLE_MINIAPPS)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_MINIAPP_EVM_WALLET=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_compatibility_browser_wallet)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_MINIAPP_EVM_WALLET=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_browser_wallet)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_MINIAPP_EVM_WALLET=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_MINIAPP_EVM_WALLET=0)
 endif()
 
 if(FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SIGNER_ATTESTATION=1)
-    target_link_libraries(farcaster_client PRIVATE farcaster::provider_compatibility_signer_attestation)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SIGNER_ATTESTATION=1)
+    target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_signer_attestation)
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_SIGNER_ATTESTATION=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_SIGNER_ATTESTATION=0)
 endif()
 
 if(FARCASTER_ENABLE_MEDIA_UPLOAD)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_MEDIA_UPLOAD=1)
-    target_link_libraries(farcaster_client PRIVATE
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_MEDIA_UPLOAD=1)
+    target_link_libraries(genycaster PRIVATE
         farcaster::application_media
         farcaster::transport_qt_media
     )
 else()
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_MEDIA_UPLOAD=0)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_MEDIA_UPLOAD=0)
 endif()
 
-target_compile_features(farcaster_client PRIVATE cxx_std_26)
-set_property(TARGET farcaster_client PROPERTY CXX_SCAN_FOR_MODULES ON)
-farcaster_enable_warnings(farcaster_client)
+target_compile_features(genycaster PRIVATE cxx_std_26)
+set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
+farcaster_enable_warnings(genycaster)
 
 # Typography is an application dependency, not an operating-system assumption.
 # A shipping Genycaster binary always embeds its Persian/Arabic UI family. The
@@ -793,7 +793,7 @@ set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Vazirmatn.txt"
     PROPERTIES QT_RESOURCE_ALIAS "assets/fonts/OFL-Vazirmatn.txt")
 
-qt_add_resources(farcaster_client genycaster_ui_fonts
+qt_add_resources(genycaster genycaster_ui_fonts
     PREFIX "/qt/qml/Farcaster/Client"
     FILES
         ${_genycasterUiFontFiles}
@@ -828,7 +828,7 @@ if(EMSCRIPTEN)
     set_source_files_properties(
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
         QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")
-    qt_add_resources(farcaster_client genycaster_emoji_fallback
+    qt_add_resources(genycaster genycaster_emoji_fallback
         ${_genycasterLargeResources}
         PREFIX "/qt/qml/Farcaster/Client"
         FILES "${_genycasterEmojiFallback}"
@@ -1009,7 +1009,7 @@ if(_genycasterCjkFontPath AND EXISTS "${_genycasterCjkFontPath}")
     list(APPEND _genycasterScriptFontFiles "${_genycasterCjkFontPath}")
 endif()
 if(_genycasterScriptFontFiles)
-    qt_add_resources(farcaster_client genycaster_script_fonts
+    qt_add_resources(genycaster genycaster_script_fonts
         ${_genycasterLargeResources}
         PREFIX "/qt/qml/Farcaster/Client"
         FILES ${_genycasterScriptFontFiles})
@@ -1065,7 +1065,7 @@ endforeach()
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/LICENSE.Font-Awesome.txt"
     PROPERTIES QT_RESOURCE_ALIAS "assets/icons/LICENSE.Font-Awesome.txt")
-qt_add_resources(farcaster_client genycaster_icon_fonts
+qt_add_resources(genycaster genycaster_icon_fonts
     PREFIX "/qt/qml/Farcaster/Client"
     FILES ${_genycasterIconFontFiles} "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/LICENSE.Font-Awesome.txt")
 
@@ -1079,7 +1079,7 @@ file(GLOB_RECURSE _genyleapIconSystemFiles
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap/*.js"
 )
 list(SORT _genyleapIconSystemFiles)
-qt_add_resources(farcaster_client genyleap_icon_system
+qt_add_resources(genycaster genyleap_icon_system
     PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/genyleap"
     FILES ${_genyleapIconSystemFiles}
@@ -1094,12 +1094,12 @@ file(GLOB _notoEmojiLottieFiles
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji/lottie/*.json"
 )
 list(SORT _notoEmojiLottieFiles)
-qt_add_resources(farcaster_client noto_emoji_lottie
+qt_add_resources(genycaster noto_emoji_lottie
     PREFIX "/qt/qml/Farcaster/Client/assets/emoji/lottie"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji/lottie"
     FILES ${_notoEmojiLottieFiles}
 )
-qt_add_resources(farcaster_client noto_emoji_metadata
+qt_add_resources(genycaster noto_emoji_metadata
     PREFIX "/qt/qml/Farcaster/Client/assets/emoji"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji"
     FILES
@@ -1107,7 +1107,7 @@ qt_add_resources(farcaster_client noto_emoji_metadata
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji/LICENSE.NotoAnimatedEmoji.txt"
 )
 
-qt_add_resources(farcaster_client openproof_public_endpoints
+qt_add_resources(genycaster openproof_public_endpoints
     PREFIX "/genycaster-config"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}/config"
     FILES
@@ -1115,7 +1115,7 @@ qt_add_resources(farcaster_client openproof_public_endpoints
 )
 
 # One structured multilingual JSON source for all targets; GitHub Markdown is generated.
-qt_add_resources(farcaster_client genycaster_release_notes
+qt_add_resources(genycaster genycaster_release_notes
     PREFIX "/genycaster-release-notes"
     BASE "${CMAKE_SOURCE_DIR}/release-notes"
     FILES "${GENYCASTER_RELEASE_NOTES_FILE}"
@@ -1123,10 +1123,10 @@ qt_add_resources(farcaster_client genycaster_release_notes
 
 if(ANDROID)
     find_package(Qt6 6.12 REQUIRED COMPONENTS WebView)
-    target_link_libraries(farcaster_client PRIVATE Qt6::WebView)
+    target_link_libraries(genycaster PRIVATE Qt6::WebView)
 endif()
 
-qt_add_qml_module(farcaster_client
+qt_add_qml_module(genycaster
     URI Farcaster.Client
     VERSION 1.0
     QML_FILES
@@ -1148,7 +1148,7 @@ qt_add_qml_module(farcaster_client
         wasm/genycaster-wordmark-dark.svg
 )
 
-target_include_directories(farcaster_client
+target_include_directories(genycaster
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/render"
         # The generated QML type registrar conditionally includes the native
@@ -1160,8 +1160,8 @@ target_include_directories(farcaster_client
 # Older/renderer-free SDKs retain the Unicode fallback without loading this type.
 find_package(Qt6 QUIET COMPONENTS Lottie)
 if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
-    target_compile_definitions(farcaster_client PRIVATE FARCASTER_HAS_LOTTIE=1)
-    qt_import_plugins(farcaster_client INCLUDE Qt6::QLottieVectorImagePlugin)
+    target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_LOTTIE=1)
+    qt_import_plugins(genycaster INCLUDE Qt6::QLottieVectorImagePlugin)
 endif()
 
 set(farcasterTranslationFiles
@@ -1207,10 +1207,10 @@ if(Qt6_VERSION VERSION_GREATER_EQUAL 6.7)
             ${farcasterTranslationFiles}
         SOURCES
             ${farcasterTranslationSources}
-        LUPDATE_TARGET farcaster_client_lupdate
+        LUPDATE_TARGET genycaster_lupdate
     )
 else()
-    qt_add_lupdate(farcaster_client
+    qt_add_lupdate(genycaster
         TS_FILES
             ${farcasterTranslationFiles}
         SOURCES
@@ -1252,12 +1252,12 @@ set_source_files_properties(
 add_custom_target(farcaster_translation_catalogs
     DEPENDS ${farcasterTranslationQmFiles}
 )
-add_dependencies(farcaster_client farcaster_translation_catalogs)
+add_dependencies(genycaster farcaster_translation_catalogs)
 
 # Embed exactly the QM outputs produced above. The runtime contract is stable:
 #   :/i18n/qml_en_US.qm
 #   :/i18n/qml_fa_IR.qm
-qt_add_resources(farcaster_client farcaster_translation_resources
+qt_add_resources(genycaster farcaster_translation_resources
     PREFIX "/i18n"
     BASE "${CMAKE_CURRENT_BINARY_DIR}"
     FILES
@@ -1269,14 +1269,14 @@ if(Qt6_VERSION VERSION_GREATER_EQUAL 6.8)
     list(APPEND farcasterQmlLintOptions --max-warnings 0)
 endif()
 
-add_custom_target(farcaster_client_qmllint_strict
+add_custom_target(genycaster_qmllint_strict
     COMMAND Qt6::qmllint
         ${farcasterQmlLintOptions}
         -I "${QT_QML_OUTPUT_DIRECTORY}"
         -I "${CMAKE_CURRENT_BINARY_DIR}"
         -I "${QT6_INSTALL_PREFIX}/${QT6_INSTALL_QML}"
         -M Farcaster.Client
-    DEPENDS farcaster_client
+    DEPENDS genycaster
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     VERBATIM
 )
@@ -1386,7 +1386,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
         set(farcasterHeadlessPlatform "minimal")
     endif()
 
-    add_test(NAME ui.smoke COMMAND farcaster_client --smoke-test)
+    add_test(NAME ui.smoke COMMAND genycaster --smoke-test)
     set_tests_properties(ui.smoke PROPERTIES
         LABELS "ui;smoke"
         ENVIRONMENT
@@ -1396,7 +1396,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_test(
         NAME ui.localization_en_smoke
-        COMMAND farcaster_client --smoke-test --language=en
+        COMMAND genycaster --smoke-test --language=en
     )
     set_tests_properties(ui.localization_en_smoke PROPERTIES
         LABELS "ui;smoke;localization;ltr"
@@ -1407,7 +1407,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_test(
         NAME ui.localization_fa_smoke
-        COMMAND farcaster_client
+        COMMAND genycaster
             --smoke-test
             --language=fa
             --regional-locale=fa_IR
@@ -1426,7 +1426,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_test(
         NAME ui.appearance_dark_smoke
-        COMMAND farcaster_client --smoke-test --theme-mode=dark --color-theme=geny
+        COMMAND genycaster --smoke-test --theme-mode=dark --color-theme=geny
     )
     set_tests_properties(ui.appearance_dark_smoke PROPERTIES
         LABELS "ui;smoke;appearance;dark"
@@ -1437,7 +1437,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_test(
         NAME ui.appearance_light_smoke
-        COMMAND farcaster_client --smoke-test --theme-mode=light --color-theme=ocean --reduce-motion=true
+        COMMAND genycaster --smoke-test --theme-mode=light --color-theme=ocean --reduce-motion=true
     )
     set_tests_properties(ui.appearance_light_smoke PROPERTIES
         LABELS "ui;smoke;appearance;light"
@@ -1452,7 +1452,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
             COMMAND
                 "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tests/ui/runtime_smoke.py"
-                "$<TARGET_FILE:farcaster_client>"
+                "$<TARGET_FILE:genycaster>"
         )
         set_tests_properties(ui.runtime_smoke PROPERTIES
             LABELS "ui;smoke;integration"

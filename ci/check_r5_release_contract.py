@@ -28,7 +28,7 @@ if 'protocol writes stay disabled rather than being attributed to the signed-in 
     errors.append('Product signer wiring must fail closed when client attribution is not configured.')
 if 'bundledPersianFontResources' not in main or 'QFontDatabase::addApplicationFont' not in main:
     errors.append('The Persian UI family must be loaded from application resources.')
-if 'GENYCASTER_FETCH_UI_FONT' not in ui_cmake or 'qt_add_resources(farcaster_client genycaster_ui_fonts' not in ui_cmake:
+if 'GENYCASTER_FETCH_UI_FONT' not in ui_cmake or 'qt_add_resources(genycaster genycaster_ui_fonts' not in ui_cmake:
     errors.append('CMake must acquire and embed the pinned UI font family.')
 if 'bundledPersianFontFamily' not in theme:
     errors.append('Theme must prefer the bundled Persian family.')

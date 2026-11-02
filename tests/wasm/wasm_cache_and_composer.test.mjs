@@ -22,11 +22,11 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
     };
     try{
-        writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
-        for(const file of ['farcaster_client.html','qtloader.js','farcaster_client.js','genycaster-loader.js','genycaster-sw.js'])
+        writeFileSync(join(dir,'genycaster.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
+        for(const file of ['genycaster.html','qtloader.js','genycaster.js','genycaster-loader.js','genycaster-sw.js'])
             writeFileSync(join(dir,file),'test-'+file);
         const a=run();
-        assert.match(a.wasm,/^farcaster_client\.[0-9a-f]{20}\.wasm$/);
+        assert.match(a.wasm,/^genycaster\.[0-9a-f]{20}\.wasm$/);
         assert.equal(a.appVersion,'1.0.0');
         assert.equal(a.productName,'Genycaster');
         assert.equal(a.releaseChannel,'stable');
@@ -44,7 +44,7 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         const b=run();
         assert.equal(b.wasm,a.wasm,'JS edit must not rename expensive WASM');
         assert.notEqual(b.version,a.version,'worker should update on JS edit');
-        writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,2,0,0,0]));
+        writeFileSync(join(dir,'genycaster.wasm'),Buffer.from([0,97,115,109,2,0,0,0]));
         const c=run();
         assert.notEqual(c.wasm,b.wasm);
         assert.notEqual(c.version,b.version,
@@ -82,9 +82,9 @@ test('service worker caches only same-origin public files, never API requests',a
     const callbacks={};
     let networkCount=0;
     let deleted=[];
-    const manifest={version:'abcd',wasm:'farcaster_client.abc123abc123abc123ab.wasm',
-        files:['farcaster_client.html','farcaster_client.js',
-               'farcaster_client.abc123abc123abc123ab.wasm']};
+    const manifest={version:'abcd',wasm:'genycaster.abc123abc123abc123ab.wasm',
+        files:['genycaster.html','genycaster.js',
+               'genycaster.abc123abc123abc123ab.wasm']};
     const base='https://app.example.com/';
     for(const name of manifest.files)
         responses.set(base+name,new Response('body for '+name,{headers:{'content-type':'application/wasm'}}));
@@ -131,7 +131,7 @@ test('service worker caches only same-origin public files, never API requests',a
                      waitUntil:p=>{background.push(p);}});
     assert.equal(wasmIntercepted,false,
         'large WASM must use the native browser fetch instead of respondWith');
-    callbacks.fetch({request:{url:base+'farcaster_client.wasm',
+    callbacks.fetch({request:{url:base+'genycaster.wasm',
                          method:'GET',credentials:'same-origin'},
                      respondWith:()=>{wasmIntercepted=true;},
                      waitUntil:p=>{background.push(p);}});
@@ -140,10 +140,10 @@ test('service worker caches only same-origin public files, never API requests',a
     const count=networkCount;
     callbacks.fetch(fetchEvent(request));
     assert.equal(networkCount,count,'worker must not attempt WASM network fetch');
-    responses.delete(base+'farcaster_client.html');
-    callbacks.fetch(fetchEvent({url:base+'farcaster_client.html',method:'GET',
+    responses.delete(base+'genycaster.html');
+    callbacks.fetch(fetchEvent({url:base+'genycaster.html',method:'GET',
                         credentials:'same-origin'}));
-    assert.match(await (await answer).text(),/body for farcaster_client.html/);
+    assert.match(await (await answer).text(),/body for genycaster.html/);
     let handled=false;
     callbacks.fetch({request:{url:base+'api/user',method:'GET',credentials:'same-origin'},
                     respondWith:()=>{handled=true;},waitUntil:p=>{background.push(p);}});
@@ -223,13 +223,13 @@ test('bootstrap uses actual original Geny SVG, not a home-made DNA',()=>{
 
 test('release HTML cache-busts all boot scripts without changing WASM and is idempotent',()=>{
     const dir=mkdtempSync(join(tmpdir(),'genycaster-stamped-'));
-    const scripts=['qtloader.js','farcaster_client.js','genycaster-assets.js','genycaster-loader.js'];
+    const scripts=['qtloader.js','genycaster.js','genycaster-assets.js','genycaster-loader.js'];
     const markup='<!doctype html><title>Genycaster Beta 1.0</title>'+
         scripts.map(name=>'<script src="'+name+'"></script>').join('');
     try {
-        writeFileSync(join(dir,'farcaster_client.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
+        writeFileSync(join(dir,'genycaster.wasm'),Buffer.from([0,97,115,109,1,0,0,0]));
         for(const file of scripts)writeFileSync(join(dir,file),'test-'+file);
-        writeFileSync(join(dir,'farcaster_client.html'),markup);
+        writeFileSync(join(dir,'genycaster.html'),markup);
         const packOnce=()=>{
             const result=spawnSync('python3',[pack.pathname,'--dir',dir,
                 '--app-version','1.0.0','--product-name','Genycaster','--version-number','1.0.0','--release-channel','stable','--release-channel-number','0'],{encoding:'utf8'});
@@ -237,19 +237,19 @@ test('release HTML cache-busts all boot scripts without changing WASM and is ide
             return JSON.parse(readFileSync(join(dir,'genycaster-assets.json'),'utf8'));
         };
         const first=packOnce();
-        let stamped=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+        let stamped=readFileSync(join(dir,'genycaster.html'),'utf8');
         for(const script of scripts)
             assert.ok(stamped.includes('src="'+script+'?v='+first.version+'"'));
         const digest=createHash('sha256').update(stamped).digest('hex');
-        assert.equal(first.integrity['farcaster_client.html'],digest);
+        assert.equal(first.integrity['genycaster.html'],digest);
         const second=packOnce();
         assert.equal(first.version,second.version);
-        assert.equal(readFileSync(join(dir,'farcaster_client.html'),'utf8'),stamped);
+        assert.equal(readFileSync(join(dir,'genycaster.html'),'utf8'),stamped);
         writeFileSync(join(dir,'genycaster-loader.js'),'updated');
         const third=packOnce();
         assert.notEqual(third.version,first.version);
         assert.equal(third.wasm,first.wasm,'unchanged WASM stays cached');
-        stamped=readFileSync(join(dir,'farcaster_client.html'),'utf8');
+        stamped=readFileSync(join(dir,'genycaster.html'),'utf8');
         assert.ok(stamped.includes('src="genycaster-loader.js?v='+third.version+'"'));
         assert.ok(!stamped.includes('src="genycaster-loader.js?v='+first.version+'"'));
     }finally{rmSync(dir,{recursive:true,force:true});}

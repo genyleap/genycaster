@@ -10,7 +10,7 @@ const sw=readFileSync(new URL("../../ui/wasm/genycaster-sw.js",import.meta.url),
 
 test("large WASM bypasses service worker without removing private browser data",()=>{
     assert.match(sw,/const CACHE="genycaster-static-v11"/);
-    assert.match(sw,/if\(relative==="farcaster_client\.wasm" \|\| WASM_HASH\.test\(relative\)\)return;/);
+    assert.match(sw,/if\(relative==="genycaster\.wasm" \|\| WASM_HASH\.test\(relative\)\)return;/);
     assert.doesNotMatch(sw,/cache\.put\([^\n]*\.wasm/);
     assert.match(source,/manifestBytes>16\*1024\*1024\)return;/);
 });
@@ -61,7 +61,7 @@ test("WASM wrapper preserves native request credentials and retries once without
     const end=source.indexOf("const screen=$(\"qt-screen\");",begin);
     assert.ok(begin>=0 && end>begin);
     const calls=[];
-    const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
+    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
     const native=new Response(new Uint8Array([0,97,115,109]),{headers:{"content-type":"application/wasm"}});
     const ctx={window:{},URL,location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
         originalFetch:async(input,opts)=>{
@@ -69,7 +69,7 @@ test("WASM wrapper preserves native request credentials and retries once without
             if(calls.length===1)throw new TypeError("Load failed");
             return native;
         },
-        verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        verifiedAsset:new URL(wasmURL),hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
         isWebKitRuntime:false,compressedWebKitEngine:async()=>null,releaseInfo:{wasmBytes:8},Headers,
         installing:false,updating:false,finished:false,bootPhase:"initialize",wasmResourceUrl:null,
         showPhase(){},observeEngine(){},preparing(){},measureFirstDownload(){},console};
@@ -108,7 +108,7 @@ test("WebKit startup unregisters only app worker and navigates once before Qt bo
 test("WebKit preserves native streaming Response on its first ordinary WASM request",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
-    const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
+    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
     const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
     const native=new Response(binary,{status:206,headers:{
         "Content-Type":"application/wasm",
@@ -120,7 +120,7 @@ test("WebKit preserves native streaming Response on its first ordinary WASM requ
         compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
         originalFetch:async(input,options)=>{calls.push({input,options});return native;},
-        verifiedAsset:new URL(wasmURL),hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        verifiedAsset:new URL(wasmURL),hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
         releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
         bootPhase:"initialize",showPhase(){},observeEngine(){},preparing(){},
         measureFirstDownload(){},console};
@@ -137,12 +137,12 @@ test("WebKit preserves native streaming Response on its first ordinary WASM requ
 test("WebKit rejects incomplete fallback ranges and uses Range only after ordinary fetch fails",async()=>{
     const begin=source.indexOf("window.fetch=async function(input,options) {");
     const end=source.indexOf('const screen=$("qt-screen");',begin);
-    const wasmURL="https://caster.genyleap.com/farcaster_client.0123456789abcdef0123.wasm";
+    const wasmURL="https://caster.genyleap.com/genycaster.0123456789abcdef0123.wasm";
     const makeCtx=(impl)=>({window:{},URL,Headers,isWebKitRuntime:true,
         compressedWebKitEngine:async()=>null,wasmResourceUrl:null,
         location:{href:"https://caster.genyleap.com/",origin:"https://caster.genyleap.com"},
         originalFetch:impl,verifiedAsset:new URL(wasmURL),
-        hashedWasm:/^farcaster_client\.[0-9a-f]{20}\.wasm$/,
+        hashedWasm:/^genycaster\.[0-9a-f]{20}\.wasm$/,
         releaseInfo:{wasmBytes:8},installing:false,updating:false,finished:false,
         bootPhase:"initialize",showPhase(){},observeEngine(){},preparing(){},
         measureFirstDownload(){},console});
@@ -174,12 +174,12 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
     const {gzipSync}=await import("node:zlib");
     const binary=Uint8Array.from([0,97,115,109,1,0,0,0]);
     const compressed=gzipSync(binary);
-    const wasm="farcaster_client.0123456789abcdef0123.wasm";
+    const wasm="genycaster.0123456789abcdef0123.wasm";
     const url="https://caster.genyleap.com/"+wasm;
     const assetRequests=[];
     const ctx={
         URL,Response,TransformStream,DecompressionStream,
-        isWebKitRuntime:true,hashedWasm:new RegExp("^farcaster_client[.][0-9a-f]{20}[.]wasm$"),
+        isWebKitRuntime:true,hashedWasm:new RegExp("^genycaster[.][0-9a-f]{20}[.]wasm$"),
         releaseInfo:{wasmGzip:wasm+".gz",wasmGzipBytes:compressed.length},
         location:{href:"https://caster.genyleap.com/"},
         originalFetch:async(request,options)=>{

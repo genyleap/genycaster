@@ -128,6 +128,28 @@ class PipelineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 release_version(bad, version)
 
+    def test_native_executable_and_release_identity_contract(self) -> None:
+        # Qt Creator's Build All compiles the production source in a separate test.
+        # CMake must provide identical release metadata on every platform.
+        cmake = Path("ui/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("qt_add_executable(genycaster", cmake)
+        self.assertIn("add_library(genycaster_release_identity INTERFACE)", cmake)
+        self.assertIn("target_link_libraries(genycaster PRIVATE genycaster_release_identity)", cmake)
+        self.assertIn("target_link_libraries(farcaster_update_controller_tests PRIVATE", cmake)
+        self.assertIn("        genycaster_release_identity", cmake)
+        for name in ("GENYCASTER_APP_VERSION", "GENYCASTER_PRODUCT_NAME",
+                     "GENYCASTER_VERSION_NUMBER", "GENYCASTER_RELEASE_CHANNEL",
+                     "GENYCASTER_RELEASE_CHANNEL_NUMBER"):
+            with self.subTest(macro=name):
+                self.assertEqual(cmake.count(name + "="), 1)
+        for file in (".github/workflows/ci.yml", "ci/package_web.py",
+                     "ci/package_wasm_assets.py", "ci/verify_platform_package.py",
+                     "ui/wasm/genycaster-loader.js"):
+            with self.subTest(path=file):
+                self.assertNotIn("farcaster_client", Path(file).read_text(encoding="utf-8"))
+        self.assertIn("window.genycaster_entry",
+                      Path("ui/wasm/genycaster-loader.js").read_text(encoding="utf-8"))
+
     def test_windows_qt_archive_manifest(self) -> None:
         html = f'<a href="{STAMP}qtbase-Windows-MSVC2022.7z">Qt Base</a>'
         self.assertEqual(
@@ -140,16 +162,16 @@ class PipelineTests(unittest.TestCase):
     def test_web_archive_selection_excludes_build_artifacts(self) -> None:
         with TemporaryDirectory() as path:
             root = Path(path)
-            (root / "farcaster_client.html").write_text("<html></html>")
-            (root / "farcaster_client.wasm").write_bytes(b"\x00asm")
-            (root / "farcaster_client.0123456789abcdef0123.wasm.gz").write_bytes(b"compressed")
+            (root / "genycaster.html").write_text("<html></html>")
+            (root / "genycaster.wasm").write_bytes(b"\x00asm")
+            (root / "genycaster.0123456789abcdef0123.wasm.gz").write_bytes(b"compressed")
             (root / "unrelated.tar.gz").write_bytes(b"ignored")
-            (root / "farcaster_client_autogen").mkdir()
-            (root / "farcaster_client_autogen" / "secret.js").write_text("ignored")
-            (root / "farcaster_client.cpp.o").write_bytes(b"obj")
+            (root / "genycaster_autogen").mkdir()
+            (root / "genycaster_autogen" / "secret.js").write_text("ignored")
+            (root / "genycaster.cpp.o").write_bytes(b"obj")
             selected = {p.name for p in select_files(root)}
-            self.assertEqual(selected, {"farcaster_client.html", "farcaster_client.wasm",
-                                        "farcaster_client.0123456789abcdef0123.wasm.gz"})
+            self.assertEqual(selected, {"genycaster.html", "genycaster.wasm",
+                                        "genycaster.0123456789abcdef0123.wasm.gz"})
 
     def test_android_16k_elf_alignment(self) -> None:
         # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
@@ -228,7 +250,7 @@ class PipelineTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             archive = Path(folder) / "genycaster-windows.zip"
             required = (
-                "farcaster_client.exe", "Qt6Core.dll", "Qt6Network.dll",
+                "genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
                 "qt6keychain.dll", "platforms/qwindows.dll", "libcrypto-3-x64.dll",
                 "libssl-3-x64.dll", "libcurl.dll", "sqlite3.dll",
             )

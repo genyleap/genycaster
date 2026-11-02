@@ -1,12 +1,12 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v11";
-const WASM_HASH=/^farcaster_client\.[0-9a-f]{20}\.wasm$/;
+const CACHE="genycaster-static-v12";
+const WASM_HASH=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
 const PUBLIC_FILES=new Set([
-    "farcaster_client.html","farcaster_client.js","qtloader.js",
-    "farcaster_client.worker.js","farcaster_client.data",
+    "genycaster.html","genycaster.js","qtloader.js",
+    "genycaster.worker.js","genycaster.data",
     "genycaster-loader.js","genycaster-assets.json","genycaster-assets.js",
     "genycaster-sw.js","genycaster.webmanifest","genycaster-icon.svg",
     "genycaster-brand.svg","genycaster-wordmark.svg","genycaster-wordmark-dark.svg",
@@ -70,7 +70,7 @@ self.addEventListener("fetch",event=>{
     // Let the native network/HTTP disk cache serve these immutable URLs.
     const relative=url.pathname.startsWith(scopePath)
         ? url.pathname.slice(scopePath.length) : "";
-    if(relative==="farcaster_client.wasm" || WASM_HASH.test(relative))return;
+    if(relative==="genycaster.wasm" || WASM_HASH.test(relative))return;
     if(!allowed(url))return;
     const key=withoutQuery(url);
     let cacheWrite=Promise.resolve();

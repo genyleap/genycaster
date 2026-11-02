@@ -198,7 +198,7 @@ if "imageIsPage" not in link_preview_resolver:
 if "contextIterator->second->isCancelled || active.bodyLimitExceeded" not in async_qt_network:
     errors.append("Qt async cancellation must drain/discard cancelled media response bytes")
 if "mobile/data_storage_controller.cpp" not in ui_cmake:
-    errors.append("DataStorageController is not compiled into farcaster_client")
+    errors.append("DataStorageController is not compiled into genycaster")
 if "storage_policy.cppm" not in media_cmake or "storage_policy.cpp" not in media_cmake:
     errors.append("storage_policy module is not registered in presentation media target")
 if "farcaster_storage_policy_tests" not in tests_cmake:

@@ -45,8 +45,8 @@ def validate_web(path: Path) -> None:
                     and ".." not in PurePosixPath(member.name).parts
                     for member in members), "Web archive contains unsafe entries")
         for required in (
-            "farcaster_client.html", "farcaster_client.js",
-            "farcaster_client.wasm", "genycaster-assets.json",
+            "genycaster.html", "genycaster.js",
+            "genycaster.wasm", "genycaster-assets.json",
             "genycaster-loader.js", "genycaster-sw.js",
         ):
             require(required in names, f"Web archive missing {required}")
@@ -115,7 +115,7 @@ def validate_android(path: Path) -> None:
         names = set(apk.namelist())
         required = (
             "AndroidManifest.xml",
-            f"lib/{abi}/libfarcaster_client_{abi}.so",
+            f"lib/{abi}/libgenycaster_{abi}.so",
             f"lib/{abi}/libQt6Network_{abi}.so",
             f"lib/{abi}/libqt6keychain.so",
             f"lib/{abi}/libssl_3.so",
@@ -173,9 +173,9 @@ def validate_ios(path: Path) -> None:
     with tarfile.open(path, "r:gz") as archive:
         members = archive.getmembers()
         names = {member.name.rstrip("/") for member in members}
-        root = "farcaster_client.app"
+        root = "genycaster.app"
         require(root + "/Info.plist" in names, "iOS bundle missing Info.plist")
-        require(root + "/farcaster_client" in names, "iOS bundle missing executable")
+        require(root + "/genycaster" in names, "iOS bundle missing executable")
         require(all(not PurePosixPath(name).is_absolute()
                     and ".." not in PurePosixPath(name).parts
                     for name in names), "Unsafe iOS bundle path")
@@ -186,7 +186,7 @@ def validate_windows(path: Path) -> None:
     with zipfile.ZipFile(path) as archive:
         names = {name.replace("\\", "/").lower() for name in archive.namelist()}
     for required in (
-        "farcaster_client.exe", "qt6core.dll", "qt6network.dll",
+        "genycaster.exe", "qt6core.dll", "qt6network.dll",
         "qt6keychain.dll", "platforms/qwindows.dll",
     ):
         require(required in names, f"Windows ZIP missing {required}")

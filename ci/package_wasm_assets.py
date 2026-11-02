@@ -44,15 +44,15 @@ if args.source:
                 if rel=="genycaster-brand.svg" else
                 source.parent/"assets/icons/genyleap/icons/actions/repost.svg"
                 if rel=="genycaster-update-icon.svg" else source/rel)
-        dest=directory/("farcaster_client.html" if rel=="genycaster-shell.html" else rel)
+        dest=directory/("genycaster.html" if rel=="genycaster-shell.html" else rel)
         if not origin.is_file():
             parser.error(f"Missing public asset: {origin}")
         dest.parent.mkdir(parents=True, exist_ok=True)
         if not dest.exists() or dest.read_bytes()!=origin.read_bytes():
             shutil.copy2(origin,dest)
-wasm = directory / "farcaster_client.wasm"
+wasm = directory / "genycaster.wasm"
 if not wasm.is_file():
-    parser.error("farcaster_client.wasm is missing")
+    parser.error("genycaster.wasm is missing")
 
 def digest(path: Path) -> str:
     sha = hashlib.sha256()
@@ -63,7 +63,7 @@ def digest(path: Path) -> str:
 
 hash_full = digest(wasm)
 wasm_short = hash_full[:20]
-asset_name = f"farcaster_client.{wasm_short}.wasm"
+asset_name = f"genycaster.{wasm_short}.wasm"
 target = directory / asset_name
 if not target.exists() or target.stat().st_size != wasm.stat().st_size:
     shutil.copy2(wasm, target)
@@ -85,7 +85,7 @@ if not compressed.is_file():
 # Keep older hashed binaries until operators retire older deployments:
 # tabs that loaded an older JS version can still request those exact URLs.
 # Never auto-delete an active content-addressed release during packaging.
-public = ["farcaster_client.html", "qtloader.js", "farcaster_client.js",
+public = ["genycaster.html", "qtloader.js", "genycaster.js",
           "genycaster-loader.js", "genycaster-sw.js",
           "genycaster.webmanifest", "genycaster-icon.svg", "genycaster-brand.svg", "genycaster-wordmark.svg", "genycaster-wordmark-dark.svg", "genycaster-boot-icon.svg", "intro-base.svg", "intro-farcaster.svg", "intro-hypersnap.svg", "intro-openproof.svg", "genycaster-update-icon.svg",
           "apple-touch-icon.png", "apple-touch-icon-precomposed.png",
@@ -104,8 +104,8 @@ public = [name for name in public if (directory / name).is_file()]
 # release fingerprint, ensuring new deployments never execute stale JS.
 # Strip our own previous stamp first so packaging remains idempotent and the
 # release fingerprint has no circular dependency on the HTML it stamps.
-html_path = directory / "farcaster_client.html"
-scripts = ("qtloader.js", "farcaster_client.js",
+html_path = directory / "genycaster.html"
+scripts = ("qtloader.js", "genycaster.js",
            "genycaster-assets.js", "genycaster-loader.js")
 html = html_path.read_text(encoding="utf-8")
 # The HTML source never owns a version. CMake passes its authoritative release
@@ -162,7 +162,7 @@ for script in scripts:
 html_path.write_text(html, encoding="utf-8")
 # The release identity hashes the canonical HTML; integrity verifies the
 # actual stamped HTML delivered to browsers.
-checksums["farcaster_client.html"] = digest(html_path)
+checksums["genycaster.html"] = digest(html_path)
 release = {"version": fingerprint, "wasm": asset_name,
            "wasmBytes": wasm.stat().st_size,
            "wasmGzip": compressed.name,

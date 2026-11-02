@@ -100,14 +100,14 @@ cleanup() {
 trap cleanup EXIT
 
 tar -xzf "$archive" -C "$stage"
-for item in farcaster_client.html farcaster_client.wasm genycaster-assets.json genycaster-assets.js genycaster-sw.js; do
+for item in genycaster.html genycaster.wasm genycaster-assets.json genycaster-assets.js genycaster-sw.js; do
   test -s "$stage/$item" || { echo "Missing deploy asset: $item" >&2; exit 1; }
 done
 
 # Preserve all old hashed WASM binaries: running tabs can still request them.
 while IFS= read -r -d '' file; do
   rel="${file#"$stage/"}"
-  if [[ "$rel" =~ ^farcaster_client\.[0-9a-f]{20}\.wasm$ ]]; then
+  if [[ "$rel" =~ ^(genycaster|farcaster_client)\.[0-9a-f]{20}\.wasm$ ]]; then
     dest="$web_root/$rel"
     if [[ -f "$dest" ]]; then
       cmp -s "$file" "$dest" || {
@@ -137,16 +137,16 @@ promote() {
 }
 while IFS= read -r -d '' file; do
   rel="${file#"$stage/"}"
-  if [[ "$rel" == farcaster_client.html ||
-        "$rel" =~ ^farcaster_client\.[0-9a-f]{20}\.wasm$ ]]; then continue; fi
+  if [[ "$rel" == genycaster.html ||
+        "$rel" =~ ^(genycaster|farcaster_client)\.[0-9a-f]{20}\.wasm$ ]]; then continue; fi
   promote "$rel"
 done < <(find "$stage" -type f -print0)
-promote farcaster_client.html
+promote genycaster.html
 finished=1
 echo "Published verified WASM assets at: $web_root"
 
 if [[ -n "${GENYCASTER_SITE_URL:-}" ]] && command -v curl >/dev/null; then
   echo "Checking public HTTP entrypoint:"
   curl --fail --silent --show-error --location --head --retry 2 \
-    "${GENYCASTER_SITE_URL%/}/farcaster_client.html"
+    "${GENYCASTER_SITE_URL%/}/genycaster.html"
 fi

@@ -2,7 +2,7 @@
   "name": "Genycaster",
   "short_name": "Genycaster",
   "description": "Genycaster",
-  "start_url": "./farcaster_client.html",
+  "start_url": "./genycaster.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0b0c0f",

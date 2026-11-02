@@ -11,7 +11,7 @@ cmake = (ui / 'CMakeLists.txt').read_text(encoding='utf-8')
 # The target property is consumed by Qt's finalization; a second linker flag
 # would be overridden by Qt's later default option.
 if not re.search(
-    r'if\(EMSCRIPTEN\).*?set_target_properties\(farcaster_client PROPERTIES\s+'
+    r'if\(EMSCRIPTEN\).*?set_target_properties\(genycaster PROPERTIES\s+'
     r'QT_WASM_INITIAL_MEMORY\s+"128MB"\)',
     cmake,
     re.S,
@@ -484,7 +484,7 @@ if 'bundledPersianFontFamily' not in theme:
     errors.append('R5 must prefer the application-bundled Persian font over system availability')
 if 'QFontDatabase::addApplicationFont' not in main_cpp or 'Vazirmatn-Regular.ttf' not in main_cpp:
     errors.append('R5 must load the embedded Persian font family through QFontDatabase')
-if 'GENYCASTER_FETCH_UI_FONT' not in cmake or 'qt_add_resources(farcaster_client genycaster_ui_fonts' not in cmake:
+if 'GENYCASTER_FETCH_UI_FONT' not in cmake or 'qt_add_resources(genycaster genycaster_ui_fonts' not in cmake:
     errors.append('R5 CMake must acquire and embed the pinned Persian UI font family')
 if 'iconFontFamily' not in theme or 'iconGlyph' not in theme:
     errors.append('R6 icon system must use the bundled canonical icon font through semantic names')

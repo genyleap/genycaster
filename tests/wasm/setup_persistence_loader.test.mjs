@@ -75,7 +75,7 @@ test('WASM refresh flushes selected node to IndexedDB before navigation',()=>{
 test('WASM packages branded shell instead of Qt logo; mobile uses visible viewport',()=>{
     const cmake=read('ui/CMakeLists.txt');
     assert.match(cmake,/genycaster-shell\.html/);
-    assert.match(cmake,/farcaster_client\.html/);
+    assert.match(cmake,/genycaster\.html/);
     assert.match(cmake,/genycaster-loader\.js/);
     assert.match(cmake,/browser_device_session\.mjs/);
     assert.match(cmake,/package_wasm_assets\.py/);
@@ -83,7 +83,7 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(html,/<meta name="viewport".*viewport-fit=cover/);
     assert.match(html,/<div id="qt-screen"/);
     assert.match(html,/<script src="qtloader\.js">/);
-    assert.match(html,/<script src="farcaster_client\.js">/);
+    assert.match(html,/<script src="genycaster\.js">/);
     assert.doesNotMatch(html,/qtlogo/);
     assert.match(html,/class="boot-glyph"/);
     assert.match(html,/class="boot-glyph" src="\.\/genycaster-boot-icon\.svg"/);
@@ -159,7 +159,7 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     const factory=()=>({});
     const memory=new Map();
     const sample=new Uint8Array([0,1,2,3,4,5,6,7]);
-    const hashedWasm='farcaster_client.0123456789abcdef0123.wasm';
+    const hashedWasm='genycaster.0123456789abcdef0123.wasm';
     let requestedWasm='', requestedOptions={};
     const timingEntries=new Map();
     let observeResources=null;
@@ -173,7 +173,7 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
             querySelector:()=>({setAttribute(){}})},
         localStorage:{getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},
         window:{
-            farcaster_client_entry:factory,
+            genycaster_entry:factory,
             __genycasterAssets:{wasm:hashedWasm},
             fetch:async(input,options)=>{
                 requestedWasm=String(input);requestedOptions=options;
@@ -183,7 +183,7 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
             visualViewport:{height:640,addEventListener(){}},
             innerHeight:680
         },
-        location:{href:'https://example.test/farcaster_client.html',origin:'https://example.test'},
+        location:{href:'https://example.test/genycaster.html',origin:'https://example.test'},
         performance:{
             now:()=>10,
             getEntriesByName:url=>timingEntries.get(url)||[]
@@ -207,7 +207,7 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(elements.get('qt-screen').style.height,'640px');
     assert.equal(passedFactory,factory);
     assert.equal(elements.get('genycaster-boot').hidden,false);
-    const wasm=await scope.window.fetch('https://example.test/farcaster_client.wasm');
+    const wasm=await scope.window.fetch('https://example.test/genycaster.wasm');
     assert.equal(wasm,nativeResponse,'Native WASM response must remain streamable');
     assert.equal(requestedWasm,'https://example.test/'+hashedWasm);
     assert.equal(requestedOptions.cache,undefined,'allow native HTTP caching');
@@ -254,7 +254,7 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
             fetch:async()=>{throw new Error('not reached');},
             addEventListener(){},innerHeight:640,
         },
-        location:{href:'https://example.test/farcaster_client.html'},
+        location:{href:'https://example.test/genycaster.html'},
         qtLoad:async()=>{invoked=true;},
         performance:{now:()=>0,getEntriesByName:()=>[]},
         console:{error:(...parts)=>messages.push(parts)},
@@ -262,7 +262,7 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
     };
     vm.runInNewContext(loader,scope);
     assert.equal(invoked,false);
-    assert.match(elements.get('boot-status').textContent,/farcaster_client_entry/);
+    assert.match(elements.get('boot-status').textContent,/genycaster_entry/);
     assert.equal(elements.get('boot-retry').classList.contains('visible'),true);
     assert.equal(messages.length,1);
 });

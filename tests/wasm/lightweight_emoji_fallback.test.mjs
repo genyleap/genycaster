@@ -57,7 +57,7 @@ test("lightweight fallback includes common emoji and DNA glyph", () => {
 test("WASM uses the lightweight embedded fallback, never downloads or loads old color font", () => {
     const cmake = read("ui/CMakeLists.txt").toString("utf8");
     const main = readGenycasterMain().toString("utf8");
-    assert.match(cmake, /qt_add_resources\(farcaster_client genycaster_emoji_fallback/);
+    assert.match(cmake, /qt_add_resources\(genycaster genycaster_emoji_fallback/);
     assert.match(cmake, /_emojiFallbackSize GREATER 1048576/);
     assert.match(cmake, /_emojiFallbackHash STREQUAL/);
     assert.match(main, /GenycasterEmojiFallback\.ttf/);

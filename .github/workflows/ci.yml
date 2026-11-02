@@ -140,8 +140,8 @@ jobs:
             -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           # lld avoids expensive GNU ld final-link memory use for the large Qt/C++26 app.
-          cmake --build build/native --target farcaster_client --parallel 2
-          test -x build/native/bin/farcaster_client
+          cmake --build build/native --target genycaster --parallel 2
+          test -x build/native/bin/genycaster
       - name: Package AppImage
         shell: bash
         env:
@@ -150,11 +150,11 @@ jobs:
           set -euo pipefail
           mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
             AppDir/usr/share/icons/hicolor/512x512/apps build/ci-linuxdeploy
-          cp build/native/bin/farcaster_client AppDir/usr/bin/
+          cp build/native/bin/genycaster AppDir/usr/bin/
           cp ui/wasm/genycaster-512.png \
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
           printf '%s\n' '[Desktop Entry]' 'Type=Application' \
-            'Name=GenyCaster' 'Exec=farcaster_client' \
+            'Name=GenyCaster' 'Exec=genycaster' \
             'Icon=genycaster' 'Categories=Network;' \
             > AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
@@ -239,14 +239,14 @@ jobs:
             -DOPENSSL_USE_STATIC_LIBS=TRUE \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
-          cmake --build build/native --target farcaster_client --parallel 3
-          APP=build/native/bin/farcaster_client.app
+          cmake --build build/native --target genycaster --parallel 3
+          APP=build/native/bin/genycaster.app
           test -d "$APP"
           # Fail if a cross-architecture Qt library or toolchain leaked in.
-          /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/farcaster_client"
+          /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/genycaster"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
           mkdir -p dist
-          DMG=build/native/bin/farcaster_client.dmg
+          DMG=build/native/bin/genycaster.dmg
           test -s "$DMG"
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
@@ -380,12 +380,12 @@ jobs:
           $qtBin = Join-Path $env:QT_ROOT_DIR 'bin'
           if (-not (Test-Path $qtBin)) { throw "Missing Qt bin directory: $qtBin" }
           Copy-Item $keychainBuilt.FullName (Join-Path $qtBin 'qt6keychain.dll') -Force
-          cmake --build build/native --target farcaster_client --parallel 3
+          cmake --build build/native --target genycaster --parallel 3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist/app | Out-Null
-          Copy-Item build/native/bin/farcaster_client.exe dist/app/
+          Copy-Item build/native/bin/genycaster.exe dist/app/
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
-            --qmldir ui --dir dist/app dist/app/farcaster_client.exe
+            --qmldir ui --dir dist/app dist/app/genycaster.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
           # Bundle all DLLs from this build's isolated vcpkg target triplet:
@@ -626,7 +626,7 @@ jobs:
           fi
           # Qt Network SSL feature was verified before OpenSSL packaging.
           cmake "${args[@]}"
-          cmake --build build/android --target farcaster_client_make_apk --parallel 3
+          cmake --build build/android --target genycaster_make_apk --parallel 3
           mkdir -p dist
           # Qt's deploy step may produce a native APK and a Gradle APK.
           # Never select arbitrarily from 'find *.apk' or package Debug.
@@ -756,13 +756,13 @@ jobs:
             "-DOPENSSL_ROOT_DIR=$PWD/build/ios-openssl/install" \
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
-          cmake --build build/ios --target farcaster_client --parallel 2
-          count="$(find build/ios -type d -name 'farcaster_client.app' | wc -l | tr -d ' ')"
+          cmake --build build/ios --target genycaster --parallel 2
+          count="$(find build/ios -type d -name 'genycaster.app' | wc -l | tr -d ' ')"
           test "$count" = 1
-          APP="$(find build/ios -type d -name 'farcaster_client.app' -print -quit)"
+          APP="$(find build/ios -type d -name 'genycaster.app' -print -quit)"
           test -s "$APP/Info.plist"
-          test -s "$APP/farcaster_client"
-          /usr/bin/lipo -verify_arch arm64 "$APP/farcaster_client"
+          test -s "$APP/genycaster"
+          /usr/bin/lipo -verify_arch arm64 "$APP/genycaster"
           mkdir -p dist
           tar -czf "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz" -C "$(dirname "$APP")" "$(basename "$APP")"
           python3 ci/verify_platform_package.py ios "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz"
