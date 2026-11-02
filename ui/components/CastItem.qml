@@ -1041,11 +1041,8 @@ Item {
                 }
             }
 
-            TapHandler {
-                acceptedButtons: Qt.RightButton
-                gesturePolicy: TapHandler.ReleaseWithinBounds
-                onTapped: root.openMoreMenu()
-            }
+            // Right-click is for selecting/copying content. Only the explicit
+            // three-dot button opens Cast actions.
         }
     }
 
