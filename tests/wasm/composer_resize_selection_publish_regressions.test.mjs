@@ -28,10 +28,11 @@ test('rich editor measures document text instead of nonempty HTML scaffolding', 
 
 test('composer geometry preserves desktop rounding and viewport scrolling', () => {
     const composer = source('ComposerDrawer.qml')
-    assert.match(composer, /fullScreen: compact && \(Qt\.platform\.os === "ios"/)
-    assert.match(composer, /parent\.height > parent\.width \* 1\.15/)
+    assert.match(composer, /fullScreen: root\.compact/)
+    assert.match(composer, /onAboutToShow: root\.compact = root\.requestedCompact/)
+    assert.doesNotMatch(composer, /parent\.height > parent\.width \* 1\.15/)
     assert.match(composer, /Layout\.minimumHeight: 0\s+clip: true/)
-    assert.match(composer, /Math\.max\(148, Math\.min\(255, composerScroll\.height \* 0\.55\)\)/)
+    assert.match(composer, /Math\.max\(128, Math\.min\(255, root\.height \* 0\.4\)\)/)
     assert.match(composer, /Layout\.bottomMargin: !root\.compact \? Theme\.space2 : 0/)
 })
 
