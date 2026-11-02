@@ -1,0 +1,41 @@
+// Streaks are based only on server-confirmed Cast events. Never grant a day
+// for logging in or for client-supplied timestamps, IDs or activity counts.
+export const STREAK_MILESTONES = Object.freeze([1,3,7,14,30,100,365]);
+const DAY_MS=86_400_000;
+export function calculateStreaks(rows,now=new Date()) {
+  const today=Math.floor(now.getTime()/DAY_MS);
+  const unique={activity:new Set(),creator:new Set()};
+  for(const row of rows||[]) {
+    if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.day)))continue;
+    const day=Math.floor(Date.parse(row.day+'T00:00:00Z')/DAY_MS);
+    if(!Number.isInteger(day)||day>today||day<today-730)continue;
+    if(row.kind!=='cast' && row.kind!=='reply')continue;
+    unique.activity.add(day);
+    if(row.kind==='cast')unique.creator.add(day);
+  }
+  const summarize=(values)=>{
+    const all=[...values].sort((a,b)=>a-b);
+    let longest=0, sequence=0, previous=-999999;
+    for(const day of all) {
+      sequence=day===previous+1?sequence+1:1;
+      longest=Math.max(longest,sequence);
+      previous=day;
+    }
+    // Missing today is not a broken streak until the UTC day ends.
+    let end=values.has(today)?today:today-1;
+    let current=0;
+    while(values.has(end) && current<=730){++current;--end;}
+    const badges=STREAK_MILESTONES.filter(m=>longest>=m);
+    const week=[];
+    const start=today-((new Date(today*DAY_MS).getUTCDay()+6)%7);
+    for(let i=0;i<7;i++){
+      const day=start+i;
+      week.push({date:new Date(day*DAY_MS).toISOString().slice(0,10),
+        completed:values.has(day),future:day>today});
+    }
+    const next=STREAK_MILESTONES.find(n=>n>longest)||null;
+    return {current,longest,total_days:all.length,badges,next_milestone:next,week};
+  };
+  return {time_zone:'UTC',activity:summarize(unique.activity),
+    creator:summarize(unique.creator)};
+}
