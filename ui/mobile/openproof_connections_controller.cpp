@@ -1209,6 +1209,44 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 }
 
 
+void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
+{
+    if(!fid || !trustedHttpsEndpoint(m_cloudUrl))return;
+    cancelNetworkReply(m_publicActivityRead,this);
+    m_publicActivityFid=fid;
+    m_publicActivitySource=QStringLiteral("casts");
+    emit streakChanged();
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/profile_activity"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("fid"),QString::number(fid));
+    url.setQuery(query);
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    auto* reply=m_network.get(request);
+    m_publicActivityRead=reply;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,fid] {
+        if(m_publicActivityRead!=reply){reply->deleteLater();return;}
+        m_publicActivityRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=1024?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_publicActivityFid!=fid)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto object=doc.object();
+        if(status==200 && object.value(QStringLiteral("fid")).toString()
+            ==QString::number(fid)) {
+            const auto source=object.value(QStringLiteral("activity_source")).toString();
+            m_publicActivitySource=source==QStringLiteral("github")
+                ?source:QStringLiteral("casts");
+        }
+        emit streakChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchStreakPreferences()
 {
     if(!m_viewerFid || !cloudAuthorizationReady() ||
@@ -2589,6 +2627,9 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_viewerFid = fid;
     cancelNetworkReply(m_streakRead, this);
     cancelNetworkReply(m_streakWrite, this);
+    cancelNetworkReply(m_publicActivityRead, this);
+    m_publicActivityFid=0;
+    m_publicActivitySource=QStringLiteral("casts");
     cancelNetworkReply(m_streakPreferencesRead, this);
     cancelNetworkReply(m_streakPreferencesWrite, this);
     cancelNetworkReply(m_streakLeaderboardRead, this);
