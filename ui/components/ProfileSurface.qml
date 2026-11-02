@@ -1836,7 +1836,10 @@ Item {
                                           Number(openProofConnections.streak.activity?.current || 0)))
                                 : qsTrId("genycaster.streak.title")
                             Accessible.description: qsTrId("genycaster.streak.open")
-                            onClicked: streakDrawer.open()
+                            onClicked: {
+                                streakDrawer.mobilePresentation = root.compact
+                                streakDrawer.open()
+                            }
                         }
 
                         Item {
@@ -2539,7 +2542,9 @@ Item {
         id: streakDrawer
         objectName: "profileStreakDrawer"
         parent: Overlay.overlay
-        readonly property bool mobilePresentation: root.compact
+        // Capture the presentation at opening; a live resize must not flip
+        // an already-open Drawer between side panel and bottom sheet.
+        property bool mobilePresentation: false
         bottomSheet: mobilePresentation
         dimBackground: true
         showHandle: mobilePresentation
