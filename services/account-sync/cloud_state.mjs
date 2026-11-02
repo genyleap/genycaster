@@ -415,8 +415,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         respond(response,400,{error:'invalid_fid'});return true;
       }
       try {
-        respond(response,200,{fid,activity_source:
-          await store.getPublicActivitySource(fid,upstream)});
+        const data=await store.getPublicActivitySource(fid,upstream);
+        respond(response,200,{fid,activity_source:data.activity_source,
+          github_login:data.github_login});
       }catch {
         respond(response,503,{error:'activity_preference_unavailable'});
       }
