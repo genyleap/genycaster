@@ -2,6 +2,38 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.leaderboard">
+            <source>Leaderboard</source>
+            <translation>排行榜</translation>
+        </message>
+        <message id="genycaster.streak.top_100">
+            <source>Top 100</source>
+            <translation>前100名</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_description">
+            <source>Top active Streaks from users who choose to participate.</source>
+            <translation>自愿参加用户的已验证连续活跃记录。</translation>
+        </message>
+        <message id="genycaster.streak.join_leaderboard">
+            <source>Join leaderboard (public)</source>
+            <translation>加入公开排行榜</translation>
+        </message>
+        <message id="genycaster.streak.leave_leaderboard">
+            <source>Leave leaderboard</source>
+            <translation>退出排行榜</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_empty">
+            <source>No participating Streaks yet.</source>
+            <translation>暂无参与者。</translation>
+        </message>
+        <message id="genycaster.streak.fid">
+            <source>FID %1</source>
+            <translation>FID %1</translation>
+        </message>
+        <message id="genycaster.streak.leader_days">
+            <source>%1 days</source>
+            <translation>%1天</translation>
+        </message>
         <message id="genycaster.streak.title">
             <source>Streak</source>
             <translation>连续打卡</translation>
