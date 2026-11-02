@@ -2,6 +2,14 @@
 <TS version="2.1" language="pt_BR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.activity.default_source">
+            <source>Show on profile</source>
+            <translation>Exibição padrão do perfil</translation>
+        </message>
+        <message id="genycaster.activity.github_default_requires_link">
+            <source>Link a GitHub account to choose it as your default.</source>
+            <translation>Conecte o GitHub para defini-lo como exibição padrão.</translation>
+        </message>
         <message id="genycaster.streak.leaderboard">
             <source>Leaderboard</source>
             <translation>Classificação</translation>
