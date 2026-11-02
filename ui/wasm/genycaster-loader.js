@@ -283,9 +283,17 @@ async function compressedWebKitEngine(url,options) {
        || !hashedWasm.test(name) || gzipName!==name+".gz"
        || !Number.isSafeInteger(gzipBytes) || gzipBytes<=0)return null;
     const gzipUrl=new URL(gzipName,location.href);
+    // Older deployments incorrectly answered a missing .wasm.gz with a 200
+    // HTML shell. Safari can keep that response in its cache and force-cache
+    // would reuse it even after the correct sidecar has been deployed.
+    // A release-scoped URL isolates old CDN entries; revalidation prevents
+    // a poisoned browser cache from making the runtime permanently fail.
+    const releaseToken=String(releaseInfo.version||releaseInfo.buildId||"")
+        .replace(/[^a-f0-9]/gi,"").slice(0,32);
+    if(releaseToken)gzipUrl.searchParams.set("v",releaseToken);
     let source;
     try{
-        source=await originalFetch(gzipUrl.href,{...options,cache:"force-cache"});
+        source=await originalFetch(gzipUrl.href,{...options,cache:"no-cache"});
     }catch(error){
         console.warn("[Genycaster] Compressed WASM unavailable; using native fetch",
             String(error?.message||error));
