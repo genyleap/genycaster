@@ -30,6 +30,8 @@ test('Streak verifier accepts only exact fid, message hash and CastAdd payload',
   assert.equal(await verifyStreakCastOwnership(hash,'42',{fetchImpl:falseCast}),null);
 });
 const fetchUpstream=async(url,options)=>{
+  if(options?.headers?.authorization!=='Bearer good')
+    return new Response('{}',{status:401});
   if(url.endsWith('/account/profile'))return new Response(JSON.stringify({identity_id:'farcaster:42'}));
   if(url.endsWith('/account/connections'))return new Response(JSON.stringify({connections:[{provider:'farcaster',fid:'42'}]}));
   return new Response('{}',{status:404});
