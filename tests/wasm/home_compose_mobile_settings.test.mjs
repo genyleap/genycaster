@@ -89,9 +89,9 @@ test('Mobile Cast taxonomy opens bottom sheets without shifting the editor', () 
     const footer = composer.indexOf('id: mobileComposerFooter');
     assert.ok(scroll > 0 && scroll < selectors && selectors < footer);
     assert.ok(!composer.includes('id: mobileSelectorSlot'));
-    assert.equal((composer.match(/modal: root\\.compact/g) || []).length, 2);
-    assert.equal((composer.match(/dim: root\\.compact/g) || []).length, 2);
-    assert.equal((composer.match(/Qt\\.inputMethod\\.hide\\(\\)/g) || []).length, 2);
-    assert.equal((composer.match(/root\\.contentItem\\.height : root\\.height\\) - height/g) || []).length, 2);
+    assert.equal(composer.split('modal: root.compact').length - 1, 2);
+    assert.equal(composer.split('dim: root.compact').length - 1, 2);
+    assert.equal(composer.split('Qt.inputMethod.hide()').length - 1, 2);
+    assert.equal(composer.split('root.contentItem.height : root.height) - height').length - 1, 2);
     assert.ok(composer.includes('root.showTaxonomyControls && !root.keyboardVisible'));
 });
