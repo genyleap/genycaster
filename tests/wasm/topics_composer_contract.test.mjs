@@ -6,7 +6,7 @@ test('composer keeps topic selection separate from protocol parent and channel',
  const q=read('ui/components/ComposerDrawer.qml');
  assert.match(q,/property var selectedTopics: \[\]/);
  assert.match(q,/readonly property int maxCastTopics: 3/);
- assert.match(q,/objectName: "composerTopicDrawer"/);
+ assert.match(q,/objectName: "composerTopicDropdown"/);
  assert.match(q,/objectName: "composerTopicSearch"/);
  assert.match(q,/model: openProofConnections.topicCatalog/);
  assert.match(q,/onClicked: root.toggleTopic\(topicChip.slug\)/);
