@@ -677,17 +677,57 @@ GenyDrawer {
         }
     }
 
-    GenyDrawer {
+    // A combobox-style, bounded overlay anchored to the selector.
+    // The current parent URL / topic metadata remains owned by the C++ bridge.
+    Popup {
         id: channelPicker
-        objectName: "composerChannelDrawer"
-        hostItem: root.hostItem
-        bottomSheet: true
-        showHandle: true
-        dimBackground: true
-        interactive: false
-        width: parent ? parent.width : root.width
-        height: parent ? Math.min(parent.height * 0.76, 670) : 580
-        contentPadding: Theme.space3
+        objectName: "composerChannelDropdown"
+        parent: Overlay.overlay
+        modal: false
+        dim: false
+        focus: true
+        padding: Theme.space3
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        readonly property Item triggerItem: root.compact ? selectedChannelChip : desktopCastChannelTrigger
+        width: parent ? Math.min(410, Math.max(0, parent.width - Theme.space4 * 2)) : 410
+        height: parent ? Math.min(390, Math.max(160, parent.height - Theme.space4 * 2)) : 390
+        x: {
+            if (!parent || !triggerItem) return Theme.space2
+            const pt = triggerItem.mapToItem(parent, 0, 0)
+            const preferred = Theme.rtl ? pt.x + triggerItem.width - width : pt.x
+            return Math.max(Theme.space2,
+                Math.min(parent.width - width - Theme.space2, preferred))
+        }
+        y: {
+            if (!parent || !triggerItem) return Theme.space2
+            const pt = triggerItem.mapToItem(parent, 0, 0)
+            const below = parent.height - (pt.y + triggerItem.height) - Theme.space2
+            const above = pt.y - Theme.space2
+            const preferred = below >= height || below >= above
+                ? pt.y + triggerItem.height + Theme.space1
+                : pt.y - height - Theme.space1
+            return Math.max(Theme.space2,
+                Math.min(parent.height - height - Theme.space2, preferred))
+        }
+        background: PopupSurface {
+            fillColor: Theme.surfaceElevated
+            borderColor: Theme.borderMuted
+            curveDepth: Theme.curveContainer
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 0; to: 1
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity"
+                to: 0
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
         onOpened: {
             if (!root.showTaxonomyControls) {
                 close()
@@ -721,16 +761,9 @@ GenyDrawer {
                     onClicked: channelPicker.close()
                 }
             }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                color: Theme.textSecondary
-                wrapMode: Text.Wrap
-                text: qsTrId("genycaster.composer.channel_picker_hint")
-                font.pixelSize: Theme.typeCaptionSize
-            }
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 48
+                Layout.preferredHeight: 40
                 fillColor: Theme.editorSurface
                 borderWidth: 1
                 borderColor: channelSearch.activeFocus ? Theme.accent : Theme.borderMuted
@@ -788,7 +821,7 @@ GenyDrawer {
                     id: channelRow
                     required property var modelData
                     width: channelResults.width
-                    height: 62
+                    height: 52
                     readonly property string channelParentUrl: String(modelData.parentUrl || "")
                     readonly property bool isHome: Boolean(modelData.isHome)
                     readonly property bool selectable: Boolean(modelData.selectable)
@@ -810,7 +843,7 @@ GenyDrawer {
                         layoutDirection: Theme.uiDirection
                         Avatar {
                             Layout.alignment: Qt.AlignVCenter
-                            avatarSize: 39
+                            avatarSize: 32
                             forceAutomaticDownload: true
                             sourceUrl: String(channelRow.modelData.imageUrl || "")
                             displayName: String(channelRow.modelData.name || "")
@@ -904,17 +937,57 @@ GenyDrawer {
         }
     }
 
-    GenyDrawer {
+    // A combobox-style, bounded overlay anchored to the selector.
+    // The current parent URL / topic metadata remains owned by the C++ bridge.
+    Popup {
         id: topicPicker
-        objectName: "composerTopicDrawer"
-        hostItem: root.hostItem
-        bottomSheet: true
-        showHandle: true
-        dimBackground: true
-        interactive: false
-        width: parent ? parent.width : root.width
-        height: parent ? Math.min(parent.height * 0.72, 600) : 560
-        contentPadding: Theme.space3
+        objectName: "composerTopicDropdown"
+        parent: Overlay.overlay
+        modal: false
+        dim: false
+        focus: true
+        padding: Theme.space3
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        readonly property Item triggerItem: root.compact ? selectedTopicChip : desktopCastTopicTrigger
+        width: parent ? Math.min(410, Math.max(0, parent.width - Theme.space4 * 2)) : 410
+        height: parent ? Math.min(330, Math.max(160, parent.height - Theme.space4 * 2)) : 330
+        x: {
+            if (!parent || !triggerItem) return Theme.space2
+            const pt = triggerItem.mapToItem(parent, 0, 0)
+            const preferred = Theme.rtl ? pt.x + triggerItem.width - width : pt.x
+            return Math.max(Theme.space2,
+                Math.min(parent.width - width - Theme.space2, preferred))
+        }
+        y: {
+            if (!parent || !triggerItem) return Theme.space2
+            const pt = triggerItem.mapToItem(parent, 0, 0)
+            const below = parent.height - (pt.y + triggerItem.height) - Theme.space2
+            const above = pt.y - Theme.space2
+            const preferred = below >= height || below >= above
+                ? pt.y + triggerItem.height + Theme.space1
+                : pt.y - height - Theme.space1
+            return Math.max(Theme.space2,
+                Math.min(parent.height - height - Theme.space2, preferred))
+        }
+        background: PopupSurface {
+            fillColor: Theme.surfaceElevated
+            borderColor: Theme.borderMuted
+            curveDepth: Theme.curveContainer
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity"
+                from: 0; to: 1
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity"
+                to: 0
+                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            }
+        }
         onOpened: {
             topicSearch.text = ""
             openProofConnections.fetchTopics()
@@ -1255,6 +1328,7 @@ GenyDrawer {
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
                 ActionButton {
+                    id: desktopCastChannelTrigger
                     objectName: "desktopCastChannelTrigger"
                     compact: true
                     selected: root.selectedParentUrl.length > 0
@@ -1278,6 +1352,7 @@ GenyDrawer {
                     }
                 }
                 ActionButton {
+                    id: desktopCastTopicTrigger
                     compact: true
                     selected: root.selectedTopics.length > 0
                     iconGlyph: Theme.iconPalette
