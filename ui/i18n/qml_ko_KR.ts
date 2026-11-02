@@ -2,6 +2,14 @@
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.activity.default_source">
+            <source>Show on profile</source>
+            <translation>프로필 기본 표시</translation>
+        </message>
+        <message id="genycaster.activity.github_default_requires_link">
+            <source>Link a GitHub account to choose it as your default.</source>
+            <translation>기본 표시로 설정하려면 GitHub 계정을 연결하세요.</translation>
+        </message>
         <message id="genycaster.streak.leaderboard">
             <source>Leaderboard</source>
             <translation>순위표</translation>
