@@ -2065,6 +2065,7 @@ Item {
                         // heading or overflowing the horizontal profile gutter.
                         Layout.preferredHeight: childrenRect.height
                         flow: Flow.LeftToRight
+                        layoutDirection: Theme.uiDirection
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
                         visible: Number(root.activeDetail.fid || 0) > 0
@@ -2127,7 +2128,7 @@ Item {
                         // Separate the badge from the follower counts when
                         // there is room; never widen the profile content.
                         Item {
-                            visible: root.isOwnProfile && !root.compact
+                            visible: root.isOwnProfile
                             width: visible ? Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
                                 profileStreakBadge.width - Theme.space3 * 4) : 0
