@@ -46,7 +46,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 Icon {
-                    text: "flame"
+                    text: Theme.iconEnergy
                     preferredSize: 21
                     color: Theme.accent
                 }
@@ -215,7 +215,7 @@ Item {
                                 border.width: earned ? 2 : 1
                                 Icon {
                                     anchors.centerIn: parent
-                                    text: earned ? "award" : "lock"
+                                    text: earned ? Theme.iconFidelity : "system/lock"
                                     preferredSize: 18
                                     color: earned ? Theme.accent : Theme.inkMuted
                                 }
