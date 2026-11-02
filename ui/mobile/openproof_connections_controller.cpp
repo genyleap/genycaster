@@ -1319,10 +1319,11 @@ void OpenProofConnectionsController::setStreakPreferences(
         if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
         const auto doc=QJsonDocument::fromJson(bytes);
         if(status==200 && doc.isObject()
-           && doc.object().value(QStringLiteral("preferences")).isObject())
+           && doc.object().value(QStringLiteral("preferences")).isObject()) {
             m_streakPreferences=doc.object().value(QStringLiteral("preferences"))
                 .toObject().toVariantMap();
-        else {
+            fetchStreakLeaderboard(m_streakLeaderboardTrack);
+        } else {
             // A conflict means the account was updated on another device.
             fetchStreakPreferences();
         }
@@ -1349,6 +1350,7 @@ void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track
     authorizeCloudRequest(request);
     auto* reply=m_network.get(request);
     m_streakLeaderboardRead=reply;
+    m_streakLeaderboardTrack=track;
     m_streakLeaderboard.clear();
     emit streakChanged();
     const auto viewer=m_viewerFid;
