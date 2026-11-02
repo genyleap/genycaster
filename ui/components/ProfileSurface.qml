@@ -2065,7 +2065,6 @@ Item {
                         // heading or overflowing the horizontal profile gutter.
                         Layout.preferredHeight: childrenRect.height
                         flow: Flow.LeftToRight
-                        layoutDirection: Theme.uiDirection
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
                         visible: Number(root.activeDetail.fid || 0) > 0
