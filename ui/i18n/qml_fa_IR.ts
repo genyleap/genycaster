@@ -2,6 +2,110 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.title">
+            <source>Streak</source>
+            <translation>استریک</translation>
+        </message>
+        <message id="genycaster.streak.subtitle">
+            <source>Your verified activity and milestones</source>
+            <translation>فعالیت تأییدشده و نشان‌های پیشرفت شما</translation>
+        </message>
+        <message id="genycaster.streak.open">
+            <source>Open Streak details</source>
+            <translation>نمایش جزئیات استریک</translation>
+        </message>
+        <message id="genycaster.streak.profile_badge">
+            <source>Streak · %1d</source>
+            <translation>استریک · %1 روز</translation>
+        </message>
+        <message id="genycaster.streak.activity">
+            <source>Activity</source>
+            <translation>فعالیت</translation>
+        </message>
+        <message id="genycaster.streak.creator">
+            <source>Creator</source>
+            <translation>تولید محتوا</translation>
+        </message>
+        <message id="genycaster.streak.loading">
+            <source>Loading Streak…</source>
+            <translation>در حال بارگذاری استریک…</translation>
+        </message>
+        <message id="genycaster.streak.unavailable">
+            <source>Streak is not available yet.</source>
+            <translation>استریک فعلاً در دسترس نیست.</translation>
+        </message>
+        <message id="genycaster.streak.day_in_row">
+            <source>day in a row</source>
+            <translation>روز متوالی</translation>
+        </message>
+        <message id="genycaster.streak.days_in_row">
+            <source>days in a row</source>
+            <translation>روز متوالی</translation>
+        </message>
+        <message id="genycaster.streak.best">
+            <source>Best: %1 days</source>
+            <translation>بهترین رکورد: %1 روز</translation>
+        </message>
+        <message id="genycaster.streak.next">
+            <source>Next: %1 days</source>
+            <translation>مرحلهٔ بعد: %1 روز</translation>
+        </message>
+        <message id="genycaster.streak.legendary">
+            <source>Legendary</source>
+            <translation>افسانه‌ای</translation>
+        </message>
+        <message id="genycaster.streak.mon">
+            <source>M</source>
+            <translation>دش</translation>
+        </message>
+        <message id="genycaster.streak.tue">
+            <source>T</source>
+            <translation>سه</translation>
+        </message>
+        <message id="genycaster.streak.wed">
+            <source>W</source>
+            <translation>چه</translation>
+        </message>
+        <message id="genycaster.streak.thu">
+            <source>T</source>
+            <translation>پن</translation>
+        </message>
+        <message id="genycaster.streak.fri">
+            <source>F</source>
+            <translation>جم</translation>
+        </message>
+        <message id="genycaster.streak.sat">
+            <source>S</source>
+            <translation>شن</translation>
+        </message>
+        <message id="genycaster.streak.sun">
+            <source>S</source>
+            <translation>یک</translation>
+        </message>
+        <message id="genycaster.streak.creator_rule">
+            <source>One verified original Cast per day counts.</source>
+            <translation>هر روز یک کست اصلیِ تأییدشده محاسبه می‌شود.</translation>
+        </message>
+        <message id="genycaster.streak.activity_rule">
+            <source>A verified Cast or Reply counts once per day.</source>
+            <translation>هر روز یک کست یا پاسخ تأییدشده محاسبه می‌شود.</translation>
+        </message>
+        <message id="genycaster.streak.badges">
+            <source>Badges · %1/%2</source>
+            <translation>نشان‌ها · %1 از %2</translation>
+        </message>
+        <message id="genycaster.streak.show_less">
+            <source>Show less</source>
+            <translation>نمایش کمتر</translation>
+        </message>
+        <message id="genycaster.streak.see_all">
+            <source>See all</source>
+            <translation>نمایش همه</translation>
+        </message>
+        <message id="genycaster.streak.badge_days">
+            <source>%1d</source>
+            <translation>%1 روز</translation>
+        </message>
         <message id="genycaster.engagement.views_accessible">
             <source>Views: %1</source>
             <translation>بازدیدها: %1</translation>
