@@ -38,16 +38,23 @@ Item {
                 Layout.preferredWidth: String(modelData.id) === "conversations" ? 1.65 : 1
                 Layout.fillHeight: true
                 readonly property bool selected: String(modelData.id) === root.currentMode
-                Accessible.role: Accessible.Tab
+                Accessible.role: Accessible.PageTab
                 Accessible.name: String(modelData.label)
                 Accessible.selected: selected
 
                 HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.space2
+                    anchors.margins: Theme.space1
+                    radius: Theme.curveCompact
                     color: hover.hovered && !tabButton.selected
                            ? Theme.surfaceHover : "transparent"
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.reduceMotion ? 0 : 110
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
                 Text {
                     anchors.fill: parent
@@ -56,6 +63,9 @@ Item {
                     text: String(tabButton.modelData.label || "")
                     color: tabButton.selected ? Theme.accent
                                               : (hover.hovered ? Theme.ink : Theme.inkMuted)
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+                    }
                     font.family: Theme.fontFamily
                     font.pixelSize: root.width < 400 ? 12 : Theme.typeMetaSize
                     fontSizeMode: Text.HorizontalFit
