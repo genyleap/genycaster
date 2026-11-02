@@ -105,6 +105,8 @@ Item {
                 openProofConnections.cloudAuthorizationReady &&
                 !openProofConnections.streakBusy)
                 openProofConnections.fetchStreak()
+            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+                openProofConnections.fetchStreakPreferences()
         }
     }
     Timer {
@@ -2733,6 +2735,8 @@ Item {
         onOpened: {
             if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
                 openProofConnections.fetchStreak()
+            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+                openProofConnections.fetchStreakLeaderboard("activity")
         }
 
         contentItem: ColumnLayout {
