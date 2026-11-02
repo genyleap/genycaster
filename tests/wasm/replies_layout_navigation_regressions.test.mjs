@@ -79,3 +79,15 @@ test('composer waits for remembered signer verification instead of showing the s
   assert.ok(shell.includes('function onStateChanged() { root.resolvePendingComposer() }'));
   assert.ok(shell.includes('presentationBridge.isAuthenticated && presentationBridge.writeReady'));
 });
+
+test('compact navigation uses the canonical GenyCaster G-arrow logo instead of DNA',()=>{
+  const compact=read('ui/components/CompactNavigationRail.qml');
+  const full=read('ui/components/SideNavigation.qml');
+  assert.match(compact,/objectName: "compactSidebarGenycasterLogo"/);
+  assert.match(compact,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
+  assert.match(full,/source: "qrc:\/qt\/qml\/Farcaster\/Client\/wasm\/genycaster-icon\.svg"/);
+  assert.doesNotMatch(compact,/Theme\.iconLeaf|brands\/geny|brands\/genyleap/);
+  assert.match(compact,/fillMode: Image\.PreserveAspectFit/);
+  const shell=read('ui/components/AppShell.qml');
+  assert.match(shell,/CompactNavigationRail\s*\{/);
+});

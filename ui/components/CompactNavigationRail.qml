@@ -42,16 +42,24 @@ Rectangle {
         anchors.bottomMargin: Theme.space2
         spacing: Theme.space1
 
-        Superellipse {
+        // Use the exact GenyCaster G-arrow mark from the expanded sidebar,
+        // not the Genyleap DNA/leaf icon. The SVG already owns its background.
+        Item {
+            objectName: "compactSidebarGenycasterBrand"
             Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 36
-            Layout.preferredHeight: 36
+            Layout.preferredWidth: Theme.scaleUi(40)
+            Layout.preferredHeight: Theme.scaleUi(40)
             Layout.bottomMargin: Theme.space3
-            fillColor: Theme.primaryFill
-            curveDepth: Theme.shapeControlMedium
-            elevation: Theme.elevationControl
-            shadowOpacityScale: 0.52
-            Icon { anchors.centerIn: parent; text: Theme.iconLeaf; color: Theme.accentInk; preferredSize: Theme.iconSizeLarge }
+            Image {
+                objectName: "compactSidebarGenycasterLogo"
+                anchors.fill: parent
+                source: "qrc:/qt/qml/Farcaster/Client/wasm/genycaster-icon.svg"
+                sourceSize.width: 128
+                sourceSize.height: 128
+                fillMode: Image.PreserveAspectFit
+                mipmap: true
+                Accessible.name: qsTrId("genycaster.app.genycaster")
+            }
         }
 
         Repeater {
