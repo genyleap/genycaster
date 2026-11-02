@@ -2,6 +2,14 @@
 <TS version="2.1" language="en_US" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.activity.default_source">
+            <source>Show on profile</source>
+            <translation>Show on profile</translation>
+        </message>
+        <message id="genycaster.activity.github_default_requires_link">
+            <source>Link a GitHub account to choose it as your default.</source>
+            <translation>Link a GitHub account to choose it as your default.</translation>
+        </message>
         <message id="genycaster.streak.leaderboard">
             <source>Leaderboard</source>
             <translation>Leaderboard</translation>
