@@ -21,16 +21,9 @@ Button {
     Accessible.name: label
     Accessible.checked: checked
 
-    // No selected-row card: two adjacent choices must remain visually equal.
-    background: Rectangle {
-        radius: Theme.space2
-        color: control.down || (control.hovered && control.enabled)
-               ? Theme.surfaceHover : "transparent"
-        opacity: control.down ? 0.72 : control.hovered ? 0.45 : 0
-        Behavior on opacity {
-            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-        }
-    }
+    // The choice itself is not a card. Hover/focus is expressed by the
+    // indicator, avoiding a gray rectangle around the longer consent text.
+    background: Item { }
 
     contentItem: RowLayout {
         id: choiceContent
@@ -45,7 +38,8 @@ Button {
             color: control.checked ? Theme.accent : Theme.surface
             border.width: Theme.keyboardFocusVisible(control) ? 2 : 1.5
             border.color: Theme.keyboardFocusVisible(control) ? Theme.focus
-                         : control.checked ? Theme.accent : Theme.borderStrong
+                         : control.checked ? Theme.accent
+                         : control.hovered ? Theme.inkMuted : Theme.borderStrong
             Behavior on color {
                 ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
             }
