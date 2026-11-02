@@ -5,7 +5,7 @@ const read=f=>readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
 test('composer topic chooser is dynamic, searchable, capped, and separate from Farcaster channels',()=>{
  const q=read('ui/components/ComposerDrawer.qml');
- assert.match(q,/objectName: "composerTopicDrawer"/);
+ assert.match(q,/objectName: "composerTopicDropdown"/);
  assert.match(q,/model: openProofConnections.topicCatalog/);
  assert.match(q,/id: topicSearch/);
  assert.match(q,/root.selectedTopics.length < root.maxCastTopics/);
