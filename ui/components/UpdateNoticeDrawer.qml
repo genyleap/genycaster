@@ -128,6 +128,7 @@ Drawer {
         }
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             ColumnLayout {
                 Layout.fillWidth: true
@@ -139,15 +140,17 @@ Drawer {
                 DirectionAwareLabel {
                     text: Qt.platform.os === "wasm"
                           && updateController.latestVersion === updateController.appVersion
-                          ? qsTrId("genycaster.update.build_label").arg(updateController.webCurrentBuild)
-                          : "v" + String(updateController.appVersion || "—")
+                          ? qsTrId("genycaster.update.build_label")
+                              .arg(LocaleFormat.localizeDigits(updateController.webCurrentBuild))
+                          : LocaleFormat.localizeDigits(String(updateController.appVersion || "—"))
+                    alignToUi: true
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.ink
                 }
             }
             Icon {
-                text: Theme.iconArrowRight
+                text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                 color: Theme.inkMuted
                 preferredSize: Theme.iconSize
             }
@@ -161,8 +164,10 @@ Drawer {
                 DirectionAwareLabel {
                     text: Qt.platform.os === "wasm"
                           && updateController.latestVersion === updateController.appVersion
-                          ? qsTrId("genycaster.update.build_label").arg(updateController.webLatestBuild)
-                          : "v" + String(updateController.latestVersion || "—")
+                          ? qsTrId("genycaster.update.build_label")
+                              .arg(LocaleFormat.localizeDigits(updateController.webLatestBuild))
+                          : LocaleFormat.localizeDigits(String(updateController.latestVersion || "—"))
+                    alignToUi: true
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.accent
@@ -207,9 +212,10 @@ Drawer {
                     id: releaseNotesText
                     width: parent.width
                     text: updateController.releaseNotes.length > 0
-                          ? (updateController.releaseSummary.length > 0
-                             ? updateController.releaseSummary + "\n\n" + updateController.releaseNotes
-                             : updateController.releaseNotes)
+                          ? LocaleFormat.localizeDigits(
+                                updateController.releaseSummary.length > 0
+                                ? updateController.releaseSummary + "\n\n" + updateController.releaseNotes
+                                : updateController.releaseNotes)
                           : qsTrId("genycaster.update.no_notes")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize

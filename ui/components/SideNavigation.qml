@@ -129,7 +129,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     y: navigationWordmark.y + navigationWordmark.height + Theme.space1
-                    text: Qt.application.version ? "v" + Qt.application.version : ""
+                    text: Qt.application.version ? "v" + LocaleFormat.localizeDigits(Qt.application.version) : ""
                     color: Theme.inkMuted
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize

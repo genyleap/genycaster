@@ -31,7 +31,7 @@ GenyDrawer {
         case "stable": label = qsTrId("genycaster.update.channel_stable"); break
         default: return ""
         }
-        return channel === "stable" ? label : label + " " + String(number)
+        return channel === "stable" ? label : label + " " + LocaleFormat.localizeDigits(number)
     }
     readonly property bool webAssembly: Qt.platform.os === "wasm"
     // Overlay.overlay measures the actual Qt window on both native desktop
@@ -101,27 +101,23 @@ GenyDrawer {
         return applied
     }
 
+    // Settings owns the complete mobile viewport (inside the OS safe-area).
+    // No exposed strip of the underlying app, sheet grabber or rounded top.
+    // Keep its navigation and independently scrollable sections unchanged.
     bottomSheet: mobilePresentation
-    // Scrolling settings must not drag the sheet. Dismiss only by Back/Close,
-    // Escape, or a deliberate press in the uncovered backdrop above it.
+    fullScreen: mobilePresentation
+    // Scrolling settings must not drag the sheet. Dismiss only by Back/Close
+    // or Escape; the full-screen mobile panel has no outside backdrop.
     interactive: false
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(1100, parent.width * 0.96)) : 1100
-    // A modest top reveal makes Settings consistent with other bottom sheets
-    // without sacrificing its internal independently scrolling sections.
-    // A 790dp cap left phone Settings floating well above the navigation
-    // gesture area and exposed the underlying compose FAB. Use the available
-    // viewport, not a desktop dialog maximum, for phone settings.
-    // Keep the bottom sheet inside the actual overlay even in landscape
-    // and when an on-screen keyboard temporarily shrinks the viewport.
-    height: parent ? (mobilePresentation
-                     ? Math.min(parent.height, Math.max(320,
-                           parent.height - Math.max(Theme.space7,
-                           parent.SafeArea.margins.top + Theme.space3)))
-                     : parent.height) : 820
+    // The overlay already represents the Qt-safe content viewport. Reserve
+    // system status/navigation insets through padding, not a fake blank strip
+    // above the drawer. Full height also works after orientation changes.
+    height: parent ? parent.height : 820
     // Drawer/Popup inherits QtObject rather than Item. SafeArea belongs to
     // the overlay Item (or its Window.contentItem), never to the popup root.
     readonly property real navigationInset: root.mobilePresentation && parent
@@ -2347,10 +2343,13 @@ GenyDrawer {
                         }
                         RowLayout {
                             Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
                             spacing: Theme.space2
                             DirectionAwareLabel {
                                 objectName: "settingsBetaReleaseLabel"
-                                text: qsTrId("genycaster.update.version_number").arg(updateController.versionNumber)
+                                text: qsTrId("genycaster.update.version_number")
+                                      .arg(LocaleFormat.localizeDigits(updateController.versionNumber))
+                                alignToUi: true
                                 color: Theme.accent
                                 font.pixelSize: Theme.typeMetaSize
                                 font.weight: Theme.weightDemiBold
@@ -2358,6 +2357,7 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 text: root.releaseChannelLabel(updateController.releaseChannel,
                                                                updateController.releaseChannelNumber)
+                                alignToUi: true
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeMetaSize
                             }
@@ -2423,13 +2423,17 @@ GenyDrawer {
                                 Layout.fillWidth: true
                                 visible: updateController.updateAvailable
                                 text: updateController.latestVersion === updateController.appVersion
-                                      ? qsTrId("genycaster.update.build_label").arg(updateController.webCurrentBuild)
-                                        + "  →  "
-                                        + qsTrId("genycaster.update.build_label").arg(updateController.webLatestBuild)
-                                      : qsTrId("genycaster.update.current") + ": v"
-                                        + updateController.appVersion + "  →  "
-                                        + qsTrId("genycaster.update.new") + ": v"
-                                        + updateController.latestVersion
+                                      ? qsTrId("genycaster.update.build_label").arg(
+                                            LocaleFormat.localizeDigits(updateController.webCurrentBuild))
+                                        + (Theme.rtl ? "  ←  " : "  →  ")
+                                        + qsTrId("genycaster.update.build_label").arg(
+                                            LocaleFormat.localizeDigits(updateController.webLatestBuild))
+                                      : qsTrId("genycaster.update.current") + ": "
+                                        + LocaleFormat.localizeDigits(updateController.appVersion)
+                                        + (Theme.rtl ? "  ←  " : "  →  ")
+                                        + qsTrId("genycaster.update.new") + ": "
+                                        + LocaleFormat.localizeDigits(updateController.latestVersion)
+                                alignToUi: true
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
@@ -2456,7 +2460,7 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: updateController.releaseSummary.length > 0
-                                text: updateController.releaseSummary
+                                text: LocaleFormat.localizeDigits(updateController.releaseSummary)
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
@@ -2464,7 +2468,7 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: updateController.releaseNotes.length > 0
-                                text: updateController.releaseNotes
+                                text: LocaleFormat.localizeDigits(updateController.releaseNotes)
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                                 wrapMode: Text.Wrap
@@ -2534,7 +2538,8 @@ GenyDrawer {
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 visible: updateController.latestVersion.length > 0
-                                text: qsTrId("genycaster.settings.latest_release_1").arg(updateController.latestVersion)
+                                text: qsTrId("genycaster.settings.latest_release_1")
+                                      .arg(LocaleFormat.localizeDigits(updateController.latestVersion))
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                             }
@@ -2559,7 +2564,8 @@ GenyDrawer {
                                 DirectionAwareLabel {
                                     visible: updateController.downloading
                                     Layout.fillWidth: true
-                                    text: qsTrId("genycaster.settings.download_1").arg(Math.round(updateController.downloadProgress * 100))
+                                    text: qsTrId("genycaster.settings.download_1")
+                                      .arg(LocaleFormat.formatInteger(Math.round(updateController.downloadProgress * 100)))
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeCaptionSize
                                 }

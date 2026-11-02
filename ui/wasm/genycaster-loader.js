@@ -470,6 +470,14 @@ const updateNow=$("genycaster-update-now");
 const updateLater=$("genycaster-update-later");
 const updateTextByLanguage = {"ar":["يتوفر تحديث لجنيكاستر","إصدار جديد جاهز للمراجعة.","الإصدار الحالي","الإصدار الجديد","ملاحظات الإصدار","لم تُنشر ملاحظات لهذا الإصدار. راجع صفحة الإصدار الرسمية للتفاصيل.","ليس الآن","تحديث الصفحة"],"de":["Genycaster-Update verfügbar","Eine neuere Version ist verfügbar.","Aktuelle Version","Neue Version","Versionshinweise","Für dieses Release wurden keine Änderungsnotizen veröffentlicht. Details stehen auf der offiziellen Release-Seite.","Nicht jetzt","Zum Aktualisieren neu laden"],"en":["Genycaster update available","A newer release is ready to review.","Current version","New version","Release notes","This release has no published change notes. View the official release for details.","Not now","Refresh to update"],"es":["Actualización de Genycaster disponible","Hay una nueva versión lista para revisar.","Versión actual","Versión nueva","Notas de la versión","No hay notas publicadas para esta versión. Consulta el lanzamiento oficial para más detalles.","Ahora no","Actualizar página"],"fa":["به‌روزرسانی جنی‌کستر آماده است","نسخهٔ تازه برای بررسی آماده است.","نسخهٔ فعلی","نسخهٔ جدید","یادداشت‌های انتشار","برای این نسخه یادداشت تغییراتی منتشر نشده است. برای جزئیات به صفحهٔ رسمی انتشار مراجعه کنید.","فعلاً نه","بازبارگذاری و به‌روزرسانی"],"fr":["Mise à jour de Genycaster disponible","Une nouvelle version est disponible.","Version actuelle","Nouvelle version","Notes de version","Aucune note de modification publiée pour cette version. Consultez la page officielle pour plus de détails.","Pas maintenant","Actualiser pour mettre à jour"],"hi":["Genycaster अपडेट उपलब्ध है","नया संस्करण देखने के लिए तैयार है।","वर्तमान संस्करण","नया संस्करण","रिलीज़ नोट्स","इस रिलीज़ के बदलाव प्रकाशित नहीं किए गए हैं। विवरण के लिए आधिकारिक रिलीज़ पृष्ठ देखें।","अभी नहीं","अपडेट के लिए रीफ़्रेश करें"],"ja":["Genycaster の更新があります","新しいバージョンを確認できます。","現在のバージョン","新しいバージョン","リリースノート","このリリースの更新履歴は公開されていません。詳細は公式リリースページをご覧ください。","後で","再読み込みして更新"],"ko":["Genycaster 업데이트 이용 가능","새 버전을 확인할 수 있습니다.","현재 버전","새 버전","릴리스 정보","이 릴리스에는 게시된 변경 사항이 없습니다. 공식 릴리스 페이지에서 자세한 내용을 확인하세요.","나중에","새로고침하여 업데이트"],"pt":["Atualização do Genycaster disponível","Uma nova versão está pronta para avaliação.","Versão atual","Nova versão","Notas da versão","Este lançamento não tem notas de mudanças publicadas. Consulte a página oficial para detalhes.","Agora não","Atualizar página"],"ru":["Доступно обновление Genycaster","Новая версия готова к просмотру.","Текущая версия","Новая версия","Примечания к выпуску","Для этой версии нет опубликованных примечаний. Подробности — на официальной странице релиза.","Не сейчас","Обновить страницу"],"zh":["Genycaster 有可用更新","新版本已准备好供查看。","当前版本","新版本","版本说明","此版本尚未发布更新说明。详情请查看官方发布页面。","稍后","刷新并更新"]};
 let updateLanguage="en";
+// Display-only native digit shaping: release identifiers, hashes and network
+// metadata stay ASCII, while every visible update/version number follows UI language.
+function localizedUpdateDigits(value){
+    const alphabet=updateLanguage==="fa"?"۰۱۲۳۴۵۶۷۸۹"
+        :updateLanguage==="ar"?"٠١٢٣٤٥٦٧٨٩":"";
+    const valueText=String(value ?? "");
+    return alphabet?valueText.replace(/[0-9]/g,digit=>alphabet[Number(digit)]):valueText;
+}
 let latestReleaseDetails=null;
 let availableRelease="", updateCheckRunning=false, lastCheck=0, dismissedUntil=0;
 function activeUpdateText(){
@@ -489,6 +497,7 @@ function setUpdateLanguage(languageTag){
     if(updateLater)updateLater.textContent=t[6];
     if(updateNow)updateNow.textContent=t[7];
     if(updateBanner)updateBanner.dir=(updateLanguage==="fa"||updateLanguage==="ar")?"rtl":"ltr";
+    if(creditBuild)creditBuild.textContent=localizedUpdateDigits(buildLabel);
     if(latestReleaseDetails)fillReleaseDetails(latestReleaseDetails);
 }
 window.__genycasterSetUpdateLanguage=setUpdateLanguage;
@@ -497,15 +506,15 @@ function fillReleaseDetails(fresh){
     latestReleaseDetails=fresh;
     const current=$("genycaster-update-current");
     const latest=$("genycaster-update-next");
-    if(current)current.textContent=numericVersion||applicationVersion||"—";
-    if(latest)latest.textContent=String(fresh.versionNumber||fresh.appVersion||"—");
+    if(current)current.textContent=localizedUpdateDigits(numericVersion||applicationVersion||"—");
+    if(latest)latest.textContent=localizedUpdateDigits(fresh.versionNumber||fresh.appVersion||"—");
     const oldChannel=$("genycaster-update-current-channel");
     const newChannel=$("genycaster-update-next-channel");
     const newAppVersion=typeof fresh.appVersion==="string"
         && /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[1-9]\d*)?$/.test(fresh.appVersion)
         ? fresh.appVersion:"";
-    if(oldChannel)oldChannel.textContent=applicationVersion?"v"+applicationVersion:"";
-    if(newChannel)newChannel.textContent=newAppVersion?"v"+newAppVersion:"";
+    if(oldChannel)oldChannel.textContent=applicationVersion?localizedUpdateDigits("v"+applicationVersion):"";
+    if(newChannel)newChannel.textContent=newAppVersion?localizedUpdateDigits("v"+newAppVersion):"";
     const releaseNotes=fresh.releaseNotes;
     const translations=releaseNotes && typeof releaseNotes==="object"
         ? releaseNotes.translations:null;
@@ -526,7 +535,7 @@ function fillReleaseDetails(fresh){
     const size=Number.isSafeInteger(bytes)&&bytes>0
         ? " (WASM: "+(bytes/1048576).toFixed(1)+" MiB)" : "";
     const details=$("genycaster-update-details");
-    if(details)details.textContent=notes||(activeUpdateText()[5]+size);
+    if(details)details.textContent=localizedUpdateDigits(notes||(activeUpdateText()[5]+size));
 }
 function hideReleaseDrawer(){
     if(updateBanner)updateBanner.hidden=true;

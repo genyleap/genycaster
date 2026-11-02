@@ -19,7 +19,7 @@ test('sidebar brand stays visually unified without inherited RTL mirror',()=>{
   assert.match(brand,/x: Theme.rtl \? navigationBrand.width - width : 0/);
   assert.match(brand,/x: Theme.rtl \? 0 : navigationBrandSymbol.width \+ navigationBrand.brandGap/);
   assert.match(brand,/horizontalAlignment: Theme.rtl \? Image.AlignRight : Image.AlignLeft/);
-  assert.match(brand,/font.family: Theme.fontFamilyForText\(text\)/);
+  assert.match(brand,/font.family: Theme.latinFontFamily/);
   assert.doesNotMatch(brand,/layoutDirection: Theme.uiDirection/);
 });
 
@@ -76,4 +76,34 @@ test('presentation-only digit translation keeps canonical IDs unchanged',()=>{
   context.localizationController.effectiveLanguageTag='ar';
   assert.equal(fn('2026-10-28'),'٢٠٢٦-١٠-٢٨');
   assert.match(format,/localizationController.formatInteger\(value\)/);
+});
+
+
+test('mobile settings fill safe-area viewport; Persian release numerals remain display-only',()=>{
+  const settings=read('ui/components/LocaleSettingsPopup.qml');
+  const drawer=read('ui/components/GenyDrawer.qml');
+  const notice=read('ui/components/UpdateNoticeDrawer.qml');
+  assert.match(settings,/bottomSheet: mobilePresentation/);
+  assert.match(settings,/fullScreen: mobilePresentation/);
+  assert.match(settings,/height: parent \? parent\.height : 820/);
+  assert.doesNotMatch(settings,/parent\.height - Math\.max\(Theme\.space7/);
+  assert.match(settings,/layoutDirection: Theme\.uiDirection/);
+  assert.match(settings,/LocaleFormat\.localizeDigits\(updateController\.versionNumber\)/);
+  assert.match(settings,/LocaleFormat\.localizeDigits\(number\)/);
+  assert.match(settings,/LocaleFormat\.localizeDigits\(updateController\.webCurrentBuild\)/);
+  assert.match(settings,/LocaleFormat\.localizeDigits\(updateController\.latestVersion\)/);
+  assert.match(notice,/layoutDirection: Theme\.uiDirection/);
+  assert.match(notice,/LocaleFormat\.localizeDigits\(updateController\.webLatestBuild\)/);
+  assert.match(drawer,/curveDepth: control\.fullScreen \? 0/);
+  for(const file of ['AppHeader.qml','InitialSetup.qml','SideNavigation.qml']){
+    assert.match(read('ui/components/'+file),
+      /LocaleFormat\.localizeDigits\(Qt\.application\.version\)/,file);
+  }
+  const numbers=format.match(/function localizeDigits\(value\) \{([\s\S]*?)\n    \}/);
+  assert.ok(numbers);
+  const fn=vm.runInNewContext('(function(value){'+numbers[1]+'\n})',{
+    root:{observeRevision(){}},
+    localizationController:{effectiveLanguageTag:'fa'}
+  });
+  assert.equal(fn('1.0.0-rc1'),'۱.۰.۰-rc۱');
 });

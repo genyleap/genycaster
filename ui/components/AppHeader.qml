@@ -100,7 +100,7 @@ Rectangle {
                     width: parent.width
                     x: 0
                     y: brandWordmark.height + Theme.scaleUi(2)
-                    text: Qt.application.version ? "v" + Qt.application.version : ""
+                    text: Qt.application.version ? "v" + LocaleFormat.localizeDigits(Qt.application.version) : ""
                     color: Theme.inkMuted
                     font.family: Theme.latinFontFamily
                     font.pixelSize: Theme.typeCaptionSize

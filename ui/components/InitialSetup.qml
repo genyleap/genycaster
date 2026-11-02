@@ -733,7 +733,7 @@ Item {
                 }
                 Text {
                     width: parent.width
-                    text: Qt.application.version ? "v" + Qt.application.version : ""
+                    text: Qt.application.version ? "v" + LocaleFormat.localizeDigits(Qt.application.version) : ""
                     color: Theme.dark ? "#A3B8CB" : "#AFC5D9"
                     font.family: Theme.latinFontFamily
                     font.pixelSize: 11
