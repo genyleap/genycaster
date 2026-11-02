@@ -23,7 +23,8 @@ test('Streak verifier accepts only exact fid, message hash and CastAdd payload',
   const reader=async(url)=>new Response(JSON.stringify({message:{hash,
     data:{fid:42,timestamp:Math.floor((Date.now()-Date.UTC(2021,0,1))/1000),
       castAddBody:{parentCastId:{fid:9,hash:'0x'+'11'.repeat(20)}}}}}),{status:200});
-  assert.deepEqual(await verifyStreakCastOwnership(hash,'42',{fetchImpl:reader}),{kind:'reply'});
+  assert.deepEqual(await verifyStreakCastOwnership(hash,'42',{fetchImpl:reader}),
+    {kind:'reply',day:new Date().toISOString().slice(0,10)});
   assert.equal(await verifyStreakCastOwnership(hash,'43',{fetchImpl:reader}),null);
   assert.equal(await verifyStreakCastOwnership('invalid','42',{fetchImpl:reader}),null);
   const falseCast=async()=>new Response(JSON.stringify({message:{hash,
@@ -34,7 +35,7 @@ test('Streak verifier accepts only exact fid, message hash and CastAdd payload',
     timestamp:new Date().toISOString(),parent_hash:null
   }]}),{status:200});
   assert.deepEqual(await verifyStreakCastOwnership(hash,'42',{fetchImpl:feed}),
-    {kind:'cast'});
+    {kind:'cast',day:new Date().toISOString().slice(0,10)});
   const old=async()=>new Response(JSON.stringify({casts:[{
     hash:hash.slice(2),author:{fid:42},
     timestamp:'2023-01-01T12:00:00Z',parent_hash:null
@@ -48,16 +49,17 @@ const fetchUpstream=async(url,options)=>{
   if(url.endsWith('/account/connections'))return new Response(JSON.stringify({connections:[{provider:'farcaster',fid:'42'}]}));
   return new Response('{}',{status:404});
 };
-async function withApi(action,verified={kind:'cast'}) {
+async function withApi(action,verified={kind:'cast',day:new Date().toISOString().slice(0,10)}) {
  const events=new Map();
  let verifierCalls=0;
  const store={
   streakReady:()=>true,
   async listStreakEvents(){return [...events.values()];},
-  async recordStreakCast(account,id,kind) {
+  async recordStreakCast(account,id,kind,day) {
    assert.equal(account.subject,'farcaster:42');
    if(events.has(id))return {recorded:false};
-   events.set(id,{day:'2026-11-02',kind});return {recorded:true};
+   assert.match(day,/^\d{4}-\d{2}-\d{2}$/);
+   events.set(id,{day,kind});return {recorded:true};
   }
  };
  const handler=createCloudHandler({store,issuer:owner.issuer,fetchImpl:fetchUpstream,
