@@ -103,12 +103,21 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     },
     streakReady:()=>streakReady,
     async getPublicActivitySource(fid,issuer) {
-      const result=await pool.query(`SELECT payload->>'activity_source' AS activity_source
-        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
-          AND source='genycaster' AND kind='streak_preferences'
-          AND deleted_at IS NULL LIMIT 1`,
+      const result=await pool.query(`SELECT n.payload->>'activity_source' AS activity_source,
+        (SELECT c.preferred_username FROM connections c
+          WHERE c.issuer=n.issuer AND c.subject=n.subject
+            AND c.provider='github' AND c.publicly_visible=true
+            AND c.last_confirmed_at IS NOT NULL LIMIT 1) AS github_login
+        FROM notifications n WHERE n.issuer=$1 AND n.subject=$2
+          AND n.id=$3::uuid AND n.source='genycaster'
+          AND n.kind='streak_preferences' AND n.deleted_at IS NULL LIMIT 1`,
         [issuer,'farcaster:'+fid,STREAK_PREFERENCES_ROW]);
-      return result.rows[0]?.activity_source==='github' ? 'github':'casts';
+      const row=result.rows[0];
+      const github=typeof row?.github_login==='string' &&
+        /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(row.github_login)
+          ?row.github_login:'';
+      return {activity_source:row?.activity_source==='github' && github
+        ?'github':'casts',github_login:github};
     },
     async getStreakPreferences({issuer,subject}) {
       const result=await pool.query(`SELECT payload,revision::text FROM notifications
