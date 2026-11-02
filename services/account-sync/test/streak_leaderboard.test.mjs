@@ -19,7 +19,7 @@ test('Preferences are revision-checked, scoped to owner and reject invalid write
       return {...prefs,revision};
     },
     listStreakLeaderboard:async()=>[],
-    getPublicActivitySource:async()=>prefs.activity_source
+    getPublicActivitySource:async()=>({activity_source:prefs.activity_source,github_login:'verifiedGitHub'})
   };
   const upstream=async(url,options)=>{
     if(options?.headers?.authorization!=='Bearer good')return new Response('{}',{status:401});
@@ -50,7 +50,7 @@ test('Preferences are revision-checked, scoped to owner and reject invalid write
       {activity_source:'casts',leaderboard_visible:false,revision:0})).status,409);
     const publicRead=await call('profile_activity?fid=42','GET',null,'');
     assert.equal(publicRead.status,200);
-    assert.deepEqual(await publicRead.json(),{fid:'42',activity_source:'github'});
+    assert.deepEqual(await publicRead.json(),{fid:'42',activity_source:'github',github_login:'verifiedGitHub'});
     const forbidden=await call('streak/leaderboard?track=other');
     assert.equal(forbidden.status,400);
     assert.equal((await call('streak/leaderboard')).status,200);
