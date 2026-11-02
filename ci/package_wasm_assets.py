@@ -128,6 +128,9 @@ for script in scripts:
         script, html)
 html_path.write_text(html, encoding="utf-8")
 checksums = {name: digest(directory / name) for name in public}
+# The WebKit runtime explicitly fetches the gzip sidecar. Treat it as a
+# required release asset, not an optional local build by-product.
+checksums[compressed.name] = digest(compressed)
 release_notes = None
 if args.release_notes:
     note_path = args.release_notes
@@ -169,7 +172,7 @@ release = {"version": fingerprint, "wasm": asset_name,
            "wasmGzipBytes": compressed.stat().st_size,
            "wasmGzipSha256": digest(compressed),
            "buildId": fingerprint[:8],
-           "files": sorted(public + [asset_name, "genycaster-assets.js"]),
+           "files": sorted(public + [asset_name, compressed.name, "genycaster-assets.js"]),
            "integrity": checksums}
 if args.app_version:
     release["appVersion"] = args.app_version
