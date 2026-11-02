@@ -129,6 +129,43 @@ Item {
         selectedTextColor: Theme.ink
         horizontalAlignment: root.rtlContent ? TextEdit.AlignRight : TextEdit.AlignLeft
         onLinkActivated: url => root.externalRequested(url)
+
+        // Read-only TextEdit supports selection, but Qt does not always
+        // expose context actions automatically with non-native UI styles.
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            gesturePolicy: TapHandler.ReleaseWithinBounds
+            onTapped: platformSelectionMenu.popup()
+        }
+        TapHandler {
+            acceptedDevices: PointerDevice.TouchScreen
+            onLongPressed: {
+                if (platformText.selectedText.length > 0)
+                    platformSelectionMenu.popup()
+            }
+        }
+
+        Menu {
+            id: platformSelectionMenu
+            objectName: "systemCastSelectionMenu"
+            // Native Qt platforms receive a real OS menu. WASM falls back
+            // to a Qt menu because Canvas text is not browser DOM text.
+            popupType: Qt.platform.os === "wasm" ? Popup.Item : Popup.Native
+            MenuItem {
+                text: qsTrId("genycaster.editor.copy")
+                enabled: platformText.selectedText.length > 0
+                onTriggered: presentationBridge.copyText(platformText.selectedText)
+            }
+            MenuItem {
+                text: qsTrId("genycaster.editor.select_all")
+                onTriggered: platformText.selectAll()
+            }
+            MenuItem {
+                text: qsTrId("genycaster.editor.clear_selection")
+                enabled: platformText.selectedText.length > 0
+                onTriggered: platformText.deselect()
+            }
+        }
     }
 
     RichInlineTextItem {
