@@ -83,7 +83,8 @@ GenyDrawer {
         return titles[Math.max(0, Math.min(titles.length - 1, section))]
     }
     readonly property bool compactLayout: width < 640
-    readonly property int contentColumns: width >= 700 ? 2 : 1
+    // Narrow inspectors never squeeze two form columns.
+    readonly property int contentColumns: width >= 900 ? 2 : 1
     property bool marketInputError: false
     property bool validatorUrlError: false
     property bool customColorError: false
@@ -113,7 +114,8 @@ GenyDrawer {
     showHandle: false
     dimBackground: true
     contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
-    width: parent ? (mobilePresentation ? parent.width : Math.min(1100, parent.width * 0.96)) : 1100
+    width: parent ? (mobilePresentation ? parent.width
+                    : Math.min(640, parent.width)) : 640
     // The overlay already represents the Qt-safe content viewport. Reserve
     // system status/navigation insets through padding, not a fake blank strip
     // above the drawer. Full height also works after orientation changes.
@@ -633,7 +635,7 @@ GenyDrawer {
 
             Superellipse {
                 visible: !root.mobilePresentation
-                Layout.preferredWidth: Math.min(278, Math.max(242, root.width * 0.27))
+                Layout.preferredWidth: Math.min(208, Math.max(184, root.width * 0.32))
                 Layout.fillHeight: true
                 fillColor: Theme.surfaceMuted
                 curveDepth: Theme.curveContainer

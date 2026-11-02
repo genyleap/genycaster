@@ -406,22 +406,30 @@ Item {
         function onAuthenticationStateChanged() { root.resolvePendingComposer() }
     }
 
+    property bool pendingSettingsOpen: false
+    property int pendingSettingsSection: -1
+
+    function showLoadedSettings() {
+        const popup = localePopupLoader.item
+        if (!root.pendingSettingsOpen || popup === null)
+            return
+        root.pendingSettingsOpen = false
+        if (root.pendingSettingsSection >= 0)
+            popup.currentSection = root.pendingSettingsSection
+        // Phone entry opens the grouped index; a deep link opens its detail.
+        if (popup.mobilePresentation)
+            popup.mobileIndexOpen = root.pendingSettingsSection < 0
+        popup.open()
+        popup.scrollToBeginning()
+    }
+
     function openLocaleSettings(section) {
+        root.pendingSettingsSection = section === undefined ? -1 : Number(section)
+        root.pendingSettingsOpen = true
         localePopupLoader.active = true
-        const requestedSection = section === undefined ? -1 : Number(section)
-        Qt.callLater(function() {
-            const popup = localePopupLoader.item
-            if (popup === null)
-                return
-            if (requestedSection >= 0)
-                popup.currentSection = requestedSection
-            // A normal Settings action starts on the grouped phone index;
-            // deep links such as Market Settings open the matching detail.
-            if (popup.mobilePresentation)
-                popup.mobileIndexOpen = requestedSection < 0
-            popup.open()
-            popup.scrollToBeginning()
-        })
+        // WebAssembly may asynchronously incubate this Loader; a one-shot
+        // callLater is not sufficient when the item is not yet available.
+        Qt.callLater(function() { root.showLoadedSettings() })
     }
 
     function openDataStorageSettings() {
@@ -2171,6 +2179,7 @@ Item {
     Loader {
         id: localePopupLoader
         active: false
+        onLoaded: root.showLoadedSettings()
         sourceComponent: Component {
             LocaleSettingsPopup {
                 parent: root

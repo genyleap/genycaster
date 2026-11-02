@@ -1237,85 +1237,20 @@ Item {
                         }
                     }
                 }
-                Button {
+                GenyCheckRow {
                     id: revealWords
                     objectName: "nativeRecoveryRevealWords"
-                    checkable: true
+                    Layout.fillWidth: true
+                    label: qsTrId("genycaster.setup.show_recovery_words")
                     checked: false
-                    hoverEnabled: true
-                    focusPolicy: Qt.StrongFocus
-                    Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-                    implicitWidth: revealContent.implicitWidth + Theme.space2
-                    implicitHeight: 44
-                    Accessible.role: Accessible.CheckBox
-                    Accessible.name: qsTrId("genycaster.setup.show_recovery_words")
-                    Accessible.checked: checked
                     onVisibleChanged: if (!visible) checked = false
-                    background: Item {}
-                    contentItem: RowLayout {
-                        id: revealContent
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Superellipse {
-                            Layout.preferredWidth: 23
-                            Layout.preferredHeight: 23
-                            fillColor: revealWords.checked ? Theme.ink : Theme.surface
-                            borderColor: revealWords.activeFocus ? Theme.focus : Theme.borderMuted
-                            borderWidth: revealWords.activeFocus ? 2 : 1
-                            curveDepth: 6
-                            Icon {
-                                anchors.centerIn: parent
-                                visible: revealWords.checked
-                                text: Theme.iconCheck
-                                color: Theme.surface
-                                preferredSize: 15
-                            }
-                        }
-                        DirectionAwareLabel {
-                            text: qsTrId("genycaster.setup.show_recovery_words")
-                            font.pixelSize: Theme.typeCaptionSize
-                            color: Theme.ink
-                        }
-                    }
                 }
-                Button {
+                GenyCheckRow {
                     id: deviceSignerConsent
                     objectName: "nativeRecoveryDeviceSignerConsent"
                     Layout.fillWidth: true
-                    checkable: true
+                    label: qsTrId("genycaster.setup.recovery_signer_consent")
                     checked: false
-                    implicitHeight: 52
-                    Accessible.role: Accessible.CheckBox
-                    Accessible.checked: checked
-                    Accessible.name: qsTrId("genycaster.setup.recovery_signer_consent")
-                    background: Item {}
-                    contentItem: RowLayout {
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
-                        Superellipse {
-                            Layout.preferredWidth: 24
-                            Layout.preferredHeight: 24
-                            fillColor: deviceSignerConsent.checked ? Theme.ink : Theme.surface
-                            borderColor: deviceSignerConsent.activeFocus
-                                         ? Theme.focus : Theme.borderMuted
-                            borderWidth: deviceSignerConsent.activeFocus ? 2 : 1
-                            curveDepth: 6
-                            Icon {
-                                anchors.centerIn: parent
-                                visible: deviceSignerConsent.checked
-                                text: Theme.iconCheck
-                                color: Theme.surface
-                                preferredSize: 15
-                            }
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.setup.recovery_signer_consent")
-                            font.pixelSize: Theme.typeCaptionSize
-                            color: Theme.ink
-                            wrapMode: Text.WordWrap
-                        }
-                    }
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true

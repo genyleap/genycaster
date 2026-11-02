@@ -82,6 +82,7 @@ set(farcasterQmlFiles
     components/Superellipse.qml
     components/SuperellipseImage.qml
     components/GenyTabButton.qml
+    components/GenyCheckRow.qml
     components/DetailSurface.qml
     components/ThreadReplyItem.qml
     components/GenyThreadRail.qml
