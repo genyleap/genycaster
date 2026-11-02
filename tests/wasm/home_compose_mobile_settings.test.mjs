@@ -81,3 +81,17 @@ test('Mobile search reads the actual host window status safe area', () => {
     assert.match(search, /parent\.Window\.window\.SafeArea\.margins\.top : 0/);
     assert.match(search, /topPadding: \(root\.compact \? Theme\.space3 : Theme\.space5\) \+ root\.statusInset/);
 });
+
+test('Mobile Cast taxonomy opens bottom sheets without shifting the editor', () => {
+    const composer = source('ComposerDrawer.qml');
+    const scroll = composer.indexOf('id: composerScroll');
+    const selectors = composer.indexOf('objectName: "mobileCastContext"');
+    const footer = composer.indexOf('id: mobileComposerFooter');
+    assert.ok(scroll > 0 && scroll < selectors && selectors < footer);
+    assert.ok(!composer.includes('id: mobileSelectorSlot'));
+    assert.equal((composer.match(/modal: root\\.compact/g) || []).length, 2);
+    assert.equal((composer.match(/dim: root\\.compact/g) || []).length, 2);
+    assert.equal((composer.match(/Qt\\.inputMethod\\.hide\\(\\)/g) || []).length, 2);
+    assert.equal((composer.match(/root\\.contentItem\\.height : root\\.height\\) - height/g) || []).length, 2);
+    assert.ok(composer.includes('root.showTaxonomyControls && !root.keyboardVisible'));
+});

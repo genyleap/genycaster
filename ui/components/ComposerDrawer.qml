@@ -726,12 +726,14 @@ GenyDrawer {
         readonly property Item triggerItem: root.compact ? selectedChannelChip : desktopCastChannelTrigger
         parent: root.compact ? root.contentItem : triggerItem
         popupType: Popup.Item
-        modal: false
-        dim: false
+        z: 100
+        modal: root.compact
+        dim: root.compact
         focus: true
-        padding: root.compact ? Theme.space2 : Theme.space3
+        padding: Theme.space3
+        topPadding: root.compact ? Theme.space6 : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        readonly property real boundaryInset: root.compact ? Theme.mobileGutter : Theme.space6
+        readonly property real boundaryInset: Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
         // along with the enclosing composer's size.
         readonly property point triggerOrigin: {
@@ -740,51 +742,79 @@ GenyDrawer {
             return triggerItem && root.contentItem
                 ? triggerItem.mapToItem(root.contentItem, 0, 0) : Qt.point(0, 0)
         }
-        width: Math.max(0, Math.min(410, root.contentItem
-            ? root.contentItem.width - boundaryInset * 2 : root.width - boundaryInset * 2))
+        width: root.compact ? (root.contentItem ? root.contentItem.width : root.width)
+            : Math.max(0, Math.min(410, root.contentItem
+                ? root.contentItem.width - boundaryInset * 2 : root.width - boundaryInset * 2))
         // Constrain horizontally to the *composer*, never to the window.
         // In RTL, prefer the trigger's right edge instead of its left edge.
         x: {
             if (!root.contentItem || !triggerItem) return 0
-            if (root.compact) return boundaryInset
+            if (root.compact) return 0
             const leftLimit = boundaryInset - triggerOrigin.x
             const rightLimit = root.contentItem.width - boundaryInset
                                - triggerOrigin.x - width
             const preferred = Theme.rtl ? triggerItem.width - width : 0
             return Math.max(leftLimit, Math.min(Math.max(leftLimit, rightLimit), preferred))
         }
-        // No above/below flipping: this combobox opens immediately underneath
-        // its own trigger; its scrollable contents shrink on short viewports.
-        y: triggerItem
-            ? (root.compact ? triggerOrigin.y : 0)
-                + triggerItem.height + Theme.space2 : 0
-        height: Math.max(0, Math.min(root.compact ? 350 : 390, root.contentItem
-            ? (root.compact
-                ? root.contentItem.height - y - mobileComposerFooter.implicitHeight
-                    - Theme.space3 * 3
-                : root.contentItem.height - boundaryInset - triggerOrigin.y - y)
-            : 0))
+        // The mobile sheet is attached to the viewport's bottom edge, not the
+        // selector. Resizing for the keyboard preserves a bounded scroll area.
+        y: root.compact
+            ? Math.max(0, (root.contentItem ? root.contentItem.height : root.height) - height)
+            : (triggerItem ? triggerItem.height + Theme.space2 : 0)
+        height: root.compact
+            ? Math.max(0, Math.min(520,
+                (root.contentItem ? root.contentItem.height : root.height) * 0.72))
+            : Math.max(0, Math.min(390, root.contentItem
+                ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
         background: PopupSurface {
             fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
+            borderWidth: 1
             borderColor: Theme.borderMuted
-            curveDepth: Theme.curveContainer
+            curveDepth: root.compact ? Theme.curveSheet : Theme.curveContainer
             elevation: root.compact ? Theme.elevationNone : Theme.elevationModal
+            Superellipse {
+                visible: root.compact
+                anchors.top: parent.top
+                anchors.topMargin: Theme.space2
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 36
+                height: 4
+                fillColor: Theme.textTertiary
+                borderWidth: 0
+            }
         }
         enter: Transition {
-            NumberAnimation {
-                property: "opacity"
-                from: 0; to: 1
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "y"
+                    from: root.compact ? root.height : channelPicker.y
+                    duration: root.compact && !Theme.reduceMotion ? Theme.motionStandard : 0
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    property: "opacity"
+                    from: 0; to: 1
+                    duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                }
             }
         }
         exit: Transition {
-            NumberAnimation {
-                property: "opacity"
-                to: 0
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "y"
+                    to: root.compact ? root.height : channelPicker.y
+                    duration: root.compact && !Theme.reduceMotion ? Theme.motionFast : 0
+                    easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    property: "opacity"
+                    to: 0
+                    duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                }
             }
         }
         onOpened: {
+            if (root.compact) Qt.inputMethod.hide()
             topicPicker.close()
             if (!root.showTaxonomyControls) {
                 close()
@@ -1005,12 +1035,14 @@ GenyDrawer {
         readonly property Item triggerItem: root.compact ? selectedTopicChip : desktopCastTopicTrigger
         parent: root.compact ? root.contentItem : triggerItem
         popupType: Popup.Item
-        modal: false
-        dim: false
+        z: 100
+        modal: root.compact
+        dim: root.compact
         focus: true
-        padding: root.compact ? Theme.space2 : Theme.space3
+        padding: Theme.space3
+        topPadding: root.compact ? Theme.space6 : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        readonly property real boundaryInset: root.compact ? Theme.mobileGutter : Theme.space6
+        readonly property real boundaryInset: Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
         // along with the enclosing composer's size.
         readonly property point triggerOrigin: {
@@ -1019,51 +1051,79 @@ GenyDrawer {
             return triggerItem && root.contentItem
                 ? triggerItem.mapToItem(root.contentItem, 0, 0) : Qt.point(0, 0)
         }
-        width: Math.max(0, Math.min(410, root.contentItem
-            ? root.contentItem.width - boundaryInset * 2 : root.width - boundaryInset * 2))
+        width: root.compact ? (root.contentItem ? root.contentItem.width : root.width)
+            : Math.max(0, Math.min(410, root.contentItem
+                ? root.contentItem.width - boundaryInset * 2 : root.width - boundaryInset * 2))
         // Constrain horizontally to the *composer*, never to the window.
         // In RTL, prefer the trigger's right edge instead of its left edge.
         x: {
             if (!root.contentItem || !triggerItem) return 0
-            if (root.compact) return boundaryInset
+            if (root.compact) return 0
             const leftLimit = boundaryInset - triggerOrigin.x
             const rightLimit = root.contentItem.width - boundaryInset
                                - triggerOrigin.x - width
             const preferred = Theme.rtl ? triggerItem.width - width : 0
             return Math.max(leftLimit, Math.min(Math.max(leftLimit, rightLimit), preferred))
         }
-        // No above/below flipping: this combobox opens immediately underneath
-        // its own trigger; its scrollable contents shrink on short viewports.
-        y: triggerItem
-            ? (root.compact ? triggerOrigin.y : 0)
-                + triggerItem.height + Theme.space2 : 0
-        height: Math.max(0, Math.min(root.compact ? 304 : 330, root.contentItem
-            ? (root.compact
-                ? root.contentItem.height - y - mobileComposerFooter.implicitHeight
-                    - Theme.space3 * 3
-                : root.contentItem.height - boundaryInset - triggerOrigin.y - y)
-            : 0))
+        // The mobile sheet is attached to the viewport's bottom edge, not the
+        // selector. Resizing for the keyboard preserves a bounded scroll area.
+        y: root.compact
+            ? Math.max(0, (root.contentItem ? root.contentItem.height : root.height) - height)
+            : (triggerItem ? triggerItem.height + Theme.space2 : 0)
+        height: root.compact
+            ? Math.max(0, Math.min(460,
+                (root.contentItem ? root.contentItem.height : root.height) * 0.62))
+            : Math.max(0, Math.min(330, root.contentItem
+                ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
         background: PopupSurface {
             fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
+            borderWidth: 1
             borderColor: Theme.borderMuted
-            curveDepth: Theme.curveContainer
+            curveDepth: root.compact ? Theme.curveSheet : Theme.curveContainer
             elevation: root.compact ? Theme.elevationNone : Theme.elevationModal
+            Superellipse {
+                visible: root.compact
+                anchors.top: parent.top
+                anchors.topMargin: Theme.space2
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 36
+                height: 4
+                fillColor: Theme.textTertiary
+                borderWidth: 0
+            }
         }
         enter: Transition {
-            NumberAnimation {
-                property: "opacity"
-                from: 0; to: 1
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "y"
+                    from: root.compact ? root.height : topicPicker.y
+                    duration: root.compact && !Theme.reduceMotion ? Theme.motionStandard : 0
+                    easing.type: Easing.OutCubic
+                }
+                NumberAnimation {
+                    property: "opacity"
+                    from: 0; to: 1
+                    duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                }
             }
         }
         exit: Transition {
-            NumberAnimation {
-                property: "opacity"
-                to: 0
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "y"
+                    to: root.compact ? root.height : topicPicker.y
+                    duration: root.compact && !Theme.reduceMotion ? Theme.motionFast : 0
+                    easing.type: Easing.InCubic
+                }
+                NumberAnimation {
+                    property: "opacity"
+                    to: 0
+                    duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                }
             }
         }
         onOpened: {
+            if (root.compact) Qt.inputMethod.hide()
             channelPicker.close()
             topicSearch.text = ""
             openProofConnections.fetchTopics()
@@ -1441,151 +1501,6 @@ GenyDrawer {
                     elide: Text.ElideRight
                     alignToUi: true
                 }
-            }
-
-            // Keep both mobile selector triggers above the document, so their
-            // dropdowns can open below their own buttons within the composer.
-            RowLayout {
-                objectName: "mobileCastContext"
-                visible: root.compact && root.editorMode === "visual"
-                         && root.showTaxonomyControls
-                Layout.fillWidth: true
-                Layout.topMargin: Theme.space1
-                Layout.bottomMargin: Theme.space1
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
-
-                Item {
-                    id: selectedChannelChip
-                    Layout.preferredHeight: Theme.touchTarget
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.preferredWidth: 0
-                    Superellipse {
-                        anchors.fill: parent
-                        curveDepth: Theme.curveControl
-                        fillColor: root.selectedParentUrl.length > 0
-                                   ? Theme.primarySurface : Theme.surfaceMuted
-                        borderWidth: 1
-                        borderColor: root.selectedParentUrl.length > 0
-                                     ? Theme.accent : Theme.borderMuted
-                    }
-                    RowLayout {
-                        id: selectedChannelContents
-                        anchors.fill: parent
-                        anchors.leftMargin: Theme.space2
-                        anchors.rightMargin: Theme.space2
-                        spacing: Theme.space1
-                        Avatar {
-                            avatarSize: 24
-                            sourceUrl: root.selectedContextImage
-                            displayName: root.selectedContextLabel.length > 0
-                                         ? root.selectedContextLabel : "#"
-                            visible: root.selectedParentUrl.length > 0
-                        }
-                        Icon {
-                            visible: root.selectedParentUrl.length === 0
-                            text: Theme.iconGlobe
-                            preferredSize: Theme.iconSizeSmall
-                            color: Theme.textSecondary
-                        }
-                        DirectionAwareLabel {
-                            text: root.selectedContextLabel.length > 0
-                                  ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
-                            font.pixelSize: Theme.typeMetaSize
-                            font.weight: Theme.weightDemiBold
-                            color: Theme.textPrimary
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                        }
-                        Icon {
-                            text: Theme.iconChevronDown
-                            preferredSize: Theme.iconSizeSmall
-                            color: Theme.textSecondary
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: if (root.showTaxonomyControls) channelPicker.open()
-                    }
-                }
-                Item {
-                    id: selectedTopicChip
-                    objectName: "composerTopicSelection"
-                    Layout.preferredHeight: Theme.touchTarget
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.preferredWidth: 0
-                    Superellipse {
-                        anchors.fill: parent
-                        curveDepth: Theme.curveControl
-                        fillColor: root.selectedTopics.length > 0
-                                   ? Theme.primarySurface : Theme.surfaceMuted
-                        borderWidth: 1
-                        borderColor: root.selectedTopics.length > 0
-                                     ? Theme.accent : Theme.borderMuted
-                    }
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: Theme.space2
-                        anchors.rightMargin: Theme.space2
-                        spacing: Theme.space1
-                        Icon {
-                            text: Theme.iconPalette
-                            preferredSize: Theme.iconSizeSmall
-                            color: root.selectedTopics.length > 0
-                                   ? Theme.accent : Theme.textSecondary
-                        }
-                        DirectionAwareLabel {
-                            id: categoryText
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            elide: Text.ElideRight
-                            text: root.selectedTopics.length > 0
-                                ? qsTrId("genycaster.topics.selected_count").arg(
-                                    LocaleFormat.formatInteger(root.selectedTopics.length))
-                                : qsTrId("genycaster.topics.label")
-                            font.pixelSize: Theme.typeMetaSize
-                            font.weight: root.selectedTopics.length > 0
-                                         ? Theme.weightDemiBold : Theme.weightMedium
-                            color: Theme.textPrimary
-                        }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: topicPicker.open()
-                    }
-                    Accessible.role: Accessible.Button
-                    Accessible.name: qsTrId("genycaster.topics.label")
-                }
-                ActionButton {
-                    visible: root.selectedParentUrl.length > 0
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.composer.context_clear")
-                    onClicked: {
-                        root.selectedParentUrl = ""
-                        root.selectedContextLabel = ""
-                        root.selectedContextImage = ""
-                        root.selectedChannelId = ""
-                    }
-                }
-            }
-
-
-            Item {
-                id: mobileSelectorSlot
-                objectName: "mobileComposerSelectorSlot"
-                visible: root.mobileSelectorOpen && root.showTaxonomyControls
-                Layout.fillWidth: true
-                Layout.minimumHeight: 0
-                Layout.preferredHeight: visible
-                    ? (channelPicker.visible ? channelPicker.height : topicPicker.height)
-                        + Theme.space2 * 2
-                    : 0
             }
 
             // The tool row is stable chrome above the scrollable document,
@@ -2184,13 +2099,145 @@ GenyDrawer {
         }
     }
 
+        // Compact selector bar follows the document; its sheets float above it.
+        RowLayout {
+            objectName: "mobileCastContext"
+            visible: root.compact && root.editorMode === "visual"
+                     && root.showTaxonomyControls && !root.keyboardVisible
+            Layout.fillWidth: true
+            Layout.leftMargin: Theme.mobileGutter
+            Layout.rightMargin: Theme.mobileGutter
+            Layout.topMargin: Theme.space2
+            Layout.bottomMargin: Theme.space1
+            layoutDirection: Theme.uiDirection
+            spacing: Theme.space2
+
+            Item {
+                id: selectedChannelChip
+                Layout.preferredHeight: Theme.touchTarget
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: 0
+                Superellipse {
+                    anchors.fill: parent
+                    curveDepth: Theme.curveControl
+                    fillColor: root.selectedParentUrl.length > 0
+                               ? Theme.primarySurface : Theme.surfaceMuted
+                    borderWidth: 1
+                    borderColor: root.selectedParentUrl.length > 0
+                                 ? Theme.accent : Theme.borderMuted
+                }
+                RowLayout {
+                    id: selectedChannelContents
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.space2
+                    anchors.rightMargin: Theme.space2
+                    spacing: Theme.space1
+                    Avatar {
+                        avatarSize: 24
+                        sourceUrl: root.selectedContextImage
+                        displayName: root.selectedContextLabel.length > 0
+                                     ? root.selectedContextLabel : "#"
+                        visible: root.selectedParentUrl.length > 0
+                    }
+                    Icon {
+                        visible: root.selectedParentUrl.length === 0
+                        text: Theme.iconGlobe
+                        preferredSize: Theme.iconSizeSmall
+                        color: Theme.textSecondary
+                    }
+                    DirectionAwareLabel {
+                        text: root.selectedContextLabel.length > 0
+                              ? root.selectedContextLabel : qsTrId("genycaster.composer.channel")
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: Theme.weightDemiBold
+                        color: Theme.textPrimary
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                    }
+                    Icon {
+                        text: Theme.iconChevronDown
+                        preferredSize: Theme.iconSizeSmall
+                        color: Theme.textSecondary
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: if (root.showTaxonomyControls) channelPicker.open()
+                }
+            }
+            Item {
+                id: selectedTopicChip
+                objectName: "composerTopicSelection"
+                Layout.preferredHeight: Theme.touchTarget
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: 0
+                Superellipse {
+                    anchors.fill: parent
+                    curveDepth: Theme.curveControl
+                    fillColor: root.selectedTopics.length > 0
+                               ? Theme.primarySurface : Theme.surfaceMuted
+                    borderWidth: 1
+                    borderColor: root.selectedTopics.length > 0
+                                 ? Theme.accent : Theme.borderMuted
+                }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.space2
+                    anchors.rightMargin: Theme.space2
+                    spacing: Theme.space1
+                    Icon {
+                        text: Theme.iconPalette
+                        preferredSize: Theme.iconSizeSmall
+                        color: root.selectedTopics.length > 0
+                               ? Theme.accent : Theme.textSecondary
+                    }
+                    DirectionAwareLabel {
+                        id: categoryText
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        elide: Text.ElideRight
+                        text: root.selectedTopics.length > 0
+                            ? qsTrId("genycaster.topics.selected_count").arg(
+                                LocaleFormat.formatInteger(root.selectedTopics.length))
+                            : qsTrId("genycaster.topics.label")
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: root.selectedTopics.length > 0
+                                     ? Theme.weightDemiBold : Theme.weightMedium
+                        color: Theme.textPrimary
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: topicPicker.open()
+                }
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTrId("genycaster.topics.label")
+            }
+            ActionButton {
+                visible: root.selectedParentUrl.length > 0
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconClose
+                text: qsTrId("genycaster.composer.context_clear")
+                onClicked: {
+                    root.selectedParentUrl = ""
+                    root.selectedContextLabel = ""
+                    root.selectedContextImage = ""
+                    root.selectedChannelId = ""
+                }
+            }
+        }
+
+
         ColumnLayout {
             id: mobileComposerFooter
             objectName: "mobileComposerStickyFooter"
-            // Editing actions are irrelevant while picking taxonomy; make the
-            // chooser the only actionable surface and restore footer on close.
+            // Keep the footer geometry stable as sheets overlay the composer.
             visible: root.compact && root.editorMode === "visual"
-                && !root.mobileSelectorOpen
             Layout.fillWidth: true
             Layout.minimumHeight: 0
             spacing: Theme.space1
