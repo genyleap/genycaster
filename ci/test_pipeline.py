@@ -88,6 +88,18 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(settings.count("id: navigationEntry2"), 1)
         self.assertEqual(settings.count("id: navigationEntry3"), 1)
 
+    def test_http_authentication_diagnostics_do_not_log_credentials(self) -> None:
+        for path in (
+            "src/transport/qt_network/async_http.cpp",
+            "src/transport/qt_network/http.cpp",
+        ):
+            source = Path(path).read_text(encoding="utf-8")
+            self.assertIn("QNetworkReply::AuthenticationRequiredError", source)
+            self.assertIn('"[Genycaster] Authentication required by host:"', source)
+            self.assertIn("reply->url().host()", source)
+            self.assertIn("#include <QDebug>", source)
+            self.assertNotIn("reply->url().toString()", source)
+
     def test_native_recovery_session_is_pinned_and_cancelable(self) -> None:
         bridge = Path("src/presentation/qt/presentation_bridge.cpp").read_text(encoding="utf-8")
         wiring = Path("ui/mobile/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
