@@ -5,6 +5,7 @@ import {randomUUID} from 'node:crypto';
 // A dedicated state endpoint owns it; ordinary notification APIs cannot write it.
 const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
 const PROFILE_STATUS_ROW='00000000-0000-4000-8000-000000000003';
+const STREAK_PREFERENCES_ROW='00000000-0000-4000-8000-000000000004';
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
   tasks:'id,kind,schedule_at,timezone,payload,state,revision,attempt_count,executed_at,deleted_at,updated_at',
@@ -101,6 +102,81 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         updated_at:result.rows[0].updated_at} : null;
     },
     streakReady:()=>streakReady,
+    async getStreakPreferences({issuer,subject}) {
+      const result=await pool.query(`SELECT payload,revision::text FROM notifications
+        WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='streak_preferences'
+          AND deleted_at IS NULL LIMIT 1`,[issuer,subject,STREAK_PREFERENCES_ROW]);
+      const row=result.rows[0];
+      return {activity_source:row?.payload?.activity_source==='github'?'github':'casts',
+        leaderboard_visible:row?.payload?.leaderboard_visible===true,
+        revision:Number(row?.revision||0)};
+    },
+    async putStreakPreferences({issuer,subject},item) {
+      const payload=JSON.stringify({activity_source:item.activity_source,
+        leaderboard_visible:item.leaderboard_visible});
+      const result=await pool.query(`INSERT INTO notifications
+          (issuer,subject,id,source,kind,payload,occurred_at,revision)
+        SELECT $1,$2,$3::uuid,'genycaster','streak_preferences',$4::jsonb,now(),1
+        WHERE $5::bigint=0 OR EXISTS (
+          SELECT 1 FROM notifications WHERE issuer=$1 AND subject=$2
+          AND id=$3::uuid AND source='genycaster'
+          AND kind='streak_preferences' AND deleted_at IS NULL)
+        ON CONFLICT(issuer,subject,id) DO UPDATE SET
+          payload=EXCLUDED.payload,updated_at=now(),
+          occurred_at=now(),revision=notifications.revision+1
+        WHERE notifications.revision=$5::bigint
+          AND notifications.source='genycaster'
+          AND notifications.kind='streak_preferences'
+          AND notifications.deleted_at IS NULL
+        RETURNING revision::text`,
+        [issuer,subject,STREAK_PREFERENCES_ROW,payload,item.revision]);
+      if(!result.rows[0])return null;
+      return {activity_source:item.activity_source,
+        leaderboard_visible:item.leaderboard_visible,
+        revision:Number(result.rows[0].revision)};
+    },
+    async listStreakLeaderboard(kind) {
+      if(!streakReady)throw new Error('streak_migration_required');
+      // Only explicitly opted-in accounts. A leader's current run can
+      // end yesterday; until UTC day-end it must not be reset.
+      // Rank all eligible accounts in PostgreSQL before applying LIMIT.
+      const result=await pool.query(`WITH eligible AS (
+          SELECT issuer,subject FROM notifications
+          WHERE id=$1::uuid AND source='genycaster'
+            AND kind='streak_preferences' AND deleted_at IS NULL
+            AND payload->>'leaderboard_visible'='true'
+        ), daily AS (
+          SELECT DISTINCT e.issuer,e.subject,e.credited_on AS day
+          FROM streak_cast_events e
+          INNER JOIN eligible u ON e.issuer=u.issuer AND e.subject=u.subject
+          WHERE e.credited_on >= ((now() AT TIME ZONE 'UTC')::date-730)
+            AND ($2::text='activity' OR e.kind='cast')
+        ), numbered AS (
+          SELECT issuer,subject,day,
+            day-(row_number() OVER
+              (PARTITION BY issuer,subject ORDER BY day))::int AS grp
+          FROM daily
+        ), runs AS (
+          SELECT issuer,subject,max(day) AS last_day,
+            count(*)::int AS days FROM numbered
+          GROUP BY issuer,subject,grp
+        ), ranked AS (
+          SELECT issuer,subject,
+            max(CASE WHEN last_day>=((now() AT TIME ZONE 'UTC')::date-1)
+              THEN days ELSE 0 END)::int AS current,
+            max(days)::int AS longest,sum(days)::int AS total
+          FROM runs GROUP BY issuer,subject
+        )
+        SELECT substring(subject from 11) AS fid,current,longest,total
+        FROM ranked WHERE current>0
+        ORDER BY current DESC,longest DESC,total DESC,
+          substring(subject from 11)::bigint ASC
+        LIMIT 100`,[STREAK_PREFERENCES_ROW,kind]);
+      return result.rows.map((row,i)=>({
+        rank:i+1,fid:String(row.fid),current:Number(row.current),
+        longest:Number(row.longest),total:Number(row.total)}));
+    },
     async listStreakEvents({issuer,subject}) {
       if(!streakReady)throw new Error('streak_migration_required');
       // A prolific day cannot evict older active days from the bounded read.
