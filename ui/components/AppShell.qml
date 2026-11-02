@@ -114,6 +114,7 @@ Item {
     // falling through to the Home feed.
     property string pendingReturnShellRoute: ""
     property string committedRichCastId: ""
+    property string lastStreakCastId: ""
     property bool awaitingRichCommit: false
     property string homeDraftForCast: ""
     // A reply is pinned only after a verified server confirmation.
@@ -2891,6 +2892,13 @@ Item {
                     && castId !== root.submittedCastBaseline
                     && castId !== root.committedRichCastId) {
                 richComposer.commitPublishedCast(castId)
+                // The server independently verifies this already-confirmed
+                // protocol hash before awarding Streak progress.
+                if (root.lastStreakCastId !== castId
+                        && root.pendingTopicsOwner === Number(presentationBridge.accountFid)) {
+                    root.lastStreakCastId = castId
+                    openProofConnections.recordStreakCast(castId)
+                }
                 if (root.homeDraftForCast.length > 0
                         && homeDashboard.draftText === root.homeDraftForCast)
                     homeDashboard.draftText = ""
