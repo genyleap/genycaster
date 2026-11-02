@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import QtQuick.Window
 
 GenyDrawer {
     id: root
@@ -36,6 +37,13 @@ GenyDrawer {
         && (Qt.inputMethod.visible
             || (root.expandedViewportHeight > 0 && root.parent !== null
                 && root.parent.height < root.expandedViewportHeight - 125))
+    // Popups own no SafeArea; read the host Item/Window as in Settings.
+    readonly property real bottomSafeInset: root.compact && root.parent
+        ? Math.max(root.parent.SafeArea.margins.bottom,
+                   root.parent.Window.window
+                       ? root.parent.Window.window.SafeArea.margins.bottom : 0,
+                   root.parent.Window.contentItem
+                       ? root.parent.Window.contentItem.SafeArea.margins.bottom : 0) : 0
     property bool restoredDraft: false
     property string insertKind: ""
     property int insertBlockIndex: -1
@@ -715,8 +723,8 @@ GenyDrawer {
         }
     }
 
-    // A combobox-style, bounded overlay anchored to the selector.
-    // The current parent URL / topic metadata remains owned by the C++ bridge.
+    // Desktop uses an anchored combobox; compact uses a modal bottom sheet.
+    // Parent URL remains owned by the C++ bridge.
     Popup {
         id: channelPicker
         objectName: "composerChannelDropdown"
@@ -732,6 +740,7 @@ GenyDrawer {
         focus: true
         padding: Theme.space3
         topPadding: root.compact ? Theme.space6 : Theme.space3
+        bottomPadding: root.compact ? Math.max(Theme.space3, root.bottomSafeInset) : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property real boundaryInset: Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
@@ -1024,8 +1033,8 @@ GenyDrawer {
         }
     }
 
-    // A combobox-style, bounded overlay anchored to the selector.
-    // The current parent URL / topic metadata remains owned by the C++ bridge.
+    // Topic selection shares the mobile bottom-sheet presentation.
+    // Topic metadata remains owned by the C++ bridge.
     Popup {
         id: topicPicker
         objectName: "composerTopicDropdown"
@@ -1041,6 +1050,7 @@ GenyDrawer {
         focus: true
         padding: Theme.space3
         topPadding: root.compact ? Theme.space6 : Theme.space3
+        bottomPadding: root.compact ? Math.max(Theme.space3, root.bottomSafeInset) : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property real boundaryInset: Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
@@ -2246,7 +2256,8 @@ GenyDrawer {
             // Keep buttons clear of the iOS home indicator and input accessory.
             // The parent Qt viewport has already shrunk above the keyboard;
             // never subtract keyboard height twice.
-            Layout.bottomMargin: root.keyboardVisible ? Theme.space2 : Theme.space3
+            Layout.bottomMargin: root.keyboardVisible ? Theme.space2
+                                 : Math.max(Theme.space3, root.bottomSafeInset)
             Layout.topMargin: Theme.space2
 
             Rectangle {
