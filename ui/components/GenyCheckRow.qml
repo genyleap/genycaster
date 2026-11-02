@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// A single, accessible recovery choice. The hit target includes its entire
-// label, while the indicator remains optically aligned on every platform.
+// Recovery choices use the same Superellipse, surface, accent and focus
+// tokens as GenyCaster's standard controls. Never use the native CheckBox
+// indicator (which differs between macOS, Windows, Android and WASM).
 Button {
     id: control
     property string label: ""
@@ -11,47 +12,48 @@ Button {
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
 
-    topPadding: 7
-    bottomPadding: 7
+    topPadding: Theme.space2
+    bottomPadding: Theme.space2
     leftPadding: 0
     rightPadding: 0
-    implicitHeight: Math.max(44, choiceContent.implicitHeight + topPadding + bottomPadding)
+    implicitHeight: Math.max(Theme.touchTarget,
+                             choiceContent.implicitHeight + topPadding + bottomPadding)
     implicitWidth: choiceContent.implicitWidth
     Accessible.role: Accessible.CheckBox
     Accessible.name: label
     Accessible.checked: checked
 
-    // The choice itself is not a card. Hover/focus is expressed by the
-    // indicator, avoiding a gray rectangle around the longer consent text.
-    background: Item { }
+    // A recovery phrase is sensitive: no full-row hover plate or animation.
+    // The entire row remains a keyboard and pointer accessible hit target.
+    background: Item {}
 
     contentItem: RowLayout {
         id: choiceContent
-        spacing: 10
+        spacing: Theme.space3
         layoutDirection: Theme.uiDirection
 
-        Rectangle {
-            Layout.preferredWidth: 20
-            Layout.preferredHeight: 20
+        Superellipse {
+            Layout.preferredWidth: Theme.iconSizeNavigation
+            Layout.preferredHeight: Theme.iconSizeNavigation
             Layout.alignment: Qt.AlignVCenter
-            radius: 5
-            color: control.checked ? Theme.accent : Theme.surface
-            border.width: Theme.keyboardFocusVisible(control) ? 2 : 1.5
-            border.color: Theme.keyboardFocusVisible(control) ? Theme.focus
+            curveDepth: Theme.curveTiny
+            exponent: Theme.superellipseExponent
+            fillColor: control.checked ? Theme.primarySurface
+                                      : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+            borderWidth: Theme.keyboardFocusVisible(control)
+                         ? Theme.strokeEmphasis + Theme.strokeHairline
+                         : control.checked ? Theme.strokeEmphasis : Theme.strokeStandard
+            borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus
                          : control.checked ? Theme.accent
-                         : control.hovered ? Theme.inkMuted : Theme.borderStrong
-            Behavior on color {
-                ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-            }
+                         : control.hovered ? Theme.borderStrong : Theme.borderMuted
+
             Icon {
                 anchors.centerIn: parent
                 text: Theme.iconCheck
-                color: Theme.surface
-                preferredSize: 13
-                opacity: control.checked ? 1 : 0
-                Behavior on opacity {
-                    NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                }
+                color: Theme.accent
+                preferredSize: Theme.iconSizeSmall
+                visible: control.checked
+                Accessible.ignored: true
             }
         }
 
@@ -60,8 +62,9 @@ Button {
             Layout.minimumWidth: 0
             Layout.alignment: Qt.AlignVCenter
             text: control.label
-            color: control.enabled ? Theme.ink : Theme.inkMuted
-            font.pixelSize: Theme.typeCaptionSize
+            color: control.enabled ? Theme.ink : Theme.inkDisabled
+            font.pixelSize: Theme.typeLabelSize
+            font.weight: Theme.weightMedium
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
         }
