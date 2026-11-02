@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 
-// One persistent indicator travels between stable tab targets. Selected text
-// never changes weight or geometry, so rapid switching cannot flicker labels.
+// Hover is instant and geometry-stable. Only an actual selection moves the
+// persistent indicator, never moving the underline just by passing the cursor.
 Item {
     id: root
     property string currentMode: "for-you"
@@ -48,9 +48,6 @@ Item {
                     radius: Theme.space2
                     color: hover.hovered && !tabButton.selected
                            ? Theme.surfaceHover : "transparent"
-                    Behavior on color {
-                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                    }
                 }
                 Text {
                     anchors.fill: parent
@@ -59,12 +56,6 @@ Item {
                     text: String(tabButton.modelData.label || "")
                     color: tabButton.selected ? Theme.accent
                                               : (hover.hovered ? Theme.ink : Theme.inkMuted)
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Theme.reduceMotion ? 0 : Theme.motionFast
-                            easing.type: Easing.InOutCubic
-                        }
-                    }
                     font.family: Theme.fontFamily
                     font.pixelSize: root.width < 400 ? 12 : Theme.typeMetaSize
                     fontSizeMode: Text.HorizontalFit
