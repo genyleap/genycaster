@@ -2,6 +2,14 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.activity.default_source">
+            <source>Show on profile</source>
+            <translation>نمای پیش‌فرض پروفایل</translation>
+        </message>
+        <message id="genycaster.activity.github_default_requires_link">
+            <source>Link a GitHub account to choose it as your default.</source>
+            <translation>برای انتخاب گیت‌هاب به‌عنوان نمای پیش‌فرض، ابتدا حساب گیت‌هاب را متصل کنید.</translation>
+        </message>
         <message id="genycaster.streak.leaderboard">
             <source>Leaderboard</source>
             <translation>جدول رتبه‌بندی</translation>
