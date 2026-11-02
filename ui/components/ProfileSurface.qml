@@ -92,7 +92,22 @@ Item {
         const key=names[String(mood||'')]
         return key ? qsTrId('genycaster.status.'+key) : ''
     }
-    onActiveDetailChanged: profileStatusFetch.restart()
+    onActiveDetailChanged: {
+        profileStatusFetch.restart()
+        streakFetch.restart()
+    }
+    onIsOwnProfileChanged: streakFetch.restart()
+    Timer {
+        id: streakFetch
+        interval: 250
+        repeat: false
+        onTriggered: {
+            if (root.isOwnProfile && root.visible &&
+                openProofConnections.cloudAuthorizationReady &&
+                !openProofConnections.streakBusy)
+                openProofConnections.fetchStreak()
+        }
+    }
     Timer {
         id: profileStatusFetch
         interval: 180
@@ -116,8 +131,10 @@ Item {
     Connections {
         target: openProofConnections
         function onStateChanged() {
-            if(root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+            if(root.isOwnProfile && openProofConnections.cloudAuthorizationReady) {
                 profileStatusFetch.restart()
+                streakFetch.restart()
+            }
         }
     }
     property int pendingProfileMediaAfterIndex: -1
@@ -2180,6 +2197,18 @@ Item {
                     return ""
                 }
                 onConnectionsRequested: root.openConnections()
+            }
+
+            StreakCard {
+                objectName: "ownerProfileStreak"
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                visible: root.isOwnProfile
+                compact: root.compact
+                snapshot: openProofConnections.streak
+                loading: openProofConnections.streakBusy
+                errorText: openProofConnections.streakError
             }
 
             // One compact navigation row, like the X profile timeline:
