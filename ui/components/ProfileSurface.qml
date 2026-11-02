@@ -96,7 +96,6 @@ Item {
         profileStatusFetch.restart()
         streakFetch.restart()
     }
-    onIsOwnProfileChanged: streakFetch.restart()
     Timer {
         id: streakFetch
         interval: 250
@@ -3297,6 +3296,7 @@ Item {
 
     onIsOwnProfileChanged: {
         profileStatusFetch.restart()
+        streakFetch.restart()
         root.profileLinksExpanded = false
         if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
             profileRefreshRetry.restart()
