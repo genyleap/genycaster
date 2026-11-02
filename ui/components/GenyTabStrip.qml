@@ -75,6 +75,7 @@ Item {
             dense: root.distribute
                    && tabList.width / Math.max(1, tabList.count) < 84
             text: String(modelData.label || "")
+            iconGlyph: String(modelData.icon || "")
             selected: String(modelData.id || "") === root.currentId
             onClicked: root.activated(String(modelData.id || ""))
         }

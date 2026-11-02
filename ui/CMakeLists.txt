@@ -802,12 +802,11 @@ qt_add_resources(genycaster genycaster_ui_fonts
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-Vazirmatn.txt"
 )
 
-# Qt WebAssembly cannot rely on browser-installed emoji fonts. Embed a
-# compact, monochrome subset (common emoji plus DNA) instead of the 10+ MB
-# Noto Color Emoji bitmap font. This tiny OFL-licensed subset is vendored and
-# checked into source, so WASM builds never need a network font download.
-# Feed immutable large fonts straight to object files in the WASM builder
-# instead of compiling megabytes of generated hexadecimal C++ initializers.
+# Qt WebAssembly cannot access browser/OS emoji fonts. Bundle pinned
+# CBDT/CBLC Noto Color Emoji for composed emoji, skin tones and flags.
+# Preserve the small monochrome subset as a secondary fallback; both are
+# local OFL resources (never download or resolve fonts at runtime).
+# BIG_RESOURCES avoids enormous C++ font data initializers.
 set(_genycasterLargeResources)
 if(EMSCRIPTEN)
     set(_genycasterLargeResources BIG_RESOURCES)
@@ -830,10 +829,27 @@ if(EMSCRIPTEN)
     set_source_files_properties(
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt" PROPERTIES
         QT_RESOURCE_ALIAS "assets/fonts/OFL-NotoEmoji.txt")
+    set(_genycasterColorEmoji
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/GenycasterColorEmoji.ttf")
+    if(NOT EXISTS "${_genycasterColorEmoji}")
+        message(FATAL_ERROR "Missing vendored WebAssembly color emoji font.")
+    endif()
+    file(SIZE "${_genycasterColorEmoji}" _colorEmojiSize)
+    if(_colorEmojiSize LESS 9000000 OR _colorEmojiSize GREATER 16000000)
+        message(FATAL_ERROR "Color emoji font size is outside expected range.")
+    endif()
+    file(SHA256 "${_genycasterColorEmoji}" _colorEmojiHash)
+    if(NOT _colorEmojiHash STREQUAL
+            "15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44")
+        message(FATAL_ERROR "WebAssembly color emoji font integrity mismatch.")
+    endif()
+    set_source_files_properties("${_genycasterColorEmoji}" PROPERTIES
+        QT_RESOURCE_ALIAS "assets/fonts/GenycasterColorEmoji.ttf")
     qt_add_resources(genycaster genycaster_emoji_fallback
         ${_genycasterLargeResources}
         PREFIX "/qt/qml/Farcaster/Client"
         FILES "${_genycasterEmojiFallback}"
+              "${_genycasterColorEmoji}"
               "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/OFL-NotoEmoji.txt")
 endif()
 

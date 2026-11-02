@@ -1,11 +1,14 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Farcaster.Client
 
 Button {
     id: control
 
     property bool selected: false
+    // Optional semantic icon; legacy tabs remain unchanged when omitted.
+    property string iconGlyph: ""
     property real minimumWidth: 72
     property bool dense: false
     property bool segmented: true
@@ -22,19 +25,45 @@ Button {
         NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
     }
 
-    contentItem: Label {
-        text: control.text
-        color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
-                                : (control.hovered ? Theme.ink : Theme.inkMuted)
-        Behavior on color {
-            ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+    contentItem: Item {
+        implicitWidth: tabContent.implicitWidth
+        implicitHeight: tabContent.implicitHeight
+        RowLayout {
+            id: tabContent
+            anchors.centerIn: parent
+            width: Math.min(implicitWidth, parent.width)
+            height: parent.height
+            spacing: Theme.space1
+            layoutDirection: Theme.uiDirection
+            Icon {
+                visible: control.iconGlyph.length > 0
+                text: control.iconGlyph
+                Layout.preferredWidth: visible ? Theme.scaleUi(16) : 0
+                Layout.preferredHeight: Theme.scaleUi(16)
+                Layout.alignment: Qt.AlignVCenter
+                preferredSize: Theme.scaleUi(15)
+                color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
+                                        : (control.hovered ? Theme.ink : Theme.inkMuted)
+                Behavior on color {
+                    ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+                }
+            }
+            Label {
+                Layout.fillWidth: true
+                text: control.text
+                color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
+                                        : (control.hovered ? Theme.ink : Theme.inkMuted)
+                Behavior on color {
+                    ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+                }
+                font.family: Theme.fontFamily
+                font.pixelSize: control.dense ? Theme.typeCaptionSize : Theme.typeLabelSize
+                font.weight: Theme.weightDemiBold
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
         }
-        font.family: Theme.fontFamily
-        font.pixelSize: control.dense ? Theme.typeCaptionSize : Theme.typeLabelSize
-        font.weight: Theme.weightDemiBold
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
     }
 
     background: Superellipse {

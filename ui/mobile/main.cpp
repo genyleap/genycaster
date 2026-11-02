@@ -598,12 +598,21 @@ int main(int argc, char* argv[])
         }
 
 #if defined(__EMSCRIPTEN__)
-        // Qt/WASM cannot inherit Safari's or Firefox's native emoji fonts.
-        // Use our small, monochrome OFL subset for common Unicode emoji.
-        // Animated emoji still use their existing vector-image assets.
-        if (loadApplicationFont(QStringLiteral(
-                ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterEmojiFallback.ttf")).isEmpty()) {
+        // Qt 6.12 supports CBDT/CBLC and emoji sequence segmentation.
+        // System/browser fonts are not available in the WASM sandbox.
+        const QStringList colorEmojiFamilies = loadApplicationFont(QStringLiteral(
+            ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterColorEmoji.ttf"));
+        const QStringList monoEmojiFamilies = loadApplicationFont(QStringLiteral(
+            ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterEmojiFallback.ttf"));
+        if (monoEmojiFamilies.isEmpty()) {
             return 2;
+        }
+        if (!colorEmojiFamilies.isEmpty()) {
+            QFontDatabase::setApplicationEmojiFontFamilies(
+                {colorEmojiFamilies.front(), monoEmojiFamilies.front()});
+        } else {
+            qWarning() << "Bundled color emoji unavailable; using monochrome fallback";
+            QFontDatabase::addApplicationEmojiFontFamily(monoEmojiFamilies.front());
         }
 #endif
 

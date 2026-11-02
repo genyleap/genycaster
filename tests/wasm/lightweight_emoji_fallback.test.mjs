@@ -54,16 +54,38 @@ test("lightweight fallback includes common emoji and DNA glyph", () => {
         assert.equal(covers(code), true, "Missing common emoji U+" + code.toString(16));
 });
 
-test("WASM uses the lightweight embedded fallback, never downloads or loads old color font", () => {
+test("WASM retains pinned lightweight fallback and bundles full color emoji without a CDN", () => {
     const cmake = read("ui/CMakeLists.txt").toString("utf8");
     const main = readGenycasterMain().toString("utf8");
     assert.match(cmake, /qt_add_resources\(genycaster genycaster_emoji_fallback/);
     assert.match(cmake, /_emojiFallbackSize GREATER 1048576/);
     assert.match(cmake, /_emojiFallbackHash STREQUAL/);
     assert.match(main, /GenycasterEmojiFallback\.ttf/);
-    assert.doesNotMatch(cmake, /NotoColorEmoji|wasm_emoji_font|GENYCASTER_WASM_EMOJI_FONT_PATH/);
+    assert.match(cmake, /GenycasterColorEmoji\.ttf/);
+    assert.doesNotMatch(cmake, /wasm_emoji_font|GENYCASTER_WASM_EMOJI_FONT_PATH/);
     assert.doesNotMatch(main, /NotoColorEmoji-wasm\.ttf/);
     assert.match(cmake, /set\(_genycasterLargeResources BIG_RESOURCES\)/);
     assert.match(cmake, /genycaster_emoji_fallback\s+\$\{_genycasterLargeResources\}/);
     assert.match(cmake, /genycaster_script_fonts\s+\$\{_genycasterLargeResources\}/);
+});
+
+test("WASM registers a pinned complete color emoji font with CBDT, CBLC, cmap and GSUB",()=>{
+    const bytes=read("ui/assets/fonts/GenycasterColorEmoji.ttf");
+    const digest=createHash("sha256").update(bytes).digest("hex");
+    assert.equal(digest,
+        "15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44");
+    assert.ok(bytes.length>9000000 && bytes.length<16000000);
+    const tables=Array.from({length:bytes.readUInt16BE(4)},(_,i)=>
+        bytes.toString("ascii",12+i*16,16+i*16));
+    for (const table of ["CBDT","CBLC","GSUB","cmap"])assert.ok(tables.includes(table),table);
+    const covers=unicodeCoverage(bytes);
+    for(const code of [0x1f9ec,0x1f600,0x1f525,0x1f44d,0x1f680,0x1f3fd,0x1f1fa])
+        assert.ok(covers(code),"Missing color emoji U+"+code.toString(16));
+    const cmake=read("ui/CMakeLists.txt").toString("utf8");
+    const main=readGenycasterMain();
+    assert.match(cmake,/GenycasterColorEmoji\.ttf/);
+    assert.match(cmake,/_colorEmojiHash STREQUAL/);
+    assert.match(main,/QFontDatabase::setApplicationEmojiFontFamilies/);
+    assert.match(main,/QFontDatabase::addApplicationEmojiFontFamily/);
+    assert.match(main,/GenycasterColorEmoji\.ttf/);
 });

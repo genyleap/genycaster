@@ -231,3 +231,14 @@ test('named achievements are translated in all twelve locales, retaining duratio
    }
  }
 });
+
+test('Streak tabs display semantic icons without changing the shared no-icon tab behavior',()=>{
+ const strip=read('ui/components/GenyTabStrip.qml');
+ const button=read('ui/components/GenyTabButton.qml');
+ const streak=read('ui/components/StreakCard.qml');
+ assert.match(strip,/iconGlyph: String\(modelData.icon \|\| ""\)/);
+ assert.match(button,/property string iconGlyph: ""/);
+ assert.match(button,/visible: control.iconGlyph.length > 0/);
+ for(const glyph of ['Theme.iconStreakFlame','Theme.iconCompose','Theme.iconChart'])
+   assert.ok(streak.includes('icon: '+glyph),glyph);
+});

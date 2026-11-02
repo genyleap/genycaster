@@ -34,3 +34,15 @@ Release/CI packaging can enforce embedded coverage with
 Primary application icons use bundled Font Awesome Free Regular/Solid resources when
 available through the configured icon-font source. They do not depend on a font being
 installed by the end user.
+
+## WebAssembly emoji rendering
+
+WASM embeds the pinned Google Noto Color Emoji font in CBDT/CBLC format
+(SIL Open Font License 1.1, from
+\`googlefonts/noto-emoji/2D/fonts/NotoColorEmoji.ttf\`).
+Qt 6.12 registers it using \`QFontDatabase::setApplicationEmojiFontFamilies\`
+for multi-codepoint glyphs, skin tones, flags and emoji presentation.
+The original small monochrome subset remains a secondary fallback.
+
+The 10.7 MB uncompressed font adds to the WASM payload but requires no
+runtime CDN or browser-installed fonts. Animated emoji are independent.

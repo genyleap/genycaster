@@ -230,9 +230,12 @@ Item {
             segmented: true
             minimumTabWidth: 70
             tabs: [
-                {id: "activity", label: qsTrId("genycaster.streak.activity")},
-                {id: "creator", label: qsTrId("genycaster.streak.creator")},
-                {id: "leaderboard", label: qsTrId("genycaster.streak.leaderboard")}
+                {id: "activity", label: qsTrId("genycaster.streak.activity"),
+                    icon: Theme.iconStreakFlame},
+                {id: "creator", label: qsTrId("genycaster.streak.creator"),
+                    icon: Theme.iconCompose},
+                {id: "leaderboard", label: qsTrId("genycaster.streak.leaderboard"),
+                    icon: Theme.iconChart}
             ]
             onActivated: id => {
                 root.activePage = id
@@ -527,8 +530,10 @@ Item {
                 distribute: true
                 minimumTabWidth: 76
                 tabs: [
-                    {id: "activity", label: qsTrId("genycaster.streak.activity")},
-                    {id: "creator", label: qsTrId("genycaster.streak.creator")}
+                    {id: "activity", label: qsTrId("genycaster.streak.activity"),
+                        icon: Theme.iconStreakFlame},
+                    {id: "creator", label: qsTrId("genycaster.streak.creator"),
+                        icon: Theme.iconCompose}
                 ]
                 onActivated: id => {
                     root.leaderboardTrack = id
