@@ -8,7 +8,10 @@ Item {
     property var activeEditor: null
     property string activeEditorKind: "formatted"
     readonly property var formattingEditor: root.activeEditorKind === "formatted" ? root.activeEditor : null
-    readonly property string activeText: root.activeEditor !== null ? String(root.activeEditor.text || "") : ""
+    // TextArea.text contains HTML markup for RichText editors, even when the
+    // user-visible paragraph is empty. Read the plain QTextDocument range.
+    readonly property string activeText: root.activeEditor !== null
+        ? String(root.activeEditor.getText(0, root.activeEditor.length) || "") : ""
     readonly property bool hasLiveContent: root.activeText.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").length > 0
     property var blockModel: []
     property bool blockRefreshPending: false
