@@ -2,6 +2,110 @@
 <TS version="2.1" language="ar_SA" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.title">
+            <source>Streak</source>
+            <translation>سلسلة الاستمرار</translation>
+        </message>
+        <message id="genycaster.streak.subtitle">
+            <source>Your verified activity and milestones</source>
+            <translation>نشاطك المؤكّد وإنجازاتك</translation>
+        </message>
+        <message id="genycaster.streak.open">
+            <source>Open Streak details</source>
+            <translation>فتح تفاصيل سلسلة الاستمرار</translation>
+        </message>
+        <message id="genycaster.streak.profile_badge">
+            <source>Streak · %1d</source>
+            <translation>الاستمرار · %1 يوم</translation>
+        </message>
+        <message id="genycaster.streak.activity">
+            <source>Activity</source>
+            <translation>النشاط</translation>
+        </message>
+        <message id="genycaster.streak.creator">
+            <source>Creator</source>
+            <translation>صانع المحتوى</translation>
+        </message>
+        <message id="genycaster.streak.loading">
+            <source>Loading Streak…</source>
+            <translation>جارٍ تحميل سلسلة الاستمرار…</translation>
+        </message>
+        <message id="genycaster.streak.unavailable">
+            <source>Streak is not available yet.</source>
+            <translation>سلسلة الاستمرار غير متاحة حالياً.</translation>
+        </message>
+        <message id="genycaster.streak.day_in_row">
+            <source>day in a row</source>
+            <translation>يوم متتالٍ</translation>
+        </message>
+        <message id="genycaster.streak.days_in_row">
+            <source>days in a row</source>
+            <translation>أيام متتالية</translation>
+        </message>
+        <message id="genycaster.streak.best">
+            <source>Best: %1 days</source>
+            <translation>أفضل سلسلة: %1 يوم</translation>
+        </message>
+        <message id="genycaster.streak.next">
+            <source>Next: %1 days</source>
+            <translation>التالي: %1 يوم</translation>
+        </message>
+        <message id="genycaster.streak.legendary">
+            <source>Legendary</source>
+            <translation>أسطوري</translation>
+        </message>
+        <message id="genycaster.streak.mon">
+            <source>M</source>
+            <translation>إث</translation>
+        </message>
+        <message id="genycaster.streak.tue">
+            <source>T</source>
+            <translation>ثل</translation>
+        </message>
+        <message id="genycaster.streak.wed">
+            <source>W</source>
+            <translation>أر</translation>
+        </message>
+        <message id="genycaster.streak.thu">
+            <source>T</source>
+            <translation>خم</translation>
+        </message>
+        <message id="genycaster.streak.fri">
+            <source>F</source>
+            <translation>جم</translation>
+        </message>
+        <message id="genycaster.streak.sat">
+            <source>S</source>
+            <translation>سب</translation>
+        </message>
+        <message id="genycaster.streak.sun">
+            <source>S</source>
+            <translation>أح</translation>
+        </message>
+        <message id="genycaster.streak.creator_rule">
+            <source>One verified original Cast per day counts.</source>
+            <translation>تُحتسب مشاركة أصلية مؤكدة واحدة يومياً.</translation>
+        </message>
+        <message id="genycaster.streak.activity_rule">
+            <source>A verified Cast or Reply counts once per day.</source>
+            <translation>تُحتسب مشاركة أو رد مؤكّد واحد يومياً.</translation>
+        </message>
+        <message id="genycaster.streak.badges">
+            <source>Badges · %1/%2</source>
+            <translation>الشارات · %1 من %2</translation>
+        </message>
+        <message id="genycaster.streak.show_less">
+            <source>Show less</source>
+            <translation>عرض أقل</translation>
+        </message>
+        <message id="genycaster.streak.see_all">
+            <source>See all</source>
+            <translation>عرض الكل</translation>
+        </message>
+        <message id="genycaster.streak.badge_days">
+            <source>%1d</source>
+            <translation>%1 يوم</translation>
+        </message>
         <message id="genycaster.engagement.views_accessible">
             <source>Views: %1</source>
             <translation>المشاهدات: %1</translation>
