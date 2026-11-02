@@ -694,7 +694,7 @@ GenyDrawer {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property Item triggerItem: root.compact ? selectedChannelChip : desktopCastChannelTrigger
         width: parent ? Math.min(410, Math.max(0, parent.width - Theme.space4 * 2)) : 410
-        height: parent ? Math.min(390, Math.max(160, parent.height - Theme.space4 * 2)) : 390
+        height: parent ? Math.max(0, Math.min(390, parent.height - Theme.space4 * 2)) : 390
         x: {
             if (!parent || !triggerItem) return Theme.space2
             const pt = triggerItem.mapToItem(parent, 0, 0)
@@ -745,7 +745,7 @@ GenyDrawer {
         }
         onClosed: channelDirectory.search("")
         contentItem: ColumnLayout {
-            spacing: Theme.space3
+            spacing: Theme.space2
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -753,8 +753,8 @@ GenyDrawer {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.composer.channel_picker_title")
                     color: Theme.textPrimary
-                    font.pixelSize: Theme.typeTitle3Size
-                    font.weight: Theme.weightBold
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
                 }
                 ActionButton {
                     iconOnly: true
@@ -954,7 +954,7 @@ GenyDrawer {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property Item triggerItem: root.compact ? selectedTopicChip : desktopCastTopicTrigger
         width: parent ? Math.min(410, Math.max(0, parent.width - Theme.space4 * 2)) : 410
-        height: parent ? Math.min(330, Math.max(160, parent.height - Theme.space4 * 2)) : 330
+        height: parent ? Math.max(0, Math.min(330, parent.height - Theme.space4 * 2)) : 330
         x: {
             if (!parent || !triggerItem) return Theme.space2
             const pt = triggerItem.mapToItem(parent, 0, 0)
@@ -997,7 +997,7 @@ GenyDrawer {
             openProofConnections.fetchTopics()
         }
         contentItem: ColumnLayout {
-            spacing: Theme.space3
+            spacing: Theme.space2
             RowLayout {
                 Layout.fillWidth: true
                 layoutDirection: Theme.uiDirection
@@ -1005,8 +1005,8 @@ GenyDrawer {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.topics.choose")
                     color: Theme.textPrimary
-                    font.pixelSize: Theme.typeTitle3Size
-                    font.weight: Theme.weightBold
+                    font.pixelSize: Theme.typeLabelSize
+                    font.weight: Theme.weightDemiBold
                 }
                 ActionButton {
                     compact: true
@@ -1017,17 +1017,11 @@ GenyDrawer {
                     onClicked: topicPicker.close()
                 }
             }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.topics.hint")
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeCaptionSize
-                wrapMode: Text.Wrap
-            }
             DirectionAwareTextField {
                 id: topicSearch
                 objectName: "composerTopicSearch"
                 Layout.fillWidth: true
+                implicitHeight: 40
                 placeholderText: qsTrId("genycaster.topics.search")
             }
             Flickable {
