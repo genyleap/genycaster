@@ -18,7 +18,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.doesNotMatch(profile,/StreakCard\s*\{\s*objectName:\s*"ownerProfileStreak"/);
  assert.match(profile,/objectName:\s*"profileStreakBadge"/);
  const badge=profile.slice(profile.indexOf("id: profileStreakBadge"),
-   profile.indexOf("id: followsYouBadge"));
+   profile.indexOf('objectName: "profileOwnerActions"'));
  assert.match(badge,/visible:\s*root\.isOwnProfile/);
  assert.match(badge,/onClicked:\s*\{[\s\S]*?streakDrawer\.open\(\)/);
  assert.match(profile,/id:\s*streakDrawer[\s\S]*?objectName:\s*"profileStreakDrawer"/);
@@ -26,6 +26,15 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.match(profile,/StreakCard\s*\{\s*id:\s*streakDetails/);
  assert.match(profile,/onCloseRequested:\s*streakDrawer\.close\(\)/);
  assert.match(profile,/streakDrawer\.close\(\)/);
+ assert.match(profile,/id:\s*profileStatsFlow/);
+ assert.match(badge,/Theme\.warningSurface/);
+ assert.match(badge,/Theme\.warning/);
+ assert.match(profile,/Layout\.preferredHeight:\s*childrenRect\.height/);
+ assert.match(profile,/streakDetails\.implicitHeight\s*\+\s*streakHeader\.implicitHeight/);
+ assert.match(card,/layoutDirection:\s*Theme\.uiDirection/);
+ assert.match(card,/objectName:\s*"streakWeeklyCalendar"/);
+ assert.match(card,/week_saturday/);
+ assert.match(card,/Theme\.warning/);
 });
 
 test('every Streak label is translated by stable translation ID',()=>{
