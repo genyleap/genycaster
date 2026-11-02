@@ -19,7 +19,7 @@ test('Home prompt opens a full-page mobile composer without an inline keyboard',
  assert.match(home,/Layout\.preferredHeight: 60/);
  assert.match(home,/verticalAlignment: Text\.AlignVCenter/);
  assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
- assert.match(composer,/fullScreen: compact/);
+ assert.match(composer,/fullScreen: root\.compact/);
  assert.match(composer,/objectName: "mobileComposerNavigation"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
  assert.match(shell,/onComposeRequested: text => root\.openComposer\(null, "", text\)/);
