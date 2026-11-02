@@ -21,13 +21,25 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
 });
 test('Streak verifier accepts only exact fid, message hash and CastAdd payload',async()=>{
   const reader=async(url)=>new Response(JSON.stringify({message:{hash,
-    data:{fid:42,castAddBody:{parentCastId:{fid:9,hash:'0x'+'11'.repeat(20)}}}}}),{status:200});
+    data:{fid:42,timestamp:Math.floor((Date.now()-Date.UTC(2021,0,1))/1000),
+      castAddBody:{parentCastId:{fid:9,hash:'0x'+'11'.repeat(20)}}}}}),{status:200});
   assert.deepEqual(await verifyStreakCastOwnership(hash,'42',{fetchImpl:reader}),{kind:'reply'});
   assert.equal(await verifyStreakCastOwnership(hash,'43',{fetchImpl:reader}),null);
   assert.equal(await verifyStreakCastOwnership('invalid','42',{fetchImpl:reader}),null);
   const falseCast=async()=>new Response(JSON.stringify({message:{hash,
     data:{fid:42,castAddBody:null}}}),{status:200});
   assert.equal(await verifyStreakCastOwnership(hash,'42',{fetchImpl:falseCast}),null);
+  const feed=async(url)=>new Response(JSON.stringify({casts:[{
+    hash:hash.slice(2),author:{fid:42},
+    timestamp:new Date().toISOString(),parent_hash:null
+  }]}),{status:200});
+  assert.deepEqual(await verifyStreakCastOwnership(hash,'42',{fetchImpl:feed}),
+    {kind:'cast'});
+  const old=async()=>new Response(JSON.stringify({casts:[{
+    hash:hash.slice(2),author:{fid:42},
+    timestamp:'2023-01-01T12:00:00Z',parent_hash:null
+  }]}),{status:200});
+  assert.equal(await verifyStreakCastOwnership(hash,'42',{fetchImpl:old}),null);
 });
 const fetchUpstream=async(url,options)=>{
   if(options?.headers?.authorization!=='Bearer good')
