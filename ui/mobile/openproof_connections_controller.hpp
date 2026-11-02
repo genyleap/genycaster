@@ -50,6 +50,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
     Q_PROPERTY(QVariantList streakLeaderboard READ streakLeaderboard NOTIFY streakChanged)
     Q_PROPERTY(QString publicActivitySource READ publicActivitySource NOTIFY streakChanged)
+    Q_PROPERTY(QString publicActivityGithubLogin READ publicActivityGithubLogin NOTIFY streakChanged)
     Q_PROPERTY(qulonglong publicActivityFid READ publicActivityFid NOTIFY streakChanged)
     Q_PROPERTY(bool streakLeaderboardBusy READ streakLeaderboardBusy NOTIFY streakChanged)
     Q_PROPERTY(bool profileStatusBusy READ profileStatusBusy NOTIFY profileStatusChanged)
@@ -110,6 +111,7 @@ public:
     [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
     [[nodiscard]] bool streakLeaderboardBusy() const noexcept { return m_streakLeaderboardRead != nullptr; }
     [[nodiscard]] QString publicActivitySource() const { return m_publicActivitySource; }
+    [[nodiscard]] QString publicActivityGithubLogin() const { return m_publicActivityGithubLogin; }
     [[nodiscard]] qulonglong publicActivityFid() const noexcept { return m_publicActivityFid; }
     Q_INVOKABLE void fetchPublicActivitySource(qulonglong fid);
     Q_INVOKABLE void fetchStreakPreferences();
@@ -275,6 +277,7 @@ private:
     QPointer<QNetworkReply> m_publicActivityRead{};
     qulonglong m_publicActivityFid{};
     QString m_publicActivitySource{QStringLiteral("casts")};
+    QString m_publicActivityGithubLogin{};
     QPointer<QNetworkReply> m_streakPreferencesRead{};
     QPointer<QNetworkReply> m_streakPreferencesWrite{};
     QPointer<QNetworkReply> m_streakLeaderboardRead{};
