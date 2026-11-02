@@ -26,6 +26,9 @@ Button {
         text: control.text
         color: control.selected ? (control.segmented ? Theme.ink : Theme.accent)
                                 : (control.hovered ? Theme.ink : Theme.inkMuted)
+        Behavior on color {
+            ColorAnimation { duration: Theme.motionFast; easing.type: Easing.InOutCubic }
+        }
         font.family: Theme.fontFamily
         font.pixelSize: control.dense ? Theme.typeCaptionSize : Theme.typeLabelSize
         font.weight: control.selected ? Theme.weightDemiBold : Theme.weightMedium
@@ -49,7 +52,11 @@ Button {
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
 
         Superellipse {
-            visible: control.selected && !control.segmented && control.showSelectionIndicator
+            visible: !control.segmented && control.showSelectionIndicator
+            opacity: control.selected ? 1 : 0
+            Behavior on opacity {
+                NumberAnimation { duration: Theme.motionFast; easing.type: Easing.InOutCubic }
+            }
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 1
