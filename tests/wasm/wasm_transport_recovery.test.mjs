@@ -9,7 +9,7 @@ const fn=source.slice(source.indexOf("function recoverFromStaleWasmServiceWorker
 const sw=readFileSync(new URL("../../ui/wasm/genycaster-sw.js",import.meta.url),"utf8");
 
 test("large WASM bypasses service worker without removing private browser data",()=>{
-    assert.match(sw,/const CACHE="genycaster-static-v11"/);
+    assert.match(sw,/const CACHE="genycaster-static-v12"/);
     assert.match(sw,/if\(relative==="genycaster\.wasm" \|\| WASM_HASH\.test\(relative\)\)return;/);
     assert.doesNotMatch(sw,/cache\.put\([^\n]*\.wasm/);
     assert.match(source,/manifestBytes>16\*1024\*1024\)return;/);
