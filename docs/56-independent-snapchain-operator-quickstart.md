@@ -64,7 +64,7 @@ Farcaster keys, or whether the separate validator accepts signed writes.
 
 ## 3. Launch the native client with explicit independent routes
 
-Use the native `farcaster_client` built from this repository (WASM
+Use the native `genycaster` built from this repository (WASM
 builds have their own browser/transport requirements). You need an
 independently verified compatible **writer/validator** endpoint; it
 is *not* safe to POST to the read node just because it exposes HTTP:
@@ -73,7 +73,7 @@ is *not* safe to POST to the read node just because it exposes HTTP:
 python3 ci/launch_self_hosted.py \
   --read-url http://127.0.0.1:3381 \
   --write-url https://your-validated-writer.example \
-  --fid 3 --client /absolute/path/to/farcaster_client
+  --fid 3 --client /absolute/path/to/genycaster
 ```
 
 The `--read-url` is the origin accessible **from the client machine**:

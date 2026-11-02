@@ -69,7 +69,7 @@ The coordinator must reject duplicate begin operations and stale generation comp
 A core-only build never validates the GUI. A Qt-enabled final gate must include:
 
 - clean Qt configure/build with generated MOC/QML registration/resource/cache sources;
-- `farcaster_client_qmllint_strict` with zero project warnings;
+- `genycaster_qmllint_strict` with zero project warnings;
 - warning-fatal offscreen `ui.smoke`;
 - actual runtime/QML output path inspection;
 - later visual acceptance screenshots for real product screens.

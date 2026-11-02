@@ -61,7 +61,7 @@ The local example http://127.0.0.1:3381 refers to the user's current browser dev
 
     cmake --build build/ui-qt612-debug --target farcaster_provider_profiles_tests -j 2
     ctest --test-dir build/ui-qt612-debug -R ui.provider_profiles_contract --output-on-failure
-    cmake --build build/ui-qt612-debug --target farcaster_client_qmllint -j 1
+    cmake --build build/ui-qt612-debug --target genycaster_qmllint -j 1
     node --test tests/wasm/node_management_settings.test.mjs
 
 The native test spins up a real local HTTP server and differentiates valid Snapchain JSON from an incompatible HTTP 200 response. Actual Safari clipboard permissions, WASM tab-session credentials and UI tap/focus behavior still require browser E2E verification.
