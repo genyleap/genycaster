@@ -51,7 +51,12 @@ GenyDrawer {
     property int emojiThreadCursorPosition: -1
     readonly property int maximumThreadCasts: 12
     readonly property bool threadMode: threadTailModel.count > 0
-    readonly property bool compact: parent ? parent.width < 720 : false
+    // Presentation mode is captured when the composer opens. Resizing an
+    // already-open editor must never replace its desktop chrome, editor or
+    // selection with a different mobile component tree.
+    property bool requestedCompact: false
+    property bool compact: false
+    onAboutToShow: root.compact = root.requestedCompact
     readonly property string replyAuthor: root.parentCast
                                                    ? String(root.parentCast.author || "") : ""
     readonly property string replyName: root.parentCast
@@ -102,34 +107,28 @@ GenyDrawer {
 
     ListModel { id: threadTailModel }
 
-    // A native-feeling page on narrow screens; keep the rich editor and
-    // publication/draft logic intact rather than replacing it with a form.
+    // A consistent bottom-edge sheet on desktop and a full-height editor on
+    // phones. The mode stays fixed for this editing session even if the app
+    // crosses a responsive breakpoint or a virtual keyboard resizes the view.
     bottomSheet: true
-    // A reply opens as a compact bottom sheet. When the keyboard appears
-    // it uses the available Qt viewport rather than clipping the target or
-    // controls behind the iOS input accessory.
-    // Keep one geometry for the whole keyboard session; switching between
-    // sheet and fullscreen as iOS opens its IME can invalidate the active
-    // TextArea and silently discard composed emoji input.
-    // A desktop window entering the compact breakpoint is not a phone.
-    // Preserve the rounded sheet when the window is resized.
-    fullScreen: compact && (Qt.platform.os === "ios" || Qt.platform.os === "android"
-                           || (Qt.platform.os === "wasm" && parent !== null
-                               && parent.height > parent.width * 1.15))
-    showHandle: !fullScreen
+    fullScreen: root.compact
+    showHandle: !root.fullScreen
     modal: true
     focus: true
     dimBackground: true
     contentPadding: 0
-    width: parent ? (compact ? parent.width
+    // The modal is hosted by the application viewport, not the changing
+    // reading column. Only its dimensions and center position respond to
+    // resize; its layout mode and component identities stay unchanged.
+    width: parent ? (root.compact ? parent.width
                     : Math.min(720, Math.max(0, parent.width - Theme.space4 * 2))) : 720
-    // During typing the Qt viewport already excludes the on-screen keyboard.
-    // Consume its full available height instead of leaving a dead upper gap.
-    // Parent is AppShell on mobile (not the scrolling reading column).
-    height: parent ? (compact ? parent.height
-                      : Math.min(Math.max(0, parent.height - Theme.space3 * 2),
+    x: parent ? (root.compact ? 0 : Math.max(0, (parent.width - width) / 2)) : 0
+    // Keep both ends inside the Qt viewport, including short desktop windows.
+    // On mobile Qt already subtracts the on-screen keyboard from this height.
+    height: parent ? (root.compact ? parent.height
+                      : Math.max(0, Math.min(parent.height - Theme.space4 * 2,
                           replyMode ? Math.min(parent.height * 0.68, 560)
-                                    : Math.min(parent.height * 0.78, 660))) : 660
+                                    : Math.min(parent.height * 0.78, 660)))) : 660
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
@@ -1298,6 +1297,7 @@ GenyDrawer {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: 1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -1312,6 +1312,7 @@ GenyDrawer {
                 ActionButton {
                     objectName: "composerClearContentDesktop"
                     visible: root.hasPublishableContent()
+                    iconOnly: root.width < 480
                     compact: true
                     quiet: true
                     iconGlyph: Theme.iconTrash
@@ -1322,6 +1323,7 @@ GenyDrawer {
                 ActionButton {
                     prominent: true
                     compact: true
+                    iconOnly: root.width < 480
                     iconGlyph: Theme.iconSend
                     text: root.parentCast ? qsTrId("genycaster.shell.reply")
                                          : qsTrId("genycaster.shell.publish")
@@ -1639,7 +1641,7 @@ GenyDrawer {
                                                     ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
                                                     : Math.max(135, composerScroll.height
                                                         - (root.keyboardVisible ? 84 : 126)))
-                                                 : Math.max(148, Math.min(255, composerScroll.height * 0.55)))
+                                                 : Math.max(128, Math.min(255, root.height * 0.4)))
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
