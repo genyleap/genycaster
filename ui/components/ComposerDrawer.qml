@@ -117,13 +117,14 @@ GenyDrawer {
     focus: true
     dimBackground: true
     contentPadding: 0
-    width: parent ? parent.width : 1040
+    width: parent ? (compact ? parent.width : Math.min(760, parent.width)) : 760
     // During typing the Qt viewport already excludes the on-screen keyboard.
     // Consume its full available height instead of leaving a dead upper gap.
     // Parent is AppShell on mobile (not the scrolling reading column).
     height: parent ? (compact ? parent.height
-                      : (replyMode ? Math.min(parent.height * 0.66, 600)
-                         : Math.min(parent.height * 0.78, 720))) : 720
+                      : Math.min(Math.max(0, parent.height - Theme.space3 * 2),
+                          replyMode ? Math.min(parent.height * 0.72, 600)
+                                    : Math.min(parent.height * 0.84, 720))) : 720
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
@@ -1129,29 +1130,16 @@ GenyDrawer {
     Shortcut { sequence: "Ctrl+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
     Shortcut { sequence: "Meta+Shift+C"; enabled: root.opened && !emojiPicker.opened; onActivated: root.insertCodeBlockFromKeyboard() }
 
+    // Fixed chrome stays outside the scrollable document. Resizing the window
+    // must never move publish/cancel or mode switches behind the editor.
     contentItem: ColumnLayout {
         spacing: 0
-        ScrollView {
-        id: composerScroll
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        clip: true
-        onHeightChanged: {
-            if (root.keyboardVisible && root.focusedComposerEditor)
-                root.ensureEditorVisible(root.focusedComposerEditor)
-        }
-        contentWidth: availableWidth
-        contentHeight: composerContent.implicitHeight
-        ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
-        ScrollBar.vertical: GenyScrollBar {}
-
         ColumnLayout {
-            id: composerContent
-            readonly property int sideMargin: root.compact ? Theme.mobileGutter : Theme.space6
-            width: Math.max(0, composerScroll.availableWidth - sideMargin * 2)
-            x: sideMargin
-            spacing: root.keyboardVisible ? Theme.space2 : Theme.space3
-
+            id: composerFixedChrome
+            Layout.fillWidth: true
+            Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space6
+            Layout.rightMargin: Layout.leftMargin
+            spacing: root.compact ? Theme.space2 : Theme.space3
             Item { Layout.preferredHeight: root.keyboardVisible ? 0
                                       : root.compact ? Theme.space1 : Theme.space2 }
 
@@ -1308,6 +1296,29 @@ GenyDrawer {
                     alignToUi: true
                 }
             }
+
+        }
+        ScrollView {
+        id: composerScroll
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.minimumHeight: 0
+        clip: true
+        onHeightChanged: {
+            if (root.keyboardVisible && root.focusedComposerEditor)
+                root.ensureEditorVisible(root.focusedComposerEditor)
+        }
+        contentWidth: availableWidth
+        contentHeight: composerContent.implicitHeight
+        ScrollBar.horizontal: GenyScrollBar { policy: ScrollBar.AlwaysOff }
+        ScrollBar.vertical: GenyScrollBar {}
+
+        ColumnLayout {
+            id: composerContent
+            readonly property int sideMargin: root.compact ? Theme.mobileGutter : Theme.space6
+            width: Math.max(0, composerScroll.availableWidth - sideMargin * 2)
+            x: sideMargin
+            spacing: root.keyboardVisible ? Theme.space2 : Theme.space3
 
             Superellipse {
                 id: replyContextCard
@@ -1890,7 +1901,7 @@ GenyDrawer {
             // Keep buttons clear of the iOS home indicator and input accessory.
             // The parent Qt viewport has already shrunk above the keyboard;
             // never subtract keyboard height twice.
-            Layout.bottomMargin: root.keyboardVisible ? Theme.space4 : Theme.space5
+            Layout.bottomMargin: root.keyboardVisible ? Theme.space2 : Theme.space3
             Layout.topMargin: Theme.space2
 
             Rectangle {
