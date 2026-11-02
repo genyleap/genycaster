@@ -1,8 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 
-// Hover is instant and geometry-stable. Only an actual selection moves the
-// persistent indicator, never moving the underline just by passing the cursor.
+// Hover softly changes only the label color: no rectangles, scale or layout
+// transitions. The persistent underline moves only after a real selection.
 Item {
     id: root
     property string currentMode: "for-you"
@@ -43,19 +43,8 @@ Item {
                 Accessible.selected: selected
 
                 HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: Theme.space1
-                    radius: Theme.curveCompact
-                    color: hover.hovered && !tabButton.selected
-                           ? Theme.surfaceHover : "transparent"
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Theme.reduceMotion ? 0 : 110
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
+                // Only text responds to hover. A fading rectangle lingers
+                // under the previous tab as the pointer crosses siblings.
                 Text {
                     anchors.fill: parent
                     anchors.leftMargin: 2
@@ -64,7 +53,10 @@ Item {
                     color: tabButton.selected ? Theme.accent
                                               : (hover.hovered ? Theme.ink : Theme.inkMuted)
                     Behavior on color {
-                        ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+                        ColorAnimation {
+                            duration: Theme.reduceMotion ? 0 : 140
+                            easing.type: Easing.OutCubic
+                        }
                     }
                     font.family: Theme.fontFamily
                     font.pixelSize: root.width < 400 ? 12 : Theme.typeMetaSize
