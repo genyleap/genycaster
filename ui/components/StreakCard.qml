@@ -29,7 +29,7 @@ Item {
         id: card
         width: parent.width
         implicitHeight: layout.implicitHeight + Theme.space4 * 2
-        radius: Theme.curveCard
+        radius: Theme.curveContainer
         color: Theme.surface
         border.color: Theme.borderMuted
         border.width: 1
