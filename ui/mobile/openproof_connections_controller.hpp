@@ -47,6 +47,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
+    Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
+    Q_PROPERTY(QVariantList streakLeaderboard READ streakLeaderboard NOTIFY streakChanged)
+    Q_PROPERTY(bool streakLeaderboardBusy READ streakLeaderboardBusy NOTIFY streakChanged)
     Q_PROPERTY(bool profileStatusBusy READ profileStatusBusy NOTIFY profileStatusChanged)
     Q_PROPERTY(QString profileStatusError READ profileStatusError NOTIFY profileStatusChanged)
     Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
@@ -101,6 +104,13 @@ public:
     [[nodiscard]] QString streakError() const { return m_streakError; }
     Q_INVOKABLE void fetchStreak();
     Q_INVOKABLE void recordStreakCast(const QString& hash);
+    [[nodiscard]] QVariantMap streakPreferences() const { return m_streakPreferences; }
+    [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
+    [[nodiscard]] bool streakLeaderboardBusy() const noexcept { return m_streakLeaderboardRead != nullptr; }
+    Q_INVOKABLE void fetchStreakPreferences();
+    Q_INVOKABLE void setStreakPreferences(const QString& activitySource,
+                                        bool leaderboardVisible);
+    Q_INVOKABLE void fetchStreakLeaderboard(const QString& track);
     [[nodiscard]] bool profileStatusBusy() const noexcept {
         return m_profileStatusRead || m_profileStatusWrite;
     }
@@ -257,6 +267,11 @@ private:
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
     QPointer<QNetworkReply> m_streakWrite{};
+    QPointer<QNetworkReply> m_streakPreferencesRead{};
+    QPointer<QNetworkReply> m_streakPreferencesWrite{};
+    QPointer<QNetworkReply> m_streakLeaderboardRead{};
+    QVariantMap m_streakPreferences{};
+    QVariantList m_streakLeaderboard{};
     QVariantMap m_streak{};
     QString m_streakError{};
     QPointer<QNetworkReply> m_profileStatusWrite{};
