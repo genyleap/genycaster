@@ -1237,20 +1237,27 @@ Item {
                         }
                     }
                 }
-                GenyCheckRow {
-                    id: revealWords
-                    objectName: "nativeRecoveryRevealWords"
+                // Recovery choices form one aligned vertical control group.
+                // The full labels remain tap targets without selected cards.
+                ColumnLayout {
                     Layout.fillWidth: true
-                    label: qsTrId("genycaster.setup.show_recovery_words")
-                    checked: false
-                    onVisibleChanged: if (!visible) checked = false
-                }
-                GenyCheckRow {
-                    id: deviceSignerConsent
-                    objectName: "nativeRecoveryDeviceSignerConsent"
-                    Layout.fillWidth: true
-                    label: qsTrId("genycaster.setup.recovery_signer_consent")
-                    checked: false
+                    Layout.topMargin: Theme.space2
+                    spacing: 2
+                    GenyCheckRow {
+                        id: revealWords
+                        objectName: "nativeRecoveryRevealWords"
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.show_recovery_words")
+                        checked: false
+                        onVisibleChanged: if (!visible) checked = false
+                    }
+                    GenyCheckRow {
+                        id: deviceSignerConsent
+                        objectName: "nativeRecoveryDeviceSignerConsent"
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.recovery_signer_consent")
+                        checked: false
+                    }
                 }
                 SetupPrimaryButton {
                     Layout.fillWidth: true
