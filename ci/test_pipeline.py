@@ -28,6 +28,10 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("Qt.ImhSensitiveData", setup)
         self.assertIn("nativeRecoveryGrid.clearAll()", setup)
         self.assertIn("root.nativeRecoverAccount(words)", setup)
+        # The native recovery DTO owns an ICustodyAuthorizer. Imports of other
+        # C++26 modules do not make that capability declaration transitive.
+        self.assertIn("import farcaster.capability.signer;", wiring)
+        self.assertIn("std::shared_ptr<capability::signer::ICustodyAuthorizer>", wiring)
         self.assertIn("QFutureWatcher<RecoveryOutcome>", wiring)
         self.assertIn(
             "[&bridge, &connections, runtime, sessionObserver,",
