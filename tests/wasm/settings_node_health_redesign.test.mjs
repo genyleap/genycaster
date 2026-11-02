@@ -8,7 +8,7 @@ const read=p=>readFileSync(new URL(p,root),'utf8');
 test('desktop settings uses vertical categorized destinations instead of two-row tabs',()=>{
  const qml=read('ui/components/LocaleSettingsPopup.qml');
  assert.match(qml,/id: settingsNavigation/);
- assert.match(qml,/Layout\.preferredWidth: Math\.min\(278/);
+ assert.match(qml,/Layout\.preferredWidth: Math\.min\(208/);
  assert.match(qml,/visible: !root\.mobilePresentation \|\| !root\.mobileIndexOpen/);
  assert.match(qml,/root\.currentSection = Number\(modelData\.section\)/);
  assert.match(qml,/visible: Number\(modelData\.section\) !== 5 \|\| presentationBridge\.isAuthenticated/);
@@ -65,7 +65,7 @@ test('new settings and health copy is available in all supported languages',()=>
 test('settings navigation wraps translated titles instead of truncating them',()=>{
  const nav=read('ui/components/LocaleSettingsPopup.qml');
  const button=read('ui/components/ActionButton.qml');
- assert.match(nav,/Layout\.preferredWidth: Math\.min\(278/);
+ assert.match(nav,/Layout\.preferredWidth: Math\.min\(208/);
  assert.match(nav,/wrapText: true/);
  assert.match(button,/property bool wrapText: false/);
  assert.match(button,/wrapMode: control\.wrapText \? Text\.Wrap : Text\.NoWrap/);
