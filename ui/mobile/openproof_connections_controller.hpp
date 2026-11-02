@@ -49,6 +49,8 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
     Q_PROPERTY(QVariantList streakLeaderboard READ streakLeaderboard NOTIFY streakChanged)
+    Q_PROPERTY(QString publicActivitySource READ publicActivitySource NOTIFY streakChanged)
+    Q_PROPERTY(qulonglong publicActivityFid READ publicActivityFid NOTIFY streakChanged)
     Q_PROPERTY(bool streakLeaderboardBusy READ streakLeaderboardBusy NOTIFY streakChanged)
     Q_PROPERTY(bool profileStatusBusy READ profileStatusBusy NOTIFY profileStatusChanged)
     Q_PROPERTY(QString profileStatusError READ profileStatusError NOTIFY profileStatusChanged)
@@ -107,6 +109,9 @@ public:
     [[nodiscard]] QVariantMap streakPreferences() const { return m_streakPreferences; }
     [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
     [[nodiscard]] bool streakLeaderboardBusy() const noexcept { return m_streakLeaderboardRead != nullptr; }
+    [[nodiscard]] QString publicActivitySource() const { return m_publicActivitySource; }
+    [[nodiscard]] qulonglong publicActivityFid() const noexcept { return m_publicActivityFid; }
+    Q_INVOKABLE void fetchPublicActivitySource(qulonglong fid);
     Q_INVOKABLE void fetchStreakPreferences();
     Q_INVOKABLE void setStreakPreferences(const QString& activitySource,
                                         bool leaderboardVisible);
@@ -267,6 +272,9 @@ private:
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
     QPointer<QNetworkReply> m_streakWrite{};
+    QPointer<QNetworkReply> m_publicActivityRead{};
+    qulonglong m_publicActivityFid{};
+    QString m_publicActivitySource{QStringLiteral("casts")};
     QPointer<QNetworkReply> m_streakPreferencesRead{};
     QPointer<QNetworkReply> m_streakPreferencesWrite{};
     QPointer<QNetworkReply> m_streakLeaderboardRead{};
