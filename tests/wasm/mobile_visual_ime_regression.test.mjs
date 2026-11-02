@@ -60,8 +60,8 @@ test('mobile reading surface reduces double insets without changing desktop geom
 
 test('reply TextArea retains IME preedit and commits native keyboard text after composition', () => {
   const composer = read('ui/components/ComposerDrawer.qml');
-  assert.match(composer, /fullScreen: compact/);
-  assert.match(composer, /height: parent \? \(compact \? parent\.height/);
+  assert.match(composer, /fullScreen: root\.compact/);
+  assert.match(composer, /height: parent \? \(root\.compact \? parent\.height/);
   assert.match(composer, /mobilePlainEditor\.forceActiveFocus\(\)/);
   assert.match(composer, /Qt\.inputMethod\.show\(\)/);
   assert.match(composer, /onPreeditTextChanged:/);
