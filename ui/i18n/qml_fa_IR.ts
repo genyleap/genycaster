@@ -56,31 +56,31 @@
         </message>
         <message id="genycaster.streak.mon">
             <source>M</source>
-            <translation>دش</translation>
+            <translation>د</translation>
         </message>
         <message id="genycaster.streak.tue">
             <source>T</source>
-            <translation>سه</translation>
+            <translation>س</translation>
         </message>
         <message id="genycaster.streak.wed">
             <source>W</source>
-            <translation>چه</translation>
+            <translation>چ</translation>
         </message>
         <message id="genycaster.streak.thu">
             <source>T</source>
-            <translation>پن</translation>
+            <translation>پ</translation>
         </message>
         <message id="genycaster.streak.fri">
             <source>F</source>
-            <translation>جم</translation>
+            <translation>ج</translation>
         </message>
         <message id="genycaster.streak.sat">
             <source>S</source>
-            <translation>شن</translation>
+            <translation>ش</translation>
         </message>
         <message id="genycaster.streak.sun">
             <source>S</source>
-            <translation>یک</translation>
+            <translation>ی</translation>
         </message>
         <message id="genycaster.streak.creator_rule">
             <source>One verified original Cast per day counts.</source>
