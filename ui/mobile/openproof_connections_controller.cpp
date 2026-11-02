@@ -1209,6 +1209,128 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 }
 
 
+void OpenProofConnectionsController::fetchStreakPreferences()
+{
+    if(!m_viewerFid || !cloudAuthorizationReady() ||
+       !trustedHttpsEndpoint(m_cloudUrl) || m_streakPreferencesWrite)return;
+    cancelNetworkReply(m_streakPreferencesRead,this);
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/streak/preferences"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_streakPreferencesRead=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_streakPreferencesRead!=reply){reply->deleteLater();return;}
+        m_streakPreferencesRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto body=reply->bytesAvailable()<=2048?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
+        const auto doc=QJsonDocument::fromJson(body);
+        if(status==200 && doc.isObject()
+           && doc.object().value(QStringLiteral("preferences")).isObject()) {
+            m_streakPreferences=doc.object().value(QStringLiteral("preferences"))
+                .toObject().toVariantMap();
+            emit streakChanged();
+        }
+    });
+}
+
+void OpenProofConnectionsController::setStreakPreferences(
+    const QString& activitySource,bool leaderboardVisible)
+{
+    if(activitySource!=QStringLiteral("casts") &&
+       activitySource!=QStringLiteral("github"))return;
+    if(!m_viewerFid || !cloudAuthorizationReady() ||
+       !trustedHttpsEndpoint(m_cloudUrl) || m_streakPreferencesWrite)return;
+    const auto revision=m_streakPreferences.value(QStringLiteral("revision")).toLongLong();
+    if(revision<0 || revision>9007199254740990LL)return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/streak/preferences"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const auto payload=QJsonDocument{QJsonObject{
+        {QStringLiteral("activity_source"),activitySource},
+        {QStringLiteral("leaderboard_visible"),leaderboardVisible},
+        {QStringLiteral("revision"),static_cast<double>(revision)}
+    }}.toJson(QJsonDocument::Compact);
+    auto* reply=m_network.put(request,payload);
+    m_streakPreferencesWrite=reply;
+    emit streakChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_streakPreferencesWrite!=reply){reply->deleteLater();return;}
+        m_streakPreferencesWrite.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=2048?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(status==200 && doc.isObject()
+           && doc.object().value(QStringLiteral("preferences")).isObject())
+            m_streakPreferences=doc.object().value(QStringLiteral("preferences"))
+                .toObject().toVariantMap();
+        else {
+            // A conflict means the account was updated on another device.
+            fetchStreakPreferences();
+        }
+        emit streakChanged();
+    });
+}
+
+void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track)
+{
+    if(track!=QStringLiteral("activity") && track!=QStringLiteral("creator"))return;
+    if(!m_viewerFid || !cloudAuthorizationReady() ||
+       !trustedHttpsEndpoint(m_cloudUrl))return;
+    cancelNetworkReply(m_streakLeaderboardRead,this);
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/streak/leaderboard"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("track"),track);
+    url.setQuery(query);
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_streakLeaderboardRead=reply;
+    m_streakLeaderboard.clear();
+    emit streakChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_streakLeaderboardRead!=reply){reply->deleteLater();return;}
+        m_streakLeaderboardRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=32768?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(status==200 && doc.isObject() &&
+           doc.object().value(QStringLiteral("leaders")).isArray())
+            m_streakLeaderboard=doc.object().value(QStringLiteral("leaders"))
+                .toArray().toVariantList();
+        emit streakChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchStreak()
 {
     if (!m_viewerFid || !cloudAuthorizationReady()
@@ -2467,6 +2589,11 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_viewerFid = fid;
     cancelNetworkReply(m_streakRead, this);
     cancelNetworkReply(m_streakWrite, this);
+    cancelNetworkReply(m_streakPreferencesRead, this);
+    cancelNetworkReply(m_streakPreferencesWrite, this);
+    cancelNetworkReply(m_streakLeaderboardRead, this);
+    m_streakPreferences.clear();
+    m_streakLeaderboard.clear();
     m_streak.clear();
     m_streakError.clear();
     emit streakChanged();
