@@ -402,9 +402,25 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'streak','streak/cast','streak/preferences','streak/leaderboard',
+      'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
+    }
+    if(entity==='profile_activity' && request.method==='GET') {
+      const params=new URL(request.url,'http://localhost').searchParams;
+      const fid=params.get('fid');
+      if(!fid || params.getAll('fid').length!==1 ||
+          !/^[1-9][0-9]{0,18}$/.test(fid) ||
+          !Number.isSafeInteger(Number(fid))) {
+        respond(response,400,{error:'invalid_fid'});return true;
+      }
+      try {
+        respond(response,200,{fid,activity_source:
+          await store.getPublicActivitySource(fid,upstream)});
+      }catch {
+        respond(response,503,{error:'activity_preference_unavailable'});
+      }
+      return true;
     }
     if(entity==='profile_status' && request.method==='GET') {
       const params=new URL(request.url,'http://localhost').searchParams;
