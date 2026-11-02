@@ -844,6 +844,9 @@ GenyDrawer {
                     // The icon follows its selected safe, built-in action.
                     ColumnLayout {
                         objectName: "mobileActionButtonPreferences"
+                        // The floating navigation action is not a desktop setting.
+                        // It appears on native phones and compact-width WASM only.
+                        visible: root.mobilePresentation
                         Layout.fillWidth: true
                         spacing: Theme.space3
 
@@ -870,7 +873,8 @@ GenyDrawer {
                         GridLayout {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
-                            columns: root.mobilePresentation ? 2 : 4
+                            columns: 2
+                            uniformCellWidths: true
                             columnSpacing: Theme.space2
                             rowSpacing: Theme.space2
 
@@ -886,9 +890,11 @@ GenyDrawer {
                                     objectName: "mobileActionChoice_" + modelData.id
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
-                                    compact: true
+                                    compact: false
                                     quiet: true
-                                    wrapText: root.mobilePresentation
+                                    wrapText: true
+                                    alignStart: true
+                                    Layout.preferredHeight: 48
                                     iconGlyph: modelData.icon
                                     selected: Theme.mobileAction === modelData.id
                                     text: modelData.label
@@ -908,7 +914,7 @@ GenyDrawer {
                             // Three labels and icons are too narrow on phones,
                             // especially with translated text. Preserve the
                             // compact desktop row while giving phones two columns.
-                            columns: root.mobilePresentation ? 2 : 3
+                            columns: 2
                             uniformCellWidths: true
                             columnSpacing: Theme.space2
                             rowSpacing: Theme.space2
@@ -918,19 +924,63 @@ GenyDrawer {
                                     {id:"coral",color:"#FF5267",label:qsTrId("genycaster.settings.mobile_action_coral")},
                                     {id:"theme",color:Theme.presetFill,label:qsTrId("genycaster.settings.mobile_action_theme")}
                                 ]
-                                delegate: ActionButton {
+                                delegate: Item {
+                                    id: actionColorChoice
                                     required property var modelData
                                     objectName: "mobileActionColor_" + modelData.id
+                                    readonly property bool isSelected: Theme.mobileActionColorPreset === modelData.id
                                     Layout.fillWidth: true
                                     Layout.minimumWidth: 0
-                                    compact: true
-                                    quiet: true
-                                    wrapText: root.mobilePresentation
-                                    iconGlyph: Theme.iconCheck
-                                    customIconColor: modelData.color
-                                    selected: Theme.mobileActionColorPreset === modelData.id
-                                    text: modelData.label
-                                    onClicked: Theme.setMobileActionColor(modelData.id)
+                                    Layout.preferredHeight: 44
+                                    Accessible.role: Accessible.RadioButton
+                                    Accessible.name: String(modelData.label)
+                                    Accessible.checked: isSelected
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: Theme.curveControl
+                                        color: actionColorChoice.isSelected ? Theme.surfaceSelected
+                                               : colorHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+                                        border.width: 1
+                                        border.color: actionColorChoice.isSelected ? Theme.accent : Theme.borderSubtle
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                        }
+                                    }
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: Theme.space2
+                                        anchors.rightMargin: Theme.space2
+                                        spacing: Theme.space2
+                                        layoutDirection: Theme.uiDirection
+                                        Rectangle {
+                                            Layout.preferredWidth: 19
+                                            Layout.preferredHeight: 19
+                                            radius: 9.5
+                                            color: actionColorChoice.modelData.color
+                                            border.width: 1
+                                            border.color: Theme.borderStrong
+                                        }
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            text: actionColorChoice.modelData.label
+                                            color: Theme.ink
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            elide: Text.ElideRight
+                                        }
+                                        Icon {
+                                            text: Theme.iconCheck
+                                            preferredSize: 15
+                                            color: Theme.accent
+                                            opacity: actionColorChoice.isSelected ? 1 : 0
+                                        }
+                                    }
+                                    HoverHandler { id: colorHover; cursorShape: Qt.PointingHandCursor }
+                                    TapHandler {
+                                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                                        onTapped: Theme.setMobileActionColor(actionColorChoice.modelData.id)
+                                    }
                                 }
                             }
                         }
@@ -999,11 +1049,15 @@ GenyDrawer {
                             font.weight: Theme.weightDemiBold
                         }
 
+                        // Palette swatches are a single responsive family:
+                        // circular color samples, a quiet label, one selection
+                        // ring. No nested pill cards or clipped preset names.
                         GridLayout {
                             Layout.fillWidth: true
                             layoutDirection: Theme.uiDirection
-                            columns: width >= 560 ? 4 : 2
-                            rowSpacing: Theme.space2
+                            columns: appearanceScroll.availableWidth >= 320 ? 4 : 3
+                            uniformCellWidths: true
+                            rowSpacing: Theme.space3
                             columnSpacing: Theme.space2
 
                             Repeater {
@@ -1016,45 +1070,67 @@ GenyDrawer {
                                     { id: "mint", label: qsTrId("genycaster.settings.theme_mint"), color: Theme.swatchMint },
                                     { id: "mono", label: qsTrId("genycaster.settings.theme_mono"), color: Theme.swatchMono }
                                 ]
-                                delegate: Superellipse {
+                                delegate: Item {
                                     id: themePreset
                                     required property var modelData
                                     readonly property bool selected: appearanceController.colorThemeId === String(modelData.id)
                                     Layout.fillWidth: true
-                                    implicitHeight: 50
-                                    fillColor: selected ? Theme.surfaceSelected : presetHover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-                                    borderWidth: selected ? 2 : Theme.strokeHairline
-                                    borderColor: selected ? Theme.accent : Theme.borderSubtle
-                                    curveDepth: Theme.curveControl
+                                    Layout.minimumWidth: 0
+                                    Layout.preferredHeight: 76
+                                    Accessible.role: Accessible.RadioButton
+                                    Accessible.name: String(modelData.label)
+                                    Accessible.checked: selected
 
-                                    RowLayout {
+                                    ColumnLayout {
                                         anchors.fill: parent
-                                        anchors.margins: Theme.space2
-                                        layoutDirection: Theme.uiDirection
-                                        spacing: Theme.space2
-
-                                        Superellipse {
-                                            Layout.preferredWidth: 26
-                                            Layout.preferredHeight: 26
-                                            fillColor: themePreset.modelData.color
-                                            borderWidth: Theme.strokeHairline
-                                            borderColor: Theme.borderStrong
-                                            curveDepth: 8
-                                            exponent: 3.8
+                                        spacing: Theme.space1
+                                        Item {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            Layout.preferredWidth: 46
+                                            Layout.preferredHeight: 46
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                radius: width / 2
+                                                color: "transparent"
+                                                border.width: 2
+                                                border.color: themePreset.selected ? Theme.accent : "transparent"
+                                                Behavior on border.color {
+                                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                                }
+                                            }
+                                            Rectangle {
+                                                anchors.centerIn: parent
+                                                width: 36
+                                                height: 36
+                                                radius: width / 2
+                                                color: themePreset.modelData.color
+                                                border.width: 1
+                                                border.color: Theme.borderStrong
+                                                scale: presetHover.hovered ? 1.07 : 1
+                                                Behavior on scale {
+                                                    NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                                }
+                                                Icon {
+                                                    anchors.centerIn: parent
+                                                    text: Theme.iconCheck
+                                                    color: "#ffffff"
+                                                    preferredSize: 17
+                                                    opacity: themePreset.selected ? 1 : 0
+                                                    Behavior on opacity {
+                                                        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                                    }
+                                                }
+                                            }
                                         }
                                         DirectionAwareLabel {
                                             Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            horizontalAlignment: Text.AlignHCenter
                                             text: themePreset.modelData.label
-                                            color: Theme.ink
-                                            font.pixelSize: Theme.typeMetaSize
-                                            font.weight: themePreset.selected ? Theme.weightDemiBold : Theme.weightMedium
+                                            color: themePreset.selected ? Theme.ink : Theme.inkMuted
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            font.weight: Theme.weightMedium
                                             elide: Text.ElideRight
-                                        }
-                                        Icon {
-                                            visible: themePreset.selected
-                                            text: Theme.iconCheck
-                                            color: Theme.accent
-                                            preferredSize: Theme.iconSizeSmall
                                         }
                                     }
 
