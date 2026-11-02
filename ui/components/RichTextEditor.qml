@@ -9,7 +9,7 @@ Item {
     property string activeEditorKind: "formatted"
     readonly property var formattingEditor: root.activeEditorKind === "formatted" ? root.activeEditor : null
     readonly property string activeText: root.activeEditor !== null ? String(root.activeEditor.text || "") : ""
-    readonly property bool hasLiveContent: root.activeText.trim().length > 0
+    readonly property bool hasLiveContent: root.activeText.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").length > 0
     property var blockModel: []
     property bool blockRefreshPending: false
     signal activeEditorChangedExternally(int blockIndex, var editor)
