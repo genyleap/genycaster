@@ -2,9 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Recovery choices use the same Superellipse, surface, accent and focus
-// tokens as GenyCaster's standard controls. Never use the native CheckBox
-// indicator (which differs between macOS, Windows, Android and WASM).
+// Recovery uses the same dark-ink checkbox as the legal-consent screen,
+// not the separately configurable accent color. Cross-platform styling is
+// owned by GenyCaster rather than the native CheckBox indicator.
 Button {
     id: control
     property string label: ""
@@ -32,27 +32,23 @@ Button {
         spacing: Theme.space3
         layoutDirection: Theme.uiDirection
 
+        // Match the legal-consent checkbox in InitialSetup exactly. Its ink
+        // fill is deliberately independent of the user-selected accent theme.
         Superellipse {
-            Layout.preferredWidth: Theme.iconSizeNavigation
-            Layout.preferredHeight: Theme.iconSizeNavigation
+            Layout.preferredWidth: 23
+            Layout.preferredHeight: 23
             Layout.alignment: Qt.AlignVCenter
-            curveDepth: Theme.curveTiny
-            exponent: Theme.superellipseExponent
-            fillColor: control.checked ? Theme.primarySurface
-                                      : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-            borderWidth: Theme.keyboardFocusVisible(control)
-                         ? Theme.strokeEmphasis + Theme.strokeHairline
-                         : control.checked ? Theme.strokeEmphasis : Theme.strokeStandard
-            borderColor: Theme.keyboardFocusVisible(control) ? Theme.focus
-                         : control.checked ? Theme.accent
-                         : control.hovered ? Theme.borderStrong : Theme.borderMuted
+            fillColor: control.checked ? Theme.ink : "transparent"
+            borderColor: Theme.inkMuted
+            borderWidth: 1
+            curveDepth: 5
 
             Icon {
                 anchors.centerIn: parent
-                text: Theme.iconCheck
-                color: Theme.accent
-                preferredSize: Theme.iconSizeSmall
                 visible: control.checked
+                text: Theme.iconCheck
+                color: Theme.surface
+                preferredSize: 15
                 Accessible.ignored: true
             }
         }
@@ -63,7 +59,7 @@ Button {
             Layout.alignment: Qt.AlignVCenter
             text: control.label
             color: control.enabled ? Theme.ink : Theme.inkDisabled
-            font.pixelSize: Theme.typeLabelSize
+            font.pixelSize: Theme.typeCaptionSize
             font.weight: Theme.weightMedium
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
