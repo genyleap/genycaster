@@ -123,6 +123,7 @@ set(farcasterQmlFiles
     components/ProfileLinkRow.qml
     components/ProfileSurface.qml
     components/GenyPulsePanel.qml
+    components/StreakCard.qml
     components/AccountConnectionsPopup.qml
     components/ProfileTrustCard.qml
     components/SearchPalette.qml
