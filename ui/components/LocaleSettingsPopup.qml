@@ -1106,10 +1106,6 @@ GenyDrawer {
                                                 color: themePreset.modelData.color
                                                 border.width: 1
                                                 border.color: Theme.borderStrong
-                                                scale: presetHover.hovered ? 1.07 : 1
-                                                Behavior on scale {
-                                                    NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                                }
                                                 Icon {
                                                     anchors.centerIn: parent
                                                     text: Theme.iconCheck
