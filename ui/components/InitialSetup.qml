@@ -758,11 +758,25 @@ Item {
                              + " (" + (root.currentStep + 1) + "/" + root.progressCount + ")"
         }
 
+        // On compact screens navigation occupies its own fixed header. The
+        // Flickable starts below this lane, so a scrolled recovery-word field
+        // can never appear beneath or collide with the Back button.
+        Item {
+            id: mobileSetupNav
+            objectName: "mobileSetupNavigation"
+            visible: root.phone && (root.currentStep > 0 || root.reviewMode)
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: visible ? Theme.controlHeight + Theme.space2 * 2 : 0
+            z: 19
+        }
+
         ActionButton {
             z: 20
             visible: root.currentStep > 0
-            anchors.top: parent.top
-            anchors.topMargin: Theme.space4
+            anchors.top: root.phone ? mobileSetupNav.top : parent.top
+            anchors.topMargin: root.phone ? Theme.space2 : Theme.space4
             // Navigation belongs to the content column, not the GPU art.
             // The opposite-side Review/Close action obeys the same inset.
             x: Theme.rtl ? root.width - width - (root.phone ? Theme.space2 : Theme.space5)
@@ -778,8 +792,8 @@ Item {
         ActionButton {
             z: 20
             visible: root.reviewMode
-            anchors.top: parent.top
-            anchors.topMargin: Theme.space4
+            anchors.top: root.phone ? mobileSetupNav.top : parent.top
+            anchors.topMargin: root.phone ? Theme.space2 : Theme.space4
             x: Theme.rtl ? (desktopBrandPane.visible ? desktopBrandPane.width + Theme.space5
                                                       : (root.phone ? Theme.space2 : Theme.space5))
                          : root.width - width - (root.phone ? Theme.space2 : Theme.space5)
@@ -793,7 +807,10 @@ Item {
 
         Flickable {
             id: stageScroll
-            anchors.fill: parent
+            anchors.top: root.phone ? mobileSetupNav.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
@@ -820,8 +837,9 @@ Item {
                    ? Math.max(96, (stageScroll.height - stageLoader.implicitHeight) * 0.38)
                    : root.currentStep === 1
                    ? Math.max(76, (stageScroll.height - stageLoader.implicitHeight) * 0.21)
-                   : Math.max(root.phone ? 100 : 115, Math.min(root.phone ? 145 : 125,
-                                                                   stageScroll.height * 0.15))
+                   : Math.max(root.phone ? Theme.space6 : 115,
+                              Math.min(root.phone ? Theme.space7 : 125,
+                                       stageScroll.height * 0.15))
                 implicitHeight: stageLoader.implicitHeight
 
                 Loader {
