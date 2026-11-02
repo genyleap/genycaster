@@ -29,7 +29,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.match(profile,/onCloseRequested:\s*streakDrawer\.close\(\)/);
  assert.match(profile,/streakDrawer\.close\(\)/);
  assert.match(profile,/id:\s*profileStatsFlow/);
- assert.match(badge,/Theme\.warningSurface/);
+ assert.match(badge,/ProgressRing\s*\{/);
  assert.match(badge,/Theme\.warning/);
  assert.match(profile,/Layout\.preferredHeight:\s*childrenRect\.height/);
  assert.match(profile,/streakDetails\.implicitHeight\s*\+\s*streakHeader\.implicitHeight/);
@@ -132,14 +132,14 @@ test('Milestone collection uses exact CC0 SVG Repo flame and readable responsive
  assert.match(svg,/M15\.3588 21\.751/);
  assert.match(svg,/opacity="0\.5"/);
  assert.doesNotMatch(svg,/1C274C/);
- assert.match(source,/objectName: "streakBadgeCarousel"/);
- assert.match(source,/flickableDirection: Flickable\.HorizontalFlick/);
- assert.match(source,/contentWidth: streakBadgePreviewRow\.implicitWidth/);
- assert.match(source,/Layout\.preferredHeight: visible \? Theme\.scaleUi\(root\.compact \? 144 : 152\) : 0/);
- assert.match(source,/columns: root\.compact \? 3 : 4/);
+ assert.doesNotMatch(source,/objectName: "streakBadgeCarousel"/);
+ assert.match(source,/objectName: "streakBadgeGrid"/);
+ assert.match(source,/root\.milestoneItems\.slice\(0, 6\)/);
+ assert.match(source,/Layout\.fillWidth: true/);
+ assert.match(source,/columns: root\.width < Theme\.scaleUi\(root\.compact \? 380 : 410\) \? 2 : 3/);
  assert.match(source,/id: milestoneBadgeTile/);
  assert.match(source,/delegate: milestoneBadgeTile/g);
- assert.match(source,/model: root\.showAllBadges \? root\.milestoneItems : \[\]/);
+ assert.match(source,/model: root\.showAllBadges[\s\S]*?\? root\.milestoneItems : root\.milestoneItems\.slice\(0, 6\)/);
  assert.match(source,/text: Theme\.iconStreakFlame/);
  assert.match(source,/preferredSize: Theme\.scaleUi\(23\)/);
  assert.match(source,/visible: !badgeTile\.earned/);
@@ -165,7 +165,7 @@ test('Compact Streak medals use a stable reduced size for carousel and expanded 
  assert.match(card,/tileHeight: Theme.scaleUi\(root.compact \? 132 : 140\)/);
  assert.match(card,/implicitWidth: Theme.scaleUi\(root.compact \? 118 : 126\)/);
  assert.match(card,/Layout.preferredWidth: Theme.scaleUi\(48\)/);
- assert.match(card,/columns: root.compact \? 3 : 4/);
+ assert.match(card,/columns: root\.width < Theme\.scaleUi\(root\.compact \? 380 : 410\) \? 2 : 3/);
 });
 test('The account sidebar uses verified streak instead of Trust Score, and inactive flames are neutral',()=>{
  const sidebar=read('ui/components/SideNavigation.qml');
@@ -181,4 +181,26 @@ test('The account sidebar uses verified streak instead of Trust Score, and inact
  assert.doesNotMatch(account,/qsTrId\("genycaster.profile.trust_score"\)/);
  assert.match(profile,/objectName: "profileUnverifiedStreak"/);
  assert.match(profile,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
+});
+
+test('Streak milestones fill the inspector as a responsive grid with a useful preview',()=>{
+ const card=read('ui/components/StreakCard.qml');
+ assert.match(card,/objectName: "streakBadgeGrid"/);
+ assert.match(card,/columns: root.width < Theme.scaleUi\(root.compact \? 380 : 410\) \? 2 : 3/);
+ assert.match(card,/model: root.showAllBadges[\s\S]*?root.milestoneItems.slice\(0, 6\)/);
+ assert.doesNotMatch(card,/objectName: "streakBadgeCarousel"/);
+ assert.doesNotMatch(card,/Flickable.HorizontalFlick/);
+});
+test('Profile Streak badge matches the account card progress-ring and flame, with neutral inactive state',()=>{
+ const profile=read('ui/components/ProfileSurface.qml');
+ const sidebar=read('ui/components/ProfileTrustCard.qml');
+ const badge=profile.slice(profile.indexOf('id: profileStreakBadge'),
+   profile.indexOf('objectName: "profileUnverifiedStreak"'));
+ assert.match(badge,/objectName: "profileStreakRing"/);
+ assert.match(badge,/ProgressRing\s*\{/);
+ assert.match(badge,/text: Theme.iconStreakFlame/);
+ assert.match(badge,/trackColor: Theme.borderMuted/);
+ assert.match(badge,/background: Item \{\}/);
+ assert.match(badge,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
+ assert.match(sidebar,/objectName: "sidebarStreakRing"[\s\S]*?ProgressRing\s*\{/);
 });

@@ -2146,7 +2146,7 @@ Item {
                             visible: root.isOwnProfile
                             hoverEnabled: true
                             implicitHeight: Theme.scaleUi(32)
-                            implicitWidth: streakBadgeContent.implicitWidth + Theme.space3 * 2
+                            implicitWidth: streakBadgeContent.implicitWidth + Theme.space1 * 2
                             padding: 0
                             Accessible.name: qsTrId("genycaster.streak.open")
                             // The platform ToolTip is unstyled; use the
@@ -2199,25 +2199,38 @@ Item {
                             }
                             readonly property bool streakActive: Number(
                                 openProofConnections.streak.activity?.current || 0) > 0
-                            background: Rectangle {
-                                radius: height / 2
-                                color: profileStreakBadge.streakActive
-                                    ? Theme.warningSurface : Theme.surfaceMuted
-                                border.color: profileStreakBadge.streakActive
-                                    ? Theme.warning : Theme.borderMuted
-                                border.width: 1
-                                opacity: profileStreakBadge.down ? 0.75 : 1.0
-                            }
+                            // Match the ring-and-flame on the desktop account
+                            // card; no second oval outline around the counter.
+                            background: Item {}
                             contentItem: Row {
                                 id: streakBadgeContent
                                 layoutDirection: Theme.uiDirection
                                 spacing: Theme.space1
-                                Icon {
+                                Item {
+                                    id: profileStreakRing
+                                    objectName: "profileStreakRing"
+                                    width: Theme.scaleUi(28)
+                                    height: width
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: Theme.iconStreakFlame
-                                    color: profileStreakBadge.streakActive
-                                        ? Theme.warning : Theme.inkMuted
-                                    preferredSize: Theme.scaleUi(16)
+                                    ProgressRing {
+                                        anchors.fill: parent
+                                        progress: profileStreakBadge.streakActive
+                                            && Number(openProofConnections.streak.activity?.next_milestone || 0)>0
+                                            ? Math.min(1, Number(openProofConnections.streak.activity.current)
+                                                /Number(openProofConnections.streak.activity.next_milestone)) : 0
+                                        strokeWidth: 2.5
+                                        inset: 2
+                                        trackColor: Theme.borderMuted
+                                        progressColor: profileStreakBadge.streakActive
+                                            ? Theme.warning : Theme.inkMuted
+                                    }
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        text: Theme.iconStreakFlame
+                                        preferredSize: Theme.scaleUi(14)
+                                        color: profileStreakBadge.streakActive
+                                            ? Theme.warning : Theme.inkMuted
+                                    }
                                 }
                                 Label {
                                     anchors.verticalCenter: parent.verticalCenter

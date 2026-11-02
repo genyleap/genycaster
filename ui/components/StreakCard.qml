@@ -82,7 +82,7 @@ Item {
             implicitHeight: tileHeight
             width: implicitWidth
             height: tileHeight
-            Layout.fillWidth: root.showAllBadges
+            Layout.fillWidth: true
             Layout.minimumWidth: 0
             Layout.preferredWidth: implicitWidth
             Layout.preferredHeight: tileHeight
@@ -437,53 +437,22 @@ Item {
                 }
             }
 
-            // A peekable, horizontally scrolling collection with full-size
-            // achievements. Expanded view is a readable 2-column mobile grid.
-            // Both delegates read the same server-verified milestone metadata.
-            Flickable {
-                id: streakBadgeCarousel
-                objectName: "streakBadgeCarousel"
-                Layout.fillWidth: true
-                Layout.preferredHeight: visible ? Theme.scaleUi(root.compact ? 144 : 152) : 0
-                visible: !root.showAllBadges
-                clip: true
-                contentWidth: streakBadgePreviewRow.implicitWidth
-                contentHeight: height
-                interactive: contentWidth > width
-                flickableDirection: Flickable.HorizontalFlick
-                boundsBehavior: Flickable.StopAtBounds
-                onContentWidthChanged: {
-                    if(Theme.rtl && !moving)
-                        contentX = Math.max(0, contentWidth-width)
-                }
-                Row {
-                    id: streakBadgePreviewRow
-                    objectName: "streakBadgePreviewRow"
-                    height: Theme.scaleUi(root.compact ? 136 : 144)
-                    spacing: Theme.space2
-                    layoutDirection: Theme.uiDirection
-                    LayoutMirroring.enabled: false
-
-                    Repeater {
-                        model: root.showAllBadges ? [] : root.milestoneItems
-                        delegate: milestoneBadgeTile
-                    }
-                }
-            }
-
+            // Fill the inspector with a compact responsive milestone grid,
+            // not a horizontally clipped carousel with empty space underneath.
+            // Six previews form two complete desktop rows; See all reveals the
+            // full server-authored catalogue without changing tile geometry.
             GridLayout {
                 id: streakBadgeGrid
                 objectName: "streakBadgeGrid"
                 Layout.fillWidth: true
-                visible: root.showAllBadges
-                columns: root.compact ? 3 : 4
+                columns: root.width < Theme.scaleUi(root.compact ? 380 : 410) ? 2 : 3
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
                 layoutDirection: Theme.uiDirection
                 LayoutMirroring.enabled: false
-
                 Repeater {
-                    model: root.showAllBadges ? root.milestoneItems : []
+                    model: root.showAllBadges
+                        ? root.milestoneItems : root.milestoneItems.slice(0, 6)
                     delegate: milestoneBadgeTile
                 }
             }
