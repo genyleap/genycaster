@@ -4,6 +4,7 @@ import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
+import {calculateStreaks} from './streaks.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
@@ -243,8 +244,45 @@ export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fe
       !!data?.castAddBody && typeof data.castAddBody==='object';
   }catch {return false;}
 }
+// Explicit support for the two protocol providers. A client-provided cast
+// hash is never proof: the provider must independently return the exact FID,
+ // hash and a CastAdd payload. Both endpoints are bounded and fail closed.
+export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
+  if(!HASH.test(hash)||!/^[1-9][0-9]{0,18}$/.test(String(fid)))return null;
+  const endpoints=[
+    'https://haatz.quilibrium.com/v1/castById',
+    'https://snapchain.genyleap.com/v1/castById'
+  ];
+  for(const base of endpoints) {
+    try {
+      const response=await fetchImpl(base+'?fid='+encodeURIComponent(String(fid))
+        +'&hash='+encodeURIComponent(hash),{method:'GET',
+          headers:{accept:'application/json'},redirect:'error',
+          signal:AbortSignal.timeout(4500)});
+      if(response.status!==200 || Number(response.headers.get('content-length')||0)>32768
+         ||!response.body)continue;
+      const chunks=[];let size=0;
+      for await(const chunk of response.body) {
+        size+=chunk.byteLength;
+        if(size>32768)break;
+        chunks.push(Buffer.from(chunk));
+      }
+      if(size>32768)continue;
+      const payload=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const record=payload?.message??payload;
+      const data=record?.data;
+      if(String(data?.fid)!==String(fid) ||
+         String(record?.hash||'').toLowerCase()!==hash.toLowerCase() ||
+         !data?.castAddBody || typeof data.castAddBody!=='object')continue;
+      const body=data.castAddBody;
+      return {kind:body.parentCastId ? 'reply':'cast'};
+    }catch {}
+  }
+  return null;
+}
 export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
-                                    verifyTopicOwner=verifyCastTopicOwnership}) {
+                                    verifyTopicOwner=verifyCastTopicOwnership,
+                                    verifyStreakCast=verifyStreakCastOwnership}) {
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
@@ -326,6 +364,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
+      'streak','streak/cast',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -381,6 +420,34 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='streak' || entity==='streak/cast') {
+        if(typeof store.streakReady!=='function' || !store.streakReady()) {
+          respond(response,503,{error:'streak_unavailable'});return true;
+        }
+        if(entity==='streak' && request.method==='GET') {
+          const items=await store.listStreakEvents(owner);
+          respond(response,200,{streak:calculateStreaks(items)});return true;
+        }
+        if(entity!=='streak/cast' || request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const payload=await readBody(request,512);
+        const hash=payload?.cast_hash;
+        if(!payload || Object.keys(payload).length!==1 ||
+           typeof hash!=='string' || !HASH.test(hash)) {
+          respond(response,400,{error:'invalid_cast_hash'});return true;
+        }
+        // Server verifies the account owner and the network message before
+        // storing. A repeat request for the same hash is idempotent.
+        const evidence=await verifyStreakCast(hash.toLowerCase(),owner.fid,{fetchImpl});
+        if(!evidence || !['cast','reply'].includes(evidence.kind)) {
+          respond(response,422,{error:'cast_not_confirmed'});return true;
+        }
+        const saved=await store.recordStreakCast(owner,hash.toLowerCase(),evidence.kind);
+        respond(response,200,{recorded:saved.recorded,
+          streak:calculateStreaks(await store.listStreakEvents(owner))});
+        return true;
+      }
       if(entity==='profile_status') {
         if(request.method==='GET') {
           respond(response,200,{item:await store.getOwnProfileStatus(owner)});
