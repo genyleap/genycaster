@@ -26,15 +26,19 @@ export function calculateStreaks(rows,now=new Date()) {
     let current=0;
     while(values.has(end) && current<=730){++current;--end;}
     const badges=STREAK_MILESTONES.filter(m=>longest>=m);
-    const week=[];
-    const start=today-((new Date(today*DAY_MS).getUTCDay()+6)%7);
-    for(let i=0;i<7;i++){
-      const day=start+i;
-      week.push({date:new Date(day*DAY_MS).toISOString().slice(0,10),
-        completed:values.has(day),future:day>today});
-    }
+    const createWeek=(firstDay)=>{
+      const weekday=new Date(today*DAY_MS).getUTCDay();
+      const start=today-((weekday-firstDay+7)%7);
+      return Array.from({length:7},(_,i)=>{
+        const day=start+i;
+        return {date:new Date(day*DAY_MS).toISOString().slice(0,10),
+          completed:values.has(day),future:day>today};
+      });
+    };
+    const week=createWeek(1);          // Monday–Sunday, existing clients
+    const week_saturday=createWeek(6); // Saturday–Friday, Persian/Arabic RTL
     const next=STREAK_MILESTONES.find(n=>n>longest)||null;
-    return {current,longest,total_days:all.length,badges,next_milestone:next,week};
+    return {current,longest,total_days:all.length,badges,next_milestone:next,week,week_saturday};
   };
   return {time_zone:'UTC',activity:summarize(unique.activity),
     creator:summarize(unique.creator)};
