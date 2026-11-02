@@ -380,14 +380,23 @@ set_target_properties(farcaster_client
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/../bin"
 )
 
-target_compile_definitions(farcaster_client
-    PRIVATE
-        FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
+# Keep version identity owned by CMake and identical for the application and
+# every test that compiles a production source file (notably update_controller.cpp).
+# PRIVATE executable definitions do not propagate to standalone test targets.
+add_library(genycaster_release_identity INTERFACE)
+target_compile_definitions(genycaster_release_identity
+    INTERFACE
         GENYCASTER_APP_VERSION="${GENYCASTER_RELEASE_VERSION}"
         GENYCASTER_PRODUCT_NAME="${PROJECT_NAME}"
         GENYCASTER_VERSION_NUMBER="${PROJECT_VERSION}"
         GENYCASTER_RELEASE_CHANNEL="${GENYCASTER_RELEASE_CHANNEL}"
         GENYCASTER_RELEASE_CHANNEL_NUMBER="${GENYCASTER_RELEASE_CHANNEL_NUMBER}"
+)
+target_link_libraries(farcaster_client PRIVATE genycaster_release_identity)
+
+target_compile_definitions(farcaster_client
+    PRIVATE
+        FARCASTER_QT_QUICK_CONTROLS_STYLE="Basic"
         GENYCASTER_CAST_VIEWS_ENABLED=$<BOOL:${FARCASTER_ENABLE_DERIVED_CAST_VIEWS}>
 )
 
@@ -1495,6 +1504,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     target_include_directories(farcaster_update_controller_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
     target_link_libraries(farcaster_update_controller_tests PRIVATE
+        genycaster_release_identity
         Qt6::Core Qt6::Network Qt6::Gui)
     add_test(NAME ui.update_controller COMMAND farcaster_update_controller_tests)
     set_tests_properties(ui.update_controller PROPERTIES TIMEOUT 8 LABELS "ui;update;security")
