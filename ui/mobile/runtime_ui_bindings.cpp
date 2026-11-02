@@ -121,6 +121,10 @@ import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
 #if !defined(__EMSCRIPTEN__) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+// A C++ module import does not transitively expose declarations imported by
+// other modules. Native recovery stores an ICustodyAuthorizer in RecoveryBundle,
+// so this translation unit must import the defining capability module itself.
+import farcaster.capability.signer;
 import farcaster.platform.custody_recovery;
 import farcaster.provider.compatibility.auth;
 #endif
