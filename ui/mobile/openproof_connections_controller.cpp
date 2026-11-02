@@ -1209,6 +1209,88 @@ void OpenProofConnectionsController::sendCloudLinkedInRequest(const bool upload)
 }
 
 
+void OpenProofConnectionsController::fetchStreak()
+{
+    if (!m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl) || m_streakWrite) return;
+    cancelNetworkReply(m_streakRead, this);
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/streak"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* reply=m_network.get(request);
+    m_streakRead=reply;
+    m_streakError.clear();
+    emit streakChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_streakRead!=reply){reply->deleteLater();return;}
+        m_streakRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(status==200 && doc.isObject()
+            && doc.object().value(QStringLiteral("streak")).isObject()) {
+            m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
+            m_streakError.clear();
+        } else {
+            m_streakError=QStringLiteral("Streak is temporarily unavailable.");
+        }
+        emit streakChanged();
+    });
+}
+
+void OpenProofConnectionsController::recordStreakCast(const QString& hash)
+{
+    static const QRegularExpression castHash{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+    if(!castHash.match(hash).hasMatch() || !m_viewerFid
+       || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+       || m_streakWrite) return;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/streak/cast"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const auto payload=QJsonDocument{QJsonObject{
+        {QStringLiteral("cast_hash"),hash.toLower()}
+    }}.toJson(QJsonDocument::Compact);
+    auto* reply=m_network.put(request,payload);
+    m_streakWrite=reply;
+    emit streakChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if(m_streakWrite!=reply){reply->deleteLater();return;}
+        m_streakWrite.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        if(status==200 && doc.isObject()
+           && doc.object().value(QStringLiteral("streak")).isObject()) {
+            m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
+            m_streakError.clear();
+        } else {
+            m_streakError=status==422
+               ? QStringLiteral("Cast confirmation is pending on the network.")
+               : QStringLiteral("Streak update is temporarily unavailable.");
+        }
+        emit streakChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchProfileStatus(qulonglong profileFid)
 {
     if (!profileFid || !trustedHttpsEndpoint(m_cloudUrl) || m_profileStatusWrite) return;
@@ -2383,6 +2465,11 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_approvalUrl.clear();
     m_error.clear();
     m_viewerFid = fid;
+    cancelNetworkReply(m_streakRead, this);
+    cancelNetworkReply(m_streakWrite, this);
+    m_streak.clear();
+    m_streakError.clear();
+    emit streakChanged();
     cancelNetworkReply(m_bookmarkCollectionRequest, this);
     m_bookmarkCollections.clear();
     m_bookmarkCollectionItems.clear();
