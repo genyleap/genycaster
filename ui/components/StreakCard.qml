@@ -130,7 +130,8 @@ Item {
                 radius: height / 2
                 color: Theme.borderMuted
                 Rectangle {
-                    anchors.left: parent.left
+                    // Advance the milestone bar from the reading start.
+                    x: Theme.rtl ? parent.width - width : 0
                     height: parent.height
                     width: parent.width * Math.min(1,
                         Math.max(0, root.current / Math.max(1, root.nextMilestone)))
