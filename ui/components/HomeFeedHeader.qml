@@ -204,8 +204,8 @@ Item {
                     border.color: Theme.borderSubtle
                     Behavior on x {
                         NumberAnimation {
-                            duration: Theme.motionStandard
-                            easing.type: Easing.InOutCubic
+                            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+                            easing.type: Easing.OutCubic
                         }
                     }
                 }
@@ -245,19 +245,24 @@ Item {
                             contentItem: DirectionAwareLabel {
                                 text: String(scopeOption.modelData.title)
                                 font.pixelSize: Theme.typeCaptionSize
-                                font.weight: scopeOption.selected ? Theme.weightDemiBold : Theme.weightMedium
+                                // Selection must not change glyph metrics while
+                                // the persistent pill is moving.
+                                font.weight: Theme.weightDemiBold
                                 color: scopeOption.enabled
                                     ? (scopeOption.selected ? Theme.ink : Theme.inkMuted)
                                     : Theme.inkMuted
                                 Behavior on color {
-                                    ColorAnimation { duration: Theme.motionFast }
+                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
                                 }
                                 opacity: scopeOption.enabled ? 1 : 0.5
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
                             }
-                            onClicked: root.audienceRequested(String(modelData.id))
+                            onClicked: {
+                                if (!scopeOption.selected)
+                                    root.audienceRequested(String(modelData.id))
+                            }
                             Accessible.role: Accessible.Button
                             Accessible.name: String(modelData.title)
                         }
