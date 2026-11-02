@@ -1819,6 +1819,26 @@ Item {
                             HoverHandler { id: genyHolderBadgeHover }
                         }
 
+                        // An unobtrusive entry point; the full Streak dashboard
+                        // lives in its own responsive sheet, not in the feed.
+                        ActionButton {
+                            id: profileStreakBadge
+                            objectName: "profileStreakBadge"
+                            visible: root.isOwnProfile
+                            compact: true
+                            quiet: true
+                            pill: true
+                            iconGlyph: Theme.iconEnergy
+                            iconSize: Theme.scaleUi(17)
+                            text: openProofConnections.streak.time_zone === "UTC"
+                                ? qsTrId("genycaster.streak.profile_badge").arg(
+                                      LocaleFormat.formatInteger(
+                                          Number(openProofConnections.streak.activity?.current || 0)))
+                                : qsTrId("genycaster.streak.title")
+                            Accessible.description: qsTrId("genycaster.streak.open")
+                            onClicked: streakDrawer.open()
+                        }
+
                         Item {
                             id: followsYouBadge
                             visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
@@ -2198,18 +2218,6 @@ Item {
                 onConnectionsRequested: root.openConnections()
             }
 
-            StreakCard {
-                objectName: "ownerProfileStreak"
-                Layout.fillWidth: true
-                Layout.leftMargin: root.profileContentX
-                Layout.rightMargin: root.profileContentX
-                visible: root.isOwnProfile
-                compact: root.compact
-                snapshot: openProofConnections.streak
-                loading: openProofConnections.streakBusy
-                errorText: openProofConnections.streakError
-            }
-
             // One compact navigation row, like the X profile timeline:
             // the sort/filter action lives alongside the content tabs rather
             // than occupying an otherwise empty second row above the casts.
@@ -2523,6 +2531,62 @@ Item {
     function openProfileEditor() {
         if (root.isOwnProfile)
             profileExtrasEditor.open()
+    }
+
+    // Streak has its own dedicated surface, not an always-expanded card in
+    // the profile timeline. Bottom sheet on phones; side panel on desktop.
+    GenyDrawer {
+        id: streakDrawer
+        objectName: "profileStreakDrawer"
+        parent: Overlay.overlay
+        readonly property bool mobilePresentation: root.compact
+        bottomSheet: mobilePresentation
+        dimBackground: true
+        showHandle: mobilePresentation
+        interactive: false
+        contentPadding: Theme.space4
+        width: parent ? (mobilePresentation ? parent.width
+                        : Math.min(500, Math.max(0, parent.width - Theme.space4 * 2))) : 500
+        height: parent ? (mobilePresentation
+                          ? Math.min(parent.height * 0.92, 700) : parent.height) : 700
+        onOpened: {
+            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+                openProofConnections.fetchStreak()
+        }
+
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+
+            ModalHeader {
+                Layout.fillWidth: true
+                title: qsTrId("genycaster.streak.title")
+                subtitle: qsTrId("genycaster.streak.subtitle")
+                onCloseRequested: streakDrawer.close()
+            }
+
+            Flickable {
+                objectName: "profileStreakScroll"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: 0
+                clip: true
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: streakDetails.implicitHeight + Theme.space3
+                ScrollBar.vertical: GenyScrollBar {}
+
+                StreakCard {
+                    id: streakDetails
+                    objectName: "ownerProfileStreakDetails"
+                    width: parent.width
+                    compact: streakDrawer.mobilePresentation
+                    snapshot: openProofConnections.streak
+                    loading: openProofConnections.streakBusy
+                    errorText: openProofConnections.streakError
+                }
+            }
+        }
     }
 
     // All account-owned sheets reuse the application's interactive
@@ -3305,6 +3369,7 @@ Item {
             profileExtrasEditor.close()
             profileStatusEditor.close()
             profileLinksDrawer.close()
+            streakDrawer.close()
         }
     }
     PullToRefresh {
