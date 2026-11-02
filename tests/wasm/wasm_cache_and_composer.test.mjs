@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
 import {readFileSync as read} from 'node:fs';
 import vm from 'node:vm';
 
@@ -35,6 +36,20 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.match(a.buildId,/^[a-f0-9]{8}$/);
         assert.equal(a.buildId,a.version.slice(0,8));
         assert.ok(existsSync(join(dir,a.wasm)));
+        // Safari uses the immutable .wasm.gz path directly. It must be
+        // included in the release file list and integrity manifest, not
+        // merely generated inside the CMake build directory.
+        assert.equal(a.wasmGzip,a.wasm+'.gz');
+        assert.ok(a.files.includes(a.wasmGzip),'gzip sidecar is deployable');
+        assert.ok(existsSync(join(dir,a.wasmGzip)),'gzip sidecar exists');
+        const sidecar=readFileSync(join(dir,a.wasmGzip));
+        assert.equal(sidecar.length,a.wasmGzipBytes);
+        assert.equal(createHash('sha256').update(sidecar).digest('hex'),
+            a.wasmGzipSha256);
+        assert.equal(a.integrity[a.wasmGzip],a.wasmGzipSha256,
+            'gzip sidecar participates in release verification');
+        assert.deepEqual(gunzipSync(sidecar),readFileSync(join(dir,'genycaster.wasm')),
+            'gzip sidecar decodes to the original executable');
         const versionOnly=run('1.0.1');
         assert.equal(versionOnly.wasm,a.wasm,'semantic updates must not rename identical WASM bytes');
         assert.notEqual(versionOnly.version,a.version,'semantic version changes invalidate release cache identity');
