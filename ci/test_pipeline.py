@@ -32,7 +32,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("components/GenyCheckRow.qml", Path("ui/CMakeLists.txt").read_text())
         self.assertEqual(setup.count("GenyCheckRow {"), 2)
         self.assertIn("Accessible.role: Accessible.CheckBox", checkbox)
-        self.assertIn("spacing: Theme.space3", checkbox)
+        self.assertIn("spacing: 10", checkbox)
         self.assertIn("id: audienceSelectionPill", home)
         self.assertIn("Behavior on x", home)
         self.assertIn("Behavior on color", tabs)
