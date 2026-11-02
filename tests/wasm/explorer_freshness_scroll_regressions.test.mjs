@@ -262,9 +262,9 @@ test('stories always start with current identity; fresh Following casts use colo
     assert.doesNotMatch(item, /PathAngleArc|ShapePath|strokeColor: "#f45b42"/);
     assert.match(item, /borderWidth: root\.addStory \? 1 : \(root\.storyState === "active" \? 2 : 1\)/);
     assert.match(item, /borderColor: root\.addStory \|\| root\.storyState === "active"/);
-    assert.match(item, /opacity: 1\\.0/);
-    assert.doesNotMatch(item, /opacity: root\\.storyState === "viewed"/);
-    assert.match(read('ui/components/Avatar.qml'), /visible: !avatarImage\\.ready/);
+    assert.match(item, /opacity: 1\.0/);
+    assert.doesNotMatch(item, /opacity: root\.storyState === "viewed"/);
+    assert.match(read('ui/components/Avatar.qml'), /visible: !avatarImage\.ready/);
 });
 
 test('tapping ordinary cast text opens conversation without covering interactive media or controls', () => {
