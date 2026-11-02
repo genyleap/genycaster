@@ -2,6 +2,110 @@
 <TS version="2.1" language="zh_CN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.title">
+            <source>Streak</source>
+            <translation>连续打卡</translation>
+        </message>
+        <message id="genycaster.streak.subtitle">
+            <source>Your verified activity and milestones</source>
+            <translation>已验证的活跃记录与里程碑</translation>
+        </message>
+        <message id="genycaster.streak.open">
+            <source>Open Streak details</source>
+            <translation>查看连续打卡详情</translation>
+        </message>
+        <message id="genycaster.streak.profile_badge">
+            <source>Streak · %1d</source>
+            <translation>连续 · %1天</translation>
+        </message>
+        <message id="genycaster.streak.activity">
+            <source>Activity</source>
+            <translation>活跃</translation>
+        </message>
+        <message id="genycaster.streak.creator">
+            <source>Creator</source>
+            <translation>创作者</translation>
+        </message>
+        <message id="genycaster.streak.loading">
+            <source>Loading Streak…</source>
+            <translation>正在加载连续记录…</translation>
+        </message>
+        <message id="genycaster.streak.unavailable">
+            <source>Streak is not available yet.</source>
+            <translation>连续记录暂时不可用。</translation>
+        </message>
+        <message id="genycaster.streak.day_in_row">
+            <source>day in a row</source>
+            <translation>天连续活跃</translation>
+        </message>
+        <message id="genycaster.streak.days_in_row">
+            <source>days in a row</source>
+            <translation>天连续活跃</translation>
+        </message>
+        <message id="genycaster.streak.best">
+            <source>Best: %1 days</source>
+            <translation>最佳记录：%1天</translation>
+        </message>
+        <message id="genycaster.streak.next">
+            <source>Next: %1 days</source>
+            <translation>下一目标：%1天</translation>
+        </message>
+        <message id="genycaster.streak.legendary">
+            <source>Legendary</source>
+            <translation>传奇</translation>
+        </message>
+        <message id="genycaster.streak.mon">
+            <source>M</source>
+            <translation>一</translation>
+        </message>
+        <message id="genycaster.streak.tue">
+            <source>T</source>
+            <translation>二</translation>
+        </message>
+        <message id="genycaster.streak.wed">
+            <source>W</source>
+            <translation>三</translation>
+        </message>
+        <message id="genycaster.streak.thu">
+            <source>T</source>
+            <translation>四</translation>
+        </message>
+        <message id="genycaster.streak.fri">
+            <source>F</source>
+            <translation>五</translation>
+        </message>
+        <message id="genycaster.streak.sat">
+            <source>S</source>
+            <translation>六</translation>
+        </message>
+        <message id="genycaster.streak.sun">
+            <source>S</source>
+            <translation>日</translation>
+        </message>
+        <message id="genycaster.streak.creator_rule">
+            <source>One verified original Cast per day counts.</source>
+            <translation>每天仅计入一条经过验证的原创 Cast。</translation>
+        </message>
+        <message id="genycaster.streak.activity_rule">
+            <source>A verified Cast or Reply counts once per day.</source>
+            <translation>每天仅计入一条经过验证的 Cast 或回复。</translation>
+        </message>
+        <message id="genycaster.streak.badges">
+            <source>Badges · %1/%2</source>
+            <translation>徽章 · %1/%2</translation>
+        </message>
+        <message id="genycaster.streak.show_less">
+            <source>Show less</source>
+            <translation>收起</translation>
+        </message>
+        <message id="genycaster.streak.see_all">
+            <source>See all</source>
+            <translation>查看全部</translation>
+        </message>
+        <message id="genycaster.streak.badge_days">
+            <source>%1d</source>
+            <translation>%1天</translation>
+        </message>
         <message id="genycaster.engagement.views_accessible">
             <source>Views: %1</source>
             <translation>浏览量：%1</translation>
