@@ -31,7 +31,9 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  const header=read('ui/mobile/channel_picker_controller.hpp');
  const shell=read('ui/components/AppShell.qml');
  const main=read('ui/mobile/main.cpp');
- assert.match(composer,/id: channelPicker[\s\S]*?bottomSheet: true/);
+ assert.match(composer,/id: channelPicker[\s\S]*?objectName: "composerChannelDropdown"/);
+ assert.match(composer,/readonly property Item triggerItem: root\.compact \? selectedChannelChip : desktopCastChannelTrigger/);
+ assert.match(composer,/parent: Overlay\.overlay/);
  assert.match(composer,/model: channelDirectory.channelModel/);
  assert.match(header,/Q_PROPERTY\(QAbstractItemModel\* channelModel READ channelModel CONSTANT FINAL\)/);
  assert.match(composer,/channelDirectory.openForViewer\(/);
@@ -78,7 +80,7 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  const profile=read('ui/components/ProfileSurface.qml');
  assert.match(detail,/id: repliesContainer[\s\S]*?Item \{ Layout.preferredHeight: Theme.space4 \}/);
  assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
- assert.match(profile,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
+ assert.match(profile,/anchors.bottomMargin: Math\.max\(Theme\.space4, root\.bottomOverlayInset/);
 });
 test('channel metadata is optional and bound to the current deployment origin, not a hardcoded read node',()=>{
  const cpp=read('ui/mobile/main.cpp');
@@ -214,7 +216,7 @@ test('composer context uses outline pills before selection and fixed footer abov
  assert.match(outline,/dashPattern: \[4, 3\]/);
  assert.match(composer,/DashedCapsuleOutline \{/);
  assert.doesNotMatch(composer,/ctx\.roundedRect/);
- assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space4 : Theme.space5/);
+ assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space2 : Theme.space3/);
  assert.match(composer,/fillColor: root\.selectedParentUrl\.length > 0[\s\S]*?Theme\.primarySurface : "transparent"/);
  assert.match(composer,/objectName: "mobileCastContext"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
