@@ -51,6 +51,10 @@ GenyDrawer {
     property int emojiThreadCursorPosition: -1
     readonly property int maximumThreadCasts: 12
     readonly property bool threadMode: threadTailModel.count > 0
+    // Dropdowns in the phone composer occupy real layout space, never cover
+    // the avatar/editor or the fixed media/actions footer.
+    readonly property bool mobileSelectorOpen: root.compact
+        && (channelPicker.visible || topicPicker.visible)
     // Presentation mode is captured when the composer opens. Resizing an
     // already-open editor must never replace its desktop chrome, editor or
     // selection with a different mobile component tree.
@@ -117,6 +121,14 @@ GenyDrawer {
     focus: true
     dimBackground: true
     contentPadding: 0
+    // A full-page mobile editor belongs to the app canvas; elevated card
+    // colors belong to floating controls, not to the entire writing surface.
+    background: PopupSurface {
+        fillColor: root.compact ? Theme.background : Theme.surfaceElevated
+        borderWidth: root.compact ? 0 : 1
+        curveDepth: root.compact ? 0 : Theme.curveSheet
+        elevation: root.compact ? Theme.elevationNone : Theme.elevationModal
+    }
     // The modal is hosted by the application viewport, not the changing
     // reading column. Only its dimensions and center position respond to
     // resize; its layout mode and component identities stay unchanged.
@@ -142,7 +154,8 @@ GenyDrawer {
     // Add Cast independently forced contentY to the bottom. On iOS this
     // produced the large jumps visible in thread composition recordings.
     function ensureEditorVisible(editor) {
-        if (!root.opened || !editor || !editor.activeFocus)
+        if (!root.opened || !editor || !editor.activeFocus
+                || root.mobileSelectorOpen)
             return
         root.focusedComposerEditor = editor
         if (root.pendingEditorReveal)
@@ -711,12 +724,12 @@ GenyDrawer {
         // Anchor to the *actual* selector instead of the window overlay:
         // the latter makes placement drift as the composer's Drawer moves.
         readonly property Item triggerItem: root.compact ? selectedChannelChip : desktopCastChannelTrigger
-        parent: triggerItem
+        parent: root.compact ? root.contentItem : triggerItem
         popupType: Popup.Item
         modal: false
         dim: false
         focus: true
-        padding: Theme.space3
+        padding: root.compact ? Theme.space2 : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property real boundaryInset: root.compact ? Theme.mobileGutter : Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
@@ -733,6 +746,7 @@ GenyDrawer {
         // In RTL, prefer the trigger's right edge instead of its left edge.
         x: {
             if (!root.contentItem || !triggerItem) return 0
+            if (root.compact) return boundaryInset
             const leftLimit = boundaryInset - triggerOrigin.x
             const rightLimit = root.contentItem.width - boundaryInset
                                - triggerOrigin.x - width
@@ -741,13 +755,20 @@ GenyDrawer {
         }
         // No above/below flipping: this combobox opens immediately underneath
         // its own trigger; its scrollable contents shrink on short viewports.
-        y: triggerItem ? triggerItem.height + Theme.space1 : 0
-        height: Math.max(0, Math.min(390, root.contentItem
-            ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
+        y: triggerItem
+            ? (root.compact ? triggerOrigin.y : 0)
+                + triggerItem.height + Theme.space2 : 0
+        height: Math.max(0, Math.min(root.compact ? 350 : 390, root.contentItem
+            ? (root.compact
+                ? root.contentItem.height - y - mobileComposerFooter.implicitHeight
+                    - Theme.space3 * 3
+                : root.contentItem.height - boundaryInset - triggerOrigin.y - y)
+            : 0))
         background: PopupSurface {
-            fillColor: Theme.surfaceElevated
+            fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
             borderColor: Theme.borderMuted
             curveDepth: Theme.curveContainer
+            elevation: root.compact ? Theme.elevationNone : Theme.elevationModal
         }
         enter: Transition {
             NumberAnimation {
@@ -764,6 +785,7 @@ GenyDrawer {
             }
         }
         onOpened: {
+            topicPicker.close()
             if (!root.showTaxonomyControls) {
                 close()
                 return
@@ -981,12 +1003,12 @@ GenyDrawer {
         // Anchor to the *actual* selector instead of the window overlay:
         // the latter makes placement drift as the composer's Drawer moves.
         readonly property Item triggerItem: root.compact ? selectedTopicChip : desktopCastTopicTrigger
-        parent: triggerItem
+        parent: root.compact ? root.contentItem : triggerItem
         popupType: Popup.Item
         modal: false
         dim: false
         focus: true
-        padding: Theme.space3
+        padding: root.compact ? Theme.space2 : Theme.space3
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         readonly property real boundaryInset: root.compact ? Theme.mobileGutter : Theme.space6
         // Make the position binding responsive to the trigger's own geometry,
@@ -1003,6 +1025,7 @@ GenyDrawer {
         // In RTL, prefer the trigger's right edge instead of its left edge.
         x: {
             if (!root.contentItem || !triggerItem) return 0
+            if (root.compact) return boundaryInset
             const leftLimit = boundaryInset - triggerOrigin.x
             const rightLimit = root.contentItem.width - boundaryInset
                                - triggerOrigin.x - width
@@ -1011,13 +1034,20 @@ GenyDrawer {
         }
         // No above/below flipping: this combobox opens immediately underneath
         // its own trigger; its scrollable contents shrink on short viewports.
-        y: triggerItem ? triggerItem.height + Theme.space1 : 0
-        height: Math.max(0, Math.min(330, root.contentItem
-            ? root.contentItem.height - boundaryInset - triggerOrigin.y - y : 0))
+        y: triggerItem
+            ? (root.compact ? triggerOrigin.y : 0)
+                + triggerItem.height + Theme.space2 : 0
+        height: Math.max(0, Math.min(root.compact ? 304 : 330, root.contentItem
+            ? (root.compact
+                ? root.contentItem.height - y - mobileComposerFooter.implicitHeight
+                    - Theme.space3 * 3
+                : root.contentItem.height - boundaryInset - triggerOrigin.y - y)
+            : 0))
         background: PopupSurface {
-            fillColor: Theme.surfaceElevated
+            fillColor: root.compact ? Theme.surfaceRaised : Theme.surfaceElevated
             borderColor: Theme.borderMuted
             curveDepth: Theme.curveContainer
+            elevation: root.compact ? Theme.elevationNone : Theme.elevationModal
         }
         enter: Transition {
             NumberAnimation {
@@ -1034,6 +1064,7 @@ GenyDrawer {
             }
         }
         onOpened: {
+            channelPicker.close()
             topicSearch.text = ""
             openProofConnections.fetchTopics()
         }
@@ -1061,8 +1092,9 @@ GenyDrawer {
             DirectionAwareTextField {
                 id: topicSearch
                 objectName: "composerTopicSearch"
+                visible: !root.compact
                 Layout.fillWidth: true
-                implicitHeight: 40
+                Layout.preferredHeight: visible ? 40 : 0
                 placeholderText: qsTrId("genycaster.topics.search")
             }
             Flickable {
@@ -1418,29 +1450,31 @@ GenyDrawer {
                 visible: root.compact && root.editorMode === "visual"
                          && root.showTaxonomyControls
                 Layout.fillWidth: true
+                Layout.topMargin: Theme.space1
+                Layout.bottomMargin: Theme.space1
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
 
                 Item {
                     id: selectedChannelChip
-                    Layout.preferredHeight: 36
-                    Layout.preferredWidth: Math.min(root.width * 0.57,
-                        Math.max(110, selectedChannelContents.implicitWidth + Theme.space3 * 2))
+                    Layout.preferredHeight: Theme.touchTarget
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
                     Superellipse {
                         anchors.fill: parent
-                        curveDepth: 18
+                        curveDepth: Theme.curveControl
                         fillColor: root.selectedParentUrl.length > 0
-                                   ? Theme.primarySurface : "transparent"
-                        borderWidth: 0
-                    }
-                    DashedCapsuleOutline {
-                        anchors.fill: parent
-                        visible: root.selectedParentUrl.length === 0
-                        lineColor: Theme.textSecondary
+                                   ? Theme.primarySurface : Theme.surfaceMuted
+                        borderWidth: 1
+                        borderColor: root.selectedParentUrl.length > 0
+                                     ? Theme.accent : Theme.borderMuted
                     }
                     RowLayout {
                         id: selectedChannelContents
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.space2
+                        anchors.rightMargin: Theme.space2
                         spacing: Theme.space1
                         Avatar {
                             avatarSize: 24
@@ -1462,7 +1496,8 @@ GenyDrawer {
                             font.weight: Theme.weightDemiBold
                             color: Theme.textPrimary
                             elide: Text.ElideRight
-                            Layout.maximumWidth: Math.max(58, root.width * 0.38)
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                         }
                         Icon {
                             text: Theme.iconChevronDown
@@ -1478,20 +1513,23 @@ GenyDrawer {
                 Item {
                     id: selectedTopicChip
                     objectName: "composerTopicSelection"
-                    Layout.preferredHeight: 36
-                    Layout.preferredWidth: Math.min(root.width * 0.39,
-                        Math.max(104, categoryText.implicitWidth + Theme.space3 * 2))
+                    Layout.preferredHeight: Theme.touchTarget
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
                     Superellipse {
                         anchors.fill: parent
                         curveDepth: Theme.curveControl
                         fillColor: root.selectedTopics.length > 0
-                                   ? Theme.primarySurface : "transparent"
+                                   ? Theme.primarySurface : Theme.surfaceMuted
                         borderWidth: 1
                         borderColor: root.selectedTopics.length > 0
                                      ? Theme.accent : Theme.borderMuted
                     }
                     RowLayout {
-                        anchors.centerIn: parent
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.space2
+                        anchors.rightMargin: Theme.space2
                         spacing: Theme.space1
                         Icon {
                             text: Theme.iconPalette
@@ -1501,6 +1539,9 @@ GenyDrawer {
                         }
                         DirectionAwareLabel {
                             id: categoryText
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            elide: Text.ElideRight
                             text: root.selectedTopics.length > 0
                                 ? qsTrId("genycaster.topics.selected_count").arg(
                                     LocaleFormat.formatInteger(root.selectedTopics.length))
@@ -1518,7 +1559,6 @@ GenyDrawer {
                     Accessible.role: Accessible.Button
                     Accessible.name: qsTrId("genycaster.topics.label")
                 }
-                Item { Layout.fillWidth: true }
                 ActionButton {
                     visible: root.selectedParentUrl.length > 0
                     compact: true
@@ -1535,6 +1575,18 @@ GenyDrawer {
                 }
             }
 
+
+            Item {
+                id: mobileSelectorSlot
+                objectName: "mobileComposerSelectorSlot"
+                visible: root.mobileSelectorOpen && root.showTaxonomyControls
+                Layout.fillWidth: true
+                Layout.minimumHeight: 0
+                Layout.preferredHeight: visible
+                    ? (channelPicker.visible ? channelPicker.height : topicPicker.height)
+                        + Theme.space2 * 2
+                    : 0
+            }
 
             // The tool row is stable chrome above the scrollable document,
             // never overlaid on Channel/Topics or clipped during resizing.
@@ -2135,7 +2187,10 @@ GenyDrawer {
         ColumnLayout {
             id: mobileComposerFooter
             objectName: "mobileComposerStickyFooter"
+            // Editing actions are irrelevant while picking taxonomy; make the
+            // chooser the only actionable surface and restore footer on close.
             visible: root.compact && root.editorMode === "visual"
+                && !root.mobileSelectorOpen
             Layout.fillWidth: true
             Layout.minimumHeight: 0
             spacing: Theme.space1

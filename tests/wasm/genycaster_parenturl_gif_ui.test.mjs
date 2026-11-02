@@ -206,21 +206,20 @@ test('composer editing shows compact clipboard actions beside the selection',()=
  assert.match(composer,/id: threadEditor/);
 });
 
-test('composer context uses outline pills before selection and fixed footer above the keyboard',()=>{
+test('composer mobile selectors use solid matching controls and keyboard-safe footer',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(composer,/objectName: "mobileComposerStickyFooter"/);
  assert.match(composer,/contentItem: ColumnLayout \{[\s\S]*?ScrollView \{/);
  assert.match(composer,/Layout\.fillHeight: true/);
- const outline=read("ui/components/DashedCapsuleOutline.qml");
- assert.match(outline,/strokeStyle: ShapePath.DashLine/);
- assert.match(outline,/dashPattern: \[4, 3\]/);
- assert.match(composer,/DashedCapsuleOutline \{/);
+ assert.match(composer,/objectName: "mobileComposerSelectorSlot"/);
+ assert.doesNotMatch(composer,/DashedCapsuleOutline \{/);
+ assert.match(composer,/fillColor: root.selectedParentUrl.length > 0[\s\S]*?Theme.primarySurface : Theme.surfaceMuted/);
  assert.doesNotMatch(composer,/ctx\.roundedRect/);
  assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space2 : Theme.space3/);
- assert.match(composer,/fillColor: root\.selectedParentUrl\.length > 0[\s\S]*?Theme\.primarySurface : "transparent"/);
+ assert.match(composer,/fillColor: root\.selectedTopics\.length > 0[\s\S]*?Theme\.primarySurface : Theme.surfaceMuted/);
  assert.match(composer,/objectName: "mobileCastContext"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
- assert.match(composer,/Layout.preferredHeight: 36/);
+ assert.match(composer,/Layout.preferredHeight: Theme.touchTarget/);
  assert.match(composer,/Math.max\(118, Math.min\(188, composerScroll.height \* 0.36\)\)/);
  assert.match(composer,/const fitsFully = panelBottom - panelTop <= flick.height - margin \* 2/);
  assert.match(composer,/qsTrId\("genycaster\.topics\.label"\)/);

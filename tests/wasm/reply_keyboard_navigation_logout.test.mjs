@@ -11,7 +11,7 @@ test('reply editor stays visible when iOS visual viewport shrinks',()=>{
  assert.match(drawer,/function ensureEditorVisible\(editor\)/);
  assert.match(drawer,/activeEditor\.mapToItem\(composerContent, 0, 0\)/);
  assert.match(drawer,/root\.focusedComposerEditor/);
- assert.match(drawer,/if \(!root\.opened \|\| !editor \|\| !editor\.activeFocus\)/);
+ assert.match(drawer,/if \(!root\.opened \|\| !editor \|\| !editor\.activeFocus[\s\S]*?root\.mobileSelectorOpen\)/);
  assert.doesNotMatch(drawer,/root\.ensureEditorVisible\(root\.compact \? mobilePlainEditor : visualEditor\.activeEditor\)/);
  assert.match(drawer,/onKeyboardVisibleChanged:/);
  assert.match(drawer,/visible: root\.replyMode \|\| root\.quoteMode/);
