@@ -29,7 +29,10 @@ Drawer {
     edge: Qt.TopEdge
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     width: parent ? Math.min(580, parent.width) : 520
-    height: parent ? Math.min(440, Math.max(260, parent.height - Theme.space4)) : 420
+    // The footer must stay inside the modal even with very long release notes.
+    // Leave room for the system safe area; scroll the notes, not the actions.
+    height: parent ? Math.max(0, Math.min(parent.height - Theme.space4 * 2,
+                                          Math.max(500, parent.height * 0.82))) : 560
     x: parent ? Math.max(0, (parent.width - width) / 2) : 0
     padding: Theme.space4
 
@@ -202,8 +205,11 @@ Drawer {
                 }
             }
             Flickable {
+                objectName: "updateReleaseNotesScroll"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumHeight: 0
+                Layout.preferredHeight: 0
                 clip: true
                 contentWidth: width
                 contentHeight: Math.max(height, releaseNotesText.implicitHeight + Theme.space3)
@@ -224,8 +230,16 @@ Drawer {
                 }
             }
         }
-        RowLayout {
+        Rectangle {
             Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.divider
+        }
+        RowLayout {
+            objectName: "updateNoticeStickyActions"
+            Layout.fillWidth: true
+            Layout.minimumHeight: Theme.scaleUi(44)
+            Layout.preferredHeight: Theme.scaleUi(48)
             spacing: Theme.space2
             ActionButton {
                 Layout.fillWidth: true

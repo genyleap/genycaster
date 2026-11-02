@@ -8,6 +8,8 @@ Item {
     id: root
     objectName: "profileStreakCard"
 
+    signal profileRequested(double fid)
+
     property var snapshot: ({})
     property bool loading: false
     property string errorText: ""
@@ -326,13 +328,17 @@ Item {
                     }
                 }
             }
+            // A three-person preview is visible even without joining.
+            // Expanding reveals all 100 in ONE parent Flickable; a nested
+            // ListView used to swallow wheel/touch scrolling at the bottom.
             ColumnLayout {
+                objectName: "streakLeaderboardContent"
                 Layout.fillWidth: true
-                visible: root.showLeaderboard
                 spacing: Theme.space2
 
                 Label {
                     Layout.fillWidth: true
+                    visible: root.showLeaderboard
                     text: qsTrId("genycaster.streak.leaderboard_description")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
@@ -341,6 +347,8 @@ Item {
                 }
                 ActionButton {
                     Layout.fillWidth: true
+                    visible: root.showLeaderboard && openProofConnections.cloudAuthorizationReady
+                    enabled: !openProofConnections.streakLeaderboardBusy
                     compact: true
                     quiet: !root.leaderboardVisible
                     selected: root.leaderboardVisible
@@ -348,15 +356,17 @@ Item {
                         ? qsTrId("genycaster.streak.leave_leaderboard")
                         : qsTrId("genycaster.streak.join_leaderboard")
                     onClicked: {
+                        // Membership affects the user's OWN rank, never the
+                        // ability to read everyone else's public ranking.
                         openProofConnections.setStreakPreferences(
                             String(openProofConnections.streakPreferences.activity_source || "casts"),
                             !root.leaderboardVisible)
-                        openProofConnections.fetchStreakLeaderboard(root.activeTrack)
                     }
                 }
                 Label {
                     Layout.fillWidth: true
-                    visible: !openProofConnections.streakLeaderboardBusy
+                    visible: root.showLeaderboard
+                        && !openProofConnections.streakLeaderboardBusy
                         && root.leaderboardEntries.length === 0
                     text: qsTrId("genycaster.streak.leaderboard_empty")
                     color: Theme.inkMuted
@@ -368,47 +378,97 @@ Item {
                     running: visible
                     visible: openProofConnections.streakLeaderboardBusy
                 }
-                ListView {
+                ColumnLayout {
                     objectName: "streakTop100"
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.leaderboardEntries.length>0
-                        ? Math.min(300,root.leaderboardEntries.length*50) : 0
-                    visible: root.leaderboardEntries.length>0
-                    clip: true
-                    model: root.leaderboardEntries
-                    boundsBehavior: Flickable.StopAtBounds
-                    spacing: Theme.space1
-                    delegate: Rectangle {
-                        required property var modelData
-                        width: ListView.view.width
-                        height: Theme.scaleUi(46)
-                        radius: Theme.curveCompact
-                        color: Theme.surfaceMuted
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: Theme.space2
-                            anchors.rightMargin: Theme.space2
-                            layoutDirection: Theme.uiDirection
-                            Label {
-                                text: LocaleFormat.formatInteger(Number(modelData.rank))
-                                font.pixelSize: Theme.typeBodySize
-                                font.weight: Theme.weightDemiBold
-                                color: Theme.warning
-                                Layout.preferredWidth: Theme.scaleUi(30)
+                    spacing: Theme.space2
+                    Repeater {
+                        model: root.showLeaderboard
+                            ? root.leaderboardEntries : root.leaderboardEntries.slice(0, 3)
+                        delegate: Rectangle {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Theme.scaleUi(root.compact ? 62 : 68)
+                            radius: Theme.curveCompact
+                            color: Theme.surfaceMuted
+                            border.color: Number(modelData.rank) === 1
+                                ? Theme.warning : Theme.borderMuted
+                            border.width: Number(modelData.rank) === 1 ? 1 : 0
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space3
+                                anchors.rightMargin: Theme.space3
+                                spacing: Theme.space2
+                                layoutDirection: Theme.uiDirection
+                                Label {
+                                    text: LocaleFormat.formatInteger(Number(modelData.rank))
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightBold
+                                    color: Number(modelData.rank) <= 3
+                                        ? Theme.warning : Theme.inkMuted
+                                    horizontalAlignment: Text.AlignHCenter
+                                    Layout.preferredWidth: Theme.scaleUi(22)
+                                }
+                                Avatar {
+                                    avatarSize: Theme.scaleUi(root.compact ? 34 : 38)
+                                    Layout.preferredWidth: avatarSize
+                                    Layout.preferredHeight: avatarSize
+                                    sourceUrl: String(modelData.avatar_url || "")
+                                    displayName: String(modelData.display_name || modelData.username || "")
+                                    forceAutomaticDownload: true
+                                }
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 0
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: String(modelData.display_name || modelData.username || "")
+                                            || qsTrId("genycaster.streak.fid")
+                                                .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
+                                        font.pixelSize: Theme.typeBodySize
+                                        font.weight: Theme.weightDemiBold
+                                        color: Theme.ink
+                                        elide: Text.ElideRight
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: String(modelData.username || "")
+                                            ? "@" + String(modelData.username) + " · " +
+                                                qsTrId("genycaster.streak.fid")
+                                                .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
+                                            : qsTrId("genycaster.streak.fid")
+                                                .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        color: Theme.inkMuted
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                                ColumnLayout {
+                                    spacing: 1
+                                    Label {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: qsTrId("genycaster.streak.leader_days")
+                                            .arg(LocaleFormat.formatInteger(Number(modelData.current)))
+                                        color: Theme.warning
+                                        font.weight: Theme.weightDemiBold
+                                        font.pixelSize: Theme.typeCaptionSize
+                                    }
+                                    Label {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: qsTrId("genycaster.streak.best")
+                                            .arg(LocaleFormat.formatInteger(Number(modelData.longest)))
+                                        color: Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                    }
+                                }
                             }
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.streak.fid")
-                                    .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeBodySize
-                                elide: Text.ElideRight
-                            }
-                            Label {
-                                text: qsTrId("genycaster.streak.leader_days")
-                                    .arg(LocaleFormat.formatInteger(Number(modelData.current)))
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
+                            Accessible.role: Accessible.Button
+                            Accessible.name: String(modelData.display_name || modelData.username || modelData.fid)
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.profileRequested(Number(modelData.fid))
                             }
                         }
                     }

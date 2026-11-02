@@ -2750,9 +2750,10 @@ Item {
         // takes the remaining height instead of creating an empty slab.
         // Fit both desktop and mobile to real content. The modal's
         // Flickable owns overflow when the leaderboard expands.
-        height: parent ? Math.min(parent.height * (mobilePresentation ? 0.86 : 0.91),
-            streakDetails.implicitHeight + streakHeader.implicitHeight
-            + contentPadding * 2 + sheetTopInset + Theme.space5) : 600
+        height: parent ? Math.min(Math.max(0, parent.height - Theme.space4 * 2),
+            Math.max(Theme.scaleUi(320),
+                streakDetails.implicitHeight + streakHeader.implicitHeight
+                + contentPadding * 2 + sheetTopInset + Theme.space5)) : 600
         onOpened: {
             if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
                 openProofConnections.fetchStreak()
@@ -2776,11 +2777,15 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: 0
+                Layout.preferredHeight: Math.min(contentHeight, Theme.scaleUi(500))
                 clip: true
+                interactive: contentHeight > height
                 flickableDirection: Flickable.VerticalFlick
                 boundsBehavior: Flickable.StopAtBounds
                 contentWidth: width
-                contentHeight: streakDetails.implicitHeight + Theme.space3
+                contentHeight: Math.max(0, streakDetails.implicitHeight + Theme.space5)
+                onContentHeightChanged: contentY = Math.min(contentY,
+                    Math.max(0, contentHeight - height))
                 ScrollBar.vertical: GenyScrollBar {}
 
                 StreakCard {
@@ -2791,6 +2796,10 @@ Item {
                     snapshot: openProofConnections.streak
                     loading: openProofConnections.streakBusy
                     errorText: openProofConnections.streakError
+                    onProfileRequested: fid => {
+                        streakDrawer.close()
+                        root.profileRequested(fid)
+                    }
                 }
             }
         }

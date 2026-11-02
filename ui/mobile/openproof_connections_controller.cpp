@@ -1341,8 +1341,7 @@ void OpenProofConnectionsController::setStreakPreferences(
 void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track)
 {
     if(track!=QStringLiteral("activity") && track!=QStringLiteral("creator"))return;
-    if(!m_viewerFid || !cloudAuthorizationReady() ||
-       !trustedHttpsEndpoint(m_cloudUrl))return;
+    if(!trustedHttpsEndpoint(m_cloudUrl))return;
     cancelNetworkReply(m_streakLeaderboardRead,this);
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/streak/leaderboard"));
@@ -1352,9 +1351,9 @@ void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track
     auto request=QNetworkRequest{url};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
-    request.setTransferTimeout(12000);
+    request.setTransferTimeout(30000);
     request.setRawHeader("Accept","application/json");
-    authorizeCloudRequest(request);
+    // The ranking is public. No account token or membership is required.
     auto* reply=m_network.get(request);
     m_streakLeaderboardRead=reply;
     m_streakLeaderboardTrack=track;
@@ -1366,7 +1365,7 @@ void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track
         if(m_streakLeaderboardRead!=reply){reply->deleteLater();return;}
         m_streakLeaderboardRead.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto bytes=reply->bytesAvailable()<=32768?reply->readAll():QByteArray{};
+        const auto bytes=reply->bytesAvailable()<=65536?reply->readAll():QByteArray{};
         reply->deleteLater();
         if(m_viewerFid!=viewer || m_grantGeneration!=generation)return;
         const auto doc=QJsonDocument::fromJson(bytes);

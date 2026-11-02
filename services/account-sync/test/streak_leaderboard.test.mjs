@@ -54,6 +54,9 @@ test('Preferences are revision-checked, scoped to owner and reject invalid write
     const forbidden=await call('streak/leaderboard?track=other');
     assert.equal(forbidden.status,400);
     assert.equal((await call('streak/leaderboard')).status,200);
+    // Opting out must never gate the public READ endpoint.
+    assert.equal((await call('streak/leaderboard','GET',null,'')).status,200);
+    assert.equal((await call('streak/leaderboard','POST',null,'')).status,405);
   }finally{server.close();}
 });
 

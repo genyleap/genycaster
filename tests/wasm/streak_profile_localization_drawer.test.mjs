@@ -63,3 +63,27 @@ test('all 12 shipping locale catalogs contain complete nonempty translated Strea
   }
  }
 });
+
+test('Streak leaderboard renders public social identities and uses only the outer drawer scroll',()=>{
+  const card=read('ui/components/StreakCard.qml');
+  const adapter=read('ui/mobile/openproof_connections_controller.cpp');
+  const cloud=read('services/account-sync/cloud_state.mjs');
+  const notice=read('ui/components/UpdateNoticeDrawer.qml');
+  const profile=read('ui/components/ProfileSurface.qml');
+  assert.match(card,/Avatar\s*\{[\s\S]*?sourceUrl: String\(modelData\.avatar_url/);
+  assert.match(card,/modelData\.display_name/);
+  assert.match(card,/modelData\.username/);
+  assert.match(card,/modelData\.longest/);
+  assert.match(card,/root\.leaderboardEntries\.slice\(0, 3\)/);
+  assert.doesNotMatch(card,/objectName: "streakTop100"[\s\S]*?ListView\s*\{/);
+  assert.match(profile,/objectName: "profileStreakScroll"/);
+  assert.match(profile,/interactive: contentHeight > height/);
+  assert.match(notice,/objectName: "updateNoticeStickyActions"/);
+  assert.match(notice,/Layout\.minimumHeight: 0/);
+  const block=adapter.slice(adapter.indexOf('void OpenProofConnectionsController::fetchStreakLeaderboard'),
+    adapter.indexOf('void OpenProofConnectionsController::fetchStreak()',adapter.indexOf('void OpenProofConnectionsController::fetchStreakLeaderboard')));
+  assert.doesNotMatch(block,/cloudAuthorizationReady\(\)/);
+  assert.doesNotMatch(block,/authorizeCloudRequest\(request\)/);
+  assert.ok(cloud.indexOf("if(entity==='streak/leaderboard')")<
+     cloud.indexOf('let owner;'));
+});

@@ -5,6 +5,7 @@ import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks} from './streaks.mjs';
+import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
 const SESSION_LIFETIME=30*24*60*60;
@@ -326,6 +327,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const upstream=issuer.replace(/\/$/,'');
   const signerProof=createSignerSessionProof({fetchImpl});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
+  const leaderboardProfiles=createLeaderboardProfileReader({fetchImpl});
   function sameOriginRequest(request) {
     // The browser must be on the official Genycaster host, not another site
     // submitting a form and attempting to plant an authenticated cookie.
@@ -436,6 +438,27 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         return true;
       }
     }
+    // Rankings are public read-only. Joining is a private, authenticated
+    // preference; viewing never depends on the visitor opting in.
+    if(entity==='streak/leaderboard') {
+      if(request.method!=='GET') {
+        respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      if(typeof store.streakReady!=='function' || !store.streakReady()) {
+        respond(response,503,{error:'streak_unavailable'});return true;
+      }
+      const params=new URL(request.url,'http://localhost').searchParams;
+      const track=params.get('track')||'activity';
+      if(params.getAll('track').length>1 ||
+         !['activity','creator'].includes(track)) {
+        respond(response,400,{error:'invalid_streak_track'});return true;
+      }
+      try {
+        const leaders=await store.listStreakLeaderboard(track);
+        respond(response,200,{track,leaders:await leaderboardProfiles.decorate(leaders)});
+      }catch {respond(response,503,{error:'leaderboard_unavailable'});}
+      return true;
+    }
     if (entity==='app_updates') {
       if (request.method!=='GET') respond(response,405,{error:'method_not_allowed'});
       else try {respond(response,200,{items:await store.listUpdates()});}
@@ -494,22 +517,6 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         const saved=await store.putStreakPreferences(owner,payload);
         respond(response,saved?200:409,saved
           ?{preferences:saved}:{error:'revision_conflict'});
-        return true;
-      }
-      if(entity==='streak/leaderboard') {
-        if(request.method!=='GET') {
-          respond(response,405,{error:'method_not_allowed'});return true;
-        }
-        if(!store.streakReady()) {
-          respond(response,503,{error:'streak_unavailable'});return true;
-        }
-        const params=new URL(request.url,'http://localhost').searchParams;
-        const track=params.get('track')||'activity';
-        if(params.getAll('track').length>1 ||
-           !['activity','creator'].includes(track)) {
-          respond(response,400,{error:'invalid_streak_track'});return true;
-        }
-        respond(response,200,{track,leaders:await store.listStreakLeaderboard(track)});
         return true;
       }
       if(entity==='streak' || entity==='streak/cast') {
