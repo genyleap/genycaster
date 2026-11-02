@@ -2,6 +2,14 @@
 <TS version="2.1" language="hi_IN" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.activity.default_source">
+            <source>Show on profile</source>
+            <translation>प्रोफ़ाइल में डिफ़ॉल्ट दृश्य</translation>
+        </message>
+        <message id="genycaster.activity.github_default_requires_link">
+            <source>Link a GitHub account to choose it as your default.</source>
+            <translation>डिफ़ॉल्ट दृश्य चुनने के लिए GitHub खाता जोड़ें।</translation>
+        </message>
         <message id="genycaster.streak.leaderboard">
             <source>Leaderboard</source>
             <translation>लीडरबोर्ड</translation>
