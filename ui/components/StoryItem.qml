@@ -48,7 +48,10 @@ Item {
                 objectName: "storyPortrait"
                 visible: !root.addStory || root.avatarUrl.length > 0
                 anchors.centerIn: parent
-                opacity: root.storyState === "viewed" && !root.addStory ? 0.74 : 1.0
+                // Keep portraits fully opaque. Viewed status belongs to the
+                // outline and label, not a translucent image that can expose
+                // fallback initials through transparent artwork.
+                opacity: 1.0
                 avatarSize: root.avatarSize
                 avatarCurveDepth: root.avatarCurveDepth
                 avatarExponent: 3.8
