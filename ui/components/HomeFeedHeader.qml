@@ -238,9 +238,6 @@ Item {
                                      : scopeOption.hovered ? Theme.surfaceHover : "transparent"
                                 border.width: 0
                                 border.color: Theme.borderSubtle
-                                Behavior on color {
-                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                }
                             }
                             contentItem: DirectionAwareLabel {
                                 text: String(scopeOption.modelData.title)
@@ -251,9 +248,6 @@ Item {
                                 color: scopeOption.enabled
                                     ? (scopeOption.selected ? Theme.ink : Theme.inkMuted)
                                     : Theme.inkMuted
-                                Behavior on color {
-                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                }
                                 opacity: scopeOption.enabled ? 1 : 0.5
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
