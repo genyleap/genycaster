@@ -2,6 +2,7 @@ module;
 
 #include <QByteArray>
 #include <QCoreApplication>
+#include <QDebug>
 #include <QMetaObject>
 #include <QNetworkAccessManager>
 #include <QNetworkProxy>
@@ -665,6 +666,13 @@ private:
         const auto networkError = reply ? reply->error() : QNetworkReply::UnknownNetworkError;
         const auto headers = reply ? responseHeaders(*reply) : std::vector<std::string>{};
         const QString errorString = reply ? reply->errorString() : QStringLiteral("Unknown network failure");
+        // Qt's generic HTTP/2 warning omits the host. Emit only the hostname
+        // and status here: never log query strings, paths, cookies or tokens.
+        if (reply && ((statusValid && statusCode == 401)
+                      || networkError == QNetworkReply::AuthenticationRequiredError)) {
+            qWarning().noquote() << "[Genycaster] Authentication required by host:"
+                                  << reply->url().host() << "(HTTP status" << statusCode << ")";
+        }
         if (reply) {
             reply->deleteLater();
         }
