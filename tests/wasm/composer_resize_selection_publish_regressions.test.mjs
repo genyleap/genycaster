@@ -46,3 +46,61 @@ test('right click never opens cast actions, while System text has native actions
     assert.match(rich, /acceptedButtons: Qt\.RightButton/)
     assert.match(rich, /onTriggered: presentationBridge\.copyText\(platformText\.selectedText\)/)
 })
+
+test('an open composer keeps one editor tree through desktop resize breakpoints', () => {
+    const composer = source('ComposerDrawer.qml')
+    const shell = source('AppShell.qml')
+    assert.match(composer, /property bool requestedCompact: false/)
+    assert.match(composer, /property bool compact: false/)
+    assert.match(composer, /onAboutToShow: root\.compact = root\.requestedCompact/)
+    assert.doesNotMatch(composer, /readonly property bool compact: parent \? parent\.width/)
+    assert.match(shell, /hostItem: root\s+requestedCompact: root\.mobile/)
+    assert.doesNotMatch(shell, /hostItem: root\.mobile \? root : readingPane/)
+    assert.match(composer, /fullScreen: root\.compact/)
+    assert.doesNotMatch(composer, /fullScreen: .*parent\.height > parent\.width/)
+    assert.match(composer, /visible: !root\.compact && !root\.keyboardVisible/)
+    assert.match(composer, /visible: root\.compact && root\.editorMode === "visual"/)
+})
+
+test('drawer width, horizontal center and height are bounded across resize', () => {
+    const composer = source('ComposerDrawer.qml')
+    const expr = (before, after) => {
+        const start = composer.indexOf(before)
+        const end = composer.indexOf(after, start + before.length)
+        assert.ok(start >= 0 && end > start, 'dimension expression exists')
+        return composer.slice(start + before.length, end).trim()
+    }
+    const widthExpr = expr('    width: ', '\n    x: ')
+    const xExpr = expr('    x: ', '\n    // Keep both ends')
+    const heightExpr = expr('    height: ', '\n    // Composer content')
+    const widthFor = new Function('parent','root','Theme','replyMode', 'return (' + widthExpr + ')')
+    const xFor = new Function('parent','root','Theme','replyMode','width', 'return (' + xExpr + ')')
+    const heightFor = new Function('parent','root','Theme','replyMode', 'return (' + heightExpr + ')')
+    const theme = { space4: 16 }
+    for (const openedAt of [390, 1440]) {
+        const capturedCompact = openedAt < 600
+        for (const viewportWidth of [320, 390, 599, 600, 680, 719, 720, 900, 1200, 1920]) {
+            for (const viewportHeight of [350, 500, 640, 900]) {
+                for (const replyMode of [true, false]) {
+                    const parent = { width: viewportWidth, height: viewportHeight }
+                    const root = { compact: capturedCompact }
+                    const width = widthFor(parent,root,theme,replyMode)
+                    const x = xFor(parent,root,theme,replyMode,width)
+                    const height = heightFor(parent,root,theme,replyMode)
+                    assert.ok(width > 0 && width <= viewportWidth)
+                    assert.ok(x >= 0 && x + width <= viewportWidth + 0.01)
+                    assert.ok(height >= 0 && height <= viewportHeight)
+                    if (capturedCompact) {
+                        assert.equal(width,viewportWidth)
+                        assert.equal(height,viewportHeight)
+                    } else {
+                        assert.ok(width <= 720)
+                        assert.ok(height <= 660)
+                    }
+                }
+            }
+        }
+    }
+    assert.doesNotMatch(composer,/Math\.min\(255, composerScroll\.height/)
+    assert.match(composer,/Math\.max\(128, Math\.min\(255, root\.height \* 0\.4\)\)/)
+})
