@@ -249,6 +249,37 @@ export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fe
  // hash and a CastAdd payload. Both endpoints are bounded and fail closed.
 export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
   if(!HASH.test(hash)||!/^[1-9][0-9]{0,18}$/.test(String(fid)))return null;
+  // HyperSnap's documented feed/user/casts endpoint is the first choice.
+  // Match the returned author FID AND hash; only fresh published casts count.
+  // Its hash is bare 40-hex (unlike the 0x-prefixed account API hash).
+  try {
+    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts'
+      +'?fid='+encodeURIComponent(String(fid))+'&limit=100';
+    const response=await fetchImpl(url,{method:'GET',redirect:'error',
+      headers:{accept:'application/json'},signal:AbortSignal.timeout(4500)});
+    if(response.status===200 &&
+       Number(response.headers.get('content-length')||0)<=131072 && response.body) {
+      const chunks=[];let size=0;
+      for await(const chunk of response.body) {
+        size+=chunk.byteLength;if(size>131072)break;
+        chunks.push(Buffer.from(chunk));
+      }
+      if(size<=131072) {
+        const payload=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        if(Array.isArray(payload?.casts) && payload.casts.length<=100)
+          for(const cast of payload.casts) {
+            if(String(cast?.author?.fid||'')!==String(fid) ||
+               String(cast?.hash||'').replace(/^0x/i,'').toLowerCase()
+                 !==hash.slice(2).toLowerCase())continue;
+            const stamp=Date.parse(cast.timestamp);
+            if(!Number.isFinite(stamp) || stamp>Date.now()+300000 ||
+               stamp<Date.now()-172800000)continue;
+            return {kind:cast.parent_hash ? 'reply':'cast'};
+          }
+      }
+    }
+  }catch{}
+  // Compatibility with v1 hub reads on either protocol network.
   const endpoints=[
     'https://haatz.quilibrium.com/v1/castById',
     'https://snapchain.genyleap.com/v1/castById'
@@ -274,6 +305,11 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
       if(String(data?.fid)!==String(fid) ||
          String(record?.hash||'').toLowerCase()!==hash.toLowerCase() ||
          !data?.castAddBody || typeof data.castAddBody!=='object')continue;
+      // Farcaster protocol timestamps are seconds since 2021-01-01 UTC.
+      const timestamp=Number(data.timestamp);
+      const published=Date.UTC(2021,0,1)+timestamp*1000;
+      if(!Number.isSafeInteger(timestamp) || published>Date.now()+300000
+         || published<Date.now()-172800000)continue;
       const body=data.castAddBody;
       return {kind:body.parentCastId ? 'reply':'cast'};
     }catch {}
