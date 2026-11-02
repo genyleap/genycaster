@@ -15,6 +15,8 @@ Item {
     property string githubAccountId: ""
     property string verifiedWallet: ""
     property bool expanded: false
+    property bool detailMode: false
+    property string previewSource: "casts"
     property string selectedDate: ""
     property string selectedGithubDate: ""
     property int githubYear: new Date().getUTCFullYear()
@@ -80,6 +82,7 @@ Item {
     }
 
     signal connectionsRequested()
+    signal exploreRequested()
 
     readonly property var farcasterData: (genyPulseActivity ? genyPulseActivity.farcaster : ({}))
     readonly property var githubData: (genyPulseActivity ? genyPulseActivity.github : ({}))
@@ -197,16 +200,15 @@ Item {
             }
             ActionButton {
                 objectName: "genyPulseExpandButton"
-                visible: root.hasOptionalSources
+                visible: !root.detailMode
                 compact: true
                 quiet: true
                 elevated: false
                 pill: true
                 iconSize: 13
-                iconGlyph: root.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
-                text: root.expanded ? qsTrId("genycaster.activity.less")
-                                    : qsTrId("genycaster.activity.explore")
-                onClicked: root.expanded = !root.expanded
+                iconGlyph: Theme.iconChevronRight
+                text: qsTrId("genycaster.activity.explore")
+                onClicked: root.exploreRequested()
             }
         }
 
@@ -216,6 +218,7 @@ Item {
             spacing: Theme.space2
 
         Rectangle {
+            visible: root.detailMode || root.previewSource !== "github"
             Layout.fillWidth: true
             implicitHeight: farcasterContent.implicitHeight + Theme.space3*2
             radius: Theme.space3
@@ -342,7 +345,8 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            visible: root.expanded && root.hasOptionalSources
+            visible: root.detailMode || (root.previewSource === "github"
+                && root.githubLinked)
             spacing: Theme.space2
 
             Rectangle {
