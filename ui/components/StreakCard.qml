@@ -16,9 +16,14 @@ Item {
     property bool compact: false
     property string activeTrack: "activity"
     property bool showAllBadges: false
-    property bool showLeaderboard: false
+    // Three peer pages: two private streak views and a standalone public leaderboard.
+    property string activePage: "activity"
+    property string leaderboardTrack: "activity"
+    signal pageChanged()
+
     property int inspectedMilestone: 0
-    readonly property bool flameMotion: root.current > 0 && root.visible
+    readonly property bool flameMotion: root.activePage !== "leaderboard"
+        && root.current > 0 && root.visible
         && !Theme.reduceMotion && !Theme.powerSave
     readonly property bool leaderboardVisible:
         openProofConnections.streakPreferences.leaderboard_visible === true
@@ -72,8 +77,8 @@ Item {
             readonly property bool earned: modelData.unlocked === true
             readonly property real completed: Math.max(0, Math.min(1,
                 Number(modelData.progress_days || 0) / Math.max(1, threshold)))
-            readonly property int tileHeight: Theme.scaleUi(root.compact ? 162 : 170)
-            implicitWidth: Theme.scaleUi(root.compact ? 144 : 162)
+            readonly property int tileHeight: Theme.scaleUi(root.compact ? 132 : 140)
+            implicitWidth: Theme.scaleUi(root.compact ? 118 : 126)
             implicitHeight: tileHeight
             width: implicitWidth
             height: tileHeight
@@ -99,8 +104,8 @@ Item {
                 Item {
                     id: badgeMedallion
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: Theme.scaleUi(62)
-                    Layout.preferredHeight: Theme.scaleUi(62)
+                    Layout.preferredWidth: Theme.scaleUi(48)
+                    Layout.preferredHeight: Theme.scaleUi(48)
 
                     Rectangle {
                         anchors.fill: parent
@@ -114,7 +119,7 @@ Item {
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconStreakFlame
-                        preferredSize: Theme.scaleUi(28)
+                        preferredSize: Theme.scaleUi(23)
                         color: badgeTile.earned ? Theme.warning : Theme.inkMuted
                         opacity: badgeTile.earned ? 1 : 0.5
                     }
@@ -139,7 +144,7 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     text: LocaleFormat.formatInteger(badgeTile.threshold)
-                    font.pixelSize: Theme.scaleUi(24)
+                    font.pixelSize: Theme.scaleUi(20)
                     font.weight: Theme.weightBold
                     color: badgeTile.earned ? Theme.warning : Theme.inkMuted
                     horizontalAlignment: Text.AlignHCenter
@@ -187,24 +192,28 @@ Item {
 
         GenyTabStrip {
             Layout.fillWidth: true
-            currentId: root.activeTrack
+            currentId: root.activePage
             distribute: true
             segmented: true
-            minimumTabWidth: 76
+            minimumTabWidth: 70
             tabs: [
                 {id: "activity", label: qsTrId("genycaster.streak.activity")},
-                {id: "creator", label: qsTrId("genycaster.streak.creator")}
+                {id: "creator", label: qsTrId("genycaster.streak.creator")},
+                {id: "leaderboard", label: qsTrId("genycaster.streak.leaderboard")}
             ]
             onActivated: id => {
-                root.activeTrack = id
-                if(root.showLeaderboard)
-                    openProofConnections.fetchStreakLeaderboard(id)
+                root.activePage = id
+                if(id === "leaderboard")
+                    openProofConnections.fetchStreakLeaderboard(root.leaderboardTrack)
+                else
+                    root.activeTrack = id
+                root.pageChanged()
             }
         }
 
         Label {
             Layout.fillWidth: true
-            visible: !root.available
+            visible: root.activePage !== "leaderboard" && !root.available
             text: root.loading ? qsTrId("genycaster.streak.loading")
                 : qsTrId("genycaster.streak.unavailable")
             color: Theme.inkMuted
@@ -215,7 +224,7 @@ Item {
 
         ColumnLayout {
             Layout.fillWidth: true
-            visible: root.available
+            visible: root.activePage !== "leaderboard" && root.available
             spacing: Theme.space3
 
             // Reference-inspired centered achievement hero; one focal point
@@ -435,7 +444,7 @@ Item {
                 id: streakBadgeCarousel
                 objectName: "streakBadgeCarousel"
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? Theme.scaleUi(root.compact ? 174 : 182) : 0
+                Layout.preferredHeight: visible ? Theme.scaleUi(root.compact ? 144 : 152) : 0
                 visible: !root.showAllBadges
                 clip: true
                 contentWidth: streakBadgePreviewRow.implicitWidth
@@ -450,7 +459,7 @@ Item {
                 Row {
                     id: streakBadgePreviewRow
                     objectName: "streakBadgePreviewRow"
-                    height: Theme.scaleUi(root.compact ? 164 : 172)
+                    height: Theme.scaleUi(root.compact ? 136 : 144)
                     spacing: Theme.space2
                     layoutDirection: Theme.uiDirection
                     LayoutMirroring.enabled: false
@@ -467,7 +476,7 @@ Item {
                 objectName: "streakBadgeGrid"
                 Layout.fillWidth: true
                 visible: root.showAllBadges
-                columns: root.compact ? 2 : 4
+                columns: root.compact ? 3 : 4
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
                 layoutDirection: Theme.uiDirection
@@ -498,33 +507,29 @@ Item {
                 }
             }
 
-            Rectangle {
+        }
+
+        ColumnLayout {
+            id: leaderboardPage
+            objectName: "streakLeaderboardPage"
+            Layout.fillWidth: true
+            visible: root.activePage === "leaderboard"
+            spacing: Theme.space3
+
+            GenyTabStrip {
+                objectName: "streakLeaderboardTrackFilter"
                 Layout.fillWidth: true
-                height: 1
-                color: Theme.divider
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
-                Label {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.streak.leaderboard")
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeBodySize
-                    font.weight: Theme.weightDemiBold
-                }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    text: root.showLeaderboard
-                        ? qsTrId("genycaster.streak.show_less")
-                        : qsTrId("genycaster.streak.top_100")
-                    onClicked: {
-                        root.showLeaderboard = !root.showLeaderboard
-                        if(root.showLeaderboard)
-                            openProofConnections.fetchStreakLeaderboard(root.activeTrack)
-                    }
+                currentId: root.leaderboardTrack
+                segmented: true
+                distribute: true
+                minimumTabWidth: 76
+                tabs: [
+                    {id: "activity", label: qsTrId("genycaster.streak.activity")},
+                    {id: "creator", label: qsTrId("genycaster.streak.creator")}
+                ]
+                onActivated: id => {
+                    root.leaderboardTrack = id
+                    openProofConnections.fetchStreakLeaderboard(id)
                 }
             }
             // A three-person preview is visible even without joining.
@@ -537,7 +542,7 @@ Item {
 
                 Label {
                     Layout.fillWidth: true
-                    visible: root.showLeaderboard
+                    visible: true
                     text: qsTrId("genycaster.streak.leaderboard_description")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
@@ -546,7 +551,7 @@ Item {
                 }
                 ActionButton {
                     Layout.fillWidth: true
-                    visible: root.showLeaderboard && openProofConnections.cloudAuthorizationReady
+                    visible: openProofConnections.cloudAuthorizationReady
                     enabled: !openProofConnections.streakLeaderboardBusy
                     compact: true
                     quiet: !root.leaderboardVisible
@@ -564,8 +569,7 @@ Item {
                 }
                 Label {
                     Layout.fillWidth: true
-                    visible: root.showLeaderboard
-                        && !openProofConnections.streakLeaderboardBusy
+                    visible: !openProofConnections.streakLeaderboardBusy
                         && root.leaderboardEntries.length === 0
                     text: qsTrId("genycaster.streak.leaderboard_empty")
                     color: Theme.inkMuted
@@ -582,8 +586,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Repeater {
-                        model: root.showLeaderboard
-                            ? root.leaderboardEntries : root.leaderboardEntries.slice(0, 3)
+                        model: root.leaderboardEntries
                         delegate: Rectangle {
                             required property var modelData
                             Layout.fillWidth: true

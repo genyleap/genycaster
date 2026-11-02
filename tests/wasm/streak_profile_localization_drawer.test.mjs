@@ -41,7 +41,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
 
 test('every Streak label is translated by stable translation ID',()=>{
  assert.ok(qmlIds.length>=26,'original Streak labels must remain translated');
- for(const key of keys.filter(k=>k!=='profile_badge'))
+ for(const key of keys.filter(k=>!['profile_badge','top_100'].includes(k)))
    assert.ok(qmlIds.includes('genycaster.streak.'+key),key);
  assert.doesNotMatch(card,/text:\s*"(?:Streak|Activity|Creator|Show less|See all|Badges)/);
  assert.match(card,/LocaleFormat\.formatInteger/);
@@ -74,7 +74,7 @@ test('Streak leaderboard renders public social identities and uses only the oute
   assert.match(card,/modelData\.display_name/);
   assert.match(card,/modelData\.username/);
   assert.match(card,/modelData\.longest/);
-  assert.match(card,/root\.leaderboardEntries\.slice\(0, 3\)/);
+  assert.match(card,/model: root\.leaderboardEntries/);
   assert.doesNotMatch(card,/objectName: "streakTop100"[\s\S]*?ListView\s*\{/);
   assert.match(profile,/objectName: "profileStreakScroll"/);
   assert.match(profile,/interactive: contentHeight > height/);
@@ -135,14 +135,50 @@ test('Milestone collection uses exact CC0 SVG Repo flame and readable responsive
  assert.match(source,/objectName: "streakBadgeCarousel"/);
  assert.match(source,/flickableDirection: Flickable\.HorizontalFlick/);
  assert.match(source,/contentWidth: streakBadgePreviewRow\.implicitWidth/);
- assert.match(source,/Layout\.preferredHeight: visible \? Theme\.scaleUi\(root\.compact \? 174 : 182\) : 0/);
- assert.match(source,/columns: root\.compact \? 2 : 4/);
+ assert.match(source,/Layout\.preferredHeight: visible \? Theme\.scaleUi\(root\.compact \? 144 : 152\) : 0/);
+ assert.match(source,/columns: root\.compact \? 3 : 4/);
  assert.match(source,/id: milestoneBadgeTile/);
  assert.match(source,/delegate: milestoneBadgeTile/g);
  assert.match(source,/model: root\.showAllBadges \? root\.milestoneItems : \[\]/);
  assert.match(source,/text: Theme\.iconStreakFlame/);
- assert.match(source,/preferredSize: Theme\.scaleUi\(28\)/);
+ assert.match(source,/preferredSize: Theme\.scaleUi\(23\)/);
  assert.match(source,/visible: !badgeTile\.earned/);
  assert.match(source,/root\.inspectedMilestone/);
  assert.match(source,/!Theme\.reduceMotion && !Theme\.powerSave/);
+});
+
+test('Streak has a standalone leaderboard tab, with rankings readable without joining',()=>{
+ const card=read('ui/components/StreakCard.qml');
+ const profile=read('ui/components/ProfileSurface.qml');
+ assert.match(card,/property string activePage: "activity"/);
+ assert.match(card,/id: "leaderboard", label: qsTrId\("genycaster.streak.leaderboard"\)/);
+ assert.match(card,/objectName: "streakLeaderboardPage"/);
+ assert.match(card,/visible: root.activePage === "leaderboard"/);
+ assert.match(card,/objectName: "streakLeaderboardTrackFilter"/);
+ assert.match(card,/openProofConnections.fetchStreakLeaderboard\(root.leaderboardTrack\)/);
+ assert.match(card,/model: root.leaderboardEntries/);
+ assert.doesNotMatch(card,/model: root.showLeaderboard/);
+ assert.match(profile,/onPageChanged:[\s\S]*?profileStreakScroll.contentY = 0/);
+});
+test('Compact Streak medals use a stable reduced size for carousel and expanded grid',()=>{
+ const card=read('ui/components/StreakCard.qml');
+ assert.match(card,/tileHeight: Theme.scaleUi\(root.compact \? 132 : 140\)/);
+ assert.match(card,/implicitWidth: Theme.scaleUi\(root.compact \? 118 : 126\)/);
+ assert.match(card,/Layout.preferredWidth: Theme.scaleUi\(48\)/);
+ assert.match(card,/columns: root.compact \? 3 : 4/);
+});
+test('The account sidebar uses verified streak instead of Trust Score, and inactive flames are neutral',()=>{
+ const sidebar=read('ui/components/SideNavigation.qml');
+ const account=read('ui/components/ProfileTrustCard.qml');
+ const profile=read('ui/components/ProfileSurface.qml');
+ assert.match(sidebar,/function requestSidebarStreak\(\)/);
+ assert.match(sidebar,/streakSnapshot: openProofConnections.streak/);
+ assert.match(account,/objectName: "sidebarStreakMetric"/);
+ assert.match(account,/objectName: "sidebarStreakRing"/);
+ assert.match(account,/streakSnapshot.time_zone === "UTC"/);
+ assert.match(account,/root.streakKnown\s*\? LocaleFormat.formatInteger\(root.streakCurrent\) : "—"/);
+ assert.match(account,/root.streakActive \? Theme.warning : Theme.inkMuted/);
+ assert.doesNotMatch(account,/qsTrId\("genycaster.profile.trust_score"\)/);
+ assert.match(profile,/objectName: "profileUnverifiedStreak"/);
+ assert.match(profile,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
 });

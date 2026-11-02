@@ -2197,10 +2197,14 @@ Item {
                                 streakDrawer.mobilePresentation = root.compact
                                 streakDrawer.open()
                             }
+                            readonly property bool streakActive: Number(
+                                openProofConnections.streak.activity?.current || 0) > 0
                             background: Rectangle {
                                 radius: height / 2
-                                color: Theme.warningSurface
-                                border.color: Theme.warning
+                                color: profileStreakBadge.streakActive
+                                    ? Theme.warningSurface : Theme.surfaceMuted
+                                border.color: profileStreakBadge.streakActive
+                                    ? Theme.warning : Theme.borderMuted
                                 border.width: 1
                                 opacity: profileStreakBadge.down ? 0.75 : 1.0
                             }
@@ -2211,18 +2215,40 @@ Item {
                                 Icon {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: Theme.iconStreakFlame
-                                    color: Theme.warning
+                                    color: profileStreakBadge.streakActive
+                                        ? Theme.warning : Theme.inkMuted
                                     preferredSize: Theme.scaleUi(16)
                                 }
                                 Label {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    color: Theme.warning
+                                    color: profileStreakBadge.streakActive
+                                        ? Theme.warning : Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
                                     text: LocaleFormat.formatInteger(Number(
                                         openProofConnections.streak.activity?.current || 0))
                                 }
                             }
+                        }
+                        // Public profiles have no authenticated Streak snapshot.
+                        // Show a neutral, non-clickable flame instead of claiming
+                        // a verified zero or accidentally opening the viewer's streak.
+                        Rectangle {
+                            objectName: "profileUnverifiedStreak"
+                            visible: !root.isOwnProfile
+                            width: Theme.scaleUi(32)
+                            height: width
+                            radius: width / 2
+                            color: Theme.surfaceMuted
+                            border.color: Theme.borderMuted
+                            border.width: 1
+                            Icon {
+                                anchors.centerIn: parent
+                                text: Theme.iconStreakFlame
+                                color: Theme.inkMuted
+                                preferredSize: Theme.scaleUi(16)
+                            }
+                            Accessible.name: qsTrId("genycaster.streak.title")
                         }
                     }
                     RowLayout {
@@ -2782,6 +2808,7 @@ Item {
             }
 
             Flickable {
+                id: profileStreakScroll
                 objectName: "profileStreakScroll"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -2808,6 +2835,11 @@ Item {
                     onProfileRequested: fid => {
                         streakDrawer.close()
                         root.profileRequested(fid)
+                    }
+                    onPageChanged: {
+                        // Switching between Streak and its peer leaderboard
+                        // starts each page at its top.
+                        profileStreakScroll.contentY = 0
                     }
                 }
             }

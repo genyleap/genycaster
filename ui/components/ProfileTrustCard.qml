@@ -16,47 +16,28 @@ Superellipse {
     property bool verified: false
     property int following: -1
     property int followers: -1
-    property real trustScore: -1
-    property string trustScoreSource: ""
+    property var streakSnapshot: ({})
+    readonly property bool streakKnown: streakSnapshot.time_zone === "UTC"
+    readonly property int streakCurrent: streakKnown
+        ? Math.max(0,Number(streakSnapshot.activity?.current || 0)) : 0
+    readonly property int streakRecord: streakKnown
+        ? Math.max(0,Number(streakSnapshot.activity?.longest || 0)) : 0
+    readonly property int streakNext: streakKnown
+        ? Math.max(0,Number(streakSnapshot.activity?.next_milestone || 0)) : 0
+    readonly property bool streakActive: streakKnown && streakCurrent > 0
     property bool compact: false
     property bool loading: false
-    property bool trustDetailsExpanded: false
-    property real fallbackTrustScore: -1
-    property string fallbackTrustSource: ""
-    property real flipAngle: trustDetailsExpanded ? 180 : 0
+    property bool streakDetailsExpanded: false
+    property real flipAngle: streakDetailsExpanded ? 180 : 0
 
     signal profileRequested()
     signal accountRequested()
 
-    readonly property bool canonicalTrustAvailable: Number.isFinite(root.trustScore)
-                                                    && root.trustScore >= 0 && root.trustScore <= 1
-    readonly property bool fallbackTrustAvailable: Number.isFinite(root.fallbackTrustScore)
-                                                   && root.fallbackTrustScore >= 0 && root.fallbackTrustScore <= 1
-    readonly property bool trustAvailable: root.canonicalTrustAvailable || root.fallbackTrustAvailable
-    readonly property real normalizedTrust: root.canonicalTrustAvailable
-                                              ? Math.max(0, Math.min(1, root.trustScore))
-                                              : root.fallbackTrustAvailable
-                                                ? Math.max(0, Math.min(1, root.fallbackTrustScore)) : 0
-    readonly property string effectiveTrustSource: root.canonicalTrustAvailable && root.trustScoreSource.length > 0
-                                                    ? root.trustScoreSource
-                                                    : root.fallbackTrustSource
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
     readonly property string shownUsername: root.username.length > 0 ? root.username : "genycaster"
     readonly property real contentPadding: root.compact ? Theme.space3 : Theme.space4
     readonly property real faceHeight: Math.max(frontContent.implicitHeight, backContent.implicitHeight, root.compact ? 194 : 218)
-
-    function refreshFallbackTrust() {
-        if (root.canonicalTrustAvailable || root.fid <= 0
-                || typeof liveInsights === "undefined" || liveInsights === null)
-            return
-        const cached = Number(liveInsights.profileScoreForFid(Math.round(root.fid)))
-        if (Number.isFinite(cached) && cached >= 0 && cached <= 1) {
-            root.fallbackTrustScore = cached
-            root.fallbackTrustSource = String(liveInsights.profileScoreSourceForFid(Math.round(root.fid)) || "")
-        }
-        liveInsights.requestProfileScore(Math.round(root.fid))
-    }
 
     function requestProfile() {
         if (root.authenticated)
@@ -66,22 +47,7 @@ Superellipse {
     }
 
     function toggleFace() {
-        root.trustDetailsExpanded = !root.trustDetailsExpanded
-    }
-
-    onFidChanged: refreshFallbackTrust()
-    onTrustScoreChanged: refreshFallbackTrust()
-    Component.onCompleted: refreshFallbackTrust()
-
-    Connections {
-        target: typeof liveInsights !== "undefined" ? liveInsights : null
-        function onProfileScoreChanged(changedFid) {
-            if (Number(changedFid) !== Math.round(root.fid))
-                return
-            const score = Number(liveInsights.profileScoreForFid(changedFid))
-            root.fallbackTrustScore = Number.isFinite(score) ? score : -1
-            root.fallbackTrustSource = String(liveInsights.profileScoreSourceForFid(changedFid) || "")
-        }
+        root.streakDetailsExpanded = !root.streakDetailsExpanded
     }
 
     fillColor: root.compact ? Theme.surfaceMuted : Theme.contextRailCard
@@ -99,16 +65,28 @@ Superellipse {
     }
 
     component Metric: ColumnLayout {
+        id: metric
         property string valueText: "—"
         property string labelText: ""
+        property string iconGlyph: ""
+        property color valueColor: Theme.textPrimary
         spacing: 0
-        DirectionAwareLabel {
-            Layout.fillWidth: true
-            text: parent.valueText
-            color: Theme.textPrimary
-            font.pixelSize: Theme.typeMetaSize
-            font.weight: Theme.weightBold
-            horizontalAlignment: Text.AlignHCenter
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Theme.space1
+            Icon {
+                visible: metric.iconGlyph.length > 0
+                text: metric.iconGlyph
+                preferredSize: Theme.scaleUi(14)
+                color: metric.valueColor
+            }
+            DirectionAwareLabel {
+                text: metric.valueText
+                color: metric.valueColor
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: Theme.weightBold
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
         DirectionAwareLabel {
             Layout.fillWidth: true
@@ -202,26 +180,25 @@ Superellipse {
                 }
 
                 Item {
-                    id: scoreRing
+                    id: streakRing
+                    objectName: "sidebarStreakRing"
                     Layout.preferredWidth: root.compact ? 46 : 54
                     Layout.preferredHeight: Layout.preferredWidth
 
                     ProgressRing {
                         anchors.fill: parent
-                        progress: root.trustAvailable ? root.normalizedTrust : 0
+                        progress: root.streakActive && root.streakNext > 0
+                            ? Math.min(1, root.streakCurrent/root.streakNext) : 0
                         strokeWidth: root.compact ? 3.5 : 4
                         inset: 3
-                        trackColor: Theme.primarySurfaceHover
-                        progressColor: Theme.accent
+                        trackColor: Theme.borderMuted
+                        progressColor: root.streakActive ? Theme.warning : Theme.inkMuted
                     }
-                    Label {
+                    Icon {
                         anchors.centerIn: parent
-                        LayoutMirroring.enabled: false
-                        text: root.trustAvailable ? LocaleFormat.formatInteger(Math.round(root.normalizedTrust * 100)) : "—"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightBold
+                        text: Theme.iconStreakFlame
+                        preferredSize: Theme.scaleUi(22)
+                        color: root.streakActive ? Theme.warning : Theme.inkMuted
                     }
                     HoverHandler { cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: root.toggleFace() }
@@ -267,9 +244,13 @@ Superellipse {
                     }
                     Rectangle { Layout.preferredWidth: Theme.strokeHairline; Layout.preferredHeight: 28; color: Theme.divider }
                     Metric {
+                        objectName: "sidebarStreakMetric"
                         Layout.fillWidth: true
-                        valueText: root.trustAvailable ? LocaleFormat.formatInteger(Math.round(root.normalizedTrust * 100)) + "%" : "—"
-                        labelText: qsTrId("genycaster.profile.trust_score")
+                        valueText: root.streakKnown
+                            ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
+                        labelText: qsTrId("genycaster.streak.title")
+                        iconGlyph: Theme.iconStreakFlame
+                        valueColor: root.streakActive ? Theme.warning : Theme.inkMuted
                     }
                 }
             }
@@ -283,8 +264,8 @@ Superellipse {
                     Layout.fillWidth: true
                     compact: true
                     quiet: true
-                    iconGlyph: Theme.iconInfo
-                    text: qsTrId("genycaster.profile.trust_score")
+                    iconGlyph: Theme.iconStreakFlame
+                    text: qsTrId("genycaster.streak.title")
                     onClicked: root.toggleFace()
                 }
                 ActionButton {
@@ -343,8 +324,8 @@ Superellipse {
                     curveDepth: Theme.curveControl
                     Icon {
                         anchors.centerIn: parent
-                        text: Theme.iconInfo
-                        color: Theme.accent
+                        text: Theme.iconStreakFlame
+                        color: root.streakActive ? Theme.warning : Theme.inkMuted
                         preferredSize: Theme.iconSizeLarge
                     }
                 }
@@ -354,7 +335,7 @@ Superellipse {
                     spacing: 0
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.trust_score")
+                        text: qsTrId("genycaster.streak.title")
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeTitle3Size
                         font.weight: Theme.weightBold
@@ -371,8 +352,9 @@ Superellipse {
                 }
 
                 DirectionAwareLabel {
-                    text: root.trustAvailable ? LocaleFormat.formatInteger(Math.round(root.normalizedTrust * 100)) + "%" : "—"
-                    color: root.trustAvailable ? Theme.accent : Theme.textTertiary
+                    text: root.streakKnown
+                        ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
+                    color: root.streakActive ? Theme.warning : Theme.textTertiary
                     font.pixelSize: Theme.typeTitle2Size
                     font.weight: Theme.weightBold
                 }
@@ -380,28 +362,29 @@ Superellipse {
 
             Superellipse {
                 Layout.fillWidth: true
-                implicitHeight: trustDetails.implicitHeight + Theme.space3 * 2
+                implicitHeight: streakDetails.implicitHeight + Theme.space3 * 2
                 fillColor: Theme.primarySurface
                 borderWidth: Theme.strokeHairline
                 borderColor: Theme.borderSubtle
                 curveDepth: Theme.curveCompact
 
                 ColumnLayout {
-                    id: trustDetails
+                    id: streakDetails
                     anchors.fill: parent
                     anchors.margins: Theme.space3
                     spacing: Theme.space1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.profile.trust_signal_description")
+                        text: qsTrId("genycaster.streak.activity_rule")
                         color: Theme.textSecondary
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.effectiveTrustSource.length > 0
-                              ? root.effectiveTrustSource : qsTrId("genycaster.profile.trust_signal_unavailable")
+                        text: qsTrId("genycaster.streak.best")
+                            .arg(root.streakKnown
+                                ? LocaleFormat.formatInteger(root.streakRecord) : "—")
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap

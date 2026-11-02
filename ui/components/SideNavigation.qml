@@ -49,6 +49,32 @@ Rectangle {
     readonly property string profileTrustScoreSource: root.ownsProfileDetail
                                                       ? String(root.profileDetail.trustScoreSource || "") : ""
 
+    // The bottom account card is account-scoped, never another person's streak.
+    // Fetch verified activity when a session is ready, even before opening Profile.
+    property double streakRequestedFid: 0
+    function requestSidebarStreak() {
+        if(!root.isAuthenticated || !openProofConnections.cloudAuthorizationReady
+            || Number(root.accountFid)<=0 || openProofConnections.streakBusy)
+            return
+        if(root.streakRequestedFid===Number(root.accountFid))
+            return
+        root.streakRequestedFid=Number(root.accountFid)
+        openProofConnections.fetchStreak()
+    }
+    onAccountFidChanged: {
+        root.streakRequestedFid=0
+        requestSidebarStreak()
+    }
+    onIsAuthenticatedChanged: {
+        if(!root.isAuthenticated)root.streakRequestedFid=0
+        else requestSidebarStreak()
+    }
+    Component.onCompleted: requestSidebarStreak()
+    Connections {
+        target: openProofConnections
+        function onStateChanged() { root.requestSidebarStreak() }
+    }
+
     signal trendingRequested()
     signal followingRequested()
     signal profileRequested()
@@ -262,8 +288,7 @@ Rectangle {
             verified: root.ownsProfileDetail && Boolean(root.profileDetail.verified || false)
             following: root.profileFollowing
             followers: root.profileFollowers
-            trustScore: root.profileTrustScore
-            trustScoreSource: root.profileTrustScoreSource
+            streakSnapshot: openProofConnections.streak
             loading: root.profileLoading || (root.isAuthenticated && !root.ownsProfileDetail)
             compact: true
             onProfileRequested: root.profileRequested()
