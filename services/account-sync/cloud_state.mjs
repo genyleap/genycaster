@@ -155,7 +155,7 @@ export function validateCloudItem(entity, item) {
     if (['00000000-0000-4000-8000-000000000001',
          '00000000-0000-4000-8000-000000000003'].includes(String(item.id).toLowerCase())
         || (item.source==='genycaster'
-            && ['seen_watermark','profile_status'].includes(item.kind))) return null;
+            && ['seen_watermark','profile_status','streak_preferences'].includes(item.kind))) return null;
     if (!/^[a-z][a-z0-9_-]{0,39}$/.test(item.source || '') ||
         typeof item.kind !== 'string' || item.kind.length > 64 || !item.kind ||
         typeof item.occurred_at !== 'string' ||
