@@ -87,3 +87,19 @@ test('Streak leaderboard renders public social identities and uses only the oute
   assert.ok(cloud.indexOf("if(entity==='streak/leaderboard')")<
      cloud.indexOf('let owner;'));
 });
+
+test('Desktop Streak drawer spans overlay height and social rows follow a shared gutter',()=>{
+ const source=read('ui/components/ProfileSurface.qml');
+ const panel=source.slice(source.indexOf('id: streakDrawer'),source.indexOf('id: profileExtrasEditor'));
+ assert.ok(panel.includes(': parent.height) : 600'));
+ assert.ok(source.includes('Layout.topMargin: root.compact ? Theme.space1 : Theme.space3'));
+ assert.ok(source.includes('profileStatsFlow.spacing * 3 - Theme.space2'));
+});
+test('Leaderboard separates latin handles and Persian FIDs with direction-aware layout',()=>{
+ const source=read('ui/components/StreakCard.qml');
+ assert.ok(source.includes('objectName: "streakLeaderboardIdentityRow"'));
+ assert.ok(source.includes('forceLeftToRight: true'));
+ assert.ok(source.includes('forceRightToLeft: Theme.rtl'));
+ assert.ok(source.includes('Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight'));
+ assert.ok(source.includes('LayoutMirroring.enabled: false'));
+});

@@ -396,11 +396,13 @@ Item {
                             border.width: Number(modelData.rank) === 1 ? 1 : 0
 
                             RowLayout {
+                                objectName: "streakLeaderboardIdentityRow"
                                 anchors.fill: parent
                                 anchors.leftMargin: Theme.space3
                                 anchors.rightMargin: Theme.space3
                                 spacing: Theme.space2
                                 layoutDirection: Theme.uiDirection
+                                LayoutMirroring.enabled: false
                                 Label {
                                     text: LocaleFormat.formatInteger(Number(modelData.rank))
                                     font.pixelSize: Theme.typeBodySize
@@ -420,9 +422,11 @@ Item {
                                 }
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     spacing: 0
-                                    Label {
+                                    DirectionAwareLabel {
                                         Layout.fillWidth: true
+                                        alignToUi: true
                                         text: String(modelData.display_name || modelData.username || "")
                                             || qsTrId("genycaster.streak.fid")
                                                 .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
@@ -431,31 +435,57 @@ Item {
                                         color: Theme.ink
                                         elide: Text.ElideRight
                                     }
-                                    Label {
+                                    RowLayout {
                                         Layout.fillWidth: true
-                                        text: String(modelData.username || "")
-                                            ? "@" + String(modelData.username) + " · " +
-                                                qsTrId("genycaster.streak.fid")
+                                        Layout.minimumWidth: 0
+                                        spacing: Theme.space1
+                                        layoutDirection: Theme.uiDirection
+                                        LayoutMirroring.enabled: false
+                                        DirectionAwareLabel {
+                                            visible: String(modelData.username || "").length > 0
+                                            text: "@" + String(modelData.username || "")
+                                            forceLeftToRight: true
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            color: Theme.inkMuted
+                                            elide: Text.ElideRight
+                                            Layout.maximumWidth: Theme.scaleUi(120)
+                                        }
+                                        Label {
+                                            visible: String(modelData.username || "").length > 0
+                                            text: "·"
+                                            color: Theme.inkMuted
+                                            font.pixelSize: Theme.typeCaptionSize
+                                        }
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            alignToUi: true
+                                            forceRightToLeft: Theme.rtl
+                                            text: qsTrId("genycaster.streak.fid")
                                                 .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
-                                            : qsTrId("genycaster.streak.fid")
-                                                .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        color: Theme.inkMuted
-                                        elide: Text.ElideRight
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            color: Theme.inkMuted
+                                            elide: Text.ElideRight
+                                        }
                                     }
                                 }
                                 ColumnLayout {
                                     spacing: 1
-                                    Label {
-                                        Layout.alignment: Qt.AlignRight
+                                    Layout.alignment: Qt.AlignVCenter
+                                    DirectionAwareLabel {
+                                        Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight
+                                        horizontalAlignment: Theme.rtl ? Text.AlignLeft : Text.AlignRight
+                                        forceRightToLeft: Theme.rtl
                                         text: qsTrId("genycaster.streak.leader_days")
                                             .arg(LocaleFormat.formatInteger(Number(modelData.current)))
                                         color: Theme.warning
                                         font.weight: Theme.weightDemiBold
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
-                                    Label {
-                                        Layout.alignment: Qt.AlignRight
+                                    DirectionAwareLabel {
+                                        Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight
+                                        horizontalAlignment: Theme.rtl ? Text.AlignLeft : Text.AlignRight
+                                        forceRightToLeft: Theme.rtl
                                         text: qsTrId("genycaster.streak.best")
                                             .arg(LocaleFormat.formatInteger(Number(modelData.longest)))
                                         color: Theme.inkMuted

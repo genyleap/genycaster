@@ -2064,6 +2064,9 @@ Item {
                         // Wrap on narrow phones rather than expanding the
                         // heading or overflowing the horizontal profile gutter.
                         Layout.preferredHeight: childrenRect.height
+                        // Give the social counters breathing room below the bio
+                        // while keeping the badge on exactly the same row.
+                        Layout.topMargin: root.compact ? Theme.space1 : Theme.space3
                         flow: Flow.LeftToRight
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
@@ -2075,6 +2078,7 @@ Item {
                         Button {
                             id: followingCountButton
                             objectName: "profileFollowingCount"
+                            implicitHeight: Theme.scaleUi(32)
                             flat: true
                             hoverEnabled: true
                             onClicked: root.followingRequested()
@@ -2101,6 +2105,7 @@ Item {
                         Button {
                             id: followersCountButton
                             objectName: "profileFollowersCount"
+                            implicitHeight: Theme.scaleUi(32)
                             flat: true
                             hoverEnabled: true
                             onClicked: root.followersRequested()
@@ -2124,14 +2129,16 @@ Item {
                             }
                         }
 
-                        // Separate the badge from the follower counts when
-                        // there is room; never widen the profile content.
+                        // Use the same content gutter as the activity cards:
+                        // the badge must not protrude past the right edge.
+                        // Use actual measured widths and Flow's real spacing.
                         Item {
                             visible: root.isOwnProfile
                             width: visible ? Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
-                                profileStreakBadge.width - Theme.space3 * 4) : 0
-                            height: 1
+                                profileStreakBadge.width -
+                                profileStatsFlow.spacing * 3 - Theme.space2) : 0
+                            height: Theme.scaleUi(32)
                         }
                         Button {
                             id: profileStreakBadge
@@ -2746,14 +2753,14 @@ Item {
         contentPadding: mobilePresentation ? Theme.space4 : Theme.space5
         width: parent ? (mobilePresentation ? parent.width
                         : Math.min(500, Math.max(0, parent.width - Theme.space4 * 2))) : 500
-        // Content-fitted bottom sheet; on a small viewport the Flickable
-        // takes the remaining height instead of creating an empty slab.
-        // Fit both desktop and mobile to real content. The modal's
-        // Flickable owns overflow when the leaderboard expands.
-        height: parent ? Math.min(Math.max(0, parent.height - Theme.space4 * 2),
-            Math.max(Theme.scaleUi(320),
+        // Desktop inspectors are flush with BOTH viewport edges. A
+        // content-fitted height previously left a visible gap at the bottom.
+        // Mobile remains a bottom-anchored sheet with safe scrolling.
+        height: parent ? (mobilePresentation
+            ? Math.min(parent.height * 0.92, Math.max(Theme.scaleUi(320),
                 streakDetails.implicitHeight + streakHeader.implicitHeight
-                + contentPadding * 2 + sheetTopInset + Theme.space5)) : 600
+                + contentPadding * 2 + sheetTopInset + Theme.space5))
+            : parent.height) : 600
         onOpened: {
             if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
                 openProofConnections.fetchStreak()
