@@ -34,6 +34,15 @@ Item {
 
                 HoverHandler { id: hover }
 
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.space2
+                    color: hover.hovered ? Theme.surfaceHover : "transparent"
+                    Behavior on color {
+                        ColorAnimation { duration: Theme.motionFast }
+                    }
+                }
+
                 Text {
                     anchors.fill: parent
                     anchors.leftMargin: 2
@@ -41,6 +50,12 @@ Item {
                     text: String(tabButton.modelData.label || "")
                     color: tabButton.selected ? Theme.accent
                                               : (hover.hovered ? Theme.ink : Theme.inkMuted)
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.motionFast
+                            easing.type: Easing.InOutCubic
+                        }
+                    }
                     font.family: Theme.fontFamily
                     font.pixelSize: root.width < 400 ? 12 : Theme.typeMetaSize
                     fontSizeMode: Text.HorizontalFit
@@ -50,6 +65,19 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.NoWrap
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(36, parent.width - Theme.space3)
+                    height: 3
+                    radius: 1.5
+                    color: Theme.accent
+                    opacity: tabButton.selected ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation { duration: Theme.motionFast }
+                    }
                 }
 
                 TapHandler {
