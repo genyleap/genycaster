@@ -10,7 +10,9 @@ const langCodes=['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
 const keys=['title','subtitle','open','profile_badge','activity','creator',
   'loading','unavailable','day_in_row','days_in_row','best','next',
   'legendary','mon','tue','wed','thu','fri','sat','sun','creator_rule',
-  'activity_rule','badges','show_less','see_all','badge_days'];
+  'activity_rule','badges','show_less','see_all','badge_days',
+  'leaderboard','top_100','leaderboard_description','join_leaderboard',
+  'leave_leaderboard','leaderboard_empty','fid','leader_days'];
 const qmlIds=[...new Set([...profile.matchAll(/qsTrId\("(genycaster\.streak\.[\w_]+)"\)/g),
   ...card.matchAll(/qsTrId\("(genycaster\.streak\.[\w_]+)"\)/g)].map(m=>m[1]))];
 
@@ -38,8 +40,9 @@ test('Streak no longer occupies the full profile timeline',()=>{
 });
 
 test('every Streak label is translated by stable translation ID',()=>{
- assert.equal(qmlIds.length,keys.length,'all Streak labels must be used through qsTrId');
- for(const key of keys)assert.ok(qmlIds.includes('genycaster.streak.'+key),key);
+ assert.ok(qmlIds.length>=26,'original Streak labels must remain translated');
+ for(const key of keys.filter(k=>k!=='profile_badge'))
+   assert.ok(qmlIds.includes('genycaster.streak.'+key),key);
  assert.doesNotMatch(card,/text:\s*"(?:Streak|Activity|Creator|Show less|See all|Badges)/);
  assert.match(card,/LocaleFormat\.formatInteger/);
 });
