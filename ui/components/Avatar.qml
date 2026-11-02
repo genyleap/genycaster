@@ -41,6 +41,10 @@ Item {
 
         Label {
             anchors.centerIn: parent
+            // Transparent avatar PNGs must not reveal a name glyph through
+            // their alpha channel. Initials belong to missing/loading/error
+            // states only, never to a successfully decoded profile picture.
+            visible: !avatarImage.ready
             text: root.initial
             color: Theme.accent
             font.pixelSize: Math.max(13, Math.round(root.avatarSize * 0.34))
