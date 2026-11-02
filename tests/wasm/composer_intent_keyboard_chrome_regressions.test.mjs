@@ -28,8 +28,8 @@ test("reply and quote have distinct publication targets and taxonomy policies",(
 
 test("iPhone reply composer keeps context above the editor with the keyboard",()=>{
     const composer=read("ui/components/ComposerDrawer.qml");
-    assert.match(composer,/fullScreen: compact/);
-    assert.match(composer,/height: parent \? \(compact \? parent\.height/);
+    assert.match(composer,/fullScreen: root\.compact/);
+    assert.match(composer,/height: parent \? \(root\.compact \? parent\.height/);
     assert.match(composer,/Qt\.inputMethod\.visible/);
     assert.match(composer,/root\.parent\.height < root\.expandedViewportHeight - 125/);
     assert.match(composer,/visible: root\.replyMode \|\| root\.quoteMode/);
