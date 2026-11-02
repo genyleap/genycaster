@@ -117,14 +117,15 @@ GenyDrawer {
     focus: true
     dimBackground: true
     contentPadding: 0
-    width: parent ? (compact ? parent.width : Math.min(760, parent.width)) : 760
+    width: parent ? (compact ? parent.width
+                    : Math.min(720, Math.max(0, parent.width - Theme.space4 * 2))) : 720
     // During typing the Qt viewport already excludes the on-screen keyboard.
     // Consume its full available height instead of leaving a dead upper gap.
     // Parent is AppShell on mobile (not the scrolling reading column).
     height: parent ? (compact ? parent.height
                       : Math.min(Math.max(0, parent.height - Theme.space3 * 2),
-                          replyMode ? Math.min(parent.height * 0.72, 600)
-                                    : Math.min(parent.height * 0.84, 720))) : 720
+                          replyMode ? Math.min(parent.height * 0.68, 560)
+                                    : Math.min(parent.height * 0.78, 660))) : 660
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
@@ -1190,6 +1191,8 @@ GenyDrawer {
         sequence: "Escape"
         context: Qt.ApplicationShortcut
         enabled: root.opened && !emojiPicker.opened
+                 && !channelPicker.opened && !topicPicker.opened
+                 && !clearContentConfirmation.opened
         onActivated: root.close()
     }
     Shortcut { sequence: "Ctrl+Return"; enabled: root.opened && !emojiPicker.opened; onActivated: root.publishCurrent() }
