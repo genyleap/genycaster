@@ -140,8 +140,10 @@ Item {
         TapHandler {
             acceptedDevices: PointerDevice.TouchScreen
             onLongPressed: {
-                if (platformText.selectedText.length > 0)
-                    platformSelectionMenu.popup()
+                // A first long press might precede Qt's selection update.
+                if (platformText.selectedText.length === 0)
+                    platformText.selectWord()
+                platformSelectionMenu.popup()
             }
         }
 
