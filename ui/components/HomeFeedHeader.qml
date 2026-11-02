@@ -189,6 +189,27 @@ Item {
                 border.width: Theme.strokeHairline
                 border.color: Theme.borderSubtle
 
+                // Keep one persistent selection pill. Moving it is smoother
+                // than replacing two selected delegate backgrounds on clicks.
+                Rectangle {
+                    id: audienceSelectionPill
+                    width: (audienceSelector.width - 8) / 2
+                    height: audienceSelector.height - 6
+                    y: 3
+                    x: 3 + ((root.audience === "following") !== Theme.rtl
+                            ? width + 2 : 0)
+                    radius: 10
+                    color: Theme.backgroundPrimary
+                    border.width: Theme.strokeHairline
+                    border.color: Theme.borderSubtle
+                    Behavior on x {
+                        NumberAnimation {
+                            duration: Theme.motionStandard
+                            easing.type: Easing.InOutCubic
+                        }
+                    }
+                }
+
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 3
@@ -213,9 +234,9 @@ Item {
                                      || root.authenticated
                             background: Rectangle {
                                 radius: 10
-                                color: scopeOption.selected ? Theme.backgroundPrimary
+                                color: scopeOption.selected ? "transparent"
                                      : scopeOption.hovered ? Theme.surfaceHover : "transparent"
-                                border.width: scopeOption.selected ? Theme.strokeHairline : 0
+                                border.width: 0
                                 border.color: Theme.borderSubtle
                                 Behavior on color {
                                     ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
@@ -228,6 +249,9 @@ Item {
                                 color: scopeOption.enabled
                                     ? (scopeOption.selected ? Theme.ink : Theme.inkMuted)
                                     : Theme.inkMuted
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.motionFast }
+                                }
                                 opacity: scopeOption.enabled ? 1 : 0.5
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
