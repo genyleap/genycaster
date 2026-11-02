@@ -492,6 +492,7 @@ QtObject {
     readonly property string iconEmoji: "smile"
     readonly property string iconFeedback: "message"
     readonly property string iconEnergy: "bolt"
+    readonly property string iconStreakFlame: "system/flame"
     readonly property string iconFidelity: "social/sparkles"
     readonly property string iconMoodFrustrated: "social/mood-frustrated"
     readonly property string iconMoodSad: "social/mood-sad"

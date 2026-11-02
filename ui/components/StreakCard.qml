@@ -17,6 +17,9 @@ Item {
     property string activeTrack: "activity"
     property bool showAllBadges: false
     property bool showLeaderboard: false
+    property int inspectedMilestone: 0
+    readonly property bool flameMotion: root.current > 0 && root.visible
+        && !Theme.reduceMotion && !Theme.powerSave
     readonly property bool leaderboardVisible:
         openProofConnections.streakPreferences.leaderboard_visible === true
     readonly property var leaderboardEntries: openProofConnections.streakLeaderboard || []
@@ -25,7 +28,21 @@ Item {
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
     readonly property bool available: snapshot.time_zone === "UTC"
     readonly property var badges: track.badges || []
-    readonly property var milestones: [1, 3, 7, 14, 30, 100, 365]
+    // Legacy snapshots remain readable. New levels come from the server,
+    // not a second client-owned milestone catalogue.
+    readonly property var milestoneItems: {
+        const catalog=track.milestone_definitions || []
+        if(Array.isArray(catalog) && catalog.length>0)
+            return catalog.filter(b=>Number(b.threshold_days)>0)
+                .slice(0, 48)
+        return [1,3,7,14,30,100,365].map(days=>({
+            id: "streak-"+days, threshold_days: days,
+            unlocked: root.badges.indexOf(days)>=0,
+            progress_days: Math.min(root.record, days),
+            icon: "flame", reward_kind: "none"
+        }))
+    }
+    readonly property var milestones: milestoneItems.map(b=>Number(b.threshold_days))
     readonly property int current: Number(track.current || 0)
     readonly property int record: Number(track.longest || 0)
     readonly property int nextMilestone: Number(track.next_milestone || 0)
@@ -91,19 +108,60 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space1
 
-                Rectangle {
+                // GenyConnect-inspired restrained energy orb: two independent
+                // soft pulses, a stable core and a flame. No particles, GPU
+                // loops or attention-grabbing flashes; reduced-motion safe.
+                Item {
+                    id: streakFlameOrb
+                    objectName: "streakFlameOrb"
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: Theme.scaleUi(root.compact ? 80 : 92)
+                    Layout.preferredWidth: Theme.scaleUi(root.compact ? 124 : 142)
                     Layout.preferredHeight: Layout.preferredWidth
-                    radius: width / 2
-                    color: Theme.warningSurface
-                    border.color: Theme.borderMuted
-                    border.width: 1
-                    Icon {
+
+                    Rectangle {
                         anchors.centerIn: parent
-                        preferredSize: Theme.scaleUi(root.compact ? 42 : 48)
-                        text: Theme.iconEnergy
+                        width: parent.width * 0.93
+                        height: width
+                        radius: width / 2
                         color: Theme.warning
+                        opacity: root.current > 0 ? 0.10 : 0.03
+                        scale: 1
+                        SequentialAnimation on scale {
+                            running: root.flameMotion
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 0.96; to: 1.13; duration: 1850; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 1.13; to: 0.96; duration: 1850; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width * 0.77
+                        height: width
+                        radius: width / 2
+                        color: Theme.warning
+                        opacity: root.current > 0 ? 0.14 : 0.04
+                        scale: 1
+                        SequentialAnimation on scale {
+                            running: root.flameMotion
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1.06; to: 0.96; duration: 1420; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.96; to: 1.06; duration: 1420; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width * 0.64
+                        height: width
+                        radius: width / 2
+                        color: Theme.warningSurface
+                        border.color: Theme.warning
+                        border.width: 1
+                        Icon {
+                            anchors.centerIn: parent
+                            text: Theme.iconStreakFlame
+                            preferredSize: Theme.scaleUi(root.compact ? 46 : 52)
+                            color: Theme.warning
+                        }
                     }
                 }
                 Label {
@@ -253,49 +311,123 @@ Item {
                 }
             }
 
-            // A single horizontal strip, not a big grid. More badges scroll,
-            // preserving the compact height of the mobile sheet.
-            ListView {
-                objectName: "streakBadgeStrip"
+            // Level definitions and earned state are server-derived. Expand
+            // into a responsive milestones gallery without nested scrolling.
+            // Reward entitlement is never inferred from a badge.
+            GridLayout {
+                id: streakBadgeGrid
+                objectName: "streakBadgeGrid"
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.scaleUi(83)
-                orientation: ListView.Horizontal
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                model: root.showAllBadges
-                    ? root.milestones : root.milestones.slice(0, 4)
+                columns: root.compact ? 3 : 4
+                columnSpacing: Theme.space2
+                rowSpacing: Theme.space2
 
-                delegate: Item {
-                    required property var modelData
-                    readonly property bool earned: root.badges.indexOf(modelData) >= 0
-                    width: Theme.scaleUi(58)
-                    height: ListView.view.height
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        width: Theme.scaleUi(44)
-                        height: width
-                        radius: width / 2
-                        color: earned ? Theme.warningSurface : Theme.surfaceMuted
-                        border.color: earned ? Theme.warning : Theme.borderMuted
-                        border.width: earned ? 2 : 1
-                        Icon {
-                            anchors.centerIn: parent
-                            text: earned ? Theme.iconFidelity : "system/lock"
-                            preferredSize: 18
-                            color: earned ? Theme.warning : Theme.inkMuted
+                Repeater {
+                    model: root.showAllBadges
+                        ? root.milestoneItems
+                        : root.milestoneItems.slice(0, root.compact ? 3 : 4)
+                    delegate: Rectangle {
+                        id: badgeTile
+                        required property var modelData
+                        readonly property int threshold: Number(modelData.threshold_days || 0)
+                        readonly property bool earned: modelData.unlocked === true
+                        readonly property real completed: Math.min(1,
+                            Number(modelData.progress_days || 0)/Math.max(1, threshold))
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredHeight: Theme.scaleUi(root.compact ? 116 : 126)
+                        radius: Theme.curveCompact
+                        color: root.inspectedMilestone === threshold
+                            ? Theme.warningSurface : Theme.surfaceMuted
+                        border.color: root.inspectedMilestone === threshold
+                            ? Theme.warning : Theme.borderMuted
+                        border.width: root.inspectedMilestone === threshold ? 1 : 0
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: Theme.space2
+                            spacing: Theme.space1
+                            Item {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.preferredWidth: Theme.scaleUi(root.compact ? 62 : 68)
+                                Layout.preferredHeight: Layout.preferredWidth
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: badgeTile.earned
+                                        ? Theme.warningSurface : Theme.surfaceElevated
+                                    border.color: badgeTile.earned
+                                        ? Theme.warning : Theme.borderMuted
+                                    border.width: badgeTile.earned ? 2 : 1
+                                }
+                                Icon {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.top: parent.top
+                                    anchors.topMargin: Theme.space1
+                                    text: badgeTile.earned ? Theme.iconStreakFlame : "system/lock"
+                                    preferredSize: Theme.scaleUi(18)
+                                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                                }
+                                Label {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.bottom: parent.bottom
+                                    anchors.bottomMargin: Theme.space1
+                                    text: LocaleFormat.formatInteger(badgeTile.threshold)
+                                    font.pixelSize: Theme.scaleUi(22)
+                                    font.weight: Theme.weightBold
+                                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                                }
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.streak.badge_days")
+                                    .arg(LocaleFormat.formatInteger(badgeTile.threshold))
+                                color: badgeTile.earned ? Theme.ink : Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Theme.scaleUi(3)
+                                radius: height/2
+                                color: Theme.borderMuted
+                                Rectangle {
+                                    width: parent.width * badgeTile.completed
+                                    height: parent.height
+                                    radius: parent.radius
+                                    color: Theme.warning
+                                }
+                            }
+                        }
+                        Accessible.role: Accessible.Button
+                        Accessible.name: qsTrId("genycaster.streak.badge_days")
+                            .arg(LocaleFormat.formatInteger(badgeTile.threshold))
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: root.inspectedMilestone =
+                                root.inspectedMilestone===badgeTile.threshold ? 0 : badgeTile.threshold
                         }
                     }
-                    Label {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.bottom: parent.bottom
-                        text: qsTrId("genycaster.streak.badge_days")
-                            .arg(LocaleFormat.formatInteger(modelData))
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: earned ? Theme.ink : Theme.inkMuted
-                    }
+                }
+            }
+            RowLayout {
+                objectName: "streakBadgeProgress"
+                Layout.fillWidth: true
+                visible: root.inspectedMilestone > 0
+                spacing: Theme.space2
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.streak.badge_days")
+                        .arg(LocaleFormat.formatInteger(root.inspectedMilestone))
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                Label {
+                    text: LocaleFormat.formatInteger(Math.min(root.record, root.inspectedMilestone))
+                        + " / " + LocaleFormat.formatInteger(root.inspectedMilestone)
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
                 }
             }
 

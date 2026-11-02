@@ -13,6 +13,14 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
   assert.equal(summary.activity.current,4);
   assert.equal(summary.creator.current,3);
   assert.deepEqual(summary.creator.badges,[1,3]);
+  assert.deepEqual(summary.activity.milestone_definitions
+    .filter(level=>level.unlocked).map(level=>level.threshold_days),[1,3]);
+  assert.equal(summary.activity.milestone_definitions[0].id,'streak-1');
+  assert.equal(summary.activity.milestone_definitions[0].icon,'flame');
+  assert.equal(summary.activity.milestone_definitions[0].reward_kind,'none');
+  assert.equal(summary.activity.milestone_definitions[2].progress_days,4);
+  assert.equal(summary.activity.milestone_definitions[2].unlocked,false);
+  assert.ok(summary.activity.milestone_definitions.some(level=>level.threshold_days===180));
   assert.equal(summary.activity.total_days,4);
   assert.equal(summary.creator.week.length,7);
   assert.equal(summary.activity.week[0].date,'2026-11-02');

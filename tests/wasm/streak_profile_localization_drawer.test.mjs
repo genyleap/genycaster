@@ -93,7 +93,7 @@ test('Desktop Streak drawer spans overlay height and social rows follow a shared
  const panel=source.slice(source.indexOf('id: streakDrawer'),source.indexOf('id: profileExtrasEditor'));
  assert.ok(panel.includes(': parent.height) : 600'));
  assert.ok(source.includes('Layout.topMargin: root.compact ? Theme.space1 : Theme.space3'));
- assert.ok(source.includes('profileStatsFlow.spacing * 3 - Theme.space2'));
+ assert.ok(source.includes('profileStatsFlow.spacing * 3) : 0'));
 });
 test('Leaderboard separates latin handles and Persian FIDs with direction-aware layout',()=>{
  const source=read('ui/components/StreakCard.qml');
@@ -102,4 +102,25 @@ test('Leaderboard separates latin handles and Persian FIDs with direction-aware 
  assert.ok(source.includes('forceRightToLeft: Theme.rtl'));
  assert.ok(source.includes('Layout.alignment: Theme.rtl ? Qt.AlignLeft : Qt.AlignRight'));
  assert.ok(source.includes('LayoutMirroring.enabled: false'));
+});
+
+test('Streak mobile spacing, fire orb and expandable server-owned milestone grid',()=>{
+ const source=read('ui/components/ProfileSurface.qml');
+ const card=read('ui/components/StreakCard.qml');
+ const theme=read('ui/theme/Theme.qml');
+ const backend=read('services/account-sync/streaks.mjs');
+ assert.match(source,/objectName: "profileOwnerActions"[\s\S]*?Layout.topMargin: Theme.space3/);
+ assert.match(source,/profileStatsFlow.spacing \* 3\) : 0/);
+ assert.match(source,/text: Theme.iconStreakFlame/);
+ assert.match(card,/objectName: "streakFlameOrb"/);
+ assert.match(card,/SequentialAnimation on scale/);
+ assert.match(card,/!Theme.reduceMotion && !Theme.powerSave/);
+ assert.match(card,/milestone_definitions/);
+ assert.match(card,/objectName: "streakBadgeGrid"/);
+ assert.match(card,/model: root.showAllBadges/);
+ assert.match(card,/modelData.progress_days/);
+ assert.match(card,/root.inspectedMilestone/);
+ assert.match(theme,/iconStreakFlame: "system\/flame"/);
+ assert.match(backend,/reward_kind:'none'/);
+ assert.match(backend,/STREAK_BADGE_CATALOG/);
 });

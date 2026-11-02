@@ -2137,7 +2137,7 @@ Item {
                             width: visible ? Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
                                 profileStreakBadge.width -
-                                profileStatsFlow.spacing * 3 - Theme.space2) : 0
+                                profileStatsFlow.spacing * 3) : 0
                             height: Theme.scaleUi(32)
                         }
                         Button {
@@ -2210,7 +2210,7 @@ Item {
                                 spacing: Theme.space1
                                 Icon {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: Theme.iconEnergy
+                                    text: Theme.iconStreakFlame
                                     color: Theme.warning
                                     preferredSize: Theme.scaleUi(16)
                                 }
@@ -2229,6 +2229,8 @@ Item {
                         objectName: "profileOwnerActions"
                         Layout.fillWidth: true
                         visible: root.isOwnProfile && root.compact
+                        // The badge and counters must never touch the action row.
+                        Layout.topMargin: Theme.space3
                         spacing: Theme.space2
                         layoutDirection: Qt.LeftToRight
                         // Two equal, gutter-to-gutter touch targets on phones.

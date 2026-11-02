@@ -1,6 +1,13 @@
 // Streaks are based only on server-confirmed Cast events. Never grant a day
 // for logging in or for client-supplied timestamps, IDs or activity counts.
-export const STREAK_MILESTONES = Object.freeze([1,3,7,14,30,100,365]);
+// Versioned, server-authored badge catalogue; no claimable awards or tokens.
+export const STREAK_MILESTONES = Object.freeze([1,3,7,14,30,60,90,100,180,365]);
+export const STREAK_BADGE_CATALOG = Object.freeze(
+  STREAK_MILESTONES.map(days=>Object.freeze({
+    id:'streak-'+days,threshold_days:days,category:'streak',
+    icon:'flame',reward_kind:'none'
+  }))
+);
 const DAY_MS=86_400_000;
 export function calculateStreaks(rows,now=new Date()) {
   const today=Math.floor(now.getTime()/DAY_MS);
@@ -26,6 +33,12 @@ export function calculateStreaks(rows,now=new Date()) {
     let current=0;
     while(values.has(end) && current<=730){++current;--end;}
     const badges=STREAK_MILESTONES.filter(m=>longest>=m);
+    // UI consumes this list rather than hardcoding levels. All progress
+    // comes from verified historical Casts, never a client-supplied score.
+    const milestone_definitions=STREAK_BADGE_CATALOG.map(badge=>({
+      ...badge,unlocked:longest>=badge.threshold_days,
+      progress_days:Math.min(longest,badge.threshold_days)
+    }));
     const createWeek=(firstDay)=>{
       const weekday=new Date(today*DAY_MS).getUTCDay();
       const start=today-((weekday-firstDay+7)%7);
@@ -38,7 +51,7 @@ export function calculateStreaks(rows,now=new Date()) {
     const week=createWeek(1);          // Monday–Sunday, existing clients
     const week_saturday=createWeek(6); // Saturday–Friday, Persian/Arabic RTL
     const next=STREAK_MILESTONES.find(n=>n>longest)||null;
-    return {current,longest,total_days:all.length,badges,next_milestone:next,week,week_saturday};
+    return {current,longest,total_days:all.length,badges,next_milestone:next,milestone_definitions,week,week_saturday};
   };
   return {time_zone:'UTC',activity:summarize(unique.activity),
     creator:summarize(unique.creator)};
