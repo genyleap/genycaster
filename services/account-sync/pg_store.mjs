@@ -103,11 +103,13 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
     streakReady:()=>streakReady,
     async listStreakEvents({issuer,subject}) {
       if(!streakReady)throw new Error('streak_migration_required');
-      const result=await pool.query(`SELECT credited_on::text AS day,kind
+      // A prolific day cannot evict older active days from the bounded read.
+      const result=await pool.query(`SELECT DISTINCT ON (credited_on,kind)
+          credited_on::text AS day,kind
         FROM streak_cast_events
         WHERE issuer=$1 AND subject=$2
           AND credited_on>=((now() AT TIME ZONE 'UTC')::date-730)
-        ORDER BY credited_on DESC LIMIT 2000`,[issuer,subject]);
+        ORDER BY credited_on DESC,kind LIMIT 1462`,[issuer,subject]);
       return result.rows;
     },
     async recordStreakCast({issuer,subject},hash,kind) {
