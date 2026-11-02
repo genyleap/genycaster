@@ -22,6 +22,10 @@ Item {
     readonly property int current: Number(track.current || 0)
     readonly property int record: Number(track.longest || 0)
     readonly property bool available: snapshot.time_zone === "UTC"
+    readonly property var weekdayLabels: [qsTrId("genycaster.streak.mon"),
+        qsTrId("genycaster.streak.tue"),qsTrId("genycaster.streak.wed"),
+        qsTrId("genycaster.streak.thu"),qsTrId("genycaster.streak.fri"),
+        qsTrId("genycaster.streak.sat"),qsTrId("genycaster.streak.sun")]
 
     implicitHeight: card.implicitHeight
 
@@ -51,7 +55,7 @@ Item {
                     color: Theme.accent
                 }
                 Label {
-                    text: "Streak"
+                    text: qsTrId("genycaster.streak.title")
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightDemiBold
                     color: Theme.ink
@@ -71,8 +75,8 @@ Item {
                 segmented: true
                 minimumTabWidth: 88
                 tabs: [
-                    {id:"activity",label:"Activity"},
-                    {id:"creator",label:"Creator"}
+                    {id:"activity",label:qsTrId("genycaster.streak.activity")},
+                    {id:"creator",label:qsTrId("genycaster.streak.creator")}
                 ]
                 onActivated: id => root.activeTrack=id
             }
@@ -81,7 +85,8 @@ Item {
                 Layout.fillWidth: true
                 visible: !root.available
                 text: root.errorText.length ? root.errorText
-                    : root.loading ? "Loading Streak…" : "Streak is not available yet."
+                    : root.loading ? qsTrId("genycaster.streak.loading")
+                        : qsTrId("genycaster.streak.unavailable")
                 wrapMode: Text.WordWrap
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
@@ -96,7 +101,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Label {
-                        text: String(root.current)
+                        text: LocaleFormat.formatInteger(root.current)
                         color: Theme.ink
                         font.pixelSize: Theme.scaleUi(33)
                         font.weight: Theme.weightBold
@@ -104,13 +109,14 @@ Item {
                     ColumnLayout {
                         spacing: 1
                         Label {
-                            text: "day" + (root.current===1 ? "" : "s") + " in a row"
+                            text: root.current===1 ? qsTrId("genycaster.streak.day_in_row")
+                                                  : qsTrId("genycaster.streak.days_in_row")
                             color: Theme.ink
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
                         }
                         Label {
-                            text: "Best: " + root.record + " days"
+                            text: qsTrId("genycaster.streak.best").arg(LocaleFormat.formatInteger(root.record))
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                         }
@@ -118,7 +124,8 @@ Item {
                     Item {Layout.fillWidth: true}
                     Label {
                         text: root.track.next_milestone
-                            ? "Next: " + root.track.next_milestone + " days" : "Legendary"
+                            ? qsTrId("genycaster.streak.next").arg(LocaleFormat.formatInteger(root.track.next_milestone))
+                            : qsTrId("genycaster.streak.legendary")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                     }
@@ -136,7 +143,7 @@ Item {
                             spacing: Theme.space1
                             Label {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: ["M","T","W","T","F","S","S"][index]
+                                text: root.weekdayLabels[index]
                                 color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
                             }
@@ -162,8 +169,8 @@ Item {
                 Label {
                     Layout.fillWidth: true
                     text: root.activeTrack==="creator"
-                        ? "One verified original Cast per day counts."
-                        : "A verified Cast or Reply counts once per day."
+                        ? qsTrId("genycaster.streak.creator_rule")
+                        : qsTrId("genycaster.streak.activity_rule")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
@@ -178,14 +185,17 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
-                        text: "Badges  ·  " + root.badges.length + "/" + root.milestones.length
+                        text: qsTrId("genycaster.streak.badges")
+                            .arg(LocaleFormat.formatInteger(root.badges.length))
+                            .arg(LocaleFormat.formatInteger(root.milestones.length))
                         font.pixelSize: Theme.typeBodySize
                         font.weight: Theme.weightDemiBold
                         color: Theme.ink
                     }
                     Item {Layout.fillWidth: true}
                     ActionButton {
-                        text: root.showAllBadges ? "Show less" : "See all"
+                        text: root.showAllBadges ? qsTrId("genycaster.streak.show_less")
+                                                       : qsTrId("genycaster.streak.see_all")
                         quiet: true
                         compact: true
                         onClicked: root.showAllBadges=!root.showAllBadges
@@ -222,7 +232,8 @@ Item {
                             }
                             Label {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: String(modelData) + "d"
+                                text: qsTrId("genycaster.streak.badge_days")
+                                    .arg(LocaleFormat.formatInteger(modelData))
                                 font.pixelSize: Theme.typeCaptionSize
                                 color: earned ? Theme.ink : Theme.inkMuted
                             }
