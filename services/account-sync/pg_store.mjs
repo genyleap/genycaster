@@ -102,6 +102,14 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         updated_at:result.rows[0].updated_at} : null;
     },
     streakReady:()=>streakReady,
+    async getPublicActivitySource(fid,issuer) {
+      const result=await pool.query(`SELECT payload->>'activity_source' AS activity_source
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='streak_preferences'
+          AND deleted_at IS NULL LIMIT 1`,
+        [issuer,'farcaster:'+fid,STREAK_PREFERENCES_ROW]);
+      return result.rows[0]?.activity_source==='github' ? 'github':'casts';
+    },
     async getStreakPreferences({issuer,subject}) {
       const result=await pool.query(`SELECT payload,revision::text FROM notifications
         WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
