@@ -19,7 +19,7 @@ Superellipse {
     borderColor: Theme.borderSubtle
     curveDepth: Theme.curveControl
     elevation: Theme.elevationNone
-    implicitHeight: 48
+    implicitHeight: 40
 
     Flickable {
         anchors.fill: parent
