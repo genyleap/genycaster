@@ -339,6 +339,10 @@ GenyDrawer {
     function closeComposerPopups() {
         if (emojiPicker.opened)
             emojiPicker.close()
+        if (channelPicker.opened)
+            channelPicker.close()
+        if (topicPicker.opened)
+            topicPicker.close()
     }
 
     function synchronizeEditorState() {
@@ -1212,7 +1216,7 @@ GenyDrawer {
             Layout.fillWidth: true
             Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space6
             Layout.rightMargin: Layout.leftMargin
-            spacing: root.compact ? Theme.space2 : Theme.space3
+            spacing: root.compact ? Theme.space2 : Theme.space2
             Item { Layout.preferredHeight: root.keyboardVisible ? 0
                                       : root.compact ? Theme.space1 : Theme.space2 }
 
@@ -1282,19 +1286,14 @@ GenyDrawer {
                         text: root.threadMode ? qsTrId("genycaster.composer.thread_title")
                               : root.parentCast ? qsTrId("genycaster.shell.reply") : qsTrId("genycaster.shell.new_cast")
                         color: Theme.ink
-                        font.pixelSize: Theme.typeTitle2Size
+                        font.pixelSize: Theme.typeTitle3Size
                         font.weight: Theme.weightBold
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.composer.rich_engine_subtitle")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
                     }
                 }
 
                 ActionButton {
                     objectName: "composerClearContentDesktop"
+                    visible: root.hasPublishableContent()
                     compact: true
                     quiet: true
                     iconGlyph: Theme.iconTrash
@@ -1369,6 +1368,48 @@ GenyDrawer {
                     text: root.selectedTopics.map(s=>root.topicName(s)).join(" · ")
                     elide: Text.ElideRight
                     alignToUi: true
+                }
+            }
+
+            // The tool row is stable chrome above the scrollable document,
+            // never overlaid on Channel/Topics or clipped during resizing.
+            FormattingToolbar {
+                id: formattingToolbar
+                visible: root.editorMode === "visual" && (!root.compact || root.showAdvancedFormatting)
+                         && !root.keyboardVisible
+                Layout.fillWidth: true
+                activeBlockIndex: visualEditor.activeBlockIndex
+                activeEditor: visualEditor.formattingEditor
+                editorHost: visualEditor
+                onLinkRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
+                    root.insertKind = "link"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectionStart = selectionStart
+                    root.insertSelectionLength = selectionLength
+                    root.insertSelectedText = selectedText
+                }
+                onMentionRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
+                    root.insertKind = "mention"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectionStart = selectionStart
+                    root.insertSelectionLength = selectionLength
+                    root.insertSelectedText = selectedText
+                }
+                onEmbedRequested: blockIndex => {
+                    root.insertKind = "embed"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectedText = ""
+                }
+                onMediaRequested: blockIndex => {
+                    root.insertKind = "media"
+                    root.insertBlockIndex = blockIndex
+                    root.insertSelectedText = ""
+                }
+                onEmojiRequested: {
+                    root.emojiThreadIndex = -1
+                    root.emojiThreadCursorPosition = -1
+                    emojiPicker.anchorItem = formattingToolbar
+                    emojiPicker.open()
                 }
             }
 
@@ -1542,46 +1583,6 @@ GenyDrawer {
                 onClicked: root.showAdvancedFormatting = !root.showAdvancedFormatting
             }
 
-            FormattingToolbar {
-                id: formattingToolbar
-                visible: root.editorMode === "visual" && (!root.compact || root.showAdvancedFormatting)
-                         && !root.keyboardVisible
-                Layout.fillWidth: true
-                activeBlockIndex: visualEditor.activeBlockIndex
-                activeEditor: visualEditor.formattingEditor
-                editorHost: visualEditor
-                onLinkRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
-                    root.insertKind = "link"
-                    root.insertBlockIndex = blockIndex
-                    root.insertSelectionStart = selectionStart
-                    root.insertSelectionLength = selectionLength
-                    root.insertSelectedText = selectedText
-                }
-                onMentionRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
-                    root.insertKind = "mention"
-                    root.insertBlockIndex = blockIndex
-                    root.insertSelectionStart = selectionStart
-                    root.insertSelectionLength = selectionLength
-                    root.insertSelectedText = selectedText
-                }
-                onEmbedRequested: blockIndex => {
-                    root.insertKind = "embed"
-                    root.insertBlockIndex = blockIndex
-                    root.insertSelectedText = ""
-                }
-                onMediaRequested: blockIndex => {
-                    root.insertKind = "media"
-                    root.insertBlockIndex = blockIndex
-                    root.insertSelectedText = ""
-                }
-                onEmojiRequested: {
-                    root.emojiThreadIndex = -1
-                    root.emojiThreadCursorPosition = -1
-                    emojiPicker.anchorItem = formattingToolbar
-                    emojiPicker.open()
-                }
-            }
-
             ComposerInsertPanel {
                 visible: root.editorMode === "visual" && root.insertKind.length > 0
                          && root.insertKind !== "media"
@@ -1619,7 +1620,7 @@ GenyDrawer {
                                                     ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
                                                     : Math.max(135, composerScroll.height
                                                         - (root.keyboardVisible ? 84 : 126)))
-                                                 : 320)
+                                                 : 255)
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
@@ -1628,7 +1629,7 @@ GenyDrawer {
                                           ? (root.compact ? 118 : 190)
                                           : root.quoteMode
                                             ? (root.compact ? 138 : 220)
-                                            : (root.compact ? 135 : 280)
+                                            : (root.compact ? 135 : 195)
                 spacing: Theme.space3
                 layoutDirection: Qt.LeftToRight
 
@@ -1903,7 +1904,7 @@ GenyDrawer {
                     onClicked: root.addThreadCast()
                 }
                 DirectionAwareLabel {
-                    visible: !root.compact
+                    visible: !root.compact && root.threadMode
                     Layout.fillWidth: true
                     text: root.threadMode ? qsTrId("genycaster.composer.thread_protocol_hint")
                                           : qsTrId("genycaster.composer.thread_hint")
@@ -1932,7 +1933,8 @@ GenyDrawer {
                                 ? qsTrId("genycaster.composer.compatibility_simplified_count")
                                     .arg(LocaleFormat.formatInteger(richComposer.simplifiedElementCount))
                               : qsTrId("genycaster.composer.cross_client_safe")
-                        visible: !root.compact || presentationBridge.writeErrorText.length > 0
+                        visible: presentationBridge.writeErrorText.length > 0
+                                 || richComposer.simplifiedElementCount > 0
                         color: presentationBridge.writeErrorText.length > 0 ? Theme.warning : Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
@@ -1960,7 +1962,7 @@ GenyDrawer {
                 }
             }
 
-            Item { Layout.preferredHeight: root.compact ? 0 : Theme.space5 }
+            Item { Layout.preferredHeight: root.compact ? 0 : Theme.space2 }
         }
     }
 
