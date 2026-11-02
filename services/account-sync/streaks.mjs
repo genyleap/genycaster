@@ -2,9 +2,17 @@
 // for logging in or for client-supplied timestamps, IDs or activity counts.
 // Versioned, server-authored badge catalogue; no claimable awards or tokens.
 export const STREAK_MILESTONES = Object.freeze([1,3,7,14,30,60,90,100,180,365]);
+// Stable achievement identities; names are localized by the client. The
+// catalogue can later carry reward metadata without minting any entitlements.
+export const STREAK_BADGE_NAMES = Object.freeze({
+  1:'first_spark',3:'ignition',7:'momentum',14:'on_fire',30:'blaze',
+  60:'wildfire',90:'inferno',100:'firestorm',180:'phoenix',
+  365:'eternal_flame'
+});
 export const STREAK_BADGE_CATALOG = Object.freeze(
   STREAK_MILESTONES.map(days=>Object.freeze({
     id:'streak-'+days,threshold_days:days,category:'streak',
+    name_id:'genycaster.streak.badge_'+STREAK_BADGE_NAMES[days],
     icon:'flame',reward_kind:'none'
   }))
 );

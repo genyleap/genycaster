@@ -142,6 +142,54 @@
             <source>See all</source>
             <translation>सभी देखें</translation>
         </message>
+        <message id="genycaster.streak.badge_first_spark">
+            <source>First Spark</source>
+            <translation>पहली चिंगारी</translation>
+        </message>
+        <message id="genycaster.streak.badge_ignition">
+            <source>Ignition</source>
+            <translation>प्रज्वलन</translation>
+        </message>
+        <message id="genycaster.streak.badge_momentum">
+            <source>Momentum</source>
+            <translation>रफ़्तार</translation>
+        </message>
+        <message id="genycaster.streak.badge_on_fire">
+            <source>On Fire</source>
+            <translation>जलती लौ</translation>
+        </message>
+        <message id="genycaster.streak.badge_blaze">
+            <source>Blaze</source>
+            <translation>प्रचंड लौ</translation>
+        </message>
+        <message id="genycaster.streak.badge_wildfire">
+            <source>Wildfire</source>
+            <translation>दावानल</translation>
+        </message>
+        <message id="genycaster.streak.badge_inferno">
+            <source>Inferno</source>
+            <translation>अग्निकुंड</translation>
+        </message>
+        <message id="genycaster.streak.badge_firestorm">
+            <source>Firestorm</source>
+            <translation>अग्नि तूफ़ान</translation>
+        </message>
+        <message id="genycaster.streak.badge_phoenix">
+            <source>Phoenix</source>
+            <translation>फ़ीनिक्स</translation>
+        </message>
+        <message id="genycaster.streak.badge_eternal_flame">
+            <source>Eternal Flame</source>
+            <translation>अनंत ज्वाला</translation>
+        </message>
+        <message id="genycaster.streak.badge_one_day">
+            <source>%1 day</source>
+            <translation>%1 दिन</translation>
+        </message>
+        <message id="genycaster.streak.badge_many_days">
+            <source>%1 days</source>
+            <translation>%1 दिन</translation>
+        </message>
         <message id="genycaster.streak.badge_days">
             <source>%1d</source>
             <translation>%1 दिन</translation>

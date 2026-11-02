@@ -17,6 +17,12 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
     .filter(level=>level.unlocked).map(level=>level.threshold_days),[1,3]);
   assert.equal(summary.activity.milestone_definitions[0].id,'streak-1');
   assert.equal(summary.activity.milestone_definitions[0].icon,'flame');
+  assert.equal(summary.activity.milestone_definitions[0].name_id,
+    'genycaster.streak.badge_first_spark');
+  assert.equal(summary.activity.milestone_definitions[2].name_id,
+    'genycaster.streak.badge_momentum');
+  assert.equal(summary.activity.milestone_definitions.at(-1).name_id,
+    'genycaster.streak.badge_eternal_flame');
   assert.equal(summary.activity.milestone_definitions[0].reward_kind,'none');
   assert.equal(summary.activity.milestone_definitions[2].progress_days,4);
   assert.equal(summary.activity.milestone_definitions[2].unlocked,false);

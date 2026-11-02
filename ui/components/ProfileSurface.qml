@@ -2133,11 +2133,12 @@ Item {
                         // the badge must not protrude past the right edge.
                         // Use actual measured widths and Flow's real spacing.
                         Item {
-                            visible: root.isOwnProfile
-                            width: visible ? Math.max(0, profileStatsFlow.width -
+                            objectName: "profileStreakAlignmentSpacer"
+                            width: Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
-                                profileStreakBadge.width -
-                                profileStatsFlow.spacing * 3) : 0
+                                (root.isOwnProfile
+                                    ? profileStreakBadge.width : profileUnverifiedStreak.width) -
+                                profileStatsFlow.spacing * 3)
                             height: Theme.scaleUi(32)
                         }
                         Button {
@@ -2246,15 +2247,20 @@ Item {
                         // Public profiles have no authenticated Streak snapshot.
                         // Show a neutral, non-clickable flame instead of claiming
                         // a verified zero or accidentally opening the viewer's streak.
-                        Rectangle {
+                        Item {
+                            id: profileUnverifiedStreak
                             objectName: "profileUnverifiedStreak"
                             visible: !root.isOwnProfile
                             width: Theme.scaleUi(32)
                             height: width
-                            radius: width / 2
-                            color: Theme.surfaceMuted
-                            border.color: Theme.borderMuted
-                            border.width: 1
+                            ProgressRing {
+                                anchors.fill: parent
+                                progress: 0
+                                strokeWidth: 2.5
+                                inset: 2
+                                trackColor: Theme.borderMuted
+                                progressColor: Theme.inkMuted
+                            }
                             Icon {
                                 anchors.centerIn: parent
                                 text: Theme.iconStreakFlame

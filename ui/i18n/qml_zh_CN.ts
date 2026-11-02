@@ -142,6 +142,54 @@
             <source>See all</source>
             <translation>查看全部</translation>
         </message>
+        <message id="genycaster.streak.badge_first_spark">
+            <source>First Spark</source>
+            <translation>初始火花</translation>
+        </message>
+        <message id="genycaster.streak.badge_ignition">
+            <source>Ignition</source>
+            <translation>点燃</translation>
+        </message>
+        <message id="genycaster.streak.badge_momentum">
+            <source>Momentum</source>
+            <translation>势头</translation>
+        </message>
+        <message id="genycaster.streak.badge_on_fire">
+            <source>On Fire</source>
+            <translation>燃烧中</translation>
+        </message>
+        <message id="genycaster.streak.badge_blaze">
+            <source>Blaze</source>
+            <translation>烈焰</translation>
+        </message>
+        <message id="genycaster.streak.badge_wildfire">
+            <source>Wildfire</source>
+            <translation>野火</translation>
+        </message>
+        <message id="genycaster.streak.badge_inferno">
+            <source>Inferno</source>
+            <translation>炼狱</translation>
+        </message>
+        <message id="genycaster.streak.badge_firestorm">
+            <source>Firestorm</source>
+            <translation>火焰风暴</translation>
+        </message>
+        <message id="genycaster.streak.badge_phoenix">
+            <source>Phoenix</source>
+            <translation>凤凰</translation>
+        </message>
+        <message id="genycaster.streak.badge_eternal_flame">
+            <source>Eternal Flame</source>
+            <translation>永恒之焰</translation>
+        </message>
+        <message id="genycaster.streak.badge_one_day">
+            <source>%1 day</source>
+            <translation>%1天</translation>
+        </message>
+        <message id="genycaster.streak.badge_many_days">
+            <source>%1 days</source>
+            <translation>%1天</translation>
+        </message>
         <message id="genycaster.streak.badge_days">
             <source>%1d</source>
             <translation>%1天</translation>

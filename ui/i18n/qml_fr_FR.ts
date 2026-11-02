@@ -142,6 +142,54 @@
             <source>See all</source>
             <translation>Tout voir</translation>
         </message>
+        <message id="genycaster.streak.badge_first_spark">
+            <source>First Spark</source>
+            <translation>Première étincelle</translation>
+        </message>
+        <message id="genycaster.streak.badge_ignition">
+            <source>Ignition</source>
+            <translation>Allumage</translation>
+        </message>
+        <message id="genycaster.streak.badge_momentum">
+            <source>Momentum</source>
+            <translation>Élan</translation>
+        </message>
+        <message id="genycaster.streak.badge_on_fire">
+            <source>On Fire</source>
+            <translation>En feu</translation>
+        </message>
+        <message id="genycaster.streak.badge_blaze">
+            <source>Blaze</source>
+            <translation>Brasier</translation>
+        </message>
+        <message id="genycaster.streak.badge_wildfire">
+            <source>Wildfire</source>
+            <translation>Feu de forêt</translation>
+        </message>
+        <message id="genycaster.streak.badge_inferno">
+            <source>Inferno</source>
+            <translation>Inferno</translation>
+        </message>
+        <message id="genycaster.streak.badge_firestorm">
+            <source>Firestorm</source>
+            <translation>Tempête de feu</translation>
+        </message>
+        <message id="genycaster.streak.badge_phoenix">
+            <source>Phoenix</source>
+            <translation>Phénix</translation>
+        </message>
+        <message id="genycaster.streak.badge_eternal_flame">
+            <source>Eternal Flame</source>
+            <translation>Flamme éternelle</translation>
+        </message>
+        <message id="genycaster.streak.badge_one_day">
+            <source>%1 day</source>
+            <translation>%1 jour</translation>
+        </message>
+        <message id="genycaster.streak.badge_many_days">
+            <source>%1 days</source>
+            <translation>%1 jours</translation>
+        </message>
         <message id="genycaster.streak.badge_days">
             <source>%1d</source>
             <translation>%1 j</translation>

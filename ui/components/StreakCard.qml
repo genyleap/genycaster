@@ -48,6 +48,35 @@ Item {
         }))
     }
     readonly property var milestones: milestoneItems.map(b=>Number(b.threshold_days))
+    // Translations are static IDs (also for cached older snapshots that lack
+    // name_id). Unknown future milestones degrade gracefully to their duration.
+    function milestoneName(badge) {
+        const threshold = Number(badge?.threshold_days || 0)
+        const nameId = String(badge?.name_id || "")
+        switch (nameId || "genycaster.streak.badge_" + ({
+            1:"first_spark",3:"ignition",7:"momentum",14:"on_fire",
+            30:"blaze",60:"wildfire",90:"inferno",100:"firestorm",
+            180:"phoenix",365:"eternal_flame"
+        }[threshold] || "")) {
+        case "genycaster.streak.badge_first_spark": return qsTrId("genycaster.streak.badge_first_spark")
+        case "genycaster.streak.badge_ignition": return qsTrId("genycaster.streak.badge_ignition")
+        case "genycaster.streak.badge_momentum": return qsTrId("genycaster.streak.badge_momentum")
+        case "genycaster.streak.badge_on_fire": return qsTrId("genycaster.streak.badge_on_fire")
+        case "genycaster.streak.badge_blaze": return qsTrId("genycaster.streak.badge_blaze")
+        case "genycaster.streak.badge_wildfire": return qsTrId("genycaster.streak.badge_wildfire")
+        case "genycaster.streak.badge_inferno": return qsTrId("genycaster.streak.badge_inferno")
+        case "genycaster.streak.badge_firestorm": return qsTrId("genycaster.streak.badge_firestorm")
+        case "genycaster.streak.badge_phoenix": return qsTrId("genycaster.streak.badge_phoenix")
+        case "genycaster.streak.badge_eternal_flame": return qsTrId("genycaster.streak.badge_eternal_flame")
+        default: return milestoneDuration(threshold)
+        }
+    }
+    function milestoneDuration(days) {
+        return (Number(days) === 1
+            ? qsTrId("genycaster.streak.badge_one_day")
+            : qsTrId("genycaster.streak.badge_many_days"))
+            .arg(LocaleFormat.formatInteger(Number(days || 0)))
+    }
     readonly property int current: Number(track.current || 0)
     readonly property int record: Number(track.longest || 0)
     readonly property int nextMilestone: Number(track.next_milestone || 0)
@@ -77,7 +106,7 @@ Item {
             readonly property bool earned: modelData.unlocked === true
             readonly property real completed: Math.max(0, Math.min(1,
                 Number(modelData.progress_days || 0) / Math.max(1, threshold)))
-            readonly property int tileHeight: Theme.scaleUi(root.compact ? 132 : 140)
+            readonly property int tileHeight: Theme.scaleUi(root.compact ? 148 : 156)
             implicitWidth: Theme.scaleUi(root.compact ? 118 : 126)
             implicitHeight: tileHeight
             width: implicitWidth
@@ -142,21 +171,25 @@ Item {
                     }
                 }
                 Label {
+                    objectName: "streakAchievementName"
                     Layout.fillWidth: true
-                    text: LocaleFormat.formatInteger(badgeTile.threshold)
-                    font.pixelSize: Theme.scaleUi(20)
-                    font.weight: Theme.weightBold
-                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                    Layout.preferredHeight: Theme.scaleUi(34)
+                    text: root.milestoneName(badgeTile.modelData)
+                    font.pixelSize: Theme.typeBodySize
+                    font.weight: Theme.weightDemiBold
+                    color: badgeTile.earned ? Theme.warning : Theme.ink
                     horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
                 }
                 Label {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.streak.badge_days")
-                        .arg(LocaleFormat.formatInteger(badgeTile.threshold))
-                    color: badgeTile.earned ? Theme.ink : Theme.inkMuted
+                    text: root.milestoneDuration(badgeTile.threshold)
+                    color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     horizontalAlignment: Text.AlignHCenter
-                    elide: Text.ElideRight
                 }
                 Item { Layout.fillHeight: true; Layout.minimumHeight: 0 }
                 Rectangle {
@@ -174,8 +207,8 @@ Item {
                 }
             }
             Accessible.role: Accessible.Button
-            Accessible.name: qsTrId("genycaster.streak.badge_days")
-                .arg(LocaleFormat.formatInteger(badgeTile.threshold))
+            Accessible.name: root.milestoneName(badgeTile.modelData) + " · "
+                + root.milestoneDuration(badgeTile.threshold)
             MouseArea {
                 anchors.fill: parent
                 onClicked: root.inspectedMilestone =
@@ -463,8 +496,9 @@ Item {
                 spacing: Theme.space2
                 Label {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.streak.badge_days")
-                        .arg(LocaleFormat.formatInteger(root.inspectedMilestone))
+                    text: root.milestoneName(
+                        root.milestoneItems.find(item =>
+                            Number(item.threshold_days) === root.inspectedMilestone))
                     color: Theme.warning
                     font.pixelSize: Theme.typeCaptionSize
                 }

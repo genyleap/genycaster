@@ -142,6 +142,54 @@
             <source>See all</source>
             <translation>نمایش همه</translation>
         </message>
+        <message id="genycaster.streak.badge_first_spark">
+            <source>First Spark</source>
+            <translation>جرقهٔ نخست</translation>
+        </message>
+        <message id="genycaster.streak.badge_ignition">
+            <source>Ignition</source>
+            <translation>افروختن</translation>
+        </message>
+        <message id="genycaster.streak.badge_momentum">
+            <source>Momentum</source>
+            <translation>شتاب</translation>
+        </message>
+        <message id="genycaster.streak.badge_on_fire">
+            <source>On Fire</source>
+            <translation>شعله‌ور</translation>
+        </message>
+        <message id="genycaster.streak.badge_blaze">
+            <source>Blaze</source>
+            <translation>زبانهٔ آتش</translation>
+        </message>
+        <message id="genycaster.streak.badge_wildfire">
+            <source>Wildfire</source>
+            <translation>آتش فراگیر</translation>
+        </message>
+        <message id="genycaster.streak.badge_inferno">
+            <source>Inferno</source>
+            <translation>آتش سوزان</translation>
+        </message>
+        <message id="genycaster.streak.badge_firestorm">
+            <source>Firestorm</source>
+            <translation>طوفان آتش</translation>
+        </message>
+        <message id="genycaster.streak.badge_phoenix">
+            <source>Phoenix</source>
+            <translation>ققنوس</translation>
+        </message>
+        <message id="genycaster.streak.badge_eternal_flame">
+            <source>Eternal Flame</source>
+            <translation>شعلهٔ جاودان</translation>
+        </message>
+        <message id="genycaster.streak.badge_one_day">
+            <source>%1 day</source>
+            <translation>%1 روز</translation>
+        </message>
+        <message id="genycaster.streak.badge_many_days">
+            <source>%1 days</source>
+            <translation>%1 روز</translation>
+        </message>
         <message id="genycaster.streak.badge_days">
             <source>%1d</source>
             <translation>%1 روز</translation>

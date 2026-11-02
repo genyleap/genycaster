@@ -11,6 +11,9 @@ const keys=['title','subtitle','open','profile_badge','activity','creator',
   'loading','unavailable','day_in_row','days_in_row','best','next',
   'legendary','mon','tue','wed','thu','fri','sat','sun','creator_rule',
   'activity_rule','badges','show_less','see_all','badge_days',
+  'badge_first_spark','badge_ignition','badge_momentum','badge_on_fire',
+  'badge_blaze','badge_wildfire','badge_inferno','badge_firestorm',
+  'badge_phoenix','badge_eternal_flame','badge_one_day','badge_many_days',
   'leaderboard','top_100','leaderboard_description','join_leaderboard',
   'leave_leaderboard','leaderboard_empty','fid','leader_days'];
 const qmlIds=[...new Set([...profile.matchAll(/qsTrId\("(genycaster\.streak\.[\w_]+)"\)/g),
@@ -41,7 +44,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
 
 test('every Streak label is translated by stable translation ID',()=>{
  assert.ok(qmlIds.length>=26,'original Streak labels must remain translated');
- for(const key of keys.filter(k=>!['profile_badge','top_100'].includes(k)))
+ for(const key of keys.filter(k=>!['profile_badge','top_100','badge_days'].includes(k)))
    assert.ok(qmlIds.includes('genycaster.streak.'+key),key);
  assert.doesNotMatch(card,/text:\s*"(?:Streak|Activity|Creator|Show less|See all|Badges)/);
  assert.match(card,/LocaleFormat\.formatInteger/);
@@ -93,7 +96,7 @@ test('Desktop Streak drawer spans overlay height and social rows follow a shared
  const panel=source.slice(source.indexOf('id: streakDrawer'),source.indexOf('id: profileExtrasEditor'));
  assert.ok(panel.includes(': parent.height) : 600'));
  assert.ok(source.includes('Layout.topMargin: root.compact ? Theme.space1 : Theme.space3'));
- assert.ok(source.includes('profileStatsFlow.spacing * 3) : 0'));
+ assert.ok(source.includes('profileStatsFlow.spacing * 3)'));
 });
 test('Leaderboard separates latin handles and Persian FIDs with direction-aware layout',()=>{
  const source=read('ui/components/StreakCard.qml');
@@ -110,7 +113,7 @@ test('Streak mobile spacing, fire orb and expandable server-owned milestone grid
  const theme=read('ui/theme/Theme.qml');
  const backend=read('services/account-sync/streaks.mjs');
  assert.match(source,/objectName: "profileOwnerActions"[\s\S]*?Layout.topMargin: Theme.space3/);
- assert.match(source,/profileStatsFlow.spacing \* 3\) : 0/);
+ assert.match(source,/objectName: "profileStreakAlignmentSpacer"[\s\S]*?profileStatsFlow.spacing \* 3\)/);
  assert.match(source,/text: Theme.iconStreakFlame/);
  assert.match(card,/objectName: "streakFlameOrb"/);
  assert.match(card,/SequentialAnimation on scale/);
@@ -162,7 +165,7 @@ test('Streak has a standalone leaderboard tab, with rankings readable without jo
 });
 test('Compact Streak medals use a stable reduced size for carousel and expanded grid',()=>{
  const card=read('ui/components/StreakCard.qml');
- assert.match(card,/tileHeight: Theme.scaleUi\(root.compact \? 132 : 140\)/);
+ assert.match(card,/tileHeight: Theme.scaleUi\(root.compact \? 148 : 156\)/);
  assert.match(card,/implicitWidth: Theme.scaleUi\(root.compact \? 118 : 126\)/);
  assert.match(card,/Layout.preferredWidth: Theme.scaleUi\(48\)/);
  assert.match(card,/columns: root\.width < Theme\.scaleUi\(root\.compact \? 380 : 410\) \? 2 : 3/);
@@ -203,4 +206,28 @@ test('Profile Streak badge matches the account card progress-ring and flame, wit
  assert.match(badge,/background: Item \{\}/);
  assert.match(badge,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
  assert.match(sidebar,/objectName: "sidebarStreakRing"[\s\S]*?ProgressRing\s*\{/);
+});
+
+
+test('named achievements are translated in all twelve locales, retaining duration as secondary text',()=>{
+ const card=read('ui/components/StreakCard.qml');
+ const catalog=read('services/account-sync/streaks.mjs');
+ const profile=read('ui/components/ProfileSurface.qml');
+ assert.match(card,/function milestoneName\(badge\)/);
+ assert.match(card,/function milestoneDuration\(days\)/);
+ assert.match(card,/objectName: "streakAchievementName"/);
+ assert.match(card,/text: root.milestoneName\(badgeTile.modelData\)/);
+ assert.match(card,/text: root.milestoneDuration\(badgeTile.threshold\)/);
+ assert.match(card,/maximumLineCount: 2/);
+ assert.match(card,/root.milestoneName\([\s\S]*?Number\(item.threshold_days\) === root.inspectedMilestone/);
+ assert.match(catalog,/name_id:'genycaster.streak.badge_'/);
+ assert.match(profile,/objectName: "profileStreakAlignmentSpacer"/);
+ assert.match(profile,/root.isOwnProfile[\s\S]*?profileStreakBadge.width : profileUnverifiedStreak.width/);
+ assert.match(profile,/objectName: "profileUnverifiedStreak"[\s\S]*?ProgressRing\s*\{/);
+ for(const lang of langCodes) {
+   const translations=read('ui/i18n/qml_'+lang+'.ts');
+   for(const key of ['first_spark','eternal_flame','one_day','many_days']) {
+     assert.match(translations,new RegExp('id="genycaster.streak.badge_'+key+'"'));
+   }
+ }
 });
