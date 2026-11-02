@@ -405,10 +405,15 @@ Item {
         id: textEditorComponent
         Superellipse {
             id: blockSurface
-            implicitHeight: Math.max(86, editor.contentHeight + Theme.space5)
-            fillColor: editor.activeFocus ? Theme.editorFocusedSurface : "transparent"
-            borderWidth: editor.activeFocus ? 1 : 0
-            borderColor: Theme.borderMuted
+            // One editable text block fills the available composer work
+            // area. Previously it was 86px high inside a 320px outer card,
+            // leaving a nested tiny input and a large inaccessible blank area.
+            // The composer owns the only editor boundary/focus ring.
+            implicitHeight: root.blockModel.length === 1
+                ? Math.max(list.height - Theme.space2, editor.contentHeight + Theme.space5)
+                : Math.max(86, editor.contentHeight + Theme.space5)
+            fillColor: "transparent"
+            borderWidth: 0
             curveDepth: Theme.curveControl
 
             function editorMarkup() {
