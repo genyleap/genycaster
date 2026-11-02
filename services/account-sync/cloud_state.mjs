@@ -274,7 +274,8 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
             const stamp=Date.parse(cast.timestamp);
             if(!Number.isFinite(stamp) || stamp>Date.now()+300000 ||
                stamp<Date.now()-172800000)continue;
-            return {kind:cast.parent_hash ? 'reply':'cast'};
+            return {kind:cast.parent_hash ? 'reply':'cast',
+              day:new Date(stamp).toISOString().slice(0,10)};
           }
       }
     }
@@ -311,7 +312,8 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
       if(!Number.isSafeInteger(timestamp) || published>Date.now()+300000
          || published<Date.now()-172800000)continue;
       const body=data.castAddBody;
-      return {kind:body.parentCastId ? 'reply':'cast'};
+      return {kind:body.parentCastId ? 'reply':'cast',
+        day:new Date(published).toISOString().slice(0,10)};
     }catch {}
   }
   return null;
@@ -476,10 +478,11 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         // Server verifies the account owner and the network message before
         // storing. A repeat request for the same hash is idempotent.
         const evidence=await verifyStreakCast(hash.toLowerCase(),owner.fid,{fetchImpl});
-        if(!evidence || !['cast','reply'].includes(evidence.kind)) {
+        if(!evidence || !['cast','reply'].includes(evidence.kind)
+           || !/^\d{4}-\d{2}-\d{2}$/.test(evidence.day||'')) {
           respond(response,422,{error:'cast_not_confirmed'});return true;
         }
-        const saved=await store.recordStreakCast(owner,hash.toLowerCase(),evidence.kind);
+        const saved=await store.recordStreakCast(owner,hash.toLowerCase(),evidence.kind,evidence.day);
         respond(response,200,{recorded:saved.recorded,
           streak:calculateStreaks(await store.listStreakEvents(owner))});
         return true;
