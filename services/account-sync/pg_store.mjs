@@ -491,7 +491,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         'SELECT '+columns+' FROM '+entity+' WHERE '+(
           entity==='bookmarks'?'openproof_issuer=$1 AND openproof_subject=$2':'issuer=$1 AND subject=$2'
         )+(entity==='notifications'
-          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status'))" : '')
+          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status','streak_preferences'))" : '')
           +' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
         [issuer,subject]);
       return result.rows.map(row=>normalizeRow(entity,row));
