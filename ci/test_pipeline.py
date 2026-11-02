@@ -95,6 +95,37 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(settings.count("id: navigationEntry2"), 1)
         self.assertEqual(settings.count("id: navigationEntry3"), 1)
 
+    def test_composer_taxonomy_uses_bounded_dropdowns_and_full_editor(self) -> None:
+        composer = Path("ui/components/ComposerDrawer.qml").read_text(encoding="utf-8")
+        editor = Path("ui/components/RichTextEditor.qml").read_text(encoding="utf-8")
+        channel = composer.split('id: channelPicker', 1)[1].split('id: topicPicker', 1)[0]
+        topics = composer.split('id: topicPicker', 1)[1].split('id: mediaFileDialog', 1)[0]
+        for popup in (channel, topics):
+            self.assertIn("parent: Overlay.overlay", popup)
+            self.assertIn("closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside", popup)
+            self.assertIn("triggerItem.mapToItem(parent, 0, 0)", popup)
+            self.assertIn("parent.height - height - Theme.space2", popup)
+            self.assertNotIn("bottomSheet: true", popup)
+            self.assertNotIn("dimBackground: true", popup)
+        self.assertIn('objectName: "composerChannelDropdown"', channel)
+        self.assertIn("model: channelDirectory.channelModel", channel)
+        self.assertIn("channelDirectory.search(text)", channel)
+        self.assertIn("channelDirectory.chooseChannel(", channel)
+        self.assertIn('objectName: "composerTopicDropdown"', topics)
+        self.assertIn("openProofConnections.fetchTopics()", topics)
+        self.assertIn("root.toggleTopic(topicChip.slug)", topics)
+        self.assertIn("readonly property int maxCastTopics: 3", composer)
+        self.assertIn("root.selectedParentUrl = String(selection.parentUrl", composer)
+        self.assertIn("id: composerFixedChrome", composer)
+        self.assertIn("id: formattingToolbar", composer)
+        self.assertLess(composer.index("id: formattingToolbar"),
+                        composer.index("id: composerScroll"))
+        self.assertIn("root.blockModel.length === 1", editor)
+        self.assertIn("list.height - Theme.space2", editor)
+        self.assertIn('fillColor: "transparent"', editor)
+        self.assertIn("borderWidth: 0", editor)
+        self.assertIn('visible: root.hasPublishableContent()', composer)
+
     def test_http_authentication_diagnostics_do_not_log_credentials(self) -> None:
         for path in (
             "src/transport/qt_network/async_http.cpp",
