@@ -2727,11 +2727,11 @@ Item {
                         : Math.min(500, Math.max(0, parent.width - Theme.space4 * 2))) : 500
         // Content-fitted bottom sheet; on a small viewport the Flickable
         // takes the remaining height instead of creating an empty slab.
-        height: parent ? (mobilePresentation
-                          ? Math.min(parent.height * 0.82,
-                              streakDetails.implicitHeight + streakHeader.implicitHeight
-                              + contentPadding * 2 + sheetTopInset + Theme.space5)
-                          : parent.height) : 600
+        // Fit both desktop and mobile to real content. The modal's
+        // Flickable owns overflow when the leaderboard expands.
+        height: parent ? Math.min(parent.height * (mobilePresentation ? 0.86 : 0.91),
+            streakDetails.implicitHeight + streakHeader.implicitHeight
+            + contentPadding * 2 + sheetTopInset + Theme.space5) : 600
         onOpened: {
             if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
                 openProofConnections.fetchStreak()
