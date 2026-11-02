@@ -280,6 +280,7 @@ private:
     QPointer<QNetworkReply> m_streakLeaderboardRead{};
     QVariantMap m_streakPreferences{};
     QVariantList m_streakLeaderboard{};
+    QString m_streakLeaderboardTrack{QStringLiteral("activity")};
     QVariantMap m_streak{};
     QString m_streakError{};
     QPointer<QNetworkReply> m_profileStatusWrite{};
