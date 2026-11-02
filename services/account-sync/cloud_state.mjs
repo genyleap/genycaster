@@ -402,7 +402,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'streak','streak/cast',
+      'streak','streak/cast','streak/preferences','streak/leaderboard',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -458,6 +458,43 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='streak/preferences') {
+        if(request.method==='GET') {
+          respond(response,200,{preferences:await store.getStreakPreferences(owner)});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const payload=await readBody(request,512);
+        if(!payload || Array.isArray(payload) ||
+           Object.keys(payload).sort().join(',')!=='activity_source,leaderboard_visible,revision' ||
+           !['casts','github'].includes(payload.activity_source) ||
+           typeof payload.leaderboard_visible!=='boolean' ||
+           !Number.isSafeInteger(payload.revision) || payload.revision<0) {
+          respond(response,400,{error:'invalid_streak_preferences'});return true;
+        }
+        const saved=await store.putStreakPreferences(owner,payload);
+        respond(response,saved?200:409,saved
+          ?{preferences:saved}:{error:'revision_conflict'});
+        return true;
+      }
+      if(entity==='streak/leaderboard') {
+        if(request.method!=='GET') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!store.streakReady()) {
+          respond(response,503,{error:'streak_unavailable'});return true;
+        }
+        const params=new URL(request.url,'http://localhost').searchParams;
+        const track=params.get('track')||'activity';
+        if(params.getAll('track').length>1 ||
+           !['activity','creator'].includes(track)) {
+          respond(response,400,{error:'invalid_streak_track'});return true;
+        }
+        respond(response,200,{track,leaders:await store.listStreakLeaderboard(track)});
+        return true;
+      }
       if(entity==='streak' || entity==='streak/cast') {
         if(typeof store.streakReady!=='function' || !store.streakReady()) {
           respond(response,503,{error:'streak_unavailable'});return true;
