@@ -62,6 +62,123 @@ Item {
 
     implicitHeight: body.implicitHeight
 
+    Component {
+        id: milestoneBadgeTile
+
+        Rectangle {
+            id: badgeTile
+            required property var modelData
+            readonly property int threshold: Number(modelData.threshold_days || 0)
+            readonly property bool earned: modelData.unlocked === true
+            readonly property real completed: Math.max(0, Math.min(1,
+                Number(modelData.progress_days || 0) / Math.max(1, threshold)))
+            readonly property int tileHeight: Theme.scaleUi(root.compact ? 162 : 170)
+            implicitWidth: Theme.scaleUi(root.compact ? 144 : 162)
+            implicitHeight: tileHeight
+            width: implicitWidth
+            height: tileHeight
+            Layout.fillWidth: root.showAllBadges
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: implicitWidth
+            Layout.preferredHeight: tileHeight
+            radius: Theme.curveControl
+            color: root.inspectedMilestone === threshold
+                ? Theme.warningSurface : Theme.surfaceMuted
+            border.color: root.inspectedMilestone === threshold
+                ? Theme.warning : Theme.borderMuted
+            border.width: root.inspectedMilestone === threshold ? 1 : 0
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Theme.space3
+                anchors.rightMargin: Theme.space3
+                anchors.topMargin: Theme.space3
+                anchors.bottomMargin: Theme.space3
+                spacing: Theme.space1
+
+                Item {
+                    id: badgeMedallion
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Theme.scaleUi(62)
+                    Layout.preferredHeight: Theme.scaleUi(62)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: badgeTile.earned
+                            ? Theme.warningSurface : Theme.surfaceElevated
+                        border.color: badgeTile.earned
+                            ? Theme.warning : Theme.borderMuted
+                        border.width: badgeTile.earned ? 1.5 : 1
+                    }
+                    Icon {
+                        anchors.centerIn: parent
+                        text: Theme.iconStreakFlame
+                        preferredSize: Theme.scaleUi(28)
+                        color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                        opacity: badgeTile.earned ? 1 : 0.5
+                    }
+                    Rectangle {
+                        visible: !badgeTile.earned
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        width: Theme.scaleUi(22)
+                        height: width
+                        radius: width / 2
+                        color: Theme.surfaceMuted
+                        border.color: Theme.borderMuted
+                        border.width: 1
+                        Icon {
+                            anchors.centerIn: parent
+                            text: "system/lock"
+                            preferredSize: Theme.scaleUi(12)
+                            color: Theme.inkMuted
+                        }
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: LocaleFormat.formatInteger(badgeTile.threshold)
+                    font.pixelSize: Theme.scaleUi(24)
+                    font.weight: Theme.weightBold
+                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.streak.badge_days")
+                        .arg(LocaleFormat.formatInteger(badgeTile.threshold))
+                    color: badgeTile.earned ? Theme.ink : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                }
+                Item { Layout.fillHeight: true; Layout.minimumHeight: 0 }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.scaleUi(4)
+                    radius: height / 2
+                    color: Theme.borderMuted
+                    Rectangle {
+                        x: Theme.rtl ? parent.width - width : 0
+                        width: parent.width * badgeTile.completed
+                        height: parent.height
+                        radius: parent.radius
+                        color: Theme.warning
+                    }
+                }
+            }
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTrId("genycaster.streak.badge_days")
+                .arg(LocaleFormat.formatInteger(badgeTile.threshold))
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.inspectedMilestone =
+                    root.inspectedMilestone===badgeTile.threshold ? 0 : badgeTile.threshold
+            }
+        }
+    }
+
     ColumnLayout {
         id: body
         width: parent.width
@@ -115,31 +232,31 @@ Item {
                     id: streakFlameOrb
                     objectName: "streakFlameOrb"
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.preferredWidth: Theme.scaleUi(root.compact ? 124 : 142)
+                    Layout.preferredWidth: Theme.scaleUi(root.compact ? 106 : 120)
                     Layout.preferredHeight: Layout.preferredWidth
 
                     Rectangle {
                         anchors.centerIn: parent
-                        width: parent.width * 0.93
+                        width: parent.width * 0.94
                         height: width
                         radius: width / 2
                         color: Theme.warning
-                        opacity: root.current > 0 ? 0.10 : 0.03
+                        opacity: root.current > 0 ? 0.075 : 0.025
                         scale: 1
                         SequentialAnimation on scale {
                             running: root.flameMotion
                             loops: Animation.Infinite
-                            NumberAnimation { from: 0.96; to: 1.13; duration: 1850; easing.type: Easing.InOutSine }
-                            NumberAnimation { from: 1.13; to: 0.96; duration: 1850; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 0.98; to: 1.07; duration: 1900; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 1.07; to: 0.98; duration: 1900; easing.type: Easing.InOutSine }
                         }
                     }
                     Rectangle {
                         anchors.centerIn: parent
-                        width: parent.width * 0.77
+                        width: parent.width * 0.79
                         height: width
                         radius: width / 2
                         color: Theme.warning
-                        opacity: root.current > 0 ? 0.14 : 0.04
+                        opacity: root.current > 0 ? 0.09 : 0.025
                         scale: 1
                         SequentialAnimation on scale {
                             running: root.flameMotion
@@ -150,7 +267,7 @@ Item {
                     }
                     Rectangle {
                         anchors.centerIn: parent
-                        width: parent.width * 0.64
+                        width: parent.width * 0.69
                         height: width
                         radius: width / 2
                         color: Theme.warningSurface
@@ -159,7 +276,7 @@ Item {
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconStreakFlame
-                            preferredSize: Theme.scaleUi(root.compact ? 46 : 52)
+                            preferredSize: Theme.scaleUi(root.compact ? 34 : 39)
                             color: Theme.warning
                         }
                     }
@@ -311,104 +428,54 @@ Item {
                 }
             }
 
-            // Level definitions and earned state are server-derived. Expand
-            // into a responsive milestones gallery without nested scrolling.
-            // Reward entitlement is never inferred from a badge.
+            // A peekable, horizontally scrolling collection with full-size
+            // achievements. Expanded view is a readable 2-column mobile grid.
+            // Both delegates read the same server-verified milestone metadata.
+            Flickable {
+                id: streakBadgeCarousel
+                objectName: "streakBadgeCarousel"
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? Theme.scaleUi(root.compact ? 174 : 182) : 0
+                visible: !root.showAllBadges
+                clip: true
+                contentWidth: streakBadgePreviewRow.implicitWidth
+                contentHeight: height
+                interactive: contentWidth > width
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                onContentWidthChanged: {
+                    if(Theme.rtl && !moving)
+                        contentX = Math.max(0, contentWidth-width)
+                }
+                Row {
+                    id: streakBadgePreviewRow
+                    objectName: "streakBadgePreviewRow"
+                    height: Theme.scaleUi(root.compact ? 164 : 172)
+                    spacing: Theme.space2
+                    layoutDirection: Theme.uiDirection
+                    LayoutMirroring.enabled: false
+
+                    Repeater {
+                        model: root.showAllBadges ? [] : root.milestoneItems
+                        delegate: milestoneBadgeTile
+                    }
+                }
+            }
+
             GridLayout {
                 id: streakBadgeGrid
                 objectName: "streakBadgeGrid"
                 Layout.fillWidth: true
-                columns: root.compact ? 3 : 4
+                visible: root.showAllBadges
+                columns: root.compact ? 2 : 4
                 columnSpacing: Theme.space2
                 rowSpacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                LayoutMirroring.enabled: false
 
                 Repeater {
-                    model: root.showAllBadges
-                        ? root.milestoneItems
-                        : root.milestoneItems.slice(0, root.compact ? 3 : 4)
-                    delegate: Rectangle {
-                        id: badgeTile
-                        required property var modelData
-                        readonly property int threshold: Number(modelData.threshold_days || 0)
-                        readonly property bool earned: modelData.unlocked === true
-                        readonly property real completed: Math.min(1,
-                            Number(modelData.progress_days || 0)/Math.max(1, threshold))
-                        Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        Layout.preferredHeight: Theme.scaleUi(root.compact ? 116 : 126)
-                        radius: Theme.curveCompact
-                        color: root.inspectedMilestone === threshold
-                            ? Theme.warningSurface : Theme.surfaceMuted
-                        border.color: root.inspectedMilestone === threshold
-                            ? Theme.warning : Theme.borderMuted
-                        border.width: root.inspectedMilestone === threshold ? 1 : 0
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: Theme.space2
-                            spacing: Theme.space1
-                            Item {
-                                Layout.alignment: Qt.AlignHCenter
-                                Layout.preferredWidth: Theme.scaleUi(root.compact ? 62 : 68)
-                                Layout.preferredHeight: Layout.preferredWidth
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    radius: width / 2
-                                    color: badgeTile.earned
-                                        ? Theme.warningSurface : Theme.surfaceElevated
-                                    border.color: badgeTile.earned
-                                        ? Theme.warning : Theme.borderMuted
-                                    border.width: badgeTile.earned ? 2 : 1
-                                }
-                                Icon {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.top: parent.top
-                                    anchors.topMargin: Theme.space1
-                                    text: badgeTile.earned ? Theme.iconStreakFlame : "system/lock"
-                                    preferredSize: Theme.scaleUi(18)
-                                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
-                                }
-                                Label {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.bottom: parent.bottom
-                                    anchors.bottomMargin: Theme.space1
-                                    text: LocaleFormat.formatInteger(badgeTile.threshold)
-                                    font.pixelSize: Theme.scaleUi(22)
-                                    font.weight: Theme.weightBold
-                                    color: badgeTile.earned ? Theme.warning : Theme.inkMuted
-                                }
-                            }
-                            Label {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.streak.badge_days")
-                                    .arg(LocaleFormat.formatInteger(badgeTile.threshold))
-                                color: badgeTile.earned ? Theme.ink : Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: Theme.scaleUi(3)
-                                radius: height/2
-                                color: Theme.borderMuted
-                                Rectangle {
-                                    width: parent.width * badgeTile.completed
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: Theme.warning
-                                }
-                            }
-                        }
-                        Accessible.role: Accessible.Button
-                        Accessible.name: qsTrId("genycaster.streak.badge_days")
-                            .arg(LocaleFormat.formatInteger(badgeTile.threshold))
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: root.inspectedMilestone =
-                                root.inspectedMilestone===badgeTile.threshold ? 0 : badgeTile.threshold
-                        }
-                    }
+                    model: root.showAllBadges ? root.milestoneItems : []
+                    delegate: milestoneBadgeTile
                 }
             }
             RowLayout {

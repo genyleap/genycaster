@@ -124,3 +124,25 @@ test('Streak mobile spacing, fire orb and expandable server-owned milestone grid
  assert.match(backend,/reward_kind:'none'/);
  assert.match(backend,/STREAK_BADGE_CATALOG/);
 });
+
+test('Milestone collection uses exact CC0 SVG Repo flame and readable responsive badge presentation',()=>{
+ const source=read('ui/components/StreakCard.qml');
+ const svg=read('ui/assets/icons/genyleap/icons/system/flame.svg');
+ assert.match(svg,/viewBox="0 0 24 24"/);
+ assert.match(svg,/M15\.3588 21\.751/);
+ assert.match(svg,/opacity="0\.5"/);
+ assert.doesNotMatch(svg,/1C274C/);
+ assert.match(source,/objectName: "streakBadgeCarousel"/);
+ assert.match(source,/flickableDirection: Flickable\.HorizontalFlick/);
+ assert.match(source,/contentWidth: streakBadgePreviewRow\.implicitWidth/);
+ assert.match(source,/Layout\.preferredHeight: visible \? Theme\.scaleUi\(root\.compact \? 174 : 182\) : 0/);
+ assert.match(source,/columns: root\.compact \? 2 : 4/);
+ assert.match(source,/id: milestoneBadgeTile/);
+ assert.match(source,/delegate: milestoneBadgeTile/g);
+ assert.match(source,/model: root\.showAllBadges \? root\.milestoneItems : \[\]/);
+ assert.match(source,/text: Theme\.iconStreakFlame/);
+ assert.match(source,/preferredSize: Theme\.scaleUi\(28\)/);
+ assert.match(source,/visible: !badgeTile\.earned/);
+ assert.match(source,/root\.inspectedMilestone/);
+ assert.match(source,/!Theme\.reduceMotion && !Theme\.powerSave/);
+});
