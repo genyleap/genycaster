@@ -112,13 +112,13 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         ORDER BY credited_on DESC,kind LIMIT 1462`,[issuer,subject]);
       return result.rows;
     },
-    async recordStreakCast({issuer,subject},hash,kind) {
+    async recordStreakCast({issuer,subject},hash,kind,day) {
       if(!streakReady)throw new Error('streak_migration_required');
       const result=await pool.query(`INSERT INTO streak_cast_events
-          (issuer,subject,cast_hash,kind)
-        VALUES($1,$2,decode(substr($3,3),'hex'),$4)
+          (issuer,subject,cast_hash,kind,credited_on)
+        VALUES($1,$2,decode(substr($3,3),'hex'),$4,$5::date)
         ON CONFLICT(issuer,subject,cast_hash) DO NOTHING
-        RETURNING credited_on::text AS day`,[issuer,subject,hash,kind]);
+        RETURNING credited_on::text AS day`,[issuer,subject,hash,kind,day]);
       return {recorded:result.rowCount===1};
     },
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
