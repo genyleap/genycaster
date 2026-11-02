@@ -2,6 +2,110 @@
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.title">
+            <source>Streak</source>
+            <translation>Racha</translation>
+        </message>
+        <message id="genycaster.streak.subtitle">
+            <source>Your verified activity and milestones</source>
+            <translation>Tu actividad verificada y tus logros</translation>
+        </message>
+        <message id="genycaster.streak.open">
+            <source>Open Streak details</source>
+            <translation>Abrir detalles de la racha</translation>
+        </message>
+        <message id="genycaster.streak.profile_badge">
+            <source>Streak · %1d</source>
+            <translation>Racha · %1 días</translation>
+        </message>
+        <message id="genycaster.streak.activity">
+            <source>Activity</source>
+            <translation>Actividad</translation>
+        </message>
+        <message id="genycaster.streak.creator">
+            <source>Creator</source>
+            <translation>Creador</translation>
+        </message>
+        <message id="genycaster.streak.loading">
+            <source>Loading Streak…</source>
+            <translation>Cargando racha…</translation>
+        </message>
+        <message id="genycaster.streak.unavailable">
+            <source>Streak is not available yet.</source>
+            <translation>La racha no está disponible por ahora.</translation>
+        </message>
+        <message id="genycaster.streak.day_in_row">
+            <source>day in a row</source>
+            <translation>día seguido</translation>
+        </message>
+        <message id="genycaster.streak.days_in_row">
+            <source>days in a row</source>
+            <translation>días seguidos</translation>
+        </message>
+        <message id="genycaster.streak.best">
+            <source>Best: %1 days</source>
+            <translation>Récord: %1 días</translation>
+        </message>
+        <message id="genycaster.streak.next">
+            <source>Next: %1 days</source>
+            <translation>Siguiente: %1 días</translation>
+        </message>
+        <message id="genycaster.streak.legendary">
+            <source>Legendary</source>
+            <translation>Legendario</translation>
+        </message>
+        <message id="genycaster.streak.mon">
+            <source>M</source>
+            <translation>L</translation>
+        </message>
+        <message id="genycaster.streak.tue">
+            <source>T</source>
+            <translation>M</translation>
+        </message>
+        <message id="genycaster.streak.wed">
+            <source>W</source>
+            <translation>X</translation>
+        </message>
+        <message id="genycaster.streak.thu">
+            <source>T</source>
+            <translation>J</translation>
+        </message>
+        <message id="genycaster.streak.fri">
+            <source>F</source>
+            <translation>V</translation>
+        </message>
+        <message id="genycaster.streak.sat">
+            <source>S</source>
+            <translation>S</translation>
+        </message>
+        <message id="genycaster.streak.sun">
+            <source>S</source>
+            <translation>D</translation>
+        </message>
+        <message id="genycaster.streak.creator_rule">
+            <source>One verified original Cast per day counts.</source>
+            <translation>Cuenta un Cast original verificado por día.</translation>
+        </message>
+        <message id="genycaster.streak.activity_rule">
+            <source>A verified Cast or Reply counts once per day.</source>
+            <translation>Cuenta un Cast o respuesta verificados por día.</translation>
+        </message>
+        <message id="genycaster.streak.badges">
+            <source>Badges · %1/%2</source>
+            <translation>Insignias · %1/%2</translation>
+        </message>
+        <message id="genycaster.streak.show_less">
+            <source>Show less</source>
+            <translation>Ver menos</translation>
+        </message>
+        <message id="genycaster.streak.see_all">
+            <source>See all</source>
+            <translation>Ver todas</translation>
+        </message>
+        <message id="genycaster.streak.badge_days">
+            <source>%1d</source>
+            <translation>%1 días</translation>
+        </message>
         <message id="genycaster.engagement.views_accessible">
             <source>Views: %1</source>
             <translation>Visualizaciones: %1</translation>
