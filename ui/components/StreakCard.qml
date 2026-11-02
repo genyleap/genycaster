@@ -14,6 +14,10 @@ Item {
     property bool compact: false
     property string activeTrack: "activity"
     property bool showAllBadges: false
+    property bool showLeaderboard: false
+    readonly property bool leaderboardVisible:
+        openProofConnections.streakPreferences.leaderboard_visible === true
+    readonly property var leaderboardEntries: openProofConnections.streakLeaderboard || []
 
     readonly property var track: activeTrack === "creator"
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
@@ -55,7 +59,11 @@ Item {
                 {id: "activity", label: qsTrId("genycaster.streak.activity")},
                 {id: "creator", label: qsTrId("genycaster.streak.creator")}
             ]
-            onActivated: id => root.activeTrack = id
+            onActivated: id => {
+                root.activeTrack = id
+                if(root.showLeaderboard)
+                    openProofConnections.fetchStreakLeaderboard(id)
+            }
         }
 
         Label {
@@ -74,53 +82,65 @@ Item {
             visible: root.available
             spacing: Theme.space3
 
-            // The number is the single hero. Text and milestone align with
-            // the reading direction, not with the physical left screen edge.
-            RowLayout {
+            // Reference-inspired centered achievement hero; one focal point
+            // rather than competing statistics across the sheet.
+            ColumnLayout {
+                objectName: "streakCenteredHero"
                 Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
+                spacing: Theme.space1
 
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Theme.scaleUi(root.compact ? 80 : 92)
+                    Layout.preferredHeight: Layout.preferredWidth
+                    radius: width / 2
+                    color: Theme.warningSurface
+                    border.color: Theme.borderMuted
+                    border.width: 1
+                    Icon {
+                        anchors.centerIn: parent
+                        preferredSize: Theme.scaleUi(root.compact ? 42 : 48)
+                        text: Theme.iconEnergy
+                        color: Theme.warning
+                    }
+                }
                 Label {
                     objectName: "streakCurrentCount"
+                    Layout.fillWidth: true
                     text: LocaleFormat.formatInteger(root.current)
                     color: Theme.warning
-                    font.pixelSize: Theme.scaleUi(root.compact ? 40 : 38)
+                    font.pixelSize: Theme.scaleUi(root.compact ? 72 : 78)
                     font.weight: Theme.weightBold
-                }
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-                    Label {
-                        Layout.fillWidth: true
-                        text: root.current === 1
-                            ? qsTrId("genycaster.streak.day_in_row")
-                            : qsTrId("genycaster.streak.days_in_row")
-                        color: Theme.ink
-                        font.pixelSize: Theme.typeBodySize
-                        font.weight: Theme.weightDemiBold
-                        horizontalAlignment: Theme.textStartAlignment
-                    }
-                    Label {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.streak.best")
-                            .arg(LocaleFormat.formatInteger(root.record))
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        horizontalAlignment: Theme.textStartAlignment
-                    }
+                    horizontalAlignment: Text.AlignHCenter
                 }
                 Label {
-                    Layout.maximumWidth: root.width * (root.compact ? 0.34 : 0.30)
-                    text: root.nextMilestone
-                        ? qsTrId("genycaster.streak.next")
-                            .arg(LocaleFormat.formatInteger(root.nextMilestone))
-                        : qsTrId("genycaster.streak.legendary")
+                    Layout.fillWidth: true
+                    text: root.current === 1
+                        ? qsTrId("genycaster.streak.day_in_row")
+                        : qsTrId("genycaster.streak.days_in_row")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Text.AlignHCenter
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.streak.best")
+                        .arg(LocaleFormat.formatInteger(root.record))
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
-                    horizontalAlignment: Theme.rtl ? Text.AlignLeft : Text.AlignRight
-                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Text.AlignHCenter
                 }
+            }
+            Label {
+                Layout.fillWidth: true
+                text: root.nextMilestone
+                    ? qsTrId("genycaster.streak.next")
+                        .arg(LocaleFormat.formatInteger(root.nextMilestone))
+                    : qsTrId("genycaster.streak.legendary")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                horizontalAlignment: Theme.textStartAlignment
             }
 
             Rectangle {
@@ -273,6 +293,124 @@ Item {
                             .arg(LocaleFormat.formatInteger(modelData))
                         font.pixelSize: Theme.typeCaptionSize
                         color: earned ? Theme.ink : Theme.inkMuted
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: Theme.divider
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.streak.leaderboard")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeBodySize
+                    font.weight: Theme.weightDemiBold
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    text: root.showLeaderboard
+                        ? qsTrId("genycaster.streak.show_less")
+                        : qsTrId("genycaster.streak.top_100")
+                    onClicked: {
+                        root.showLeaderboard = !root.showLeaderboard
+                        if(root.showLeaderboard)
+                            openProofConnections.fetchStreakLeaderboard(root.activeTrack)
+                    }
+                }
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.showLeaderboard
+                spacing: Theme.space2
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.streak.leaderboard_description")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                    horizontalAlignment: Theme.textStartAlignment
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    compact: true
+                    quiet: !root.leaderboardVisible
+                    selected: root.leaderboardVisible
+                    text: root.leaderboardVisible
+                        ? qsTrId("genycaster.streak.leave_leaderboard")
+                        : qsTrId("genycaster.streak.join_leaderboard")
+                    onClicked: {
+                        openProofConnections.setStreakPreferences(
+                            String(openProofConnections.streakPreferences.activity_source || "casts"),
+                            !root.leaderboardVisible)
+                        openProofConnections.fetchStreakLeaderboard(root.activeTrack)
+                    }
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: !openProofConnections.streakLeaderboardBusy
+                        && root.leaderboardEntries.length === 0
+                    text: qsTrId("genycaster.streak.leaderboard_empty")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
+                }
+                GenySpinner {
+                    Layout.alignment: Qt.AlignHCenter
+                    running: visible
+                    visible: openProofConnections.streakLeaderboardBusy
+                }
+                ListView {
+                    objectName: "streakTop100"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: root.leaderboardEntries.length>0
+                        ? Math.min(300,root.leaderboardEntries.length*50) : 0
+                    visible: root.leaderboardEntries.length>0
+                    clip: true
+                    model: root.leaderboardEntries
+                    boundsBehavior: Flickable.StopAtBounds
+                    spacing: Theme.space1
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: ListView.view.width
+                        height: Theme.scaleUi(46)
+                        radius: Theme.curveCompact
+                        color: Theme.surfaceMuted
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.space2
+                            anchors.rightMargin: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Label {
+                                text: LocaleFormat.formatInteger(Number(modelData.rank))
+                                font.pixelSize: Theme.typeBodySize
+                                font.weight: Theme.weightDemiBold
+                                color: Theme.warning
+                                Layout.preferredWidth: Theme.scaleUi(30)
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.streak.fid")
+                                    .arg(LocaleFormat.formatInteger(Number(modelData.fid)))
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeBodySize
+                                elide: Text.ElideRight
+                            }
+                            Label {
+                                text: qsTrId("genycaster.streak.leader_days")
+                                    .arg(LocaleFormat.formatInteger(Number(modelData.current)))
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                        }
                     }
                 }
             }
