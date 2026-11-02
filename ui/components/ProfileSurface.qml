@@ -1819,29 +1819,6 @@ Item {
                             HoverHandler { id: genyHolderBadgeHover }
                         }
 
-                        // An unobtrusive entry point; the full Streak dashboard
-                        // lives in its own responsive sheet, not in the feed.
-                        ActionButton {
-                            id: profileStreakBadge
-                            objectName: "profileStreakBadge"
-                            visible: root.isOwnProfile
-                            compact: true
-                            quiet: true
-                            pill: true
-                            iconGlyph: Theme.iconEnergy
-                            iconSize: Theme.scaleUi(17)
-                            text: openProofConnections.streak.time_zone === "UTC"
-                                ? qsTrId("genycaster.streak.profile_badge").arg(
-                                      LocaleFormat.formatInteger(
-                                          Number(openProofConnections.streak.activity?.current || 0)))
-                                : qsTrId("genycaster.streak.title")
-                            Accessible.description: qsTrId("genycaster.streak.open")
-                            onClicked: {
-                                streakDrawer.mobilePresentation = root.compact
-                                streakDrawer.open()
-                            }
-                        }
-
                         Item {
                             id: followsYouBadge
                             visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
@@ -2068,7 +2045,13 @@ Item {
                         }
                     }
 
-                    RowLayout {
+                    Flow {
+                        id: profileStatsFlow
+                        objectName: "profileStatsFlow"
+                        // Wrap on narrow phones rather than expanding the
+                        // heading or overflowing the horizontal profile gutter.
+                        Layout.preferredHeight: childrenRect.height
+                        flow: Flow.LeftToRight
                         // Unknown profile metadata must never be presented as
                         // verified zero followers/following on an empty header.
                         visible: Number(root.activeDetail.fid || 0) > 0
@@ -2128,7 +2111,51 @@ Item {
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
+                        Button {
+                            id: profileStreakBadge
+                            objectName: "profileStreakBadge"
+                            visible: root.isOwnProfile
+                            hoverEnabled: true
+                            implicitHeight: Theme.scaleUi(32)
+                            implicitWidth: streakBadgeContent.implicitWidth + Theme.space3 * 2
+                            padding: 0
+                            Accessible.name: qsTrId("genycaster.streak.open")
+                            ToolTip.visible: hovered
+                            ToolTip.text: qsTrId("genycaster.streak.open")
+                            onClicked: {
+                                streakDrawer.mobilePresentation = root.compact
+                                streakDrawer.open()
+                            }
+                            background: Rectangle {
+                                radius: height / 2
+                                color: Theme.warningSurface
+                                border.color: Theme.warning
+                                border.width: 1
+                                opacity: profileStreakBadge.down ? 0.75 : 1.0
+                            }
+                            contentItem: Row {
+                                id: streakBadgeContent
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space1
+                                Icon {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Theme.iconEnergy
+                                    color: Theme.warning
+                                    preferredSize: Theme.scaleUi(16)
+                                }
+                                Label {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: Theme.warning
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                    text: openProofConnections.streak.time_zone === "UTC"
+                                        ? qsTrId("genycaster.streak.profile_badge").arg(
+                                            LocaleFormat.formatInteger(Number(
+                                                openProofConnections.streak.activity?.current || 0)))
+                                        : qsTrId("genycaster.streak.title")
+                                }
+                            }
+                        }
                     }
                     RowLayout {
                         objectName: "profileOwnerActions"
@@ -2549,11 +2576,16 @@ Item {
         dimBackground: true
         showHandle: mobilePresentation
         interactive: false
-        contentPadding: Theme.space4
+        contentPadding: mobilePresentation ? Theme.space4 : Theme.space5
         width: parent ? (mobilePresentation ? parent.width
                         : Math.min(500, Math.max(0, parent.width - Theme.space4 * 2))) : 500
+        // Content-fitted bottom sheet; on a small viewport the Flickable
+        // takes the remaining height instead of creating an empty slab.
         height: parent ? (mobilePresentation
-                          ? Math.min(parent.height * 0.92, 700) : parent.height) : 700
+                          ? Math.min(parent.height * 0.82,
+                              streakDetails.implicitHeight + streakHeader.implicitHeight
+                              + contentPadding * 2 + sheetTopInset + Theme.space5)
+                          : parent.height) : 600
         onOpened: {
             if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
                 openProofConnections.fetchStreak()
@@ -2563,6 +2595,7 @@ Item {
             spacing: Theme.space3
 
             ModalHeader {
+                id: streakHeader
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.streak.title")
                 subtitle: qsTrId("genycaster.streak.subtitle")
