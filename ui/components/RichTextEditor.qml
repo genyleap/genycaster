@@ -10,8 +10,12 @@ Item {
     readonly property var formattingEditor: root.activeEditorKind === "formatted" ? root.activeEditor : null
     // TextArea.text contains HTML markup for RichText editors, even when the
     // user-visible paragraph is empty. Read the plain QTextDocument range.
-    readonly property string activeText: root.activeEditor !== null
-        ? String(root.activeEditor.getText(0, root.activeEditor.length) || "") : ""
+    readonly property string activeText: {
+        if (root.activeEditor === null || root.activeEditor.text === undefined)
+            return ""
+        // Reading text keeps this binding reactive even for same-length edits.
+        return String(root.activeEditor.getText(0, root.activeEditor.length) || "")
+    }
     readonly property bool hasLiveContent: root.activeText.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").length > 0
     property var blockModel: []
     property bool blockRefreshPending: false
