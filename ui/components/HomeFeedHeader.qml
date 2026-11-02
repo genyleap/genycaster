@@ -193,15 +193,17 @@ Item {
                 // than replacing two selected delegate backgrounds on clicks.
                 Rectangle {
                     id: audienceSelectionPill
-                    width: (audienceSelector.width - 8) / 2
+                    // Two equal segments with a real optical gap. The pill
+                    // never grows into the neighboring hover slot.
+                    width: (audienceSelector.width - 10) / 2
                     height: audienceSelector.height - 6
                     y: 3
                     x: 3 + ((root.audience === "following") !== Theme.rtl
-                            ? width + 2 : 0)
+                            ? width + 4 : 0)
                     radius: 10
-                    color: Theme.backgroundPrimary
-                    border.width: Theme.strokeHairline
-                    border.color: Theme.borderSubtle
+                    color: Theme.surfaceRaised
+                    border.width: Theme.strokeStandard
+                    border.color: Theme.borderStrong
                     Behavior on x {
                         NumberAnimation {
                             duration: Theme.reduceMotion ? 0 : Theme.motionStandard
@@ -213,7 +215,7 @@ Item {
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 3
-                    spacing: 2
+                    spacing: 4
                     layoutDirection: Theme.uiDirection
 
                     Repeater {
@@ -233,11 +235,17 @@ Item {
                             enabled: String(modelData.id) !== "following"
                                      || root.authenticated
                             background: Rectangle {
-                                radius: 10
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                radius: 9
                                 color: scopeOption.selected ? "transparent"
                                      : scopeOption.hovered ? Theme.surfaceHover : "transparent"
-                                border.width: 0
-                                border.color: Theme.borderSubtle
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: Theme.reduceMotion ? 0 : 110
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                             }
                             contentItem: DirectionAwareLabel {
                                 text: String(scopeOption.modelData.title)
@@ -246,8 +254,12 @@ Item {
                                 // the persistent pill is moving.
                                 font.weight: Theme.weightDemiBold
                                 color: scopeOption.enabled
-                                    ? (scopeOption.selected ? Theme.ink : Theme.inkMuted)
+                                    ? (scopeOption.selected ? Theme.ink
+                                         : scopeOption.hovered ? Theme.ink : Theme.inkMuted)
                                     : Theme.inkMuted
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
+                                }
                                 opacity: scopeOption.enabled ? 1 : 0.5
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
