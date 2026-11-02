@@ -143,44 +143,44 @@
             <translation>सभी देखें</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>पहली चिंगारी</translation>
+            <source>Glow</source>
+            <translation>आभा</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>प्रज्वलन</translation>
+            <source>Bronze</source>
+            <translation>कांस्य</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>रफ़्तार</translation>
+            <source>Silver</source>
+            <translation>रजत</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>जलती लौ</translation>
+            <source>Gold</source>
+            <translation>स्वर्ण</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>प्रचंड लौ</translation>
+            <source>Platinum</source>
+            <translation>प्लैटिनम</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>दावानल</translation>
+            <source>Diamond</source>
+            <translation>हीरा</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>अग्निकुंड</translation>
+            <source>Thunderbolt</source>
+            <translation>बिजली</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>अग्नि तूफ़ान</translation>
+            <source>Champion</source>
+            <translation>विजेता</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>फ़ीनिक्स</translation>
+            <source>Legend</source>
+            <translation>दंतकथा</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>अनंत ज्वाला</translation>
+            <source>Simorgh</source>
+            <translation>सिमुर्ग़</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>

@@ -143,44 +143,44 @@
             <translation>查看全部</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>初始火花</translation>
+            <source>Glow</source>
+            <translation>微光</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>点燃</translation>
+            <source>Bronze</source>
+            <translation>青铜</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>势头</translation>
+            <source>Silver</source>
+            <translation>白银</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>燃烧中</translation>
+            <source>Gold</source>
+            <translation>黄金</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>烈焰</translation>
+            <source>Platinum</source>
+            <translation>铂金</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>野火</translation>
+            <source>Diamond</source>
+            <translation>钻石</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>炼狱</translation>
+            <source>Thunderbolt</source>
+            <translation>雷霆</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>火焰风暴</translation>
+            <source>Champion</source>
+            <translation>冠军</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>凤凰</translation>
+            <source>Legend</source>
+            <translation>传奇</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>永恒之焰</translation>
+            <source>Simorgh</source>
+            <translation>西穆尔格</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>

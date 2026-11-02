@@ -143,44 +143,44 @@
             <translation>すべて表示</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>最初の火花</translation>
+            <source>Glow</source>
+            <translation>輝き</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>着火</translation>
+            <source>Bronze</source>
+            <translation>ブロンズ</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>勢い</translation>
+            <source>Silver</source>
+            <translation>シルバー</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>燃焼中</translation>
+            <source>Gold</source>
+            <translation>ゴールド</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>炎</translation>
+            <source>Platinum</source>
+            <translation>プラチナ</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>野火</translation>
+            <source>Diamond</source>
+            <translation>ダイヤモンド</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>業火</translation>
+            <source>Thunderbolt</source>
+            <translation>稲妻</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>火炎嵐</translation>
+            <source>Champion</source>
+            <translation>チャンピオン</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>不死鳥</translation>
+            <source>Legend</source>
+            <translation>伝説</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>永遠の炎</translation>
+            <source>Simorgh</source>
+            <translation>シームルグ</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>

@@ -143,44 +143,44 @@
             <translation>Все значки</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>Первая искра</translation>
+            <source>Glow</source>
+            <translation>Сияние</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>Зажигание</translation>
+            <source>Bronze</source>
+            <translation>Бронза</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>Разгон</translation>
+            <source>Silver</source>
+            <translation>Серебро</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>В огне</translation>
+            <source>Gold</source>
+            <translation>Золото</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>Пламя</translation>
+            <source>Platinum</source>
+            <translation>Платина</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>Пожар</translation>
+            <source>Diamond</source>
+            <translation>Алмаз</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>Пекло</translation>
+            <source>Thunderbolt</source>
+            <translation>Молния</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>Огненный шторм</translation>
+            <source>Champion</source>
+            <translation>Чемпион</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>Феникс</translation>
+            <source>Legend</source>
+            <translation>Легенда</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>Вечное пламя</translation>
+            <source>Simorgh</source>
+            <translation>Симург</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>

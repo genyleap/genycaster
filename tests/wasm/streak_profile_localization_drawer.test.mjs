@@ -242,3 +242,33 @@ test('Streak tabs display semantic icons without changing the shared no-icon tab
  for(const glyph of ['Theme.iconStreakFlame','Theme.iconCompose','Theme.iconChart'])
    assert.ok(streak.includes('icon: '+glyph),glyph);
 });
+
+test('international Streak tiers use recognizable names with Persian equivalents',()=>{
+ const ids=['first_spark','ignition','momentum','on_fire','blaze',
+   'wildfire','inferno','firestorm','phoenix','eternal_flame'];
+ const en=['Glow','Bronze','Silver','Gold','Platinum',
+   'Diamond','Thunderbolt','Champion','Legend','Simorgh'];
+ const fa=['فروغ','برنز','نقره','طلا','پلاتین',
+   'الماس','آذرخش','قهرمان','اسطوره','سیمرغ'];
+ for(const [lang,expected] of [['en_US',en],['fa_IR',fa]]) {
+   const xml=read('ui/i18n/qml_'+lang+'.ts');
+   for(let i=0;i<ids.length;i++) {
+     const id='genycaster.streak.badge_'+ids[i];
+     const section=xml.split('<message id="'+id+'">')[1]?.split('</message>')[0];
+     assert.ok(section,'Missing achievement '+id+' in '+lang);
+     assert.ok(section.includes('<translation>'+expected[i]+'</translation>'),
+       'Incorrect '+id+' in '+lang);
+   }
+ }
+ for(const lang of langCodes) {
+   const xml=read('ui/i18n/qml_'+lang+'.ts');
+   for(const id of ids) {
+     const section=xml.split('<message id="genycaster.streak.badge_'+id+'">')[1]?.split('</message>')[0];
+     assert.ok(section && section.includes('<translation>'),
+       'Missing translated '+id+' in '+lang);
+   }
+ }
+ const service=read('services/account-sync/streaks.mjs');
+ assert.match(service,/STREAK_MILESTONES\s*=\s*Object\.freeze\(\[1,3,7,14,30,60,90,100,180,365\]\)/);
+ assert.match(service,/reward_kind:'none'/);
+});

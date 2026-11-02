@@ -143,44 +143,44 @@
             <translation>See all</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>First Spark</translation>
+            <source>Glow</source>
+            <translation>Glow</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>Ignition</translation>
+            <source>Bronze</source>
+            <translation>Bronze</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>Momentum</translation>
+            <source>Silver</source>
+            <translation>Silver</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>On Fire</translation>
+            <source>Gold</source>
+            <translation>Gold</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>Blaze</translation>
+            <source>Platinum</source>
+            <translation>Platinum</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>Wildfire</translation>
+            <source>Diamond</source>
+            <translation>Diamond</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>Inferno</translation>
+            <source>Thunderbolt</source>
+            <translation>Thunderbolt</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>Firestorm</translation>
+            <source>Champion</source>
+            <translation>Champion</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>Phoenix</translation>
+            <source>Legend</source>
+            <translation>Legend</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>Eternal Flame</translation>
+            <source>Simorgh</source>
+            <translation>Simorgh</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>

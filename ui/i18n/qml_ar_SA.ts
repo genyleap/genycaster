@@ -143,44 +143,44 @@
             <translation>عرض الكل</translation>
         </message>
         <message id="genycaster.streak.badge_first_spark">
-            <source>First Spark</source>
-            <translation>الشرارة الأولى</translation>
+            <source>Glow</source>
+            <translation>توهج</translation>
         </message>
         <message id="genycaster.streak.badge_ignition">
-            <source>Ignition</source>
-            <translation>الاشتعال</translation>
+            <source>Bronze</source>
+            <translation>برونز</translation>
         </message>
         <message id="genycaster.streak.badge_momentum">
-            <source>Momentum</source>
-            <translation>الزخم</translation>
+            <source>Silver</source>
+            <translation>فضة</translation>
         </message>
         <message id="genycaster.streak.badge_on_fire">
-            <source>On Fire</source>
-            <translation>متوهج</translation>
+            <source>Gold</source>
+            <translation>ذهب</translation>
         </message>
         <message id="genycaster.streak.badge_blaze">
-            <source>Blaze</source>
-            <translation>اللهيب</translation>
+            <source>Platinum</source>
+            <translation>بلاتين</translation>
         </message>
         <message id="genycaster.streak.badge_wildfire">
-            <source>Wildfire</source>
-            <translation>حريق هائل</translation>
+            <source>Diamond</source>
+            <translation>ألماس</translation>
         </message>
         <message id="genycaster.streak.badge_inferno">
-            <source>Inferno</source>
-            <translation>الجحيم</translation>
+            <source>Thunderbolt</source>
+            <translation>صاعقة</translation>
         </message>
         <message id="genycaster.streak.badge_firestorm">
-            <source>Firestorm</source>
-            <translation>عاصفة نارية</translation>
+            <source>Champion</source>
+            <translation>بطل</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
-            <source>Phoenix</source>
-            <translation>العنقاء</translation>
+            <source>Legend</source>
+            <translation>أسطورة</translation>
         </message>
         <message id="genycaster.streak.badge_eternal_flame">
-            <source>Eternal Flame</source>
-            <translation>الشعلة الخالدة</translation>
+            <source>Simorgh</source>
+            <translation>سيمرغ</translation>
         </message>
         <message id="genycaster.streak.badge_one_day">
             <source>%1 day</source>
