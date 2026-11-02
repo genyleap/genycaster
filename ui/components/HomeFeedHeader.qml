@@ -234,19 +234,9 @@ Item {
                             hoverEnabled: true
                             enabled: String(modelData.id) !== "following"
                                      || root.authenticated
-                            background: Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 2
-                                radius: 9
-                                color: scopeOption.selected ? "transparent"
-                                     : scopeOption.hovered ? Theme.surfaceHover : "transparent"
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: Theme.reduceMotion ? 0 : 110
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                            }
+                            // One pill owns the selected background. Hover
+                            // only changes text; never paint a second surface.
+                            background: Item {}
                             contentItem: DirectionAwareLabel {
                                 text: String(scopeOption.modelData.title)
                                 font.pixelSize: Theme.typeCaptionSize
