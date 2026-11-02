@@ -151,7 +151,7 @@ Item {
     }
     function refreshSources() {
         genyPulseActivity.requestFarcaster(Math.max(0,Math.floor(profileFid)))
-        if(isOwnProfile && verifiedGitHub.length>0)
+        if(verifiedGitHub.length>0)
             genyPulseActivity.requestGitHub(verifiedGitHub)
         else if(isOwnProfile && githubLinked && githubAccountId.length>0)
             genyPulseActivity.requestGitHubId(githubAccountId)
@@ -162,7 +162,7 @@ Item {
     }
 
     function refreshGithubCalendar() {
-        genyPulseActivity.requestGitHubContributions(isOwnProfile ? effectiveGithubLogin : "",githubYear)
+        genyPulseActivity.requestGitHubContributions(effectiveGithubLogin,githubYear)
     }
     onEffectiveGithubLoginChanged: refreshGithubCalendar()
     onGithubYearChanged: refreshGithubCalendar()
