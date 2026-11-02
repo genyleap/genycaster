@@ -95,6 +95,17 @@ Item {
     onActiveDetailChanged: {
         profileStatusFetch.restart()
         streakFetch.restart()
+        publicActivityFetch.restart()
+    }
+    Timer {
+        id: publicActivityFetch
+        interval: 230
+        repeat: false
+        onTriggered: {
+            const fid=Number(root.activeDetail.fid || 0)
+            if(fid>0 && !root.isOwnProfile)
+                openProofConnections.fetchPublicActivitySource(fid)
+        }
     }
     Timer {
         id: streakFetch
@@ -2281,11 +2292,14 @@ Item {
                 // by the native account controller, including server-confirmed
                 // cross-device snapshots. A fresh OAuth grant is NOT required
                 // just to read the verified public GitHub login.
-                verifiedGitHub: {
-                    const account = root.verifiedGithubActivityAccount
-                    return account.login || ""
-                }
-                githubLinked: root.verifiedGithubActivityAccount.linked
+                verifiedGitHub: root.isOwnProfile
+                    ? (root.verifiedGithubActivityAccount.login || "")
+                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
+                        ? openProofConnections.publicActivityGithubLogin : ""
+                githubLinked: root.isOwnProfile
+                    ? root.verifiedGithubActivityAccount.linked
+                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
+                        && openProofConnections.publicActivityGithubLogin.length>0
                 githubAccountId: root.verifiedGithubActivityAccount.id
                 verifiedWallet: {
                     const verified=root.activeDetail.verifiedEthAddresses || []
@@ -2297,7 +2311,8 @@ Item {
                 }
                 previewSource: root.isOwnProfile
                     ? String(openProofConnections.streakPreferences.activity_source || "casts")
-                    : "casts"
+                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
+                        ? String(openProofConnections.publicActivitySource || "casts") : "casts"
                 onExploreRequested: {
                     activityDrawer.mobilePresentation = root.compact
                     activityDrawer.open()
@@ -2692,8 +2707,14 @@ Item {
                     profileFid: Number(root.activeDetail.fid || 0)
                     compact: activityDrawer.mobilePresentation
                     isOwnProfile: root.isOwnProfile
-                    verifiedGitHub: root.verifiedGithubActivityAccount.login || ""
-                    githubLinked: root.verifiedGithubActivityAccount.linked
+                    verifiedGitHub: root.isOwnProfile
+                        ? (root.verifiedGithubActivityAccount.login || "")
+                        : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
+                            ? openProofConnections.publicActivityGithubLogin : ""
+                    githubLinked: root.isOwnProfile
+                        ? root.verifiedGithubActivityAccount.linked
+                        : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
+                            && openProofConnections.publicActivityGithubLogin.length>0
                     githubAccountId: root.verifiedGithubActivityAccount.id
                     verifiedWallet: {
                         const addresses = root.activeDetail.verifiedEthAddresses || []
@@ -3547,6 +3568,7 @@ Item {
     onIsOwnProfileChanged: {
         profileStatusFetch.restart()
         streakFetch.restart()
+        publicActivityFetch.restart()
         root.profileLinksExpanded = false
         if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
             profileRefreshRetry.restart()
