@@ -2,6 +2,38 @@
 <TS version="2.1" language="de_DE" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.leaderboard">
+            <source>Leaderboard</source>
+            <translation>Bestenliste</translation>
+        </message>
+        <message id="genycaster.streak.top_100">
+            <source>Top 100</source>
+            <translation>Top 100</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_description">
+            <source>Top active Streaks from users who choose to participate.</source>
+            <translation>Verifizierte Streaks von Personen, die freiwillig teilnehmen.</translation>
+        </message>
+        <message id="genycaster.streak.join_leaderboard">
+            <source>Join leaderboard (public)</source>
+            <translation>Öffentlich teilnehmen</translation>
+        </message>
+        <message id="genycaster.streak.leave_leaderboard">
+            <source>Leave leaderboard</source>
+            <translation>Bestenliste verlassen</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_empty">
+            <source>No participating Streaks yet.</source>
+            <translation>Noch keine Teilnehmenden.</translation>
+        </message>
+        <message id="genycaster.streak.fid">
+            <source>FID %1</source>
+            <translation>FID %1</translation>
+        </message>
+        <message id="genycaster.streak.leader_days">
+            <source>%1 days</source>
+            <translation>%1 Tage</translation>
+        </message>
         <message id="genycaster.streak.title">
             <source>Streak</source>
             <translation>Streak</translation>
