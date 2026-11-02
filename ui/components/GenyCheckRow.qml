@@ -2,55 +2,73 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Unified accessible full-row check control for recovery and consent.
+// A single, accessible recovery choice. The hit target includes its entire
+// label, while the indicator remains optically aligned on every platform.
 Button {
     id: control
     property string label: ""
     checkable: true
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    padding: 0
-    implicitHeight: Math.max(48, checkboxContent.implicitHeight + Theme.space2)
-    implicitWidth: checkboxContent.implicitWidth
+
+    topPadding: 7
+    bottomPadding: 7
+    leftPadding: 0
+    rightPadding: 0
+    implicitHeight: Math.max(44, choiceContent.implicitHeight + topPadding + bottomPadding)
+    implicitWidth: choiceContent.implicitWidth
     Accessible.role: Accessible.CheckBox
     Accessible.name: label
     Accessible.checked: checked
 
+    // No selected-row card: two adjacent choices must remain visually equal.
     background: Rectangle {
         radius: Theme.space2
-        color: control.down ? Theme.surfacePressed
-              : control.hovered ? Theme.surfaceHover : "transparent"
-        Behavior on color { ColorAnimation { duration: Theme.motionFast } }
+        color: control.down || (control.hovered && control.enabled)
+               ? Theme.surfaceHover : "transparent"
+        opacity: control.down ? 0.72 : control.hovered ? 0.45 : 0
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+        }
     }
+
     contentItem: RowLayout {
-        id: checkboxContent
-        spacing: Theme.space3
+        id: choiceContent
+        spacing: 10
         layoutDirection: Theme.uiDirection
-        Superellipse {
-            Layout.preferredWidth: 24
-            Layout.preferredHeight: 24
+
+        Rectangle {
+            Layout.preferredWidth: 20
+            Layout.preferredHeight: 20
             Layout.alignment: Qt.AlignVCenter
-            fillColor: control.checked ? Theme.ink : Theme.surface
-            borderColor: Theme.keyboardFocusVisible(control)
-                         ? Theme.focus : Theme.borderMuted
-            borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 1
-            curveDepth: 6
-            Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
+            radius: 5
+            color: control.checked ? Theme.accent : Theme.surface
+            border.width: Theme.keyboardFocusVisible(control) ? 2 : 1.5
+            border.color: Theme.keyboardFocusVisible(control) ? Theme.focus
+                         : control.checked ? Theme.accent : Theme.borderStrong
+            Behavior on color {
+                ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+            }
             Icon {
                 anchors.centerIn: parent
                 text: Theme.iconCheck
                 color: Theme.surface
-                preferredSize: 15
+                preferredSize: 13
                 opacity: control.checked ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.motionFast } }
+                Behavior on opacity {
+                    NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                }
             }
         }
+
         DirectionAwareLabel {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             Layout.alignment: Qt.AlignVCenter
             text: control.label
+            color: control.enabled ? Theme.ink : Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize
-            color: Theme.ink
+            verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
         }
     }
