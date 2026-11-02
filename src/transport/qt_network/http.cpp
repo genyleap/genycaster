@@ -2,6 +2,7 @@ module;
 
 #include <QByteArray>
 #include <QCoreApplication>
+#include <QDebug>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QList>
@@ -439,6 +440,12 @@ private:
         const QVariant statusAttribute = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
         bool statusValid{false};
         const int statusCode = statusAttribute.toInt(&statusValid);
+        if ((statusValid && statusCode == 401)
+            || reply->error() == QNetworkReply::AuthenticationRequiredError) {
+            // Report the failing origin without leaking path/query/credentials.
+            qWarning().noquote() << "[Genycaster] Authentication required by host:"
+                                  << reply->url().host() << "(HTTP status" << statusCode << ")";
+        }
         if (statusValid && statusCode >= 100 && statusCode <= 65'535) {
             return farcaster::transport::http::HttpResponse{
                 .statusCode = static_cast<std::uint16_t>(statusCode),
