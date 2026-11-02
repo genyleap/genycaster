@@ -2,6 +2,110 @@
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.title">
+            <source>Streak</source>
+            <translation>Серия</translation>
+        </message>
+        <message id="genycaster.streak.subtitle">
+            <source>Your verified activity and milestones</source>
+            <translation>Подтверждённая активность и достижения</translation>
+        </message>
+        <message id="genycaster.streak.open">
+            <source>Open Streak details</source>
+            <translation>Открыть сведения о серии</translation>
+        </message>
+        <message id="genycaster.streak.profile_badge">
+            <source>Streak · %1d</source>
+            <translation>Серия · %1 дн.</translation>
+        </message>
+        <message id="genycaster.streak.activity">
+            <source>Activity</source>
+            <translation>Активность</translation>
+        </message>
+        <message id="genycaster.streak.creator">
+            <source>Creator</source>
+            <translation>Автор</translation>
+        </message>
+        <message id="genycaster.streak.loading">
+            <source>Loading Streak…</source>
+            <translation>Загрузка серии…</translation>
+        </message>
+        <message id="genycaster.streak.unavailable">
+            <source>Streak is not available yet.</source>
+            <translation>Серия временно недоступна.</translation>
+        </message>
+        <message id="genycaster.streak.day_in_row">
+            <source>day in a row</source>
+            <translation>день подряд</translation>
+        </message>
+        <message id="genycaster.streak.days_in_row">
+            <source>days in a row</source>
+            <translation>дней подряд</translation>
+        </message>
+        <message id="genycaster.streak.best">
+            <source>Best: %1 days</source>
+            <translation>Рекорд: %1 дн.</translation>
+        </message>
+        <message id="genycaster.streak.next">
+            <source>Next: %1 days</source>
+            <translation>Следующая цель: %1 дн.</translation>
+        </message>
+        <message id="genycaster.streak.legendary">
+            <source>Legendary</source>
+            <translation>Легенда</translation>
+        </message>
+        <message id="genycaster.streak.mon">
+            <source>M</source>
+            <translation>Пн</translation>
+        </message>
+        <message id="genycaster.streak.tue">
+            <source>T</source>
+            <translation>Вт</translation>
+        </message>
+        <message id="genycaster.streak.wed">
+            <source>W</source>
+            <translation>Ср</translation>
+        </message>
+        <message id="genycaster.streak.thu">
+            <source>T</source>
+            <translation>Чт</translation>
+        </message>
+        <message id="genycaster.streak.fri">
+            <source>F</source>
+            <translation>Пт</translation>
+        </message>
+        <message id="genycaster.streak.sat">
+            <source>S</source>
+            <translation>Сб</translation>
+        </message>
+        <message id="genycaster.streak.sun">
+            <source>S</source>
+            <translation>Вс</translation>
+        </message>
+        <message id="genycaster.streak.creator_rule">
+            <source>One verified original Cast per day counts.</source>
+            <translation>За день учитывается один подтверждённый оригинальный каст.</translation>
+        </message>
+        <message id="genycaster.streak.activity_rule">
+            <source>A verified Cast or Reply counts once per day.</source>
+            <translation>За день учитывается один подтверждённый каст или ответ.</translation>
+        </message>
+        <message id="genycaster.streak.badges">
+            <source>Badges · %1/%2</source>
+            <translation>Значки · %1/%2</translation>
+        </message>
+        <message id="genycaster.streak.show_less">
+            <source>Show less</source>
+            <translation>Свернуть</translation>
+        </message>
+        <message id="genycaster.streak.see_all">
+            <source>See all</source>
+            <translation>Все значки</translation>
+        </message>
+        <message id="genycaster.streak.badge_days">
+            <source>%1d</source>
+            <translation>%1 дн.</translation>
+        </message>
         <message id="genycaster.engagement.views_accessible">
             <source>Views: %1</source>
             <translation>Просмотры: %1</translation>
