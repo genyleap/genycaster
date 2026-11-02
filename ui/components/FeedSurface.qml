@@ -44,6 +44,20 @@ Item {
     property bool deferredFeedSync: false
     property bool deferredArtPrime: false
     property bool deferredPageCheck: false
+    // A provider/category change may briefly clear the projected model before
+    // the bridge reports busy. Reserve the loading surface for that handoff
+    // so no empty-state flash appears between selection and real data.
+    property bool selectionSettling: false
+    Timer {
+        id: selectionSettleTimer
+        interval: 165
+        repeat: false
+        onTriggered: root.selectionSettling = false
+    }
+    function beginSelectionHandoff() {
+        root.selectionSettling = true
+        selectionSettleTimer.restart()
+    }
     // Complex QVariantMap/QJSValue payloads must not live inside ListModel roles:
     // Qt fixes a role's type from its first value and later C++ QVariantMap vs
     // JS object/list wrappers can otherwise be rejected. Keep only primitive,
@@ -1054,12 +1068,14 @@ Item {
         root.deferFeedWork(true, false, false)
     }
     onActiveFeedChanged: {
+        root.beginSelectionHandoff()
         // Following and Trending own independent continuation streams. A real
         // source change starts a fresh bounded semantic-prefetch budget; local
         // Explorer tab switches no longer change activeFeed.
         root.resetAllFilterPrefetchBudgets()
     }
     onPresentationModeChanged: {
+        root.beginSelectionHandoff()
         stableViewportRestoreTimer.stop()
         root.pendingViewportKey = ""
         filterPrefetchDebounce.stop()
@@ -1720,6 +1736,7 @@ Item {
                 anchors.fill: parent
                 visible: stableRows.count === 0
                          && !(root.runtimeReady && (root.busy || root.supplementalBusy
+                                                       || root.selectionSettling
                                                        || root.needsFilteredPrefetch() || filterPrefetchDebounce.running))
                 runtimeReady: root.runtimeReady
                 busy: root.busy
@@ -1824,7 +1841,8 @@ Item {
         anchors.bottom: parent.bottom
         anchors.topMargin: readList.headerItem ? readList.headerItem.implicitHeight : 0
         visible: stableRows.count === 0 && root.runtimeReady
-                 && (root.busy || root.supplementalBusy || root.needsFilteredPrefetch() || filterPrefetchDebounce.running)
+                 && (root.busy || root.supplementalBusy || root.selectionSettling
+                     || root.needsFilteredPrefetch() || filterPrefetchDebounce.running)
         Repeater {
             model: root.presentationMode === "visuals" ? 2 : 3
             delegate: CastSkeleton {
