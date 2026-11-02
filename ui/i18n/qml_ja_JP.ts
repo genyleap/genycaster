@@ -2,6 +2,38 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.streak.leaderboard">
+            <source>Leaderboard</source>
+            <translation>ランキング</translation>
+        </message>
+        <message id="genycaster.streak.top_100">
+            <source>Top 100</source>
+            <translation>上位100人</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_description">
+            <source>Top active Streaks from users who choose to participate.</source>
+            <translation>参加を選んだユーザーの認証済み連続記録です。</translation>
+        </message>
+        <message id="genycaster.streak.join_leaderboard">
+            <source>Join leaderboard (public)</source>
+            <translation>公開ランキングに参加</translation>
+        </message>
+        <message id="genycaster.streak.leave_leaderboard">
+            <source>Leave leaderboard</source>
+            <translation>ランキングから退出</translation>
+        </message>
+        <message id="genycaster.streak.leaderboard_empty">
+            <source>No participating Streaks yet.</source>
+            <translation>参加者はまだいません。</translation>
+        </message>
+        <message id="genycaster.streak.fid">
+            <source>FID %1</source>
+            <translation>FID %1</translation>
+        </message>
+        <message id="genycaster.streak.leader_days">
+            <source>%1 days</source>
+            <translation>%1日</translation>
+        </message>
         <message id="genycaster.streak.title">
             <source>Streak</source>
             <translation>ストリーク</translation>
