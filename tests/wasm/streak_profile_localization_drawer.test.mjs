@@ -20,7 +20,7 @@ test('Streak no longer occupies the full profile timeline',()=>{
  const badge=profile.slice(profile.indexOf("id: profileStreakBadge"),
    profile.indexOf("id: followsYouBadge"));
  assert.match(badge,/visible:\s*root\.isOwnProfile/);
- assert.match(badge,/onClicked:\s*streakDrawer\.open\(\)/);
+ assert.match(badge,/onClicked:\s*\{[\s\S]*?streakDrawer\.open\(\)/);
  assert.match(profile,/id:\s*streakDrawer[\s\S]*?objectName:\s*"profileStreakDrawer"/);
  assert.match(profile,/bottomSheet:\s*mobilePresentation/);
  assert.match(profile,/StreakCard\s*\{\s*id:\s*streakDetails/);
