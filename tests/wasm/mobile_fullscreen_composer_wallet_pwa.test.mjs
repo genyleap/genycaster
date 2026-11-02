@@ -28,9 +28,9 @@ test('Mobile home launcher is vertically centered, accessible and skips inline i
 
 test('Full-height mobile composer retains publishing, replies, saved drafts and live media actions', () => {
     const composer=qml('ComposerDrawer');
-    assert.match(composer,/fullScreen: compact/);
-    assert.match(composer,/height: parent \? \(compact \? parent\.height/);
-    assert.match(composer,/showHandle: !fullScreen/);
+    assert.match(composer,/fullScreen: root\.compact/);
+    assert.match(composer,/height: parent \? \(root\.compact \? parent\.height/);
+    assert.match(composer,/showHandle: !root\.fullScreen/);
     assert.match(composer,/objectName: "mobileComposerNavigation"/);
     assert.match(composer,/qsTrId\("genycaster\.shell\.cancel"\)/);
     assert.match(composer,/qsTrId\("genycaster\.composer\.save_draft"\)/);
