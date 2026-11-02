@@ -1215,6 +1215,7 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
     cancelNetworkReply(m_publicActivityRead,this);
     m_publicActivityFid=fid;
     m_publicActivitySource=QStringLiteral("casts");
+    m_publicActivityGithubLogin.clear();
     emit streakChanged();
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/profile_activity"));
@@ -1240,7 +1241,13 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
         if(status==200 && object.value(QStringLiteral("fid")).toString()
             ==QString::number(fid)) {
             const auto source=object.value(QStringLiteral("activity_source")).toString();
+            const auto githubLogin=object.value(QStringLiteral("github_login")).toString();
+            static const QRegularExpression publicLogin{
+                QStringLiteral("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")};
+            m_publicActivityGithubLogin=publicLogin.match(githubLogin).hasMatch()
+                ?githubLogin:QString{};
             m_publicActivitySource=source==QStringLiteral("github")
+                && !m_publicActivityGithubLogin.isEmpty()
                 ?source:QStringLiteral("casts");
         }
         emit streakChanged();
@@ -2632,6 +2639,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     cancelNetworkReply(m_publicActivityRead, this);
     m_publicActivityFid=0;
     m_publicActivitySource=QStringLiteral("casts");
+    m_publicActivityGithubLogin.clear();
     cancelNetworkReply(m_streakPreferencesRead, this);
     cancelNetworkReply(m_streakPreferencesWrite, this);
     cancelNetworkReply(m_streakLeaderboardRead, this);
