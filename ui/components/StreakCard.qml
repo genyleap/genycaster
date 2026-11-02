@@ -199,7 +199,7 @@ Item {
                     rowSpacing: Theme.space2
                     Repeater {
                         model: root.showAllBadges ? root.milestones
-                            : root.milestones.slice(0,root.compact ? 4 : 7)
+                            : root.milestones.slice(0,root.compact ? 3 : 4)
                         delegate: ColumnLayout {
                             required property var modelData
                             readonly property bool earned: root.badges.indexOf(modelData)>=0
