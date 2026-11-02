@@ -667,7 +667,7 @@ GenyDrawer {
                         model: [{ section: 0, label: qsTrId("genycaster.settings.appearance"), glyph: Theme.iconPalette },
                                 { section: 1, label: qsTrId("genycaster.settings.language_region"), glyph: Theme.iconLanguage }]
                         delegate: ActionButton {
-                            id: navigationEntry
+                            id: navigationEntry1
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
@@ -694,7 +694,7 @@ GenyDrawer {
                                 { section: 3, label: qsTrId("genycaster.settings.content_loading"), glyph: Theme.iconDownload },
                                 { section: 6, label: qsTrId("genycaster.nodes.title"), glyph: Theme.iconCloud }]
                         delegate: ActionButton {
-                            id: navigationEntry
+                            id: navigationEntry2
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
@@ -720,7 +720,7 @@ GenyDrawer {
                         model: [{ section: 4, label: qsTrId("genycaster.settings.updates"), glyph: Theme.iconRefresh },
                                 { section: 5, label: qsTrId("genycaster.setup.recovery_title"), glyph: "system/lock" }]
                         delegate: ActionButton {
-                            id: navigationEntry
+                            id: navigationEntry3
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
