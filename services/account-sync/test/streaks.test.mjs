@@ -16,6 +16,14 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
   assert.equal(summary.activity.total_days,4);
   assert.equal(summary.creator.week.length,7);
   assert.equal(summary.activity.week[0].date,'2026-11-02');
+  assert.equal(summary.activity.week_saturday.length,7);
+  assert.equal(summary.activity.week_saturday[0].date,'2026-10-31');
+  assert.equal(summary.activity.week_saturday[2].date,'2026-11-02');
+  assert.equal(summary.activity.week_saturday[2].completed,true);
+  assert.equal(summary.creator.week_saturday[2].completed,false);
+  assert.deepEqual(summary.activity.week_saturday.map(day=>day.date),
+    ['2026-10-31','2026-11-01','2026-11-02','2026-11-03',
+     '2026-11-04','2026-11-05','2026-11-06']);
   assert.deepEqual(calculateStreaks([],now).creator.badges,[]);
   assert.equal(calculateStreaks([{day:'2026-11-01',kind:'cast'}],now).creator.current,1);
 });
