@@ -111,7 +111,11 @@ GenyDrawer {
     // Keep one geometry for the whole keyboard session; switching between
     // sheet and fullscreen as iOS opens its IME can invalidate the active
     // TextArea and silently discard composed emoji input.
-    fullScreen: compact
+    // A desktop window entering the compact breakpoint is not a phone.
+    // Preserve the rounded sheet when the window is resized.
+    fullScreen: compact && (Qt.platform.os === "ios" || Qt.platform.os === "android"
+                           || (Qt.platform.os === "wasm" && parent !== null
+                               && parent.height > parent.width * 1.15))
     showHandle: !fullScreen
     modal: true
     focus: true
@@ -370,28 +374,45 @@ GenyDrawer {
         root.editorMode = nextMode
     }
 
+    function hasMeaningfulText(value) {
+        // Space, line breaks and invisible format-only characters are not a Cast.
+        return String(value || "").replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").length > 0
+    }
+
     function hasLiveEditorText() {
         if (root.editorMode === "visual")
-            return root.compact ? mobilePlainEditor.text.trim().length > 0
+            return root.compact ? root.hasMeaningfulText(mobilePlainEditor.text)
                                 : visualEditor.hasLiveContent
         if (root.editorMode === "markdown")
-            return markdownEditor.text.trim().length > 0
+            return root.hasMeaningfulText(markdownEditor.text)
         return false
     }
 
     function threadTailWithinLimit() {
         for (let index = 0; index < threadTailModel.count; ++index) {
             const text = String(threadTailModel.get(index).text || "")
-            if (text.trim().length === 0 || presentationBridge.utf8ByteCount(text) > 1024)
+            if (!root.hasMeaningfulText(text) || presentationBridge.utf8ByteCount(text) > 1024)
                 return false
         }
         return true
     }
 
     function hasPublishableContent() {
-        return (richComposer.safeText.trim().length > 0 || root.hasLiveEditorText()
-                || richComposer.protocolEmbeds.length > 0)
-               && root.threadTailWithinLimit()
+        const hasEmbeds = richComposer.protocolEmbeds.length > 0
+        // A draft's stored value can lag behind the active text editor.
+        // For single-block drafts, never re-enable Publish from stale text
+        // after the user has erased the editor or typed only whitespace.
+        let hasText = root.hasMeaningfulText(richComposer.safeText)
+        if (root.editorMode === "markdown")
+            hasText = root.hasMeaningfulText(markdownEditor.text)
+        else if (root.editorMode === "visual" && root.compact)
+            hasText = root.hasMeaningfulText(mobilePlainEditor.text)
+        else if (root.editorMode === "visual" && visualEditor.activeEditor !== null
+                 && richComposer.blocks.length <= 1)
+            hasText = visualEditor.hasLiveContent
+        else if (root.editorMode === "visual")
+            hasText = hasText || visualEditor.hasLiveContent
+        return (hasText || hasEmbeds) && root.threadTailWithinLimit()
     }
 
     function publicationEmbeds() {
@@ -1372,6 +1393,7 @@ GenyDrawer {
             // never overlaid on Channel/Topics or clipped during resizing.
             FormattingToolbar {
                 id: formattingToolbar
+                Layout.bottomMargin: !root.compact ? Theme.space2 : 0
                 visible: root.editorMode === "visual" && (!root.compact || root.showAdvancedFormatting)
                          && !root.keyboardVisible
                 Layout.fillWidth: true
@@ -1617,16 +1639,16 @@ GenyDrawer {
                                                     ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
                                                     : Math.max(135, composerScroll.height
                                                         - (root.keyboardVisible ? 84 : 126)))
-                                                 : 255)
+                                                 : Math.max(148, Math.min(255, composerScroll.height * 0.55)))
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode
-                                        ? (root.compact ? 118 : 220)
+                                        ? (root.compact ? 118 : 96)
                                         : root.replyMode
-                                          ? (root.compact ? 118 : 190)
+                                          ? (root.compact ? 118 : 96)
                                           : root.quoteMode
-                                            ? (root.compact ? 138 : 220)
-                                            : (root.compact ? 135 : 195)
+                                            ? (root.compact ? 138 : 96)
+                                            : (root.compact ? 135 : 108)
                 spacing: Theme.space3
                 layoutDirection: Qt.LeftToRight
 
