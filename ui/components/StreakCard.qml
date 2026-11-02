@@ -84,9 +84,8 @@ Item {
             Label {
                 Layout.fillWidth: true
                 visible: !root.available
-                text: root.errorText.length ? root.errorText
-                    : root.loading ? qsTrId("genycaster.streak.loading")
-                        : qsTrId("genycaster.streak.unavailable")
+                text: root.loading ? qsTrId("genycaster.streak.loading")
+                    : qsTrId("genycaster.streak.unavailable")
                 wrapMode: Text.WordWrap
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
