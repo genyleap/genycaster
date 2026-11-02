@@ -19,6 +19,39 @@ from ci.release_gate import project_version, release_designation, release_versio
 
 
 class PipelineTests(unittest.TestCase):
+    def test_responsive_interaction_contracts(self) -> None:
+        """Guard the shared motion, mobile sheets and composer chrome."""
+        qml = Path("ui/components")
+        setup = (qml / "InitialSetup.qml").read_text(encoding="utf-8")
+        checkbox = (qml / "GenyCheckRow.qml").read_text(encoding="utf-8")
+        home = (qml / "HomeFeedHeader.qml").read_text(encoding="utf-8")
+        tabs = (qml / "ContentTabs.qml").read_text(encoding="utf-8")
+        composer = (qml / "ComposerDrawer.qml").read_text(encoding="utf-8")
+        settings = (qml / "LocaleSettingsPopup.qml").read_text(encoding="utf-8")
+        shell = (qml / "AppShell.qml").read_text(encoding="utf-8")
+        self.assertIn("components/GenyCheckRow.qml", Path("ui/CMakeLists.txt").read_text())
+        self.assertEqual(setup.count("GenyCheckRow {"), 2)
+        self.assertIn("Accessible.role: Accessible.CheckBox", checkbox)
+        self.assertIn("spacing: Theme.space3", checkbox)
+        self.assertIn("id: audienceSelectionPill", home)
+        self.assertIn("Behavior on x", home)
+        self.assertIn("Behavior on color", tabs)
+        self.assertIn("Behavior on opacity", tabs)
+        self.assertIn("id: composerFixedChrome", composer)
+        self.assertLess(composer.index("id: composerFixedChrome"),
+                        composer.index("id: composerScroll"))
+        self.assertLess(composer.index("id: composerScroll"),
+                        composer.index("id: mobileComposerFooter"))
+        self.assertIn("Layout.minimumHeight: 0", composer)
+        self.assertIn("Math.min(760, parent.width)", composer)
+        self.assertIn("Math.min(640, parent.width)", settings)
+        self.assertIn("fullScreen: mobilePresentation", settings)
+        self.assertIn("root.pendingSettingsOpen = true", shell)
+        self.assertIn("onLoaded: root.showLoadedSettings()", shell)
+        self.assertEqual(settings.count("id: navigationEntry1"), 1)
+        self.assertEqual(settings.count("id: navigationEntry2"), 1)
+        self.assertEqual(settings.count("id: navigationEntry3"), 1)
+
     def test_native_recovery_session_is_pinned_and_cancelable(self) -> None:
         bridge = Path("src/presentation/qt/presentation_bridge.cpp").read_text(encoding="utf-8")
         wiring = Path("ui/mobile/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
