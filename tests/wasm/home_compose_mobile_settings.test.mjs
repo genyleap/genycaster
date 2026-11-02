@@ -21,8 +21,8 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
 test('Mobile Settings remains full-height with grouped index navigation', () => {
     const settings = source('LocaleSettingsPopup.qml');
     const shell = source('AppShell.qml');
-    assert.match(settings, /height: parent \? \(mobilePresentation[\s\S]*?parent\.SafeArea\.margins\.top \+ Theme\.space3/);
-    assert.match(settings, /Math\.min\(parent\.height, Math\.max\(320,/);
+    assert.match(settings, /fullScreen: mobilePresentation/);
+    assert.match(settings, /height: parent \\? parent\\.height : 820/);
     assert.match(settings, /bottomPadding: root\.contentPadding \+ \(root\.mobilePresentation/);
     assert.match(settings, /readonly property real navigationInset/);
     assert.match(settings, /parent\.Window\.contentItem\.SafeArea\.margins\.bottom : 0/);
@@ -36,7 +36,7 @@ test('Mobile Settings remains full-height with grouped index navigation', () => 
     assert.match(settings, /section: 5/);
     assert.match(settings, /section: -1/);
     assert.match(settings, /if \(root\.mobileIndexOpen\) root\.close\(\)/);
-    assert.match(shell, /popup\.mobileIndexOpen = requestedSection < 0/);
+    assert.match(shell, /popup\\.mobileIndexOpen = root\\.pendingSettingsSection < 0/);
 });
 
 test('Mobile full Cast footer stacks compatibility hint above publish byte counts', () => {
@@ -67,10 +67,10 @@ test('Mobile action settings keep all function and color labels readable', () =>
     const end = settings.indexOf('objectName: "textSelectionPreference"', start);
     assert.ok(start >= 0 && end > start);
     const preferences = settings.slice(start, end);
-    assert.match(preferences, /columns: root\.mobilePresentation \? 2 : 4/);
-    assert.match(preferences, /columns: root\.mobilePresentation \? 2 : 3/);
+    assert.match(preferences, /visible: root\\.mobilePresentation/);
+    assert.match(preferences, /columns: 2/);
     assert.match(preferences, /uniformCellWidths: true/);
-    assert.equal((preferences.match(/wrapText: root\.mobilePresentation/g) || []).length, 2);
+    assert.match(preferences, /wrapText: true/);
 });
 
 test('Mobile search reads the actual host window status safe area', () => {
