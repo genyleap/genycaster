@@ -83,7 +83,9 @@ class PipelineTests(unittest.TestCase):
         self.assertLess(composer.index("id: composerScroll"),
                         composer.index("id: mobileComposerFooter"))
         self.assertIn("Layout.minimumHeight: 0", composer)
-        self.assertIn("Math.min(760, parent.width)", composer)
+        self.assertIn("Math.min(720, Math.max(0, parent.width - Theme.space4 * 2))", composer)
+        self.assertIn("Math.min(parent.height * 0.78, 660)", composer)
+        self.assertIn("&& !channelPicker.opened && !topicPicker.opened", composer)
         self.assertIn("Math.min(640, parent.width)", settings)
         self.assertIn("fullScreen: mobilePresentation", settings)
         self.assertIn('id: mobileSetupNav', setup)
