@@ -17,7 +17,10 @@ const qmlIds=[...new Set([...profile.matchAll(/qsTrId\("(genycaster\.streak\.[\w
 test('Streak no longer occupies the full profile timeline',()=>{
  assert.doesNotMatch(profile,/StreakCard\s*\{\s*objectName:\s*"ownerProfileStreak"/);
  assert.match(profile,/objectName:\s*"profileStreakBadge"/);
- assert.match(profile,/visible:\s*root\.isOwnProfile[\s\S]{0,360}onClicked:\s*streakDrawer\.open\(\)/);
+ const badge=profile.slice(profile.indexOf("id: profileStreakBadge"),
+   profile.indexOf("id: followsYouBadge"));
+ assert.match(badge,/visible:\s*root\.isOwnProfile/);
+ assert.match(badge,/onClicked:\s*streakDrawer\.open\(\)/);
  assert.match(profile,/id:\s*streakDrawer[\s\S]*?objectName:\s*"profileStreakDrawer"/);
  assert.match(profile,/bottomSheet:\s*mobilePresentation/);
  assert.match(profile,/StreakCard\s*\{\s*id:\s*streakDetails/);
