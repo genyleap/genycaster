@@ -44,6 +44,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
+    Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
+    Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
+    Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
     Q_PROPERTY(bool profileStatusBusy READ profileStatusBusy NOTIFY profileStatusChanged)
     Q_PROPERTY(QString profileStatusError READ profileStatusError NOTIFY profileStatusChanged)
     Q_PROPERTY(bool bookmarkRefreshBusy READ bookmarkRefreshBusy NOTIFY cloudStateChanged)
@@ -93,6 +96,11 @@ public:
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
     [[nodiscard]] QVariantMap cloudProfileExtras() const { return m_cloudProfileExtras; }
     [[nodiscard]] QVariantMap profileStatus() const { return m_profileStatus; }
+    [[nodiscard]] QVariantMap streak() const { return m_streak; }
+    [[nodiscard]] bool streakBusy() const noexcept { return m_streakRead || m_streakWrite; }
+    [[nodiscard]] QString streakError() const { return m_streakError; }
+    Q_INVOKABLE void fetchStreak();
+    Q_INVOKABLE void recordStreakCast(const QString& hash);
     [[nodiscard]] bool profileStatusBusy() const noexcept {
         return m_profileStatusRead || m_profileStatusWrite;
     }
@@ -201,6 +209,7 @@ signals:
     void stateChanged();
     void cloudStateChanged();
     void profileStatusChanged();
+    void streakChanged();
     /** Emitted exactly once for each status save attempt (including rejected requests). */
     void profileStatusSaveFinished(bool saved, const QString& message);
     void topicsChanged();
@@ -246,6 +255,10 @@ private:
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
     QPointer<QNetworkReply> m_profileStatusRead{};
+    QPointer<QNetworkReply> m_streakRead{};
+    QPointer<QNetworkReply> m_streakWrite{};
+    QVariantMap m_streak{};
+    QString m_streakError{};
     QPointer<QNetworkReply> m_profileStatusWrite{};
     qulonglong m_profileStatusFid{};
     qlonglong m_profileStatusRevision{};
