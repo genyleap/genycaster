@@ -38,11 +38,10 @@ Button {
     }
 
     background: Superellipse {
-        fillColor: control.segmented
-                   ? (control.selected
-                      ? Theme.surfaceRaised
-                      : (control.hovered || control.down ? Theme.surfaceHover : "transparent"))
-                   : "transparent"
+        // Hover must never create a second painted tab. The selected
+        // surface is stable; nonselected tabs remain transparent.
+        fillColor: control.segmented && control.selected
+                   ? Theme.surfaceRaised : "transparent"
         borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
         borderColor: Theme.focus
         curveDepth: Theme.curveControl
@@ -51,7 +50,7 @@ Button {
         shadowOpacityScale: 0.62
         Behavior on fillColor {
             ColorAnimation {
-                duration: Theme.reduceMotion ? 0 : 110
+                duration: Theme.reduceMotion ? 0 : 140
                 easing.type: Easing.OutCubic
             }
         }
