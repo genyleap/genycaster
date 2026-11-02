@@ -1720,7 +1720,12 @@ Item {
                                 // On phones the composer must be positioned against the
                                 // live Qt viewport, not the readingPane whose geometry
                                 // may extend beyond the iOS keyboard.
-                                hostItem: root.mobile ? root : readingPane
+                                // The readingPane changes width and sometimes
+                                // position when desktop side rails reflow. A
+                                // modal hosted there used to switch into phone
+                                // layout mid-resize and jump across the screen.
+                                hostItem: root
+                                requestedCompact: root.mobile
                                 blurSourceItem: shellContent
                                 parentCast: root.composerParent
                                 onPublishRequested: (text, mentionFids, mentionPositions, embeds, parentUrl) => {
