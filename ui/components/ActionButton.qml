@@ -161,7 +161,6 @@ Button {
             text: control.iconGlyph
             filled: control.selected
             color: control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
-            Behavior on color { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
             preferredSize: control.iconSize
             Layout.alignment: Qt.AlignCenter
         }
@@ -171,7 +170,6 @@ Button {
             Layout.fillWidth: true
             text: control.text
             color: control.foregroundColor
-            Behavior on color { ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast } }
             font.family: Theme.fontFamily
             font.pixelSize: Theme.typeLabelSize
             font.weight: control.prominent || control.positive || control.selected ? Theme.weightDemiBold : Theme.weightMedium
@@ -253,6 +251,7 @@ Button {
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.42 : (control.hovered ? 1.08 : 1.0)
 
-        Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
+        // Hover changes the paint immediately; no repeated color tween on
+        // pointer sweeps through action lists or tab-like selectors.
     }
 }
