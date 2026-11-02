@@ -31,7 +31,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -43,6 +43,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const bookmarkCollectionsReady=versions.has(7);
   const secondaryCategoriesReady=versions.has(8);
   const multipleRolesReady=versions.has(9);
+  const streakReady=versions.has(10);
   return {
     close:()=>pool.end(),
     // A reserved account-owned notification record, distinct from notifications
@@ -98,6 +99,25 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
       return result.rows[0] ? {...result.rows[0].payload,
         fid:String(fid),revision:result.rows[0].revision,
         updated_at:result.rows[0].updated_at} : null;
+    },
+    streakReady:()=>streakReady,
+    async listStreakEvents({issuer,subject}) {
+      if(!streakReady)throw new Error('streak_migration_required');
+      const result=await pool.query(`SELECT credited_on::text AS day,kind
+        FROM streak_cast_events
+        WHERE issuer=$1 AND subject=$2
+          AND credited_on>=((now() AT TIME ZONE 'UTC')::date-730)
+        ORDER BY credited_on DESC LIMIT 2000`,[issuer,subject]);
+      return result.rows;
+    },
+    async recordStreakCast({issuer,subject},hash,kind) {
+      if(!streakReady)throw new Error('streak_migration_required');
+      const result=await pool.query(`INSERT INTO streak_cast_events
+          (issuer,subject,cast_hash,kind)
+        VALUES($1,$2,decode(substr($3,3),'hex'),$4)
+        ON CONFLICT(issuer,subject,cast_hash) DO NOTHING
+        RETURNING credited_on::text AS day`,[issuer,subject,hash,kind]);
+      return {recorded:result.rowCount===1};
     },
     bookmarkPreviewsReady:()=>bookmarkPreviewsReady,
     topicsReady:()=>topicsReady,
