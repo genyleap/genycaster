@@ -180,7 +180,8 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
     const ctx={
         URL,Response,TransformStream,DecompressionStream,
         isWebKitRuntime:true,hashedWasm:new RegExp("^genycaster[.][0-9a-f]{20}[.]wasm$"),
-        releaseInfo:{wasmGzip:wasm+".gz",wasmGzipBytes:compressed.length},
+        releaseInfo:{wasmGzip:wasm+".gz",wasmGzipBytes:compressed.length,
+            version:"1234567890abcdef1234"},
         location:{href:"https://caster.genyleap.com/"},
         originalFetch:async(request,options)=>{
             assetRequests.push({request,options});
@@ -200,6 +201,8 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
     const module=await WebAssembly.compileStreaming(Promise.resolve(result.response));
     assert.ok(module instanceof WebAssembly.Module);
     assert.equal(assetRequests.length,1);
-    assert.equal(assetRequests[0].request,url+".gz");
-    assert.equal(assetRequests[0].options.cache,"force-cache");
+    assert.equal(assetRequests[0].request,
+        url+".gz?v=1234567890abcdef1234");
+    assert.equal(assetRequests[0].options.cache,"no-cache",
+        "do not reuse cached 200 HTML from a previously missing sidecar");
 });
