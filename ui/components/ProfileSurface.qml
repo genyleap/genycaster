@@ -2111,6 +2111,15 @@ Item {
                             }
                         }
 
+                        // Separate the badge from the follower counts when
+                        // there is room; never widen the profile content.
+                        Item {
+                            visible: root.isOwnProfile && !root.compact
+                            width: visible ? Math.max(0, profileStatsFlow.width -
+                                followingCountButton.width - followersCountButton.width -
+                                profileStreakBadge.width - Theme.space3 * 4) : 0
+                            height: 1
+                        }
                         Button {
                             id: profileStreakBadge
                             objectName: "profileStreakBadge"
@@ -2120,9 +2129,51 @@ Item {
                             implicitWidth: streakBadgeContent.implicitWidth + Theme.space3 * 2
                             padding: 0
                             Accessible.name: qsTrId("genycaster.streak.open")
-                            ToolTip.visible: hovered
-                            ToolTip.text: qsTrId("genycaster.streak.open")
+                            // The platform ToolTip is unstyled; use the
+                            // same popup surface and placement as ActionButton.
+                            onHoveredChanged: {
+                                streakHintTimer.stop()
+                                streakHint.close()
+                                if (hovered && !root.compact)
+                                    streakHintTimer.restart()
+                            }
+                            Timer {
+                                id: streakHintTimer
+                                interval: 420
+                                repeat: false
+                                onTriggered: {
+                                    if (!profileStreakBadge.hovered || !profileStreakBadge.Overlay.overlay)
+                                        return
+                                    const overlay = profileStreakBadge.Overlay.overlay
+                                    const point = profileStreakBadge.mapToItem(overlay, 0, 0)
+                                    streakHint.x = Math.max(Theme.space2,
+                                        Math.min(overlay.width-streakHint.implicitWidth-Theme.space2,
+                                            point.x+(profileStreakBadge.width-streakHint.implicitWidth)/2))
+                                    streakHint.y = Math.max(Theme.space2,
+                                        point.y-streakHint.implicitHeight-Theme.space2)
+                                    streakHint.open()
+                                }
+                            }
+                            Popup {
+                                id: streakHint
+                                parent: profileStreakBadge.Overlay.overlay
+                                modal: false
+                                focus: false
+                                closePolicy: Popup.NoAutoClose
+                                padding: Theme.space2
+                                background: PopupSurface {
+                                    curveDepth: Theme.curveCompact
+                                    elevation: Theme.elevationPopover
+                                }
+                                contentItem: DirectionAwareLabel {
+                                    text: qsTrId("genycaster.streak.open")
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                            }
                             onClicked: {
+                                streakHintTimer.stop()
+                                streakHint.close()
                                 streakDrawer.mobilePresentation = root.compact
                                 streakDrawer.open()
                             }
@@ -2148,11 +2199,8 @@ Item {
                                     color: Theme.warning
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
-                                    text: openProofConnections.streak.time_zone === "UTC"
-                                        ? qsTrId("genycaster.streak.profile_badge").arg(
-                                            LocaleFormat.formatInteger(Number(
-                                                openProofConnections.streak.activity?.current || 0)))
-                                        : qsTrId("genycaster.streak.title")
+                                    text: LocaleFormat.formatInteger(Number(
+                                        openProofConnections.streak.activity?.current || 0))
                                 }
                             }
                         }
@@ -2244,6 +2292,13 @@ Item {
                         if(/^0x[0-9a-fA-F]{40}$/.test(address))return address
                     }
                     return ""
+                }
+                previewSource: root.isOwnProfile
+                    ? String(openProofConnections.streakPreferences.activity_source || "casts")
+                    : "casts"
+                onExploreRequested: {
+                    activityDrawer.mobilePresentation = root.compact
+                    activityDrawer.open()
                 }
                 onConnectionsRequested: root.openConnections()
             }
@@ -2561,6 +2616,95 @@ Item {
     function openProfileEditor() {
         if (root.isOwnProfile)
             profileExtrasEditor.open()
+    }
+
+    // Activity sources are a separate inspector. Only the owner's choice is
+    // saved and synchronized; other profiles default to the public Cast source.
+    GenyDrawer {
+        id: activityDrawer
+        objectName: "profileActivityDrawer"
+        parent: Overlay.overlay
+        property bool mobilePresentation: false
+        bottomSheet: mobilePresentation
+        dimBackground: true
+        interactive: false
+        showHandle: mobilePresentation
+        contentPadding: Theme.space4
+        width: parent ? (mobilePresentation ? parent.width
+            : Math.min(520, Math.max(0, parent.width - Theme.space4*2))) : 520
+        height: parent ? (mobilePresentation ? parent.height*0.85 : parent.height) : 640
+
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            ModalHeader {
+                Layout.fillWidth: true
+                title: qsTrId("genycaster.activity.title")
+                onCloseRequested: activityDrawer.close()
+            }
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.isOwnProfile
+                spacing: Theme.space1
+                Label {
+                    text: qsTrId("genycaster.activity.default_source")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                GenyTabStrip {
+                    Layout.fillWidth: true
+                    distribute: true
+                    segmented: true
+                    currentId: String(openProofConnections.streakPreferences.activity_source || "casts")
+                    tabs: [
+                        {id:"casts",label:qsTrId("genycaster.activity.casts")},
+                        {id:"github",label:"GitHub"}
+                    ]
+                    onActivated: id => {
+                        if(id === "github" && !root.verifiedGithubActivityAccount.linked)return
+                        openProofConnections.setStreakPreferences(id,
+                            openProofConnections.streakPreferences.leaderboard_visible === true)
+                    }
+                }
+                Label {
+                    visible: !root.verifiedGithubActivityAccount.linked
+                    text: qsTrId("genycaster.activity.github_default_requires_link")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    wrapMode: Text.WordWrap
+                }
+            }
+            Flickable {
+                objectName: "profileActivityDetailsScroll"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                contentWidth: width
+                contentHeight: activityDetails.implicitHeight + Theme.space3
+                GenyPulsePanel {
+                    id: activityDetails
+                    objectName: "profileActivityDetails"
+                    width: parent.width
+                    detailMode: true
+                    expanded: true
+                    profileFid: Number(root.activeDetail.fid || 0)
+                    compact: activityDrawer.mobilePresentation
+                    isOwnProfile: root.isOwnProfile
+                    verifiedGitHub: root.verifiedGithubActivityAccount.login || ""
+                    githubLinked: root.verifiedGithubActivityAccount.linked
+                    githubAccountId: root.verifiedGithubActivityAccount.id
+                    verifiedWallet: {
+                        const addresses = root.activeDetail.verifiedEthAddresses || []
+                        for (let i=0;i<addresses.length && i<50;++i) {
+                            const address=String(addresses[i] || "")
+                            if(/^0x[0-9a-fA-F]{40}$/.test(address))return address
+                        }
+                        return ""
+                    }
+                    onConnectionsRequested: root.openConnections()
+                }
+            }
+        }
     }
 
     // Streak has its own dedicated surface, not an always-expanded card in
