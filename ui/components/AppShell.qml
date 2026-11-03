@@ -237,6 +237,12 @@ Item {
     // Server-confirmed topic memberships are projected into the existing
     // Explorer/Profile cast lists. They never replace the navigation surface.
     property var topicHydrationAttempted: ({})
+    function canonicalTopicHash(value) {
+        // Provider feeds may supply bare HyperSnap hashes, but the topic
+        // index always supplies 0x-prefixed Farcaster hashes.
+        const digits = String(value || "").toLowerCase().replace(/^0x/, "")
+        return /^[0-9a-f]{40}$/.test(digits) ? "0x" + digits : ""
+    }
     function topicInlineRows() {
         if (!root.topicBrowseActive) return []
         const available = Object.create(null)
@@ -244,16 +250,16 @@ Item {
                               presentationBridge.rows || [],
                               presentationBridge.bookmarkedCasts || []]) {
             for (const cast of source) {
-                const hash = String(cast.castId || "").toLowerCase()
-                if (/^0x[0-9a-f]{40}$/.test(hash)
+                const hash = root.canonicalTopicHash(cast.castId)
+                if (hash.length > 0
                     && !available[hash] && (cast.richHydrated !== false))
                     available[hash] = cast
             }
         }
         const selected = []
         for (const membership of openProofConnections.topicCastItems || []) {
-            const hash = String(membership.cast_hash || "").toLowerCase()
-            if (available[hash]) selected.push(available[hash])
+            const hash = root.canonicalTopicHash(membership.cast_hash)
+            if (hash && available[hash]) selected.push(available[hash])
         }
         return selected
     }
@@ -261,9 +267,8 @@ Item {
         if (!root.topicBrowseActive) return
         const pending = []
         for (const membership of openProofConnections.topicCastItems || []) {
-            const hash = String(membership.cast_hash || "").toLowerCase()
-            if (!/^0x[0-9a-f]{40}$/.test(hash)
-                || root.topicHydrationAttempted[hash]) continue
+            const hash = root.canonicalTopicHash(membership.cast_hash)
+            if (!hash || root.topicHydrationAttempted[hash]) continue
             root.topicHydrationAttempted[hash] = true
             pending.push(hash)
             if (pending.length >= 8) break
