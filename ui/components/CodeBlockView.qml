@@ -14,7 +14,12 @@ Superellipse {
     borderWidth: 1
     borderColor: Theme.codeBorder
     curveDepth: Theme.curveContainer
-    implicitHeight: Math.min(Math.max(118, codeText.implicitHeight + header.implicitHeight + Theme.space5), 520)
+    // Fit short snippets instead of reserving an editor-sized empty panel.
+    // Longer code remains scrollable, with the full source available via Copy.
+    implicitHeight: Math.min(Math.max(root.compact ? 76 : 88,
+        codeText.implicitHeight + header.implicitHeight
+        + (root.compact ? Theme.space2 * 2 : Theme.space3 * 2) + Theme.space1),
+        root.compact ? 360 : 440)
 
     function escapeHtml(value) {
         return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
@@ -72,8 +77,8 @@ Superellipse {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.space3
-        spacing: Theme.space2
+        anchors.margins: root.compact ? Theme.space2 : Theme.space3
+        spacing: Theme.space1
 
         RowLayout {
             id: header
