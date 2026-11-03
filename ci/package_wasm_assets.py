@@ -95,7 +95,7 @@ public = ["genycaster.html", "qtloader.js", "genycaster.js",
           "openproof_recovery.mjs", "browser_protocol_signer.mjs", "browser_device_session.mjs", "browser_account_session.mjs",
           "browser_media_upload.mjs", "farcaster_protocol.mjs", "secure_signer_vault.mjs",
           "vendor/noble-secp256k1.mjs", "vendor/bip39-english.mjs",
-          "miniapp-host-pre.js", "vendor/hls-1.6.15.min.js",
+          "miniapp-host-pre.js", "miniapp-host-bridge.mjs", "vendor/hls-1.6.15.min.js",
           "vendor/hls-1.6.15.LICENSE"]
 public = [name for name in public if (directory / name).is_file()]
 
