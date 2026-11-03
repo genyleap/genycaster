@@ -1530,27 +1530,43 @@ void OpenProofConnectionsController::fetchStreak()
 void OpenProofConnectionsController::recordStreakCast(const QString& hash)
 {
     static const QRegularExpression castHash{QStringLiteral("^0x[0-9a-fA-F]{40}$")};
-    if(!castHash.match(hash).hasMatch() || !m_viewerFid
-       || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
-       || m_streakWrite) return;
+    if(!castHash.match(hash).hasMatch() || !m_viewerFid || !m_settings)return;
+    const QString normalized=hash.toLower();
+    if(!m_pendingStreakCasts.contains(normalized)) {
+        // Indexing can lag behind protocol confirmation. Persist the exact
+        // verified-publish hash before attempting the account API write.
+        m_pendingStreakCasts.push_back(normalized);
+        while(m_pendingStreakCasts.size()>64)m_pendingStreakCasts.removeFirst();
+        m_settings->setValue(QStringLiteral("streak/outbox/%1").arg(m_viewerFid),
+                             m_pendingStreakCasts);
+        m_settings->sync();
+    }
+    pumpStreakWrites();
+}
+
+void OpenProofConnectionsController::pumpStreakWrites()
+{
+    if(!m_viewerFid || m_pendingStreakCasts.isEmpty() || m_streakWrite
+       || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl))return;
+    const QString hash=m_pendingStreakCasts.first();
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/streak/cast"));
     auto request=QNetworkRequest{url};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
-    request.setTransferTimeout(12000);
+    request.setTransferTimeout(12'000);
     request.setRawHeader("Accept","application/json");
     request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
     authorizeCloudRequest(request);
     const auto payload=QJsonDocument{QJsonObject{
-        {QStringLiteral("cast_hash"),hash.toLower()}
+        {QStringLiteral("cast_hash"),hash}
     }}.toJson(QJsonDocument::Compact);
     auto* reply=m_network.put(request,payload);
     m_streakWrite=reply;
     emit streakChanged();
     const auto viewer=m_viewerFid;
     const auto generation=m_grantGeneration;
-    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation,hash] {
         if(m_streakWrite!=reply){reply->deleteLater();return;}
         m_streakWrite.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -1558,16 +1574,39 @@ void OpenProofConnectionsController::recordStreakCast(const QString& hash)
         reply->deleteLater();
         if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
         const auto doc=QJsonDocument::fromJson(bytes);
-        if(status==200 && doc.isObject()
-           && doc.object().value(QStringLiteral("streak")).isObject()) {
-            m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
-            m_streakError.clear();
-        } else {
-            m_streakError=status==422
-               ? QStringLiteral("Cast confirmation is pending on the network.")
-               : QStringLiteral("Streak update is temporarily unavailable.");
+        const bool accepted=status==200 && doc.isObject()
+            && doc.object().value(QStringLiteral("streak")).isObject();
+        if(accepted || status==400 || status==409) {
+            if(accepted) {
+                m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
+                m_streakError.clear();
+            } else {
+                m_streakError=QStringLiteral("Unable to record this streak cast.");
+            }
+            // Success or a permanent malformed/conflicting write must never
+            // block later casts queued while the network was unavailable.
+            m_pendingStreakCasts.removeAll(hash);
+            if(m_settings) {
+                m_settings->setValue(QStringLiteral("streak/outbox/%1").arg(m_viewerFid),
+                                     m_pendingStreakCasts);
+                m_settings->sync();
+            }
+            m_streakRetryDelayMs=10'000;
+            emit streakChanged();
+            pumpStreakWrites();
+            return;
         }
+        m_streakError=status==422
+            ? QStringLiteral("Cast confirmation is pending on the network.")
+            : QStringLiteral("Streak update is temporarily unavailable.");
         emit streakChanged();
+        // Retry after either provider indexes the cast; never award locally.
+        const int delay=m_streakRetryDelayMs;
+        m_streakRetryDelayMs=std::min(m_streakRetryDelayMs*2,120'000);
+        QTimer::singleShot(delay,this,[this,viewer,generation] {
+            if(viewer==m_viewerFid && generation==m_grantGeneration)
+                pumpStreakWrites();
+        });
     });
 }
 
@@ -2586,6 +2625,7 @@ void OpenProofConnectionsController::pumpTopicWrites()
             QTimer::singleShot(delay,this,[this,owner,generation] {
                 if(owner==m_viewerFid && generation==m_grantGeneration)
                     pumpTopicWrites();
+            pumpStreakWrites();
             });
         }
     });
@@ -2771,6 +2811,10 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_viewerFid = fid;
     cancelNetworkReply(m_streakRead, this);
     cancelNetworkReply(m_streakWrite, this);
+    m_pendingStreakCasts=m_settings && fid
+        ? m_settings->value(QStringLiteral("streak/outbox/%1").arg(fid)).toStringList()
+        : QStringList{};
+    m_streakRetryDelayMs=10'000;
     cancelNetworkReply(m_publicActivityRead, this);
     m_publicActivityFid=0;
     m_publicActivitySource=QStringLiteral("casts");
@@ -2882,6 +2926,7 @@ void OpenProofConnectionsController::acceptRecoveryGrant(
     fetchTopics();
     refreshConnections();
     pumpTopicWrites();
+    pumpStreakWrites();
 }
 
 void OpenProofConnectionsController::stopAuthorization()
