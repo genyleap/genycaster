@@ -3580,6 +3580,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>さらに投稿を見る</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>プロフィールをミュート</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>プロフィールのミュートを解除</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>フォロー</translation>
