@@ -1755,16 +1755,20 @@ Item {
                         x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
                         anchors.top: parent.top
                         anchors.topMargin: Theme.space2
-                        visible: Boolean(root.activeDetail.followingKnown)
-                                 && Number(root.activeDetail.fid || 0) > 0
-                                 && !root.isOwnProfile
+                        // Unknown is not a confirmed negative relationship.
+                        // Keep the button discoverable without blind protocol writes.
+                        visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                        enabled: Boolean(root.activeDetail.followingKnown) && !root.busy
+                        busy: !Boolean(root.activeDetail.followingKnown) && root.busy
                         compact: true
                         iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
                         text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
                         selected: Boolean(root.activeDetail.followingByMe)
                         prominent: !Boolean(root.activeDetail.followingByMe)
-                        Accessible.description: Boolean(root.activeDetail.followingByMe)
-                                                ? qsTrId("genycaster.profile.unfollow") : text
+                        Accessible.description: !Boolean(root.activeDetail.followingKnown)
+                                                ? qsTrId("genycaster.search.relationship_unknown")
+                                                : Boolean(root.activeDetail.followingByMe)
+                                                  ? qsTrId("genycaster.profile.unfollow") : text
                         onClicked: {
                             if (!root.interactionsAvailable) {
                                 root.authenticationRequested()
