@@ -51,7 +51,9 @@ Item {
     // near-touching cells: the Flickable already supports horizontal scroll.
     readonly property int githubGapSize: 3
     readonly property int heatmapMaxTile: root.width>=600 ? 18 : 10
-    readonly property int githubTileSize: root.compact ? 10 : 11
+    readonly property int githubTileSize: Math.max(root.compact ? 10 : 11,
+        Math.min(16, Math.floor((githubContent.width-(githubWeeks-1)*githubGapSize)
+             / Math.max(1,githubWeeks))))
     readonly property int githubTileWidth: githubTileSize
     readonly property int githubTileHeight: githubTileSize
     readonly property int githubGridWidth:
