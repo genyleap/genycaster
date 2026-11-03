@@ -3580,6 +3580,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>Посмотреть больше публикаций</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>Отключить уведомления профиля</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>Включить уведомления профиля</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>Подписаться</translation>
