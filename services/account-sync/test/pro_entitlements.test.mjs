@@ -55,6 +55,8 @@ test('one qualifying wallet grants verified Pro without crossing protocol publis
  assert.equal(result.capabilities.advanced_code_editor,true);
  assert.equal(result.capabilities.extended_casts,false);
  assert.equal(result.capabilities.extra_images,false);
+ assert.equal(result.capabilities.multiple_miniapps,false);
+ assert.equal(result.limits.concurrent_miniapps,1);
  assert.equal(result.limits.cast_bytes,1024);
 });
 test('threshold is supplied by service config, not client or account metadata',async()=>{

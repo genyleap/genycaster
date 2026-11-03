@@ -112,12 +112,13 @@ export async function evaluateGenyPro(fid,{
             minimum_geny:policy.minimumGeny,verified_wallet_count:wallets.length,
             qualified_wallet:address,
             capabilities:{pro_badge:true,custom_bookmark_collections:true,
-              advanced_code_editor:true,multiple_miniapps:true,
+              advanced_code_editor:true,multiple_miniapps:false,
               extra_market_pulse:true,provider_connections:true,
               // These need a separate, protocol-safe publication implementation.
               extended_casts:false,extra_images:false},
+            // The current mini-app host still has a single active instance.
             limits:{cast_bytes:1024,image_embeds:2,
-              concurrent_miniapps:4,market_pulse:16}};
+              concurrent_miniapps:1,market_pulse:16}};
         }
       }catch{failures++;}
     }
