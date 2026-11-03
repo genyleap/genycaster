@@ -10,7 +10,7 @@
         holder: null, tabs: null, titleEl: null, warning: null,
         activeIndex: -1, activeUrl: "", mode: "window",
         fullscreen: false, backdrop: null, warning: null,
-        observer: null, screenButton: null, header: null
+        observer: null, screenButton: null, header: null, user: {}
     };
 
     function approvedUrl(value) {
@@ -40,7 +40,10 @@
         if (app.backdrop) { app.backdrop.remove(); app.backdrop = null; }
         if (typeof document !== "undefined" && document.fullscreenElement === element)
             document.exitFullscreen?.().catch?.(() => {});
-        for (const session of app.sessions) session.frame.remove();
+        for (const session of app.sessions) {
+            session.detach?.();
+            session.frame.remove();
+        }
         app.sessions = [];
         app.activeIndex = -1;
         app.activeUrl = "";
@@ -219,6 +222,7 @@
     function closeTab(index) {
         if(index < 0 || index >= app.sessions.length)return;
         const previousActive=app.activeIndex;
+        app.sessions[index].detach?.();
         app.sessions[index].frame.remove();
         app.sessions.splice(index,1);
         if(!app.sessions.length){close();return;}
@@ -234,6 +238,38 @@
             // Keep the foreground session if the membership is downgraded.
             closeTab(app.activeIndex===0 ? app.sessions.length-1 : 0);
         }
+    }
+    function attachSession(session) {
+        if (session.detach) return;
+        const sdk = window.__genycasterMiniAppSdk;
+        if (!sdk || typeof sdk.attach !== "function") return;
+        try {
+            session.detach = sdk.attach(session.frame, session.url, app.user, {
+                ready: () => {
+                    session.ready = true;
+                    if (app.frame === session.frame && app.warning)
+                        app.warning.style.display = "none";
+                },
+                close: () => {
+                    const index = app.sessions.indexOf(session);
+                    if (index >= 0) closeTab(index);
+                },
+                openMiniApp: url => open(url, new URL(url).hostname, "Close"),
+                fullscreen: requested => {
+                    if (app.fullscreen !== requested) void toggleFullscreen();
+                }
+            });
+        } catch (error) {
+            console.warn("[GenyCaster] Mini App SDK host unavailable", error);
+            if (app.frame === session.frame && app.warning)
+                app.warning.style.display = "block";
+        }
+    }
+    function enableSdk() {
+        app.sessions.forEach(attachSession);
+    }
+    function setUser(user) {
+        app.user = user && typeof user === "object" ? user : {};
     }
     function makeFrame(url,title) {
         const frame=document.createElement("iframe");
@@ -256,7 +292,9 @@
         const url = approvedUrl(address);
         if (!url || !document.body) return false;
         const appTitle=String(title || url.hostname).slice(0,160);
-        const existing=app.sessions.findIndex(s=>s.url===url.href);
+        // The official host Comlink endpoint scopes messages by origin.
+        // Never expose two sessions at the same origin simultaneously.
+        const existing=app.sessions.findIndex(s=>new URL(s.url).origin===url.origin);
         if(existing>=0){select(existing);return true;}
         if (app.element && app.element.isConnected) {
             if(app.sessions.length>=app.limit) {
@@ -265,7 +303,9 @@
             } else {
                 const frame=makeFrame(url,appTitle);
                 app.holder.append(frame);
-                app.sessions.push({url:url.href,title:appTitle,frame});
+                const session = {url:url.href,title:appTitle,frame,detach:null,ready:false};
+                app.sessions.push(session);
+                attachSession(session);
                 select(app.sessions.length-1);
                 return true;
             }
@@ -353,7 +393,9 @@
         app.header=top;
         app.warning = warning;
         app.screenButton = fullscreenButton;
-        app.sessions = [{url:url.href,title:appTitle,frame}];
+        const session = {url:url.href,title:appTitle,frame,detach:null,ready:false};
+        app.sessions = [session];
+        attachSession(session);
         app.fullscreen=false;
         applyPresentation();
         select(0);
@@ -368,7 +410,7 @@
     }
 
     window.__genycasterMiniAppOverlay = Object.freeze({
-        open, close, setLimit, setMode, toggleFullscreen,
+        open, close, setLimit, setMode, toggleFullscreen, enableSdk, setUser,
         mode:()=>app.mode,
         fullscreen:()=>app.fullscreen,
         active: () => Boolean(app.element && app.element.isConnected)
