@@ -31,7 +31,7 @@ test('cast details use their own back toolbar instead of a duplicate global bran
     assert.match(detail, /genycaster.detail.open_channel/);
     assert.match(detail, /onClicked: root.channelRequested\(root.castChannel\)/);
     assert.match(detail, /onClicked: root.composeRequested\(\)/);
-    assert.match(detail, /onClicked: root.replyRequested\(root.detail\)/);
+    assert.match(detail, /if \(root.interactionsAvailable\) root.replyRequested\(root.detail\)/);
     assert.match(detail, /genycaster.detail.back_back_to_feed/);
     assert.match(detail, /onClicked: root.backRequested\(\)/);
     assert.match(detail, /Layout.topMargin: Theme.space3[\s\S]*?spacing: Theme.space2/);
