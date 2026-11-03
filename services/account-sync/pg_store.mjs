@@ -7,6 +7,7 @@ import {STREAK_START_DAY,eligibleStreakDay} from './streaks.mjs';
 const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
 const PROFILE_STATUS_ROW='00000000-0000-4000-8000-000000000003';
 const STREAK_PREFERENCES_ROW='00000000-0000-4000-8000-000000000004';
+const MUTED_PROFILES_ROW='00000000-0000-4000-8000-000000000005';
 const COLUMNS=Object.freeze({
   drafts:'id,kind,title,content,revision,deleted_at,updated_at',
   tasks:'id,kind,schedule_at,timezone,payload,state,revision,attempt_count,executed_at,deleted_at,updated_at',
@@ -409,6 +410,41 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         [issuer,subject,id]);
       return normalizeRow('drafts',result.rows[0]);
     },
+    // GenyCaster-owned moderation preferences are private, owner-scoped,
+    // revision-checked and independent from protocol Follow messages.
+    async getMutedProfiles({issuer,subject}) {
+      const result=await pool.query(`SELECT payload,revision::text
+        FROM notifications WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+          AND source='genycaster' AND kind='muted_profiles'
+          AND deleted_at IS NULL LIMIT 1`,
+        [issuer,subject,MUTED_PROFILES_ROW]);
+      const row=result.rows[0];
+      return {muted_fids:Array.isArray(row?.payload?.muted_fids)
+        ?row.payload.muted_fids:[],revision:Number(row?.revision||0)};
+    },
+    async putMutedProfiles({issuer,subject},{muted_fids,revision}) {
+      const result=await pool.query(`INSERT INTO notifications
+          (issuer,subject,id,source,kind,payload,occurred_at,revision)
+          SELECT $1,$2,$3::uuid,'genycaster','muted_profiles',$4::jsonb,now(),1
+          WHERE $5::bigint=0 OR EXISTS (
+             SELECT 1 FROM notifications
+             WHERE issuer=$1 AND subject=$2 AND id=$3::uuid
+               AND source='genycaster' AND kind='muted_profiles'
+               AND deleted_at IS NULL)
+          ON CONFLICT (issuer,subject,id) DO UPDATE SET
+            payload=EXCLUDED.payload,updated_at=now(),
+            revision=notifications.revision+1
+          WHERE notifications.revision=$5::bigint
+            AND notifications.source='genycaster'
+            AND notifications.kind='muted_profiles'
+            AND notifications.deleted_at IS NULL
+          RETURNING payload,revision::text`,
+        [issuer,subject,MUTED_PROFILES_ROW,
+         JSON.stringify({muted_fids}),revision]);
+      const row=result.rows[0];
+      return row?{muted_fids:row.payload.muted_fids,
+        revision:Number(row.revision)}:null;
+    },
     async getNotificationSeen({issuer,subject}) {
       const result=await pool.query(`SELECT
           (EXTRACT(EPOCH FROM read_at)*1000)::bigint::text AS seen_at_ms
@@ -495,7 +531,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         'SELECT '+columns+' FROM '+entity+' WHERE '+(
           entity==='bookmarks'?'openproof_issuer=$1 AND openproof_subject=$2':'issuer=$1 AND subject=$2'
         )+(entity==='notifications'
-          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status','streak_preferences'))" : '')
+          ? " AND NOT (source='genycaster' AND kind IN ('seen_watermark','profile_status','streak_preferences','muted_profiles'))" : '')
           +' ORDER BY '+(entity==='bookmarks'?'changed_at DESC':'updated_at DESC')+' LIMIT 500',
         [issuer,subject]);
       return result.rows.map(row=>normalizeRow(entity,row));
