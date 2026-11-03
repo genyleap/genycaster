@@ -124,7 +124,6 @@ set(farcasterQmlFiles
     components/ProfileSurface.qml
     components/ProfileProBadge.qml
     components/ProUpgradeNotice.qml
-    components/ProCastPolicy.js
     components/GenyPulsePanel.qml
     components/StreakCard.qml
     components/AccountConnectionsPopup.qml
@@ -1152,6 +1151,7 @@ qt_add_qml_module(genycaster
     VERSION 1.0
     QML_FILES
         ${farcasterQmlFiles}
+        components/ProCastPolicy.js
     SOURCES
         render/scene_graph_stroke_item.cpp
         render/scene_graph_stroke_item.hpp
