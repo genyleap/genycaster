@@ -1695,6 +1695,14 @@ Item {
                                                 accountFid: presentationBridge.accountFid
                                                 confirmedReply: root.confirmedReply
                                                 onBackRequested: root.returnFromCastDetail()
+                                                onComposeRequested: root.openComposer(null)
+                                                onChannelRequested: channelId => {
+                                                    root.selectedChannelInfo = { id: channelId }
+                                                    root.clearPendingShellReturn()
+                                                    root.primaryDestination = "explorer"
+                                                    root.shellRoute = ""
+                                                    presentationBridge.openChannel(channelId)
+                                                }
                                                 onRefreshRequested: presentationBridge.retry()
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
                                                 onProfileRequested: fid => presentationBridge.openProfileFid(fid)
