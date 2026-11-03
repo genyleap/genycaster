@@ -4115,7 +4115,10 @@ void connectRuntime(
                             || phase == application::read::model::ReadPhase::Failed)
                             runtime->finishReferencedPreviewRequest(castId, bool(state.cast));
                     },
-                    application::read::model::ReadOptions{.allowRecoveryProbe = false});
+                    application::read::model::ReadOptions{
+                        .allowRecoveryProbe = false,
+                        .intent = application::read::model::ReadIntent::Prefetch,
+                    });
                 if (request)
                     runtime->keepReferencedPreviewRequest(castId, std::move(*request));
                 else
