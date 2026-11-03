@@ -8,7 +8,9 @@
     const app = {
         element: null, frame: null, warningTimer: null, sessions: [], limit: 1,
         holder: null, tabs: null, titleEl: null, warning: null,
-        activeIndex: -1, activeUrl: ""
+        activeIndex: -1, activeUrl: "", mode: "window",
+        fullscreen: false, backdrop: null, warning: null,
+        observer: null, screenButton: null, header: null
     };
 
     function approvedUrl(value) {
@@ -34,6 +36,10 @@
         app.warningTimer = null;
         app.element = null;
         app.frame = null;
+        if (app.observer) { app.observer.disconnect(); app.observer = null; }
+        if (app.backdrop) { app.backdrop.remove(); app.backdrop = null; }
+        if (typeof document !== "undefined" && document.fullscreenElement === element)
+            document.exitFullscreen?.().catch?.(() => {});
         for (const session of app.sessions) session.frame.remove();
         app.sessions = [];
         app.activeIndex = -1;
@@ -42,7 +48,125 @@
         app.tabs = null;
         app.titleEl = null;
         app.warning = null;
+        app.fullscreen = false;
+        app.screenButton = null;
+        app.header = null;
         if (element) element.remove();
+    }
+
+    function normalizeMode(value) {
+        return ["window", "bottom", "left", "right"].includes(String(value))
+            ? String(value) : "window";
+    }
+    function surfaceColors() {
+        const root = document.documentElement;
+        const mode = root && root.getAttribute
+            ? root.getAttribute("data-chrome-theme") : "";
+        const light = mode === "light" ||
+            (mode !== "dark" && window.matchMedia?.("(prefers-color-scheme: light)")?.matches);
+        return light ? {
+            bg:"#f9f9fb", chrome:"#f1f2f5", text:"#1c222b",
+            subtle:"#697180", border:"#dce0e6", active:"#e7eaf0",
+            warn:"#99622d", backdrop:"rgba(22,28,38,.34)"
+        } : {
+            bg:"#15171b", chrome:"#202228", text:"#f6f6f8",
+            subtle:"#b2b6c0", border:"#353940", active:"#343844",
+            warn:"#efc38a", backdrop:"rgba(0,0,0,.55)"
+        };
+    }
+    function paint() {
+        if (!app.element) return;
+        const colors = surfaceColors();
+        Object.assign(app.element.style,{
+            background:colors.bg,color:colors.text,
+            border:"1px solid "+colors.border
+        });
+        if(app.header) Object.assign(app.header.style,{
+            background:colors.chrome,borderBottom:"1px solid "+colors.border
+        });
+        if(app.backdrop)app.backdrop.style.background=colors.backdrop;
+        if(app.tabs)app.tabs.style.borderBottom="1px solid "+colors.border;
+        if(app.warning)Object.assign(app.warning.style,{
+            background:colors.chrome,color:colors.warn,
+            borderTop:"1px solid "+colors.border
+        });
+        renderTabs();
+    }
+    function applyPresentation() {
+        if (!app.element) return;
+        const sheet=app.element;
+        const narrow=(window.innerWidth || 1024)<640;
+        const effective=app.fullscreen?"fullscreen"
+            : narrow && app.mode==="window"?"bottom":app.mode;
+        const base={
+            position:"fixed",zIndex:"2147483000",
+            display:"flex",flexDirection:"column",
+            maxWidth:"none",maxHeight:"none",
+            boxShadow:"0 22px 72px rgba(0,0,0,.28)",
+            overflow:"hidden"
+        };
+        if(effective==="fullscreen")Object.assign(base,{
+            inset:"0",width:"100%",height:"100%",borderRadius:"0"
+        });
+        else if(effective==="bottom")Object.assign(base,{
+            inset:"auto 0 0 0",width:narrow?"100%":"min(820px,100%)",
+            left:narrow?"0":"50%",right:"auto",
+            transform:narrow?"none":"translateX(-50%)",
+            height:narrow?"min(88dvh,950px)":"min(86dvh,880px)",
+            borderRadius:"20px 20px 0 0"
+        });
+        else if(effective==="left")Object.assign(base,{
+            inset:"0 auto 0 0",width:narrow?"min(92vw,500px)":"min(520px,90vw)",
+            height:"100%",borderRadius:"0 20px 20px 0"
+        });
+        else if(effective==="right")Object.assign(base,{
+            inset:"0 0 0 auto",width:narrow?"min(92vw,500px)":"min(520px,90vw)",
+            height:"100%",borderRadius:"20px 0 0 20px"
+        });
+        else Object.assign(base,{
+            inset:"50% auto auto 50%",
+            transform:"translate(-50%,-50%)",
+            width:"min(850px,calc(100vw - 44px))",
+            height:"min(850px,calc(100dvh - 44px))",
+            borderRadius:"20px"
+        });
+        // Reset properties to avoid stale values after changing presentation
+        // from a drawer to centered window or Full Screen.
+        for(const key of ["inset","top","right","bottom","left","width",
+                          "height","transform","borderRadius"])sheet.style[key]="";
+        Object.assign(sheet.style,base);
+        if(app.backdrop)app.backdrop.style.display=app.fullscreen?"none":"block";
+        if(app.screenButton){
+            app.screenButton.textContent=app.fullscreen?"⤡":"⤢";
+            app.screenButton.setAttribute("aria-label",
+                app.fullscreen?"Exit full screen":"Full screen");
+            app.screenButton.title=app.fullscreen?"Exit full screen":"Full screen";
+        }
+        paint();
+    }
+    function setMode(mode) {
+        app.mode=normalizeMode(mode);
+        applyPresentation();
+    }
+    async function toggleFullscreen() {
+        if(!app.element)return false;
+        const sheet=app.element;
+        if(app.fullscreen){
+            app.fullscreen=false;
+            if(document.fullscreenElement===sheet && document.exitFullscreen){
+                try { await document.exitFullscreen(); } catch {}
+            }
+        }else{
+            app.fullscreen=true;
+            if(sheet.requestFullscreen){
+                try { await sheet.requestFullscreen(); } catch {
+                    // Presentation remains viewport-filling when browser
+                    // fullscreen permission is unavailable.
+                }
+            }
+        }
+        applyPresentation();
+        return app.fullscreen;
     }
 
     function renderTabs() {
@@ -58,10 +182,11 @@
             tab.textContent = session.title;
             tab.setAttribute("role", "tab");
             tab.setAttribute("aria-selected",String(index === app.activeIndex));
+            const palette=surfaceColors();
             Object.assign(tab.style,{
-                border:"1px solid #3e414a",borderRadius:"9px",
-                background:index === app.activeIndex ? "#414653" : "#242730",
-                color:"#fafafa",padding:"7px 11px",cursor:"pointer",
+                border:"1px solid "+palette.border,borderRadius:"9px",
+                background:index === app.activeIndex ? palette.active : palette.chrome,
+                color:palette.text,padding:"7px 11px",cursor:"pointer",
                 whiteSpace:"nowrap",maxWidth:"180px",overflow:"hidden",
                 textOverflow:"ellipsis",flex:"0 1 auto"
             });
@@ -71,7 +196,7 @@
             dismiss.textContent = "×";
             dismiss.setAttribute("aria-label","Close "+session.title);
             Object.assign(dismiss.style,{border:0,background:"transparent",
-                color:"#e9e9ea",cursor:"pointer",padding:"4px 9px"});
+                color:palette.text,cursor:"pointer",padding:"4px 9px"});
             dismiss.addEventListener("click",()=>closeTab(index));
             const group=document.createElement("span");
             Object.assign(group.style,{display:"flex",alignItems:"center",gap:"2px"});
@@ -126,7 +251,8 @@
         return frame;
     }
 
-    function open(address, title, closeLabel) {
+    function open(address, title, closeLabel, presentation) {
+        if (presentation !== undefined) setMode(presentation);
         const url = approvedUrl(address);
         if (!url || !document.body) return false;
         const appTitle=String(title || url.hostname).slice(0,160);
@@ -151,16 +277,13 @@
         sheet.setAttribute("aria-modal", "true");
         sheet.setAttribute("aria-label", String(title || url.hostname).slice(0, 160));
         Object.assign(sheet.style, {
-            position: "fixed", inset: "0", zIndex: "2147483000",
-            display: "flex", flexDirection: "column",
-            background: "#121317", color: "#f7f7f8",
-            fontFamily: "system-ui, sans-serif"
+            display:"flex",flexDirection:"column",
+            fontFamily:"system-ui,-apple-system,sans-serif"
         });
         const top = document.createElement("header");
         Object.assign(top.style, {
             display: "flex", alignItems: "center", gap: "12px",
-            minHeight: "54px", boxSizing: "border-box", padding: "8px 16px",
-            borderBottom: "1px solid #35383f", background: "#1b1d23"
+            minHeight: "54px", boxSizing: "border-box", padding: "8px 16px"
         });
         const name = document.createElement("strong");
         name.textContent = String(title || url.hostname).slice(0, 160);
@@ -171,36 +294,9 @@
         Object.assign(domain.style, { fontSize: "12px", color: "#afb2ba" });
         const isPersian = String(window.__genycasterPreferredLanguage || navigator.language || '')
             .toLowerCase().startsWith('fa');
-        const browserButton = document.createElement('button');
-        browserButton.textContent = isPersian ? 'باز کردن در مرورگر' : 'Open in browser';
-        browserButton.setAttribute('aria-label', browserButton.textContent);
-        Object.assign(browserButton.style, {
-            color:'#a4b8ff',background:'#292d3c',border:'1px solid #434d70',
-            borderRadius:'9px',fontSize:'13px',padding:'8px 12px',cursor:'pointer',
-        });
-        browserButton.addEventListener('click', () => {
-            const url=approvedUrl(app.activeUrl);
-            if (url) window.open(url.href,'_blank','noopener,noreferrer');
-        });
-        // Some Mini Apps (including SDK-only apps) deliberately refuse a
-        // plain iframe. A Farcaster client can provide the real host SDK,
-        // identity and permission prompts; Genycaster WASM must never fake
-        // that privileged bridge.
-        const farcasterButton = document.createElement('button');
-        farcasterButton.textContent = isPersian
-          ? 'اجرا در Farcaster' : 'Open in Farcaster';
-        farcasterButton.setAttribute('aria-label', farcasterButton.textContent);
-        Object.assign(farcasterButton.style, {
-            color:'#f5f6fb',background:'#343d66',border:'1px solid #6476a5',
-            borderRadius:'9px',fontSize:'13px',padding:'8px 10px',cursor:'pointer'
-        });
-        farcasterButton.addEventListener('click', () => {
-            const url=approvedUrl(app.activeUrl);
-            if (!url) return;
-            const clientUrl = new URL('https://farcaster.xyz/~/mini-apps/launch');
-            clientUrl.searchParams.set('domain',url.hostname);
-            window.open(clientUrl.href,'_blank','noopener,noreferrer');
-        });
+        // Mini Apps open inside the selected GenyCaster presentation.
+        // An unrelated "Open in Farcaster/browser" toolbar is not part
+        // of the native experience and must not interrupt the user here.
         const dismiss = document.createElement("button");
         dismiss.textContent = "×";
         dismiss.setAttribute("aria-label", String(closeLabel || "Close").slice(0, 80));
@@ -211,19 +307,17 @@
             height: "38px"
         });
         dismiss.addEventListener("click", close);
-        // Keep the mobile app header compact. Launch choices live in a
-        // separate small toolbar so neither Close nor the title is clipped.
-        top.append(name, dismiss);
-        const actionsRow = document.createElement('nav');
-        actionsRow.setAttribute('aria-label', isPersian ? 'گزینه‌های اجرا' : 'Mini App launch options');
-        Object.assign(actionsRow.style,{
-          display:'flex',gap:'8px',padding:'6px 12px',
-          borderBottom:'1px solid #35383f',boxSizing:'border-box'
+        const fullscreenButton = document.createElement("button");
+        fullscreenButton.type="button";
+        fullscreenButton.textContent="⤢";
+        fullscreenButton.setAttribute("aria-label","Full screen");
+        Object.assign(fullscreenButton.style,{
+            color:"inherit",background:"transparent",border:"0",
+            borderRadius:"10px",cursor:"pointer",fontSize:"24px",
+            minWidth:"42px",height:"38px"
         });
-        Object.assign(farcasterButton.style,{flex:'1',minWidth:'0'});
-        Object.assign(browserButton.style,{flex:'1',minWidth:'0'});
-        actionsRow.append(farcasterButton,browserButton);
-
+        fullscreenButton.addEventListener("click",()=>{void toggleFullscreen();});
+        top.append(name, fullscreenButton, dismiss);
         const tabs=document.createElement("nav");
         tabs.setAttribute("role","tablist");
         tabs.setAttribute("aria-label",isPersian ? "مینی‌اپ‌های باز" : "Open Mini Apps");
@@ -237,36 +331,46 @@
         const warning=document.createElement('div');
         warning.setAttribute('role','status');
         warning.textContent = isPersian
-          ? 'برخی مینی‌اپ‌ها به SDK میزبان Farcaster نیاز دارند که هنوز در نسخهٔ وب جنی‌کستر موجود نیست. از «اجرا در Farcaster» استفاده کنید.'
-          : 'Some Mini Apps require the Farcaster host SDK, which is not yet available inside Genycaster Web. Choose Open in Farcaster.';
-        Object.assign(warning.style, {
-          display:'none',padding:'12px 16px',background:'#282321',
-          borderTop:'1px solid #5d4d39',color:'#ead6b5',fontSize:'13px',
+            ? 'این مینی‌اپ در مرورگر بارگذاری نشد. بعضی برنامه‌ها به قابلیت‌های SDK میزبان نیاز دارند.'
+            : 'This Mini App did not load in the browser. Some apps require host SDK capabilities.';
+        Object.assign(warning.style,{
+            display:'none',padding:'12px 16px',fontSize:'13px'
         });
         frame.addEventListener('error',()=>{warning.style.display='block';});
-        // A cross-origin iframe's load event says nothing about Farcaster
-        // SDK readiness. Keep a timed compatibility hint even if HTML loads.
-        // Cross-origin frame failures cannot be inspected by design.
-        app.warningTimer=setTimeout(()=>{
-            if (app.frame === frame) warning.style.display='block';
-        },5000);
-        // Set the URL only after sandbox and origin restrictions exist.
-        frame.src = url.href;
-        sheet.append(top, actionsRow, tabs, holder, warning);
+        sheet.append(top, tabs, holder, warning);
+        const backdrop=document.createElement("div");
+        Object.assign(backdrop.style,{
+            position:"fixed",inset:"0",zIndex:"2147482999"
+        });
+        backdrop.addEventListener("click",close);
+        document.body.append(backdrop);
         document.body.append(sheet);
+        app.backdrop=backdrop;
         app.element = sheet;
         app.holder = holder;
         app.tabs = tabs;
         app.titleEl = name;
+        app.header=top;
         app.warning = warning;
+        app.screenButton = fullscreenButton;
         app.sessions = [{url:url.href,title:appTitle,frame}];
+        app.fullscreen=false;
+        applyPresentation();
         select(0);
+        if(typeof MutationObserver!=="undefined" && document.documentElement){
+            app.observer=new MutationObserver(()=>paint());
+            app.observer.observe(document.documentElement,{
+                attributes:true,attributeFilter:["data-chrome-theme"]
+            });
+        }
         dismiss.focus();
         return true;
     }
 
     window.__genycasterMiniAppOverlay = Object.freeze({
-        open, close, setLimit,
+        open, close, setLimit, setMode, toggleFullscreen,
+        mode:()=>app.mode,
+        fullscreen:()=>app.fullscreen,
         active: () => Boolean(app.element && app.element.isConnected)
     });
 }());

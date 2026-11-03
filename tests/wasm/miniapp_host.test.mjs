@@ -47,10 +47,10 @@ test('Mini App opens inside a sandboxed viewport, with no external tab', () => {
     assert.match(frame.attributes.sandbox, /allow-scripts/);
     assert.doesNotMatch(frame.attributes.sandbox, /allow-top-navigation/);
     assert.doesNotMatch(frame.attributes.sandbox, /allow-downloads/);
-    // The in-app frame is primary; a user-initiated external fallback is allowed.
-    assert.match(hostSource, /window\.open\(url\.href/);
+    // The in-app frame is the only launch surface; no unrelated provider choices.
+    assert.doesNotMatch(hostSource, /window\.open\(url\.href/);
     assert.equal(nodes.find(node => node.tagName === 'strong').textContent, 'Gig Bot');
-    const close = nodes.filter(node => node.tagName === 'button').at(-1);
+    const close = nodes.find(node => node.tagName === 'button' && node.attributes['aria-label'] === 'بستن');
     assert.equal(close.focused, true);
     assert.equal(close.attributes['aria-label'], 'بستن');
     controller.close();
@@ -76,46 +76,39 @@ test('one active Mini App at a time and close button releases the frame', () => 
     assert.equal(controller.open('https://second.example.com/', 'Second'), true);
     assert.equal(first.parent, undefined);
     assert.equal(controller.active(), true);
-    const button = nodes.filter(node => node.tagName === 'button').at(-1);
+    const button = nodes.find(node => node.tagName === 'button'
+        && node.attributes['aria-label'] === 'Close');
+    assert.ok(button);
     button.handlers.click();
     assert.equal(controller.active(), false);
 });
 
-test('SDK-dependent Mini Apps expose an explicit real Farcaster host fallback',()=>{
- const opened=[];
- const nodes=[];
- class Element{
-  constructor(tagName){
-   this.tagName=tagName;this.style={};this.attributes={};this.children=[];
-   this.isConnected=false;this.handlers={};this.textContent='';
-   nodes.push(this);
-  }
-  setAttribute(key,value){this.attributes[key]=value;}
-  append(...args){this.children.push(...args);}
-  remove(){this.isConnected=false;}
-  addEventListener(type,handler){this.handlers[type]=handler;}
-  focus(){}
- }
- const win={
-  location:{origin:'https://caster.genyleap.com'},
-  open(...args){opened.push(args);}
- };
- const dom={
-  createElement:name=>new Element(name),
-  body:{append:node=>{node.isConnected=true;}}
- };
- vm.runInNewContext(hostSource,{window:win,document:dom,URL,
-  navigator:{language:'en'},setTimeout:()=>1,clearTimeout:()=>{}});
- assert.equal(win.__genycasterMiniAppOverlay.open('https://tasks.miniapps.genyleap.com','GenyTask','Close'),true);
- const launch=nodes.find(n=>n.tagName==='button'&&n.textContent==='Open in Farcaster');
- assert.ok(launch,'real host must be discoverable without SDK emulation');
- launch.handlers.click();
- assert.match(opened[0][0],/^https:\/\/farcaster\.xyz\/\~\/mini-apps\/launch\?domain=tasks\.miniapps\.genyleap\.com$/);
- assert.equal(opened[0][2],'noopener,noreferrer');
- assert.doesNotMatch(hostSource,/window\.__genycasterFakeSDK/);
- assert.doesNotMatch(hostSource,/onload.*clearTimeout/);
+test('Web Mini App follows presentation mode and provides in-place Full Screen',async()=>{
+ const {controller,nodes}=browser();
+ assert.equal(controller.open('https://tasks.miniapps.genyleap.com','GenyTask','Close','right'),true);
+ assert.equal(controller.mode(),'right');
+ const sheet=nodes.find(node=>node.tagName==='section');
+ assert.equal(sheet.style.inset,'0 0 0 auto');
+ assert.match(sheet.style.width,/520px/);
+ assert.equal(nodes.some(n=>n.textContent==='Open in Farcaster'
+     || n.textContent==='Open in browser'),false);
+ assert.equal(nodes.filter(n=>n.tagName==='iframe').length,1);
+ const button=nodes.find(n=>n.tagName==='button'
+     && n.attributes['aria-label']==='Full screen');
+ assert.ok(button);
+ await controller.toggleFullscreen();
+ assert.equal(controller.fullscreen(),true);
+ assert.equal(sheet.style.width,'100%');
+ await controller.toggleFullscreen();
+ assert.equal(controller.fullscreen(),false);
+ assert.equal(sheet.style.inset,'0 0 0 auto');
+ controller.setMode('bottom');
+ assert.equal(controller.mode(),'bottom');
+ assert.match(sheet.style.height,/86dvh/);
+ assert.equal(nodes.filter(n=>n.tagName==='iframe').length,1);
+ controller.close();
+ assert.equal(controller.active(),false);
 });
-
 test('verified Pro supports four isolated web Mini App iframes and fails closed on a fifth',()=>{
  const {controller,nodes}=browser();
  controller.setLimit(4);

@@ -81,6 +81,9 @@ Item {
                                                    : qsTrId("genycaster.home.greeting_night")).arg(
                                                        "\u2066" + root.welcomeName + "\u2069")
     implicitWidth: 980
+    // One measured content rail for the greeting, composer, GENY banner and
+    // workspace cards. No separate per-card desktop indentation.
+    readonly property real homeContentMaxWidth: Theme.scaleUi(760)
     // The desktop hub has a generous intrinsic height; on mobile the
     // containing viewport must own the height so its Flickable can scroll.
     implicitHeight: root.compact ? 0 : 790
@@ -208,8 +211,8 @@ Item {
                 id: genyTokenBanner
                 objectName: "genyTokenBanner"
                 Layout.fillWidth: true
-                Layout.leftMargin: root.compact ? Theme.space3 : Theme.space4
-                Layout.rightMargin: root.compact ? Theme.space3 : Theme.space4
+                Layout.leftMargin: root.compact ? Theme.space3 : 0
+                Layout.rightMargin: root.compact ? Theme.space3 : 0
                 Layout.preferredHeight: root.compact ? (root.androidCompact ? 84 : 96) : 108
                 fillColor: Theme.primarySurface
                 borderWidth: 1
@@ -297,9 +300,13 @@ Item {
             Layout.minimumWidth: 560
 
             ColumnLayout {
-                // A single measured desktop width keeps Home, token banner,
-                // composer, and shortcuts aligned instead of stretching.
-                width: Math.max(1, Math.min(792, parent.width - Theme.space4 * 2))
+                id: desktopHomeContent
+                objectName: "homeAlignedContentRail"
+                // The same 760 logical-pixel grid is used by every Home
+                // section; title, composer, GENY banner and tiles align
+                // without a second competing side margin.
+                width: Math.max(1, Math.min(root.homeContentMaxWidth,
+                    parent.width - Theme.space4 * 2))
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
@@ -309,7 +316,7 @@ Item {
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.max(12, Math.min(32, root.height * 0.035))
+                    Layout.preferredHeight: Theme.space2
                 }
 
                 ColumnLayout {
@@ -362,7 +369,7 @@ Item {
                     id: desktopComposerSurface
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 760
+                    Layout.maximumWidth: root.homeContentMaxWidth
                     fillColor: Theme.surface
                     borderWidth: desktopDraftEditor.activeFocus ? Theme.strokeEmphasis : 1
                     borderColor: desktopDraftEditor.activeFocus ? Theme.accent : Theme.borderMuted
@@ -416,7 +423,7 @@ GenyTokenBanner {}
                 HubWorkspace {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
-                    Layout.maximumWidth: 760
+                    Layout.maximumWidth: root.homeContentMaxWidth
                 }
                 Item { Layout.fillHeight: true; Layout.minimumHeight: Theme.space2 }
             }

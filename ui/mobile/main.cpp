@@ -1934,8 +1934,12 @@ int main(int argc, char* argv[])
     QObject::connect(&openProofConnections,
                      &OpenProofConnectionsController::stateChanged,
                      &openProofConnections, [&openProofConnections] {
-        if (openProofConnections.cloudAuthorizationReady())
+        if (openProofConnections.cloudAuthorizationReady()) {
             openProofConnections.fetchProEntitlements();
+#if defined(__EMSCRIPTEN__)
+            openProofConnections.fetchGenyAssets();
+#endif
+        }
     });
     QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
         &openProofConnections, [&presentationBridge, &openProofConnections, &richComposerController] {

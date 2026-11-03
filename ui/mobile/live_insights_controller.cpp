@@ -2,6 +2,12 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QHash>
 #include <QMetaObject>
 #include <QPointer>
@@ -642,6 +648,11 @@ public:
     int marketPriceDecimals{8};
     int marketAssetLimit{4};
     QStringList walletAddresses{};
+#if defined(__EMSCRIPTEN__)
+    // Browser-native, public read-only Base RPC. No wallet/signer credentials
+    // are used. It is available even before optional cloud authorization.
+    QNetworkAccessManager genyBalanceRpc{};
+#endif
     QVariantMap holding{};
     bool holdingRefreshing{};
     QStringList contextWidgets{};
@@ -835,7 +846,11 @@ void LiveInsightsController::setWalletAddresses(const QStringList& addresses)
 
 void LiveInsightsController::refreshGenyHolding()
 {
+#if defined(__EMSCRIPTEN__)
+    if (!m_impl->networkEnabled || m_impl->walletAddresses.isEmpty() || m_impl->holdingRefreshing) return;
+#else
     if (!m_impl->networkEnabled || !m_impl->providerAvailable() || m_impl->walletAddresses.isEmpty() || m_impl->holdingRefreshing) return;
+#endif
     m_impl->holdingRefreshing = true;
     QVariantMap next = m_impl->holding;
     next.insert(QStringLiteral("loading"), true);
@@ -907,6 +922,122 @@ void LiveInsightsController::refreshGenyHolding()
             guard->m_impl->holding = std::move(value);
             emit guard->genyHoldingChanged();
         }, Qt::QueuedConnection);
+    });
+#elif defined(__EMSCRIPTEN__)
+    // QtNetwork uses fetch under Emscripten. Base's public RPC serves CORS
+    // requests from the official GenyCaster origin. Every response is checked
+    // for chain ID, ERC-20 decimals and account identity before display.
+    const QStringList allWallets = m_impl->walletAddresses;
+    const QStringList wallets = allWallets.mid(0, 24);
+    const QString contract = QStringLiteral("0x2a3d6f8c1fc4acdcf3a75d19b445bae02f03676b");
+    QJsonArray queries{};
+    queries.push_back(QJsonObject{
+        {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
+        {QStringLiteral("id"), 1},
+        {QStringLiteral("method"), QStringLiteral("eth_chainId")},
+        {QStringLiteral("params"), QJsonArray{}}});
+    queries.push_back(QJsonObject{
+        {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
+        {QStringLiteral("id"), 2},
+        {QStringLiteral("method"), QStringLiteral("eth_call")},
+        {QStringLiteral("params"), QJsonArray{
+            QJsonObject{{QStringLiteral("to"),contract},
+                        {QStringLiteral("data"),QStringLiteral("0x313ce567")}},
+            QStringLiteral("latest")}}});
+    for (int index=0; index<wallets.size(); ++index) {
+        const QString data = QStringLiteral("0x70a08231")
+            + wallets.at(index).mid(2).rightJustified(64,QLatin1Char('0'));
+        queries.push_back(QJsonObject{
+            {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
+            {QStringLiteral("id"), index+3},
+            {QStringLiteral("method"), QStringLiteral("eth_call")},
+            {QStringLiteral("params"),QJsonArray{
+                QJsonObject{{QStringLiteral("to"),contract},
+                            {QStringLiteral("data"),data}},
+                QStringLiteral("latest")}}});
+    }
+    QNetworkRequest request{QUrl{QStringLiteral("https://mainnet.base.org/")}};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(20000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    QPointer<LiveInsightsController> guard{this};
+    auto* reply = m_impl->genyBalanceRpc.post(request,QJsonDocument(queries).toJson(QJsonDocument::Compact));
+    connect(reply,&QNetworkReply::finished,this,[guard,reply,allWallets,wallets] {
+        const int httpStatus=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->bytesAvailable()<=131072 ? reply->readAll() : QByteArray{};
+        const bool transportOk = reply->error()==QNetworkReply::NoError && httpStatus==200;
+        reply->deleteLater();
+        if (!guard || guard->m_impl->walletAddresses!=allWallets) return;
+        auto& impl=*guard->m_impl;
+        QVariantMap value{
+            {QStringLiteral("wallet"),allWallets.isEmpty()?QString{}:allWallets.front()},
+            {QStringLiteral("wallets"),allWallets},
+            {QStringLiteral("loading"),false},
+            {QStringLiteral("addresses"),QVariantList{}},
+            {QStringLiteral("available"),false},
+            {QStringLiteral("partial"),false},
+            {QStringLiteral("balance"),0.0},
+            {QStringLiteral("holder"),false},
+            {QStringLiteral("source"),QStringLiteral("Base RPC")},
+            {QStringLiteral("error"),QStringLiteral("Balance provider unavailable")}
+        };
+        if (transportOk) {
+            const auto doc=QJsonDocument::fromJson(bytes);
+            QHash<int,QString> results{};
+            if (doc.isArray()) {
+                for (const auto item:doc.array()) {
+                    if (!item.isObject())continue;
+                    const auto row=item.toObject();
+                    const int id=row.value(QStringLiteral("id")).toInt(-1);
+                    const QString hex=row.value(QStringLiteral("result")).toString();
+                    if (id>0 && hex.startsWith(QStringLiteral("0x")) && hex.size()<=66
+                        && QRegularExpression{QStringLiteral("^0x[0-9a-fA-F]+$")}.match(hex).hasMatch())
+                        results.insert(id,hex);
+                }
+            }
+            bool chainOk=results.value(1).toLower()==QStringLiteral("0x2105");
+            bool decimalsOk=false;
+            const int decimals=results.value(2).mid(2).toInt(&decimalsOk,16);
+            if (chainOk && decimalsOk && decimals>=0 && decimals<=36) {
+                QVariantList rows{};
+                double total=0;
+                int successful=0;
+                for(int index=0;index<wallets.size();++index) {
+                    const QString hex=results.value(index+3);
+                    bool available=!hex.isEmpty();
+                    long double baseUnits=0.0L;
+                    if(available) {
+                        for(const QChar c:hex.mid(2)) {
+                            const ushort u=c.toLower().unicode();
+                            const int digit=u>=QLatin1Char('0').unicode() && u<=QLatin1Char('9').unicode()
+                                ? int(u-'0') : int(u-'a'+10);
+                            baseUnits=baseUnits*16.0L+digit;
+                        }
+                    }
+                    const double amount=available ? static_cast<double>(baseUnits/std::pow(10.0L,decimals)) : 0.0;
+                    if(!std::isfinite(amount))available=false;
+                    QVariantMap row{
+                        {QStringLiteral("wallet"),wallets.at(index)},
+                        {QStringLiteral("available"),available},
+                        {QStringLiteral("balance"),available?amount:0.0},
+                        {QStringLiteral("holder"),available && amount>0},
+                        {QStringLiteral("error"),available?QString{}:QStringLiteral("provider_unavailable")}
+                    };
+                    if(available){total+=amount;++successful;}
+                    rows.push_back(row);
+                }
+                value.insert(QStringLiteral("addresses"),rows);
+                value.insert(QStringLiteral("available"),successful>0);
+                value.insert(QStringLiteral("partial"),successful<allWallets.size());
+                value.insert(QStringLiteral("balance"),total);
+                value.insert(QStringLiteral("holder"),total>0);
+                value.insert(QStringLiteral("error"),successful?QString{}:QStringLiteral("provider_unavailable"));
+            }
+        }
+        impl.holdingRefreshing=false;
+        impl.holding=std::move(value);
+        emit guard->genyHoldingChanged();
     });
 #else
     m_impl->holdingRefreshing = false;

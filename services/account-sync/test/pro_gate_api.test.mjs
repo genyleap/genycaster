@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createAccountApi} from '../server.mjs';
 
 const valid='Bearer allowed';
-function networkFixture(resolver) {
+function networkFixture(resolver,assetsResolver=async fid=>({status:'verified',available:true,fid,wallets:[],addresses:[]})) {
  const calls=[];
  const fetchImpl=async (url,opts)=>{
    if(opts?.headers?.authorization!==valid)return new Response('{}',{status:401});
@@ -21,11 +21,11 @@ function networkFixture(resolver) {
    async putBookmarkCollectionItem(owner,change){calls.push(['membership',owner.fid]);return change;}
  };
  const server=createAccountApi({catalogUrl:'https://example.com/providers',
-   issuer:'https://example.com',fetchImpl,store,proResolver:resolver});
+   issuer:'https://example.com',fetchImpl,store,proResolver:resolver,assetsResolver});
  return {server,calls};
 }
-async function withServer(resolver,fn) {
- const {server,calls}=networkFixture(resolver);
+async function withServer(resolver,fn,assetsResolver) {
+ const {server,calls}=networkFixture(resolver,assetsResolver);
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/';
  const request=(path,method='GET',body,headers={})=>
@@ -82,4 +82,16 @@ test('network verification failures fail closed with explicit status',async()=>{
    assert.equal(denied.status,403);
    assert.equal((await denied.json()).verification_status,'unavailable');
  });
+});
+
+test('My Assets requires signed account; no caller can supply a wallet/FID',async()=>{
+ const seen=[];
+ await withServer(async()=>({status:'verified',eligible:false}),async request=>{
+   assert.equal((await request('geny/assets','GET',undefined,{authorization:'Bearer invalid'})).status,401);
+   const response=await request('geny/assets?fid=999999');
+   assert.equal(response.status,200);
+   assert.equal((await response.json()).holding.fid,'42');
+   assert.deepEqual(seen,['42']);
+   assert.equal((await request('geny/assets','PUT',{wallet:'0xdead'})).status,405);
+ },async fid=>{seen.push(fid);return {status:'verified',available:true,fid,wallets:[],addresses:[]};});
 });

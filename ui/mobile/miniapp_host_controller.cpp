@@ -42,6 +42,13 @@ void MiniAppHostController::setPresentationMode(const QString& mode) {
     if (!validPresentationMode(mode) || mode == m_presentationMode) { return; }
     m_presentationMode = mode;
     m_settings.setValue(QStringLiteral("miniapps/presentationMode"), mode);
+#if defined(__EMSCRIPTEN__)
+    const QByteArray modeUtf8 = mode.toUtf8();
+    EM_ASM({
+        const host=window.__genycasterMiniAppOverlay;
+        if(host && host.setMode) host.setMode(UTF8ToString($0,$1));
+    }, modeUtf8.constData(), modeUtf8.size());
+#endif
     emit presentationModeChanged();
 }
 void MiniAppHostController::setReduceMotion(bool reduceMotion) noexcept { m_reduceMotion = reduceMotion; }
@@ -120,14 +127,16 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     const QByteArray launchUtf8 = destination.toString(QUrl::FullyEncoded).toUtf8();
     const QByteArray titleUtf8 = title.left(160).toUtf8();
     const QByteArray closeUtf8 = qtTrId("genycaster.locale.close").toUtf8();
+    const QByteArray modeUtf8 = m_presentationMode.toUtf8();
     const int opened = EM_ASM_INT({
         const host = window.__genycasterMiniAppOverlay;
         if (!host) return 0;
         return host.open(UTF8ToString($0, $1), UTF8ToString($2, $3),
-            UTF8ToString($4, $5)) ? 1 : 0;
+            UTF8ToString($4, $5), UTF8ToString($6,$7)) ? 1 : 0;
     }, launchUtf8.constData(), launchUtf8.size(),
        titleUtf8.constData(), titleUtf8.size(),
-       closeUtf8.constData(), closeUtf8.size());
+       closeUtf8.constData(), closeUtf8.size(),
+       modeUtf8.constData(), modeUtf8.size());
     if (opened == 0) {
         setState(false, qtTrId("genycaster.miniapp.unavailable"));
     } else {

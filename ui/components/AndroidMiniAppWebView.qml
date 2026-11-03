@@ -10,10 +10,24 @@ Popup {
     id: root
     objectName: "androidMiniAppWebView"
     parent: Overlay.overlay
-    x: 0
-    y: 0
-    width: parent ? parent.width : 360
-    height: parent ? parent.height : 640
+    readonly property string activePresentation: miniAppHost.presentationMode
+    property bool miniAppFullscreen: false
+    readonly property bool wideSurface: activePresentation === "window"
+    x: miniAppFullscreen || !parent ? 0
+        : activePresentation === "right" ? parent.width - width
+        : activePresentation === "window" || activePresentation === "bottom"
+          ? (parent.width - width) / 2 : 0
+    y: miniAppFullscreen || !parent ? 0
+        : activePresentation === "bottom" ? parent.height - height
+        : activePresentation === "window" ? (parent.height - height) / 2 : 0
+    width: parent ? (miniAppFullscreen ? parent.width
+        : activePresentation === "window" ? Math.min(parent.width - Theme.space4 * 2, 600)
+        : activePresentation === "bottom" ? parent.width
+        : Math.min(parent.width * 0.9, 530)) : 360
+    height: parent ? (miniAppFullscreen ? parent.height
+        : activePresentation === "window" ? Math.min(parent.height - Theme.space4 * 2, 780)
+        : activePresentation === "bottom" ? parent.height * 0.86
+        : parent.height) : 640
     modal: true
     focus: true
     padding: 0
@@ -25,7 +39,12 @@ Popup {
     property int activeSessionIndex: -1
     ListModel { id: miniAppSessions }
 
-    background: Rectangle { color: Theme.background }
+    background: Rectangle {
+        color: Theme.surface
+        radius: root.miniAppFullscreen ? 0 : Theme.scaleUi(18)
+        border.width: root.miniAppFullscreen ? 0 : 1
+        border.color: Theme.borderMuted
+    }
 
     function activate(index) {
         if (index < 0 || index >= miniAppSessions.count) return
@@ -62,6 +81,7 @@ Popup {
         launchUrl = ""
         loadError = ""
         miniAppHost.setState(false)
+        miniAppFullscreen = false
     }
 
     Connections {
@@ -99,14 +119,18 @@ Popup {
     Shortcut {
         sequence: "Escape"
         enabled: root.opened
-        onActivated: root.dismiss()
+        onActivated: {
+            if (root.miniAppFullscreen) root.miniAppFullscreen = false
+            else root.dismiss()
+        }
     }
 
     contentItem: ColumnLayout {
         spacing: 0
         Rectangle {
+            visible: !root.miniAppFullscreen
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(52, 44 + (root.parent ? root.parent.SafeArea.margins.top : 0))
+            Layout.preferredHeight: visible ? Math.max(52, 44 + (root.parent ? root.parent.SafeArea.margins.top : 0)) : 0
             color: Theme.surface
             RowLayout {
                 anchors.fill: parent
@@ -130,6 +154,12 @@ Popup {
                 }
                 ActionButton {
                     iconOnly: true; compact: true; quiet: true
+                    iconGlyph: Theme.iconExpand
+                    text: qsTrId("genycaster.player.fullscreen")
+                    onClicked: root.miniAppFullscreen = true
+                }
+                ActionButton {
+                    iconOnly: true; compact: true; quiet: true
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.feed_header.refresh")
                     onClicked: {
@@ -139,12 +169,12 @@ Popup {
                 }
             }
         }
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
+        Rectangle { visible: !root.miniAppFullscreen; Layout.fillWidth: true; Layout.preferredHeight: visible ? 1 : 0; color: Theme.divider }
 
         Flickable {
             Layout.fillWidth: true
             Layout.preferredHeight: miniAppSessions.count > 1 ? Theme.scaleUi(43) : 0
-            visible: miniAppSessions.count > 1
+            visible: miniAppSessions.count > 1 && !root.miniAppFullscreen
             contentWidth: tabRow.implicitWidth
             contentHeight: height
             clip: true
@@ -191,6 +221,17 @@ Popup {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            ActionButton {
+                z: 5
+                visible: root.miniAppFullscreen
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: Theme.space3
+                iconOnly: true; compact: true
+                iconGlyph: Theme.iconCompress
+                text: qsTrId("genycaster.player.exit_fullscreen")
+                onClicked: root.miniAppFullscreen = false
+            }
             Repeater {
                 id: liveWebViews
                 model: miniAppSessions

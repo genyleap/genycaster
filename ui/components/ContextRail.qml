@@ -53,6 +53,12 @@ Item {
             if (custody.length > 0) addresses.push(custody)
         }
         liveInsights.setWalletAddresses(addresses)
+        // Web public-data providers are intentionally unavailable. The
+        // authenticated GenyCaster API reads the same verified Base addresses
+        // server-side, never receiving a caller-supplied wallet or signing key.
+        if (Qt.platform.os === "wasm" && root.isAuthenticated &&
+                openProofConnections.cloudAuthorizationReady)
+            openProofConnections.fetchGenyAssets()
     }
 
     function collectRecentProfiles(limit) {
@@ -310,7 +316,14 @@ Item {
             headerIconColor: Theme.accent
             headerIconSurface: Theme.primarySurface
 
-            readonly property var holding: liveInsights.genyHolding || ({})
+            // In WASM, public Base RPC works without an OpenProof session.
+            // The authenticated account API is a verified fallback when the
+            // browser's cross-origin provider is temporarily unavailable.
+            readonly property var holding: Qt.platform.os === "wasm"
+                ? (liveInsights.genyHolding.available ? liveInsights.genyHolding
+                   : openProofConnections.genyAssets.available ? openProofConnections.genyAssets
+                   : liveInsights.genyHolding || ({}))
+                : (liveInsights.genyHolding || ({}))
             readonly property var market: root.genyMarketRow()
             readonly property var addressRows: holding.addresses || []
             readonly property real balance: Number(holding.balance || 0)
@@ -383,7 +396,8 @@ Item {
                                         text: assetsCard.holding.loading ? qsTrId("genycaster.context.checking_geny")
                                              : (assetsCard.holding.wallets || []).length === 0 ? qsTrId("genycaster.context.wallet_needed")
                                              : assetsCard.holding.available && assetsCard.holding.holder
-                                               ? LocaleFormat.formatNumber(assetsCard.balance, assetsCard.balance >= 100 ? 0 : 2) + " GENY"
+                                               ? (assetsCard.holding.partial ? "≈ " : "")
+                                                 + LocaleFormat.formatNumber(assetsCard.balance, assetsCard.balance >= 100 ? 0 : 2) + " GENY"
                                                : assetsCard.holding.available ? qsTrId("genycaster.context.not_geny_holder")
                                                : qsTrId("genycaster.context.geny_balance_unavailable")
                                         color: Theme.textPrimary
@@ -409,7 +423,12 @@ Item {
                                     iconGlyph: Theme.iconRefresh
                                     text: qsTrId("genycaster.profile.refresh")
                                     enabled: (assetsCard.holding.wallets || []).length > 0 && !Boolean(assetsCard.holding.loading)
-                                    onClicked: liveInsights.refreshGenyHolding()
+                                    onClicked: {
+                                        liveInsights.refreshGenyHolding()
+                                        if (Qt.platform.os === "wasm"
+                                                && openProofConnections.cloudAuthorizationReady)
+                                            openProofConnections.fetchGenyAssets(true)
+                                    }
                                 }
                             }
 

@@ -26,7 +26,7 @@ test('search scopes filter the actual result models and avoid translucent bleed-
   assert.match(backdrop,/capture\.scheduleUpdate\(\)/);
   assert.match(backdrop,/!root\.browserRenderer/);
 });
-test('browser miniapps resolve verified public manifests and retain the external fallback',()=>{
+test('browser miniapps resolve verified public manifests and use in-app presentation',()=>{
   const qml=read('ui/components/LinkPreview.qml');
   const browser=read('ui/wasm/miniapp-host-pre.js');
   const gateway=read('services/media-gateway/gateway.mjs');
@@ -34,7 +34,9 @@ test('browser miniapps resolve verified public manifests and retain the external
   assert.match(qml,/browserMiniAppPreview = metadata/);
   assert.match(qml,/miniAppCatalog\.myApps/);
   assert.match(qml,/genycaster\.miniapp\.preview_unavailable/);
-  assert.match(browser,/window\.open\(url\.href,'_blank','noopener,noreferrer'\)/);
+  assert.doesNotMatch(browser,/window\.open\(url\.href/);
+  assert.match(browser,/function applyPresentation\(\)/);
+  assert.match(browser,/function toggleFullscreen\(\)/);
   assert.match(browser,/frame\.setAttribute\("sandbox"/);
   assert.match(gateway,/requestUrl\.pathname === '\/v1\/browser\/miniapp-preview'/);
   assert.match(gateway,/resolveMiniAppPreview\(rawUrl\)/);

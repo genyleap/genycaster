@@ -111,6 +111,7 @@ NSString* bridgeScript() {
     NSView* m_panel;
     farcaster::platform::miniapp::PresentationMode m_mode;
     BOOL m_animating;
+    BOOL m_fullscreen;
 }
 - (NSRect)panelFrame;
 - (NSRect)hiddenFrame;
@@ -121,6 +122,7 @@ NSString* bridgeScript() {
 - (NSRect)panelFrame {
     const CGFloat width = self.bounds.size.width;
     const CGFloat height = self.bounds.size.height;
+    if (m_fullscreen) return self.bounds;
     using farcaster::platform::miniapp::PresentationMode;
     if (m_mode == PresentationMode::Bottom) {
         const CGFloat panelWidth = MIN(width, 424.0);
@@ -195,6 +197,7 @@ NSString* bridgeScript() {
 - (void)back:(id)sender;
 - (void)retry:(id)sender;
 - (void)minimize:(id)sender;
+- (void)toggleFullscreen:(id)sender;
 - (void)share:(id)sender;
 - (void)dismiss:(id)sender;
 - (void)notifyClosed;
@@ -270,6 +273,7 @@ static NSWindow* genycasterHostWindow()
         backing:NSBackingStoreBuffered defer:NO];
     m_window.releasedWhenClosed = NO;
     m_window.title = mediaRole ? @"Genycaster Media" : @"Genycaster";
+    m_window.collectionBehavior |= NSWindowCollectionBehaviorFullScreenPrimary;
     m_window.contentMinSize = mediaRole ? NSMakeSize(480, 360) : NSMakeSize(320, 360);
     m_window.delegate = self;
     m_window.backgroundColor = NSColor.windowBackgroundColor;
@@ -308,6 +312,13 @@ static NSWindow* genycasterHostWindow()
     share.toolTip = nativeText(translated("genycaster.miniapp.share"));
     share.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:share];
+    NSButton* fullscreen = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"arrow.up.left.and.arrow.down.right"
+        accessibilityDescription:nativeText(translated("genycaster.player.fullscreen"))]
+        target:self action:@selector(toggleFullscreen:)];
+    fullscreen.bordered = NO;
+    fullscreen.toolTip = nativeText(translated("genycaster.player.fullscreen"));
+    fullscreen.translatesAutoresizingMaskIntoConstraints = NO;
+    [toolbar addSubview:fullscreen];
     NSButton* close = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"xmark"
         accessibilityDescription:nativeText(translated("genycaster.miniapp.close"))]
         target:self action:@selector(dismiss:)];
@@ -388,7 +399,10 @@ static NSWindow* genycasterHostWindow()
         [close.trailingAnchor constraintEqualToAnchor:toolbar.trailingAnchor constant:-12],
         [close.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
         [close.widthAnchor constraintEqualToConstant:32], [close.heightAnchor constraintEqualToConstant:32],
-        [share.trailingAnchor constraintEqualToAnchor:close.leadingAnchor constant:-4],
+        [fullscreen.trailingAnchor constraintEqualToAnchor:close.leadingAnchor constant:-4],
+        [fullscreen.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
+        [fullscreen.widthAnchor constraintEqualToConstant:32], [fullscreen.heightAnchor constraintEqualToConstant:32],
+        [share.trailingAnchor constraintEqualToAnchor:fullscreen.leadingAnchor constant:-4],
         [share.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
         [share.widthAnchor constraintEqualToConstant:32], [share.heightAnchor constraintEqualToConstant:32],
         [minimize.trailingAnchor constraintEqualToAnchor:share.leadingAnchor constant:-4],
@@ -425,6 +439,7 @@ static NSWindow* genycasterHostWindow()
         NSView* parentContent = parentWindow.contentView;
         m_drawer = [[GenyMiniAppDrawer alloc] initWithFrame:parentContent.bounds];
         m_drawer->m_mode = mode;
+        m_drawer->m_fullscreen = NO;
         m_drawer.target = self;
         m_drawer.action = @selector(dismiss:);
         m_drawer.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
@@ -489,7 +504,11 @@ static NSWindow* genycasterHostWindow()
                 const BOOL drawerVisible = owner && owner->m_drawer && !owner->m_drawer.hidden;
                 if (owner && !owner->m_closed && drawerVisible
                     && event.window == owner->m_parentWindow && event.keyCode == 53) {
-                    [owner dismiss:nil];
+                    if (owner->m_drawer->m_fullscreen) {
+                        owner->m_drawer->m_fullscreen = NO;
+                        owner->m_drawer->m_panel.layer.cornerRadius = 18;
+                        owner->m_drawer.needsLayout = YES;
+                    } else [owner dismiss:nil];
                     return nil;
                 }
                 return event;
@@ -552,6 +571,29 @@ static NSWindow* genycasterHostWindow()
 - (void)minimize:(id)sender {
     (void)sender;
     if (!m_closed && m_callbacks.minimize) { m_callbacks.minimize(); }
+}
+- (void)toggleFullscreen:(id)sender {
+    if (m_closed || m_dismissing) return;
+    NSButton* button = [sender isKindOfClass:NSButton.class] ? (NSButton*)sender : nil;
+    BOOL fullscreen = NO;
+    if (m_drawer) {
+        m_drawer->m_fullscreen = !m_drawer->m_fullscreen;
+        fullscreen = m_drawer->m_fullscreen;
+        m_drawer->m_panel.layer.cornerRadius = fullscreen ? 0 : 18;
+        m_drawer.needsLayout = YES;
+        [m_drawer layoutSubtreeIfNeeded];
+    } else {
+        fullscreen = (m_window.styleMask & NSWindowStyleMaskFullScreen) == 0;
+        [m_window toggleFullScreen:sender];
+    }
+    if (button) {
+        button.image = [NSImage imageWithSystemSymbolName:
+            (fullscreen ? @"arrow.down.right.and.arrow.up.left" : @"arrow.up.left.and.arrow.down.right")
+            accessibilityDescription:nativeText(translated(fullscreen
+                ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen"))];
+        button.toolTip = nativeText(translated(fullscreen
+            ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen"));
+    }
 }
 - (void)share:(id)sender {
     (void)sender;

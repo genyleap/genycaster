@@ -18,6 +18,7 @@ export function createAccountApi({
   catalogUrl, fetchImpl = globalThis.fetch, now = Date.now,
   store = null, issuer = null, topicVerifier = undefined,
   proResolver = undefined,
+  assetsResolver = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -26,7 +27,8 @@ export function createAccountApi({
 
   const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl,
     ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {}),
-    ...(proResolver ? {resolvePro:proResolver} : {})}) : null;
+    ...(proResolver ? {resolvePro:proResolver} : {}),
+    ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {})}) : null;
   let cached = null;
   let pending = null;
   async function catalog() {

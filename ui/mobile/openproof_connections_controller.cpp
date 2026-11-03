@@ -1387,6 +1387,68 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
     });
 }
 
+void OpenProofConnectionsController::fetchGenyAssets(const bool force)
+{
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
+        m_genyAssets.clear();
+        m_genyAssetsFid = 0;
+        emit genyAssetsChanged();
+        return;
+    }
+    const auto now = QDateTime::currentMSecsSinceEpoch();
+    if (!force && m_genyAssetsFid == m_viewerFid
+        && m_genyAssetsFetchedAt > 0 && now - m_genyAssetsFetchedAt < 60000) return;
+    if (m_genyAssetsRead) return;
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/geny/assets"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(20000);
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    auto* reply = m_network.get(request);
+    m_genyAssetsRead = reply;
+    const auto viewer = m_viewerFid;
+    const auto generation = m_grantGeneration;
+    m_genyAssets = QVariantMap{
+        {QStringLiteral("loading"), true},
+        {QStringLiteral("wallets"), QVariantList{}},
+        {QStringLiteral("addresses"), QVariantList{}}
+    };
+    m_genyAssetsFid = viewer;
+    emit genyAssetsChanged();
+    connect(reply, &QNetworkReply::finished, this, [this, reply, viewer, generation] {
+        if (m_genyAssetsRead != reply) { reply->deleteLater(); return; }
+        m_genyAssetsRead.clear();
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes = reply->bytesAvailable() <= 32768 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+        m_genyAssets = QVariantMap{
+            {QStringLiteral("loading"), false},
+            {QStringLiteral("available"), false},
+            {QStringLiteral("wallets"), QVariantList{}},
+            {QStringLiteral("addresses"), QVariantList{}},
+            {QStringLiteral("error"), QStringLiteral("Balance check unavailable")}
+        };
+        const auto doc = QJsonDocument::fromJson(bytes);
+        if (status == 200 && doc.isObject() &&
+            doc.object().value(QStringLiteral("holding")).isObject()) {
+            const auto parsed = doc.object().value(QStringLiteral("holding")).toObject().toVariantMap();
+            const auto statusCode = parsed.value(QStringLiteral("status")).toString();
+            if (statusCode == QStringLiteral("verified") ||
+                statusCode == QStringLiteral("unavailable")) {
+                m_genyAssets = parsed;
+                m_genyAssets.insert(QStringLiteral("loading"), false);
+            }
+        }
+        m_genyAssetsFid = viewer;
+        m_genyAssetsFetchedAt = QDateTime::currentMSecsSinceEpoch();
+        emit genyAssetsChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track)
 {
     if(track!=QStringLiteral("activity") && track!=QStringLiteral("creator"))return;
@@ -2223,6 +2285,11 @@ void OpenProofConnectionsController::clearAccountGrant()
     cancelNetworkReply(m_accountConnectionsRequest, this);
     cancelNetworkReply(m_cloudRequest, this);
     cancelNetworkReply(m_proEntitlementsRead, this);
+    cancelNetworkReply(m_genyAssetsRead, this);
+    m_genyAssets.clear();
+    m_genyAssetsFid = 0;
+    m_genyAssetsFetchedAt = 0;
+    emit genyAssetsChanged();
     m_proEntitlements.clear();
     m_proEntitlementsFid = 0;
     m_proEntitlementsFetchedAt = 0;

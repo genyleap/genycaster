@@ -133,3 +133,59 @@ export async function evaluateGenyPro(fid,{
     return {...standard,status:'unavailable'};
   }
 }
+
+// Read-only Base ERC-20 holdings for a verified Farcaster account. This is
+// deliberately independent of Pro authorization: balances may be summed for
+// display, but eligibility still requires one qualifying wallet.
+export async function evaluateGenyAssets(fid,{
+  policy=createGenyProPolicy(),fetchImpl=globalThis.fetch
+}={}) {
+  const unavailable={status:'unavailable',available:false,partial:false,
+    wallets:[],addresses:[],balance:0,holder:false,source:'Base RPC',
+    error:'provider_unavailable'};
+  try {
+    const verified=await verifiedFarcasterWallets(fid,{policy,fetchImpl});
+    if (!verified.length)
+      return {...unavailable,status:'verified',error:'',wallets:[],available:false};
+    if (await rpc(fetchImpl,policy,'eth_chainId',[])!==8453n)
+      throw new Error('provider_unavailable');
+    const decimals=Number(await rpc(fetchImpl,policy,'eth_call',
+      [{to:policy.contract,data:'0x313ce567'},'latest']));
+    if(!Number.isInteger(decimals)||decimals<0||decimals>36)
+      throw new Error('provider_unavailable');
+    // Provider resources are bounded independently of the verification set.
+    // A partial view is labeled as such rather than misrepresenting a total.
+    const scanned=verified.slice(0,24);
+    const addresses=[];
+    let total=0,readable=0;
+    for(let index=0;index<scanned.length;index+=4) {
+      const group=await Promise.all(scanned.slice(index,index+4).map(async address=>{
+        try {
+          const raw=await rpc(fetchImpl,policy,'eth_call',[
+            {to:policy.contract,data:'0x70a08231'+address.slice(2).padStart(64,'0')},'latest']);
+          const unit=10n**BigInt(decimals);
+          const integer=raw/unit;
+          const fraction=(raw%unit).toString().padStart(decimals,'0').slice(0,8);
+          const readableAmount=Number(integer)+Number('0.'+(fraction||'0'));
+          if(!Number.isFinite(readableAmount))throw new Error('provider_unavailable');
+          return {wallet:address,available:true,balance:readableAmount,
+            holder:raw>0n,decimals};
+        }catch {
+          return {wallet:address,available:false,balance:0,holder:false,
+            error:'provider_unavailable'};
+        }
+      }));
+      addresses.push(...group);
+    }
+    for(const row of addresses) {
+      if(row.available){++readable;total+=row.balance;}
+    }
+    const partial=readable!==verified.length;
+    return {status:readable?'verified':'unavailable',
+      available:readable>0,partial,wallets:verified,addresses,
+      balance:total,holder:total>0,source:'Base RPC',
+      error:readable?'':'provider_unavailable'};
+  }catch {
+    return unavailable;
+  }
+}
