@@ -32,6 +32,7 @@ Superellipse {
 
     signal profileRequested()
     signal accountRequested()
+    signal proRequested()
 
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
@@ -264,10 +265,10 @@ Superellipse {
                     Layout.fillWidth: true
                     compact: true
                     quiet: true
-                    iconGlyph: Theme.iconStreakFlame
+                    iconGlyph: Theme.iconSpark
                     balancedIcon: true
-                    text: qsTrId("genycaster.streak.title")
-                    onClicked: root.toggleFace()
+                    text: qsTrId("genycaster.pro.title")
+                    onClicked: root.proRequested()
                 }
                 ActionButton {
                     Layout.fillWidth: true
