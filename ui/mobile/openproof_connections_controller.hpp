@@ -296,6 +296,9 @@ private:
     qulonglong m_genyAssetsFid{};
     qint64 m_genyAssetsFetchedAt{};
     QPointer<QNetworkReply> m_streakWrite{};
+    QStringList m_pendingStreakCasts{};
+    int m_streakRetryDelayMs{10'000};
+    void pumpStreakWrites();
     QPointer<QNetworkReply> m_publicActivityRead{};
     qulonglong m_publicActivityFid{};
     QString m_publicActivitySource{QStringLiteral("casts")};
