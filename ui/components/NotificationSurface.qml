@@ -6,6 +6,7 @@ Item {
     id: root
 
     property var rows: []
+    property var mutedProfileFids: []
     // Imperatively refreshed by AppShell. Do not bind this state to the
     // same bridge notification signal that also changes rows and pagination.
     property bool loadingNotifications: false
@@ -165,7 +166,36 @@ Item {
     // the total, mirroring Farcaster's "X and N others liked your cast".
     // Replies, mentions and follows stay one row each: every reply is a
     // distinct cast with its own content, and each follow is its own event.
-    readonly property var displayRows: root.groupNotificationRows(root.rows)
+    // Muted accounts must not leak through aggregated reactions. Remove
+    // muted actors BEFORE grouping, so aggregation does not overstate counts.
+    function withoutMutedActors(source) {
+        const rows=root.asList(source)
+        if(!root.mutedProfileFids || !root.mutedProfileFids.length)return rows
+        const visible=[]
+        for(const original of rows) {
+            if(!original)continue
+            const actors=root.asList(original.actors)
+            if(actors.length > 0) {
+                const filtered=actors.filter(actor=>
+                    root.mutedProfileFids.indexOf(String(Number(actor.fid || 0))) < 0)
+                if(filtered.length===0)continue
+                const copy=root.cloneNotificationRow(original)
+                copy.actors=filtered
+                copy.aggregateCount=filtered.length
+                const first=filtered[0]
+                copy.actorFid=Number(first.fid||0)
+                copy.actor=String(first.username||"")
+                copy.actorDisplayName=String(first.displayName||first.username||"")
+                copy.actorAvatarUrl=String(first.avatarUrl||"")
+                visible.push(copy)
+            } else if(root.mutedProfileFids.indexOf(
+                         String(Number(original.actorFid||0)))<0) {
+                visible.push(original)
+            }
+        }
+        return visible
+    }
+    readonly property var displayRows: root.groupNotificationRows(root.withoutMutedActors(root.rows))
     // A reply to one of my casts is an Activity, not automatically an @mention.
     // Only explicit provider mentions or a literal @username directed at the
     // signed-in account belong under Mentions.
