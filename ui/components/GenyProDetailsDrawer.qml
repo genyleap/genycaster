@@ -144,7 +144,7 @@ GenyDrawer {
 
                 Repeater {
                     model: [
-                        { icon: Theme.iconAppGrid,
+                        { icon: Theme.iconApps,
                           title: qsTrId("genycaster.miniapp.session_limit"),
                           detail: qsTrId("genycaster.apps.my_miniapps") },
                         { icon: Theme.iconBookmark,
