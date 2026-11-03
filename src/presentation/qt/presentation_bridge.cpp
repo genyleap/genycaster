@@ -4257,10 +4257,11 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
 
 void PresentationBridge::applySearchFollowing(const qulonglong fid, const bool following)
 {
+    if (fid == 0) return;
     bool changed = false;
     for (auto& value : m_searchResults) {
         QVariantMap item = value.toMap();
-        if (fid == 0 || item.value(QStringLiteral("fid")).toULongLong() != fid) continue;
+        if (item.value(QStringLiteral("fid")).toULongLong() != fid) continue;
         item.insert(QStringLiteral("followingByMe"), following);
         item.insert(QStringLiteral("followingKnown"), true);
         applyFollowingOverride(item, m_followOverrides);
@@ -4268,6 +4269,18 @@ void PresentationBridge::applySearchFollowing(const qulonglong fid, const bool f
         changed = true;
     }
     if (changed) emit searchChanged();
+
+    // A verified read updates the active profile as well as search results.
+    // Previously outgoing checks only patched search, so Follow remained
+    // hidden even after a successful profile relationship response.
+    if (m_activeView == QStringLiteral("profile")
+        && m_detail.value(QStringLiteral("fid")).toULongLong() == fid) {
+        m_detail.insert(QStringLiteral("followingByMe"), following);
+        m_detail.insert(QStringLiteral("followingKnown"), true);
+        applyFollowingOverride(m_detail, m_followOverrides);
+        m_profileDetailCache.insert(fid, m_detail);
+        emit stateChanged();
+    }
 }
 
 void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool followsMe)
