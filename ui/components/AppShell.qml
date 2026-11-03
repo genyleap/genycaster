@@ -263,6 +263,28 @@ Item {
         }
         return selected
     }
+    // App-owned Mute preferences affect viewing, not Farcaster relationships.
+    // Apply at the surface boundary without rewriting cached protocol data.
+    readonly property var mutedActorIds: openProofConnections ? openProofConnections.mutedProfileFids : []
+    function withoutMutedActors(items) {
+        if (!items || !root.mutedActorIds || !root.mutedActorIds.length) return items
+        const selected=[]
+        for(let index=0;index<items.length;++index) {
+            const row=items[index] || ({})
+            const fid=String(Number(row.authorFid || 0))
+            if (root.mutedActorIds.indexOf(fid) < 0) selected.push(row)
+        }
+        return selected
+    }
+    Timer {
+        id: mutedProfilesRefresh
+        interval: 60_000
+        repeat: true
+        triggeredOnStart: true
+        running: presentationBridge.isAuthenticated
+                 && (openProofConnections ? openProofConnections.cloudAuthorizationReady : false)
+        onTriggered: openProofConnections.fetchMutedProfiles()
+    }
     function hydrateInlineTopicCasts() {
         if (!root.topicBrowseActive) return
         const pending = []
@@ -1278,6 +1300,7 @@ Item {
                                         sourceComponent: Component {
                                             NotificationSurface {
                                                 rows: presentationBridge.notificationRows
+                                                mutedProfileFids: root.mutedActorIds
                                                 loadingNotifications: false
                                                 hasMore: presentationBridge.notificationsHasMore
                                                 errorText: presentationBridge.notificationsErrorText
@@ -1444,8 +1467,9 @@ Item {
                                             FeedSurface {
                                                 bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                                 presentationActive: feedSurfaceLoader.surfaceRequested
-                                                rows: root.topicBrowseActive && root.topicBrowseScope==="explorer"
-                                                      ? root.topicInlineRows() : presentationBridge.rows
+                                                rows: root.withoutMutedActors(
+                                                    root.topicBrowseActive && root.topicBrowseScope==="explorer"
+                                                    ? root.topicInlineRows() : presentationBridge.rows)
                                                 // Explorer semantics classify only the live primary feed.
                                                 // The legacy art supplement can remain cached for a whole
                                                 // session and is therefore intentionally excluded here.
@@ -1597,6 +1621,11 @@ Item {
                                                 detail: presentationBridge.detail
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                       ? root.topicInlineRows() : presentationBridge.rows
+                                                mutedProfileFids: root.mutedActorIds
+                                                muteSettingsReady: openProofConnections.mutedProfilesReady
+                                                muteWriteBusy: openProofConnections.mutedProfilesBusy
+                                                onMuteRequested: (fid,muted) =>
+                                                    openProofConnections.setProfileMuted(Math.floor(fid),muted)
                                                 topicFilterActive: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                 topicFilterSlug: root.topicBrowseSlug
                                                 topicFilterBusy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
