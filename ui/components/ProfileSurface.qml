@@ -52,6 +52,9 @@ Item {
     property bool sourceUnavailable: false
     property string errorText: ""
     property bool interactionsAvailable: false
+    property var mutedProfileFids: []
+    property bool muteSettingsReady: false
+    property bool muteWriteBusy: false
     property double accountFid: 0
     property string accountIssuer: ""
     // GENY holder status is *never* derived from a user-editable bio, display
@@ -638,12 +641,15 @@ Item {
     signal quoteRequested(var cast)
     signal reactionRequested(string kind, var cast, bool active)
     signal followingMutationRequested(double targetFid, bool following)
+    signal muteRequested(double targetFid, bool muted)
     signal removeCastRequested(var cast)
     signal externalRequested(string url)
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
     signal loadMoreRequested()
 
+    readonly property bool profileMuted: root.mutedProfileFids.indexOf(
+        String(Number(root.activeDetail.fid || 0))) >= 0
     readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
                                          && Number(root.activeDetail.fid || 0) === Number(root.accountFid)
     readonly property int profileAvatarSize: root.compact ? 84 : 96
@@ -1398,6 +1404,25 @@ Item {
                                             presentationBridge.copyText(presentationBridge.profileShareUrl(
                                                 Number(root.activeDetail.fid || 0)))
                                             sharePopup.close()
+                                        }
+                                    }
+                                    ActionButton {
+                                        visible: !root.isOwnProfile
+                                                 && Number(root.activeDetail.fid || 0) > 0
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: root.profileMuted ? Theme.iconVolume
+                                                                   : Theme.iconVolumeMuted
+                                        text: root.profileMuted ? qsTrId("genycaster.profile.unmute")
+                                                                : qsTrId("genycaster.profile.mute")
+                                        enabled: root.muteSettingsReady && !root.muteWriteBusy
+                                        busy: root.muteWriteBusy
+                                        onClicked: {
+                                            if (!root.muteSettingsReady) return
+                                            sharePopup.close()
+                                            root.muteRequested(Number(root.activeDetail.fid),
+                                                               !root.profileMuted)
                                         }
                                     }
                                     ActionButton {
