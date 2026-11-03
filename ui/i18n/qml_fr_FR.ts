@@ -3581,6 +3581,14 @@ Entreprise | https://company.com</translation>
             <source>Look through more posts</source>
             <translation>Parcourir plus de publications</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>Masquer le profil</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>Ne plus masquer le profil</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>Suivre</translation>
