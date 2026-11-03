@@ -7,6 +7,11 @@ Item {
     id: root
     objectName: "appShell"
 
+    GenyProDetailsDrawer {
+        id: genyProDetailsDrawer
+        compact: root.compact
+    }
+
     readonly property bool isReady: presentationBridge.architectureState.length > 0
     readonly property bool largeDesktop: width >= Theme.breakpointLargeDesktop
     readonly property bool desktop: width >= Theme.breakpointCompactDesktop
@@ -984,6 +989,7 @@ Item {
             onIdentityRequested: root.openAccountPopup()
             onAccountRequested: root.openAccountPopup()
             onSettingsRequested: root.openLocaleSettings()
+            onProRequested: genyProDetailsDrawer.open()
             onRouteRequested: route => root.openShellRoute(route)
         }
 
