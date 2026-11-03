@@ -25,7 +25,10 @@ Item {
     }
     // Verified market-source artwork has priority over decorative in-app icons.
     // In particular GENY's branding glyph is not its registered token logo.
-    readonly property bool bundledArtwork: root.semanticIcon.length > 0 && root.remoteSource.length === 0
+    // Primary token artwork is part of the product visual system: a remote
+    // black silhouette must not override the official brand/semantic assets.
+    readonly property bool bundledGenyArtwork: root.symbol === "GENY"
+    readonly property bool bundledArtwork: root.semanticIcon.length > 0
     readonly property string fallbackLetter: {
         const candidate = root.symbol.length > 0 ? root.symbol : root.name
         return candidate.length > 0 ? candidate.slice(0, 1).toUpperCase() : "?"
@@ -40,7 +43,7 @@ Item {
         if (root.symbol === "ETH") return Theme.cryptoEthereumGlyph
         return Theme.accent
     }
-    readonly property bool showInitial: !root.bundledArtwork
+    readonly property bool showInitial: !root.bundledArtwork && !root.bundledGenyArtwork
                                                 && (root.remoteSource.length === 0
                                                     || remoteArtwork.loadFailed
                                                     || remoteArtwork.status !== Image.Ready)
@@ -62,14 +65,32 @@ Item {
         visible: root.bundledArtwork
         text: root.semanticIcon
         color: root.glyphColor
-        preferredSize: Math.round(Math.min(root.width, root.height) * 0.62)
+        preferredSize: Math.round(Math.min(root.width, root.height)
+            * (root.symbol === "ETH" ? 0.78 : 0.64))
+    }
+
+    Image {
+        id: officialGenyLogo
+        visible: root.bundledGenyArtwork
+        anchors.centerIn: parent
+        width: Math.round(Math.min(root.width,root.height) * 0.78)
+        height: Math.round(Math.min(root.width,root.height) * 0.78)
+        source: Theme.dark
+            ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+            : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
+        sourceSize.width: 112
+        sourceSize.height: 112
+        fillMode: Image.PreserveAspectFit
+        smooth: true
+        mipmap: true
     }
 
     SuperellipseImage {
         id: remoteArtwork
         anchors.fill: parent
         anchors.margins: Math.max(3, Math.round(Math.min(root.width, root.height) * root.iconInsetRatio))
-        visible: !root.bundledArtwork && root.remoteSource.length > 0
+        visible: !root.bundledArtwork && !root.bundledGenyArtwork
+                 && root.remoteSource.length > 0
         source: root.remoteSource
         mediaCategory: "other"
         // Small token logos must never render the full-size 'Tap to load'
