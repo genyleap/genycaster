@@ -269,3 +269,49 @@ test('release HTML cache-busts all boot scripts without changing WASM and is ide
         assert.ok(!stamped.includes('src="genycaster-loader.js?v='+first.version+'"'));
     }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('service worker accepts more than 40 release assets and survives a blocked manifest request',async()=>{
+    const registrations={};
+    const cached=[];
+    const base='https://genycaster.xyz/app/';
+    const fakeCache={async match(){return null;},
+        async put(url){cached.push(String(url));}};
+    const runtime={
+        self:{location:{origin:'https://genycaster.xyz',href:base+'genycaster-sw.js'},
+            addEventListener:(name,handler)=>{registrations[name]=handler;},
+            skipWaiting(){},clients:{claim:async()=>{}}},
+        URL,Response,Headers,
+        caches:{open:async()=>fakeCache,keys:async()=>[],delete:async()=>true},
+        console:{warn:()=>{}},
+    };
+    // Each fresh SW script works on an arbitrary HTTPS origin and subpath.
+    let mode='large';
+    runtime.fetch=async request=>{
+        const url=String(request?.url||request);
+        if(mode==='blocked')throw new Error('ERR_BLOCKED_BY_CLIENT');
+        if(url===base+'genycaster-assets.json')
+            return new Response(JSON.stringify({files:[
+                'genycaster.html','miniapp-host-bridge.mjs',
+                ...Array.from({length:41},(_,i)=>'private-'+i+'.json'),
+                'genycaster.abc123abc123abc123ab.wasm'
+            ]}));
+        return new Response('public content',{headers:{'cache-control':'public'}});
+    };
+    vm.runInNewContext(worker,runtime);
+    assert.match(worker,/genycaster-static-v13/);
+    let promise;
+    registrations.install({waitUntil:task=>{promise=task;}});
+    await assert.doesNotReject(promise);
+    assert.ok(cached.includes(base+'genycaster.html'));
+    assert.ok(cached.includes(base+'miniapp-host-bridge.mjs'));
+    assert.equal(cached.some(url=>url.includes('private-')),false);
+    assert.equal(cached.some(url=>url.endsWith('.wasm')),false);
+    mode='blocked';
+    registrations.install({waitUntil:task=>{promise=task;}});
+    await assert.doesNotReject(promise,'ad blockers must not abort SW installation');
+    const handled=[];
+    registrations.fetch({request:{url:base+'api/session',method:'GET',credentials:'same-origin'},
+        respondWith:value=>handled.push(value),waitUntil:()=>{}});
+    assert.equal(handled.length,0);
+});
