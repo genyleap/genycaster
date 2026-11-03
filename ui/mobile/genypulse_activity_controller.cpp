@@ -28,7 +28,12 @@ QNetworkRequest publicRead(const QUrl& url) {
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setRawHeader("Accept", "application/json");
+    // User-Agent is a forbidden browser request header in WASM. Attempting
+    // to set it can make a cross-origin public HyperSnap request fail before
+    // its response is parsed. Native Qt may still send an app identifier.
+#if !defined(__EMSCRIPTEN__)
     request.setRawHeader("User-Agent", "GenyCaster/1.0 (activity read)");
+#endif
     return request;
 }
 qint64 isoTimestamp(const QString& stamp) {
