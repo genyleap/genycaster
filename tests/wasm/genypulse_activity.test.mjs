@@ -18,9 +18,9 @@ test('activity is read independently from profile timeline and reacts to FID',()
   assert.match(qml,/genyPulseActivity.requestGitHub/);
   assert.match(qml,/genyPulseActivity.setVerifiedWallet/);
   assert.ok(!/XMLHttpRequest|fetch\(/.test(qml));
-  assert.match(profile,/verifiedGitHub:\s*\{/);
+  assert.match(profile,/verifiedGitHub: root.isOwnProfile/);
   assert.match(profile,/verifiedGithubActivityAccount/);
-  assert.match(profile,/githubLinked: root.verifiedGithubActivityAccount.linked/);
+  assert.match(profile,/githubLinked: root.isOwnProfile/);
   assert.match(profile,/verifiedEthAddresses/);
 });
 
@@ -34,6 +34,8 @@ test('Farcaster and GitHub have separate pagination, state, deduplication and ti
   assert.match(source,/publishFarcaster\(false\)/);
   assert.match(source,/publishGitHub\(false\)/);
   assert.match(source,/QNetworkRequest::ManualRedirectPolicy/);
+  // Qt WASM may not author User-Agent; HyperSnap CORS does not allow it.
+  assert.match(source,/#if !defined\(__EMSCRIPTEN__\)[\s\S]*?setRawHeader\("User-Agent"/);
   assert.match(source,/kMaxResponseBytes/);
   assert.match(header,/Q_PROPERTY\(QVariantMap farcaster/);
   assert.match(header,/Q_PROPERTY\(QVariantMap github/);
@@ -54,8 +56,8 @@ test('both activity calendars use a dense, seven-row annual layout',()=>{
   assert.match(qml,/readonly property int castsYearStartDay: todayDay - 364/);
   assert.match(qml,/readonly property int firstDay: castsYearStartDay-/);
   assert.match(qml,/readonly property int weeks: Math.ceil\(\(todayDay-firstDay\+1\)\/7\)/);
-  assert.match(qml,/text: "1Y"/);
-  assert.match(qml,/text: "Casts"/);
+  assert.match(qml,/genycaster.activity.range_year/);
+  assert.match(qml,/genycaster.activity.casts/);
   assert.match(qml,/Theme.iconCompose/);
 });
 
@@ -71,8 +73,8 @@ test('year-long Casts are paginated independently and partial history is identif
 });
 
 test('small SQUARE tiles are consistently bounded on both annual grids',()=>{
-  assert.match(qml,/readonly property int githubGapSize: 1/);
-  assert.match(qml,/readonly property int githubTileSize: Math.max\(4,Math.min\(heatmapMaxTile,/);
+  assert.match(qml,/readonly property int githubGapSize: 3/);
+  assert.match(qml,/readonly property int githubTileSize: Math.max\(root.compact \? 10 : 11,/);
   assert.match(qml,/readonly property int cellSize: Math.max\(4,Math.min\(heatmapMaxTile,/);
   assert.match(qml,/readonly property int githubTileWidth: githubTileSize/);
   assert.match(qml,/readonly property int githubTileHeight: githubTileSize/);
@@ -122,8 +124,8 @@ test('compact time filter buttons are in GitHub top-right header',()=>{
 
 test('unlinked users never receive empty third-party activity cards',()=>{
   assert.match(qml,/readonly property bool hasOptionalSources: githubLinked \|\| hasOnchainActivity/);
-  assert.match(qml,/visible: root.hasOptionalSources/);
-  assert.match(qml,/visible: root.expanded && root.hasOptionalSources/);
+  assert.match(qml,/visible: root.detailMode \|\| root.previewSource !== "github"/);
+  assert.match(qml,/visible: root.detailMode \|\| \(root.previewSource === "github"/);
   assert.match(qml,/visible: root.githubLinked/);
   assert.match(qml,/visible: root.hasOnchainActivity/);
   assert.match(qml,/walletData.status==="ok" \|\| walletData.status==="partial"/);
@@ -175,7 +177,7 @@ test('GitHub calendar is source-specific, real contributions, selectable by year
   assert.match(header,/Q_PROPERTY\(QVariantMap githubContributions/);
   assert.match(source,/requestGitHubContributions/);
   assert.match(source,/api\/v1\/cloud\/github_contributions/);
-  assert.match(qml,/githubContributionData: genyPulseActivity.githubContributions/);
+  assert.match(qml,/githubContributionData: \(genyPulseActivity \? genyPulseActivity.githubContributions/);
   assert.match(qml,/model: \["1m", "3m", "1y"\]/);
   assert.match(qml,/githubYear--/);
   assert.match(qml,/githubYear\+\+/);
