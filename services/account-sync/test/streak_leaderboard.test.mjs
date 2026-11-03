@@ -84,13 +84,13 @@ test('Leaderboard SQL filters explicit opt-in before computing all ranks and lim
     assert.match(sql,/INNER JOIN eligible/);
     assert.match(sql,/ORDER BY current DESC,longest DESC,total DESC/);
     assert.match(sql,/LIMIT 100/);
-    assert.match(sql,/e\\.credited_on >= \\$3::date/);
+    assert.ok(sql.includes('AND e.credited_on >= $3::date'));
     assert.deepEqual(queries.at(-1).args,
       ['00000000-0000-4000-8000-000000000004','activity','2026-11-02']);
     assert.doesNotMatch(sql,/LIMIT 100[\\s\\S]+FROM ranked/);
     // Personal history and public rankings must use the same launch cutoff.
     await store.listStreakEvents(owner);
-    assert.match(queries.at(-1).sql,/credited_on >= \\$3::date/);
+    assert.ok(queries.at(-1).sql.includes('AND credited_on >= $3::date'));
     assert.equal(queries.at(-1).args[2],'2026-11-02');
     await assert.rejects(
       store.recordStreakCast(owner,'0x'+'aa'.repeat(20),'reply','2026-11-01'),
