@@ -2404,6 +2404,14 @@ Company | https://company.com</source>
             <source>No verified Farcaster EVM addresses were found</source>
             <translation>검증된 Farcaster EVM 주소를 찾지 못했습니다</translation>
         </message>
+        <message id="genycaster.detail.conversation">
+            <source>Conversation</source>
+            <translation>대화</translation>
+        </message>
+        <message id="genycaster.detail.open_channel">
+            <source>Open channel %1</source>
+            <translation>채널 %1 열기</translation>
+        </message>
         <message id="genycaster.detail.back_back_to_feed">
             <source>Back to feed</source>
             <translation>피드로 돌아가기</translation>
