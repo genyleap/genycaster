@@ -4,7 +4,7 @@ import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
-import {calculateStreaks} from './streaks.mjs';
+import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
 import {createGenyProPolicy,evaluateGenyPro,evaluateGenyAssets} from './pro_entitlements.mjs';
 import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
@@ -374,7 +374,8 @@ export async function discoverVerifiedStreakCasts(fid,{
     }
     const doc=JSON.parse(Buffer.concat(chunks).toString('utf8'));
     if(!Array.isArray(doc?.casts) || doc.casts.length>50)return null;
-    const earliest=now.getTime()-14*86400000;
+    const earliest=Math.max(now.getTime()-14*86400000,
+      Date.parse(STREAK_START_DAY+'T00:00:00Z'));
     const newest=now.getTime()+300000;
     const days=new Set();
     const events=[];
@@ -422,7 +423,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       if(!Array.isArray(casts))return;
       for(const entry of casts) {
         if(!HASH.test(entry.hash) || !['cast','reply'].includes(entry.kind)
-            || !/^\d{4}-\d{2}-\d{2}$/.test(entry.day))continue;
+            || !eligibleStreakDay(entry.day))continue;
         // The network reader already verified the author and timestamp; the
         // store enforces idempotency on (issuer, subject, cast_hash).
         await store.recordStreakCast(owner,entry.hash,entry.kind,entry.day);
@@ -681,7 +682,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         // storing. A repeat request for the same hash is idempotent.
         const evidence=await verifyStreakCast(hash.toLowerCase(),owner.fid,{fetchImpl});
         if(!evidence || !['cast','reply'].includes(evidence.kind)
-           || !/^\d{4}-\d{2}-\d{2}$/.test(evidence.day||'')) {
+           || !eligibleStreakDay(evidence.day)) {
           respond(response,422,{error:'cast_not_confirmed'});return true;
         }
         const saved=await store.recordStreakCast(owner,hash.toLowerCase(),evidence.kind,evidence.day);
