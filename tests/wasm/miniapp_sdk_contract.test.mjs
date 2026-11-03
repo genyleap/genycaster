@@ -1,0 +1,84 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+
+const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const source=read('ui/wasm/miniapp-host-pre.js');
+const bridge=read('ui/wasm/miniapp-host-bridge-entry.mjs');
+const html=read('ui/wasm/genycaster-shell.html');
+const packer=read('ci/package_wasm_assets.py');
+
+function hostBrowser(sdkInitially=true) {
+  const nodes=[], attached=[], detached=[];
+  class Element {
+    constructor(tag){this.tagName=tag;this.style={};this.attributes={};
+      this.children=[];this.handlers={};this.isConnected=false;}
+    setAttribute(key,value){this.attributes[key]=value;}
+    append(...values){this.children.push(...values);}
+    remove(){this.isConnected=false;}
+    addEventListener(type,handler){this.handlers[type]=handler;}
+    focus(){}
+  }
+  const document={createElement:name=>{const node=new Element(name);nodes.push(node);return node;},
+    body:{append(node){node.isConnected=true;}}};
+  const window={location:{origin:'https://caster.genyleap.com'},innerWidth:1200};
+  const sdk={attach(frame,url,user,actions){
+    const instance={frame,url,user,actions};attached.push(instance);
+    return ()=>detached.push(instance);
+  }};
+  if(sdkInitially)window.__genycasterMiniAppSdk=sdk;
+  vm.runInNewContext(source,{window,document,URL,navigator:{language:'en'},
+    setTimeout:()=>1,clearTimeout:()=>{}});
+  return {sdk,window,nodes,attached,detached,host:window.__genycasterMiniAppOverlay};
+}
+
+test('Official host is served from the GenyCaster origin and packaged with release integrity',()=>{
+  assert.match(bridge,/import \{exposeToIframe\} from '@farcaster\/miniapp-host'/);
+  assert.match(bridge,/miniAppOrigin:url\.origin/);
+  assert.match(bridge,/user: identity\(verifiedUser\)/);
+  assert.match(bridge,/getCapabilities: async/);
+  assert.match(bridge,/ethProviderRequest: unsupported/);
+  assert.match(bridge,/signIn: unsupported/);
+  assert.match(html,/type="module" src="miniapp-host-bridge\.mjs"/);
+  assert.match(packer,/"miniapp-host-bridge\.mjs"/);
+  assert.match(read('ui/wasm/host-sdk/package-lock.json'),/"@farcaster\/miniapp-host": "0\.4\.0"/);
+});
+
+test('An authenticated Mini App frame receives an origin-specific host and is cleaned on close',()=>{
+  const {host,attached,detached}=hostBrowser();
+  host.setUser({fid:42,username:'builder'});
+  assert.equal(host.open('https://tasks.miniapps.genyleap.com/','GenyTask'),true);
+  assert.equal(attached.length,1);
+  assert.equal(attached[0].url,'https://tasks.miniapps.genyleap.com/');
+  assert.equal(attached[0].user.fid,42);
+  attached[0].actions.ready();
+  host.close();
+  assert.equal(detached.length,1);
+  assert.equal(host.active(),false);
+});
+
+test('SDK initializes for frames opened before the host module arrived',()=>{
+  const {host,attached,detached,window,sdk}=hostBrowser(false);
+  assert.equal(host.open('https://tasks.miniapps.genyleap.com/','GenyTask'),true);
+  assert.equal(attached.length,0);
+  window.__genycasterMiniAppSdk=sdk;
+  host.enableSdk();
+  host.enableSdk();
+  assert.equal(attached.length,1);
+  attached[0].actions.close();
+  assert.equal(detached.length,1);
+  assert.equal(host.active(),false);
+});
+
+test('Cross-origin sessions are isolated and same-origin duplicate frames are not exposed',()=>{
+  const {host,attached,detached}=hostBrowser();
+  host.setLimit(4);
+  assert.equal(host.open('https://tasks.miniapps.genyleap.com/a','GenyTask A'),true);
+  assert.equal(host.open('https://tasks.miniapps.genyleap.com/b','GenyTask B'),true);
+  assert.equal(attached.length,1);
+  assert.equal(host.open('https://other.example.com/','Other'),true);
+  assert.equal(attached.length,2);
+  host.close();
+  assert.equal(detached.length,2);
+});
