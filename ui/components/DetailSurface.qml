@@ -64,10 +64,29 @@ ListView {
     readonly property string resolvedChannelName: channelDirectory.imageRevision >= 0
         ? String(root.detail.channelName
             || channelDirectory.nameForChannel(root.castChannel) || root.castChannel) : ""
-    onCastChannelChanged: {
-        if (root.castChannel.length > 0 && root.resolvedChannelImage.length === 0)
-            channelDirectory.ensureChannelImage(root.castChannel)
+    readonly property bool channelMembershipKnown: root.castChannel.length > 0
+        && root.accountFid > 0 && channelDirectory.membershipReady
+    readonly property bool channelJoined: {
+        if (!root.channelMembershipKnown) return false
+        const rows=channelDirectory.rows || []
+        for(let i=0;i<rows.length;++i) {
+            const row=rows[i] || ({})
+            if(String(row.id||"").toLowerCase()===root.castChannel.toLowerCase())
+                return row.isMember===true
+        }
+        // The channel directory lists confirmed membership results. Absent
+        // once the complete membership request has finished means not joined.
+        return false
     }
+    function requestChannelPresentation() {
+        if(root.castChannel.length===0 || root.activeView!=="cast")return
+        if(root.resolvedChannelImage.length===0)
+            channelDirectory.ensureChannelImage(root.castChannel)
+        if(root.accountFid>0 && !channelDirectory.membershipReady)
+            channelDirectory.openForViewer(Math.floor(root.accountFid))
+    }
+    onCastChannelChanged: root.requestChannelPresentation()
+    onAccountFidChanged: root.requestChannelPresentation()
     readonly property string parentTokenLocator: TokenSemantic.canonicalLocator(String(root.detail.parentUrl || ""))
     readonly property bool hasProtocolTokenParent: root.parentTokenLocator.length > 0
     readonly property var effectiveEmbeds: root.activeView === "cast" ? root.buildEffectiveEmbeds() : []
@@ -293,41 +312,54 @@ ListView {
                 onClicked: root.backRequested()
             }
 
-            ColumnLayout {
+            RowLayout {
                 visible: root.activeView === "cast"
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                spacing: 0
+                spacing: Theme.space1
+                layoutDirection: Theme.uiDirection
                 DirectionAwareLabel {
-                    Layout.fillWidth: true
                     text: qsTrId("genycaster.detail.conversation")
                     color: Theme.textPrimary
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: root.compact ? Theme.typeBodySize : Theme.typeTitle3Size
                     font.weight: Theme.weightDemiBold
                     elide: Text.ElideRight
                 }
-                RowLayout {
+                DirectionAwareLabel {
                     visible: root.castChannel.length > 0
-                    Layout.fillWidth: true
-                    spacing: Theme.space1
-                    layoutDirection: Theme.uiDirection
-                    DirectionAwareLabel {
-                        text: qsTrId("genycaster.cast.in_channel")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
-                    ActionButton {
-                        Layout.minimumWidth: 0
-                        Layout.maximumWidth: 210
-                        compact: true
-                        quiet: true
-                        elevated: false
-                        pill: true
-                        text: "/" + root.castChannel
-                        Accessible.description: qsTrId("genycaster.detail.open_channel")
-                            .arg("/" + root.castChannel)
-                        onClicked: root.channelRequested(root.castChannel)
-                    }
+                    text: qsTrId("genycaster.cast.in_channel")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+                Avatar {
+                    visible: root.castChannel.length > 0
+                    Layout.preferredWidth: 26
+                    Layout.preferredHeight: 26
+                    avatarSize: 26
+                    sourceUrl: root.resolvedChannelImage
+                    forceAutomaticDownload: true
+                    displayName: root.resolvedChannelName
+                }
+                ActionButton {
+                    visible: root.castChannel.length > 0
+                    Layout.maximumWidth: root.compact ? 116 : 200
+                    compact: true
+                    quiet: true
+                    elevated: false
+                    pill: true
+                    text: "/" + root.castChannel
+                    Accessible.description: qsTrId("genycaster.detail.open_channel")
+                        .arg("/" + root.castChannel)
+                    onClicked: root.channelRequested(root.castChannel)
+                }
+                DirectionAwareLabel {
+                    visible: root.channelMembershipKnown
+                    text: root.channelJoined
+                        ? qsTrId("genycaster.composer.joined_channel")
+                        : qsTrId("genycaster.composer.not_joined_channel")
+                    color: root.channelJoined ? Theme.positive : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    font.weight: Theme.weightMedium
                 }
             }
 
@@ -409,9 +441,7 @@ ListView {
                             DirectionAwareLabel {
                                 Layout.minimumWidth: 0
                                 Layout.preferredWidth: Math.min(implicitWidth,
-                                    root.activeView === "cast" && root.castChannel.length > 0
-                                        ? Math.max(84, detailNameAndChannel.width * 0.62)
-                                        : detailNameAndChannel.width)
+                                    detailNameAndChannel.width)
                                 Layout.maximumWidth: Layout.preferredWidth
                                 text: root.detail.displayName || root.detail.author || qsTrId("genycaster.detail.canonical_detail")
                                 color: authorNameHover.hovered ? Theme.accent : Theme.ink
@@ -429,7 +459,7 @@ ListView {
                             }
 
                             RowLayout {
-                                visible: root.activeView === "cast" && root.castChannel.length > 0
+                                visible: false // Channel identity is shown once in the conversation toolbar.
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 spacing: Theme.space1
@@ -458,7 +488,7 @@ ListView {
                                 }
                             }
                             Item {
-                                visible: root.activeView !== "cast" || root.castChannel.length === 0
+                                visible: true
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 1
                             }
