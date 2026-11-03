@@ -32,7 +32,7 @@ Drawer {
     // The footer must stay inside the modal even with very long release notes.
     // Leave room for the system safe area; scroll the notes, not the actions.
     height: parent ? Math.max(0, Math.min(parent.height - Theme.space4 * 2,
-                                          Math.max(500, parent.height * 0.82))) : 560
+                                          Math.max(340, Math.min(640, parent.height * 0.86)))) : 560
     x: parent ? Math.max(0, (parent.width - width) / 2) : 0
     padding: Theme.space4
 
@@ -73,8 +73,16 @@ Drawer {
         curveDepth: Theme.curveSheet
         elevation: Theme.elevationPopover
     }
-    contentItem: ColumnLayout {
-        spacing: Theme.space3
+    // QML ColumnLayout can advertise the release notes' full implicit height,
+    // making a top-edge Drawer grow beyond the viewport and hide its header.
+    // An Item is the bounded viewport. Only the middle Flickable may scroll.
+    contentItem: Item {
+        id: updateLayoutViewport
+        implicitHeight: 0
+        ColumnLayout {
+            id: updateFixedChrome
+            anchors.fill: parent
+            spacing: Theme.space3
         // Subtle grabber communicates top-sheet direction on touch screens.
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
@@ -178,8 +186,11 @@ Drawer {
             }
         }
         ColumnLayout {
+            id: updateScrollableSection
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
+            Layout.preferredHeight: 0
             spacing: Theme.space2
 
             RowLayout {
@@ -211,6 +222,8 @@ Drawer {
                 Layout.minimumHeight: 0
                 Layout.preferredHeight: 0
                 clip: true
+                interactive: contentHeight > height
+                flickableDirection: Flickable.VerticalFlick
                 contentWidth: width
                 contentHeight: Math.max(height, releaseNotesText.implicitHeight + Theme.space3)
                 boundsBehavior: Flickable.StopAtBounds
@@ -278,5 +291,6 @@ Drawer {
                 }
             }
         }
+    }
     }
 }

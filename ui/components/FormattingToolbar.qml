@@ -50,7 +50,8 @@ Superellipse {
             ActionButton {
                 quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconCode
                 Accessible.name: qsTrId("genycaster.composer.inline_code")
-                enabled: root.activeBlockIndex >= 0 && root.activeEditor !== null && root.activeEditor.selectionStart !== root.activeEditor.selectionEnd
+                enabled: openProofConnections.proEntitlements.eligible === true
+                         && root.activeBlockIndex >= 0 && root.activeEditor !== null && root.activeEditor.selectionStart !== root.activeEditor.selectionEnd
                 onClicked: if (root.editorHost) root.editorHost.applyInlineStyle("inline-code")
             }
             Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 22; color: Theme.divider }
@@ -58,7 +59,7 @@ Superellipse {
             ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconQuote; text: qsTrId("genycaster.composer.quote"); onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("quote", root.activeBlockIndex) } }
             ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconList; text: qsTrId("genycaster.composer.list"); onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("bullet-list", root.activeBlockIndex) } }
             ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconOrderedList; text: qsTrId("genycaster.composer.ordered_list"); onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("ordered-list", root.activeBlockIndex) } }
-            ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconCode; text: qsTrId("genycaster.composer.code_block"); onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("code", root.activeBlockIndex) } }
+            ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconCode; text: qsTrId("genycaster.composer.code_block"); enabled: openProofConnections.proEntitlements.eligible === true; onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("code", root.activeBlockIndex) } }
             ActionButton { quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconSeparator; text: qsTrId("genycaster.composer.separator"); onClicked: { if (root.editorHost) root.editorHost.commitActiveEditor(); richComposer.insertBlock("separator", root.activeBlockIndex) } }
             ActionButton {
                 quiet: true; compact: true; focusPolicy: Qt.NoFocus; iconOnly: true; iconSize: Theme.iconSizeSmall; iconGlyph: Theme.iconLink; text: qsTrId("genycaster.composer.link")

@@ -26,6 +26,13 @@ GenyDrawer {
     // Cast topics are metadata owned by GenyCaster, not a Farcaster parent URL.
     property var selectedTopics: []
     readonly property int maxCastTopics: 3
+    // The network codec currently supports at most two embeds; a GENY
+    // subscription never claims to unlock a protocol-forbidden publication.
+    readonly property int maxMediaUploads: Math.max(1, Math.min(2, Number(
+        openProofConnections.proEntitlements.limits?.image_embeds || 1)))
+    readonly property int attachedMediaCount: mediaPanel.attachedMedia.length
+    readonly property bool canUploadMedia:
+        attachedMediaCount + root.pendingMediaFiles.length < maxMediaUploads
     property int initialFocusAttempts: 0
     property string suggestedText: ""
     property var suggestedEmbeds: []
@@ -293,11 +300,13 @@ GenyDrawer {
     }
 
     function enqueueMediaFiles(files, afterIndex) {
-        if (!files || files.length === 0)
+        if (!files || files.length === 0 || !root.canUploadMedia)
             return false
 
         const additions = []
-        for (let index = 0; index < files.length; ++index)
+        const remaining = Math.max(0, root.maxMediaUploads
+            - root.attachedMediaCount - root.pendingMediaFiles.length)
+        for (let index = 0; index < Math.min(files.length, remaining); ++index)
             additions.push(files[index])
         if (additions.length === 0)
             return false
@@ -466,6 +475,7 @@ GenyDrawer {
     function publishCurrent() {
         root.synchronizeEditorState()
         if (!richComposer.withinProtocolLimit || !root.hasPublishableContent()
+                || root.attachedMediaCount > root.maxMediaUploads
                 || presentationBridge.writeBusy || mediaUpload.busy)
             return
         richComposer.saveDraft()
@@ -1303,9 +1313,15 @@ GenyDrawer {
     Connections {
         target: mediaUpload
         function onAssetReady(url, mediaType, managementToken, afterIndex) {
-            // Negative profile destinations are handled by ProfileSurface,
-            // never inserted into the cast composer.
+            // Profile avatar/cover uploads are handled elsewhere and must
+            // never be constrained by cast media admission.
             if (afterIndex === -1001 || afterIndex === -1002) return
+            if (root.attachedMediaCount >= root.maxMediaUploads) {
+                root.mediaInsertFailed = true
+                root.pendingMediaFiles = []
+                mediaUpload.clear()
+                return
+            }
             const canonicalUrl = String(url || "")
             const nextMetadata = Object.assign({}, root.mediaMetadata)
             nextMetadata[canonicalUrl] = {
@@ -1466,6 +1482,11 @@ GenyDrawer {
                 objectName: "desktopCastTopics"
                 visible: !root.compact && root.showTaxonomyControls
                 Layout.fillWidth: true
+                // The visual editor already provides its own breathing room.
+                // Markdown and Preview use the same taxonomy spacing, without
+                // touching the media/footer geometry or the mobile sheet.
+                Layout.topMargin: root.editorMode === "visual" ? 0 : Theme.space2
+                Layout.bottomMargin: root.editorMode === "visual" ? 0 : Theme.space3
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
                 ActionButton {
@@ -1891,6 +1912,7 @@ GenyDrawer {
                 queuedFiles: root.pendingMediaFiles
                 attachmentMetadata: root.mediaMetadata
                 onBrowseRequested: blockIndex => {
+                    if (!root.canUploadMedia) return
                     root.pendingMediaBlockIndex = blockIndex
                     root.mediaInsertFailed = false
                     root.openMediaPicker()
@@ -2277,6 +2299,7 @@ GenyDrawer {
                         iconOnly: true
                         iconGlyph: Theme.iconImage
                         text: qsTrId("genycaster.home.post_photo")
+                        enabled: root.canUploadMedia
                         onClicked: {
                             root.pendingMediaBlockIndex = root.compact ? 0 : visualEditor.activeBlockIndex
                             root.openMediaPicker()
@@ -2299,6 +2322,7 @@ GenyDrawer {
                         compact: true
                         quiet: true
                         text: "GIF"
+                        enabled: root.canUploadMedia
                         onClicked: {
                             // The same MIME-safe file picker accepts animated GIF.
                             root.pendingMediaBlockIndex = root.compact ? 0 : visualEditor.activeBlockIndex

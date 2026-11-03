@@ -43,7 +43,8 @@ const fetchImpl=async(url,init)=>{
 };
 async function withServer(fn) {
   const server=createAccountApi({catalogUrl:'https://id.example.test/catalog',
-    fetchImpl,store,issuer:'https://id.example.test'});
+    fetchImpl,store,issuer:'https://id.example.test',
+    proResolver:async()=>({status:'verified',eligible:true})});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/';
   const request=(path,method='GET',data,bearer)=>

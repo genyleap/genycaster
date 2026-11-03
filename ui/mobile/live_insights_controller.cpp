@@ -272,6 +272,9 @@ public:
         for (const QVariant& value : catalog) {
             QVariantMap row = value.toMap();
             if (!row.value(QStringLiteral("enabled")).toBool()) continue;
+            // Preserve saved catalog entries, but never display or fetch
+            // more than the verified active entitlement permits.
+            if (next.size() >= marketAssetLimit) break;
             const QString key = row.value(QStringLiteral("key")).toString();
             bool reused = false;
             for (const QVariant& oldValue : assets) {
@@ -637,6 +640,7 @@ public:
     bool refreshing{};
     QString status{};
     int marketPriceDecimals{8};
+    int marketAssetLimit{4};
     QStringList walletAddresses{};
     QVariantMap holding{};
     bool holdingRefreshing{};
@@ -705,8 +709,24 @@ void LiveInsightsController::setMarketPriceDecimals(const int decimals)
     emit marketPriceDecimalsChanged();
 }
 
+void LiveInsightsController::setProMarketLimit(const int limit)
+{
+    const int normalized = std::clamp(limit, 4, 16);
+    if (m_impl->marketAssetLimit == normalized) return;
+    m_impl->marketAssetLimit = normalized;
+    m_impl->rebuildAssets();
+    emit marketCatalogChanged();
+    m_impl->refreshMarket();
+}
+
 void LiveInsightsController::setAssetEnabled(const QString& key, const bool enabled)
 {
+    if (enabled) {
+        int current = 0;
+        for (const QVariant& item : m_impl->catalog)
+            if (item.toMap().value(QStringLiteral("enabled")).toBool()) ++current;
+        if (current >= m_impl->marketAssetLimit) return;
+    }
     bool changed = false;
     for (QVariant& value : m_impl->catalog) {
         QVariantMap row = value.toMap();
@@ -729,6 +749,10 @@ bool LiveInsightsController::addCustomToken(const QString& network, const QStrin
     const QString normalizedChain = normalizedNetwork(network);
     const QString normalizedContract = normalizedAddress(address);
     if (normalizedChain.isEmpty() || normalizedContract.isEmpty()) return false;
+    int enabledCount = 0;
+    for (const QVariant& item : m_impl->catalog)
+        if (item.toMap().value(QStringLiteral("enabled")).toBool()) ++enabledCount;
+    if (enabledCount >= m_impl->marketAssetLimit) return false;
     const QString key = QStringLiteral("custom:") + normalizedChain + QLatin1Char(':') + normalizedContract;
     for (const QVariant& value : m_impl->catalog) {
         if (value.toMap().value(QStringLiteral("key")).toString() == key) return false;

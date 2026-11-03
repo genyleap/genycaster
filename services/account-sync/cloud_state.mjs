@@ -5,6 +5,7 @@ import {createSignerSessionProof} from './signer_session_proof.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks} from './streaks.mjs';
+import {createGenyProPolicy,evaluateGenyPro} from './pro_entitlements.mjs';
 import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
@@ -321,7 +322,9 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
 }
 export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     verifyTopicOwner=verifyCastTopicOwnership,
-                                    verifyStreakCast=verifyStreakCastOwnership}) {
+                                    verifyStreakCast=verifyStreakCastOwnership,
+                                    proPolicy=createGenyProPolicy(),
+                                    resolvePro=(fid)=>evaluateGenyPro(fid,{policy:proPolicy,fetchImpl})}) {
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
@@ -404,7 +407,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
+      'entitlements','streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -498,6 +501,26 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='entitlements') {
+        if(request.method!=='GET') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        respond(response,200,{entitlements:await resolvePro(owner.fid)});
+        return true;
+      }
+      // Writes to app-owned Pro features must never trust local status, a
+      // profile decoration, or a caller-provided wallet address. Refresh the
+      // server-issued entitlement using this verified session's FID.
+      if((entity==='bookmark_collections' || entity==='bookmark_collection_items'
+          || entity==='connections' || entity==='connections/portable')
+         && request.method==='PUT') {
+        const membership=await resolvePro(owner.fid);
+        if(membership.status!=='verified' || membership.eligible!==true) {
+          respond(response,403,{error:'geny_pro_required',
+            minimum_geny:proPolicy.minimumGeny,
+            verification_status:membership.status});return true;
+        }
+      }
       if(entity==='streak/preferences') {
         if(request.method==='GET') {
           respond(response,200,{preferences:await store.getStreakPreferences(owner)});

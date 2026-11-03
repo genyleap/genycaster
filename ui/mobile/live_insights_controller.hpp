@@ -48,6 +48,9 @@ public:
      * @param decimals Requested precision; values are clamped to the supported range [2, 12].
      */
     Q_INVOKABLE void setMarketPriceDecimals(int decimals);
+    // Server-verified entitlement controls displayed market slots. Not QML
+    // invokable: caller-supplied account decorations cannot upgrade the cap.
+    void setProMarketLimit(int limit);
     Q_INVOKABLE void setAssetEnabled(const QString& key, bool enabled);
     Q_INVOKABLE bool addCustomToken(const QString& network, const QString& address);
     Q_INVOKABLE void removeCustomToken(const QString& key);

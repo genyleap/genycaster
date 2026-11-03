@@ -95,3 +95,13 @@ test('Mobile Cast taxonomy opens bottom sheets without shifting the editor', () 
     assert.equal(composer.split('root.contentItem.height : root.height) - height').length - 1, 2);
     assert.ok(composer.includes('root.showTaxonomyControls && !root.keyboardVisible'));
 });
+
+test('desktop Markdown and Preview retain consistent taxonomy gutters', () => {
+    const composer = source('ComposerDrawer.qml');
+    const start = composer.indexOf('objectName: "desktopCastTopics"');
+    const finish = composer.indexOf('id: formattingToolbar', start);
+    const panel = composer.slice(start,finish);
+    assert.match(panel,/Layout.topMargin: root.editorMode === "visual" \? 0 : Theme.space2/);
+    assert.match(panel,/Layout.bottomMargin: root.editorMode === "visual" \? 0 : Theme.space3/);
+    assert.match(composer,/objectName: "mobileCastContext"/);
+});

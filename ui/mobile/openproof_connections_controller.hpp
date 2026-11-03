@@ -45,6 +45,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
+    Q_PROPERTY(QVariantMap proEntitlements READ proEntitlements NOTIFY proEntitlementsChanged)
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
@@ -106,6 +107,11 @@ public:
     [[nodiscard]] bool streakBusy() const noexcept { return m_streakRead || m_streakWrite; }
     [[nodiscard]] QString streakError() const { return m_streakError; }
     Q_INVOKABLE void fetchStreak();
+    [[nodiscard]] QVariantMap proEntitlements() const {
+        return m_proEntitlementsFid == m_viewerFid && m_viewerFid != 0
+            ? m_proEntitlements : QVariantMap{};
+    }
+    Q_INVOKABLE void fetchProEntitlements(bool force = false);
     Q_INVOKABLE void recordStreakCast(const QString& hash);
     [[nodiscard]] QVariantMap streakPreferences() const { return m_streakPreferences; }
     [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
@@ -223,6 +229,7 @@ public:
     [[nodiscard]] static QStringList parseProviderCatalog(const QByteArray& json);
 
 signals:
+    void proEntitlementsChanged();
     void stateChanged();
     void cloudStateChanged();
     void profileStatusChanged();
@@ -273,6 +280,10 @@ private:
     QPointer<QNetworkReply> m_cloudRequest{};
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
+    QPointer<QNetworkReply> m_proEntitlementsRead{};
+    QVariantMap m_proEntitlements{};
+    qulonglong m_proEntitlementsFid{};
+    qint64 m_proEntitlementsFetchedAt{};
     QPointer<QNetworkReply> m_streakWrite{};
     QPointer<QNetworkReply> m_publicActivityRead{};
     qulonglong m_publicActivityFid{};

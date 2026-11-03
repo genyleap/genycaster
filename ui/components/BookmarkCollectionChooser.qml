@@ -14,6 +14,8 @@ Popup {
     y: parent ? Math.max(Theme.space3,(parent.height-height)/2) : 0
     padding: Theme.space3
     property var collections: []
+    readonly property bool proEligible: openProofConnections.proEntitlements.status === "verified"
+        && openProofConnections.proEntitlements.eligible === true
     property bool busy: false
     property string errorText: ""
     property string castHash: ""
@@ -45,9 +47,9 @@ Popup {
             compact: true
             quiet: true
             text: qsTrId("genycaster.bookmarks.uncategorized")
-            enabled: !root.busy
-            onClicked: {
-                root.unfiledRequested()
+                enabled: !root.busy && root.proEligible
+                onClicked: {
+                    root.unfiledRequested()
                 root.close()
             }
         }
@@ -68,7 +70,7 @@ Popup {
                         compact: true
                         iconGlyph: Theme.iconBookmark
                         text: String(modelData.name||"")
-                        enabled: !root.busy
+                        enabled: !root.busy && root.proEligible
                         onClicked: {
                             root.collectionPicked(String(modelData.id||""))
                             root.close()
@@ -93,9 +95,18 @@ Popup {
                 prominent: true
                 iconGlyph: Theme.iconPlus
                 text: qsTrId("genycaster.bookmarks.create")
-                enabled: !root.busy && root.newName.trim().length>0
+                enabled: !root.busy && root.proEligible && root.newName.trim().length>0
                 onClicked: root.createRequested(root.newName.trim())
             }
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: !root.proEligible
+            text: "GenyCaster Pro · " + LocaleFormat.formatInteger(
+                Number(openProofConnections.proEntitlements.minimum_geny || 16000)) + " GENY"
+            color: Theme.accent
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
         }
         DirectionAwareLabel {
             Layout.fillWidth: true

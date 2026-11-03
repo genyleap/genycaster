@@ -85,6 +85,12 @@ GenyDrawer {
     readonly property bool compactLayout: width < 640
     // Narrow inspectors never squeeze two form columns.
     readonly property int contentColumns: width >= 900 ? 2 : 1
+    readonly property bool marketProEligible:
+        openProofConnections.proEntitlements.status === "verified"
+        && openProofConnections.proEntitlements.eligible === true
+    readonly property int marketAssetLimit: marketProEligible ? 16 : 4
+    readonly property int enabledMarketCount: (liveInsights.marketCatalog || [])
+        .filter(item=>Boolean(item.enabled)).length
     property bool marketInputError: false
     property bool validatorUrlError: false
     property bool customColorError: false
@@ -1829,6 +1835,80 @@ GenyDrawer {
                         }
                     }
 
+                    // Pro eligibility is server-verified against an active
+                    // Farcaster identity and one Base GENY wallet. The card
+                    // never turns a client-side market estimate into access.
+                    Superellipse {
+                        id: marketProCard
+                        objectName: "genyProMarketQuota"
+                        Layout.fillWidth: true
+                        implicitHeight: proQuotaRow.implicitHeight + Theme.space3 * 2
+                        fillColor: root.marketProEligible
+                            ? Theme.primarySurface : Theme.surfaceMuted
+                        borderWidth: Theme.strokeHairline
+                        borderColor: root.marketProEligible
+                            ? Theme.accent : Theme.borderSubtle
+                        curveDepth: Theme.curveContainer
+
+                        RowLayout {
+                            id: proQuotaRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space3
+
+                            Superellipse {
+                                Layout.preferredWidth: Theme.scaleUi(36)
+                                Layout.preferredHeight: Layout.preferredWidth
+                                fillColor: root.marketProEligible
+                                    ? Theme.primarySurface : Theme.surfaceRaised
+                                borderWidth: Theme.strokeHairline
+                                borderColor: root.marketProEligible
+                                    ? Theme.accent : Theme.borderMuted
+                                curveDepth: Theme.curveControl
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: Theme.iconCheck
+                                    preferredSize: Theme.iconSizeSmall
+                                    color: root.marketProEligible
+                                        ? Theme.accent : Theme.textTertiary
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: root.marketProEligible ? "GenyCaster PRO" : "GENY"
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightBold
+                                    color: root.marketProEligible
+                                        ? Theme.accent : Theme.ink
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: LocaleFormat.formatInteger(root.enabledMarketCount)
+                                        + " / " + LocaleFormat.formatInteger(root.marketAssetLimit)
+                                        + " · " + LocaleFormat.formatInteger(Number(
+                                            openProofConnections.proEntitlements.minimum_geny || 16000))
+                                        + " GENY"
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    color: Theme.textSecondary
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                            ActionButton {
+                                compact: true
+                                iconOnly: true
+                                quiet: true
+                                iconGlyph: Theme.iconRefresh
+                                text: qsTrId("genycaster.profile.refresh")
+                                onClicked: openProofConnections.fetchProEntitlements(true)
+                            }
+                        }
+                    }
+
                     Superellipse {
                         Layout.fillWidth: true
                         implicitHeight: sourceRow.implicitHeight + Theme.space3 * 2
@@ -2176,6 +2256,8 @@ GenyDrawer {
 
                                     GenySwitch {
                                         checked: Boolean(modelData.enabled)
+                                        enabled: Boolean(modelData.enabled)
+                                            || root.enabledMarketCount < root.marketAssetLimit
                                         Accessible.name: String(modelData.name || modelData.symbol || "Token")
                                         onToggled: liveInsights.setAssetEnabled(String(modelData.key), checked)
                                     }
@@ -2223,6 +2305,7 @@ GenyDrawer {
                                 compact: true
                                 iconGlyph: Theme.iconPlus
                                 text: qsTrId("genycaster.settings.add_market_token")
+                                enabled: root.enabledMarketCount < root.marketAssetLimit
                                 onClicked: {
                                     const network = String(tokenNetworkBox.model[tokenNetworkBox.currentIndex].id)
                                     const added = liveInsights.addCustomToken(network, tokenAddressField.text)

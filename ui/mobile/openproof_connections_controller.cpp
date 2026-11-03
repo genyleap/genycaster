@@ -1338,6 +1338,55 @@ void OpenProofConnectionsController::setStreakPreferences(
     });
 }
 
+void OpenProofConnectionsController::fetchProEntitlements(const bool force)
+{
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
+        m_proEntitlements.clear();
+        m_proEntitlementsFid = 0;
+        emit proEntitlementsChanged();
+        return;
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (!force && m_proEntitlementsFid == m_viewerFid &&
+        m_proEntitlementsFetchedAt > 0 && now - m_proEntitlementsFetchedAt < 60'000)
+        return;
+    if (m_proEntitlementsRead) return;
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/entitlements"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(14000);
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    auto* reply = m_network.get(request);
+    m_proEntitlementsRead = reply;
+    const auto viewer = m_viewerFid;
+    const auto generation = m_grantGeneration;
+    connect(reply, &QNetworkReply::finished, this, [this,reply,viewer,generation] {
+        if (m_proEntitlementsRead != reply) { reply->deleteLater(); return; }
+        m_proEntitlementsRead.clear();
+        const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes = reply->bytesAvailable() <= 8192 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+        const auto doc = QJsonDocument::fromJson(bytes);
+        m_proEntitlements = {};
+        if (status == 200 && doc.isObject() &&
+            doc.object().value(QStringLiteral("entitlements")).isObject()) {
+            const auto parsed = doc.object().value(QStringLiteral("entitlements")).toObject().toVariantMap();
+            const bool verified = parsed.value(QStringLiteral("status")).toString() ==
+                QStringLiteral("verified");
+            const bool eligible = parsed.value(QStringLiteral("eligible")).toBool();
+            // No client-side upgrade based on "balance", screenshots or unknown states.
+            if (verified || !eligible) m_proEntitlements = parsed;
+        }
+        m_proEntitlementsFid = viewer;
+        m_proEntitlementsFetchedAt = QDateTime::currentMSecsSinceEpoch();
+        emit proEntitlementsChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track)
 {
     if(track!=QStringLiteral("activity") && track!=QStringLiteral("creator"))return;
@@ -2173,6 +2222,11 @@ void OpenProofConnectionsController::clearAccountGrant()
     cancelNetworkReply(m_portableConnectionsRequest, this);
     cancelNetworkReply(m_accountConnectionsRequest, this);
     cancelNetworkReply(m_cloudRequest, this);
+    cancelNetworkReply(m_proEntitlementsRead, this);
+    m_proEntitlements.clear();
+    m_proEntitlementsFid = 0;
+    m_proEntitlementsFetchedAt = 0;
+    emit proEntitlementsChanged();
     cancelNetworkReply(m_draftRequest, this);
     m_draftRemoteInitialized=false;
     m_draftConflict=false;
@@ -3018,6 +3072,16 @@ void OpenProofConnectionsController::finishAction(QString error)
 
 void OpenProofConnectionsController::connectProvider(const QString& provider)
 {
+    // Only server-verified GenyCaster Pro may initiate new external links.
+    // Disconnect/revoke remains available to every account for safety.
+    const auto entitlement = proEntitlements();
+    if (entitlement.value(QStringLiteral("status")).toString()
+            != QStringLiteral("verified")
+        || !entitlement.value(QStringLiteral("eligible")).toBool()) {
+        m_error = QStringLiteral("GenyCaster Pro is required to connect an external account.");
+        emit stateChanged();
+        return;
+    }
     const bool alreadyLinked = isConnected(provider);
     if (!m_verified || m_actionBusy || m_request || !m_providers.contains(provider)
         || (alreadyLinked && provider != QStringLiteral("linkedin"))) return;

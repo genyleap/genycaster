@@ -47,7 +47,8 @@ const fetchImpl=async(url,opts)=>{
   return new Response(JSON.stringify({providers:[],challenge_providers:[]}),{status:200});
 };
 async function withServer(action) {
-  const server=createAccountApi({catalogUrl:upstream,fetchImpl,store,issuer:'https://identity.example.test'});
+  const server=createAccountApi({catalogUrl:upstream,fetchImpl,store,issuer:'https://identity.example.test',
+    proResolver:async()=>({status:'verified',eligible:true})});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const url='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/';
   const request=(path,method='GET',body,token='Bearer good')=>

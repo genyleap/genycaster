@@ -116,8 +116,10 @@ Item {
                 openProofConnections.cloudAuthorizationReady &&
                 !openProofConnections.streakBusy)
                 openProofConnections.fetchStreak()
-            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
+            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady) {
                 openProofConnections.fetchStreakPreferences()
+                openProofConnections.fetchProEntitlements()
+            }
         }
     }
     Timer {
@@ -1830,6 +1832,44 @@ Item {
                             ToolTip.visible: genyHolderBadgeHover.hovered
                             ToolTip.text: qsTrId("genycaster.profile.verified_geny_holder")
                             HoverHandler { id: genyHolderBadgeHover }
+                        }
+
+                        // Owner's Pro badge is issued only from the
+                        // authenticated server's GENY verification. Untrusted
+                        // profile metadata cannot mint this status.
+                        Rectangle {
+                            id: genyProBadge
+                            objectName: "verifiedGenyProBadge"
+                            visible: root.isOwnProfile
+                                     && openProofConnections.proEntitlements.status === "verified"
+                                     && openProofConnections.proEntitlements.eligible === true
+                            implicitWidth: proBadgeContents.implicitWidth + Theme.space3
+                            implicitHeight: Math.max(25, proBadgeContents.implicitHeight + Theme.space1)
+                            radius: implicitHeight / 2
+                            color: Theme.primarySurface
+                            border.color: Theme.accent
+                            border.width: 1
+                            Row {
+                                id: proBadgeContents
+                                anchors.centerIn: parent
+                                spacing: Theme.space1
+                                Icon {
+                                    text: Theme.iconCheck
+                                    color: Theme.accent
+                                    preferredSize: Theme.typeCaptionSize
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Label {
+                                    text: "PRO"
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightBold
+                                }
+                            }
+                            Accessible.name: "GenyCaster Pro"
+                            ToolTip.visible: proBadgeHover.hovered
+                            ToolTip.text: "GenyCaster Pro"
+                            HoverHandler { id: proBadgeHover }
                         }
 
                         Item {

@@ -1898,6 +1898,23 @@ int main(int argc, char* argv[])
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);
+    // The market cap follows a server-verified GENY balance, never the
+    // client's public market-info estimate or a QML-supplied wallet.
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::proEntitlementsChanged,
+                     &liveInsightsController, [&openProofConnections, &liveInsightsController] {
+        const auto status = openProofConnections.proEntitlements();
+        const bool pro = status.value(QStringLiteral("status")).toString()
+                             == QStringLiteral("verified")
+                      && status.value(QStringLiteral("eligible")).toBool();
+        liveInsightsController.setProMarketLimit(pro ? 16 : 4);
+    });
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::stateChanged,
+                     &openProofConnections, [&openProofConnections] {
+        if (openProofConnections.cloudAuthorizationReady())
+            openProofConnections.fetchProEntitlements();
+    });
     QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
         &openProofConnections, [&presentationBridge, &openProofConnections, &richComposerController] {
             const auto fid = presentationBridge.isAuthenticated()

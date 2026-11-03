@@ -170,3 +170,14 @@ test('native update sheet shows published release metadata with vertical drawer 
     assert.match(cpp,/obj\.value\(QStringLiteral\("body"\)\)/);
     assert.match(cpp,/obj\.value\(QStringLiteral\("published_at"\)\)/);
 });
+
+test('release notice has fixed header and footer with only release notes scrollable', () => {
+    const source = read('ui/components/UpdateNoticeDrawer.qml');
+    assert.match(source,/contentItem: Item \{[\s\S]*?id: updateLayoutViewport/);
+    assert.match(source,/id: updateFixedChrome/);
+    assert.match(source,/id: updateScrollableSection[\s\S]*?Layout.minimumHeight: 0[\s\S]*?Layout.preferredHeight: 0/);
+    assert.match(source,/objectName: "updateReleaseNotesScroll"[\s\S]*?flickableDirection: Flickable.VerticalFlick/);
+    assert.match(source,/objectName: "updateNoticeStickyActions"/);
+    assert.ok(source.indexOf('id: updateFixedChrome') < source.indexOf('id: updateScrollableSection'));
+    assert.ok(source.indexOf('id: updateScrollableSection') < source.indexOf('objectName: "updateNoticeStickyActions"'));
+});
