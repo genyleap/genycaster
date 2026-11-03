@@ -23,6 +23,33 @@ export const defaultBrowserImageHosts = [
 ];
 export const maximumBrowserImageBytes = 8 * 1024 * 1024;
 
+// The public Arweave gateway redirects immutable /TXID images to the
+// base32-encoded TXID subdomain. Verify the exact content address and path:
+// never allow arbitrary cross-origin redirects from a browser image request.
+function isContentAddressedArweaveRedirect(source, next) {
+  if (source.hostname !== 'arweave.net' || source.search || source.hash
+      || next.protocol !== 'https:' || next.port || next.username
+      || next.password || next.hash || next.search
+      || next.pathname !== source.pathname) return false;
+  const matched = /^\\/([A-Za-z0-9_-]{43})$/.exec(source.pathname);
+  if (!matched) return false;
+  const identifier = matched[1];
+  const bytes = Buffer.from(identifier, 'base64url');
+  if (bytes.length !== 32 || bytes.toString('base64url') !== identifier) return false;
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
+  let bits = 0, buffer = 0, label = '';
+  for (const byte of bytes) {
+    buffer = (buffer << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      label += alphabet[(buffer >> bits) & 31];
+    }
+  }
+  if (bits) label += alphabet[(buffer << (5 - bits)) & 31];
+  return next.hostname === label + '.arweave.net';
+}
+
 // Public website icons have a narrowly defined exception to the static CDN
 // allowlist. This does NOT grant access to arbitrary pages or paths: the DNS-
 // pinned raster fetch below still rejects private hosts, HTML and SVG content.
@@ -171,7 +198,10 @@ export async function retrieveBrowserImage(rawUrl, {
           const sameOriginRaster = !trustedStorageRedirect
             && next.origin === url.origin
             && validImageUrl(next.href, allowedHosts) !== null;
-          if (!signedStorage && !sameOriginRaster) {
+          const arweaveRaster = !trustedStorageRedirect
+            && isContentAddressedArweaveRedirect(url, next)
+            && validImageUrl(next.href, allowedHosts) !== null;
+          if (!signedStorage && !sameOriginRaster && !arweaveRaster) {
             finish({ status: 502, error: 'image_redirect_not_allowed' });
             return;
           }
