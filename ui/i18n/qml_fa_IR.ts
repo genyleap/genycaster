@@ -3581,6 +3581,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>پست‌های بیشتری را ببینید</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>بی‌صداکردن پروفایل</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>لغو بی‌صداکردن پروفایل</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>دنبال‌کردن</translation>
