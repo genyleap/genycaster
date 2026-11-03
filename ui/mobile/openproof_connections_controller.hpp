@@ -320,6 +320,7 @@ private:
     QStringList m_mutedProfileFids{};
     QString m_mutedProfilesError{};
     qlonglong m_mutedProfilesRevision{};
+    qint64 m_mutedProfilesFetchedAt{};
     bool m_mutedProfilesLoaded{};
     QPointer<QNetworkReply> m_streakPreferencesWrite{};
     QPointer<QNetworkReply> m_streakLeaderboardRead{};
