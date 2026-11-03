@@ -395,6 +395,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
         pumpNotificationSeenAt();
         pumpDraftChanges();
         pumpTopicWrites();
+        pumpStreakWrites();
     } else checkCloudService();
 }
 
@@ -455,6 +456,7 @@ void OpenProofConnectionsController::checkCloudService()
             pumpBookmarkChanges();
             pumpDraftChanges();
             pumpTopicWrites();
+            pumpStreakWrites();
         }
     });
 }
@@ -2893,6 +2895,7 @@ void OpenProofConnectionsController::acceptAuthenticatedGrant(
     m_error.clear();
     fetchTopics();
     refreshConnections();
+    pumpStreakWrites();
 }
 
 void OpenProofConnectionsController::acceptRecoveryGrant(
