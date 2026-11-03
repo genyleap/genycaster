@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Window
+import "ProCastPolicy.js" as ProCastPolicy
 
 GenyDrawer {
     id: root
@@ -31,10 +32,24 @@ GenyDrawer {
     // Cast topics are metadata owned by GenyCaster, not a Farcaster parent URL.
     property var selectedTopics: []
     readonly property int maxCastTopics: 3
-    // The network codec currently supports at most two embeds; a GENY
-    // subscription never claims to unlock a protocol-forbidden publication.
-    readonly property int maxMediaUploads: Math.max(1, Math.min(2, Number(
-        openProofConnections.proEntitlements.limits?.image_embeds || 1)))
+    // Account quotas are fetched from the authenticated Geny Pro service.
+    // Farcaster ordinary messages still have a 1024-byte/2-embed limit;
+    // larger drafts require an explicitly confirmed multi-cast thread.
+    readonly property bool verifiedGenyPro:
+        openProofConnections.proEntitlements.status === "verified"
+        && openProofConnections.proEntitlements.eligible === true
+    readonly property int maxComposerCharacters: verifiedGenyPro
+        ? Math.min(4096, Math.max(1024, Number(
+            openProofConnections.proEntitlements.limits?.cast_characters || 4096)))
+        : 1024
+    readonly property int authoredCharacters: ProCastPolicy.characterCount(richComposer.safeText)
+    readonly property bool withinAccountCharacterLimit: authoredCharacters <= maxComposerCharacters
+    readonly property int maxMediaUploads: verifiedGenyPro
+        ? Math.min(4, Math.max(1, Number(
+            openProofConnections.proEntitlements.limits?.image_embeds || 4)))
+        : 1
+    property var pendingPublicationCasts: []
+    property string publicationPlanError: ""
     readonly property int attachedMediaCount: mediaPanel.attachedMedia.length
     readonly property bool canUploadMedia:
         attachedMediaCount + root.pendingMediaFiles.length < maxMediaUploads
@@ -69,7 +84,7 @@ GenyDrawer {
     property bool mediaInsertFailed: false
     property int emojiThreadIndex: -1
     property int emojiThreadCursorPosition: -1
-    readonly property int maximumThreadCasts: 12
+    readonly property int maximumThreadCasts: 24
     readonly property bool threadMode: threadTailModel.count > 0
     // Dropdowns in the phone composer occupy real layout space, never cover
     // the avatar/editor or the fixed media/actions footer.
@@ -460,38 +475,41 @@ GenyDrawer {
     }
 
     function threadPayload() {
-        const casts = [{
-            "text": richComposer.safeText,
-            "mentionFids": richComposer.mentionFids,
-            "mentionPositions": richComposer.mentionPositions,
-            "embeds": root.publicationEmbeds()
-        }]
-        for (let index = 0; index < threadTailModel.count; ++index) {
-            casts.push({
-                "text": String(threadTailModel.get(index).text || ""),
-                "mentionFids": [],
-                "mentionPositions": [],
-                "embeds": []
-            })
-        }
-        return casts
+        const tails = []
+        for (let index = 0; index < threadTailModel.count; ++index)
+            tails.push(String(threadTailModel.get(index).text || ""))
+        return ProCastPolicy.publicationPlan(richComposer.safeText,
+            richComposer.mentionFids, richComposer.mentionPositions,
+            root.publicationEmbeds(), tails, root.verifiedGenyPro,
+            root.attachedMediaCount)
     }
 
     function publishCurrent() {
         root.synchronizeEditorState()
-        if (!richComposer.withinProtocolLimit || !root.hasPublishableContent()
+        if (!root.withinAccountCharacterLimit || !root.hasPublishableContent()
                 || root.attachedMediaCount > root.maxMediaUploads
                 || presentationBridge.writeBusy || mediaUpload.busy)
             return
+        const planned = root.threadPayload()
+        if (planned.error) {
+            root.publicationPlanError = planned.error
+            return
+        }
+        root.publicationPlanError = ""
+        if (planned.requiresThread) {
+            // NEVER send extra posts without a visible confirmation.
+            root.pendingPublicationCasts = planned.parts
+            threadPublicationConfirmation.open()
+            return
+        }
         richComposer.saveDraft()
-        if (root.threadMode)
-            root.threadRequested(root.threadPayload())
-        else if (root.replyMode)
-            root.replyRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions, root.publicationEmbeds())
+        if (root.replyMode)
+            root.replyRequested(richComposer.safeText, richComposer.mentionFids,
+                richComposer.mentionPositions, planned.parts[0].embeds)
         else
-            root.publishRequested(richComposer.safeText, richComposer.mentionFids, richComposer.mentionPositions,
-                                  root.publicationEmbeds(),
-                                  root.showTaxonomyControls ? root.selectedParentUrl : "")
+            root.publishRequested(richComposer.safeText, richComposer.mentionFids,
+                richComposer.mentionPositions, planned.parts[0].embeds,
+                root.showTaxonomyControls ? root.selectedParentUrl : "")
     }
 
     // Repeater editors are incubated after the drawer begins opening; a
@@ -567,6 +585,8 @@ GenyDrawer {
         threadTailModel.clear()
         root.mediaMetadata = ({})
         root.clearPendingMediaQueue()
+        root.pendingPublicationCasts = []
+        root.publicationPlanError = ""
         if (!mediaUpload.busy) mediaUpload.clear()
         if (root.transientDraft || root.parentCast || root.quotedCast) {
             richComposer.beginContextDocument()
@@ -676,6 +696,92 @@ GenyDrawer {
             root.selectedChannelId = selection.isHome ? "" : String(selection.id || "")
             root.selectedContextImage = selection.isHome ? "" : String(selection.imageUrl || "")
             channelPicker.close()
+        }
+    }
+
+    // Publishing a draft which cannot fit a canonical Farcaster CAST_ADD
+    // requires a deliberate second tap: each independent Cast becomes visible
+    // on the network and cannot be made atomic by the editor.
+    Popup {
+        id: threadPublicationConfirmation
+        objectName: "genyProExplicitThreadConfirmation"
+        parent: Overlay.overlay
+        modal: true
+        dim: true
+        focus: true
+        width: parent ? Math.min(Theme.scaleUi(390),parent.width - Theme.space4 * 2)
+                      : Theme.scaleUi(360)
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
+        padding: Theme.space4
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: PopupSurface {
+            curveDepth: Theme.curveContainer
+        }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            RowLayout {
+                spacing: Theme.space2
+                Icon {
+                    text: Theme.iconList
+                    preferredSize: Theme.iconSizeSmall
+                    color: Theme.proAccent
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.pro.thread_title")
+                    color: Theme.ink
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.pro.thread_explanation")
+                    .arg(LocaleFormat.formatInteger(root.pendingPublicationCasts.length))
+                wrapMode: Text.Wrap
+                font.pixelSize: Theme.typeBodySize
+                color: Theme.textSecondary
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: LocaleFormat.formatInteger(root.authoredCharacters) + " / "
+                      + LocaleFormat.formatInteger(root.maxComposerCharacters)
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.proAccent
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                ActionButton {
+                    Layout.fillWidth: true
+                    quiet: true
+                    compact: true
+                    text: qsTrId("genycaster.shell.cancel")
+                    onClicked: {
+                        threadPublicationConfirmation.close()
+                        root.pendingPublicationCasts = []
+                    }
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    prominent: true
+                    compact: true
+                    text: qsTrId("genycaster.pro.publish_thread")
+                    onClicked: {
+                        if (!root.pendingPublicationCasts.length
+                                || presentationBridge.writeBusy
+                                || !root.withinAccountCharacterLimit
+                                || root.attachedMediaCount > root.maxMediaUploads)
+                            return
+                        const casts = root.pendingPublicationCasts
+                        root.pendingPublicationCasts = []
+                        threadPublicationConfirmation.close()
+                        richComposer.saveDraft()
+                        root.threadRequested(casts)
+                    }
+                }
+            }
         }
     }
 
@@ -1417,7 +1523,7 @@ GenyDrawer {
                     text: root.parentCast ? qsTrId("genycaster.shell.reply")
                                          : qsTrId("genycaster.shell.publish")
                     enabled: !presentationBridge.writeBusy && !mediaUpload.busy
-                             && richComposer.withinProtocolLimit && root.hasPublishableContent()
+                             && root.withinAccountCharacterLimit && root.hasPublishableContent()
                     onClicked: root.publishCurrent()
                 }
             }
@@ -1471,7 +1577,7 @@ GenyDrawer {
                     text: root.parentCast ? qsTrId("genycaster.shell.reply")
                                          : qsTrId("genycaster.shell.publish")
                     enabled: !presentationBridge.writeBusy && !mediaUpload.busy
-                             && richComposer.withinProtocolLimit && root.hasPublishableContent()
+                             && root.withinAccountCharacterLimit && root.hasPublishableContent()
                     onClicked: root.publishCurrent()
                 }
             }
@@ -1914,6 +2020,7 @@ GenyDrawer {
                          && (root.insertKind === "media" || hasAttachedMedia || hasTransientUpload)
                 Layout.fillWidth: true
                 blockIndex: root.insertBlockIndex
+                maxAttachments: root.maxMediaUploads
                 insertFailed: root.mediaInsertFailed
                 queuedFiles: root.pendingMediaFiles
                 attachmentMetadata: root.mediaMetadata
@@ -2099,6 +2206,14 @@ GenyDrawer {
                     spacing: 1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        visible: root.publicationPlanError.length > 0
+                        text: qsTrId("genycaster.pro.thread_plan_failed")
+                        color: Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
                         text: presentationBridge.writeErrorText.length > 0 ? presentationBridge.writeErrorText
                               : richComposer.simplifiedElementCount > 0
                                 ? qsTrId("genycaster.composer.compatibility_simplified_count")
@@ -2118,18 +2233,13 @@ GenyDrawer {
                     Layout.minimumWidth: 0
                     horizontalAlignment: Theme.textEndAlignment
                     wrapMode: Text.Wrap
-                    text: root.compact
-                          ? LocaleFormat.formatInteger(richComposer.publishedBytes)
-                            + " / " + LocaleFormat.formatInteger(richComposer.maximumPublishedBytes)
-                          : qsTrId("genycaster.composer.editor_count")
-                              .arg(LocaleFormat.formatInteger(richComposer.editorCharacters))
-                            + "  •  " + qsTrId("genycaster.composer.published_count")
-                              .arg(LocaleFormat.formatInteger(richComposer.publishedBytes))
-                              .arg(LocaleFormat.formatInteger(richComposer.maximumPublishedBytes))
-                    color: richComposer.withinProtocolLimit ? Theme.inkSubtle : Theme.danger
+                    text: LocaleFormat.formatInteger(root.authoredCharacters)
+                          + " / " + LocaleFormat.formatInteger(root.maxComposerCharacters)
+                          + " · " + LocaleFormat.formatInteger(richComposer.publishedBytes) + " B"
+                    color: root.withinAccountCharacterLimit ? Theme.inkSubtle : Theme.danger
                     font.family: Theme.fontFamilyForText(text)
                     font.pixelSize: Theme.typeCaptionSize
-                    font.weight: richComposer.withinProtocolLimit ? Theme.weightMedium : Theme.weightBold
+                    font.weight: root.withinAccountCharacterLimit ? Theme.weightMedium : Theme.weightBold
                 }
             }
 
@@ -2369,10 +2479,10 @@ GenyDrawer {
                     Layout.minimumWidth: implicitWidth
                     Layout.alignment: Qt.AlignVCenter
                     forceLeftToRight: true
-                    color: richComposer.withinProtocolLimit ? Theme.textSecondary : Theme.danger
+                    color: root.withinAccountCharacterLimit ? Theme.textSecondary : Theme.danger
                     font.pixelSize: Theme.typeCaptionSize
-                    text: LocaleFormat.formatInteger(richComposer.publishedBytes)
-                          + " / " + LocaleFormat.formatInteger(richComposer.maximumPublishedBytes)
+                    text: LocaleFormat.formatInteger(root.authoredCharacters)
+                          + " / " + LocaleFormat.formatInteger(root.maxComposerCharacters)
                 }
             }
         }

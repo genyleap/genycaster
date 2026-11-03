@@ -44,6 +44,7 @@ test('GENY Pro requires server-configured threshold in one verified address',asy
  assert.equal(result.minimum_geny,'16000');
  assert.equal(result.limits.cast_bytes,1024);
  assert.equal(result.limits.image_embeds,1);
+ assert.equal(result.limits.cast_characters,1024);
 });
 test('one qualifying wallet grants verified Pro without crossing protocol publishing limit',async()=>{
  const f=fixture({[first]:16000,[second]:0});
@@ -54,9 +55,12 @@ test('one qualifying wallet grants verified Pro without crossing protocol publis
  assert.equal(result.capabilities.custom_bookmark_collections,true);
  assert.equal(result.capabilities.advanced_code_editor,true);
  assert.equal(result.capabilities.extended_casts,false);
- assert.equal(result.capabilities.extra_images,false);
- assert.equal(result.capabilities.multiple_miniapps,false);
- assert.equal(result.limits.concurrent_miniapps,1);
+ assert.equal(result.capabilities.extra_images,true);
+ assert.equal(result.capabilities.multiple_miniapps,true);
+ assert.equal(result.capabilities.long_form_threads,true);
+ assert.equal(result.limits.concurrent_miniapps,4);
+ assert.equal(result.limits.cast_characters,4096);
+ assert.equal(result.limits.image_embeds,4);
  assert.equal(result.limits.cast_bytes,1024);
 });
 test('threshold is supplied by service config, not client or account metadata',async()=>{

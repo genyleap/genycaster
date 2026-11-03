@@ -6576,6 +6576,22 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>显示恢复助记词</translation>
         </message>
+        <message id="genycaster.pro.thread_title">
+            <source>Publish as a thread?</source>
+            <translation>发布为帖子串？</translation>
+        </message>
+        <message id="genycaster.pro.thread_explanation">
+            <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
+            <translation>这份草稿超出单条 Farcaster 帖子的限制。只有在你确认后，才会发布为 %1 条关联帖子。</translation>
+        </message>
+        <message id="genycaster.pro.publish_thread">
+            <source>Publish thread</source>
+            <translation>发布帖子串</translation>
+        </message>
+        <message id="genycaster.pro.thread_plan_failed">
+            <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
+            <translation>无法将这份草稿发布为帖子串。请缩短内容或减少附件。</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

@@ -51,7 +51,6 @@ constexpr qsizetype manifestByteLimit = 64 * 1024;
 constexpr qsizetype universalPageByteLimit = 256 * 1024;
 constexpr qsizetype rpcByteLimit = 32 * 1024;
 constexpr double largestExactInteger = 9007199254740991.0;
-constexpr qsizetype maximumLiveSessions = 4;
 constexpr int manifestTimeoutMs = 10'000;
 constexpr int readyTimeoutMs = 20'000;
 constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
@@ -364,6 +363,24 @@ public:
             [this](const QString& taskId) { terminate(taskId); });
     }
 
+    void setSessionLimit(const int limit)
+    {
+        const auto normalized = static_cast<std::size_t>(std::clamp(limit,1,4));
+        if (m_allowedSessions == normalized) return;
+        m_allowedSessions = normalized;
+        // A downgrade must close excess isolated documents immediately;
+        // remove background sessions first without leaving wallet authority
+        // behind. Existing focus/teardown semantics handle active sessions.
+        while (m_sessions.size() > m_allowedSessions) {
+            auto previous = std::ranges::find_if(m_sessions, [](const auto& session) {
+                return !session->foreground;
+            });
+            const QString target = previous != m_sessions.end()
+                ? (*previous)->taskId : m_sessions.back()->taskId;
+            terminate(target);
+        }
+    }
+
     ~Impl() override
     {
         if (m_wallet != nullptr) {
@@ -644,7 +661,14 @@ private:
             }
             terminate(existing->taskId);
         }
-        if (m_sessions.size() >= maximumLiveSessions) {
+        // A Farcaster SDK openMiniApp handoff is a *replacement* of its
+        // source document. Permit one temporary resolving target even on
+        // Basic, then terminate the source at ready; never admit a second
+        // ordinary launch or a third pending session.
+        const bool replacingOnlySession =
+            m_allowedSessions == 1U && m_sessions.size() == 1U
+            && !handoffSourceTaskId.isEmpty() && find(handoffSourceTaskId);
+        if (m_sessions.size() >= m_allowedSessions && !replacingOnlySession) {
             if (!handoffSourceTaskId.isEmpty()) {
                 rejectOpenMiniAppHandoff(handoffSourceTaskId, handoffSourceGeneration,
                                          handoffOuterId, handoffDocument,
@@ -1637,6 +1661,7 @@ private:
     QString m_walletTaskId{};
     QHash<QString, QString> m_composeRequestToTask{};
     QHash<QString, ManifestCacheEntry> m_manifestCache{};
+    std::size_t m_allowedSessions{1U};
 };
 
 MiniAppRuntime::MiniAppRuntime(MiniAppHostController& controller,
@@ -1650,5 +1675,10 @@ MiniAppRuntime::MiniAppRuntime(MiniAppHostController& controller,
 {}
 
 MiniAppRuntime::~MiniAppRuntime() = default;
+
+void MiniAppRuntime::setSessionLimit(const int limit)
+{
+    m_impl->setSessionLimit(limit);
+}
 
 } // namespace farcaster::runtime::miniapp

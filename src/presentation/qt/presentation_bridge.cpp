@@ -3095,7 +3095,7 @@ void PresentationBridge::publishPreparedThread(const QVariantList& casts)
     if (m_writeBusy) {
         return;
     }
-    if (casts.size() < 2 || casts.size() > 12) {
+    if (casts.size() < 2 || casts.size() > 24) {
         m_writeErrorText = qtTrId("genycaster.bridge.thread_cast_count_invalid");
         emit stateChanged();
         return;

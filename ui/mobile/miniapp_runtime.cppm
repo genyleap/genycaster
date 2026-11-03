@@ -32,6 +32,8 @@ public:
         qulonglong clientFid,
         capability::wallet::IEthereumWalletBridge* walletBridge = nullptr);
     ~MiniAppRuntime();
+    /** Bounded by the verified account's Geny Pro entitlement (1 or 4). */
+    void setSessionLimit(int limit);
     MiniAppRuntime(const MiniAppRuntime&) = delete;
     auto operator=(const MiniAppRuntime&) -> MiniAppRuntime& = delete;
 

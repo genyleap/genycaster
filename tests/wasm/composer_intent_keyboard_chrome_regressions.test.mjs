@@ -16,7 +16,7 @@ test("reply and quote have distinct publication targets and taxonomy policies",(
     assert.match(composer,/objectName: "mobileCastContext"[\s\S]*?visible: root\.compact && root\.editorMode === "visual"\s+&& root\.showTaxonomyControls/);
     assert.match(composer,/if \(!root\.opened \|\| !channelPicker\.opened \|\| !root\.showTaxonomyControls\) return/);
     assert.match(composer,/onClicked: if \(root\.showTaxonomyControls\) channelPicker\.open\(\)/);
-    assert.match(composer,/else if \(root\.replyMode\)[\s\S]*?root\.replyRequested/);
+    assert.match(composer,/if \(root\.replyMode\)[\s\S]*?root\.replyRequested/);
     assert.match(composer,/root\.showTaxonomyControls \? root\.selectedParentUrl : ""/);
     assert.match(app,/function openQuoteComposer\(cast\)/);
     assert.match(app,/composerDrawer\.quotedCast = initialAction === "quote" \? \(quoteCast \|\| null\) : null/);

@@ -148,7 +148,8 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
  assert.match(composer,/function publicationEmbeds\(\)/);
  assert.match(composer,/return root\.quoteMode \? embeds : embeds\.filter/);
  assert.match(composer,/String\(embed && embed\.kind \|\| ""\) !== "cast-reference"/);
- assert.match(composer,/root\.publishRequested\(richComposer\.safeText[\s\S]*?root\.publicationEmbeds\(\)/);
+ assert.match(composer,/ProCastPolicy\.publicationPlan\(richComposer\.safeText[\s\S]*?root\.publicationEmbeds\(\)/);
+ assert.match(composer,/root\.publishRequested\(richComposer\.safeText[\s\S]*?planned\.parts\[0\]\.embeds/);
  assert.match(composer,/!root\.parentCast && !root\.quotedCast\s+&& richComposer\.dirty/);
  assert.match(composer,/visible: !root\.replyMode && !root\.quoteMode && !root\.transientDraft/);
 });

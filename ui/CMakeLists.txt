@@ -124,6 +124,7 @@ set(farcasterQmlFiles
     components/ProfileSurface.qml
     components/ProfileProBadge.qml
     components/ProUpgradeNotice.qml
+    components/ProCastPolicy.js
     components/GenyPulsePanel.qml
     components/StreakCard.qml
     components/AccountConnectionsPopup.qml

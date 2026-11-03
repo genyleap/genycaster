@@ -115,3 +115,24 @@ test('SDK-dependent Mini Apps expose an explicit real Farcaster host fallback',(
  assert.doesNotMatch(hostSource,/window\.__genycasterFakeSDK/);
  assert.doesNotMatch(hostSource,/onload.*clearTimeout/);
 });
+
+test('verified Pro supports four isolated web Mini App iframes and fails closed on a fifth',()=>{
+ const {controller,nodes}=browser();
+ controller.setLimit(4);
+ const names=['alpha','beta','gamma','delta'];
+ for(const name of names)
+  assert.equal(controller.open('https://'+name+'.example.org/',name),true);
+ const frames=nodes.filter(node=>node.tagName==='iframe');
+ assert.equal(frames.length,4);
+ assert.equal(frames.filter(x=>x.style.display==='block').length,1);
+ assert.equal(frames.filter(x=>x.style.display==='none').length,3);
+ assert.equal(controller.open('https://fifth.example.org/','fifth'),false);
+ assert.equal(nodes.filter(node=>node.tagName==='iframe').length,4);
+ controller.setLimit(1);
+ assert.equal(controller.active(),true);
+ assert.equal(frames[3].style.display,'block');
+ assert.equal(controller.open('https://other.example.org/','Other'),true);
+ assert.equal(controller.active(),true);
+ controller.close();
+ assert.equal(controller.active(),false);
+});

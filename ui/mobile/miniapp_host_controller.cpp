@@ -2,6 +2,7 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
+#include <algorithm>
 #if !defined(__EMSCRIPTEN__)
 #include <QDesktopServices>
 #endif
@@ -47,6 +48,20 @@ void MiniAppHostController::setReduceMotion(bool reduceMotion) noexcept { m_redu
 bool MiniAppHostController::reduceMotion() const noexcept { return m_reduceMotion; }
 bool MiniAppHostController::available() const noexcept { return m_available; }
 bool MiniAppHostController::active() const noexcept { return m_active; }
+int MiniAppHostController::sessionLimit() const noexcept { return m_sessionLimit; }
+void MiniAppHostController::setSessionLimit(const int limit)
+{
+    const int normalized = std::clamp(limit,1,4);
+    if (m_sessionLimit == normalized) return;
+    m_sessionLimit = normalized;
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({
+        const host = window.__genycasterMiniAppOverlay;
+        if (host && host.setLimit) host.setLimit($0);
+    }, m_sessionLimit);
+#endif
+    emit sessionLimitChanged();
+}
 QString MiniAppHostController::errorText() const { return m_error; }
 QString MiniAppHostController::launchUrl() const { return m_launchUrl; }
 QVariantMap MiniAppHostController::user() const { return m_user; }

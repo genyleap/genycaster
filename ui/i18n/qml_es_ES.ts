@@ -6577,6 +6577,22 @@ Empresa | https://company.com</translation>
             <source>Show recovery words</source>
             <translation>Mostrar palabras de recuperación</translation>
         </message>
+        <message id="genycaster.pro.thread_title">
+            <source>Publish as a thread?</source>
+            <translation>¿Publicar como hilo?</translation>
+        </message>
+        <message id="genycaster.pro.thread_explanation">
+            <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
+            <translation>Este borrador supera los límites de un cast de Farcaster. Solo tras tu confirmación se publicará como %1 casts conectados.</translation>
+        </message>
+        <message id="genycaster.pro.publish_thread">
+            <source>Publish thread</source>
+            <translation>Publicar hilo</translation>
+        </message>
+        <message id="genycaster.pro.thread_plan_failed">
+            <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
+            <translation>No se puede publicar este borrador como hilo. Reduce el texto o elimina adjuntos.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

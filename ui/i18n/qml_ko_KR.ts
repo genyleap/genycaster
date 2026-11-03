@@ -6576,6 +6576,22 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>복구 구문 표시</translation>
         </message>
+        <message id="genycaster.pro.thread_title">
+            <source>Publish as a thread?</source>
+            <translation>스레드로 게시할까요?</translation>
+        </message>
+        <message id="genycaster.pro.thread_explanation">
+            <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
+            <translation>이 초안은 Farcaster 단일 캐스트 제한을 초과합니다. 확인 후에만 연결된 %1개의 캐스트로 게시됩니다.</translation>
+        </message>
+        <message id="genycaster.pro.publish_thread">
+            <source>Publish thread</source>
+            <translation>스레드 게시</translation>
+        </message>
+        <message id="genycaster.pro.thread_plan_failed">
+            <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
+            <translation>이 초안을 스레드로 게시할 수 없습니다. 텍스트나 첨부 파일을 줄이세요.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

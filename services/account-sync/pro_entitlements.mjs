@@ -88,8 +88,11 @@ export async function evaluateGenyPro(fid,{
     verified_wallet_count:0,qualified_wallet:null,
     capabilities:{pro_badge:false,custom_bookmark_collections:false,
       advanced_code_editor:false,multiple_miniapps:false,extra_market_pulse:false,
-      provider_connections:false,extended_casts:false,extra_images:false},
-    limits:{cast_bytes:1024,image_embeds:1,concurrent_miniapps:1,market_pulse:4}};
+      provider_connections:false,extended_casts:false,extra_images:false,
+      long_form_threads:false,multi_image_threads:false},
+    // cast_bytes describes each signed Farcaster message, not the total draft.
+    limits:{cast_bytes:1024,cast_characters:1024,image_embeds:1,
+      concurrent_miniapps:1,market_pulse:4}};
   try {
     const wallets=await verifiedFarcasterWallets(fid,{policy,fetchImpl});
     standard.verified_wallet_count=wallets.length;
@@ -112,13 +115,14 @@ export async function evaluateGenyPro(fid,{
             minimum_geny:policy.minimumGeny,verified_wallet_count:wallets.length,
             qualified_wallet:address,
             capabilities:{pro_badge:true,custom_bookmark_collections:true,
-              advanced_code_editor:true,multiple_miniapps:false,
+              advanced_code_editor:true,multiple_miniapps:true,
               extra_market_pulse:true,provider_connections:true,
-              // These need a separate, protocol-safe publication implementation.
-              extended_casts:false,extra_images:false},
-            // The current mini-app host still has a single active instance.
-            limits:{cast_bytes:1024,image_embeds:2,
-              concurrent_miniapps:1,market_pulse:16}};
+              // Farcaster Pro is separate. Longer Geny Pro content is
+              // published as a thread ONLY after explicit user approval.
+              extended_casts:false,extra_images:true,
+              long_form_threads:true,multi_image_threads:true},
+            limits:{cast_bytes:1024,cast_characters:4096,image_embeds:4,
+              concurrent_miniapps:4,market_pulse:16}};
         }
       }catch{failures++;}
     }

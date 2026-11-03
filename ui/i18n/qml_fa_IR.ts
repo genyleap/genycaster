@@ -6577,6 +6577,22 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>نمایش واژه‌های بازیابی</translation>
         </message>
+        <message id="genycaster.pro.thread_title">
+            <source>Publish as a thread?</source>
+            <translation>انتشار به‌صورت رشته‌کست؟</translation>
+        </message>
+        <message id="genycaster.pro.thread_explanation">
+            <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
+            <translation>این پیش‌نویس از محدودیت یک کست فراتر است. تنها با تأیید شما به‌صورت %1 کست متصل منتشر می‌شود.</translation>
+        </message>
+        <message id="genycaster.pro.publish_thread">
+            <source>Publish thread</source>
+            <translation>انتشار رشته‌کست</translation>
+        </message>
+        <message id="genycaster.pro.thread_plan_failed">
+            <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
+            <translation>امکان انتشار این پیش‌نویس به‌صورت رشته‌کست نیست. متن را کوتاه‌تر کنید یا پیوست‌ها را کاهش دهید.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

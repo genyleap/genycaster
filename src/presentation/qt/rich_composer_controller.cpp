@@ -810,9 +810,12 @@ QVariantList RichComposerController::mentionPositions() const
 QVariantList RichComposerController::protocolEmbeds() const
 {
     QVariantList result{};
-    result.reserve(2);
+    // Preserve up to four stable URLs in the composer. A single wire cast
+    // still carries at most two embeds; the explicit thread planner assigns
+    // remaining uploads to a following Cast instead of dropping media.
+    result.reserve(4);
     for (const auto& block : m_impl->document.blocks) {
-        if (result.size() >= 2) break;
+        if (result.size() >= 4) break;
         if (const auto* embed = std::get_if<farcaster::domain::rich::EmbedBlock>(&block.payload)) {
             const auto target = farcaster::application::rich::safeLinkTarget(embed->url);
             if (target) {

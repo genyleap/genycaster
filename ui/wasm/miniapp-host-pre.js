@@ -5,7 +5,11 @@
 (function () {
     "use strict";
     if (typeof window === "undefined") return;
-    const app = { element: null, frame: null, warningTimer: null };
+    const app = {
+        element: null, frame: null, warningTimer: null, sessions: [], limit: 1,
+        holder: null, tabs: null, titleEl: null, warning: null,
+        activeIndex: -1, activeUrl: ""
+    };
 
     function approvedUrl(value) {
         try {
@@ -30,12 +34,116 @@
         app.warningTimer = null;
         app.element = null;
         app.frame = null;
+        for (const session of app.sessions) session.frame.remove();
+        app.sessions = [];
+        app.activeIndex = -1;
+        app.activeUrl = "";
+        app.holder = null;
+        app.tabs = null;
+        app.titleEl = null;
+        app.warning = null;
         if (element) element.remove();
+    }
+
+    function renderTabs() {
+        if (!app.tabs) return;
+        if (typeof app.tabs.replaceChildren === "function") app.tabs.replaceChildren();
+        else if (Array.isArray(app.tabs.children)) app.tabs.children=[];
+        app.tabs.style.display = app.sessions.length > 1 ? "flex" : "none";
+        if (app.sessions.length <= 1) return;
+        for (let index = 0; index < app.sessions.length; index++) {
+            const session = app.sessions[index];
+            const tab = document.createElement("button");
+            tab.type = "button";
+            tab.textContent = session.title;
+            tab.setAttribute("role", "tab");
+            tab.setAttribute("aria-selected",String(index === app.activeIndex));
+            Object.assign(tab.style,{
+                border:"1px solid #3e414a",borderRadius:"9px",
+                background:index === app.activeIndex ? "#414653" : "#242730",
+                color:"#fafafa",padding:"7px 11px",cursor:"pointer",
+                whiteSpace:"nowrap",maxWidth:"180px",overflow:"hidden",
+                textOverflow:"ellipsis",flex:"0 1 auto"
+            });
+            tab.addEventListener("click",()=>select(index));
+            const dismiss = document.createElement("button");
+            dismiss.type = "button";
+            dismiss.textContent = "×";
+            dismiss.setAttribute("aria-label","Close "+session.title);
+            Object.assign(dismiss.style,{border:0,background:"transparent",
+                color:"#e9e9ea",cursor:"pointer",padding:"4px 9px"});
+            dismiss.addEventListener("click",()=>closeTab(index));
+            const group=document.createElement("span");
+            Object.assign(group.style,{display:"flex",alignItems:"center",gap:"2px"});
+            group.append(tab,dismiss);
+            app.tabs.append(group);
+        }
+    }
+    function select(index) {
+        if(index < 0 || index >= app.sessions.length)return;
+        app.activeIndex = index;
+        const session = app.sessions[index];
+        app.frame=session.frame;
+        app.activeUrl=session.url;
+        for(let n=0;n<app.sessions.length;n++)
+            app.sessions[n].frame.style.display=n===index?"block":"none";
+        if(app.titleEl)app.titleEl.textContent=session.title;
+        if(app.warning)app.warning.style.display="none";
+        renderTabs();
+    }
+    function closeTab(index) {
+        if(index < 0 || index >= app.sessions.length)return;
+        const previousActive=app.activeIndex;
+        app.sessions[index].frame.remove();
+        app.sessions.splice(index,1);
+        if(!app.sessions.length){close();return;}
+        const nextIndex=index<previousActive ? previousActive-1
+            : index===previousActive ? Math.min(index,app.sessions.length-1)
+            : previousActive;
+        select(nextIndex);
+    }
+    function setLimit(value) {
+        const n=Number(value);
+        app.limit=Number.isFinite(n) ? Math.max(1,Math.min(4,Math.floor(n))) : 1;
+        while(app.sessions.length>app.limit) {
+            // Keep the foreground session if the membership is downgraded.
+            closeTab(app.activeIndex===0 ? app.sessions.length-1 : 0);
+        }
+    }
+    function makeFrame(url,title) {
+        const frame=document.createElement("iframe");
+        frame.title=String(title||"Mini App").slice(0,160);
+        frame.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups");
+        frame.setAttribute("referrerpolicy","no-referrer");
+        frame.setAttribute("loading","eager");
+        frame.setAttribute("allow","fullscreen");
+        Object.assign(frame.style,{display:"block",width:"100%",flex:"1",
+            minHeight:"0",background:"#fff",border:"0"});
+        frame.addEventListener("error",()=>{
+            if(app.frame===frame && app.warning)app.warning.style.display="block";
+        });
+        frame.src=url.href;
+        return frame;
     }
 
     function open(address, title, closeLabel) {
         const url = approvedUrl(address);
         if (!url || !document.body) return false;
+        const appTitle=String(title || url.hostname).slice(0,160);
+        const existing=app.sessions.findIndex(s=>s.url===url.href);
+        if(existing>=0){select(existing);return true;}
+        if (app.element && app.element.isConnected) {
+            if(app.sessions.length>=app.limit) {
+                if(app.limit===1) close();
+                else return false;
+            } else {
+                const frame=makeFrame(url,appTitle);
+                app.holder.append(frame);
+                app.sessions.push({url:url.href,title:appTitle,frame});
+                select(app.sessions.length-1);
+                return true;
+            }
+        }
         close();
         const sheet = document.createElement("section");
         sheet.id = "genycaster-wasm-miniapp-host";
@@ -71,7 +179,8 @@
             borderRadius:'9px',fontSize:'13px',padding:'8px 12px',cursor:'pointer',
         });
         browserButton.addEventListener('click', () => {
-            window.open(url.href,'_blank','noopener,noreferrer');
+            const url=approvedUrl(app.activeUrl);
+            if (url) window.open(url.href,'_blank','noopener,noreferrer');
         });
         // Some Mini Apps (including SDK-only apps) deliberately refuse a
         // plain iframe. A Farcaster client can provide the real host SDK,
@@ -86,6 +195,8 @@
             borderRadius:'9px',fontSize:'13px',padding:'8px 10px',cursor:'pointer'
         });
         farcasterButton.addEventListener('click', () => {
+            const url=approvedUrl(app.activeUrl);
+            if (!url) return;
             const clientUrl = new URL('https://farcaster.xyz/~/mini-apps/launch');
             clientUrl.searchParams.set('domain',url.hostname);
             window.open(clientUrl.href,'_blank','noopener,noreferrer');
@@ -113,16 +224,16 @@
         Object.assign(browserButton.style,{flex:'1',minWidth:'0'});
         actionsRow.append(farcasterButton,browserButton);
 
-        const frame = document.createElement("iframe");
-        frame.title = String(title || "Mini App").slice(0, 160);
-        frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups");
-        frame.setAttribute("referrerpolicy", "no-referrer");
-        frame.setAttribute("loading", "eager");
-        frame.setAttribute("allow", "fullscreen");
-        Object.assign(frame.style, {
-            display: "block", width: "100%", flex: "1",
-            minHeight: "0", background: "#fff", border: "0"
-        });
+        const tabs=document.createElement("nav");
+        tabs.setAttribute("role","tablist");
+        tabs.setAttribute("aria-label",isPersian ? "مینی‌اپ‌های باز" : "Open Mini Apps");
+        Object.assign(tabs.style,{display:"none",gap:"6px",overflowX:"auto",
+            boxSizing:"border-box",padding:"7px 12px",
+            borderBottom:"1px solid #35383f"});
+        const holder=document.createElement("div");
+        Object.assign(holder.style,{display:"flex",flex:"1",minHeight:"0"});
+        const frame = makeFrame(url,appTitle);
+        holder.append(frame);
         const warning=document.createElement('div');
         warning.setAttribute('role','status');
         warning.textContent = isPersian
@@ -141,16 +252,21 @@
         },5000);
         // Set the URL only after sandbox and origin restrictions exist.
         frame.src = url.href;
-        sheet.append(top, actionsRow, frame, warning);
+        sheet.append(top, actionsRow, tabs, holder, warning);
         document.body.append(sheet);
         app.element = sheet;
-        app.frame = frame;
+        app.holder = holder;
+        app.tabs = tabs;
+        app.titleEl = name;
+        app.warning = warning;
+        app.sessions = [{url:url.href,title:appTitle,frame}];
+        select(0);
         dismiss.focus();
         return true;
     }
 
     window.__genycasterMiniAppOverlay = Object.freeze({
-        open, close,
+        open, close, setLimit,
         active: () => Boolean(app.element && app.element.isConnected)
     });
 }());

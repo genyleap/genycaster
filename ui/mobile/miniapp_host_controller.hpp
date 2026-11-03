@@ -13,6 +13,7 @@ class MiniAppHostController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool active READ active NOTIFY stateChanged)
+    Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
     Q_PROPERTY(QString presentationMode READ presentationMode NOTIFY presentationModeChanged)
@@ -21,6 +22,9 @@ public:
     explicit MiniAppHostController(bool runtimeAvailable, QSettings& settings, QObject* parent = nullptr);
     [[nodiscard]] bool available() const noexcept;
     [[nodiscard]] bool active() const noexcept;
+    [[nodiscard]] int sessionLimit() const noexcept;
+    /** Updated only from the server-authenticated Geny Pro entitlement. */
+    void setSessionLimit(int limit);
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString launchUrl() const;
     /** @brief Returns window/bottom/left/right; physical directions are locale-independent. */
@@ -70,12 +74,14 @@ signals:
     void composeCastCompleted(const QString& requestId, const QVariantMap& result);
     void composeCastCancelled(const QString& requestId);
     void stateChanged();
+    void sessionLimitChanged();
     void presentationModeChanged();
 private:
     QSettings& m_settings;
     QString m_presentationMode{QStringLiteral("window")};
     bool m_reduceMotion{};
     bool m_available{};
+    int m_sessionLimit{1};
     bool m_active{};
     QString m_error{};
     QString m_launchUrl{};

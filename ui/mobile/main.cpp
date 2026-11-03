@@ -1909,6 +1909,28 @@ int main(int argc, char* argv[])
                       && status.value(QStringLiteral("eligible")).toBool();
         liveInsightsController.setProMarketLimit(pro ? 16 : 4);
     });
+#if GENYCASTER_HAS_MINIAPP_HOST
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::proEntitlementsChanged,
+                     &openProofConnections,
+                     [&openProofConnections, &miniAppRuntimeOwner] {
+        if (!miniAppRuntimeOwner) return;
+        const auto status = openProofConnections.proEntitlements();
+        const bool verified = status.value(QStringLiteral("status")).toString()
+                                  == QStringLiteral("verified")
+                              && status.value(QStringLiteral("eligible")).toBool();
+        miniAppRuntimeOwner->setSessionLimit(verified ? 4 : 1);
+    });
+#endif
+    QObject::connect(&openProofConnections,
+                     &OpenProofConnectionsController::proEntitlementsChanged,
+                     &miniAppHost, [&openProofConnections, &miniAppHost] {
+        const auto status = openProofConnections.proEntitlements();
+        const bool verified = status.value(QStringLiteral("status")).toString()
+                                  == QStringLiteral("verified")
+                              && status.value(QStringLiteral("eligible")).toBool();
+        miniAppHost.setSessionLimit(verified ? 4 : 1);
+    });
     QObject::connect(&openProofConnections,
                      &OpenProofConnectionsController::stateChanged,
                      &openProofConnections, [&openProofConnections] {

@@ -6577,6 +6577,22 @@ Entreprise | https://company.com</translation>
             <source>Show recovery words</source>
             <translation>Afficher les mots de récupération</translation>
         </message>
+        <message id="genycaster.pro.thread_title">
+            <source>Publish as a thread?</source>
+            <translation>Publier en fil ?</translation>
+        </message>
+        <message id="genycaster.pro.thread_explanation">
+            <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
+            <translation>Ce brouillon dépasse les limites d’un cast Farcaster. Il sera publié en %1 casts reliés uniquement après votre confirmation.</translation>
+        </message>
+        <message id="genycaster.pro.publish_thread">
+            <source>Publish thread</source>
+            <translation>Publier le fil</translation>
+        </message>
+        <message id="genycaster.pro.thread_plan_failed">
+            <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
+            <translation>Impossible de publier ce brouillon en fil. Raccourcissez-le ou retirez des pièces jointes.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

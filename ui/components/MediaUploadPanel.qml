@@ -7,6 +7,7 @@ Superellipse {
     id: root
 
     property int blockIndex: -1
+    property int maxAttachments: 1
     property bool insertFailed: false
     property var queuedFiles: []
     property var attachmentMetadata: ({})
@@ -117,6 +118,15 @@ Superellipse {
             }
 
             DirectionAwareLabel {
+                visible: root.hasAttachedMedia
+                text: LocaleFormat.formatInteger(root.attachedMedia.length) + " / "
+                      + LocaleFormat.formatInteger(root.maxAttachments)
+                color: root.attachedMedia.length >= root.maxAttachments
+                    ? Theme.proAccent : Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+            }
+
+            DirectionAwareLabel {
                 visible: root.hasQueue
                 text: LocaleFormat.formatInteger(root.queuedFiles.length)
                       + " · " + qsTrId("genycaster.media.queued")
@@ -199,6 +209,7 @@ Superellipse {
                 id: dropArea
                 anchors.fill: parent
                 enabled: mediaUpload.available && !mediaUpload.busy
+                    && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
 
                 onDropped: drop => {
                     if (!drop.hasUrls || drop.urls.length === 0) {
@@ -213,6 +224,7 @@ Superellipse {
 
             TapHandler {
                 enabled: mediaUpload.available && !mediaUpload.busy
+                    && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
                 acceptedButtons: Qt.LeftButton
                 gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: root.browseRequested(root.blockIndex)
@@ -535,6 +547,7 @@ Superellipse {
                         HoverHandler { id: plusHover }
                         TapHandler {
                             enabled: mediaUpload.available && !mediaUpload.busy
+                    && root.attachedMedia.length + root.queuedFiles.length < root.maxAttachments
                             gesturePolicy: TapHandler.ReleaseWithinBounds
                             onTapped: root.browseRequested(root.blockIndex)
                         }

@@ -3,10 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtWebView
 
-// Android's system WebView is a public web-content host, not the macOS
-// Farcaster Mini App SDK runtime. Do not inject wallet, signer, account secrets
-// or privileged JavaScript objects into untrusted Mini App origins.
-// The native WebView occupies its own non-overlapping content region.
+// Android's public system WebViews are isolated from Farcaster signer/wallet
+// authority. They are kept alive in separate native surfaces, with exactly
+// one visible tab; server-verified GENY Pro lifts the local tab cap to four.
 Popup {
     id: root
     objectName: "androidMiniAppWebView"
@@ -19,11 +18,38 @@ Popup {
     focus: true
     padding: 0
     closePolicy: Popup.CloseOnEscape
+
     property string launchUrl: ""
     property string launchTitle: ""
     property string loadError: ""
+    property int activeSessionIndex: -1
+    ListModel { id: miniAppSessions }
 
     background: Rectangle { color: Theme.background }
+
+    function activate(index) {
+        if (index < 0 || index >= miniAppSessions.count) return
+        activeSessionIndex = index
+        const item = miniAppSessions.get(index)
+        root.launchUrl = item.url
+        root.launchTitle = item.title
+        root.loadError = ""
+        miniAppHost.setState(true)
+    }
+
+    function removeSession(index) {
+        if (index < 0 || index >= miniAppSessions.count) return
+        const previous = activeSessionIndex
+        miniAppSessions.remove(index)
+        if (!miniAppSessions.count) {
+            root.dismiss()
+            return
+        }
+        const next = index < previous ? previous - 1
+            : index === previous ? Math.min(index, miniAppSessions.count-1)
+            : previous
+        root.activate(next)
+    }
 
     function dismiss() {
         root.close()
@@ -31,6 +57,8 @@ Popup {
     }
 
     onClosed: {
+        miniAppSessions.clear()
+        activeSessionIndex = -1
         launchUrl = ""
         loadError = ""
         miniAppHost.setState(false)
@@ -39,14 +67,33 @@ Popup {
     Connections {
         target: miniAppHost
         function onLaunchRequested(url, title, iconSource) {
-            root.loadError = ""
-            root.launchTitle = title || url
-            root.launchUrl = url
+            const name = String(title || url)
+            for (let i=0;i<miniAppSessions.count;i++) {
+                if (miniAppSessions.get(i).url === url) {
+                    root.open()
+                    root.activate(i)
+                    return
+                }
+            }
+            if (miniAppSessions.count >= miniAppHost.sessionLimit) {
+                root.loadError = qsTrId("genycaster.miniapp.session_limit")
+                miniAppHost.setState(root.opened,root.loadError)
+                return
+            }
+            miniAppSessions.append({url:String(url), title:name})
             root.open()
-            miniAppHost.setState(true)
+            root.activate(miniAppSessions.count-1)
         }
         function onCloseRequested() { root.close() }
         function onCloseAllRequested() { root.close() }
+        function onSessionLimitChanged() {
+            while (miniAppSessions.count > miniAppHost.sessionLimit) {
+                // Keep the foreground app after a downgrade. Never hold extra
+                // WebViews open without the latest verified entitlement.
+                root.removeSession(activeSessionIndex === 0
+                    ? miniAppSessions.count-1 : 0)
+            }
+        }
     }
 
     Shortcut {
@@ -57,7 +104,6 @@ Popup {
 
     contentItem: ColumnLayout {
         spacing: 0
-
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: Math.max(52, 44 + (root.parent ? root.parent.SafeArea.margins.top : 0))
@@ -69,9 +115,7 @@ Popup {
                 anchors.rightMargin: Theme.space3
                 spacing: Theme.space2
                 ActionButton {
-                    iconOnly: true
-                    compact: true
-                    quiet: true
+                    iconOnly: true; compact: true; quiet: true
                     iconGlyph: Theme.iconClose
                     text: qsTrId("genycaster.shell.close")
                     onClicked: root.dismiss()
@@ -85,17 +129,55 @@ Popup {
                     font.weight: Theme.weightDemiBold
                 }
                 ActionButton {
-                    iconOnly: true
-                    compact: true
-                    quiet: true
+                    iconOnly: true; compact: true; quiet: true
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.feed_header.refresh")
-                    onClicked: if (browser.item) browser.item.reload()
+                    onClicked: {
+                        const current=liveWebViews.itemAt(root.activeSessionIndex)
+                        if (current) current.reload()
+                    }
                 }
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.divider }
 
+        Flickable {
+            Layout.fillWidth: true
+            Layout.preferredHeight: miniAppSessions.count > 1 ? Theme.scaleUi(43) : 0
+            visible: miniAppSessions.count > 1
+            contentWidth: tabRow.implicitWidth
+            contentHeight: height
+            clip: true
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            Row {
+                id: tabRow
+                spacing: Theme.space1
+                height: parent.height
+                Repeater {
+                    model: miniAppSessions
+                    Row {
+                        spacing: 0
+                        height: parent.height
+                        ActionButton {
+                            compact: true
+                            quiet: index !== root.activeSessionIndex
+                            text: String(model.title)
+                            onClicked: root.activate(index)
+                        }
+                        ActionButton {
+                            iconOnly: true; compact: true; quiet: true
+                            iconGlyph: Theme.iconClose
+                            text: qsTrId("genycaster.shell.close")
+                            onClicked: {
+                                const tabIndex = index
+                                Qt.callLater(() => root.removeSession(tabIndex))
+                            }
+                        }
+                    }
+                }
+            }
+        }
         DirectionAwareLabel {
             visible: root.loadError.length > 0
             Layout.fillWidth: true
@@ -106,20 +188,22 @@ Popup {
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
-
-        Loader {
-            id: browser
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            active: root.opened && root.launchUrl.length > 0
-            sourceComponent: Component {
+            Repeater {
+                id: liveWebViews
+                model: miniAppSessions
                 WebView {
-                    url: root.launchUrl
+                    anchors.fill: parent
+                    visible: root.opened && index === root.activeSessionIndex
+                    url: String(model.url)
                     onLoadingChanged: function(request) {
+                        if (index !== root.activeSessionIndex) return
                         if (request.status === WebView.LoadFailedStatus) {
                             root.loadError = request.errorString ||
                                 qsTrId("genycaster.miniapp.unavailable")
-                            miniAppHost.setState(false, root.loadError)
+                            miniAppHost.setState(true, root.loadError)
                         } else if (request.status === WebView.LoadSucceededStatus) {
                             root.loadError = ""
                             miniAppHost.setState(true)
