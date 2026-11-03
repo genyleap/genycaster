@@ -157,6 +157,7 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             pumpBookmarkChanges();
             pumpDraftChanges();
             pumpTopicWrites();
+            pumpStreakWrites();
         }
     });
     m_connectionPoll.setInterval(3'000);
@@ -2625,7 +2626,6 @@ void OpenProofConnectionsController::pumpTopicWrites()
             QTimer::singleShot(delay,this,[this,owner,generation] {
                 if(owner==m_viewerFid && generation==m_grantGeneration)
                     pumpTopicWrites();
-            pumpStreakWrites();
             });
         }
     });
