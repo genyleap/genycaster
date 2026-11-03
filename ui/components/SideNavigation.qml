@@ -81,6 +81,7 @@ Rectangle {
     signal identityRequested()
     signal accountRequested()
     signal settingsRequested()
+    signal proRequested()
     signal routeRequested(string route)
     signal retryRequested()
 
@@ -293,6 +294,7 @@ Rectangle {
             compact: true
             onProfileRequested: root.profileRequested()
             onAccountRequested: root.accountRequested()
+            onProRequested: root.proRequested()
         }
     }
 }
