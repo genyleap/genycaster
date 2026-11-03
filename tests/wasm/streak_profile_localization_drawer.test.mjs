@@ -222,7 +222,7 @@ test('named achievements are translated in all twelve locales, retaining duratio
  assert.match(card,/root.milestoneName\([\s\S]*?Number\(item.threshold_days\) === root.inspectedMilestone/);
  assert.match(catalog,/name_id:'genycaster.streak.badge_'/);
  assert.match(profile,/objectName: "profileStreakAlignmentSpacer"/);
- assert.match(profile,/root.isOwnProfile[\s\S]*?profileStreakBadge.width : profileUnverifiedStreak.width/);
+ assert.match(profile,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
  assert.match(profile,/objectName: "profileUnverifiedStreak"[\s\S]*?ProgressRing\s*\{/);
  for(const lang of langCodes) {
    const translations=read('ui/i18n/qml_'+lang+'.ts');
@@ -298,4 +298,30 @@ test('Ember-orange Streak colors remain accessible and do not recolor warning al
  assert.ok(!badge.includes('Theme.warning'));
  assert.ok(badge.includes('Theme.streak'));
  assert.ok(theme.includes('readonly property color warning: dark'));
+});
+
+test('verified Pro chip is beside Streak and has a themed accessible hint',()=>{
+ const pro=read('ui/components/ProfileProBadge.qml');
+ const source=read('ui/components/ProfileSurface.qml');
+ const theme=read('ui/theme/Theme.qml');
+ const cluster=source.slice(source.indexOf('id: profileBadgesRow'),
+   source.indexOf('objectName: "profileOwnerActions"'));
+ const identity=source.slice(source.indexOf('objectName: "profileIdentityRow"'),
+   source.indexOf('objectName: "profileLocationRow"'));
+ assert.match(cluster,/ProfileProBadge\s*\{[\s\S]*?id: profileProBadge/);
+ assert.match(cluster,/id: profileProBadge[\s\S]*?id: profileStreakBadge/);
+ assert.doesNotMatch(identity,/id: profileProBadge/);
+ assert.match(cluster,/profileStreakBadge[\s\S]*?profileUnverifiedStreak/);
+ assert.match(source,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
+ assert.match(pro,/visible: eligible/);
+ assert.match(pro,/eligible: entitlement.status === "verified"[\s\S]*?entitlement.eligible === true/);
+ assert.match(pro,/objectName: "genyProThemedTooltip"/);
+ assert.match(pro,/background: PopupSurface/);
+ assert.doesNotMatch(pro,/ToolTip\.visible/);
+ assert.match(pro,/Keys.onEscapePressed/);
+ assert.match(pro,/onClicked: \{/);
+ for(const key of ['proAccent','proSurface','proSurfaceHover','proBorder'])
+  assert.ok(theme.includes('readonly property color '+key+': dark ?'));
+ const qmlList=read('ui/CMakeLists.txt');
+ assert.match(qmlList,/components\/ProfileProBadge\.qml/);
 });

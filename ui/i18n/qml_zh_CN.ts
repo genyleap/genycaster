@@ -6576,5 +6576,61 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>显示恢复助记词</translation>
         </message>
+        <message id="genycaster.pro.short">
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message id="genycaster.pro.title">
+            <source>GenyCaster Pro</source>
+            <translation>GenyCaster Pro</translation>
+        </message>
+        <message id="genycaster.pro.verified_wallet">
+            <source>Verified with at least %1 GENY in one linked wallet.</source>
+            <translation>已验证一个关联钱包持有至少 %1 GENY。</translation>
+        </message>
+        <message id="genycaster.pro.unlock_hint">
+            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
+            <translation>此功能要求与你的 Farcaster 账户关联的一个已验证钱包至少持有 %1 GENY。</translation>
+        </message>
+        <message id="genycaster.pro.verification_unavailable">
+            <source>Membership could not be checked right now. Retry when connected.</source>
+            <translation>当前无法验证会员资格。请联网后重试。</translation>
+        </message>
+        <message id="genycaster.pro.not_now">
+            <source>Not now</source>
+            <translation>暂不</translation>
+        </message>
+        <message id="genycaster.pro.check_status">
+            <source>Check status</source>
+            <translation>检查状态</translation>
+        </message>
+        <message id="genycaster.pro.bookmark_collections">
+            <source>Custom bookmark collections</source>
+            <translation>自定义书签收藏夹</translation>
+        </message>
+        <message id="genycaster.pro.connections">
+            <source>Account connections</source>
+            <translation>账户连接</translation>
+        </message>
+        <message id="genycaster.pro.requires_pro">
+            <source>Requires Pro</source>
+            <translation>需要 Pro</translation>
+        </message>
+        <message id="genycaster.pro.connections_hint">
+            <source>Adding connections requires Pro. Existing links remain visible and removable.</source>
+            <translation>新增连接需要 Pro。现有连接仍可查看和移除。</translation>
+        </message>
+        <message id="genycaster.pro.advanced_editor">
+            <source>Code formatting</source>
+            <translation>代码格式</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse_hint">
+            <source>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</source>
+            <translation>Basic 包含 4 个 Market Pulse 代币，Pro 最多支持 16 个。</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse">
+            <source>More Market Pulse tokens</source>
+            <translation>更多 Market Pulse 代币</translation>
+        </message>
     </context>
 </TS>

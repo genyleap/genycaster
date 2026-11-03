@@ -46,7 +46,8 @@ test('bookmark collection creation keeps chooser open while the server confirms 
   const chooser = read('ui/components/BookmarkCollectionChooser.qml');
   assert.match(chooser, /property string errorText:/);
   assert.match(chooser, /text: root\.errorText/);
-  assert.match(chooser, /onClicked: root\.createRequested\(root\.newName\.trim\(\)\)/);
+  assert.match(chooser, /root\.createRequested\(root\.newName\.trim\(\)\)/);
+  assert.match(chooser, /collectionsProNotice\.open\(\)/);
   assert.doesNotMatch(chooser, /root\.createRequested\(root\.newName\.trim\(\)\)[\s\S]{0,70}root\.close\(\)/);
   assert.match(shell, /onClosed: root\.bookmarkAssignmentCreateName=""/);
   assert.match(shell, /openProofConnections\.bookmarkCollectionsError\.length\)return/);

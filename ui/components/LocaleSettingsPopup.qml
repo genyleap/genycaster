@@ -2305,8 +2305,14 @@ GenyDrawer {
                                 compact: true
                                 iconGlyph: Theme.iconPlus
                                 text: qsTrId("genycaster.settings.add_market_token")
-                                enabled: root.enabledMarketCount < root.marketAssetLimit
+                                enabled: root.marketProEligible
+                                    ? root.enabledMarketCount < root.marketAssetLimit
+                                    : true
                                 onClicked: {
+                                    if (root.enabledMarketCount >= root.marketAssetLimit) {
+                                        marketProNotice.open()
+                                        return
+                                    }
                                     const network = String(tokenNetworkBox.model[tokenNetworkBox.currentIndex].id)
                                     const added = liveInsights.addCustomToken(network, tokenAddressField.text)
                                     root.marketInputError = !added
@@ -2314,6 +2320,15 @@ GenyDrawer {
                                         tokenAddressField.clear()
                                 }
                             }
+                        }
+                        DirectionAwareLabel {
+                            visible: !root.marketProEligible
+                                && root.enabledMarketCount >= root.marketAssetLimit
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.market_pulse_hint")
+                            color: Theme.proAccent
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
                         }
                         DirectionAwareLabel {
                             visible: root.marketInputError
@@ -2936,5 +2951,9 @@ GenyDrawer {
                 onClicked: root.close()
             }
         }
+    }
+    ProUpgradeNotice {
+        id: marketProNotice
+        featureLabel: qsTrId("genycaster.pro.market_pulse")
     }
 }

@@ -36,6 +36,8 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.composer.fid",
     # The product brand and numeric version are proper identifiers, not prose.
     "genycaster.brand.genyleap",
+    "genycaster.pro.title",
+    "genycaster.pro.short",
     # Protocol names and token standards are intentionally untranslated.
     "genycaster.home.idea_nft_topic",
     "genycaster.home.idea_farcaster_topic",

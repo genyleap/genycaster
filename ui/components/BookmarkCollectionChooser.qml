@@ -47,9 +47,11 @@ Popup {
             compact: true
             quiet: true
             text: qsTrId("genycaster.bookmarks.uncategorized")
-                enabled: !root.busy && root.proEligible
-                onClicked: {
-                    root.unfiledRequested()
+            enabled: !root.busy
+            // Removing an old bookmark classification stays available
+            // after a membership downgrade.
+            onClicked: {
+                root.unfiledRequested()
                 root.close()
             }
         }
@@ -70,8 +72,12 @@ Popup {
                         compact: true
                         iconGlyph: Theme.iconBookmark
                         text: String(modelData.name||"")
-                        enabled: !root.busy && root.proEligible
+                        enabled: !root.busy
                         onClicked: {
+                            if (!root.proEligible) {
+                                collectionsProNotice.open()
+                                return
+                            }
                             root.collectionPicked(String(modelData.id||""))
                             root.close()
                         }
@@ -86,6 +92,7 @@ Popup {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 placeholderText: qsTrId("genycaster.bookmarks.new_collection")
+                enabled: root.proEligible
                 maximumLength: 80
                 text: root.newName
                 onTextChanged: root.newName=text
@@ -95,16 +102,24 @@ Popup {
                 prominent: true
                 iconGlyph: Theme.iconPlus
                 text: qsTrId("genycaster.bookmarks.create")
-                enabled: !root.busy && root.proEligible && root.newName.trim().length>0
-                onClicked: root.createRequested(root.newName.trim())
+                enabled: !root.busy
+                         && (!root.proEligible || root.newName.trim().length > 0)
+                onClicked: {
+                    if (!root.proEligible) {
+                        collectionsProNotice.open()
+                        return
+                    }
+                    root.createRequested(root.newName.trim())
+                }
             }
         }
         DirectionAwareLabel {
             Layout.fillWidth: true
             visible: !root.proEligible
-            text: "GenyCaster Pro · " + LocaleFormat.formatInteger(
-                Number(openProofConnections.proEntitlements.minimum_geny || 16000)) + " GENY"
-            color: Theme.accent
+            text: qsTrId("genycaster.pro.unlock_hint").arg(
+                LocaleFormat.formatInteger(Number(
+                    openProofConnections.proEntitlements.minimum_geny || 16000)))
+            color: Theme.proAccent
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
@@ -123,5 +138,9 @@ Popup {
             running: root.busy
             visible: root.busy
         }
+    }
+    ProUpgradeNotice {
+        id: collectionsProNotice
+        featureLabel: qsTrId("genycaster.pro.bookmark_collections")
     }
 }

@@ -6576,5 +6576,61 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>रिकवरी शब्द दिखाएँ</translation>
         </message>
+        <message id="genycaster.pro.short">
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message id="genycaster.pro.title">
+            <source>GenyCaster Pro</source>
+            <translation>GenyCaster Pro</translation>
+        </message>
+        <message id="genycaster.pro.verified_wallet">
+            <source>Verified with at least %1 GENY in one linked wallet.</source>
+            <translation>जुड़े हुए एक वॉलेट में कम से कम %1 GENY सत्यापित हैं।</translation>
+        </message>
+        <message id="genycaster.pro.unlock_hint">
+            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
+            <translation>इस सुविधा के लिए Farcaster खाते से जुड़े सत्यापित वॉलेट में कम से कम %1 GENY चाहिए।</translation>
+        </message>
+        <message id="genycaster.pro.verification_unavailable">
+            <source>Membership could not be checked right now. Retry when connected.</source>
+            <translation>अभी सदस्यता जाँची नहीं जा सकी। कनेक्शन होने पर फिर कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.pro.not_now">
+            <source>Not now</source>
+            <translation>अभी नहीं</translation>
+        </message>
+        <message id="genycaster.pro.check_status">
+            <source>Check status</source>
+            <translation>स्थिति जाँचें</translation>
+        </message>
+        <message id="genycaster.pro.bookmark_collections">
+            <source>Custom bookmark collections</source>
+            <translation>कस्टम बुकमार्क संग्रह</translation>
+        </message>
+        <message id="genycaster.pro.connections">
+            <source>Account connections</source>
+            <translation>खाता कनेक्शन</translation>
+        </message>
+        <message id="genycaster.pro.requires_pro">
+            <source>Requires Pro</source>
+            <translation>Pro आवश्यक</translation>
+        </message>
+        <message id="genycaster.pro.connections_hint">
+            <source>Adding connections requires Pro. Existing links remain visible and removable.</source>
+            <translation>नए कनेक्शन के लिए Pro चाहिए। पुराने कनेक्शन देखे और हटाए जा सकते हैं।</translation>
+        </message>
+        <message id="genycaster.pro.advanced_editor">
+            <source>Code formatting</source>
+            <translation>कोड फ़ॉर्मैटिंग</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse_hint">
+            <source>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</source>
+            <translation>Basic में Market Pulse के चार टोकन हैं। Pro में अधिकतम सोलह।</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse">
+            <source>More Market Pulse tokens</source>
+            <translation>अधिक Market Pulse टोकन</translation>
+        </message>
     </context>
 </TS>

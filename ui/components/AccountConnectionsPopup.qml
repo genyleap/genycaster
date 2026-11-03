@@ -20,6 +20,9 @@ GenyDrawer {
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
+    readonly property bool proEligible:
+        openProofConnections.proEntitlements.status === "verified"
+        && openProofConnections.proEntitlements.eligible === true
 
     signal authorizeRequested()
     signal approvalRequested(string url)
@@ -332,6 +335,31 @@ GenyDrawer {
             }
         }
 
+        RowLayout {
+            objectName: "connectionsProGatingBanner"
+            visible: picker.authorized && !picker.proEligible
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            Icon {
+                text: Theme.iconSpark
+                preferredSize: Theme.iconSizeSmall
+                color: Theme.proAccent
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.pro.connections_hint")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            ActionButton {
+                compact: true
+                quiet: true
+                text: qsTrId("genycaster.pro.check_status")
+                onClicked: openProofConnections.fetchProEntitlements(true)
+            }
+        }
+
         DirectionAwareLabel {
             Layout.fillWidth: true
             visible: picker.actionBusy && picker.pendingProvider.length > 0
@@ -504,7 +532,10 @@ GenyDrawer {
                                         quiet: true
                                         text: qsTrId("genycaster.connections.copy_reconnect")
                                         enabled: !picker.actionBusy
-                                        onClicked: picker.connectRequested("linkedin")
+                                        onClicked: {
+                                            if (picker.proEligible) picker.connectRequested("linkedin")
+                                            else connectionsProNotice.open()
+                                        }
                                     }
                                     ActionButton {
                                         visible: picker.authorized && providerRow.redirectCapable
@@ -515,7 +546,9 @@ GenyDrawer {
                                         enabled: !picker.actionBusy
                                         text: providerRow.isConnected
                                               ? providerRow.confirmUnlink ? qsTrId("genycaster.connections.copy_confirm") : qsTrId("genycaster.connections.copy_remove")
-                                              : qsTrId("genycaster.connections.copy_connect")
+                                              : picker.proEligible
+                                                ? qsTrId("genycaster.connections.copy_connect")
+                                                : qsTrId("genycaster.pro.requires_pro")
                                         onClicked: {
                                             if (providerRow.isConnected) {
                                                 if (!providerRow.confirmUnlink) {
@@ -525,8 +558,10 @@ GenyDrawer {
                                                         String(providerRow.activeConnection.subject || ""))
                                                     providerRow.confirmUnlink = false
                                                 }
-                                            } else {
+                                            } else if (picker.proEligible) {
                                                 picker.connectRequested(providerRow.modelData)
+                                            } else {
+                                                connectionsProNotice.open()
                                             }
                                         }
                                     }
@@ -655,5 +690,9 @@ GenyDrawer {
                 wrapMode: Text.Wrap
             }
         }
+    }
+    ProUpgradeNotice {
+        id: connectionsProNotice
+        featureLabel: qsTrId("genycaster.pro.connections")
     }
 }

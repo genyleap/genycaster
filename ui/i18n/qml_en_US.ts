@@ -6577,5 +6577,61 @@ Company | https://company.com</translation>
             <source>Show recovery words</source>
             <translation>Show recovery words</translation>
         </message>
+        <message id="genycaster.pro.short">
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message id="genycaster.pro.title">
+            <source>GenyCaster Pro</source>
+            <translation>GenyCaster Pro</translation>
+        </message>
+        <message id="genycaster.pro.verified_wallet">
+            <source>Verified with at least %1 GENY in one linked wallet.</source>
+            <translation>Verified with at least %1 GENY in one linked wallet.</translation>
+        </message>
+        <message id="genycaster.pro.unlock_hint">
+            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
+            <translation>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</translation>
+        </message>
+        <message id="genycaster.pro.verification_unavailable">
+            <source>Membership could not be checked right now. Retry when connected.</source>
+            <translation>Membership could not be checked right now. Retry when connected.</translation>
+        </message>
+        <message id="genycaster.pro.not_now">
+            <source>Not now</source>
+            <translation>Not now</translation>
+        </message>
+        <message id="genycaster.pro.check_status">
+            <source>Check status</source>
+            <translation>Check status</translation>
+        </message>
+        <message id="genycaster.pro.bookmark_collections">
+            <source>Custom bookmark collections</source>
+            <translation>Custom bookmark collections</translation>
+        </message>
+        <message id="genycaster.pro.connections">
+            <source>Account connections</source>
+            <translation>Account connections</translation>
+        </message>
+        <message id="genycaster.pro.requires_pro">
+            <source>Requires Pro</source>
+            <translation>Requires Pro</translation>
+        </message>
+        <message id="genycaster.pro.connections_hint">
+            <source>Adding connections requires Pro. Existing links remain visible and removable.</source>
+            <translation>Adding connections requires Pro. Existing links remain visible and removable.</translation>
+        </message>
+        <message id="genycaster.pro.advanced_editor">
+            <source>Code formatting</source>
+            <translation>Code formatting</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse_hint">
+            <source>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</source>
+            <translation>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse">
+            <source>More Market Pulse tokens</source>
+            <translation>More Market Pulse tokens</translation>
+        </message>
     </context>
 </TS>

@@ -6576,5 +6576,61 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>リカバリーフレーズを表示</translation>
         </message>
+        <message id="genycaster.pro.short">
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message id="genycaster.pro.title">
+            <source>GenyCaster Pro</source>
+            <translation>GenyCaster Pro</translation>
+        </message>
+        <message id="genycaster.pro.verified_wallet">
+            <source>Verified with at least %1 GENY in one linked wallet.</source>
+            <translation>連携済みウォレット1つで%1 GENY以上の保有を確認済みです。</translation>
+        </message>
+        <message id="genycaster.pro.unlock_hint">
+            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
+            <translation>この機能には、Farcasterアカウントと紐づく認証済みウォレット1つに%1 GENY以上が必要です。</translation>
+        </message>
+        <message id="genycaster.pro.verification_unavailable">
+            <source>Membership could not be checked right now. Retry when connected.</source>
+            <translation>メンバーシップを確認できませんでした。接続後に再試行してください。</translation>
+        </message>
+        <message id="genycaster.pro.not_now">
+            <source>Not now</source>
+            <translation>後で</translation>
+        </message>
+        <message id="genycaster.pro.check_status">
+            <source>Check status</source>
+            <translation>状態を確認</translation>
+        </message>
+        <message id="genycaster.pro.bookmark_collections">
+            <source>Custom bookmark collections</source>
+            <translation>カスタムブックマークコレクション</translation>
+        </message>
+        <message id="genycaster.pro.connections">
+            <source>Account connections</source>
+            <translation>アカウント連携</translation>
+        </message>
+        <message id="genycaster.pro.requires_pro">
+            <source>Requires Pro</source>
+            <translation>Proが必要</translation>
+        </message>
+        <message id="genycaster.pro.connections_hint">
+            <source>Adding connections requires Pro. Existing links remain visible and removable.</source>
+            <translation>新規連携にはProが必要です。既存の連携は引き続き表示・削除できます。</translation>
+        </message>
+        <message id="genycaster.pro.advanced_editor">
+            <source>Code formatting</source>
+            <translation>コード書式</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse_hint">
+            <source>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</source>
+            <translation>BasicのMarket Pulseは4トークン、Proは最大16トークンです。</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse">
+            <source>More Market Pulse tokens</source>
+            <translation>Market Pulseの追加トークン</translation>
+        </message>
     </context>
 </TS>

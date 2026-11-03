@@ -237,6 +237,12 @@ QtObject {
     readonly property color streakSurface: dark ? "#38251F" : "#FFF0E7"
     readonly property color streakTrack: dark ? "#634234" : "#F1D5C6"
     readonly property color streakGlow: dark ? "#FFAA76" : "#E76E36"
+    // Verified Pro uses a quieter copper tone beside the ember Streak.
+    // These semantic colors remain consistent when the user changes accents.
+    readonly property color proAccent: dark ? "#FFB184" : "#AA451C"
+    readonly property color proSurface: dark ? "#35251F" : "#FFF3EA"
+    readonly property color proSurfaceHover: dark ? "#433026" : "#FFEBDC"
+    readonly property color proBorder: dark ? "#885741" : "#E6B99E"
     readonly property color success: dark ? "#61D194" : "#22845A"
     readonly property color successSurface: dark ? "#1B3026" : "#EAF7F0"
     readonly property color danger: dark ? "#FF7B83" : "#D94D57"

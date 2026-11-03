@@ -1834,43 +1834,6 @@ Item {
                             HoverHandler { id: genyHolderBadgeHover }
                         }
 
-                        // Owner's Pro badge is issued only from the
-                        // authenticated server's GENY verification. Untrusted
-                        // profile metadata cannot mint this status.
-                        Rectangle {
-                            id: genyProBadge
-                            objectName: "verifiedGenyProBadge"
-                            visible: root.isOwnProfile
-                                     && openProofConnections.proEntitlements.status === "verified"
-                                     && openProofConnections.proEntitlements.eligible === true
-                            implicitWidth: proBadgeContents.implicitWidth + Theme.space3
-                            implicitHeight: Math.max(25, proBadgeContents.implicitHeight + Theme.space1)
-                            radius: implicitHeight / 2
-                            color: Theme.primarySurface
-                            border.color: Theme.accent
-                            border.width: 1
-                            Row {
-                                id: proBadgeContents
-                                anchors.centerIn: parent
-                                spacing: Theme.space1
-                                Icon {
-                                    text: Theme.iconCheck
-                                    color: Theme.accent
-                                    preferredSize: Theme.typeCaptionSize
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Label {
-                                    text: "PRO"
-                                    color: Theme.accent
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightBold
-                                }
-                            }
-                            Accessible.name: "GenyCaster Pro"
-                            ToolTip.visible: proBadgeHover.hovered
-                            ToolTip.text: "GenyCaster Pro"
-                            HoverHandler { id: proBadgeHover }
-                        }
 
                         Item {
                             id: followsYouBadge
@@ -2169,146 +2132,163 @@ Item {
                             }
                         }
 
-                        // Use the same content gutter as the activity cards:
-                        // the badge must not protrude past the right edge.
-                        // Use actual measured widths and Flow's real spacing.
+                        // Keep both achievements at the far edge of the social
+                        // counters, sharing one measured footprint. Flow wraps
+                        // the cluster intact on compact screens.
                         Item {
                             objectName: "profileStreakAlignmentSpacer"
                             width: Math.max(0, profileStatsFlow.width -
                                 followingCountButton.width - followersCountButton.width -
-                                (root.isOwnProfile
-                                    ? profileStreakBadge.width : profileUnverifiedStreak.width) -
-                                profileStatsFlow.spacing * 3)
+                                profileBadgesRow.width - profileStatsFlow.spacing * 3)
                             height: Theme.scaleUi(32)
                         }
-                        Button {
-                            id: profileStreakBadge
-                            objectName: "profileStreakBadge"
-                            visible: root.isOwnProfile
-                            hoverEnabled: true
-                            implicitHeight: Theme.scaleUi(32)
-                            implicitWidth: streakBadgeContent.implicitWidth + Theme.space1 * 2
-                            padding: 0
-                            Accessible.name: qsTrId("genycaster.streak.open")
-                            // The platform ToolTip is unstyled; use the
-                            // same popup surface and placement as ActionButton.
-                            onHoveredChanged: {
-                                streakHintTimer.stop()
-                                streakHint.close()
-                                if (hovered && !root.compact)
-                                    streakHintTimer.restart()
+
+                        Row {
+                            id: profileBadgesRow
+                            objectName: "profileAchievementBadges"
+                            width: implicitWidth
+                            height: Theme.scaleUi(32)
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            ProfileProBadge {
+                                id: profileProBadge
+                                objectName: "verifiedGenyProBadge"
+                                compact: root.compact
+                                entitlement: openProofConnections.proEntitlements
+                                visible: root.isOwnProfile && eligible
                             }
-                            Timer {
-                                id: streakHintTimer
-                                interval: 420
-                                repeat: false
-                                onTriggered: {
-                                    if (!profileStreakBadge.hovered || !profileStreakBadge.Overlay.overlay)
-                                        return
-                                    const overlay = profileStreakBadge.Overlay.overlay
-                                    const point = profileStreakBadge.mapToItem(overlay, 0, 0)
-                                    streakHint.x = Math.max(Theme.space2,
-                                        Math.min(overlay.width-streakHint.implicitWidth-Theme.space2,
-                                            point.x+(profileStreakBadge.width-streakHint.implicitWidth)/2))
-                                    streakHint.y = Math.max(Theme.space2,
-                                        point.y-streakHint.implicitHeight-Theme.space2)
-                                    streakHint.open()
+
+                            Button {
+                                id: profileStreakBadge
+                                objectName: "profileStreakBadge"
+                                visible: root.isOwnProfile
+                                hoverEnabled: true
+                                implicitHeight: Theme.scaleUi(32)
+                                implicitWidth: streakBadgeContent.implicitWidth + Theme.space1 * 2
+                                padding: 0
+                                Accessible.name: qsTrId("genycaster.streak.open")
+                                // The platform ToolTip is unstyled; use the
+                                // same popup surface and placement as ActionButton.
+                                onHoveredChanged: {
+                                    streakHintTimer.stop()
+                                    streakHint.close()
+                                    if (hovered && !root.compact)
+                                        streakHintTimer.restart()
                                 }
-                            }
-                            Popup {
-                                id: streakHint
-                                parent: profileStreakBadge.Overlay.overlay
-                                modal: false
-                                focus: false
-                                closePolicy: Popup.NoAutoClose
-                                padding: Theme.space2
-                                background: PopupSurface {
-                                    curveDepth: Theme.curveCompact
-                                    elevation: Theme.elevationPopover
-                                }
-                                contentItem: DirectionAwareLabel {
-                                    text: qsTrId("genycaster.streak.open")
-                                    color: Theme.textPrimary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-                            }
-                            onClicked: {
-                                streakHintTimer.stop()
-                                streakHint.close()
-                                streakDrawer.mobilePresentation = root.compact
-                                streakDrawer.open()
-                            }
-                            readonly property bool streakActive: Number(
-                                openProofConnections.streak.activity?.current || 0) > 0
-                            // Match the ring-and-flame on the desktop account
-                            // card; no second oval outline around the counter.
-                            background: Item {}
-                            contentItem: Row {
-                                id: streakBadgeContent
-                                layoutDirection: Theme.uiDirection
-                                spacing: Theme.space1
-                                Item {
-                                    id: profileStreakRing
-                                    objectName: "profileStreakRing"
-                                    width: Theme.scaleUi(28)
-                                    height: width
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    ProgressRing {
-                                        anchors.fill: parent
-                                        progress: profileStreakBadge.streakActive
-                                            && Number(openProofConnections.streak.activity?.next_milestone || 0)>0
-                                            ? Math.min(1, Number(openProofConnections.streak.activity.current)
-                                                /Number(openProofConnections.streak.activity.next_milestone)) : 0
-                                        strokeWidth: 2.5
-                                        inset: 2
-                                        trackColor: Theme.borderMuted
-                                        progressColor: profileStreakBadge.streakActive
-                                            ? Theme.streak : Theme.inkMuted
+                                Timer {
+                                    id: streakHintTimer
+                                    interval: 420
+                                    repeat: false
+                                    onTriggered: {
+                                        if (!profileStreakBadge.hovered || !profileStreakBadge.Overlay.overlay)
+                                            return
+                                        const overlay = profileStreakBadge.Overlay.overlay
+                                        const point = profileStreakBadge.mapToItem(overlay, 0, 0)
+                                        streakHint.x = Math.max(Theme.space2,
+                                            Math.min(overlay.width-streakHint.implicitWidth-Theme.space2,
+                                                point.x+(profileStreakBadge.width-streakHint.implicitWidth)/2))
+                                        streakHint.y = Math.max(Theme.space2,
+                                            point.y-streakHint.implicitHeight-Theme.space2)
+                                        streakHint.open()
                                     }
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        text: Theme.iconStreakFlame
-                                        preferredSize: Theme.scaleUi(14)
+                                }
+                                Popup {
+                                    id: streakHint
+                                    parent: profileStreakBadge.Overlay.overlay
+                                    modal: false
+                                    focus: false
+                                    closePolicy: Popup.NoAutoClose
+                                    padding: Theme.space2
+                                    background: PopupSurface {
+                                        curveDepth: Theme.curveCompact
+                                        elevation: Theme.elevationPopover
+                                    }
+                                    contentItem: DirectionAwareLabel {
+                                        text: qsTrId("genycaster.streak.open")
+                                        color: Theme.textPrimary
+                                        font.pixelSize: Theme.typeCaptionSize
+                                    }
+                                }
+                                onClicked: {
+                                    streakHintTimer.stop()
+                                    streakHint.close()
+                                    streakDrawer.mobilePresentation = root.compact
+                                    streakDrawer.open()
+                                }
+                                readonly property bool streakActive: Number(
+                                    openProofConnections.streak.activity?.current || 0) > 0
+                                // Match the ring-and-flame on the desktop account
+                                // card; no second oval outline around the counter.
+                                background: Item {}
+                                contentItem: Row {
+                                    id: streakBadgeContent
+                                    layoutDirection: Theme.uiDirection
+                                    spacing: Theme.space1
+                                    Item {
+                                        id: profileStreakRing
+                                        objectName: "profileStreakRing"
+                                        width: Theme.scaleUi(28)
+                                        height: width
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        ProgressRing {
+                                            anchors.fill: parent
+                                            progress: profileStreakBadge.streakActive
+                                                && Number(openProofConnections.streak.activity?.next_milestone || 0)>0
+                                                ? Math.min(1, Number(openProofConnections.streak.activity.current)
+                                                    /Number(openProofConnections.streak.activity.next_milestone)) : 0
+                                            strokeWidth: 2.5
+                                            inset: 2
+                                            trackColor: Theme.borderMuted
+                                            progressColor: profileStreakBadge.streakActive
+                                                ? Theme.streak : Theme.inkMuted
+                                        }
+                                        Icon {
+                                            anchors.centerIn: parent
+                                            text: Theme.iconStreakFlame
+                                            preferredSize: Theme.scaleUi(14)
+                                            color: profileStreakBadge.streakActive
+                                                ? Theme.streak : Theme.inkMuted
+                                        }
+                                    }
+                                    Label {
+                                        anchors.verticalCenter: parent.verticalCenter
                                         color: profileStreakBadge.streakActive
                                             ? Theme.streak : Theme.inkMuted
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        font.weight: Theme.weightDemiBold
+                                        text: LocaleFormat.formatInteger(Number(
+                                            openProofConnections.streak.activity?.current || 0))
                                     }
                                 }
-                                Label {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    color: profileStreakBadge.streakActive
-                                        ? Theme.streak : Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
-                                    text: LocaleFormat.formatInteger(Number(
-                                        openProofConnections.streak.activity?.current || 0))
+                            }
+                            // Public profiles have no authenticated Streak snapshot.
+                            // Show a neutral, non-clickable flame instead of claiming
+                            // a verified zero or accidentally opening the viewer's streak.
+                            Item {
+                                id: profileUnverifiedStreak
+                                objectName: "profileUnverifiedStreak"
+                                visible: !root.isOwnProfile
+                                width: Theme.scaleUi(32)
+                                height: width
+                                ProgressRing {
+                                    anchors.fill: parent
+                                    progress: 0
+                                    strokeWidth: 2.5
+                                    inset: 2
+                                    trackColor: Theme.borderMuted
+                                    progressColor: Theme.inkMuted
                                 }
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: Theme.iconStreakFlame
+                                    color: Theme.inkMuted
+                                    preferredSize: Theme.scaleUi(16)
+                                }
+                                Accessible.name: qsTrId("genycaster.streak.title")
                             }
                         }
-                        // Public profiles have no authenticated Streak snapshot.
-                        // Show a neutral, non-clickable flame instead of claiming
-                        // a verified zero or accidentally opening the viewer's streak.
-                        Item {
-                            id: profileUnverifiedStreak
-                            objectName: "profileUnverifiedStreak"
-                            visible: !root.isOwnProfile
-                            width: Theme.scaleUi(32)
-                            height: width
-                            ProgressRing {
-                                anchors.fill: parent
-                                progress: 0
-                                strokeWidth: 2.5
-                                inset: 2
-                                trackColor: Theme.borderMuted
-                                progressColor: Theme.inkMuted
-                            }
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconStreakFlame
-                                color: Theme.inkMuted
-                                preferredSize: Theme.scaleUi(16)
-                            }
-                            Accessible.name: qsTrId("genycaster.streak.title")
-                        }
+
                     }
                     RowLayout {
                         objectName: "profileOwnerActions"

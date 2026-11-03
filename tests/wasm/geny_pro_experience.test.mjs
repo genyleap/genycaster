@@ -1,0 +1,87 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const read=relative=>readFileSync(new URL('../../'+relative,import.meta.url),'utf8');
+const qml=name=>read('ui/components/'+name);
+const locales=['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
+    'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
+const ids=['short','title','verified_wallet','unlock_hint',
+    'verification_unavailable','not_now','check_status',
+    'bookmark_collections','connections','requires_pro',
+    'connections_hint','advanced_editor','market_pulse_hint','market_pulse'];
+
+test('Pro badge shares the streak row, with themed popup and accessible inputs',()=>{
+    const profile=qml('ProfileSurface.qml');
+    const badge=qml('ProfileProBadge.qml');
+    const top=profile.slice(profile.indexOf('objectName: "profileIdentityRow"'),
+        profile.indexOf('objectName: "profileLocationRow"'));
+    const bottom=profile.slice(profile.indexOf('id: profileBadgesRow'),
+        profile.indexOf('objectName: "profileOwnerActions"'));
+    assert.doesNotMatch(top,/genyProBadge|ProfileProBadge|verifiedGenyProBadge/);
+    assert.match(bottom,/ProfileProBadge\s*\{[\s\S]*?id: profileProBadge[\s\S]*?id: profileStreakBadge/);
+    assert.match(bottom,/profileStreakBadge[\s\S]*?profileUnverifiedStreak/);
+    assert.match(profile,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
+    assert.match(badge,/entitlement.status === "verified"[\s\S]*?entitlement.eligible === true/);
+    assert.match(badge,/onHoveredChanged:/);
+    assert.match(badge,/onClicked:/);
+    assert.match(badge,/Keys.onEscapePressed:/);
+    assert.match(badge,/Accessible.description:/);
+    assert.match(badge,/objectName: "genyProThemedTooltip"/);
+    assert.match(badge,/background: PopupSurface/);
+    assert.doesNotMatch(badge,/ToolTip\.visible/);
+    for(const token of ['proAccent','proSurface','proSurfaceHover','proBorder'])
+        assert.ok(read('ui/theme/Theme.qml').includes('readonly property color '+token));
+});
+
+test('Pro-only actions explain why they are locked, but users may unlink and unfile',()=>{
+    const connections=qml('AccountConnectionsPopup.qml');
+    const chooser=qml('BookmarkCollectionChooser.qml');
+    const notice=qml('ProUpgradeNotice.qml');
+    const formatting=qml('FormattingToolbar.qml');
+    const composer=qml('ComposerDrawer.qml');
+    assert.match(connections,/objectName: "connectionsProGatingBanner"/);
+    assert.match(connections,/connectionsProNotice\.open\(\)/);
+    assert.match(connections,/picker\.disconnectRequested\(providerRow\.modelData/);
+    assert.match(connections,/picker\.authorized && providerRow\.redirectCapable/);
+    assert.match(chooser,/text: qsTrId\("genycaster.bookmarks.uncategorized"\)\s+enabled: !root.busy/);
+    assert.match(chooser,/root\.unfiledRequested\(\)/);
+    assert.match(chooser,/collectionsProNotice\.open\(\)/);
+    assert.match(chooser,/enabled: root.proEligible/);
+    assert.match(formatting,/signal proFeatureRequested\(\)/);
+    assert.match(formatting,/root\.proFeatureRequested\(\)/);
+    assert.match(composer,/onProFeatureRequested: composerProNotice\.open\(\)/);
+    assert.match(notice,/openProofConnections\.fetchProEntitlements\(true\)/);
+    assert.match(notice,/background: PopupSurface/);
+    assert.match(notice,/Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
+    assert.doesNotMatch(notice,/eligible\s*=\s*true/);
+});
+
+test('Market Pulse basic cap offers Pro information, without bypassing native cap',()=>{
+    const settings=qml('LocaleSettingsPopup.qml');
+    const controller=read('ui/mobile/live_insights_controller.cpp');
+    const wiring=read('ui/mobile/main.cpp');
+    assert.match(settings,/readonly property int marketAssetLimit: marketProEligible \? 16 : 4/);
+    assert.match(settings,/objectName: "genyProMarketQuota"/);
+    assert.match(settings,/marketProNotice\.open\(\)/);
+    assert.match(settings,/openProofConnections\.fetchProEntitlements\(true\)/);
+    assert.match(controller,/std::clamp\(limit, 4, 16\)/);
+    assert.match(controller,/current >= m_impl->marketAssetLimit/);
+    assert.match(wiring,/proEntitlementsChanged/);
+});
+
+test('New Pro explanations have a translation and valid placeholders in every locale',()=>{
+    for(const lang of locales){
+        const xml=read('ui/i18n/qml_'+lang+'.ts');
+        for(const id of ids) {
+            const pattern=new RegExp('<message id="genycaster\\.pro\\.'+id+'">\\s*'
+                +'<source>([\\s\\S]*?)<\\/source>\\s*'
+                +'<translation>([\\s\\S]*?)<\\/translation>');
+            const match=xml.match(pattern);
+            assert.ok(match,lang+' missing '+id);
+            assert.ok(match[2].trim(),lang+' empty '+id);
+            assert.deepEqual([...match[1].matchAll(/%\\d+/g)].map(x=>x[0]),
+                [...match[2].matchAll(/%\\d+/g)].map(x=>x[0]),lang+' placeholders for '+id);
+        }
+    }
+});

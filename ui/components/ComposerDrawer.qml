@@ -8,6 +8,11 @@ GenyDrawer {
     id: root
     objectName: "composerDrawer"
 
+    ProUpgradeNotice {
+        id: composerProNotice
+        featureLabel: qsTrId("genycaster.pro.advanced_editor")
+    }
+
     property var parentCast: null
     property var quotedCast: null
     // One canonical intent for each composition. A quote is a new top-level
@@ -1545,6 +1550,7 @@ GenyDrawer {
                 activeBlockIndex: visualEditor.activeBlockIndex
                 activeEditor: visualEditor.formattingEditor
                 editorHost: visualEditor
+                onProFeatureRequested: composerProNotice.open()
                 onLinkRequested: (blockIndex, selectionStart, selectionLength, selectedText) => {
                     root.insertKind = "link"
                     root.insertBlockIndex = blockIndex

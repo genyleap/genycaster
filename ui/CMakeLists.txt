@@ -122,6 +122,8 @@ set(farcasterQmlFiles
     components/ProgressRing.qml
     components/ProfileLinkRow.qml
     components/ProfileSurface.qml
+    components/ProfileProBadge.qml
+    components/ProUpgradeNotice.qml
     components/GenyPulsePanel.qml
     components/StreakCard.qml
     components/AccountConnectionsPopup.qml

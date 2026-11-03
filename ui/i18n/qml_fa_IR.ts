@@ -6577,5 +6577,61 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>نمایش واژه‌های بازیابی</translation>
         </message>
+        <message id="genycaster.pro.short">
+            <source>PRO</source>
+            <translation>PRO</translation>
+        </message>
+        <message id="genycaster.pro.title">
+            <source>GenyCaster Pro</source>
+            <translation>جنی‌کستر پرو</translation>
+        </message>
+        <message id="genycaster.pro.verified_wallet">
+            <source>Verified with at least %1 GENY in one linked wallet.</source>
+            <translation>دارایی حداقل %1 توکن GENY در یک کیف‌پول متصل تأیید شده است.</translation>
+        </message>
+        <message id="genycaster.pro.unlock_hint">
+            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
+            <translation>این قابلیت به حداقل %1 توکن GENY در یک کیف‌پول تأییدشدهٔ متصل به حساب فارکستر نیاز دارد.</translation>
+        </message>
+        <message id="genycaster.pro.verification_unavailable">
+            <source>Membership could not be checked right now. Retry when connected.</source>
+            <translation>در حال حاضر امکان بررسی عضویت نیست. پس از اتصال دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.pro.not_now">
+            <source>Not now</source>
+            <translation>فعلاً نه</translation>
+        </message>
+        <message id="genycaster.pro.check_status">
+            <source>Check status</source>
+            <translation>بررسی وضعیت</translation>
+        </message>
+        <message id="genycaster.pro.bookmark_collections">
+            <source>Custom bookmark collections</source>
+            <translation>دسته‌بندی‌های سفارشی نشانک‌ها</translation>
+        </message>
+        <message id="genycaster.pro.connections">
+            <source>Account connections</source>
+            <translation>اتصال حساب‌ها</translation>
+        </message>
+        <message id="genycaster.pro.requires_pro">
+            <source>Requires Pro</source>
+            <translation>نیازمند پرو</translation>
+        </message>
+        <message id="genycaster.pro.connections_hint">
+            <source>Adding connections requires Pro. Existing links remain visible and removable.</source>
+            <translation>افزودن اتصال جدید به پرو نیاز دارد. اتصال‌های قبلی همچنان دیده و حذف می‌شوند.</translation>
+        </message>
+        <message id="genycaster.pro.advanced_editor">
+            <source>Code formatting</source>
+            <translation>قالب‌بندی کد</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse_hint">
+            <source>Basic includes four Market Pulse tokens. Pro unlocks up to sixteen.</source>
+            <translation>نسخهٔ عادی چهار توکن در Market Pulse دارد. پرو تا شانزده توکن را فعال می‌کند.</translation>
+        </message>
+        <message id="genycaster.pro.market_pulse">
+            <source>More Market Pulse tokens</source>
+            <translation>توکن‌های بیشتر در Market Pulse</translation>
+        </message>
     </context>
 </TS>
