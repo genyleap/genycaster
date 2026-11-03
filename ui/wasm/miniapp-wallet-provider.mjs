@@ -1,7 +1,15 @@
 // A per-Mini-App EIP-1193 facade. No accounts, signatures or transactions
 // can cross the iframe boundary without an explicit host-origin grant.
 const PUBLIC_METHODS = new Set(['eth_chainId','net_version','eth_blockNumber']);
-const ACCOUNT_METHODS = new Set(['eth_accounts','eth_requestAccounts']);
+// Public chain metadata can be read without requesting an account.
+const READ_METHODS = new Set([
+  'eth_call','eth_estimateGas','eth_getBalance','eth_getCode',
+  'eth_getBlockByHash','eth_getBlockByNumber','eth_getLogs',
+  'eth_getTransactionByHash','eth_getTransactionReceipt',
+  'eth_getTransactionCount','eth_getStorageAt','eth_getProof',
+  'eth_feeHistory','eth_gasPrice','eth_maxPriorityFeePerGas',
+  'eth_getBlockTransactionCountByNumber','eth_getBlockTransactionCountByHash'
+]);
 const SIGNING_PREFIXES = ['personal_sign','eth_sign','eth_signTypedData',
     'eth_sendTransaction','eth_sendRawTransaction','wallet_','eth_sendUserOperation'];
 const WALLET_EVENTS = new Set(['accountsChanged','chainChanged','connect','disconnect','message']);
@@ -124,8 +132,12 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(PUBLIC_METHODS.has(method))
         return injected.request(payload);
       if(!granted)throw denied('Connect your wallet before using this Mini App',4100);
-      if(!SIGNING_PREFIXES.some(prefix=>method===prefix||method.startsWith(prefix)))
+      if(!READ_METHODS.has(method)
+          && !SIGNING_PREFIXES.some(prefix=>method===prefix||method.startsWith(prefix)))
         throw denied('Wallet RPC method is not supported by GenyCaster',4200);
+      // Bound untrusted RPC payload size before it crosses into the user's wallet.
+      if(JSON.stringify(payload.params??[]).length>65_536)
+        throw denied('Wallet RPC parameters exceed the safe limit',4200);
       // The actual injected wallet owns signature/transaction confirmation.
       // An already-confirmed Mini App grant is not a signing authorization.
       return injected.request(payload);
