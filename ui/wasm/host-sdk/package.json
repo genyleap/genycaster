@@ -1,0 +1,9 @@
+{
+  "name": "@genyleap/genycaster-miniapp-host",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@farcaster/miniapp-host": "0.4.0",
+    "esbuild": "0.25.12"
+  }
+}
