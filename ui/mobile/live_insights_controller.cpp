@@ -829,6 +829,9 @@ void LiveInsightsController::setWalletAddresses(const QStringList& addresses)
     }
     if (m_impl->walletAddresses == canonical) return;
     m_impl->walletAddresses = canonical;
+    // An earlier account's pending RPC must not block this account's refresh.
+    // Its completion is ignored by the per-wallet identity guard.
+    m_impl->holdingRefreshing = false;
     m_impl->holding = QVariantMap{
         {QStringLiteral("wallet"), canonical.isEmpty() ? QString{} : canonical.front()},
         {QStringLiteral("wallets"), canonical},

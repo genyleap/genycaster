@@ -265,6 +265,7 @@ Superellipse {
                     compact: true
                     quiet: true
                     iconGlyph: Theme.iconStreakFlame
+                    balancedIcon: true
                     text: qsTrId("genycaster.streak.title")
                     onClicked: root.toggleFace()
                 }
@@ -272,6 +273,7 @@ Superellipse {
                     Layout.fillWidth: true
                     compact: true
                     iconGlyph: Theme.iconProfile
+                    balancedIcon: true
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
@@ -428,6 +430,7 @@ Superellipse {
                     Layout.fillWidth: true
                     compact: true
                     iconGlyph: Theme.iconProfile
+                    balancedIcon: true
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }

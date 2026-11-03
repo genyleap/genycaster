@@ -21,6 +21,9 @@ Button {
     property bool compact: false
     property bool wrapText: false
     property bool alignStart: false
+    // Keep the label optically centered when a leading icon is present.
+    // Opt-in for symmetric compact navigation actions.
+    property bool balancedIcon: false
     property bool pill: false
     property bool elevated: true
     property real iconSize: Theme.iconSize
@@ -183,6 +186,12 @@ Button {
             verticalAlignment: Text.AlignVCenter
             wrapMode: control.wrapText ? Text.Wrap : Text.NoWrap
             elide: control.wrapText ? Text.ElideNone : Text.ElideRight
+        }
+
+        Item {
+            visible: control.balancedIcon && !control.iconOnly && control.iconGlyph.length > 0
+            Layout.preferredWidth: control.iconSize
+            Layout.preferredHeight: control.iconSize
         }
     }
 
