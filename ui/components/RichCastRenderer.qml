@@ -30,18 +30,20 @@ ColumnLayout {
     // accent-colored, everything else is plain text.
     function inlineSpansFor(value) {
         const input = String(value || "")
-        const tokenPattern = /(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
+        const tokenPattern = /(`+)([^`\n]+?)\1|(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
         const spans = []
         let offset = 0
         let match
         while ((match = tokenPattern.exec(input)) !== null) {
             // Do not style a currency sign in a number, an email domain,
             // or a token embedded inside another ordinary word.
-            if (match.index > 0 && /[\w@./$#]/.test(input[match.index - 1])) continue
+            if (!match[1] && match.index > 0 && /[\w@./$#]/.test(input[match.index - 1])) continue
             if (match.index > offset)
                 spans.push({ kind: "text", text: input.substring(offset, match.index) })
             const token = match[0]
-            if (token.startsWith("http://") || token.startsWith("https://")) {
+            if (match[1]) {
+                spans.push({ kind: "inline-code", text: match[2] })
+            } else if (token.startsWith("http://") || token.startsWith("https://")) {
                 spans.push({ kind: "link", text: token, target: token })
             } else if (token.startsWith("@")) {
                 spans.push({ kind: "mention", text: token, username: token.substring(1) })
@@ -57,13 +59,47 @@ ColumnLayout {
         return spans
     }
 
-    readonly property var fallbackBlock: {
-        if (root.enhanced)
-            return null
-        const text = String(root.plainText || "")
-        if (text.length === 0)
-            return null
-        return { kind: "paragraph", text: text, inlines: root.inlineSpansFor(text) }
+    // Protocol Markdown must render without a local Rich Composer sidecar.
+    // Unclosed fences are kept literally instead of silently dropping content.
+    readonly property var fallbackBlocks: {
+        if (root.enhanced) return []
+        const text = String(root.plainText || "").replace(/\r\n?/g, "\n")
+        if (text.length === 0) return []
+        const lines = text.split("\n")
+        const blocks = []
+        let prose = []
+        const appendProse = () => {
+            if (prose.length === 0) return
+            const value = prose.join("\n")
+            blocks.push({ kind: "paragraph", text: value,
+                          inlines: root.inlineSpansFor(value) })
+            prose = []
+        }
+        for (let i = 0; i < lines.length; ++i) {
+            const start = lines[i].match(/^ {0,3}(`{3,}|~{3,})([A-Za-z0-9_+#.-]*)[ \t]*$/)
+            if (start) {
+                let end = i + 1
+                while (end < lines.length) {
+                    const closing = lines[end].match(/^ {0,3}(`{3,}|~{3,})[ \t]*$/)
+                    if (closing && closing[1][0] === start[1][0]
+                            && closing[1].length >= start[1].length)
+                        break
+                    ++end
+                }
+                if (end < lines.length) {
+                    appendProse()
+                    blocks.push({ kind: "code",
+                                  text: lines.slice(i + 1, end).join("\n"),
+                                  language: start[2] || "auto",
+                                  lineNumbers: false, wrap: false })
+                    i = end
+                    continue
+                }
+            }
+            prose.push(lines[i])
+        }
+        appendProse()
+        return blocks
     }
 
     function canonicalUrl(value) {
@@ -117,19 +153,8 @@ ColumnLayout {
         return textView
     }
 
-    RichTextView {
-        visible: root.fallbackBlock !== null
-        Layout.fillWidth: true
-        Layout.minimumWidth: 0
-        emojiSurface: root.emojiSurface
-        blockData: root.fallbackBlock
-        compact: root.compact
-        onExternalRequested: url => root.externalRequested(url)
-        onBodyActivated: root.bodyActivated()
-    }
-
     Repeater {
-        model: root.enhanced ? root.richBlocks : []
+        model: root.enhanced ? root.richBlocks : root.fallbackBlocks
         delegate: Loader {
             required property var modelData
             Layout.fillWidth: true
