@@ -376,6 +376,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.composer.preview_empty");
     //% "Quote"
     (void)qtTrId("genycaster.composer.quote");
+    //% "Conversation"
+    (void)qtTrId("genycaster.detail.conversation");
+    //% "Open channel %1"
+    (void)qtTrId("genycaster.detail.open_channel");
     //% "Back to feed"
     (void)qtTrId("genycaster.detail.back_back_to_feed");
     //% "Canonical detail"
