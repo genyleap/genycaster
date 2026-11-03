@@ -30,7 +30,7 @@ test('desktop Home presents one bounded content column', () => {
     const home = read('ui/components/HomeDashboard.qml');
     assert.match(home, /Math\.min\(792, parent\.width - Theme\.space4 \* 2\)/);
     assert.match(home, /anchors\.horizontalCenter: parent\.horizontalCenter/);
-    assert.match(home, /id: desktopComposerSurface/);
+    assert.match(home, /objectName: "homeComposerLauncher"/);
     assert.match(home, /GenyTokenBanner \{\}/);
 });
 
