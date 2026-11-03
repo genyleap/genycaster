@@ -28,7 +28,7 @@ test('views are a reaction metric, not a centered flexible footer action', () =>
 
 test('desktop Home presents one bounded content column', () => {
     const home = read('ui/components/HomeDashboard.qml');
-    assert.match(home, /Math\.min\(792, parent\.width - Theme\.space4 \* 2\)/);
+    assert.match(home, /Math\.min\(root\.homeContentMaxWidth,/);
     assert.match(home, /anchors\.horizontalCenter: parent\.horizontalCenter/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
     assert.match(home, /GenyTokenBanner \{\}/);
