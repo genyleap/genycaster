@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <QCryptographicHash>
 #include <QSettings>
+#include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
 
@@ -2572,7 +2573,21 @@ void OpenProofConnectionsController::pumpTopicWrites()
             emit topicsChanged();
         }
         reply->deleteLater();
-        if(code==200) pumpTopicWrites();
+        if(generation!=m_grantGeneration || owner!=m_viewerFid)return;
+        if(code==200 || code==400 || code==409) {
+            // A resolved item must not strand the remaining offline queue.
+            m_topicRetryDelayMs=10'000;
+            pumpTopicWrites();
+        } else if(!m_topicOutbox.isEmpty()) {
+            // The protocol's indexing may lag behind a confirmed post.
+            // Keep the durable association and retry without user action.
+            const int delay=m_topicRetryDelayMs;
+            m_topicRetryDelayMs=std::min(m_topicRetryDelayMs*2,120'000);
+            QTimer::singleShot(delay,this,[this,owner,generation] {
+                if(owner==m_viewerFid && generation==m_grantGeneration)
+                    pumpTopicWrites();
+            });
+        }
     });
 }
 
@@ -2780,6 +2795,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     cancelNetworkReply(m_topicSaveRequest, this);
     m_topicOutbox=topicOutboxKey().isEmpty() || !m_settings
         ? QVariantList{} : m_settings->value(topicOutboxKey()).toList();
+    m_topicRetryDelayMs=10'000;
     m_topicsError.clear();
     emit topicsChanged();
     const QString key=bookmarkStorageKey();
