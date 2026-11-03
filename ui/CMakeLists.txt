@@ -464,6 +464,38 @@ if(EMSCRIPTEN)
         "--pre-js=${CMAKE_CURRENT_SOURCE_DIR}/wasm/protocol-signer-pre.js"
     )
 
+    # The WASM Mini App host must use Farcaster's official origin-filtered
+    # Comlink implementation. Bundle it into a first-party asset so browser
+    # runtime startup never depends on a third-party CDN.
+    find_program(GENYCASTER_NODE_EXECUTABLE node REQUIRED)
+    find_program(GENYCASTER_NPM_EXECUTABLE npm REQUIRED)
+    set(GENYCASTER_MINIAPP_SDK_STAGE "${CMAKE_CURRENT_BINARY_DIR}/miniapp-host-sdk")
+    add_custom_command(TARGET genycaster POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${GENYCASTER_MINIAPP_SDK_STAGE}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk/package.json"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/package.json"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk/package-lock.json"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/package-lock.json"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/host-sdk/build.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/build.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-bridge-entry.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/entry.mjs"
+        COMMAND ${GENYCASTER_NPM_EXECUTABLE} ci
+            --prefix "${GENYCASTER_MINIAPP_SDK_STAGE}"
+            --ignore-scripts --no-audit --no-fund
+        COMMAND ${GENYCASTER_NODE_EXECUTABLE}
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/build.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/entry.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/miniapp-host-bridge.mjs"
+        COMMENT "Bundling pinned Farcaster Mini App host SDK for first-party WASM delivery"
+        VERBATIM
+    )
+
     # Package the origin-bound WebCrypto key vault alongside the generated
     # Qt loader. It remains deliberately separate from signer authorization:
     # publishing must not become ready until custody approval and a verified
