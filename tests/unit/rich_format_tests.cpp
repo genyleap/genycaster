@@ -26,7 +26,7 @@ void fidStrongTypeSupportsOptionalEquality()
     assert(first != empty);
 }
 
-void richMarkdownDegradesIntentionally()
+void richMarkdownRetainsPortableCodeFences()
 {
     constexpr std::string_view markdown = R"md(## Important Update
 
@@ -57,13 +57,34 @@ auto main() -> int
     assert(safe);
     assert(safe->text.find("##") == std::string::npos);
     assert(safe->text.find("**") == std::string::npos);
-    assert(safe->text.find("```") == std::string::npos);
+    assert(safe->text.find("```cpp\nimport <vector>;") != std::string::npos);
     assert(safe->text.find("Important Update") != std::string::npos);
     assert(safe->text.find("very important") != std::string::npos);
     assert(safe->text.find("“Native applications still matter.”") != std::string::npos);
     assert(safe->text.find("• Fast\n• Native\n• Open") != std::string::npos);
-    assert(safe->text.find("C++:\n\nimport <vector>;") != std::string::npos);
+    assert(safe->text.ends_with("\n```"));
     assert(safe->simplifiedElementCount > 0U);
+}
+
+void portableCodeRoundTripSurvivesExtraBackticks()
+{
+    const app::rich::MarkdownImporter importer{};
+    const app::rich::FarcasterSafeSerializer serializer{};
+    constexpr std::string_view input =
+        "Before `std::vector` and ``templated`value``.\n\n"
+        "````cpp\nconst auto literal = \"```\";\n````";
+    const auto original = importer.parse(input);
+    assert(original);
+    const auto published = serializer.serialize(*original);
+    assert(published);
+    assert(published->text.find("`std::vector`") != std::string::npos);
+    assert(published->text.find("``templated`value``") != std::string::npos);
+    assert(published->text.find("````cpp\n") != std::string::npos);
+    const auto parsed = importer.parse(published->text);
+    assert(parsed);
+    const auto exported = app::rich::MarkdownExporter{}.serialize(*parsed);
+    assert(exported.find("````cpp\n") != std::string::npos);
+    assert(exported.find("const auto literal") != std::string::npos);
 }
 
 void semanticMentionUsesFinalUtf8BytePosition()
@@ -272,7 +293,8 @@ void markdownRoundTripKeepsReadableSemantics()
 int main()
 {
     fidStrongTypeSupportsOptionalEquality();
-    richMarkdownDegradesIntentionally();
+    richMarkdownRetainsPortableCodeFences();
+    portableCodeRoundTripSurvivesExtraBackticks();
     semanticMentionUsesFinalUtf8BytePosition();
     unicodeMentionPositionsStayByteExact();
     unsafeLinksNeverReachPublication();

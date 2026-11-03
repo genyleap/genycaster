@@ -30,7 +30,7 @@ ColumnLayout {
     // accent-colored, everything else is plain text.
     function inlineSpansFor(value) {
         const input = String(value || "")
-        const tokenPattern = /(`+)([^`\n]+?)\1|(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
+        const tokenPattern = /(`+)([^\n]+?)\1|(https?:\/\/[^\s<]+)|(@fid:[1-9][0-9]*)|(@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*)|([#$][A-Za-z][A-Za-z0-9_]*)|(\/[A-Za-z0-9_-]+)/g
         const spans = []
         let offset = 0
         let match
@@ -70,9 +70,10 @@ ColumnLayout {
         let prose = []
         const appendProse = () => {
             if (prose.length === 0) return
-            const value = prose.join("\n")
-            blocks.push({ kind: "paragraph", text: value,
-                          inlines: root.inlineSpansFor(value) })
+            const value = prose.join("\n").replace(/^\n+|\n+$/g, "")
+            if (value.length > 0)
+                blocks.push({ kind: "paragraph", text: value,
+                              inlines: root.inlineSpansFor(value) })
             prose = []
         }
         for (let i = 0; i < lines.length; ++i) {
@@ -93,6 +94,25 @@ ColumnLayout {
                                   language: start[2] || "auto",
                                   lineNumbers: false, wrap: false })
                     i = end
+                    continue
+                }
+            }
+            // GenyCaster's earlier FarcasterSafeSerializer emitted
+            // "javascript:\n\nsource" instead of portable code fences.
+            // Restore only clear language-tagged code, without re-signing the
+            // immutable published Cast or treating generic prose as code.
+            const legacy = lines[i].match(/^(javascript|typescript|python|cpp|c\+\+|rust|go|java|json|bash|shell|qml|sql|css|html):[ \t]*$/i)
+            if (legacy && lines[i + 1] === "" && i + 2 < lines.length) {
+                const candidate = lines[i + 2]
+                const codeLike = /[{};=()[\]<>]|^\s*(?:console\.|const\s|let\s|var\s|def\s|class\s|import\s|from\s|fn\s|SELECT\s|print\()/i.test(candidate)
+                if (codeLike) {
+                    appendProse()
+                    let end = i + 2
+                    while (end < lines.length && lines[end].trim().length > 0) ++end
+                    blocks.push({ kind: "code", text: lines.slice(i + 2, end).join("\n"),
+                                  language: legacy[1].toLowerCase().replace("c++", "cpp"),
+                                  lineNumbers: false, wrap: false })
+                    i = end - 1
                     continue
                 }
             }

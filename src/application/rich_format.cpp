@@ -128,11 +128,19 @@ constexpr std::size_t MaxInlineSpansPerBlock = 512U;
             }
         }
         if (text[index] == '`') {
-            const auto close = text.find('`', index + 1U);
-            if (close != std::string_view::npos && close > index + 1U) {
+            std::size_t width{1U};
+            while (index + width < text.size() && text[index + width] == '`') ++width;
+            const auto marker = std::string(width, '`');
+            auto close = text.find(marker, index + width);
+            while (close != std::string_view::npos &&
+                   ((close > 0U && text[close - 1U] == '`') ||
+                    (close + width < text.size() && text[close + width] == '`'))) {
+                close = text.find(marker, close + width);
+            }
+            if (close != std::string_view::npos && close > index + width) {
                 flushPending();
-                pushText(InlineKind::InlineCode, std::string{text.substr(index + 1U, close - index - 1U)});
-                index = close + 1U;
+                pushText(InlineKind::InlineCode, std::string{text.substr(index + width, close - index - width)});
+                index = close + width;
                 continue;
             }
         }
@@ -265,6 +273,18 @@ void appendBlockSeparator(std::string& output)
     output.push_back('\n');
 }
 
+[[nodiscard]] std::string portableCodeFence(const std::string_view source,
+                                             const std::size_t minimum = 3U)
+{
+    std::size_t maxRun{};
+    std::size_t run{};
+    for (const char ch : source) {
+        run = ch == '`' ? run + 1U : 0U;
+        maxRun = std::max(maxRun, run);
+    }
+    return std::string(std::max(minimum, maxRun + 1U), '`');
+}
+
 void appendInlineSafe(
     std::string& output,
     const std::vector<RichInline>& inlines,
@@ -298,9 +318,13 @@ void appendInlineSafe(
             ++simplified;
             break;
         }
+        case InlineKind::InlineCode: {
+            const auto marker = portableCodeFence(span.text, 1U);
+            output.append(marker).append(span.text).append(marker);
+            break;
+        }
         case InlineKind::Strong:
         case InlineKind::Emphasis:
-        case InlineKind::InlineCode:
             output.append(span.text);
             ++simplified;
             break;
@@ -319,7 +343,11 @@ void appendInlineSafe(
         switch (span.kind) {
         case InlineKind::Strong: output.append("**").append(span.text).append("**"); break;
         case InlineKind::Emphasis: output.push_back('_'); output.append(span.text); output.push_back('_'); break;
-        case InlineKind::InlineCode: output.push_back('`'); output.append(span.text); output.push_back('`'); break;
+        case InlineKind::InlineCode: {
+            const auto marker = portableCodeFence(span.text, 1U);
+            output.append(marker).append(span.text).append(marker);
+            break;
+        }
         case InlineKind::Link: output.push_back('['); output.append(span.text).append("](").append(span.target).push_back(')'); break;
         case InlineKind::Mention:
             if (!span.username.empty()) { output.push_back('@'); output.append(span.username); }
@@ -407,10 +435,16 @@ foundation::result::Result<RichCastDocument> MarkdownImporter::parse(const std::
         if (canonical.empty()) { ++index; continue; }
 
         if (startsWith(canonical, "```")) {
-            const auto language = canonicalLanguageId(canonical.substr(3U));
+            std::size_t fenceWidth{};
+            while (fenceWidth < canonical.size() && canonical[fenceWidth] == '`') ++fenceWidth;
+            const auto language = canonicalLanguageId(canonical.substr(fenceWidth));
             std::string source{};
             ++index;
-            while (index < lines.size() && !startsWith(trim(lines[index]), "```")) {
+            while (index < lines.size()) {
+                const auto closing = trim(lines[index]);
+                const bool closeFence = closing.size() >= fenceWidth
+                    && closing.find_first_not_of('`') == std::string::npos;
+                if (closeFence) break;
                 if (!source.empty()) source.push_back('\n');
                 source.append(lines[index]);
                 if (source.size() > domain::rich::MaxCodeBlockBytes) {
@@ -545,8 +579,10 @@ std::string MarkdownExporter::serialize(const RichCastDocument& document) const
             break;
         case BlockKind::CodeBlock:
             if (const auto* code = std::get_if<CodeBlock>(&block.payload)) {
-                output.append("```").append(code->language == "auto" ? "" : code->language).push_back('\n');
-                output.append(code->source).append("\n```");
+                const auto fence = portableCodeFence(code->source);
+                output.append(fence).append(code->language == "auto" ? "" : code->language).push_back('\n');
+                output.append(code->source).push_back('\n');
+                output.append(fence);
             }
             break;
         case BlockKind::HorizontalSeparator: output.append("---"); break;
@@ -610,13 +646,16 @@ foundation::result::Result<FarcasterSafeLayout> FarcasterSafeSerializer::seriali
             break;
         case BlockKind::CodeBlock:
             if (const auto* code = std::get_if<CodeBlock>(&block.payload)) {
+                // Portable, parseable Markdown rather than irreversible
+                // "javascript:\n\nsource" flattening. Other clients see
+                // literal Markdown; GenyCaster reconstructs native syntax UI.
+                const auto fence = portableCodeFence(code->source);
                 const auto language = canonicalLanguageId(code->language);
-                if (!language.empty() && language != "auto") {
-                    output.append(language == "cpp" ? "C++" : language);
-                    output.append(":\n\n");
-                }
-                output.append(code->source);
-                ++result.simplifiedElementCount;
+                output.append(fence);
+                if (!language.empty() && language != "auto") output.append(language);
+                output.push_back('\n');
+                output.append(code->source).push_back('\n');
+                output.append(fence);
             }
             break;
         case BlockKind::HorizontalSeparator:

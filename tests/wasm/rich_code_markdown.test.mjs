@@ -53,3 +53,26 @@ test('fences accept tilde and reject mismatched delimiter types',()=>{
  const malformed=render('~~~cpp\nconst x=0;\n```');
  assert.equal(malformed[0].kind,'paragraph');
 });
+
+test('legacy GenyCaster cast from November 3 recovers its JavaScript block',()=>{
+ const text='Test 3.0 Gm from modern client. 🎉 on topic dev, channel /replyguys. test markdown plus code blocks.\n\njavascript:\n\nconsole.log("Hello, world");';
+ const rows=render(text);
+ assert.deepEqual(rows.map(x=>x.kind),['paragraph','code']);
+ assert.equal(rows[0].text,'Test 3.0 Gm from modern client. 🎉 on topic dev, channel /replyguys. test markdown plus code blocks.');
+ assert.equal(rows[1].language,'javascript');
+ assert.equal(rows[1].text,'console.log("Hello, world");');
+});
+test('legacy code fallback does not mistake ordinary language-labelled prose for code',()=>{
+ const rows=render('python:\n\nI love snakes and nature.');
+ assert.equal(rows.length,1);
+ assert.equal(rows[0].kind,'paragraph');
+});
+
+test('multiple-backtick inline code keeps an interior backtick',()=>{
+ const rows=render('Use ``templated`value`` without losing the marker.');
+ assert.deepEqual(rows[0].inlines,[
+   {kind:'text',text:'Use '},
+   {kind:'inline-code',text:'templated`value'},
+   {kind:'text',text:' without losing the marker.'}
+ ]);
+});
