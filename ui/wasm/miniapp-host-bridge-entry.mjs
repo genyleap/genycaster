@@ -3,6 +3,7 @@
 // Only explicitly implemented, unprivileged capabilities are advertised.
 // There is NO wallet, signer, or fabricated Farcaster authentication bridge.
 import {exposeToIframe} from '@farcaster/miniapp-host';
+import {createMiniAppEthereumProvider} from './miniapp-wallet-provider.mjs';
 
 const limitedCapabilities = Object.freeze([
   'actions.ready', 'actions.close', 'actions.openUrl',
@@ -39,6 +40,9 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     throw new Error('Mini App origin is not approved');
 
   let active = true;
+  // The authenticated Farcaster identity is read-only context. A separate,
+  // user-approved EIP-1193 grant is required for a browser-injected wallet.
+  const wallet = createMiniAppEthereumProvider(url.origin, window.ethereum);
   const host = {
     context: {
       user: identity(verifiedUser),
@@ -62,8 +66,10 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     },
     requestFullScreen: async () => callbacks.fullscreen?.(true),
     exitFullScreen: async () => callbacks.fullscreen?.(false),
-    getCapabilities: async () => [...limitedCapabilities],
-    getChains: async () => [],
+    getCapabilities: async () => wallet
+      ? [...limitedCapabilities,'wallet.getEthereumProvider']
+      : [...limitedCapabilities],
+    getChains: async () => wallet ? wallet.chains() : [],
     // Requests for unimplemented financial, identity or protocol writes fail.
     signIn: unsupported,
     signManifest: unsupported,
@@ -84,11 +90,13 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     updateBackState: unsupported
   };
   const exposed = exposeToIframe({
-    iframe:frame, sdk:host, miniAppOrigin:url.origin, debug:false
+    iframe:frame, sdk:host, ethProvider:wallet?.provider,
+    miniAppOrigin:url.origin, debug:false
   });
   return () => {
     active = false;
     exposed.cleanup();
+    wallet?.dispose();
   };
 }
 window.__genycasterMiniAppSdk = Object.freeze({attach});
