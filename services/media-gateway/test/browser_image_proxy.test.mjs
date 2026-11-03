@@ -201,3 +201,53 @@ test('signed storage redirects reject unrelated keys, missing signatures, and un
     assert.notEqual(response.status,200,location);
   }
 });
+
+
+test('Arweave content-addressed raster redirects work but unrelated origins stay denied', async () => {
+  const {PassThrough} = await import('node:stream');
+  const id = '47YO_NMniMUYzYHHDRlEnkkTwT39IO938FK0Cn6JVfk';
+  const source = 'https://arweave.net/' + id;
+  const expected = 'https://4o3a57gte6emkggnqhdq2gketzerhqj57uqo657qkk2au7ujkx4q.arweave.net/' + id;
+  const lookupHost = async () => [{address:'8.8.8.8', family:4}];
+  const makeRequester = (redirect, calls) => (url, options, callback) => {
+    calls.push(url.href);
+    const request = new PassThrough();
+    request.end = () => {
+      const response = new PassThrough();
+      if (url.hostname === 'arweave.net') {
+        response.statusCode = 302;
+        response.headers = {location:redirect};
+        callback(response);
+        response.end();
+      } else {
+        response.statusCode = 200;
+        response.headers = {'content-length':'4'};
+        callback(response);
+        response.end(Buffer.from([0xff,0xd8,0xff,0xd9]));
+      }
+    };
+    return request;
+  };
+  const calls = [];
+  const good = await retrieveBrowserImage(source,{
+    lookupHost, requester:makeRequester(expected,calls)
+  });
+  assert.equal(good.status,200);
+  assert.equal(good.contentType,'image/jpeg');
+  assert.deepEqual(calls,[source,expected]);
+  for (const disallowed of [
+    'https://evil.test/' + id,
+    'https://different.arweave.net/' + id,
+    expected + '?bypass=1',
+    expected.slice(0,-1) + 'x',
+    'http://' + expected.slice('https://'.length)
+  ]) {
+    const deniedCalls = [];
+    const denied = await retrieveBrowserImage(source,{
+      lookupHost,requester:makeRequester(disallowed,deniedCalls)
+    });
+    assert.equal(denied.status,502,disallowed);
+    assert.equal(denied.error,'image_redirect_not_allowed');
+    assert.equal(deniedCalls.length,1);
+  }
+});
