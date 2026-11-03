@@ -8,6 +8,11 @@ Drawer {
     id: root
     objectName: "updateNoticeDrawer"
     property string lastPresentedVersion: ""
+    readonly property bool sameSemanticRelease: Qt.platform.os === "wasm"
+        && updateController.latestVersion.length > 0
+        && updateController.latestVersion === updateController.appVersion
+        && updateController.webCurrentBuild.length >= 8
+        && updateController.webLatestBuild.length === 8
     // Release categories are a bounded server-controlled enum. Use static
     // translation IDs so extraction/coverage checks can inspect every label.
     function releaseTypeLabel(kind) {
@@ -34,7 +39,9 @@ Drawer {
     height: parent ? Math.max(0, Math.min(parent.height - Theme.space4 * 2,
                                           Math.max(340, Math.min(640, parent.height * 0.86)))) : 560
     x: parent ? Math.max(0, (parent.width - width) / 2) : 0
-    padding: Theme.space4
+    padding: Theme.space3
+    // A bounded viewport: header and actions never become part of the
+    // scrollable release notes, even when the translated notes are lengthy.
 
     // Animate Drawer.position, never its x/y: Qt owns edge anchoring.
     enter: Transition {
@@ -79,10 +86,14 @@ Drawer {
     contentItem: Item {
         id: updateLayoutViewport
         implicitHeight: 0
+        clip: true
         ColumnLayout {
             id: updateFixedChrome
-            anchors.fill: parent
-            spacing: Theme.space3
+            objectName: "updateNoticeStickyHeader"
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: Theme.space2
         // Subtle grabber communicates top-sheet direction on touch screens.
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
@@ -149,15 +160,23 @@ Drawer {
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 DirectionAwareLabel {
-                    text: Qt.platform.os === "wasm"
-                          && updateController.latestVersion === updateController.appVersion
+                    text: root.sameSemanticRelease
                           ? qsTrId("genycaster.update.build_label")
-                              .arg(LocaleFormat.localizeDigits(updateController.webCurrentBuild))
-                          : LocaleFormat.localizeDigits(String(updateController.appVersion || "—"))
+                              .arg(LocaleFormat.localizeDigits(updateController.webCurrentBuild.slice(0, 8)))
+                          : LocaleFormat.localizeDigits("v" + String(updateController.appVersion || "—"))
                     alignToUi: true
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.ink
+                }
+                DirectionAwareLabel {
+                    visible: Qt.platform.os === "wasm"
+                    text: root.sameSemanticRelease
+                          ? LocaleFormat.localizeDigits("v" + updateController.appVersion)
+                          : qsTrId("genycaster.update.build_label")
+                              .arg(LocaleFormat.localizeDigits(updateController.webCurrentBuild.slice(0, 8)))
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
                 }
             }
             Icon {
@@ -173,25 +192,39 @@ Drawer {
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 DirectionAwareLabel {
-                    text: Qt.platform.os === "wasm"
-                          && updateController.latestVersion === updateController.appVersion
+                    text: root.sameSemanticRelease
                           ? qsTrId("genycaster.update.build_label")
                               .arg(LocaleFormat.localizeDigits(updateController.webLatestBuild))
-                          : LocaleFormat.localizeDigits(String(updateController.latestVersion || "—"))
+                          : LocaleFormat.localizeDigits("v" + String(updateController.latestVersion || "—"))
                     alignToUi: true
                     font.pixelSize: Theme.typeLabelSize
                     font.weight: Theme.weightDemiBold
                     color: Theme.accent
                 }
+                DirectionAwareLabel {
+                    visible: Qt.platform.os === "wasm"
+                    text: root.sameSemanticRelease
+                          ? LocaleFormat.localizeDigits("v" + updateController.latestVersion)
+                          : qsTrId("genycaster.update.build_label")
+                              .arg(LocaleFormat.localizeDigits(updateController.webLatestBuild))
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                }
             }
+        }
         }
         ColumnLayout {
             id: updateScrollableSection
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.top: updateFixedChrome.bottom
+            anchors.bottom: updateNoticeStickyActions.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: Theme.space3
+            anchors.bottomMargin: Theme.space2
+            spacing: Theme.space2
+            // This section's viewport is bounded by sticky chrome.
             Layout.minimumHeight: 0
             Layout.preferredHeight: 0
-            spacing: Theme.space2
 
             RowLayout {
                 Layout.fillWidth: true
@@ -244,15 +277,19 @@ Drawer {
             }
         }
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: updateNoticeStickyActions.top
+            height: 1
             color: Theme.divider
         }
         RowLayout {
+            id: updateNoticeStickyActions
             objectName: "updateNoticeStickyActions"
-            Layout.fillWidth: true
-            Layout.minimumHeight: Theme.scaleUi(44)
-            Layout.preferredHeight: Theme.scaleUi(48)
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: Math.max(Theme.scaleUi(48), implicitHeight)
             spacing: Theme.space2
             ActionButton {
                 Layout.fillWidth: true
