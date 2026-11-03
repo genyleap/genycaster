@@ -16,12 +16,20 @@ export const STREAK_BADGE_CATALOG = Object.freeze(
     icon:'flame',reward_kind:'none'
   }))
 );
+// GenyCaster Streak launched on 2026-11-02 UTC. Never credit older
+// Farcaster activity retroactively when read-side reconciliation runs.
+export const STREAK_START_DAY = '2026-11-02';
+export function eligibleStreakDay(day) {
+  return typeof day === 'string'
+    && /^\d{4}-\d{2}-\d{2}$/.test(day)
+    && day >= STREAK_START_DAY;
+}
 const DAY_MS=86_400_000;
 export function calculateStreaks(rows,now=new Date()) {
   const today=Math.floor(now.getTime()/DAY_MS);
   const unique={activity:new Set(),creator:new Set()};
   for(const row of rows||[]) {
-    if(!row || !/^\d{4}-\d{2}-\d{2}$/.test(String(row.day)))continue;
+    if(!row || !eligibleStreakDay(row.day))continue;
     const day=Math.floor(Date.parse(row.day+'T00:00:00Z')/DAY_MS);
     if(!Number.isInteger(day)||day>today||day<today-730)continue;
     if(row.kind!=='cast' && row.kind!=='reply')continue;
