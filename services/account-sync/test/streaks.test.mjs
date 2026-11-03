@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {calculateStreaks} from '../streaks.mjs';
+import {calculateStreaks,STREAK_START_DAY,eligibleStreakDay} from '../streaks.mjs';
 import {createCloudHandler,verifyStreakCastOwnership,discoverVerifiedStreakCasts} from '../cloud_state.mjs';
 import {createServer} from 'node:http';
 const hash='0x'+'a1'.repeat(20);
 const owner={issuer:'https://identity.example.test',subject:'farcaster:42',fid:'42'};
-const now=new Date('2026-11-02T18:00:00Z');
+const now=new Date('2026-11-05T18:00:00Z');
 test('Streak days are unique, UTC, badge thresholds respect longest and grace yesterday',()=>{
-  const rows=['2026-10-30','2026-10-31','2026-11-01'].map(day=>({day,kind:'cast'}));
-  rows.push({day:'2026-11-01',kind:'cast'},{day:'2026-11-02',kind:'reply'});
+  const rows=['2026-11-02','2026-11-03','2026-11-04'].map(day=>({day,kind:'cast'}));
+  rows.push({day:'2026-11-04',kind:'cast'},{day:'2026-11-05',kind:'reply'});
   const summary=calculateStreaks(rows,now);
   assert.equal(summary.activity.current,4);
   assert.equal(summary.creator.current,3);
@@ -34,12 +34,35 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
   assert.equal(summary.activity.week_saturday[0].date,'2026-10-31');
   assert.equal(summary.activity.week_saturday[2].date,'2026-11-02');
   assert.equal(summary.activity.week_saturday[2].completed,true);
-  assert.equal(summary.creator.week_saturday[2].completed,false);
+  assert.equal(summary.creator.week_saturday[2].completed,true);
   assert.deepEqual(summary.activity.week_saturday.map(day=>day.date),
     ['2026-10-31','2026-11-01','2026-11-02','2026-11-03',
      '2026-11-04','2026-11-05','2026-11-06']);
   assert.deepEqual(calculateStreaks([],now).creator.badges,[]);
-  assert.equal(calculateStreaks([{day:'2026-11-01',kind:'cast'}],now).creator.current,1);
+  assert.equal(calculateStreaks([{day:'2026-11-04',kind:'cast'}],now).creator.current,1);
+});
+
+test('Streak launched November 2 UTC: older retrieved activity never grants days, badges or best',()=>{
+  assert.equal(STREAK_START_DAY,'2026-11-02');
+  assert.equal(eligibleStreakDay('2026-11-01'),false);
+  assert.equal(eligibleStreakDay('2026-11-02'),true);
+  assert.equal(eligibleStreakDay('not-a-date'),false);
+  const rows=['2026-10-20','2026-10-21','2026-10-22','2026-10-23',
+    '2026-10-24','2026-10-27','2026-10-28','2026-10-29',
+    '2026-10-31','2026-11-01'].map(day=>({day,kind:'reply'}));
+  rows.push({day:'2026-11-02',kind:'cast'},
+    {day:'2026-11-03',kind:'cast'});
+  const result=calculateStreaks(rows,new Date('2026-11-03T20:00:00Z'));
+  for(const type of ['activity','creator']) {
+    const state=result[type];
+    assert.equal(state.current,2);
+    assert.equal(state.longest,2);
+    assert.equal(state.total_days,2);
+    assert.deepEqual(state.badges,[1]);
+    assert.equal(state.next_milestone,3);
+    assert.deepEqual(state.week.filter(day=>day.completed).map(day=>day.date),
+      ['2026-11-02','2026-11-03']);
+  }
 });
 test('Streak verifier accepts only exact fid, message hash and CastAdd payload',async()=>{
   const reader=async(url)=>new Response(JSON.stringify({message:{hash,
@@ -111,6 +134,13 @@ test('Streak API cannot award anonymous, invalid, unconfirmed or duplicate casts
  await withApi(async(req)=>{
   assert.equal((await req('streak/cast','PUT',{cast_hash:hash})).status,422);
  },null);
+ // A valid signed historical cast is not eligible for a newly launched streak.
+ await withApi(async(req)=>{
+  const rejected=await req('streak/cast','PUT',{cast_hash:hash});
+  assert.equal(rejected.status,422);
+  const latest=await (await req('streak')).json();
+  assert.equal(latest.streak.activity.total_days,0);
+ },{kind:'reply',day:'2026-11-01'});
 });
 
 test('read-side reconciliation credits the exact confirmed November 3 cast without client PUT',async()=>{
@@ -122,6 +152,8 @@ test('read-side reconciliation credits the exact confirmed November 3 cast witho
       timestamp:'2026-11-03T15:48:21.000Z',parent_url:'https://warpcast.com/~/channel/replyguys'},
      {object:'cast',hash:yesterday.slice(2),author:{fid:321969},
       timestamp:'2026-11-02T13:40:33.000Z',parent_url:'https://warpcast.com/~/channel/geny'},
+     {object:'cast',hash:'aa'.repeat(20),author:{fid:321969},
+      timestamp:'2026-11-01T19:00:00.000Z',parent_hash:'0x123'},
      {object:'cast',hash:'66'.repeat(20),author:{fid:999},
       timestamp:'2026-11-03T15:48:21.000Z'}
    ]}),{status:200});
@@ -155,7 +187,8 @@ test('read-side reconciliation credits the exact confirmed November 3 cast witho
  const handler=createCloudHandler({store,issuer:owner.issuer,
    fetchImpl:upstream,
    discoverStreakCasts:async fid=>{
-     ++feedReads;assert.equal(fid,'321969');return candidates;
+     ++feedReads;assert.equal(fid,'321969');
+     return [...candidates,{hash:'0x'+'aa'.repeat(20),day:'2026-11-01',kind:'reply'}];
    }});
  const server=createServer((req,res)=>handler(req,res,new URL(req.url,'http://localhost').pathname));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
