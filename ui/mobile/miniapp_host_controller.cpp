@@ -2,6 +2,8 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <algorithm>
 #if !defined(__EMSCRIPTEN__)
 #include <QDesktopServices>
@@ -79,10 +81,22 @@ void MiniAppHostController::setState(bool active, const QString& error) {
     emit stateChanged();
 }
 void MiniAppHostController::setUser(const QVariantMap& user) {
-    if (!m_user.isEmpty() && m_user.value(QStringLiteral("fid")) != user.value(QStringLiteral("fid"))) {
-        closeAll();
-    }
+    const auto previousFid = m_user.value(QStringLiteral("fid")).toULongLong();
+    const auto nextFid = user.value(QStringLiteral("fid")).toULongLong();
+    // An anonymous-to-authenticated switch is also an identity change.
+    // Do not leak the previous iframe's session/context across accounts.
+    if (previousFid != nextFid && m_active) closeAll();
     m_user = user;
+#if defined(__EMSCRIPTEN__)
+    const auto json = QJsonDocument(QJsonObject::fromVariantMap(user))
+                          .toJson(QJsonDocument::Compact);
+    EM_ASM({
+        const host = window.__genycasterMiniAppOverlay;
+        if (host && host.setUser) {
+            try { host.setUser(JSON.parse(UTF8ToString($0,$1))); } catch {}
+        }
+    }, json.constData(), json.size());
+#endif
 }
 void MiniAppHostController::open(const QString& url, const QString& title)
 {
