@@ -215,36 +215,63 @@ function respond(response,status,value) {
   response.end(JSON.stringify(value));
 }
 export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
-  // Farcaster signatures are validated by the authoritative Snapchain read
-  // endpoint. A client-supplied hash or FID is never sufficient to label
-  // another person's cast. Fail closed on unindexed, removed or malformed casts.
+  // Verify a confirmed CastAdd against a protocol node. HyperSnap is the
+  // default network, but users may choose Snapchain. Neither a signed-in FID
+  // nor a hash supplied by the client proves ownership by itself.
   if(!/^0x[0-9a-f]{40}$/.test(hash) ||
      !/^[1-9][0-9]{0,18}$/.test(String(fid))) return false;
+  const castId='?fid='+encodeURIComponent(String(fid))+
+    '&hash='+encodeURIComponent(hash);
+  for(const base of [
+    'https://haatz.quilibrium.com/v1/castById',
+    'https://snapchain.genyleap.com/v1/castById'
+  ]) {
+    try {
+      const response=await fetchImpl(base+castId,{method:'GET',
+        headers:{accept:'application/json'},redirect:'error',
+        signal:AbortSignal.timeout(4500)});
+      if(response.status!==200 ||
+         Number(response.headers.get('content-length')||0)>32768 ||
+         !response.body)continue;
+      const chunks=[];let size=0;
+      for await(const chunk of response.body) {
+        size+=chunk.byteLength;
+        if(size>32768)break;
+        chunks.push(Buffer.from(chunk));
+      }
+      if(size>32768)continue;
+      const payload=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const record=payload?.message??payload;
+      const data=record?.data;
+      if(String(data?.fid||'')===String(fid) &&
+         String(record?.hash||'').toLowerCase()===hash &&
+         !!data?.castAddBody && typeof data.castAddBody==='object')
+        return true;
+    }catch{}
+  }
+  // Some HyperSnap nodes expose indexed casts through v2 rather than a v1
+  // hub read. Require the exact FID/hash pair in a bounded server response.
   try {
-    const url='https://snapchain.genyleap.com/v1/castById?fid='+
-      encodeURIComponent(String(fid))+'&hash='+encodeURIComponent(hash);
-    const reply=await fetchImpl(url,{method:'GET',
+    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts?fid='+
+      encodeURIComponent(String(fid))+'&limit=100';
+    const response=await fetchImpl(url,{method:'GET',
       headers:{accept:'application/json'},redirect:'error',
       signal:AbortSignal.timeout(4500)});
-    if(reply.status!==200 || Number(reply.headers.get('content-length')||0)>32768
-        || !reply.body) return false;
-    // Content-Length is optional and cannot be trusted as a response-size cap.
-    // Bound the actual bytes before accepting JSON from the Snapchain adapter.
-    const chunks=[];
-    let bytes=0;
-    for await (const chunk of reply.body) {
-      bytes+=chunk.byteLength;
-      if(bytes>32768) return false;
+    if(response.status!==200 ||
+       Number(response.headers.get('content-length')||0)>131072 ||
+       !response.body)return false;
+    const chunks=[];let size=0;
+    for await(const chunk of response.body) {
+      size+=chunk.byteLength;
+      if(size>131072)return false;
       chunks.push(Buffer.from(chunk));
     }
-    const msg=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    const record=msg?.message ?? msg;
-    const data=record?.data;
-    const recordFid=String(data?.fid||'');
-    const responseHash=String(record?.hash||'').toLowerCase();
-    return recordFid===String(fid) && responseHash===hash &&
-      !!data?.castAddBody && typeof data.castAddBody==='object';
-  }catch {return false;}
+    const payload=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if(!Array.isArray(payload?.casts)||payload.casts.length>100)return false;
+    return payload.casts.some(cast=>
+      String(cast?.author?.fid||'')===String(fid) &&
+      String(cast?.hash||'').replace(/^0x/i,'').toLowerCase()===hash.slice(2));
+  }catch{return false;}
 }
 // Explicit support for the two protocol providers. A client-provided cast
 // hash is never proof: the provider must independently return the exact FID,
