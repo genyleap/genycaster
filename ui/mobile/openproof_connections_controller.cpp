@@ -1258,6 +1258,143 @@ void OpenProofConnectionsController::fetchPublicActivitySource(qulonglong fid)
     });
 }
 
+// Account-owned mute policy: no Farcaster protocol messages or wallet
+// signatures are issued here. It is private to the verified OpenProof FID.
+void OpenProofConnectionsController::fetchMutedProfiles()
+{
+    if (!m_viewerFid || !cloudAuthorizationReady()
+        || !trustedHttpsEndpoint(m_cloudUrl) || m_mutedProfilesWrite
+        || m_mutedProfilesRead) return;
+    const auto now=QDateTime::currentMSecsSinceEpoch();
+    if(m_mutedProfilesFetchedAt > 0
+       && now-m_mutedProfilesFetchedAt < (m_mutedProfilesLoaded ? 60'000 : 10'000))
+        return;
+    m_mutedProfilesFetchedAt=now;
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/muted_profiles"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(9000);
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    auto* const reply=m_network.get(request);
+    m_mutedProfilesRead=reply;
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation]{
+        if(m_mutedProfilesRead!=reply){reply->deleteLater();return;}
+        m_mutedProfilesRead.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto preferences=doc.object().value(QStringLiteral("preferences")).toObject();
+        const auto ids=preferences.value(QStringLiteral("muted_fids")).toArray();
+        const auto revision=preferences.value(QStringLiteral("revision")).toInteger(-1);
+        if(status!=200 || !doc.isObject() || !preferences.contains(QStringLiteral("muted_fids"))
+            || !preferences.value(QStringLiteral("muted_fids")).isArray()
+            || revision<0 || ids.size()>256){
+            m_mutedProfilesError=QStringLiteral("Could not load muted accounts");
+            emit mutedProfilesChanged();
+            return;
+        }
+        QStringList next{};
+        bool valid=true;
+        for(const auto& fid:ids){
+            const auto value=fid.toString();
+            if(value.isEmpty() || value==QString::number(viewer)
+               || !QRegularExpression{QStringLiteral("^[1-9][0-9]{0,18}$")}
+                       .match(value).hasMatch() || next.contains(value)){
+                valid=false;break;
+            }
+            next.push_back(value);
+        }
+        if(!valid){
+            m_mutedProfilesError=QStringLiteral("Invalid mute preferences");
+            emit mutedProfilesChanged();
+            return;
+        }
+        m_mutedProfileFids=std::move(next);
+        m_mutedProfilesRevision=revision;
+        m_mutedProfilesLoaded=true;
+        m_mutedProfilesError.clear();
+        emit mutedProfilesChanged();
+    });
+}
+
+void OpenProofConnectionsController::setProfileMuted(
+    const qulonglong targetFid,const bool muted)
+{
+    if(!m_viewerFid || !m_mutedProfilesLoaded || !cloudAuthorizationReady()
+       || !trustedHttpsEndpoint(m_cloudUrl) || m_mutedProfilesWrite
+       || targetFid==0 || targetFid==m_viewerFid
+       || targetFid>9'007'199'254'740'991ULL)return;
+    const QString target=QString::number(targetFid);
+    QStringList next=m_mutedProfileFids;
+    const bool present=next.contains(target);
+    if(present==muted)return;
+    if(muted){
+        if(next.size()>=256)return;
+        next.push_back(target);
+    }else next.removeAll(target);
+    std::sort(next.begin(),next.end());
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/muted_profiles"));
+    auto request=QNetworkRequest{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10'000);
+    request.setRawHeader("Accept","application/json");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,QStringLiteral("application/json"));
+    authorizeCloudRequest(request);
+    const auto payload=QJsonDocument{QJsonObject{
+        {QStringLiteral("muted_fids"),QJsonArray::fromStringList(next)},
+        {QStringLiteral("revision"),m_mutedProfilesRevision}
+    }}.toJson(QJsonDocument::Compact);
+    auto* const reply=m_network.put(request,payload);
+    m_mutedProfilesWrite=reply;
+    m_mutedProfilesError.clear();
+    emit mutedProfilesChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation]{
+        if(m_mutedProfilesWrite!=reply){reply->deleteLater();return;}
+        m_mutedProfilesWrite.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable()<=8192?reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if(viewer!=m_viewerFid || generation!=m_grantGeneration)return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto preferences=doc.object().value(QStringLiteral("preferences")).toObject();
+        const auto ids=preferences.value(QStringLiteral("muted_fids")).toArray();
+        const auto revision=preferences.value(QStringLiteral("revision")).toInteger(-1);
+        if(status==200 && preferences.value(QStringLiteral("muted_fids")).isArray()
+           && revision>=0 && ids.size()<=256){
+            QStringList confirmed;
+            for(const auto& id:ids){
+                const auto value=id.toString();
+                if(value.isEmpty()) { confirmed.clear();break; }
+                confirmed.push_back(value);
+            }
+            m_mutedProfileFids=std::move(confirmed);
+            m_mutedProfilesRevision=revision;
+            m_mutedProfilesLoaded=true;
+            m_mutedProfilesFetchedAt=QDateTime::currentMSecsSinceEpoch();
+            m_mutedProfilesError.clear();
+        }else{
+            m_mutedProfilesError=status==409
+                ?QStringLiteral("Mute preferences changed on another device")
+                :QStringLiteral("Could not update muted accounts");
+            m_mutedProfilesFetchedAt=0;
+            m_mutedProfilesLoaded=false;
+            fetchMutedProfiles(); // Refresh the canonical revision; never overwrite blindly.
+        }
+        emit mutedProfilesChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchStreakPreferences()
 {
     if(!m_viewerFid || !cloudAuthorizationReady() ||
@@ -2835,6 +2972,14 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_publicActivityGithubLogin.clear();
     cancelNetworkReply(m_streakPreferencesRead, this);
     cancelNetworkReply(m_streakPreferencesWrite, this);
+    cancelNetworkReply(m_mutedProfilesRead, this);
+    cancelNetworkReply(m_mutedProfilesWrite, this);
+    m_mutedProfileFids.clear();
+    m_mutedProfilesRevision=0;
+    m_mutedProfilesFetchedAt=0;
+    m_mutedProfilesLoaded=false;
+    m_mutedProfilesError.clear();
+    emit mutedProfilesChanged();
     cancelNetworkReply(m_streakLeaderboardRead, this);
     m_streakPreferences.clear();
     m_streakLeaderboard.clear();
