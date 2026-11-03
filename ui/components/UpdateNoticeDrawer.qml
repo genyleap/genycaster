@@ -64,9 +64,14 @@ Drawer {
 
     function presentAvailableUpdate() {
         const version = String(updateController.latestVersion || "")
+        // Multiple WASM deployments can share the same semantic release.
+        // Identify the notice by both release version and verified build ID.
+        const releaseKey = Qt.platform.os === "wasm"
+            ? version + "@" + String(updateController.webLatestBuild || "")
+            : version
         if (updateController.updateAvailable && version.length > 0
-                && version !== lastPresentedVersion) {
-            lastPresentedVersion = version
+                && releaseKey !== lastPresentedVersion) {
+            lastPresentedVersion = releaseKey
             open()
         }
     }
