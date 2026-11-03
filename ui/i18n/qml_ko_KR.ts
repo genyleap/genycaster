@@ -3580,6 +3580,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>게시물 더 보기</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>프로필 음소거</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>프로필 음소거 해제</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>팔로우</translation>
