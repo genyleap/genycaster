@@ -47,11 +47,11 @@ Item {
         new Date(githubYearStart*86400000).getUTCDay()
     readonly property int githubWeeks: Math.ceil((githubYearEnd-githubGridStart+1)/7)
     // Small square days exactly like GitHub's annual contribution grid.
-    readonly property int githubGapSize: 1
+    // GitHub-style separated squares. Never compress 53 weeks into tiny
+    // near-touching cells: the Flickable already supports horizontal scroll.
+    readonly property int githubGapSize: 3
     readonly property int heatmapMaxTile: root.width>=600 ? 18 : 10
-    readonly property int githubTileSize: Math.max(4,Math.min(heatmapMaxTile,
-        Math.floor((githubContent.width-(githubWeeks-1)*githubGapSize)
-                   /Math.max(1,githubWeeks))))
+    readonly property int githubTileSize: root.compact ? 10 : 11
     readonly property int githubTileWidth: githubTileSize
     readonly property int githubTileHeight: githubTileSize
     readonly property int githubGridWidth:
@@ -150,7 +150,10 @@ Item {
         return qsTrId("genycaster.activity.unavailable")
     }
     function refreshSources() {
-        genyPulseActivity.requestFarcaster(Math.max(0,Math.floor(profileFid)))
+        // Both profile preview and hidden Explore drawer share the controller.
+        // An uninitialized FID must not cancel a valid profile's network read.
+        if (Number(profileFid) > 0)
+            genyPulseActivity.requestFarcaster(Math.floor(profileFid))
         if(verifiedGitHub.length>0)
             genyPulseActivity.requestGitHub(verifiedGitHub)
         else if(isOwnProfile && githubLinked && githubAccountId.length>0)
@@ -167,6 +170,7 @@ Item {
     onEffectiveGithubLoginChanged: refreshGithubCalendar()
     onGithubYearChanged: refreshGithubCalendar()
     onProfileFidChanged: refreshTimer.restart()
+    onVisibleChanged: if (visible && Number(profileFid) > 0) refreshTimer.restart()
     onVerifiedGitHubChanged: refreshTimer.restart()
     onGithubAccountIdChanged: refreshTimer.restart()
     onGithubLinkedChanged: refreshTimer.restart()
