@@ -485,6 +485,9 @@ if(EMSCRIPTEN)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-host-bridge-entry.mjs"
             "${GENYCASTER_MINIAPP_SDK_STAGE}/entry.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/miniapp-wallet-provider.mjs"
+            "${GENYCASTER_MINIAPP_SDK_STAGE}/miniapp-wallet-provider.mjs"
         COMMAND ${GENYCASTER_NPM_EXECUTABLE} ci
             --prefix "${GENYCASTER_MINIAPP_SDK_STAGE}"
             --ignore-scripts --no-audit --no-fund
