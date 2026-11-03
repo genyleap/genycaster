@@ -231,6 +231,12 @@ QtObject {
     readonly property color focusOnAccent: accentInk
     readonly property color warning: dark ? "#F2B75E" : "#A76208"
     readonly property color warningSurface: dark ? "#2E281E" : "#FFF4E5"
+    // Verified achievements use a distinct ember-orange palette, not the
+    // global warning semantic or the configurable primary accent.
+    readonly property color streak: dark ? "#FF995F" : "#B94716"
+    readonly property color streakSurface: dark ? "#38251F" : "#FFF0E7"
+    readonly property color streakTrack: dark ? "#634234" : "#F1D5C6"
+    readonly property color streakGlow: dark ? "#FFAA76" : "#E76E36"
     readonly property color success: dark ? "#61D194" : "#22845A"
     readonly property color successSurface: dark ? "#1B3026" : "#EAF7F0"
     readonly property color danger: dark ? "#FF7B83" : "#D94D57"

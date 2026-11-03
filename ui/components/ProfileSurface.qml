@@ -2223,20 +2223,20 @@ Item {
                                         inset: 2
                                         trackColor: Theme.borderMuted
                                         progressColor: profileStreakBadge.streakActive
-                                            ? Theme.warning : Theme.inkMuted
+                                            ? Theme.streak : Theme.inkMuted
                                     }
                                     Icon {
                                         anchors.centerIn: parent
                                         text: Theme.iconStreakFlame
                                         preferredSize: Theme.scaleUi(14)
                                         color: profileStreakBadge.streakActive
-                                            ? Theme.warning : Theme.inkMuted
+                                            ? Theme.streak : Theme.inkMuted
                                     }
                                 }
                                 Label {
                                     anchors.verticalCenter: parent.verticalCenter
                                     color: profileStreakBadge.streakActive
-                                        ? Theme.warning : Theme.inkMuted
+                                        ? Theme.streak : Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
                                     text: LocaleFormat.formatInteger(Number(

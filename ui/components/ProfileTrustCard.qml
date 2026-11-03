@@ -192,13 +192,13 @@ Superellipse {
                         strokeWidth: root.compact ? 3.5 : 4
                         inset: 3
                         trackColor: Theme.borderMuted
-                        progressColor: root.streakActive ? Theme.warning : Theme.inkMuted
+                        progressColor: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconStreakFlame
                         preferredSize: Theme.scaleUi(22)
-                        color: root.streakActive ? Theme.warning : Theme.inkMuted
+                        color: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
                     HoverHandler { cursorShape: Qt.PointingHandCursor }
                     TapHandler { onTapped: root.toggleFace() }
@@ -250,7 +250,7 @@ Superellipse {
                             ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
                         labelText: qsTrId("genycaster.streak.title")
                         iconGlyph: Theme.iconStreakFlame
-                        valueColor: root.streakActive ? Theme.warning : Theme.inkMuted
+                        valueColor: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
                 }
             }
@@ -325,7 +325,7 @@ Superellipse {
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconStreakFlame
-                        color: root.streakActive ? Theme.warning : Theme.inkMuted
+                        color: root.streakActive ? Theme.streak : Theme.inkMuted
                         preferredSize: Theme.iconSizeLarge
                     }
                 }
@@ -354,7 +354,7 @@ Superellipse {
                 DirectionAwareLabel {
                     text: root.streakKnown
                         ? LocaleFormat.formatInteger(root.streakCurrent) : "—"
-                    color: root.streakActive ? Theme.warning : Theme.textTertiary
+                    color: root.streakActive ? Theme.streak : Theme.textTertiary
                     font.pixelSize: Theme.typeTitle2Size
                     font.weight: Theme.weightBold
                 }

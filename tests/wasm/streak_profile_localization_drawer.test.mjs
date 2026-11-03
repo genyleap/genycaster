@@ -33,13 +33,13 @@ test('Streak no longer occupies the full profile timeline',()=>{
  assert.match(profile,/streakDrawer\.close\(\)/);
  assert.match(profile,/id:\s*profileStatsFlow/);
  assert.match(badge,/ProgressRing\s*\{/);
- assert.match(badge,/Theme\.warning/);
+ assert.match(badge,/Theme\.streak/);
  assert.match(profile,/Layout\.preferredHeight:\s*childrenRect\.height/);
  assert.match(profile,/streakDetails\.implicitHeight\s*\+\s*streakHeader\.implicitHeight/);
  assert.match(card,/layoutDirection:\s*Theme\.uiDirection/);
  assert.match(card,/objectName:\s*"streakWeeklyCalendar"/);
  assert.match(card,/week_saturday/);
- assert.match(card,/Theme\.warning/);
+ assert.match(card,/Theme\.streak/);
 });
 
 test('every Streak label is translated by stable translation ID',()=>{
@@ -180,10 +180,10 @@ test('The account sidebar uses verified streak instead of Trust Score, and inact
  assert.match(account,/objectName: "sidebarStreakRing"/);
  assert.match(account,/streakSnapshot.time_zone === "UTC"/);
  assert.match(account,/root.streakKnown\s*\? LocaleFormat.formatInteger\(root.streakCurrent\) : "—"/);
- assert.match(account,/root.streakActive \? Theme.warning : Theme.inkMuted/);
+ assert.match(account,/root.streakActive \? Theme.streak : Theme.inkMuted/);
  assert.doesNotMatch(account,/qsTrId\("genycaster.profile.trust_score"\)/);
  assert.match(profile,/objectName: "profileUnverifiedStreak"/);
- assert.match(profile,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
+ assert.match(profile,/streakActive\s*\? Theme.streak : Theme.inkMuted/);
 });
 
 test('Streak milestones fill the inspector as a responsive grid with a useful preview',()=>{
@@ -204,7 +204,7 @@ test('Profile Streak badge matches the account card progress-ring and flame, wit
  assert.match(badge,/text: Theme.iconStreakFlame/);
  assert.match(badge,/trackColor: Theme.borderMuted/);
  assert.match(badge,/background: Item \{\}/);
- assert.match(badge,/streakActive\s*\? Theme.warning : Theme.inkMuted/);
+ assert.match(badge,/streakActive\s*\? Theme.streak : Theme.inkMuted/);
  assert.match(sidebar,/objectName: "sidebarStreakRing"[\s\S]*?ProgressRing\s*\{/);
 });
 
@@ -271,4 +271,31 @@ test('international Streak tiers use recognizable names with Persian equivalents
  const service=read('services/account-sync/streaks.mjs');
  assert.match(service,/STREAK_MILESTONES\s*=\s*Object\.freeze\(\[1,3,7,14,30,60,90,100,180,365\]\)/);
  assert.match(service,/reward_kind:'none'/);
+});
+
+test('Ember-orange Streak colors remain accessible and do not recolor warning alerts',()=>{
+ const theme=read('ui/theme/Theme.qml');
+ const card=read('ui/components/StreakCard.qml');
+ const sidebar=read('ui/components/ProfileTrustCard.qml');
+ const profile=read('ui/components/ProfileSurface.qml');
+ const palette={streak:['#FF995F','#B94716'],
+   streakSurface:['#38251F','#FFF0E7'],streakTrack:['#634234','#F1D5C6'],
+   streakGlow:['#FFAA76','#E76E36']};
+ for(const [name,[dark,light]] of Object.entries(palette))
+   assert.ok(theme.includes('readonly property color '+name+': dark ? "'+dark+'" : "'+light+'"'));
+ const luminance=h=>h.slice(1).match(/../g).map(s=>parseInt(s,16)/255)
+   .map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4)
+   .reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+ const contrast=(a,b)=>{const x=luminance(a),y=luminance(b);
+   return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);};
+ assert.ok(contrast(palette.streak[1],'#FFFFFF')>=4.5);
+ assert.ok(contrast(palette.streak[1],palette.streakSurface[1])>=4.5);
+ assert.ok(contrast(palette.streak[0],palette.streakSurface[0])>=4.5);
+ assert.ok(!card.includes('Theme.warning'));
+ assert.ok(!sidebar.includes('Theme.warning'));
+ assert.ok(card.includes('Theme.streakGlow')&&card.includes('Theme.streakTrack'));
+ const badge=profile.slice(profile.indexOf('id: profileStreakBadge'),profile.indexOf('id: profileUnverifiedStreak'));
+ assert.ok(!badge.includes('Theme.warning'));
+ assert.ok(badge.includes('Theme.streak'));
+ assert.ok(theme.includes('readonly property color warning: dark'));
 });

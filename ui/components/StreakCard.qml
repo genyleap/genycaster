@@ -116,11 +116,12 @@ Item {
             Layout.preferredWidth: implicitWidth
             Layout.preferredHeight: tileHeight
             radius: Theme.curveControl
-            color: root.inspectedMilestone === threshold
-                ? Theme.warningSurface : Theme.surfaceMuted
+            color: root.inspectedMilestone === threshold || badgeTile.earned
+                ? Theme.streakSurface : Theme.surfaceMuted
             border.color: root.inspectedMilestone === threshold
-                ? Theme.warning : Theme.borderMuted
-            border.width: root.inspectedMilestone === threshold ? 1 : 0
+                ? Theme.streak : (badgeTile.earned ? Theme.streakTrack : Theme.borderMuted)
+            border.width: root.inspectedMilestone === threshold ? 1.5
+                : (badgeTile.earned ? 1 : 0)
 
             ColumnLayout {
                 anchors.fill: parent
@@ -140,16 +141,16 @@ Item {
                         anchors.fill: parent
                         radius: width / 2
                         color: badgeTile.earned
-                            ? Theme.warningSurface : Theme.surfaceElevated
+                            ? Theme.streakSurface : Theme.surfaceElevated
                         border.color: badgeTile.earned
-                            ? Theme.warning : Theme.borderMuted
+                            ? Theme.streak : Theme.borderMuted
                         border.width: badgeTile.earned ? 1.5 : 1
                     }
                     Icon {
                         anchors.centerIn: parent
                         text: Theme.iconStreakFlame
                         preferredSize: Theme.scaleUi(23)
-                        color: badgeTile.earned ? Theme.warning : Theme.inkMuted
+                        color: badgeTile.earned ? Theme.streak : Theme.inkMuted
                         opacity: badgeTile.earned ? 1 : 0.5
                     }
                     Rectangle {
@@ -177,7 +178,7 @@ Item {
                     text: root.milestoneName(badgeTile.modelData)
                     font.pixelSize: Theme.typeBodySize
                     font.weight: Theme.weightDemiBold
-                    color: badgeTile.earned ? Theme.warning : Theme.ink
+                    color: badgeTile.earned ? Theme.streak : Theme.ink
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
@@ -196,13 +197,13 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.scaleUi(4)
                     radius: height / 2
-                    color: Theme.borderMuted
+                    color: Theme.streakTrack
                     Rectangle {
                         x: Theme.rtl ? parent.width - width : 0
                         width: parent.width * badgeTile.completed
                         height: parent.height
                         radius: parent.radius
-                        color: Theme.warning
+                        color: Theme.streak
                     }
                 }
             }
@@ -285,8 +286,8 @@ Item {
                         width: parent.width * 0.94
                         height: width
                         radius: width / 2
-                        color: Theme.warning
-                        opacity: root.current > 0 ? 0.075 : 0.025
+                        color: Theme.streakGlow
+                        opacity: root.current > 0 ? (Theme.dark ? 0.11 : 0.13) : 0.025
                         scale: 1
                         SequentialAnimation on scale {
                             running: root.flameMotion
@@ -300,8 +301,8 @@ Item {
                         width: parent.width * 0.79
                         height: width
                         radius: width / 2
-                        color: Theme.warning
-                        opacity: root.current > 0 ? 0.09 : 0.025
+                        color: Theme.streakGlow
+                        opacity: root.current > 0 ? (Theme.dark ? 0.13 : 0.16) : 0.025
                         scale: 1
                         SequentialAnimation on scale {
                             running: root.flameMotion
@@ -315,14 +316,14 @@ Item {
                         width: parent.width * 0.69
                         height: width
                         radius: width / 2
-                        color: Theme.warningSurface
-                        border.color: Theme.warning
+                        color: Theme.streakSurface
+                        border.color: Theme.streak
                         border.width: 1
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconStreakFlame
                             preferredSize: Theme.scaleUi(root.compact ? 34 : 39)
-                            color: Theme.warning
+                            color: Theme.streak
                         }
                     }
                 }
@@ -330,7 +331,7 @@ Item {
                     objectName: "streakCurrentCount"
                     Layout.fillWidth: true
                     text: LocaleFormat.formatInteger(root.current)
-                    color: Theme.warning
+                    color: Theme.streak
                     font.pixelSize: Theme.scaleUi(root.compact ? 72 : 78)
                     font.weight: Theme.weightBold
                     horizontalAlignment: Text.AlignHCenter
@@ -370,7 +371,7 @@ Item {
                 visible: root.nextMilestone > 0
                 height: Theme.scaleUi(4)
                 radius: height / 2
-                color: Theme.borderMuted
+                color: Theme.streakTrack
                 Rectangle {
                     // Advance the milestone bar from the reading start.
                     x: Theme.rtl ? parent.width - width : 0
@@ -378,7 +379,7 @@ Item {
                     width: parent.width * Math.min(1,
                         Math.max(0, root.current / Math.max(1, root.nextMilestone)))
                     radius: parent.radius
-                    color: Theme.warning
+                    color: Theme.streak
                 }
             }
 
@@ -408,15 +409,15 @@ Item {
                             height: width
                             radius: width / 2
                             color: modelData.completed
-                                ? Theme.warningSurface : Theme.surfaceMuted
+                                ? Theme.streakSurface : Theme.surfaceMuted
                             border.color: modelData.completed
-                                ? Theme.warning : Theme.borderMuted
+                                ? Theme.streak : Theme.borderMuted
                             border.width: modelData.completed ? 2 : 1
                             Icon {
                                 anchors.centerIn: parent
                                 text: modelData.completed ? Theme.iconCheck : ""
                                 preferredSize: 15
-                                color: Theme.warning
+                                color: Theme.streak
                             }
                             Rectangle {
                                 visible: !modelData.completed
@@ -502,7 +503,7 @@ Item {
                     text: root.milestoneName(
                         root.milestoneItems.find(item =>
                             Number(item.threshold_days) === root.inspectedMilestone))
-                    color: Theme.warning
+                    color: Theme.streak
                     font.pixelSize: Theme.typeCaptionSize
                 }
                 Label {
@@ -602,7 +603,7 @@ Item {
                             radius: Theme.curveCompact
                             color: Theme.surfaceMuted
                             border.color: Number(modelData.rank) === 1
-                                ? Theme.warning : Theme.borderMuted
+                                ? Theme.streak : Theme.borderMuted
                             border.width: Number(modelData.rank) === 1 ? 1 : 0
 
                             RowLayout {
@@ -618,7 +619,7 @@ Item {
                                     font.pixelSize: Theme.typeBodySize
                                     font.weight: Theme.weightBold
                                     color: Number(modelData.rank) <= 3
-                                        ? Theme.warning : Theme.inkMuted
+                                        ? Theme.streak : Theme.inkMuted
                                     horizontalAlignment: Text.AlignHCenter
                                     Layout.preferredWidth: Theme.scaleUi(22)
                                 }
@@ -688,7 +689,7 @@ Item {
                                         forceRightToLeft: Theme.rtl
                                         text: qsTrId("genycaster.streak.leader_days")
                                             .arg(LocaleFormat.formatInteger(Number(modelData.current)))
-                                        color: Theme.warning
+                                        color: Theme.streak
                                         font.weight: Theme.weightDemiBold
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
