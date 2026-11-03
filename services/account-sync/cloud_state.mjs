@@ -526,6 +526,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
       'entitlements','geny/assets','streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
+      'muted_profiles',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -796,6 +797,39 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,200,{revoked:true});return true;
         }
         respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      if(entity==='muted_profiles') {
+        // App-owned local moderation never broadcasts a protocol block or
+        // mutates a Farcaster Follow relationship. The verified account owner
+        // alone may view or update its cross-device mute preferences.
+        if(request.method==='GET') {
+          respond(response,200,{preferences:await store.getMutedProfiles(owner)});
+          return true;
+        }
+        if(request.method!=='PUT') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        const payload=await readBody(request,5000);
+        const fids=payload?.muted_fids;
+        if(!payload || Array.isArray(payload)
+            || Object.keys(payload).sort().join(',')!=='muted_fids,revision'
+            || !Number.isSafeInteger(payload.revision)
+            || payload.revision<0 || payload.revision>9007199254740990
+            || !Array.isArray(fids) || fids.length>256
+            || fids.some(fid=>typeof fid!=='string'
+              || !/^[1-9][0-9]{0,18}$/.test(fid)
+              || !Number.isSafeInteger(Number(fid))
+              || fid===String(owner.fid))
+            || new Set(fids).size!==fids.length) {
+          respond(response,400,{error:'invalid_muted_profiles'});return true;
+        }
+        const saved=await store.putMutedProfiles(owner,{
+          muted_fids:[...fids].sort((a,b)=>Number(a)-Number(b)),
+          revision:payload.revision
+        });
+        respond(response,saved?200:409,saved
+          ?{preferences:saved}:{error:'revision_conflict'});
+        return true;
       }
       if (entity==='notification_seen') {
         // A private account-wide read watermark, not a protocol notification.
