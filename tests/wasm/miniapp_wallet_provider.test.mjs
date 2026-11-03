@@ -1,0 +1,100 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createMiniAppEthereumProvider} from '../../ui/wasm/miniapp-wallet-provider.mjs';
+import {readFileSync} from 'node:fs';
+
+function fakeWallet(){
+  const handlers=new Map();
+  const calls=[];
+  const provider={
+    async request(payload){
+      calls.push(payload.method);
+      if(payload.method==='eth_chainId')return '0x2105';
+      if(payload.method==='eth_requestAccounts')return ['0xAa00000000000000000000000000000000000001'];
+      if(payload.method==='eth_accounts')return ['0xAa00000000000000000000000000000000000001'];
+      if(payload.method==='personal_sign')return '0xsigned';
+      return null;
+    },
+    on(event,fn){if(!handlers.has(event))handlers.set(event,new Set());handlers.get(event).add(fn);},
+    removeListener(event,fn){handlers.get(event)?.delete(fn);},
+    emit(event,...args){for(const handler of handlers.get(event)||[])handler(...args);}
+  };
+  return {provider,calls,handlers};
+}
+
+test('FID context is not wallet authorization and connected accounts start private',async()=>{
+  const {provider,calls}=fakeWallet();
+  let approvals=0;
+  const app=createMiniAppEthereumProvider('https://tasks.miniapps.genyleap.com',
+    provider,()=>{approvals++;return true;});
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  assert.equal(calls.length,0);
+  assert.deepEqual(await app.chains(),['eip155:8453']);
+  assert.equal(approvals,0,'read-only chain discovery must not trigger consent');
+  await assert.rejects(
+    app.provider.request({method:'personal_sign',params:['hello']}),
+    e=>e.code===4100);
+  assert.equal(calls.includes('personal_sign'),false);
+  const accounts=await app.provider.request({method:'eth_requestAccounts'});
+  assert.equal(accounts.length,1);
+  assert.equal(approvals,1);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),accounts);
+  assert.equal(await app.provider.request({method:'personal_sign',params:['hello']}),
+    '0xsigned');
+  assert.equal(calls.includes('personal_sign'),true);
+  app.dispose();
+  await assert.rejects(app.provider.request({method:'eth_accounts'}),e=>e.code===4900);
+});
+
+test('Denial never forwards wallet access to injected EIP-1193 provider',async()=>{
+  const {provider,calls}=fakeWallet();
+  const app=createMiniAppEthereumProvider('https://tasks.miniapps.genyleap.com',
+    provider,async()=>false);
+  await assert.rejects(app.provider.request({method:'eth_requestAccounts'}),
+    e=>e.code===4001);
+  assert.equal(calls.includes('eth_requestAccounts'),false);
+  assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+  app.dispose();
+});
+
+test('Wallet access does not cross Mini App origins or last past iframe cleanup',async()=>{
+  const {provider,handlers}=fakeWallet();
+  const approved=createMiniAppEthereumProvider('https://app-a.example',provider,()=>true);
+  const unapproved=createMiniAppEthereumProvider('https://app-b.example',provider,()=>false);
+  await approved.provider.request({method:'eth_requestAccounts'});
+  assert.deepEqual(await unapproved.provider.request({method:'eth_accounts'}),[]);
+  let notified=0;
+  approved.provider.on('accountsChanged',()=>notified++);
+  unapproved.provider.on('accountsChanged',()=>notified+=100);
+  provider.emit('accountsChanged',['0xabc']);
+  assert.equal(notified,1);
+  approved.dispose();
+  provider.emit('accountsChanged',['0xdef']);
+  assert.equal(notified,1);
+  assert.ok([...handlers.values()].every(set=>set.size===1),
+    'disposal must detach one session while keeping the other');
+  unapproved.dispose();
+  assert.ok([...handlers.values()].every(set=>set.size===0));
+});
+
+test('Invalid methods and unsupported wallets fail closed without fabricated signatures',async()=>{
+  assert.equal(createMiniAppEthereumProvider('https://app.example',null),null);
+  const {provider,calls}=fakeWallet();
+  const app=createMiniAppEthereumProvider('https://app.example',provider,()=>true);
+  for(const method of ['__proto__','eth.accounts','',null]) {
+    await assert.rejects(app.provider.request({method}),e=>e.code===4200);
+  }
+  await assert.rejects(app.provider.request({method:'eth_getBlockByNumber'}),
+    e=>e.code===4100);
+  assert.equal(calls.length,0);
+  app.dispose();
+});
+
+test('official SDK host exposes injected wallet only by explicit per-origin grant',()=>{
+  const bridge=readFileSync(new URL('../../ui/wasm/miniapp-host-bridge-entry.mjs',import.meta.url),'utf8');
+  assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, window\.ethereum\)/);
+  assert.match(bridge,/ethProvider:wallet\?\.provider/);
+  assert.match(bridge,/wallet\?\.dispose\(\)/);
+  assert.match(bridge,/wallet\.getEthereumProvider/);
+  assert.match(bridge,/signIn: unsupported/);
+});
