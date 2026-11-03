@@ -53,6 +53,7 @@ set(farcasterQmlFiles
     components/FeedPulseCard.qml
     components/FormattingToolbar.qml
     components/GenyDrawer.qml
+    components/GenyProDetailsDrawer.qml
     components/GenyAdaptiveDialog.qml
     components/GalleryLayout.qml
     components/GalleryTile.qml
