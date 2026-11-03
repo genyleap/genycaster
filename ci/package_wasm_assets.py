@@ -106,7 +106,8 @@ public = [name for name in public if (directory / name).is_file()]
 # release fingerprint has no circular dependency on the HTML it stamps.
 html_path = directory / "genycaster.html"
 scripts = ("qtloader.js", "genycaster.js",
-           "genycaster-assets.js", "genycaster-loader.js")
+           "genycaster-assets.js", "genycaster-loader.js",
+           "miniapp-host-bridge.mjs")
 html = html_path.read_text(encoding="utf-8")
 # The HTML source never owns a version. CMake passes its authoritative release
 # product and version values to this packager independently.
