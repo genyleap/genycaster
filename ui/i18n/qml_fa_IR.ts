@@ -2405,6 +2405,14 @@ Company | https://company.com</source>
             <source>No verified Farcaster EVM addresses were found</source>
             <translation>برای این حساب فارکستر هیچ آدرس EVM تأییدشده‌ای پیدا نشد</translation>
         </message>
+        <message id="genycaster.detail.conversation">
+            <source>Conversation</source>
+            <translation>گفت‌وگو</translation>
+        </message>
+        <message id="genycaster.detail.open_channel">
+            <source>Open channel %1</source>
+            <translation>بازکردن کانال %1</translation>
+        </message>
         <message id="genycaster.detail.back_back_to_feed">
             <source>Back to feed</source>
             <translation>بازگشت به فید</translation>
