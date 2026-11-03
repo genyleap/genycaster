@@ -2405,6 +2405,14 @@ Company | https://company.com</translation>
             <source>No verified Farcaster EVM addresses were found</source>
             <translation>No verified Farcaster EVM addresses were found</translation>
         </message>
+        <message id="genycaster.detail.conversation">
+            <source>Conversation</source>
+            <translation>Conversation</translation>
+        </message>
+        <message id="genycaster.detail.open_channel">
+            <source>Open channel %1</source>
+            <translation>Open channel %1</translation>
+        </message>
         <message id="genycaster.detail.back_back_to_feed">
             <source>Back to feed</source>
             <translation>Back to feed</translation>
