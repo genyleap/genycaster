@@ -2404,6 +2404,14 @@ Company | https://company.com</source>
             <source>No verified Farcaster EVM addresses were found</source>
             <translation>未找到已验证的 Farcaster EVM 地址</translation>
         </message>
+        <message id="genycaster.detail.conversation">
+            <source>Conversation</source>
+            <translation>对话</translation>
+        </message>
+        <message id="genycaster.detail.open_channel">
+            <source>Open channel %1</source>
+            <translation>打开频道 %1</translation>
+        </message>
         <message id="genycaster.detail.back_back_to_feed">
             <source>Back to feed</source>
             <translation>返回动态</translation>
