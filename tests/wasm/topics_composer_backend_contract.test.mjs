@@ -43,3 +43,10 @@ test('topic labels have explicit localized names for Persian and all supported l
  assert.match(fa,/<source>Art<\/source>\s*<translation>هنر<\/translation>/);
  assert.match(fa,/<source>Photography<\/source>\s*<translation>عکاسی<\/translation>/);
 });
+
+test('confirmed topic writes refresh the currently open server-indexed topic filter',()=>{
+ const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+ assert.match(cpp,/if\(code==200\) \{[\s\S]*?slugs\.contains\(topic\)[\s\S]*?selectCastTopic\(topic,author\)/);
+ assert.match(cpp,/fetchTopics\(\); \/\/ Refresh counts/);
+ assert.match(cpp,/m_topicOutbox\.isEmpty\(\)[\s\S]*?m_topicRetryDelayMs/);
+});
