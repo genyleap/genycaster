@@ -334,6 +334,7 @@ private:
     void fetchTopicCastPage();
     QVariantList m_topicCatalog{};
     QVariantList m_topicOutbox{};
+    int m_topicRetryDelayMs{10'000};
     QString m_topicsError{};
     QVariantList m_bookmarkCollections{};
     QVariantList m_bookmarkCollectionItems{};
