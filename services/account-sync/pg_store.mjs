@@ -1,6 +1,7 @@
 // The database role for this pool is restricted to genycaster_db.
 // No JOIN to OpenProof tables, provider credentials, or protocol signer keys.
 import {randomUUID} from 'node:crypto';
+import {STREAK_START_DAY,eligibleStreakDay} from './streaks.mjs';
 // Internal singleton row inside the existing per-account notifications table.
 // A dedicated state endpoint owns it; ordinary notification APIs cannot write it.
 const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
@@ -168,6 +169,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           FROM streak_cast_events e
           INNER JOIN eligible u ON e.issuer=u.issuer AND e.subject=u.subject
           WHERE e.credited_on >= ((now() AT TIME ZONE 'UTC')::date-730)
+            AND e.credited_on >= $3::date
             AND ($2::text='activity' OR e.kind='cast')
         ), numbered AS (
           SELECT issuer,subject,day,
@@ -189,7 +191,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         FROM ranked WHERE current>0
         ORDER BY current DESC,longest DESC,total DESC,
           substring(subject from 11)::bigint ASC
-        LIMIT 100`,[STREAK_PREFERENCES_ROW,kind]);
+        LIMIT 100`,[STREAK_PREFERENCES_ROW,kind,STREAK_START_DAY]);
       return result.rows.map((row,i)=>({
         rank:i+1,fid:String(row.fid),current:Number(row.current),
         longest:Number(row.longest),total:Number(row.total)}));
@@ -202,11 +204,13 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
         FROM streak_cast_events
         WHERE issuer=$1 AND subject=$2
           AND credited_on>=((now() AT TIME ZONE 'UTC')::date-730)
-        ORDER BY credited_on DESC,kind LIMIT 1462`,[issuer,subject]);
+          AND credited_on >= $3::date
+        ORDER BY credited_on DESC,kind LIMIT 1462`,[issuer,subject,STREAK_START_DAY]);
       return result.rows;
     },
     async recordStreakCast({issuer,subject},hash,kind,day) {
       if(!streakReady)throw new Error('streak_migration_required');
+      if(!eligibleStreakDay(day))throw new Error('streak_before_feature_launch');
       const result=await pool.query(`INSERT INTO streak_cast_events
           (issuer,subject,cast_hash,kind,credited_on)
         VALUES($1,$2,decode(substr($3,3),'hex'),$4,$5::date)
