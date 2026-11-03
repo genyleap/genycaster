@@ -237,11 +237,18 @@ Item {
                         Layout.preferredHeight: 52
                         curveDepth: Theme.curveControl
                         fillColor: Theme.surfaceRaised
-                        Icon {
+                        Image {
                             anchors.centerIn: parent
-                            text: Theme.iconWallet
-                            color: Theme.accent
-                            preferredSize: Theme.iconSizeLarge
+                            width: 36
+                            height: 40
+                            source: Theme.dark
+                                ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
+                            sourceSize.width: 120
+                            sourceSize.height: 120
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: true
                         }
                     }
                     ColumnLayout {
