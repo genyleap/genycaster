@@ -375,7 +375,9 @@ Item {
                                 SuperellipseImage {
                                     Layout.preferredWidth: 46
                                     Layout.preferredHeight: 46
-                                    source: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny.svg"
+                                    source: Theme.dark
+                                        ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+                                        : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
                                     showManualLoadIndicator: false
                                     showLoadingIndicator: false
                                     showFailureIndicator: false
