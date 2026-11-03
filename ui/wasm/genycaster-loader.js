@@ -514,15 +514,31 @@ function fillReleaseDetails(fresh){
     latestReleaseDetails=fresh;
     const current=$("genycaster-update-current");
     const latest=$("genycaster-update-next");
-    if(current)current.textContent=localizedUpdateDigits(numericVersion||applicationVersion||"—");
-    if(latest)latest.textContent=localizedUpdateDigits(fresh.versionNumber||fresh.appVersion||"—");
     const oldChannel=$("genycaster-update-current-channel");
     const newChannel=$("genycaster-update-next-channel");
     const newAppVersion=typeof fresh.appVersion==="string"
         && /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)[1-9]\d*)?$/.test(fresh.appVersion)
         ? fresh.appVersion:"";
-    if(oldChannel)oldChannel.textContent=applicationVersion?localizedUpdateDigits("v"+applicationVersion):"";
-    if(newChannel)newChannel.textContent=newAppVersion?localizedUpdateDigits("v"+newAppVersion):"";
+    const nextFingerprint=typeof fresh.version==="string"
+        && /^[0-9a-f]{20}$/.test(fresh.version) ? fresh.version:"";
+    const nextBuild=typeof fresh.buildId==="string"
+        && /^[0-9a-f]{8}$/.test(fresh.buildId)
+        && nextFingerprint.startsWith(fresh.buildId)
+        ? fresh.buildId : nextFingerprint.slice(0,8);
+    const currentBuild=buildId||currentVersion.slice(0,8);
+    const sameAppVersion=!!applicationVersion && newAppVersion===applicationVersion;
+    // When the semver is unchanged, the build fingerprint is the upgrade.
+    // Never show "1.0.0 → 1.0.0" as though that were a new product version.
+    const primaryOld=sameAppVersion && currentBuild
+        ? "Build "+currentBuild : "v"+(applicationVersion||numericVersion||"—");
+    const primaryNew=sameAppVersion && nextBuild
+        ? "Build "+nextBuild : "v"+(newAppVersion||fresh.versionNumber||"—");
+    if(current)current.textContent=localizedUpdateDigits(primaryOld);
+    if(latest)latest.textContent=localizedUpdateDigits(primaryNew);
+    if(oldChannel)oldChannel.textContent=localizedUpdateDigits(
+        sameAppVersion ? "v"+applicationVersion : (currentBuild?"Build "+currentBuild:""));
+    if(newChannel)newChannel.textContent=localizedUpdateDigits(
+        sameAppVersion ? "v"+newAppVersion : (nextBuild?"Build "+nextBuild:""));
     const releaseNotes=fresh.releaseNotes;
     const translations=releaseNotes && typeof releaseNotes==="object"
         ? releaseNotes.translations:null;
