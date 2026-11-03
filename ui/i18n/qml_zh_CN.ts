@@ -3580,6 +3580,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>查看更多帖子</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>静音该用户</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>取消静音该用户</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>关注</translation>
