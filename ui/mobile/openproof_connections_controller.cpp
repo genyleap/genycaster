@@ -2619,6 +2619,18 @@ void OpenProofConnectionsController::pumpTopicWrites()
         if(code==200 || code==400 || code==409) {
             // A resolved item must not strand the remaining offline queue.
             m_topicRetryDelayMs=10'000;
+            if(code==200) {
+                // The user may already be viewing the selected topic while
+                // this newly published cast finishes indexing. Refresh that
+                // server-backed filter immediately after its write commits.
+                const auto slugs=item.value(QStringLiteral("topics")).toStringList();
+                const auto topic=m_activeCastTopic;
+                const auto author=m_topicAuthorFid;
+                if(slugs.contains(topic) &&
+                   (author.isEmpty() || author==QString::number(owner)))
+                    selectCastTopic(topic,author);
+                fetchTopics(); // Refresh counts after an accepted association.
+            }
             pumpTopicWrites();
         } else if(!m_topicOutbox.isEmpty()) {
             // The protocol's indexing may lag behind a confirmed post.
