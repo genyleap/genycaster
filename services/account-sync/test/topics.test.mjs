@@ -96,6 +96,34 @@ test('cast ownership requires a matching, confirmed protocol CastAdd',async()=>{
    fetchImpl:async()=>new Response(' '.repeat(40000),{status:200})
  }),false);
 });
+test('topic ownership accepts HyperSnap v1 and v2 with exact FID and hash',async()=>{
+ const hash='0x'+'ab'.repeat(20);
+ const record={message:{hash,data:{fid:42,castAddBody:{text:'Development'}}}};
+ const v1=async(url)=>{
+   if(String(url).includes('snapchain.genyleap.com'))
+     return new Response('{}',{status:404});
+   return new Response(JSON.stringify(record),{status:200});
+ };
+ assert.equal(await verifyCastTopicOwnership(hash,'42',{fetchImpl:v1}),true);
+ const v2=async(url)=>{
+   if(!String(url).includes('/v2/farcaster/feed/user/casts'))
+     return new Response('{}',{status:404});
+   return new Response(JSON.stringify({casts:[{
+     author:{fid:42},hash:hash.slice(2),text:'Development'
+   }]}),{status:200});
+ };
+ assert.equal(await verifyCastTopicOwnership(hash,'42',{fetchImpl:v2}),true);
+ const forged=async(url)=>{
+   if(!String(url).includes('/v2/farcaster/feed/user/casts'))
+     return new Response('{}',{status:404});
+   return new Response(JSON.stringify({casts:[
+     {author:{fid:43},hash:hash.slice(2)},
+     {author:{fid:42},hash:'cd'.repeat(20)}
+   ]}),{status:200});
+ };
+ assert.equal(await verifyCastTopicOwnership(hash,'42',{fetchImpl:forged}),false);
+ assert.equal(await verifyCastTopicOwnership(hash,'43',{fetchImpl:v2}),false);
+});
 test('migrations preserve separate dynamic tables and retain unique cast+topic link',()=>{
  const migration=readFileSync(new URL('../migrations/006_cast_topics.sql',import.meta.url),'utf8');
  assert.match(migration,/CREATE TABLE IF NOT EXISTS topics/);
