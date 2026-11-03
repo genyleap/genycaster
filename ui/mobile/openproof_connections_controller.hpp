@@ -50,6 +50,10 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap streakPreferences READ streakPreferences NOTIFY streakChanged)
+    Q_PROPERTY(QStringList mutedProfileFids READ mutedProfileFids NOTIFY mutedProfilesChanged)
+    Q_PROPERTY(bool mutedProfilesReady READ mutedProfilesReady NOTIFY mutedProfilesChanged)
+    Q_PROPERTY(bool mutedProfilesBusy READ mutedProfilesBusy NOTIFY mutedProfilesChanged)
+    Q_PROPERTY(QString mutedProfilesError READ mutedProfilesError NOTIFY mutedProfilesChanged)
     Q_PROPERTY(QVariantList streakLeaderboard READ streakLeaderboard NOTIFY streakChanged)
     Q_PROPERTY(QString publicActivitySource READ publicActivitySource NOTIFY streakChanged)
     Q_PROPERTY(QString publicActivityGithubLogin READ publicActivityGithubLogin NOTIFY streakChanged)
@@ -120,6 +124,12 @@ public:
     Q_INVOKABLE void fetchGenyAssets(bool force = false);
     Q_INVOKABLE void recordStreakCast(const QString& hash);
     [[nodiscard]] QVariantMap streakPreferences() const { return m_streakPreferences; }
+    [[nodiscard]] QStringList mutedProfileFids() const { return m_mutedProfileFids; }
+    [[nodiscard]] bool mutedProfilesReady() const noexcept { return m_mutedProfilesLoaded; }
+    [[nodiscard]] bool mutedProfilesBusy() const noexcept { return m_mutedProfilesWrite != nullptr; }
+    [[nodiscard]] QString mutedProfilesError() const { return m_mutedProfilesError; }
+    Q_INVOKABLE void fetchMutedProfiles();
+    Q_INVOKABLE void setProfileMuted(qulonglong targetFid, bool muted);
     [[nodiscard]] QVariantList streakLeaderboard() const { return m_streakLeaderboard; }
     [[nodiscard]] bool streakLeaderboardBusy() const noexcept { return m_streakLeaderboardRead != nullptr; }
     [[nodiscard]] QString publicActivitySource() const { return m_publicActivitySource; }
@@ -235,6 +245,7 @@ public:
     [[nodiscard]] static QStringList parseProviderCatalog(const QByteArray& json);
 
 signals:
+    void mutedProfilesChanged();
     void proEntitlementsChanged();
     void genyAssetsChanged();
     void stateChanged();
@@ -304,6 +315,12 @@ private:
     QString m_publicActivitySource{QStringLiteral("casts")};
     QString m_publicActivityGithubLogin{};
     QPointer<QNetworkReply> m_streakPreferencesRead{};
+    QPointer<QNetworkReply> m_mutedProfilesRead{};
+    QPointer<QNetworkReply> m_mutedProfilesWrite{};
+    QStringList m_mutedProfileFids{};
+    QString m_mutedProfilesError{};
+    qlonglong m_mutedProfilesRevision{};
+    bool m_mutedProfilesLoaded{};
     QPointer<QNetworkReply> m_streakPreferencesWrite{};
     QPointer<QNetworkReply> m_streakLeaderboardRead{};
     QVariantMap m_streakPreferences{};
