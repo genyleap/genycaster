@@ -3580,6 +3580,14 @@ Company | https://company.com</source>
             <source>Look through more posts</source>
             <translation>استعرض المزيد من المنشورات</translation>
         </message>
+        <message id="genycaster.profile.mute">
+            <source>Mute profile</source>
+            <translation>كتم الملف الشخصي</translation>
+        </message>
+        <message id="genycaster.profile.unmute">
+            <source>Unmute profile</source>
+            <translation>إلغاء كتم الملف الشخصي</translation>
+        </message>
         <message id="genycaster.profile.follow">
             <source>Follow</source>
             <translation>متابعة</translation>
