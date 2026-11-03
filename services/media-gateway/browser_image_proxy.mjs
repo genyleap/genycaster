@@ -31,9 +31,8 @@ function isContentAddressedArweaveRedirect(source, next) {
       || next.protocol !== 'https:' || next.port || next.username
       || next.password || next.hash || next.search
       || next.pathname !== source.pathname) return false;
-  const matched = /^\\/([A-Za-z0-9_-]{43})$/.exec(source.pathname);
-  if (!matched) return false;
-  const identifier = matched[1];
+  const identifier = source.pathname.startsWith('/') ? source.pathname.slice(1) : '';
+  if (!/^[A-Za-z0-9_-]{43}$/.test(identifier)) return false;
   const bytes = Buffer.from(identifier, 'base64url');
   if (bytes.length !== 32 || bytes.toString('base64url') !== identifier) return false;
   const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
