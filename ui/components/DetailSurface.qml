@@ -202,6 +202,8 @@ ListView {
     LayoutMirroring.childrenInherit: true
 
     signal backRequested()
+    signal composeRequested()
+    signal channelRequested(string channelId)
     signal followersRequested()
     signal followingRequested()
     signal refreshRequested()
@@ -275,20 +277,72 @@ ListView {
         y: root.compact ? Theme.space3 : Theme.space4
         spacing: Theme.space3
 
+        // Contextual conversation toolbar. Keep a real back action, but name
+        // the destination and make its channel navigable independently.
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space2
-            layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight
+            layoutDirection: Theme.uiDirection
 
             ActionButton {
                 compact: true
                 quiet: true
+                iconOnly: root.activeView === "cast"
                 iconGlyph: Theme.iconBack
                 text: qsTrId("genycaster.detail.back_back_to_feed")
                 onClicked: root.backRequested()
             }
 
-            Item { Layout.fillWidth: true }
+            ColumnLayout {
+                visible: root.activeView === "cast"
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: 0
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.detail.conversation")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeBodySize
+                    font.weight: Theme.weightDemiBold
+                    elide: Text.ElideRight
+                }
+                RowLayout {
+                    visible: root.castChannel.length > 0
+                    Layout.fillWidth: true
+                    spacing: Theme.space1
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
+                        text: qsTrId("genycaster.cast.in_channel")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    ActionButton {
+                        Layout.minimumWidth: 0
+                        Layout.maximumWidth: 210
+                        compact: true
+                        quiet: true
+                        elevated: false
+                        pill: true
+                        text: "/" + root.castChannel
+                        Accessible.description: qsTrId("genycaster.detail.open_channel")
+                            .arg("/" + root.castChannel)
+                        onClicked: root.channelRequested(root.castChannel)
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: root.activeView !== "cast" }
+
+            ActionButton {
+                visible: root.activeView === "cast"
+                compact: true
+                quiet: true
+                elevated: false
+                iconOnly: root.compact
+                iconGlyph: Theme.iconCompose
+                text: qsTrId("genycaster.header.new_cast")
+                onClicked: root.composeRequested()
+            }
 
             ActionButton {
                 compact: true
@@ -614,21 +668,52 @@ ListView {
 
 
                 RowLayout {
+                    visible: root.activeView === "cast" && Boolean(root.detail.castId)
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+
+                    ActionButton {
+                        compact: true
+                        prominent: true
+                        iconGlyph: Theme.iconReply
+                        text: qsTrId("genycaster.shell.reply")
+                        onClicked: {
+                            if (root.interactionsAvailable) root.replyRequested(root.detail)
+                            else root.authenticationRequested()
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+
+                // Destructive actions are deliberately separated from the
+                // ordinary engagement and composition controls.
+                ColumnLayout {
                     visible: root.activeView === "cast"
                              && root.interactionsAvailable
                              && Number(root.detail.authorFid || 0) === Number(root.accountFid)
                              && Boolean(root.detail.castId)
                     Layout.fillWidth: true
-                    layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight
+                    Layout.topMargin: Theme.space2
+                    spacing: Theme.space2
 
-                    Item { Layout.fillWidth: true }
-
-                    ActionButton {
-                        quiet: true
-                        destructive: true
-                        compact: true
-                        text: qsTrId("genycaster.detail.delete_cast")
-                        onClicked: root.removeCastRequested(root.detail)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: Theme.strokeHairline
+                        color: Theme.divider
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
+                        Item { Layout.fillWidth: true }
+                        ActionButton {
+                            quiet: true
+                            destructive: true
+                            compact: true
+                            iconGlyph: Theme.iconTrash
+                            text: qsTrId("genycaster.detail.delete_cast")
+                            onClicked: root.removeCastRequested(root.detail)
+                        }
                     }
                 }
 
