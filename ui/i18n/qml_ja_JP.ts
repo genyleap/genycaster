@@ -2404,6 +2404,14 @@ Company | https://company.com</source>
             <source>No verified Farcaster EVM addresses were found</source>
             <translation>検証済みの Farcaster EVM アドレスが見つかりませんでした</translation>
         </message>
+        <message id="genycaster.detail.conversation">
+            <source>Conversation</source>
+            <translation>会話</translation>
+        </message>
+        <message id="genycaster.detail.open_channel">
+            <source>Open channel %1</source>
+            <translation>チャンネル %1 を開く</translation>
+        </message>
         <message id="genycaster.detail.back_back_to_feed">
             <source>Back to feed</source>
             <translation>フィードに戻る</translation>
