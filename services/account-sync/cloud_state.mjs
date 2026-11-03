@@ -347,12 +347,93 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
   }
   return null;
 }
+// Recover activity from authoritative signed network indexes, even when a
+// just-confirmed Cast was not reported by the client (session refresh, tab
+// close, temporary 422 while HyperSnap indexes a newly published message).
+// Never credit client-provided days or hashes, and never derive an owner FID
+// from a request parameter. Feed rows are validated against the authorized FID.
+export async function discoverVerifiedStreakCasts(fid,{
+  fetchImpl=globalThis.fetch,now=new Date()
+}={}) {
+  const owner=String(fid||'');
+  if(!/^[1-9][0-9]{0,18}$/.test(owner) || !Number.isSafeInteger(Number(owner)))
+    return null;
+  try {
+    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts'
+      +'?fid='+encodeURIComponent(owner)+'&limit=50';
+    const response=await fetchImpl(url,{method:'GET',redirect:'error',
+      headers:{accept:'application/json'},signal:AbortSignal.timeout(4500)});
+    if(response.status!==200 ||
+       Number(response.headers.get('content-length')||0)>262144 ||
+       !response.body) return null;
+    const chunks=[];let bytes=0;
+    for await(const chunk of response.body) {
+      bytes+=chunk.byteLength;
+      if(bytes>262144)return null;
+      chunks.push(Buffer.from(chunk));
+    }
+    const doc=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if(!Array.isArray(doc?.casts) || doc.casts.length>50)return null;
+    const earliest=now.getTime()-14*86400000;
+    const newest=now.getTime()+300000;
+    const days=new Set();
+    const events=[];
+    for(const cast of doc.casts) {
+      if(String(cast?.author?.fid||'')!==owner)continue;
+      const hash=String(cast?.hash||'').replace(/^0x/i,'').toLowerCase();
+      if(!/^[0-9a-f]{40}$/.test(hash) ||
+         (cast.object!=='cast' && cast.object!==undefined))continue;
+      const timestamp=Date.parse(cast.timestamp);
+      if(!Number.isFinite(timestamp) || timestamp>newest ||
+          timestamp<earliest)continue;
+      const kind=cast.parent_hash ? 'reply' : 'cast';
+      const day=new Date(timestamp).toISOString().slice(0,10);
+      // Only one verified immutable Cast per UTC day and activity type is
+      // required. Avoid dozens of SQL writes from prolific accounts.
+      const dayKind=day+':'+kind;
+      if(days.has(dayKind))continue;
+      days.add(dayKind);
+      events.push({hash:'0x'+hash,day,kind});
+    }
+    return events;
+  }catch {return null;}
+}
+
 export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     verifyTopicOwner=verifyCastTopicOwnership,
                                     verifyStreakCast=verifyStreakCastOwnership,
                                     proPolicy=createGenyProPolicy(),
                                     resolvePro=(fid)=>evaluateGenyPro(fid,{policy:proPolicy,fetchImpl}),
-                                    resolveGenyAssets=(fid)=>evaluateGenyAssets(fid,{policy:proPolicy,fetchImpl})}) {
+                                    resolveGenyAssets=(fid)=>evaluateGenyAssets(fid,{policy:proPolicy,fetchImpl}),
+                                    discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl})}) {
+  // Bounded per-account reconciliation cache; failed network fetches never
+  // block a valid historical streak already persisted in PostgreSQL.
+  const recentlyCheckedStreaks=new Map();
+  async function reconcileVerifiedStreak(owner) {
+    const key=String(owner.fid||'');
+    if(!/^[1-9][0-9]{0,18}$/.test(key))return;
+    const now=Date.now();
+    const cached=recentlyCheckedStreaks.get(key);
+    if(cached && now-cached.checkedAt<90000)return cached.pending;
+    if(recentlyCheckedStreaks.size>=1024)
+      recentlyCheckedStreaks.delete(recentlyCheckedStreaks.keys().next().value);
+    const pending=(async()=>{
+      const casts=await discoverStreakCasts(key);
+      if(!Array.isArray(casts))return;
+      for(const entry of casts) {
+        if(!HASH.test(entry.hash) || !['cast','reply'].includes(entry.kind)
+            || !/^\d{4}-\d{2}-\d{2}$/.test(entry.day))continue;
+        // The network reader already verified the author and timestamp; the
+        // store enforces idempotency on (issuer, subject, cast_hash).
+        await store.recordStreakCast(owner,entry.hash,entry.kind,entry.day);
+      }
+    })();
+    recentlyCheckedStreaks.set(key,{checkedAt:now,pending});
+    try {await pending;}catch{} // Read the last durable state if indexer is down.
+    const current=recentlyCheckedStreaks.get(key);
+    if(current?.pending===pending)recentlyCheckedStreaks.set(key,{checkedAt:now});
+  }
+
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
   const upstream=issuer.replace(/\/$/,'');
@@ -583,6 +664,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,503,{error:'streak_unavailable'});return true;
         }
         if(entity==='streak' && request.method==='GET') {
+          await reconcileVerifiedStreak(owner);
           const items=await store.listStreakEvents(owner);
           respond(response,200,{streak:calculateStreaks(items)});return true;
         }

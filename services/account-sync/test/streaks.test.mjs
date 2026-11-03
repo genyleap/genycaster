@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {calculateStreaks} from '../streaks.mjs';
-import {createCloudHandler,verifyStreakCastOwnership} from '../cloud_state.mjs';
+import {createCloudHandler,verifyStreakCastOwnership,discoverVerifiedStreakCasts} from '../cloud_state.mjs';
 import {createServer} from 'node:http';
 const hash='0x'+'a1'.repeat(20);
 const owner={issuer:'https://identity.example.test',subject:'farcaster:42',fid:'42'};
@@ -111,4 +111,66 @@ test('Streak API cannot award anonymous, invalid, unconfirmed or duplicate casts
  await withApi(async(req)=>{
   assert.equal((await req('streak/cast','PUT',{cast_hash:hash})).status,422);
  },null);
+});
+
+test('read-side reconciliation credits the exact confirmed November 3 cast without client PUT',async()=>{
+ const castHash='0x55c129f6fa06ecf4a974fd5bcd432a8b3e4640c5';
+ const yesterday='0x2993e01d2d83560c3209322e3f49d75b891bb8ab';
+ const feed = async url => {
+   if(url.includes('/feed/user/casts'))return new Response(JSON.stringify({casts:[
+     {object:'cast',hash:castHash.slice(2),author:{fid:321969},
+      timestamp:'2026-11-03T15:48:21.000Z',parent_url:'https://warpcast.com/~/channel/replyguys'},
+     {object:'cast',hash:yesterday.slice(2),author:{fid:321969},
+      timestamp:'2026-11-02T13:40:33.000Z',parent_url:'https://warpcast.com/~/channel/geny'},
+     {object:'cast',hash:'66'.repeat(20),author:{fid:999},
+      timestamp:'2026-11-03T15:48:21.000Z'}
+   ]}),{status:200});
+   return new Response('{}',{status:404});
+ };
+ const candidates = await discoverVerifiedStreakCasts('321969',{
+   fetchImpl:feed,now:new Date('2026-11-03T20:00:00.000Z')});
+ assert.deepEqual(candidates,[{
+   hash:castHash,day:'2026-11-03',kind:'cast'
+ },{hash:yesterday,day:'2026-11-02',kind:'cast'}]);
+ const records = new Map();
+ let feedReads=0;
+ const store={
+   streakReady:()=>true,
+   async listStreakEvents(){return [...records.values()];},
+   async recordStreakCast(account,hash,kind,day){
+     assert.equal(account.fid,'321969');
+     if(records.has(hash)) return {recorded:false};
+     records.set(hash,{day,kind});return {recorded:true};
+   }
+ };
+ const owner={issuer:'https://identity.example.test',subject:'farcaster:321969',fid:'321969'};
+ const upstream=async (url,options)=>{
+   if(options?.headers?.authorization !== 'Bearer good')return new Response('{}',{status:401});
+   if(url.endsWith('/account/profile'))
+     return new Response(JSON.stringify({identity_id:'farcaster:321969'}));
+   if(url.endsWith('/account/connections'))
+     return new Response(JSON.stringify({connections:[{provider:'farcaster',fid:'321969'}]}));
+   return new Response('{}',{status:404});
+ };
+ const handler=createCloudHandler({store,issuer:owner.issuer,
+   fetchImpl:upstream,
+   discoverStreakCasts:async fid=>{
+     ++feedReads;assert.equal(fid,'321969');return candidates;
+   }});
+ const server=createServer((req,res)=>handler(req,res,new URL(req.url,'http://localhost').pathname));
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ try {
+   const url='http://127.0.0.1:'+server.address().port+'/api/v1/cloud/streak';
+   const options={headers:{authorization:'Bearer good'}};
+   const before=await fetch(url,{headers:{authorization:'Bearer wrong'}});
+   assert.equal(before.status,401);
+   const result=await (await fetch(url,options)).json();
+   assert.equal(result.streak.creator.current,2);
+   assert.equal(result.streak.activity.current,2);
+   assert.equal(feedReads,1);
+   const second=await (await fetch(url,options)).json();
+   assert.equal(second.streak.activity.total_days,2);
+   assert.equal(feedReads,1);
+   assert.equal(records.size,2);
+ }finally{server.close();}
 });
