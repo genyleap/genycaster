@@ -53,6 +53,10 @@ GenyPulseActivityController::GenyPulseActivityController(QObject* parent)
     : QObject(parent) {}
 
 void GenyPulseActivityController::requestFarcaster(const qulonglong fid) {
+    // The profile preview and the hidden Explore drawer use one controller.
+    // A transient empty profile must not abort another mounted panel's
+    // verified public Cast history request or overwrite it with "idle".
+    if (fid == 0) return;
     if(fid==m_fid && (m_farcasterReply ||
                       (m_castFetchedAt>0 &&
                        QDateTime::currentMSecsSinceEpoch()-m_castFetchedAt<kCacheMs)))return;
