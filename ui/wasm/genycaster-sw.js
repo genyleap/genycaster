@@ -1,6 +1,6 @@
 /* Public application assets only. Never cache user API responses or credentials. */
 "use strict";
-const CACHE="genycaster-static-v12";
+const CACHE="genycaster-static-v13";
 const WASM_HASH=/^genycaster\.[0-9a-f]{20}\.wasm$/;
 // Explicit allowlist: a same-origin .json/.html URL might contain personal
 // account data. Never cache arbitrary paths based solely on file extension.
@@ -18,6 +18,7 @@ const PUBLIC_FILES=new Set([
     "browser_protocol_signer.mjs","browser_device_session.mjs","browser_account_session.mjs","browser_media_upload.mjs",
     "farcaster_recovery.mjs","recovery-phrase-dialog.mjs",
     "vendor/noble-secp256k1.mjs","vendor/bip39-english.mjs",
+    "miniapp-host-bridge.mjs",
 ]);
 const scopePath=new URL("./",self.location.href).pathname;
 const allowed=(url)=>url.origin===self.location.origin &&
@@ -31,24 +32,39 @@ function cacheResponse(response){
 }
 self.addEventListener("install",event=>{
     event.waitUntil((async()=>{
-        const cache=await caches.open(CACHE);
-        // Do not force another .wasm download just for installation.
-        // The initial application response is stored by the fetch handler;
-        // subsequent releases use the content-hashed URL.
-        const manifest=await fetch(new URL("./genycaster-assets.json",self.location.href),
-            {cache:"no-store"});
-        if(!manifest.ok)throw new Error("Missing public asset list");
-        const assets=await manifest.json();
-        if(!Array.isArray(assets.files) || assets.files.length>40)
-            throw new Error("Invalid public asset manifest");
-        await Promise.all(assets.files.filter(f=>!f.endsWith(".wasm")).map(async file=>{
-            if(typeof file!=="string"||file.startsWith("/")||file.includes(".."))return;
-            try{
-                const url=new URL(file,self.location.href);
-                const response=await fetch(url,{cache:"no-cache"});
-                if(cacheResponse(response))await cache.put(url,response);
-            }catch{ /* offline fallback may be incomplete until warm */ }
-        }));
+        // Caching is an optional optimization, never a startup prerequisite.
+        // A blocked request, offline browser, corrupt manifest or denied
+        // CacheStorage must not reject the install event.
+        try {
+            const requestUrl=new URL("./genycaster-assets.json",self.location.href);
+            const manifest=await fetch(requestUrl,{cache:"no-store"});
+            if(!manifest.ok)throw new Error("Public asset manifest unavailable");
+            const assets=await manifest.json();
+            // Validate shape and individual entries; never infer public
+            // caching eligibility merely from an arbitrary JSON manifest.
+            if(!Array.isArray(assets.files) || assets.files.length>128)
+                throw new Error("Invalid public asset manifest");
+            const urls=[];
+            const seen=new Set();
+            for(const file of assets.files) {
+                if(typeof file!=="string" || file.length>160 ||
+                    file.startsWith("/") || file.includes("..") ||
+                    file.includes("?") || file.includes("#"))continue;
+                const url=new URL(file,requestUrl);
+                if(!allowed(url) || WASM_HASH.test(file) || seen.has(url.href))continue;
+                seen.add(url.href);
+                urls.push(url);
+            }
+            const cache=await caches.open(CACHE);
+            await Promise.all(urls.map(async url=>{
+                try {
+                    const response=await fetch(url,{cache:"no-cache"});
+                    if(cacheResponse(response))await cache.put(url,response);
+                }catch{ /* optional offline cache miss */ }
+            }));
+        } catch(error) {
+            console.warn("[GenyCaster] Offline pre-cache skipped",error);
+        }
     })());
     self.skipWaiting();
 });
