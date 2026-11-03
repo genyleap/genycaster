@@ -51,7 +51,11 @@
    stays inside iOS safe areas and never reloads a draft without a click. */
 #genycaster-update-backdrop{position:fixed;inset:0;z-index:129;background:#0008;backdrop-filter:blur(3px)}
 #genycaster-update-backdrop[hidden],#genycaster-update-banner[hidden]{display:none}
-#genycaster-update-banner{position:fixed;z-index:130;top:0;left:50%;width:min(600px,100%);max-height:min(78dvh,600px);overflow:auto;transform:translateX(-50%);padding:calc(env(safe-area-inset-top,0px) + 18px) 24px 22px;border:1px solid #8292b54a;border-top:0;border-radius:0 0 24px 24px;background:var(--app-chrome);color:var(--boot-ink);box-shadow:0 22px 70px #0008;font:500 14px/1.45 system-ui,-apple-system,sans-serif;animation:genycasterDrawerIn .32s cubic-bezier(.18,.8,.23,1) both}
+#genycaster-update-banner{position:fixed;z-index:130;top:0;left:50%;width:min(600px,100%);height:min(78dvh,600px);min-height:0;display:flex;flex-direction:column;overflow:hidden;transform:translateX(-50%);padding:0;border:1px solid #8292b54a;border-top:0;border-radius:0 0 24px 24px;background:var(--app-chrome);color:var(--boot-ink);box-shadow:0 22px 70px #0008;font:500 14px/1.45 system-ui,-apple-system,sans-serif;animation:genycasterDrawerIn .32s cubic-bezier(.18,.8,.23,1) both}
+.update-fixed-header{flex:0 0 auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 24px 4px}
+.update-scroll-body{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:10px 24px 16px;scrollbar-gutter:stable}
+.update-actions{flex:0 0 auto;padding:12px 24px max(14px,env(safe-area-inset-bottom,0px));border-top:1px solid #8292b53b;background:var(--app-chrome)}
+#genycaster-update-banner:focus-within{outline:none}
 @keyframes genycasterDrawerIn{from{opacity:.65;transform:translate(-50%,-110%)}to{opacity:1;transform:translate(-50%,0)}}
 .update-grabber{width:40px;height:4px;margin:0 auto 18px;border-radius:5px;background:#8491a36e}
 .update-head{display:flex;gap:14px;align-items:center}
@@ -69,11 +73,11 @@
 .update-details{padding:14px 16px;background:var(--update-success-tint);border:1px solid var(--update-success-border);border-radius:14px}
 .update-details strong{display:block;font-size:13px}
 .update-details p{margin:6px 0 0;font-size:13px;opacity:.78;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
-.update-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.update-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:0}
 #genycaster-update-banner button{font:600 14px system-ui,-apple-system,sans-serif;min-height:44px;padding:9px 18px;border-radius:12px;border:1px solid #8796b966;background:transparent;color:inherit;cursor:pointer}
 #genycaster-update-now{background:var(--update-success)!important;border-color:var(--update-success)!important;color:var(--update-success-ink)!important}
 #genycaster-update-banner button:focus-visible{outline:2px solid var(--update-success);outline-offset:3px}
-@media(max-width:560px){#genycaster-update-banner{padding:calc(env(safe-area-inset-top,0px) + 16px) 18px 20px;border-radius:0 0 22px 22px;max-height:82dvh}.update-version-grid{gap:7px}.update-version{padding:10px}.update-version strong{font-size:15px}}
+@media(max-width:560px){#genycaster-update-banner{height:min(86dvh,620px);border-radius:0 0 22px 22px}.update-fixed-header{padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 4px}.update-scroll-body{padding:8px 16px 14px}.update-actions{padding:12px 16px max(12px,env(safe-area-inset-bottom,0px))}.update-version-grid{gap:7px;margin:14px 0 12px}.update-version{padding:10px}.update-version strong{font-size:15px}}
 @media(prefers-reduced-motion:reduce){#genycaster-update-banner{animation:none}}
 
 /* A deliberately plain studio credit: white type, no emblems, frames,
@@ -144,6 +148,7 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
 <div id="qt-screen" aria-label="Genycaster application"></div>
 <div id="genycaster-update-backdrop" hidden></div>
 <section id="genycaster-update-banner" role="dialog" aria-modal="true" aria-labelledby="genycaster-update-title" hidden>
+  <div class="update-fixed-header">
   <div class="update-grabber" aria-hidden="true"></div>
   <div class="update-head">
     <div class="update-glyph" aria-hidden="true"><span class="update-symbol"></span></div>
@@ -154,7 +159,10 @@ h1{width:100%;font-size:17px;line-height:1.45;font-weight:600;letter-spacing:-.0
     <span class="update-version-arrow" aria-hidden="true">→</span>
     <div class="update-version"><span id="genycaster-update-next-label">New build</span><strong id="genycaster-update-next">—</strong><small id="genycaster-update-next-channel"></small></div>
   </div>
-  <div class="update-details"><strong id="genycaster-update-details-title">Release details</strong><p id="genycaster-update-details">Review the new version before updating.</p></div>
+  </div>
+  <div class="update-scroll-body" role="region" aria-label="Release notes" tabindex="0">
+    <div class="update-details"><strong id="genycaster-update-details-title">Release details</strong><p id="genycaster-update-details">Review the new version before updating.</p></div>
+  </div>
   <div class="update-actions"><button id="genycaster-update-later" type="button">Later</button><button id="genycaster-update-now" type="button">Update now</button></div>
 </section>
 <div id="genycaster-boot" role="status" aria-live="polite">
