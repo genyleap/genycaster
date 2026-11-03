@@ -28,7 +28,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
     const resources=new Map();
     const chrome={scheme:"",color:"",statusStyle:""};
     let config=null, observer=null, downloadStream=null;
-    let latestVersion=version, reloadedTo="";
+    let latestVersion=version,latestAppVersion="1.0.1", reloadedTo="";
     let now=100;
     const timers=[];
     const listeners={};
@@ -39,7 +39,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
                 productName:"Genycaster",versionNumber:"1.0.0",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:8},
             genycaster_entry(){},
             fetch:async(input)=>String(input).includes("genycaster-assets.json")
-                ? new Response(JSON.stringify({version:latestVersion,appVersion:"1.0.1",versionNumber:"1.0.1",releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:78643200}),
+                ? new Response(JSON.stringify({version:latestVersion,buildId:latestVersion.slice(0,8),appVersion:latestAppVersion,versionNumber:latestAppVersion,releaseChannel:"rc",releaseChannelNumber:1,wasmBytes:78643200}),
                     {headers:{"Content-Type":"application/json"}})
                 : measured
                     ? new Response(new ReadableStream({
@@ -96,6 +96,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
             now=target;
         },
         setLatestVersion(value){latestVersion=value;},
+        setLatestAppVersion(value){latestAppVersion=value;},
         fireFocus(){return listeners.focus?.();},
         clickUpdate(){nodes.get("genycaster-update-now").handlers.click?.();},
         clickLater(){nodes.get("genycaster-update-later").handlers.click?.();},
@@ -327,14 +328,29 @@ test("installed PWA notices a new live release without discarding draft or ident
     await new Promise(resolve=>setImmediate(resolve));
     assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
     assert.equal(h.nodes.get("genycaster-update-backdrop").hidden,false);
-    assert.equal(h.nodes.get("genycaster-update-current").textContent,"1.0.0");
-    assert.equal(h.nodes.get("genycaster-update-next").textContent,"1.0.1");
-    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"v1.0.1");
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"v1.0.0");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"v1.0.1");
+    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"Build bbbbbbbb");
     assert.match(h.nodes.get("genycaster-update-details").textContent,/75\.0 MiB/);
     assert.equal(h.reloadedTo,"","update prompt cannot navigate without a user tap");
     assert.equal(h.storage.get("genycaster.boot.loaded.v1"),"1");
     h.clickUpdate();
     assert.match(h.reloadedTo,/genycaster-release=bbbbbbbbbbbbbbbbbbbb/);
+});
+
+test("a same-version WASM rollout shows both build identifiers, not identical semvers",async()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    h.setLatestVersion("bbbbbbbbbbbbbbbbbbbb");
+    h.setLatestAppVersion("1.0.0");
+    h.fireFocus();
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"Build aaaaaaaa");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"Build bbbbbbbb");
+    assert.equal(h.nodes.get("genycaster-update-current-channel").textContent,"v1.0.0");
+    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"v1.0.0");
+    assert.equal(h.reloadedTo,"");
 });
 
 test("no update prompt is shown when remote and running builds match",async()=>{
@@ -361,6 +377,19 @@ test("WASM release notifier is a top-down, non-destructive, accessible drawer",(
 });
 
 
+test("WASM update drawer has independent fixed chrome and a scroll-only notes viewport",()=>{
+    const shell=readFileSync(new URL("../../ui/wasm/genycaster-shell.html",import.meta.url),"utf8");
+    assert.match(shell,/#genycaster-update-banner\{[^}]*display:flex;flex-direction:column;overflow:hidden/);
+    assert.match(shell,/\.update-fixed-header\{flex:0 0 auto/);
+    assert.match(shell,/\.update-scroll-body\{[^}]*overflow-y:auto/);
+    assert.match(shell,/\.update-actions\{flex:0 0 auto/);
+    const header=shell.indexOf('class="update-fixed-header"');
+    const content=shell.indexOf('class="update-scroll-body"');
+    const footer=shell.indexOf('class="update-actions"');
+    assert.ok(header>0 && header<content && content<footer);
+    assert.match(shell,/id="genycaster-update-details"/);
+});
+
 test("WASM release drawer tracks in-app language changes independently of browser locale",async()=>{
     const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa"});
     h.config.qt.onLoaded();
@@ -372,9 +401,9 @@ test("WASM release drawer tracks in-app language changes independently of browse
     assert.equal(h.nodes.get("genycaster-update-title").textContent,"به‌روزرسانی جنی‌کستر آماده است");
     assert.equal(h.nodes.get("genycaster-update-now").textContent,"بازبارگذاری و به‌روزرسانی");
     assert.equal(h.nodes.get("genycaster-update-current-label").textContent,"نسخهٔ فعلی");
-    assert.equal(h.nodes.get("genycaster-update-current").textContent,"۱.۰.۰");
-    assert.equal(h.nodes.get("genycaster-update-next").textContent,"۱.۰.۱");
-    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"v۱.۰.۱");
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"v۱.۰.۰");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"v۱.۰.۱");
+    assert.equal(h.nodes.get("genycaster-update-next-channel").textContent,"Build bbbbbbbb");
     assert.equal(h.nodes.get("boot-build-credit").textContent,"v۱.۰.۰ · Build aaaaaaaa");
     assert.match(h.nodes.get("genycaster-update-details").textContent,/برای این نسخه یادداشت تغییراتی/);
     assert.match(h.nodes.get("genycaster-update-details").textContent,/۷۵\.۰ MiB/);
@@ -383,8 +412,8 @@ test("WASM release drawer tracks in-app language changes independently of browse
     assert.equal(h.nodes.get("genycaster-update-now").textContent,"Zum Aktualisieren neu laden");
     h.setAppLanguage("en-US");
     assert.equal(h.nodes.get("genycaster-update-title").textContent,"Genycaster update available");
-    assert.equal(h.nodes.get("genycaster-update-current").textContent,"1.0.0");
-    assert.equal(h.nodes.get("genycaster-update-next").textContent,"1.0.1");
+    assert.equal(h.nodes.get("genycaster-update-current").textContent,"v1.0.0");
+    assert.equal(h.nodes.get("genycaster-update-next").textContent,"v1.0.1");
     assert.match(h.nodes.get("genycaster-update-details").textContent,/75\.0 MiB/);
     assert.equal(h.nodes.get("genycaster-update-banner").hidden,false);
     assert.equal(h.reloadedTo,"");
