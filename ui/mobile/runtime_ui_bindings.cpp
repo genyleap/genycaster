@@ -4305,7 +4305,12 @@ void connectRuntime(
                         }
                     }
                     if (state.profile && accountFid) {
+                        // Both directions are independent: "follows you" does
+                        // not establish whether you follow the visited profile.
+                        // The latter drives the Follow/Unfollow control.
                         refreshProfileFollowsMe(bridge, runtime, *accountFid, state.profile->fid);
+                        refreshProfileFollowsMe(bridge, runtime, *accountFid, state.profile->fid,
+                                                true);
                     }
 #endif
                     QMetaObject::invokeMethod(&bridge,
