@@ -57,6 +57,12 @@ test('Basic users cannot mutate Pro bookmark collections',async()=>{
    assert.equal(denied.status,403);
    assert.equal((await denied.json()).error,'geny_pro_required');
    assert.equal(calls.length,0);
+   // A downgraded account must still be able to delete its own data.
+   assert.equal((await request('bookmark_collections','PUT',
+     {...collection,action:'delete',expected_revision:'1'})).status,200);
+   assert.equal((await request('bookmark_collection_items','PUT',
+     {collection_id:collection.id,cast_hash:'0x'+'ab'.repeat(20),remove:true})).status,200);
+   assert.deepEqual(calls.map(c=>c[0]),['write','membership']);
    assert.deepEqual(seen,['42']);
  });
 });

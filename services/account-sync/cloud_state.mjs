@@ -349,6 +349,14 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       '; Secure; HttpOnly; SameSite=Strict');
     respond(response,200,{fid:owner.fid,csrf_token:csrf});
   }
+  async function allowProMutation(owner,response) {
+    const membership=await resolvePro(owner.fid);
+    if(membership.status==='verified' && membership.eligible===true) return true;
+    respond(response,403,{error:'geny_pro_required',
+      minimum_geny:proPolicy.minimumGeny,
+      verification_status:membership.status});
+    return false;
+  }
   // Genycaster account data is scoped to the *verified Farcaster FID*.
   // OAuth and verified Farcaster recovery must resolve to exactly the same
   // stable owner; caller-supplied identity/FID is never accepted.
@@ -511,16 +519,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       // Writes to app-owned Pro features must never trust local status, a
       // profile decoration, or a caller-provided wallet address. Refresh the
       // server-issued entitlement using this verified session's FID.
-      if((entity==='bookmark_collections' || entity==='bookmark_collection_items'
-          || entity==='connections' || entity==='connections/portable')
-         && request.method==='PUT') {
-        const membership=await resolvePro(owner.fid);
-        if(membership.status!=='verified' || membership.eligible!==true) {
-          respond(response,403,{error:'geny_pro_required',
-            minimum_geny:proPolicy.minimumGeny,
-            verification_status:membership.status});return true;
-        }
-      }
+      if((entity==='connections' || entity==='connections/portable')
+          && request.method==='PUT'
+          && !await allowProMutation(owner,response)) return true;
       if(entity==='streak/preferences') {
         if(request.method==='GET') {
           respond(response,200,{preferences:await store.getStreakPreferences(owner)});
@@ -714,6 +715,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         const change=validateBookmarkCollectionChange(await readBody(request,2048));
         if(!change) {respond(response,400,{error:'invalid_bookmark_collection'});return true;}
+        // Account data remains removable even after the owner loses Pro.
+        if(change.action!=='delete' && !await allowProMutation(owner,response)) return true;
         const saved=await store.putBookmarkCollection(owner,change);
         if(!saved) {respond(response,409,{error:'bookmark_collection_conflict'});return true;}
         respond(response,200,{item:saved});return true;
@@ -741,6 +744,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         const change=validateBookmarkCollectionItem(await readBody(request,2048));
         if(!change) {respond(response,400,{error:'invalid_bookmark_collection_item'});return true;}
+        if(change.remove!==true && !await allowProMutation(owner,response)) return true;
         const saved=await store.putBookmarkCollectionItem(owner,change);
         if(!saved) {respond(response,409,{error:'bookmark_collection_item_conflict'});return true;}
         respond(response,200,{item:saved});return true;
