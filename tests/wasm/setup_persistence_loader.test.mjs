@@ -311,9 +311,11 @@ test('eight-stage Setup preserves language wheel, legal consent and navigation',
 test('recovery phrase uses centered desktop modal and matching mobile full-screen stage',()=>{
     const dialog=read('ui/wasm/recovery-phrase-dialog.mjs');
     assert.match(dialog,/justify-content:center/);
-    assert.match(dialog,/width:min\(620px,calc\(100% - 48px\)\)/);
+    assert.match(dialog,/width:100%;height:100%;min-height:0/);
+    assert.match(dialog,/@media\(min-width:980px\)/);
+    assert.match(dialog,/min\(29vw,430px\)/);
     assert.match(dialog,/@media\(max-width:680px\)/);
-    assert.match(dialog,/genycaster-sheet-in/);
+    assert.doesNotMatch(dialog,/genycaster-sheet-in/);
     assert.match(dialog,/flex:1 1 auto;min-height:0;overflow-y:auto/);
     assert.match(dialog,/flex:0 0 auto;gap:10px/);
     assert.match(dialog,/inputs\[index\]\?\.setAttribute\('aria-invalid'/);
@@ -415,7 +417,7 @@ test('Splash logo, version, loading copy and progress share a centered layout ax
     assert.ok(branding,'brand group must close before the loading heading');
     assert.match(branding[1],/<img class="boot-glyph" src="\.\/genycaster-boot-icon\.svg" alt="" decoding="async">/);
     assert.match(branding[1],/<img class="boot-wordmark" src="\.\/genycaster-wordmark-dark\.svg" alt="GenyCaster"/);
-    assert.match(branding[1],/<span class="boot-beta">Beta 1\.0<\/span>/);
+    assert.match(branding[1],/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
     assert.doesNotMatch(branding[1],/<span class="boot-glyph"/);
     assert.match(html,/\.boot-content\{[^}]*align-items:center[^}]*text-align:center/);
     assert.match(html,/\.boot-mark\{[^}]*align-items:center[^}]*width:100%/);
@@ -433,10 +435,10 @@ test('WASM splash is single-stage, retains original mark and build footer',()=>{
     assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
     assert.doesNotMatch(html,/id="boot-version"/);
-    assert.match(html,/<span class="boot-beta">Beta 1\.0<\/span>/);
+    assert.match(html,/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.match(html,/id="boot-build-credit"/);
-    assert.match(cmake,/--app-version "\$\{PROJECT_VERSION\}"/);
+    assert.match(cmake,/--app-version "\$\{GENYCASTER_RELEASE_VERSION\}"/);
     assert.match(pack,/"buildId": fingerprint\[:8\]/);
     assert.doesNotMatch(loader,/versionLabel/);
     assert.doesNotMatch(loader,/bootNote/);
