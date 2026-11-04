@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Effects
 
 Rectangle {
     id: root
@@ -35,9 +34,6 @@ Rectangle {
     property bool busy: false
     property bool readStarted: false
     property bool hasUsableContent: false
-    property Item blurSourceItem: null
-    readonly property bool useGlassBlur: root.blurSourceItem !== null
-                                         && root.visible && root.width > 0 && root.height > 0
 
     readonly property bool ownsProfileDetail: Number(root.profileDetail.fid || 0) > 0
                                               && Number(root.profileDetail.fid || 0) === Number(root.accountFid)
@@ -92,42 +88,11 @@ Rectangle {
     implicitWidth: Theme.navigationWidth
     color: "transparent"
 
-    // Sample the adjacent reading canvas rather than the shell subtree:
-    // capturing shellContent here would recursively include this sidebar.
-    ShaderEffectSource {
-        id: navigationBackdropCapture
-        objectName: "desktopNavigationBackdropCapture"
-        anchors.fill: parent
-        visible: false
-        sourceItem: root.useGlassBlur ? root.blurSourceItem : null
-        sourceRect: Qt.rect(0, 0,
-                            Math.min(root.width, root.blurSourceItem ? root.blurSourceItem.width : 0),
-                            Math.min(root.height, root.blurSourceItem ? root.blurSourceItem.height : 0))
-        live: root.useGlassBlur
-        recursive: false
-        hideSource: false
-        smooth: true
-    }
-
-    MultiEffect {
-        objectName: "desktopNavigationGlassBlur"
-        anchors.fill: parent
-        visible: root.useGlassBlur
-        source: navigationBackdropCapture
-        blurEnabled: true
-        blur: 0.72
-        blurMax: 32
-        blurMultiplier: 0.0
-        saturation: -0.2
-        autoPaddingEnabled: false
-        antialiasing: true
-    }
-
     Superellipse {
         id: navigationSurface
         anchors.fill: parent
         anchors.margins: Theme.space2
-        fillColor: root.useGlassBlur ? Theme.navigationGlassTint : Theme.surfacePrimary
+        fillColor: Theme.surfacePrimary
         borderWidth: 1
         borderColor: Theme.borderMuted
         curveDepth: Theme.shapeSurface

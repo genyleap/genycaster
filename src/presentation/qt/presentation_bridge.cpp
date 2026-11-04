@@ -904,6 +904,10 @@ bool PresentationBridge::authenticationBusy() const noexcept
         m_authenticationPhase == QStringLiteral("linking-farcaster");
 }
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
+bool PresentationBridge::authenticationStateObserved() const noexcept
+{
+    return m_authenticationStateObserved;
+}
 QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
 QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
 QString PresentationBridge::independentNetworkKey() const { return m_independentNetworkKey; }
@@ -3347,6 +3351,7 @@ void PresentationBridge::applyAuthenticationState(
 {
     m_authenticationAvailable = available;
     m_authenticationPhase = std::move(phase);
+    m_authenticationStateObserved = true;
     const qulonglong previousAccountFid = m_accountFid;
     // The attempt phase is independent from the already established account
     // session. Starting a replacement/re-authentication flow must not make a
@@ -3577,8 +3582,10 @@ void PresentationBridge::applyWriteState(
         }
         if (!replaced) { m_writeRows.prepend(presentationMutation); }
 
-        if (m_activeView == QStringLiteral("feed") ||
-            (m_activeView == QStringLiteral("profile") &&
+        // Discovery timelines follow provider ordering. Never pin locally
+        // published casts above For You; optimistic writes belong to the
+        // author's profile until the feed provider actually returns them.
+        if ((m_activeView == QStringLiteral("profile") &&
              (m_profileFeed == QStringLiteral("user-posts") ||
               m_profileFeed == QStringLiteral("user-quotes") ||
               m_profileFeed == QStringLiteral("user-replies")) &&
@@ -4043,9 +4050,9 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
         // resurfacing while the network refresh is unavailable.
         enforceProfileFeedSemantics(rows, m_profileFeed);
     }
+    // Keep local write overlays out of provider-ranked discovery feeds.
     const bool mergeLocalWrites = !m_writeRows.isEmpty() &&
-        (m_activeView == QStringLiteral("feed") ||
-         (m_activeView == QStringLiteral("profile") &&
+        ((m_activeView == QStringLiteral("profile") &&
           (m_profileFeed == QStringLiteral("user-posts") ||
            m_profileFeed == QStringLiteral("user-quotes") ||
            m_profileFeed == QStringLiteral("user-replies")) &&

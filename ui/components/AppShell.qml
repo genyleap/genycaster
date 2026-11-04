@@ -1066,7 +1066,6 @@ Item {
             visible: root.desktop
             Layout.fillHeight: true
             Layout.preferredWidth: root.desktopNavigationWidth
-            blurSourceItem: readingBackdrop
             activeView: presentationBridge.activeView
             activeFeed: presentationBridge.activeFeed
             shellRoute: root.shellRoute
@@ -2988,7 +2987,8 @@ Item {
         id: initialSetup
         anchors.fill: parent
         z: 10_000
-        visible: presentationBridge.initialSetupRequired || root.setupReviewOpen
+        visible: root.setupReviewOpen || (presentationBridge.authenticationStateObserved
+                 && presentationBridge.initialSetupRequired)
         reviewMode: root.setupReviewOpen && !presentationBridge.initialSetupRequired
         onCloseReviewRequested: root.setupReviewOpen = false
         runtimeReady: presentationBridge.runtimeReady

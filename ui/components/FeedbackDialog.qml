@@ -10,13 +10,14 @@ GenyAdaptiveDialog {
     property string reportRoute: ""
     property string pendingMessage: ""
     property bool successAcknowledged: false
+    property int activeTab: 0 // 0: new feedback, 1: submitted reports
     readonly property bool canSubmitFeedback: openProofConnections.cloudAuthorizationReady
     readonly property var sentimentModel: [
-        { value: 1, icon: Theme.iconMoodFrustrated },
-        { value: 2, icon: Theme.iconMoodSad },
-        { value: 3, icon: Theme.iconMoodNeutral },
-        { value: 4, icon: Theme.iconMoodPositive },
-        { value: 5, icon: Theme.iconMoodExcited }
+        { value: 1, icon: Theme.iconMoodFrustrated, tint: "#E66B66" },
+        { value: 2, icon: Theme.iconMoodSad, tint: "#E8A65D" },
+        { value: 3, icon: Theme.iconMoodNeutral, tint: "#D3AD55" },
+        { value: 4, icon: Theme.iconMoodPositive, tint: "#59B89A" },
+        { value: 5, icon: Theme.iconMoodExcited, tint: "#62B7C8" }
     ]
     readonly property var categoryModel: [
         { id: "bug", label: qsTrId("genycaster.feedback.bug"), icon: Theme.iconWarning },
@@ -54,6 +55,7 @@ GenyAdaptiveDialog {
     }
     onDidOpen: {
         root.successAcknowledged = false
+        root.activeTab = 0
         if (root.canSubmitFeedback) openProofConnections.fetchFeedback()
     }
     Connections {
@@ -62,6 +64,8 @@ GenyAdaptiveDialog {
             if (root.pendingMessage.length > 0 && openProofConnections.feedbackSubmitted) {
                 root.pendingMessage = ""
                 root.successAcknowledged = true
+                root.activeTab = 1
+                openProofConnections.fetchFeedback()
                 feedbackField.text = ""
             }
         }
@@ -75,6 +79,35 @@ GenyAdaptiveDialog {
             title: qsTrId("genycaster.feedback.title")
             subtitle: qsTrId("genycaster.feedback.subtitle")
             onCloseRequested: root.close()
+        }
+
+        RowLayout {
+            objectName: "feedbackTabBar"
+            Layout.fillWidth: true
+            spacing: Theme.space2
+            Repeater {
+                model: [qsTrId("genycaster.feedback.title"),
+                        qsTrId("genycaster.feedback.recent_reports")]
+                delegate: Button {
+                    id: feedbackTab
+                    required property int index
+                    required property string modelData
+                    Layout.fillWidth: true
+                    text: modelData
+                    flat: true
+                    highlighted: root.activeTab === index
+                    Accessible.name: modelData
+                    background: Superellipse {
+                        fillColor: root.activeTab === feedbackTab.index
+                                   ? Theme.primarySurface : Theme.surfaceMuted
+                        borderWidth: Theme.strokeHairline
+                        borderColor: root.activeTab === feedbackTab.index
+                                     ? Theme.accent : Theme.borderSubtle
+                        curveDepth: Theme.curveControl
+                    }
+                    onClicked: root.activeTab = index
+                }
+            }
         }
 
         ScrollView {
@@ -92,7 +125,7 @@ GenyAdaptiveDialog {
                 spacing: Theme.space3
 
                 Superellipse {
-                    visible: root.canSubmitFeedback
+                    visible: root.activeTab === 1 && root.canSubmitFeedback
                     Layout.fillWidth: true
                     Layout.preferredHeight: feedbackSummary.implicitHeight + Theme.space3 * 2
                     fillColor: Theme.surfaceMuted
@@ -159,7 +192,8 @@ GenyAdaptiveDialog {
                 }
 
                 ColumnLayout {
-                    visible: root.canSubmitFeedback && openProofConnections.feedbackReports.length > 0
+                    visible: root.activeTab === 1 && root.canSubmitFeedback
+                             && openProofConnections.feedbackReports.length > 0
                     Layout.fillWidth: true
                     spacing: Theme.space1
                     DirectionAwareLabel {
@@ -170,26 +204,46 @@ GenyAdaptiveDialog {
                     }
                     Repeater {
                         model: openProofConnections.feedbackReports.slice(0, 5)
-                        delegate: RowLayout {
+                        delegate: ColumnLayout {
                             required property var modelData
                             Layout.fillWidth: true
-                            spacing: Theme.space2
-                            DirectionAwareLabel {
+                            spacing: Theme.space1
+                            RowLayout {
                                 Layout.fillWidth: true
-                                text: String(parent.modelData.category || "")
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeCaptionSize
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(modelData.category || "")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+                                DirectionAwareLabel {
+                                    text: root.statusLabel(modelData.status)
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
                             }
                             DirectionAwareLabel {
-                                text: root.statusLabel(parent.modelData.status)
-                                color: Theme.accent
+                                Layout.fillWidth: true
+                                text: String(modelData.message || "")
+                                visible: text.length > 0
+                                color: Theme.ink
+                                font.pixelSize: Theme.typeBodySize
+                                wrapMode: Text.Wrap
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(modelData.review_note || "")
+                                visible: text.length > 0
+                                color: Theme.inkMuted
                                 font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
                             }
                         }
                     }
                 }
 
                 DirectionAwareLabel {
+                    visible: root.activeTab === 0
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.feedback.subtitle")
                     color: Theme.inkMuted
@@ -197,6 +251,7 @@ GenyAdaptiveDialog {
                     wrapMode: Text.Wrap
                 }
                 RowLayout {
+                    visible: root.activeTab === 0
                     Layout.fillWidth: true
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
@@ -222,8 +277,7 @@ GenyAdaptiveDialog {
                             }
                             contentItem: Icon {
                                 text: moodButton.modelData.icon
-                                color: root.sentiment === moodButton.modelData.value
-                                       ? Theme.accent : Theme.inkMuted
+                                color: moodButton.modelData.tint
                                 preferredSize: Theme.iconSizeLarge
                             }
                             onClicked: root.sentiment = moodButton.modelData.value
@@ -231,6 +285,7 @@ GenyAdaptiveDialog {
                     }
                 }
                 GridLayout {
+                    visible: root.activeTab === 0
                     Layout.fillWidth: true
                     columns: 2
                     rowSpacing: Theme.space2
@@ -281,6 +336,7 @@ GenyAdaptiveDialog {
                     }
                 }
                 Superellipse {
+                    visible: root.activeTab === 0
                     Layout.fillWidth: true
                     Layout.preferredHeight: 164
                     fillColor: Theme.editorSurface
@@ -300,21 +356,21 @@ GenyAdaptiveDialog {
                     }
                 }
                 DirectionAwareLabel {
-                    visible: !root.canSubmitFeedback
+                    visible: root.activeTab === 0 && !root.canSubmitFeedback
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.feedback.authentication_required")
                     color: Theme.warning
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
-                    visible: openProofConnections.feedbackError.length > 0
+                    visible: root.activeTab === 0 && openProofConnections.feedbackError.length > 0
                     Layout.fillWidth: true
                     text: root.feedbackErrorLabel(openProofConnections.feedbackError)
                     color: Theme.warning
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
-                    visible: root.successAcknowledged
+                    visible: root.activeTab === 0 && root.successAcknowledged
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.feedback.sent")
                     color: Theme.positive
@@ -341,6 +397,7 @@ GenyAdaptiveDialog {
             }
             ActionButton {
                 Layout.fillWidth: true
+                visible: root.activeTab === 0
                 positive: true
                 busy: openProofConnections.feedbackBusy
                 iconGlyph: Theme.iconArrowUpRight

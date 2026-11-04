@@ -305,7 +305,7 @@ test('eight-stage Setup preserves language wheel, legal consent and navigation',
         + setup.slice(setup.indexOf('id: termsStage'), setup.indexOf('id: accountStage'));
     assert.doesNotMatch(legal,/Qt.openUrlExternally/);
     assert.match(setup,/function previousStep\(\)/);
-    assert.match(app,/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
+    assert.match(app,/visible: root.setupReviewOpen \|\| \(presentationBridge.authenticationStateObserved/);
 });
 
 test('recovery phrase uses centered desktop modal and matching mobile full-screen stage',()=>{

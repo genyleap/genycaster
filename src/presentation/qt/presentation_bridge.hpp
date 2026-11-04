@@ -19,6 +19,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool runtimeReady READ runtimeReady NOTIFY runtimeStateChanged)
     Q_PROPERTY(bool authenticationAvailable READ authenticationAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool initialSetupRequired READ initialSetupRequired NOTIFY setupStateChanged)
+    Q_PROPERTY(bool authenticationStateObserved READ authenticationStateObserved NOTIFY authenticationStateChanged)
     Q_PROPERTY(bool initialSetupCompleted READ initialSetupCompleted NOTIFY setupStateChanged)
     Q_PROPERTY(bool legalConsentAccepted READ legalConsentAccepted NOTIFY setupStateChanged)
     Q_PROPERTY(bool isAuthenticated READ isAuthenticated NOTIFY authenticationStateChanged)
@@ -113,6 +114,7 @@ public:
     [[nodiscard]] bool isAuthenticated() const noexcept;
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
+    [[nodiscard]] bool authenticationStateObserved() const noexcept;
     [[nodiscard]] QString authenticationRoute() const;
     /** @brief Preferred connection route, independent of account identity and signing authority. */
     [[nodiscard]] QString preferredNetwork() const;
@@ -526,6 +528,7 @@ private:
     bool m_setupBypassedForVerification{false};
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};
+    bool m_authenticationStateObserved{false};
     QString m_authenticationRoute{QStringLiteral("openproof")};
     QString m_independentNetworkKey{QStringLiteral("independent")};
     QString m_hostedNetworkKey{QStringLiteral("hosted")};

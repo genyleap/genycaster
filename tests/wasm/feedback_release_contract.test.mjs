@@ -51,7 +51,7 @@ test('feedback choices consume pointer input and the entry point uses a face ico
   const header = qml('AppHeader');
   assert.ok(theme.includes('iconFeedback: "social/smile"'));
   assert.ok(header.includes('iconGlyph: Theme.iconFeedback'));
-  assert.equal((dialog.match(/delegate: Button \{/g) || []).length, 2);
+  assert.equal((dialog.match(/delegate: Button \{/g) || []).length, 3);
   assert.doesNotMatch(dialog, /TapHandler \{/);
   assert.match(dialog, /onClicked: root\.sentiment = moodButton\.modelData\.value/);
   assert.match(dialog, /onClicked: root\.category = categoryCard\.modelData\.id/);

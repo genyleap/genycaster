@@ -91,7 +91,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           coalesce(sum(points_awarded),0)::integer AS points
           FROM feedback_reports WHERE issuer=$1 AND subject=$2`,
           [owner.issuer,owner.subject]),
-        pool.query(`SELECT id,category,status,points_awarded,created_at,updated_at
+        pool.query(`SELECT id,category,message,status,review_note,points_awarded,created_at,updated_at
           FROM feedback_reports WHERE issuer=$1 AND subject=$2
           ORDER BY created_at DESC LIMIT 30`,[owner.issuer,owner.subject])
       ]);

@@ -10,7 +10,7 @@ test('feedback controls consume clicks and use a smiling face entry icon', () =>
   const header = read('ui/components/AppHeader.qml');
   assert.ok(theme.includes('iconFeedback: "social/smile"'));
   assert.ok(header.includes('iconGlyph: Theme.iconFeedback'));
-  assert.equal((dialog.match(/delegate: Button \{/g) || []).length, 2);
+  assert.equal((dialog.match(/delegate: Button \{/g) || []).length, 3);
   assert.ok(!dialog.includes('TapHandler {'));
   assert.ok(dialog.includes('onClicked: root.sentiment = moodButton.modelData.value'));
   assert.ok(dialog.includes('onClicked: root.category = categoryCard.modelData.id'));
@@ -22,15 +22,13 @@ test('bookmark cards have even horizontal and vertical inset', () => {
   assert.ok(bookmarks.includes('Layout.margins: Theme.space3'));
 });
 
-test('desktop navigation restores a translucent blurred backdrop without recursive capture', () => {
+test('desktop sidebar stays opaque while the mobile dock retains its blur', () => {
   const nav = read('ui/components/SideNavigation.qml');
-  const shell = read('ui/components/AppShell.qml');
-  assert.ok(nav.includes('import QtQuick.Effects'));
-  assert.ok(nav.includes('objectName: "desktopNavigationGlassBlur"'));
-  assert.ok(nav.includes('sourceItem: root.useGlassBlur ? root.blurSourceItem : null'));
-  assert.ok(nav.includes('recursive: false'));
-  assert.ok(nav.includes('Theme.navigationGlassTint'));
-  assert.ok(shell.includes('blurSourceItem: readingBackdrop'));
+  const dock = read('ui/components/BottomNavigation.qml');
+  assert.ok(nav.includes('fillColor: Theme.surfacePrimary'));
+  assert.ok(!nav.includes('desktopNavigationGlassBlur'));
+  assert.ok(dock.includes('mobileCapsuleBackdropCapture'));
+  assert.ok(dock.includes('blurSourceItem'));
 });
 
 test('returning authenticated users clear the temporary post-logout setup gate', () => {
