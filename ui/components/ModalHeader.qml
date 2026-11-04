@@ -14,8 +14,10 @@ RowLayout {
 
     signal closeRequested()
 
-    spacing: Theme.space3
-    Layout.minimumHeight: Theme.scaleUi(root.subtitle.length > 0 ? 56 : 44)
+    spacing: root.sheetPresentation ? 0 : Theme.space3
+    Layout.minimumHeight: root.sheetPresentation
+                          ? Theme.scaleUi(32)
+                          : Theme.scaleUi(root.subtitle.length > 0 ? 56 : 44)
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
     layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight

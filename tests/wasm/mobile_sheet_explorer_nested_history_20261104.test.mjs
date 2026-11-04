@@ -72,7 +72,7 @@ test('short mobile sheets center titles beneath their grabber without duplicate 
  assert.match(header,/visible: root\.showClose && !root\.sheetPresentation/);
  assert.match(share,/objectName: "castShareMobileDrawer"[\s\S]*?showHandle: true[\s\S]*?interactive: true/);
  assert.match(share,/sheetPresentation: true/);
- assert.match(share,/contentPadding: Theme\.space4/);
+ assert.match(share,/contentPadding: Theme\.space2/);
  assert.match(create,/floatingSheet: true\s*interactive: true/);
  assert.match(create,/sheetPresentation: true/);
  assert.match(app,/sheetPresentation: miniAppDetailDrawer\.mobilePresentation/);

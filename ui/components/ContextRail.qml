@@ -135,18 +135,21 @@ Item {
         borderWidth: 0
         curveDepth: Theme.curveModal
         elevation: Theme.elevationNone
-        implicitHeight: body.implicitHeight + Theme.space5
+        implicitHeight: body.implicitHeight + Theme.space3 * 2
 
         ColumnLayout {
             id: body
             anchors.fill: parent
             anchors.margins: Theme.space3
-            spacing: Theme.space3
+            spacing: Theme.space2
 
             RowLayout {
                 visible: card.headerText.length > 0
                 Layout.fillWidth: true
-                Layout.rightMargin: 34
+                // The reorder handle is the trailing affordance: right in
+                // LTR, left in RTL. Never reserve the wrong reading edge.
+                Layout.leftMargin: Theme.rtl ? 34 : 0
+                Layout.rightMargin: Theme.rtl ? 0 : 34
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
 
@@ -166,6 +169,7 @@ Item {
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: card.headerText
+                        alignToUi: true
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeTitle3Size
                         font.weight: Theme.weightBold
@@ -175,6 +179,7 @@ Item {
                         visible: card.headerDetail.length > 0
                         Layout.fillWidth: true
                         text: card.headerDetail
+                        alignToUi: true
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
@@ -245,9 +250,11 @@ Item {
                         width: 30
                         height: 30
                         anchors.top: parent.top
-                        anchors.right: parent.right
+                        anchors.left: Theme.rtl ? parent.left : undefined
+                        anchors.right: Theme.rtl ? undefined : parent.right
                         anchors.topMargin: Theme.space2
-                        anchors.rightMargin: Theme.space2
+                        anchors.leftMargin: Theme.rtl ? Theme.space2 : 0
+                        anchors.rightMargin: Theme.rtl ? 0 : Theme.space2
                         z: 5
                         curveDepth: Theme.curveCompact
                         fillColor: reorderDrag.active
@@ -410,6 +417,7 @@ Item {
                                                  + LocaleFormat.formatNumber(assetsCard.balance, assetsCard.balance >= 100 ? 0 : 2) + " GENY"
                                                : assetsCard.holding.available ? qsTrId("genycaster.context.not_geny_holder")
                                                : qsTrId("genycaster.context.geny_balance_unavailable")
+                                        alignToUi: true
                                         color: Theme.textPrimary
                                         font.pixelSize: Theme.typeLabelSize
                                         font.weight: Theme.weightBold
@@ -420,6 +428,7 @@ Item {
                                         text: assetsCard.holding.available && assetsCard.holding.holder && assetsCard.valueUsd > 0
                                               ? root.marketMoney(assetsCard.valueUsd)
                                               : qsTrId("genycaster.context.geny_membership_hint")
+                                        alignToUi: true
                                         color: assetsCard.holding.available && assetsCard.holding.holder ? Theme.accent : Theme.textSecondary
                                         font.pixelSize: Theme.typeCaptionSize
                                         maximumLineCount: 2
@@ -462,6 +471,7 @@ Item {
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     text: LocaleFormat.formatInteger((assetsCard.holding.wallets || []).length) + " · Base"
+                                    alignToUi: true
                                     color: Theme.textSecondary
                                     font.pixelSize: Theme.typeCaptionSize
                                 }

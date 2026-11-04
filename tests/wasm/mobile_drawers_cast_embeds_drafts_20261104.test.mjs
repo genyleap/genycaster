@@ -59,7 +59,7 @@ test('drawer headers use the same centered title and close-button layout',()=>{
  const pro=read('ui/components/GenyProDetailsDrawer.qml');
  const apps=read('ui/components/AppsSurface.qml');
  assert.match(shared,/Layout\.alignment: Qt\.AlignVCenter/);
- assert.match(shared,/Layout\.minimumHeight: Theme\.scaleUi/);
+ assert.match(shared,/Layout\.minimumHeight: root\.sheetPresentation[\s\S]*?Theme\.scaleUi\(32\)/);
  assert.match(pro,/height: Theme\.scaleUi\(56\)/);
  assert.match(pro,/ActionButton \{\s*visible: !root\.compact\s*Layout\.alignment: Qt\.AlignVCenter/);
  assert.match(apps,/ModalHeader \{/);

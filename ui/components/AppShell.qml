@@ -2095,16 +2095,20 @@ Item {
             : Math.min(root.desktopContextRailWidth, parent.width * 0.52))
             : root.desktopContextRailWidth
         height: parent ? parent.height : 720
-        contentPadding: root.mobile ? Theme.space3 : 0
+        // The mobile inspector is already a full-width canvas. Avoid a
+        // second outer gutter on top of ContextRail's own card gutters.
+        contentPadding: 0
 
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {
                 visible: root.mobile
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? Theme.scaleUi(52) : 0
+                Layout.preferredHeight: visible ? Theme.scaleUi(48) : 0
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
+                Layout.leftMargin: root.mobile ? Theme.space3 : 0
+                Layout.rightMargin: root.mobile ? Theme.space3 : 0
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
                 Icon {

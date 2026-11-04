@@ -433,23 +433,36 @@ RowLayout {
             // Gesture-dismissal matches the exposed sheet handle.
             interactive: true
             width: parent ? parent.width : 390
+            // Size the sheet to its actual actions. A fixed 352px panel left
+            // a dead shelf below the last row and a large gap after the title.
             height: parent
-                ? Math.min(parent.height * 0.76, Theme.scaleUi(352))
-                : Theme.scaleUi(352)
-            contentPadding: Theme.space4
+                ? Math.min(parent.height * 0.82,
+                           Math.max(Theme.scaleUi(226),
+                                    shareSheetContents.implicitHeight + topPadding + bottomPadding))
+                : Theme.scaleUi(286)
+            contentPadding: Theme.space2
+            topPadding: Theme.space5
+            bottomPadding: Theme.space3
             contentItem: ColumnLayout {
-                spacing: Theme.space2
+                id: shareSheetContents
+                spacing: Theme.space1
 
                 ModalHeader {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.scaleUi(44)
+                    Layout.preferredHeight: Theme.scaleUi(34)
                     title: qsTrId("genycaster.share.cast")
                     sheetPresentation: true
                     onCloseRequested: root.closeShareMenu()
                 }
+                // Quiet section boundary. The action rows begin immediately
+                // below this line, not after another empty header-sized gap.
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.strokeHairline
+                    color: Theme.borderSubtle
+                }
                 Loader {
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
                     sourceComponent: castShareActionList
                 }
             }
@@ -463,6 +476,7 @@ RowLayout {
 
             ActionButton {
                 Layout.fillWidth: true
+                compact: root.compact
                 quiet: true
                 alignStart: true
                 iconGlyph: Theme.iconShare
@@ -475,6 +489,7 @@ RowLayout {
             }
             ActionButton {
                 Layout.fillWidth: true
+                compact: root.compact
                 quiet: true
                 alignStart: true
                 iconGlyph: Theme.iconCopy
@@ -487,6 +502,7 @@ RowLayout {
             }
             ActionButton {
                 Layout.fillWidth: true
+                compact: root.compact
                 quiet: true
                 alignStart: true
                 iconGlyph: Theme.iconCopy
@@ -501,6 +517,7 @@ RowLayout {
             }
             ActionButton {
                 Layout.fillWidth: true
+                compact: root.compact
                 quiet: true
                 alignStart: true
                 iconGlyph: Theme.iconArrowUpRight
@@ -515,6 +532,7 @@ RowLayout {
                     root.normalizedCastId,
                     String(root.castData.author || "")).length > 0
                 Layout.fillWidth: true
+                compact: root.compact
                 quiet: true
                 alignStart: true
                 iconGlyph: Theme.iconArrowUpRight

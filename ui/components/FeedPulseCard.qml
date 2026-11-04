@@ -136,7 +136,9 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.rightMargin: 34
+            // Match ContextRail's trailing reorder handle on both sides.
+            Layout.leftMargin: Theme.rtl ? 34 : 0
+            Layout.rightMargin: Theme.rtl ? 0 : 34
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
@@ -160,6 +162,7 @@ Superellipse {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.scopeMode === "profile" ? qsTrId("genycaster.feed_pulse.profile_snapshot") : qsTrId("genycaster.feed_pulse.title")
+                    alignToUi: true
                     color: Theme.textPrimary
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
@@ -168,6 +171,7 @@ Superellipse {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.freshnessText()
+                    alignToUi: true
                     color: root.offline || root.stale ? Theme.warning : Theme.textTertiary
                     font.pixelSize: Theme.typeCaptionSize
                     elide: Text.ElideRight
@@ -213,7 +217,9 @@ Superellipse {
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 54
-            layoutDirection: Qt.LeftToRight
+            // Weekly buckets follow the UI reading direction just like their
+            // start/end labels; the latest bucket mirrors in Persian.
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space1
 
             Repeater {
