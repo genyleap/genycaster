@@ -25,7 +25,7 @@ Item {
     // being initialized. GraphicsInfo gates presentation, not asset preparation.
     readonly property bool artworkWanted: root.controller !== null && root.controller.spriteAvailable && root.visible && root.viewportVisible
         && root.width > 0 && root.height > 0 && root.unicodeSequence.length > 0
-        && Qt.application.state === Qt.ApplicationActive
+        // Deactivation pauses playback, but must not release the painted frame.
         && (root.active || root.preserveArtwork)
     readonly property bool animationReady: !root.requestFailed && atlas.status === Image.Ready
         && spriteLoader.item !== null
@@ -177,7 +177,7 @@ Item {
         id: spriteLoader
         anchors.fill: parent
         active: root.rendererUsable && atlas.status === Image.Ready
-                && root.artworkWanted && root.playbackLoops !== 0
+                && root.artworkWanted
         onStatusChanged: if (status === Loader.Error) {
             // console.warn("Genycaster emoji", root.unicodeSequence, "renderer: sprite component failed")
             root.fail("renderer: sprite component failed")
@@ -194,9 +194,9 @@ Item {
             // Qt 6.12's AnimatedSprite::setPaused() logs when it is asked to
             // pause its internal NumberAnimation before it has started. Never
             // bind running to the rapidly changing viewport/active state.
-            // The parent Loader creates this item only for active playback;
-            // unloading stops it safely. Reduced motion uses text fallback.
-            running: true
+            // Stopping retains the first rendered frame. Recreating the
+            // delegate on focus loss caused the inline glyph to disappear.
+            running: root.playbackLoops !== 0
             finishBehavior: AnimatedSprite.FinishAtInitialFrame
         }
     }
