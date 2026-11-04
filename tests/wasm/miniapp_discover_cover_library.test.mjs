@@ -25,7 +25,7 @@ test("Discover cards use true covers without stretching icons as hero art",()=>{
     assert.match(view,/String\(app\.coverSource \|\| ""\)/);
     assert.match(view,/heading: qsTrId\("genycaster.apps.discover"\)/);
     assert.match(view,/objectName: "miniAppLibraryShelves"/);
-    assert.match(view,/miniAppCatalog\.recordRecentUse\(app\)/);
+    assert.match(view,/miniAppCatalog\.recordRecentUse\(root\.pendingLaunchApp\)/);
     assert.match(hero,/source: String\(featuredCell\.app\.coverSource \|\| ""\)/);
     assert.match(hero,/source: String\(featuredCell\.app\.iconSource \|\| ""\)/);
     assert.match(hero,/clipToSuperellipse: true/);
@@ -45,9 +45,10 @@ test("recent apps only represent real launch history and remain bounded",()=>{
     assert.match(cpp,/loadRecent\(\)/);
     assert.match(cpp,/recentApps\.prepend\(std::move\(row\)\)/);
     assert.match(cpp,/settings\.setValue\(QString::fromLatin1\(recentMiniAppsSettingsKey\), recentApps\)/);
-    assert.match(view,/miniAppCatalog\.recordRecentUse\(app\)/);
-    const first=view.indexOf("miniAppCatalog.recordRecentUse(app)");
-    assert.ok(first>view.indexOf("if (Number(presentationBridge.accountFid"));
+    assert.match(view,/miniAppCatalog\.recordRecentUse\(root\.pendingLaunchApp\)/);
+    const first=view.indexOf("miniAppCatalog.recordRecentUse(root.pendingLaunchApp)");
+    assert.ok(first>view.indexOf("function onExternalLaunchSucceeded()"));
+    assert.match(view,/if \(Number\(presentationBridge\.accountFid \|\| 0\) <= 0\)/);
     assert.match(view,/recentApps: miniAppCatalog\.recentApps/);
     assert.match(view,/savedApps: miniAppCatalog\.myApps/);
 });

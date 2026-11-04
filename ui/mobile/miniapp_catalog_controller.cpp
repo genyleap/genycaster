@@ -273,7 +273,10 @@ constexpr qsizetype recentMiniAppLimit = 20;
         coverUrl = firstString(row, coverKeys);
     }
     if (coverUrl.isEmpty()) {
-        const QJsonArray screenshots = app.value(QStringLiteral("screenshot_urls")).toArray();
+        QJsonArray screenshots = app.value(QStringLiteral("screenshot_urls")).toArray();
+        if (screenshots.isEmpty()) {
+            screenshots = app.value(QStringLiteral("screenshotUrls")).toArray();
+        }
         if (!screenshots.isEmpty()) coverUrl = screenshots.first().toString().trimmed();
     }
     if (!coverUrl.isEmpty()) {
@@ -292,13 +295,23 @@ constexpr qsizetype recentMiniAppLimit = 20;
     const QString category = firstString(app, {
         QStringLiteral("primary_category"), QStringLiteral("primaryCategory"), QStringLiteral("category")});
     const QStringList tags = stringArray(app.value(QStringLiteral("tags")));
-    const QJsonArray screenshotArray = app.value(QStringLiteral("screenshot_urls")).toArray();
+    QJsonArray screenshotArray = app.value(QStringLiteral("screenshot_urls")).toArray();
+    if (screenshotArray.isEmpty()) {
+        screenshotArray = app.value(QStringLiteral("screenshotUrls")).toArray();
+    }
+    if (screenshotArray.isEmpty()) {
+        screenshotArray = row.value(QStringLiteral("screenshot_urls")).toArray();
+    }
+    if (screenshotArray.isEmpty()) {
+        screenshotArray = row.value(QStringLiteral("screenshotUrls")).toArray();
+    }
     QStringList screenshots{};
     for (const QJsonValue& screenshot : screenshotArray) {
         if (screenshots.size() >= 5) break;
         const QString raw = screenshot.toString();
-        const QUrl source{raw, QUrl::StrictMode};
-        const QUrl absolute = source.isRelative() ? parsedHome.resolved(source) : source;
+        const QUrl screenshotUrl{raw, QUrl::StrictMode};
+        const QUrl absolute = screenshotUrl.isRelative()
+            ? parsedHome.resolved(screenshotUrl) : screenshotUrl;
         const QString image = publicMiniAppImageSource(absolute.toString(QUrl::FullyEncoded), homeUrl);
         if (!image.isEmpty()) screenshots.append(image);
     }

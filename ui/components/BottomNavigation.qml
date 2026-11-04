@@ -349,9 +349,9 @@ Item {
         Button {
             id: mobilePrimaryAction
             objectName: "mobilePrimaryActionButton"
-            Layout.preferredHeight: 56
-            Layout.preferredWidth: 56
-            Layout.minimumWidth: 56
+            Layout.preferredHeight: 52
+            Layout.preferredWidth: 52
+            Layout.minimumWidth: 52
             Layout.alignment: Qt.AlignVCenter
             flat: true
             hoverEnabled: true
@@ -360,29 +360,31 @@ Item {
                 : Theme.mobileAction === "settings" ? qsTrId("genycaster.settings.appearance")
                 : qsTrId("genycaster.bottom_nav.create")
             Accessible.name: text
+            // Use the same themed fill, superellipse edges and restrained
+            // elevation as the desktop FloatingComposeButton. The optional
+            // photo/search/settings actions retain their chosen accent.
             background: Superellipse {
                 curveDepth: height / 2
-                exponent: 2.01
-                fillColor: Theme.mobileActionColor
-                borderWidth: 0
-                // Shadow is a single offset vector shape, not a blur pass.
-                Superellipse {
-                    anchors.fill: parent
-                    anchors.topMargin: 3
-                    anchors.bottomMargin: -3
-                    z: -1
-                    fillColor: Theme.dark ? "#48000000" : "#28000000"
-                    curveDepth: height / 2
-                    exponent: 2.0
-                }
-                scale: mobilePrimaryAction.down ? 0.91 : 1
+                exponent: Theme.superellipseExponent
+                fillColor: mobilePrimaryAction.down && Theme.mobileActionColorPreset === "theme"
+                    ? Theme.primaryPressed : Theme.mobileActionColor
+                borderWidth: Theme.keyboardFocusVisible(mobilePrimaryAction)
+                    ? 2 : Theme.strokeHairline
+                borderColor: Theme.keyboardFocusVisible(mobilePrimaryAction)
+                    ? Theme.focusOnAccent : Qt.rgba(Theme.accentInk.r,
+                        Theme.accentInk.g, Theme.accentInk.b, 0.16)
+                highQualityEdges: true
+                elevation: Theme.elevationPopover
+                shadowColor: Theme.shadow
+                shadowOpacityScale: mobilePrimaryAction.down ? 0.4 : 0.94
+                scale: mobilePrimaryAction.down ? 0.975 : 1
                 Behavior on scale {
                     enabled: root.animateDock
-                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 190; easing.type: Easing.OutCubic }
                 }
                 Behavior on fillColor {
                     enabled: root.animateDock
-                    ColorAnimation { duration: 230; easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: 190; easing.type: Easing.OutCubic }
                 }
             }
             contentItem: Icon {

@@ -40,15 +40,15 @@ test('mobile dock has five destinations and a separate configurable Action Butto
     for(const id of ['mobileDockHome','mobileDockExplore','mobileDockApps',
                       'mobileBottomBookmarksButton','mobileDockProfile'])
         assert.match(nav, new RegExp('objectName: "'+id+'"'));
-    assert.match(nav, /Layout\.preferredWidth: 56/);
-    assert.match(nav, /anchors\.topMargin: 8/);
+    assert.match(nav, /Layout\.preferredWidth: 52/);
+    assert.match(nav, /anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
     assert.match(nav, /Theme\.mobileActionColor/);
     assert.match(nav, /Theme\.mobileActionIcon/);
     assert.match(nav, /case "photo": root\.photoRequested\(\)/);
     assert.match(nav, /case "search": root\.searchRequested\(\)/);
     assert.match(nav, /case "settings": root\.settingsRequested\(\)/);
     assert.match(nav, /default: root\.createRequested\(\)/);
-    assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: 88/);
+    assert.match(shell, /id: mobileBottomNavigation[\s\S]*?height: Qt\.platform\.os === "android" && root\.mobile \? 74 : 88/);
     assert.match(shell, /onPhotoRequested: root\.openComposer\(null, "media"\)/);
     assert.match(shell, /onSearchRequested: searchPalette\.open\(\)/);
     assert.match(shell, /anchors\.left: readingPane\.left\s+anchors\.right: readingPane\.right\s+anchors\.bottom: readingPane\.bottom/);

@@ -20,7 +20,7 @@ test('five destinations stay in a capsule and the sixth control is independent',
     >capsule.indexOf('objectName: "mobileDockProfile"'));
   assert.match(dock,/showSelectedLabel: width >= 375/);
   assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : 39/);
-  assert.match(dock,/Layout\.preferredWidth: 56/);
+  assert.match(dock,/Layout\.preferredWidth: 52/);
   assert.match(dock,/layoutDirection: Theme\.uiDirection/);
   assert.match(action,/Accessible\.name: text/);
   assert.match(action,/Theme\.contrastInk\(Theme\.mobileActionColor\)/);
@@ -44,7 +44,7 @@ test('persisted action choice is allowlisted and settings can be changed from Ap
   assert.match(theme,/property Settings mobileActionPreferences: Settings \{/);
   assert.match(theme,/category: "MobileActionButton"/);
   assert.match(theme,/property string action: "compose"/);
-  assert.match(theme,/property string colorPreset: "blue"/);
+  assert.match(theme,/property string colorPreset: "theme"/);
   for(const value of ['compose','photo','search','settings'])
     assert.match(theme,new RegExp('"'+value+'"'));
   for(const value of ['blue','coral','theme'])
@@ -53,7 +53,7 @@ test('persisted action choice is allowlisted and settings can be changed from Ap
   assert.match(theme,/function setMobileActionColor\(preset\) \{/);
   assert.match(settings,/objectName: "mobileActionButtonPreferences"/);
   assert.match(settings,/Theme\.setMobileAction\(modelData\.id\)/);
-  assert.match(settings,/Theme\.setMobileActionColor\(modelData\.id\)/);
+  assert.match(settings,/Theme\.setMobileActionColor\(actionColorChoice\.modelData\.id\)/);
   assert.match(settings,/Theme\.mobileAction === modelData\.id/);
   assert.match(settings,/Theme\.mobileActionColorPreset === modelData\.id/);
 });

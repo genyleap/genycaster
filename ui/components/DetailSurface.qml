@@ -366,7 +366,9 @@ ListView {
                 }
             }
 
-            Item { Layout.fillWidth: root.activeView !== "cast" }
+            // Keep Back at the leading edge; on phones move the cast actions
+            // to the trailing edge, matching the desktop toolbar rhythm.
+            Item { Layout.fillWidth: root.compact || root.activeView !== "cast" }
 
             ActionButton {
                 visible: root.activeView === "cast"

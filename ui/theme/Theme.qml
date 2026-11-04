@@ -15,7 +15,8 @@ QtObject {
     property Settings mobileActionPreferences: Settings {
         category: "MobileActionButton"
         property string action: "compose"
-        property string colorPreset: "blue"
+        // New installations follow the app accent; blue/coral remain opt-in.
+        property string colorPreset: "theme"
     }
     readonly property string mobileAction: ["compose","photo","search","settings"].indexOf(
         mobileActionPreferences.action) >= 0 ? mobileActionPreferences.action : "compose"
@@ -25,7 +26,7 @@ QtObject {
         ? "#FF5267" : mobileActionColorPreset === "theme" ? presetFill : "#3266FA"
     readonly property string mobileActionIcon: mobileAction === "photo" ? iconImage
         : mobileAction === "search" ? iconSearch
-        : mobileAction === "settings" ? iconSettings : iconPlus
+        : mobileAction === "settings" ? iconSettings : iconCompose
     function setMobileAction(action) {
         if(["compose","photo","search","settings"].indexOf(action)<0) return false
         mobileActionPreferences.action=action

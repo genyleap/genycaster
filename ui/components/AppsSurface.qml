@@ -87,6 +87,7 @@ Item {
     }
     function showAppDetails(app) {
         if (!app || !String(app.homeUrl || "").length) return
+        screenshotSection.screenshotFailures = 0
         root.selectedMiniApp = app
         miniAppDetailDrawer.open()
     }
@@ -1203,7 +1204,13 @@ Item {
                     SuperellipseImage {
                         id: detailCover
                         Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? Math.min(180, detailScroll.width * 0.52) : 0
+                        // Match the actual banner ratio instead of cutting off
+                        // its edges with a fixed-height, center-cropped box.
+                        Layout.preferredHeight: visible ? Math.max(112, Math.min(280,
+                            detailScroll.width * (detailCover.sourceImplicitWidth > 0
+                                && detailCover.sourceImplicitHeight > 0
+                                ? detailCover.sourceImplicitHeight / detailCover.sourceImplicitWidth
+                                : 0.52))) : 0
                         visible: String(root.selectedMiniApp.coverSource || "").length > 0
                         source: String(root.selectedMiniApp.coverSource || "")
                         mediaCategory: "miniapps"
@@ -1213,10 +1220,10 @@ Item {
                         showLoadingIndicator: true
                         showManualLoadIndicator: false
                         showFailureIndicator: false
-                        fillMode: Image.PreserveAspectCrop
-                        requestedSourceWidth: 560
-                        requestedSourceHeight: 320
-                        clipToSuperellipse: false
+                        fillMode: Image.PreserveAspectFit
+                        requestedSourceWidth: 720
+                        requestedSourceHeight: 480
+                        clipToSuperellipse: true
                         curveDepth: Theme.curveContainer
                     }
 
@@ -1363,9 +1370,14 @@ Item {
                     }
 
                     ColumnLayout {
+                        id: screenshotSection
                         Layout.fillWidth: true
-                        visible: Boolean(root.selectedMiniApp.screenshots
-                                         && root.selectedMiniApp.screenshots.length > 0)
+                        // The publisher may remove screenshots while their URLs
+                        // remain in the catalogue. Never show empty error tiles.
+                        property int screenshotFailures: 0
+                        readonly property int screenshotTotal: root.selectedMiniApp.screenshots
+                            ? root.selectedMiniApp.screenshots.length : 0
+                        visible: screenshotTotal > 0 && screenshotFailures < screenshotTotal
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -1374,38 +1386,51 @@ Item {
                             font.weight: Theme.weightDemiBold
                             color: Theme.ink
                         }
-                        ListView {
+                        Flickable {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 154
-                            orientation: ListView.Horizontal
-                            layoutDirection: Qt.LeftToRight
-                            spacing: Theme.space2
+                            Layout.preferredHeight: 156
+                            contentWidth: screenshotRow.implicitWidth
+                            contentHeight: height
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
-                            model: root.selectedMiniApp.screenshots || []
-                            delegate: SuperellipseImage {
-                                id: screenshotPreview
-                                required property string modelData
-                                width: 224
-                                height: 148
-                                source: modelData
-                                mediaCategory: "miniapps"
-                                forceAutomaticDownload: true
-                                deferNewLoadsWhileScrolling: false
-                                showLoadingIndicator: false
-                                showFailureIndicator: false
-                                showManualLoadIndicator: false
-                                fillMode: Image.PreserveAspectCrop
-                                requestedSourceWidth: 340
-                                requestedSourceHeight: 224
-                                clipToSuperellipse: false
-                                curveDepth: Theme.curveControl
-                                Icon {
-                                    anchors.centerIn: parent
-                                    visible: screenshotPreview.loadFailed
-                                    text: Theme.iconImage
-                                    preferredSize: 25
-                                    color: Theme.inkMuted
+                            flickableDirection: Flickable.HorizontalFlick
+                            Row {
+                                id: screenshotRow
+                                spacing: Theme.space2
+                                Repeater {
+                                    // At most five screenshots: load all five so
+                                    // failures offscreen can collapse the section.
+                                    model: root.selectedMiniApp.screenshots || []
+                                    delegate: SuperellipseImage {
+                                        id: screenshotPreview
+                                        required property string modelData
+                                        property bool failureCounted: false
+                                        visible: !loadFailed
+                                        width: sourceImplicitWidth > 0 && sourceImplicitHeight > 0
+                                            ? Math.max(94, Math.min(240,
+                                                height * sourceImplicitWidth / sourceImplicitHeight))
+                                            : 220
+                                        height: 150
+                                        source: modelData
+                                        mediaCategory: "miniapps"
+                                        forceAutomaticDownload: true
+                                        deferNewLoadsWhileScrolling: false
+                                        framePacedPresentation: false
+                                        showLoadingIndicator: false
+                                        showFailureIndicator: false
+                                        showManualLoadIndicator: false
+                                        fillMode: Image.PreserveAspectFit
+                                        requestedSourceWidth: 480
+                                        requestedSourceHeight: 480
+                                        clipToSuperellipse: true
+                                        curveDepth: Theme.curveControl
+                                        onLoadFailedChanged: {
+                                            if (loadFailed && !failureCounted) {
+                                                failureCounted = true
+                                                screenshotSection.screenshotFailures++
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

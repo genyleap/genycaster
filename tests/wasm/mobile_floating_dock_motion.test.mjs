@@ -13,12 +13,12 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.doesNotMatch(dock,/Rectangle\s*\{\s*anchors\.fill:\s*parent/);
   assert.doesNotMatch(html,/@media\(max-width:700px\)\{body::after/);
   assert.doesNotMatch(html,/background-color:#202128/);
-  assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: 88/);
+  assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: Qt\.platform\.os === "android" && root\.mobile \? 74 : 88/);
   assert.match(shell,/anchors\.bottomMargin: 0/);
   assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
   assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
-  assert.match(dock,/anchors\.topMargin: 8/);
-  assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter/);
+  assert.match(dock,/anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
+  assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/root\.width >= 375/);
@@ -36,8 +36,9 @@ test('capsule, selected states and action button are border-free in light and da
   assert.match(capsule,/objectName: "mobileCapsuleGlassTint"/);
   assert.match(capsule,/fillColor: root\.useBackdropBlur[\s\S]*?Theme\.navigationGlassTint/);
   assert.match(capsule,/borderWidth: 0/);
-  assert.match(primary,/fillColor: Theme\.mobileActionColor[\s\S]*?borderWidth: 0/);
-  assert.doesNotMatch(primary,/borderColor:/);
+  assert.match(primary,/Theme\.mobileActionColorPreset === "theme"[\s\S]*?Theme\.primaryPressed : Theme\.mobileActionColor/);
+  assert.match(primary,/borderWidth: Theme\.keyboardFocusVisible\(mobilePrimaryAction\)/);
+  assert.match(primary,/highQualityEdges: true/);
 });
 
 test('easing is responsive, interruptible and respects reduced motion',()=>{
@@ -46,8 +47,8 @@ test('easing is responsive, interruptible and respects reduced motion',()=>{
     assert.match(dock,new RegExp('Behavior on '+section+' \\{'));
   assert.doesNotMatch(dock,/Behavior on implicitWidth/);
   assert.match(dock,/ColorAnimation \{ duration: 185; easing\.type: Easing\.OutCubic \}/);
-  assert.match(dock,/ColorAnimation \{ duration: 230; easing\.type: Easing\.OutCubic \}/);
-  assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.91 : 1/);
+  assert.match(dock,/ColorAnimation \{ duration: 190; easing\.type: Easing\.OutCubic \}/);
+  assert.match(dock,/scale: mobilePrimaryAction\.down \? 0\.975 : 1/);
   const allBehaviors=[...dock.matchAll(/Behavior on (?:fillColor|scale|color|opacity|implicitWidth) \{\s*enabled: ([^\n]+)/g)];
   assert.ok(allBehaviors.length>=5);
   assert.ok(allBehaviors.every(match=>match[1].trim()==='root.animateDock'));
