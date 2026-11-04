@@ -37,7 +37,7 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/navigationCapsule\.backdropOrigin\.y - navigationCapsule\.sampleTop/);
   // Convolution needs a larger source than its final 56px visible mask:
   // otherwise edge texels stretch text and image highlights along the pill.
-  assert.match(glass,/readonly property real blurOverscan: 36/);
+  assert.match(glass,/readonly property real blurOverscan: 48/);
   assert.match(glass,/id: expandedBackdrop/);
   assert.match(glass,/x: -navigationCapsule\.sampleLeft/);
   assert.match(glass,/y: -navigationCapsule\.sampleTop/);
@@ -48,12 +48,13 @@ test('frosted nav samples only a small backdrop region and masks its edges',()=>
   assert.match(glass,/recursive: false/);
   assert.match(glass,/objectName: "mobileCapsuleGlassBlur"/);
   assert.match(glass,/blurMax: 32/);
-  assert.match(glass,/blur: 0\.72/);
+  assert.match(glass,/blur: 0\.87/);
+  assert.match(glass,/blurMultiplier: 1\.3/);
   assert.match(glass,/id: capsuleBackdrop[\s\S]*?visible: false/);
   assert.match(glass,/id: capsuleMask/);
   assert.match(glass,/radius: height \/ 2/);
   assert.match(glass,/maskEnabled: true/);
-  assert.match(glass,/maskSource: capsuleMask/);
+  assert.match(glass,/maskSource: capsuleMaskTexture/);
   assert.match(glass,/objectName: "mobileCapsuleGlassTint"/);
   assert.match(glass,/fillColor: root\.useBackdropBlur[\s\S]*?Theme\.navigationGlassTint : Theme\.surfaceElevated/);
   assert.match(glass,/borderWidth: 0/);
