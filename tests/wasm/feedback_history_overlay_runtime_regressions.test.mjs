@@ -17,6 +17,20 @@ test('private feedback history includes report text and notes from PostgreSQL', 
   assert.match(controller, /reply->bytesAvailable\(\) <= 512 \* 1024/);
 });
 
+test('submitted text is confirmed by the API before history refresh', () => {
+  const store = source('services/account-sync/pg_store.mjs');
+  const controller = source('ui/mobile/openproof_connections_controller.cpp');
+  const dialog = source('ui/components/FeedbackDialog.qml');
+  assert.match(store, /RETURNING id,category,status,points_awarded,created_at,message/);
+  assert.match(controller, /const QByteArray confirmationBytes = status == 201/);
+  assert.match(controller, /report\.insert\(QStringLiteral\("message"\), body\)/);
+  assert.match(controller, /m_feedbackReports\.prepend\(report\)/);
+  assert.match(controller, /cancelNetworkReply\(m_feedbackRead, this\);\s*fetchFeedback\(\);/);
+  assert.match(dialog, /objectName: "feedbackReportMessage"/);
+  assert.match(dialog, /text: String\(reportCard\.modelData\.message \|\| ""\)\s+textFormat: Text\.PlainText/);
+  assert.match(dialog, /wrapMode: Text\.WrapAtWordBoundaryOrAnywhere/);
+});
+
 test('recycled cast share menus guard missing window overlay', () => {
   const bar = source('ui/components/EngagementBar.qml');
   assert.match(bar, /const overlay = Overlay\.overlay/);
