@@ -17,6 +17,8 @@ GenyAdaptiveDialog {
     signal colorAccepted(string color)
 
     contentPadding: Theme.space3
+    mobileFullScreen: true
+    showHandle: false
     mobileHeightRatio: 0.92
     width: root.compactPresentation
            ? (parent ? parent.width : 420)

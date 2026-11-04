@@ -12,6 +12,10 @@ Item {
     property Item blurSourceItem: null
     property int contentPadding: Theme.space3
     property bool dimBackground: true
+    // Explicit presentation contract: compact confirmation prompts remain
+    // short gesture-dismissable sheets, while scrollable forms opt into a
+    // full-screen inspector with their own Close control and no pull handle.
+    property bool mobileFullScreen: false
     property bool showHandle: true
     property real mobileHeightRatio: 0.90
     property real popupZ: 1000
@@ -105,14 +109,18 @@ Item {
         id: mobileDrawer
         parent: control.parent
         bottomSheet: true
+        fullScreen: control.mobileFullScreen
+        interactive: !control.mobileFullScreen
         dimBackground: control.dimBackground
         blurSourceItem: control.blurSourceItem
-        showHandle: control.showHandle
+        showHandle: !control.mobileFullScreen && control.showHandle
         contentPadding: control.contentPadding
         z: control.popupZ
         width: parent ? parent.width : control.width
-        height: Math.min(control.height,
-                         parent ? Math.max(280, parent.height * control.mobileHeightRatio) : control.height)
+        height: control.mobileFullScreen
+                ? (parent ? parent.height : control.height)
+                : Math.min(control.height,
+                           parent ? Math.max(280, parent.height * control.mobileHeightRatio) : control.height)
 
         contentItem: Item {
             id: mobileContentHost

@@ -18,6 +18,8 @@ GenyAdaptiveDialog {
                                                     : qsTrId("genycaster.rendering.off")
 
     contentPadding: root.compactPresentation ? Theme.space3 : Theme.space4
+    mobileFullScreen: true
+    showHandle: false
     mobileHeightRatio: 0.88
     width: root.compactPresentation
            ? root.hostWidth
