@@ -2986,6 +2986,40 @@ void connectRuntime(
         });
 #endif
 
+    // A restored account may lose registry reachability without losing its
+    // keychain signer. Re-verification is read-only: it never opens the
+    // recovery flow, signs KEY_ADD, or mutates the secure vault.
+    QObject::connect(&bridge, &PresentationBridge::signerRefreshRequested, &bridge,
+        [&bridge, runtime, signerObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ] {
+            if (!bridge.isAuthenticated() || bridge.signerBusy() || bridge.writeReady())
+                return;
+#if defined(__EMSCRIPTEN__)
+            if (bridge.accountFid() != 0)
+                browserSigner->start(QStringLiteral("restore"),
+                    QString::number(bridge.accountFid()),
+                    QJsonObject{{QStringLiteral("rememberLocal"), true}});
+#else
+            if (!runtime->signerService) return;
+            const auto session = runtime->currentSessionSnapshot();
+            if (!session || session->fid.value != bridge.accountFid()) return;
+            (void)runtime->signerService->restore(session, signerObserver);
+#endif
+        });
+
+    QObject::connect(&bridge, &PresentationBridge::networkReachabilityChanged, &bridge,
+        [&bridge](bool known, bool online) {
+            if (known && online && bridge.isAuthenticated()
+                && !bridge.signerBusy() && !bridge.writeReady()
+                && (bridge.signerPhase() == QStringLiteral("unavailable")
+                    || bridge.signerPhase() == QStringLiteral("failed"))) {
+                bridge.refreshSigner();
+            }
+        });
+
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
         [&bridge, runtime, signerObserver
 #if defined(__EMSCRIPTEN__)
