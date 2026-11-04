@@ -2744,6 +2744,74 @@ Company | https://company.com</source>
             <source>Copy</source>
             <translation>Kopieren</translation>
         </message>
+        <message id="genycaster.feedback.stats">
+            <source>Feedback statistics</source>
+            <translation>Feedback-Statistik</translation>
+        </message>
+        <message id="genycaster.feedback.stats_total">
+            <source>Reports</source>
+            <translation>Berichte</translation>
+        </message>
+        <message id="genycaster.feedback.stats_accepted">
+            <source>Accepted</source>
+            <translation>Akzeptiert</translation>
+        </message>
+        <message id="genycaster.feedback.stats_resolved">
+            <source>Resolved</source>
+            <translation>Gelöst</translation>
+        </message>
+        <message id="genycaster.feedback.points">
+            <source>%1 points earned</source>
+            <translation>%1 Punkte erhalten</translation>
+        </message>
+        <message id="genycaster.feedback.recent_reports">
+            <source>Recent reports</source>
+            <translation>Letzte Berichte</translation>
+        </message>
+        <message id="genycaster.feedback.authentication_required">
+            <source>Sign in to send feedback and view your reports.</source>
+            <translation>Melde dich an, um Feedback zu senden und deine Berichte zu sehen.</translation>
+        </message>
+        <message id="genycaster.feedback.limit_reached">
+            <source>Daily report limit reached. Try again later.</source>
+            <translation>Tageslimit für Berichte erreicht. Bitte später erneut versuchen.</translation>
+        </message>
+        <message id="genycaster.feedback.invalid">
+            <source>Please describe the issue in at least 10 characters.</source>
+            <translation>Bitte beschreibe das Problem mit mindestens 10 Zeichen.</translation>
+        </message>
+        <message id="genycaster.feedback.unavailable">
+            <source>Feedback couldn't be sent. Please try again.</source>
+            <translation>Feedback konnte nicht gesendet werden. Bitte erneut versuchen.</translation>
+        </message>
+        <message id="genycaster.feedback.status_submitted">
+            <source>Submitted</source>
+            <translation>Gesendet</translation>
+        </message>
+        <message id="genycaster.feedback.status_triaged">
+            <source>Under review</source>
+            <translation>In Prüfung</translation>
+        </message>
+        <message id="genycaster.feedback.status_accepted">
+            <source>Accepted</source>
+            <translation>Akzeptiert</translation>
+        </message>
+        <message id="genycaster.feedback.status_resolved">
+            <source>Resolved</source>
+            <translation>Gelöst</translation>
+        </message>
+        <message id="genycaster.feedback.status_rejected">
+            <source>Not accepted</source>
+            <translation>Nicht akzeptiert</translation>
+        </message>
+        <message id="genycaster.feedback.sent">
+            <source>Thanks! Your feedback has been sent.</source>
+            <translation>Danke! Dein Feedback wurde gesendet.</translation>
+        </message>
+        <message id="genycaster.feedback.submit">
+            <source>Send report</source>
+            <translation>Bericht senden</translation>
+        </message>
         <message id="genycaster.feedback.done">
             <source>Done</source>
             <translation>Fertig</translation>

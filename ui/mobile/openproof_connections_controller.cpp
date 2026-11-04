@@ -12,6 +12,7 @@
 #include <QRegularExpression>
 #include <QCryptographicHash>
 #include <QSettings>
+#include <QSysInfo>
 #include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
@@ -2465,6 +2466,13 @@ void OpenProofConnectionsController::clearAccountGrant()
     cancelNetworkReply(m_portableConnectionsRequest, this);
     cancelNetworkReply(m_accountConnectionsRequest, this);
     cancelNetworkReply(m_cloudRequest, this);
+    cancelNetworkReply(m_feedbackRead, this);
+    cancelNetworkReply(m_feedbackWrite, this);
+    m_feedbackStats.clear();
+    m_feedbackReports.clear();
+    m_feedbackError.clear();
+    m_feedbackSubmitted = false;
+    emit feedbackChanged();
     cancelNetworkReply(m_proEntitlementsRead, this);
     cancelNetworkReply(m_genyAssetsRead, this);
     m_genyAssets.clear();
@@ -3453,4 +3461,115 @@ void OpenProofConnectionsController::disconnectProvider(
             finishAction();
             refreshConnections();
         });
+}
+
+void OpenProofConnectionsController::fetchFeedback()
+{
+    if (m_feedbackRead) return;
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
+        m_feedbackError = QStringLiteral("authentication_required");
+        emit feedbackChanged();
+        return;
+    }
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/feedback"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12'000);
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    auto* const reply = m_network.get(request);
+    m_feedbackRead = reply;
+    m_feedbackError.clear();
+    emit feedbackChanged();
+    const auto generation = m_grantGeneration;
+    const auto viewer = m_viewerFid;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, generation, viewer] {
+        if (m_feedbackRead != reply) { reply->deleteLater(); return; }
+        m_feedbackRead.clear();
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        // abort() can synchronously finish a closed reply on macOS. Do not
+        // read an unreadable QIODevice or adopt another account's results.
+        const QByteArray bytes = status == 200 && reply->isReadable()
+            && reply->bytesAvailable() <= 32'768 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+        const auto doc = QJsonDocument::fromJson(bytes);
+        if (status == 200 && doc.isObject()
+            && doc.object().value(QStringLiteral("stats")).isObject()
+            && doc.object().value(QStringLiteral("reports")).isArray()) {
+            m_feedbackStats = doc.object().value(QStringLiteral("stats")).toObject().toVariantMap();
+            m_feedbackReports = doc.object().value(QStringLiteral("reports")).toArray().toVariantList();
+            m_feedbackError.clear();
+        } else {
+            m_feedbackError = status == 401 ? QStringLiteral("authentication_required")
+                                            : QStringLiteral("feedback_unavailable");
+        }
+        emit feedbackChanged();
+    });
+}
+
+void OpenProofConnectionsController::submitFeedback(
+    const QString& category, const int sentiment,
+    const QString& message, const QString& route)
+{
+    if (m_feedbackWrite) return;
+    m_feedbackSubmitted = false;
+    const QString body = message.trimmed();
+    const QStringList allowed{QStringLiteral("bug"), QStringLiteral("performance"),
+                              QStringLiteral("improvement"), QStringLiteral("idea")};
+    if (!allowed.contains(category) || sentiment < 1 || sentiment > 5
+        || body.length() < 10 || body.length() > 4000) {
+        m_feedbackError = QStringLiteral("invalid_feedback");
+        emit feedbackChanged();
+        return;
+    }
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
+        m_feedbackError = QStringLiteral("authentication_required");
+        emit feedbackChanged();
+        return;
+    }
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/feedback"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(15'000);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    const QJsonObject payload{
+        {QStringLiteral("category"), category},
+        {QStringLiteral("sentiment"), sentiment},
+        {QStringLiteral("message"), body},
+        {QStringLiteral("platform"), QSysInfo::productType().left(32)},
+        {QStringLiteral("appVersion"), QCoreApplication::applicationVersion().left(40)},
+        {QStringLiteral("route"), route.left(96)}
+    };
+    auto* const reply = m_network.post(request, QJsonDocument{payload}.toJson(QJsonDocument::Compact));
+    m_feedbackWrite = reply;
+    m_feedbackError.clear();
+    emit feedbackChanged();
+    const auto generation = m_grantGeneration;
+    const auto viewer = m_viewerFid;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, generation, viewer] {
+        if (m_feedbackWrite != reply) { reply->deleteLater(); return; }
+        m_feedbackWrite.clear();
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        // Success is acknowledged only after an authenticated, server-side
+        // insert returns 201. A locally clicked action is never a success.
+        reply->deleteLater();
+        if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+        m_feedbackSubmitted = status == 201;
+        m_feedbackError = status == 201 ? QString{}
+            : status == 429 ? QStringLiteral("feedback_limit_reached")
+            : status == 400 ? QStringLiteral("invalid_feedback")
+            : status == 401 ? QStringLiteral("authentication_required")
+            : QStringLiteral("feedback_unavailable");
+        emit feedbackChanged();
+        if (m_feedbackSubmitted) fetchFeedback();
+    });
 }

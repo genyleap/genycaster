@@ -2744,6 +2744,74 @@ Company | https://company.com</source>
             <source>Copy</source>
             <translation>복사</translation>
         </message>
+        <message id="genycaster.feedback.stats">
+            <source>Feedback statistics</source>
+            <translation>피드백 통계</translation>
+        </message>
+        <message id="genycaster.feedback.stats_total">
+            <source>Reports</source>
+            <translation>보고서</translation>
+        </message>
+        <message id="genycaster.feedback.stats_accepted">
+            <source>Accepted</source>
+            <translation>승인됨</translation>
+        </message>
+        <message id="genycaster.feedback.stats_resolved">
+            <source>Resolved</source>
+            <translation>해결됨</translation>
+        </message>
+        <message id="genycaster.feedback.points">
+            <source>%1 points earned</source>
+            <translation>획득한 포인트: %1</translation>
+        </message>
+        <message id="genycaster.feedback.recent_reports">
+            <source>Recent reports</source>
+            <translation>최근 보고서</translation>
+        </message>
+        <message id="genycaster.feedback.authentication_required">
+            <source>Sign in to send feedback and view your reports.</source>
+            <translation>피드백을 보내고 보고서를 보려면 로그인하세요.</translation>
+        </message>
+        <message id="genycaster.feedback.limit_reached">
+            <source>Daily report limit reached. Try again later.</source>
+            <translation>일일 보고 제한에 도달했습니다. 나중에 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.feedback.invalid">
+            <source>Please describe the issue in at least 10 characters.</source>
+            <translation>문제를 10자 이상으로 설명해 주세요.</translation>
+        </message>
+        <message id="genycaster.feedback.unavailable">
+            <source>Feedback couldn't be sent. Please try again.</source>
+            <translation>피드백을 보낼 수 없습니다. 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.feedback.status_submitted">
+            <source>Submitted</source>
+            <translation>제출됨</translation>
+        </message>
+        <message id="genycaster.feedback.status_triaged">
+            <source>Under review</source>
+            <translation>검토 중</translation>
+        </message>
+        <message id="genycaster.feedback.status_accepted">
+            <source>Accepted</source>
+            <translation>승인됨</translation>
+        </message>
+        <message id="genycaster.feedback.status_resolved">
+            <source>Resolved</source>
+            <translation>해결됨</translation>
+        </message>
+        <message id="genycaster.feedback.status_rejected">
+            <source>Not accepted</source>
+            <translation>승인되지 않음</translation>
+        </message>
+        <message id="genycaster.feedback.sent">
+            <source>Thanks! Your feedback has been sent.</source>
+            <translation>감사합니다! 피드백을 전송했습니다.</translation>
+        </message>
+        <message id="genycaster.feedback.submit">
+            <source>Send report</source>
+            <translation>보고서 보내기</translation>
+        </message>
         <message id="genycaster.feedback.done">
             <source>Done</source>
             <translation>완료</translation>

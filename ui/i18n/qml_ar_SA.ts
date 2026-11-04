@@ -2744,6 +2744,74 @@ Company | https://company.com</source>
             <source>Copy</source>
             <translation>نسخ</translation>
         </message>
+        <message id="genycaster.feedback.stats">
+            <source>Feedback statistics</source>
+            <translation>إحصاءات الملاحظات</translation>
+        </message>
+        <message id="genycaster.feedback.stats_total">
+            <source>Reports</source>
+            <translation>التقارير</translation>
+        </message>
+        <message id="genycaster.feedback.stats_accepted">
+            <source>Accepted</source>
+            <translation>المقبولة</translation>
+        </message>
+        <message id="genycaster.feedback.stats_resolved">
+            <source>Resolved</source>
+            <translation>المحلولة</translation>
+        </message>
+        <message id="genycaster.feedback.points">
+            <source>%1 points earned</source>
+            <translation>%1 نقطة مكتسبة</translation>
+        </message>
+        <message id="genycaster.feedback.recent_reports">
+            <source>Recent reports</source>
+            <translation>التقارير الأخيرة</translation>
+        </message>
+        <message id="genycaster.feedback.authentication_required">
+            <source>Sign in to send feedback and view your reports.</source>
+            <translation>سجّل الدخول لإرسال الملاحظات وعرض تقاريرك.</translation>
+        </message>
+        <message id="genycaster.feedback.limit_reached">
+            <source>Daily report limit reached. Try again later.</source>
+            <translation>وصلت إلى الحد اليومي للتقارير. حاول لاحقًا.</translation>
+        </message>
+        <message id="genycaster.feedback.invalid">
+            <source>Please describe the issue in at least 10 characters.</source>
+            <translation>يرجى وصف المشكلة في 10 أحرف على الأقل.</translation>
+        </message>
+        <message id="genycaster.feedback.unavailable">
+            <source>Feedback couldn't be sent. Please try again.</source>
+            <translation>تعذّر إرسال الملاحظات. حاول مجددًا.</translation>
+        </message>
+        <message id="genycaster.feedback.status_submitted">
+            <source>Submitted</source>
+            <translation>مُرسل</translation>
+        </message>
+        <message id="genycaster.feedback.status_triaged">
+            <source>Under review</source>
+            <translation>قيد المراجعة</translation>
+        </message>
+        <message id="genycaster.feedback.status_accepted">
+            <source>Accepted</source>
+            <translation>مقبول</translation>
+        </message>
+        <message id="genycaster.feedback.status_resolved">
+            <source>Resolved</source>
+            <translation>تم الحل</translation>
+        </message>
+        <message id="genycaster.feedback.status_rejected">
+            <source>Not accepted</source>
+            <translation>غير مقبول</translation>
+        </message>
+        <message id="genycaster.feedback.sent">
+            <source>Thanks! Your feedback has been sent.</source>
+            <translation>شكرًا! تم إرسال ملاحظاتك.</translation>
+        </message>
+        <message id="genycaster.feedback.submit">
+            <source>Send report</source>
+            <translation>إرسال التقرير</translation>
+        </message>
         <message id="genycaster.feedback.done">
             <source>Done</source>
             <translation>تم</translation>

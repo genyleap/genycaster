@@ -2744,6 +2744,74 @@ Company | https://company.com</source>
             <source>Copy</source>
             <translation>कॉपी</translation>
         </message>
+        <message id="genycaster.feedback.stats">
+            <source>Feedback statistics</source>
+            <translation>प्रतिक्रिया आँकड़े</translation>
+        </message>
+        <message id="genycaster.feedback.stats_total">
+            <source>Reports</source>
+            <translation>रिपोर्ट</translation>
+        </message>
+        <message id="genycaster.feedback.stats_accepted">
+            <source>Accepted</source>
+            <translation>स्वीकृत</translation>
+        </message>
+        <message id="genycaster.feedback.stats_resolved">
+            <source>Resolved</source>
+            <translation>हल किए गए</translation>
+        </message>
+        <message id="genycaster.feedback.points">
+            <source>%1 points earned</source>
+            <translation>%1 अंक मिले</translation>
+        </message>
+        <message id="genycaster.feedback.recent_reports">
+            <source>Recent reports</source>
+            <translation>हाल की रिपोर्ट</translation>
+        </message>
+        <message id="genycaster.feedback.authentication_required">
+            <source>Sign in to send feedback and view your reports.</source>
+            <translation>प्रतिक्रिया भेजने और रिपोर्ट देखने के लिए साइन इन करें।</translation>
+        </message>
+        <message id="genycaster.feedback.limit_reached">
+            <source>Daily report limit reached. Try again later.</source>
+            <translation>दैनिक रिपोर्ट सीमा पूरी हो गई। बाद में प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.feedback.invalid">
+            <source>Please describe the issue in at least 10 characters.</source>
+            <translation>समस्या का विवरण कम से कम 10 अक्षरों में दें।</translation>
+        </message>
+        <message id="genycaster.feedback.unavailable">
+            <source>Feedback couldn't be sent. Please try again.</source>
+            <translation>प्रतिक्रिया नहीं भेजी जा सकी। फिर प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.feedback.status_submitted">
+            <source>Submitted</source>
+            <translation>भेजी गई</translation>
+        </message>
+        <message id="genycaster.feedback.status_triaged">
+            <source>Under review</source>
+            <translation>समीक्षाधीन</translation>
+        </message>
+        <message id="genycaster.feedback.status_accepted">
+            <source>Accepted</source>
+            <translation>स्वीकृत</translation>
+        </message>
+        <message id="genycaster.feedback.status_resolved">
+            <source>Resolved</source>
+            <translation>हल किया गया</translation>
+        </message>
+        <message id="genycaster.feedback.status_rejected">
+            <source>Not accepted</source>
+            <translation>अस्वीकृत</translation>
+        </message>
+        <message id="genycaster.feedback.sent">
+            <source>Thanks! Your feedback has been sent.</source>
+            <translation>धन्यवाद! आपकी प्रतिक्रिया भेज दी गई है।</translation>
+        </message>
+        <message id="genycaster.feedback.submit">
+            <source>Send report</source>
+            <translation>रिपोर्ट भेजें</translation>
+        </message>
         <message id="genycaster.feedback.done">
             <source>Done</source>
             <translation>पूर्ण</translation>

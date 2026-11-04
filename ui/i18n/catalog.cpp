@@ -1488,6 +1488,40 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.feedback.copy");
     //% "Done"
     (void)qtTrId("genycaster.feedback.done");
+    //% "Feedback statistics"
+    (void)qtTrId("genycaster.feedback.stats");
+    //% "Reports"
+    (void)qtTrId("genycaster.feedback.stats_total");
+    //% "Accepted"
+    (void)qtTrId("genycaster.feedback.stats_accepted");
+    //% "Resolved"
+    (void)qtTrId("genycaster.feedback.stats_resolved");
+    //% "%1 points earned"
+    (void)qtTrId("genycaster.feedback.points");
+    //% "Recent reports"
+    (void)qtTrId("genycaster.feedback.recent_reports");
+    //% "Sign in to send feedback and view your reports."
+    (void)qtTrId("genycaster.feedback.authentication_required");
+    //% "Daily report limit reached. Try again later."
+    (void)qtTrId("genycaster.feedback.limit_reached");
+    //% "Please describe the issue in at least 10 characters."
+    (void)qtTrId("genycaster.feedback.invalid");
+    //% "Feedback couldn't be sent. Please try again."
+    (void)qtTrId("genycaster.feedback.unavailable");
+    //% "Submitted"
+    (void)qtTrId("genycaster.feedback.status_submitted");
+    //% "Under review"
+    (void)qtTrId("genycaster.feedback.status_triaged");
+    //% "Accepted"
+    (void)qtTrId("genycaster.feedback.status_accepted");
+    //% "Resolved"
+    (void)qtTrId("genycaster.feedback.status_resolved");
+    //% "Not accepted"
+    (void)qtTrId("genycaster.feedback.status_rejected");
+    //% "Thanks! Your feedback has been sent."
+    (void)qtTrId("genycaster.feedback.sent");
+    //% "Send report"
+    (void)qtTrId("genycaster.feedback.submit");
     //% "Emoji"
     (void)qtTrId("genycaster.composer.emoji");
     //% "Classic"

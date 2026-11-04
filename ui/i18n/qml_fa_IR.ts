@@ -2745,6 +2745,74 @@ Company | https://company.com</source>
             <source>Copy</source>
             <translation>کپی</translation>
         </message>
+        <message id="genycaster.feedback.stats">
+            <source>Feedback statistics</source>
+            <translation>آمار بازخوردها</translation>
+        </message>
+        <message id="genycaster.feedback.stats_total">
+            <source>Reports</source>
+            <translation>گزارش‌ها</translation>
+        </message>
+        <message id="genycaster.feedback.stats_accepted">
+            <source>Accepted</source>
+            <translation>تأییدشده</translation>
+        </message>
+        <message id="genycaster.feedback.stats_resolved">
+            <source>Resolved</source>
+            <translation>حل‌شده</translation>
+        </message>
+        <message id="genycaster.feedback.points">
+            <source>%1 points earned</source>
+            <translation>%1 امتیاز کسب‌شده</translation>
+        </message>
+        <message id="genycaster.feedback.recent_reports">
+            <source>Recent reports</source>
+            <translation>گزارش‌های اخیر</translation>
+        </message>
+        <message id="genycaster.feedback.authentication_required">
+            <source>Sign in to send feedback and view your reports.</source>
+            <translation>برای ارسال بازخورد و مشاهده گزارش‌ها وارد حساب خود شوید.</translation>
+        </message>
+        <message id="genycaster.feedback.limit_reached">
+            <source>Daily report limit reached. Try again later.</source>
+            <translation>سقف گزارش‌های روزانه پر شده است. بعداً دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.feedback.invalid">
+            <source>Please describe the issue in at least 10 characters.</source>
+            <translation>لطفاً مشکل را در دست‌کم ۱۰ نویسه توضیح دهید.</translation>
+        </message>
+        <message id="genycaster.feedback.unavailable">
+            <source>Feedback couldn't be sent. Please try again.</source>
+            <translation>ارسال بازخورد انجام نشد. دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.feedback.status_submitted">
+            <source>Submitted</source>
+            <translation>ارسال‌شده</translation>
+        </message>
+        <message id="genycaster.feedback.status_triaged">
+            <source>Under review</source>
+            <translation>در حال بررسی</translation>
+        </message>
+        <message id="genycaster.feedback.status_accepted">
+            <source>Accepted</source>
+            <translation>تأییدشده</translation>
+        </message>
+        <message id="genycaster.feedback.status_resolved">
+            <source>Resolved</source>
+            <translation>حل‌شده</translation>
+        </message>
+        <message id="genycaster.feedback.status_rejected">
+            <source>Not accepted</source>
+            <translation>پذیرفته‌نشده</translation>
+        </message>
+        <message id="genycaster.feedback.sent">
+            <source>Thanks! Your feedback has been sent.</source>
+            <translation>ممنون! بازخورد شما ارسال شد.</translation>
+        </message>
+        <message id="genycaster.feedback.submit">
+            <source>Send report</source>
+            <translation>ارسال گزارش</translation>
+        </message>
         <message id="genycaster.feedback.done">
             <source>Done</source>
             <translation>تمام</translation>

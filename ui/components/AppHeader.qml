@@ -16,6 +16,7 @@ Rectangle {
     signal accountRequested()
     signal ownProfileRequested()
     signal notificationsRequested()
+    signal feedbackRequested()
     signal settingsRequested()
 
     implicitHeight: root.compact && Qt.platform.os === "android"
@@ -125,6 +126,18 @@ Rectangle {
             LayoutMirroring.childrenInherit: false
             layoutDirection: Qt.LeftToRight
             spacing: Theme.space1
+
+            // Feedback stays beside notifications on the mobile header; it is
+            // not buried in the desktop-only footer or a settings submenu.
+            ActionButton {
+                visible: root.compact
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconFeedback
+                text: qsTrId("genycaster.feedback.title")
+                onClicked: root.feedbackRequested()
+            }
 
             ActionButton {
                 compact: true

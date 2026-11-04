@@ -1192,6 +1192,7 @@ Item {
                     onAccountRequested: root.openAccountPopup()
                     onOwnProfileRequested: root.openMyProfileFromNavigation()
                     onNotificationsRequested: root.openShellRoute("notifications")
+                    onFeedbackRequested: feedbackDialog.open()
                     onSettingsRequested: root.openLocaleSettings()
                 }
 
@@ -3043,6 +3044,7 @@ Item {
     FeedbackDialog {
         id: feedbackDialog
         parent: Overlay.overlay
+        reportRoute: String(root.shellRoute || root.primaryDestination || "")
     }
 
     Component.onCompleted: {

@@ -43,6 +43,11 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
     Q_PROPERTY(QVariantMap cloudProfileExtras READ cloudProfileExtras NOTIFY cloudStateChanged)
+    Q_PROPERTY(QVariantMap feedbackStats READ feedbackStats NOTIFY feedbackChanged)
+    Q_PROPERTY(QVariantList feedbackReports READ feedbackReports NOTIFY feedbackChanged)
+    Q_PROPERTY(QString feedbackError READ feedbackError NOTIFY feedbackChanged)
+    Q_PROPERTY(bool feedbackBusy READ feedbackBusy NOTIFY feedbackChanged)
+    Q_PROPERTY(bool feedbackSubmitted READ feedbackSubmitted NOTIFY feedbackChanged)
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap proEntitlements READ proEntitlements NOTIFY proEntitlementsChanged)
@@ -108,6 +113,16 @@ public:
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }
     [[nodiscard]] QVariantMap cloudProfileExtras() const { return m_cloudProfileExtras; }
+    [[nodiscard]] QVariantMap feedbackStats() const { return m_feedbackStats; }
+    [[nodiscard]] QVariantList feedbackReports() const { return m_feedbackReports; }
+    [[nodiscard]] QString feedbackError() const { return m_feedbackError; }
+    [[nodiscard]] bool feedbackBusy() const noexcept { return m_feedbackRead || m_feedbackWrite; }
+    [[nodiscard]] bool feedbackSubmitted() const noexcept { return m_feedbackSubmitted; }
+    /** Fetch account-owned review status and points from Genycaster. */
+    Q_INVOKABLE void fetchFeedback();
+    /** Submit a bounded report for the verified account, never caller-supplied FID. */
+    Q_INVOKABLE void submitFeedback(const QString& category, int sentiment,
+                                   const QString& message, const QString& route);
     [[nodiscard]] QVariantMap profileStatus() const { return m_profileStatus; }
     [[nodiscard]] QVariantMap streak() const { return m_streak; }
     [[nodiscard]] bool streakBusy() const noexcept { return m_streakRead || m_streakWrite; }
@@ -254,6 +269,7 @@ signals:
     void genyAssetsChanged();
     void stateChanged();
     void cloudStateChanged();
+    void feedbackChanged();
     void profileStatusChanged();
     void streakChanged();
     /** Emitted exactly once for each status save attempt (including rejected requests). */
@@ -300,6 +316,12 @@ private:
     BrowserOpenProofAuth m_authorization{this};
     QPointer<QNetworkReply> m_request{};
     QPointer<QNetworkReply> m_cloudRequest{};
+    QPointer<QNetworkReply> m_feedbackRead{};
+    QPointer<QNetworkReply> m_feedbackWrite{};
+    QVariantMap m_feedbackStats{};
+    QVariantList m_feedbackReports{};
+    QString m_feedbackError{};
+    bool m_feedbackSubmitted{};
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
     QPointer<QNetworkReply> m_proEntitlementsRead{};
