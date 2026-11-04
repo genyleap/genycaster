@@ -2071,23 +2071,27 @@ Item {
         id: contextDrawer
         objectName: "responsiveWidgetsDrawer"
         bottomSheet: root.mobile
-        showHandle: root.mobile
+        fullScreen: root.mobile
+        showHandle: false
         blurSourceItem: shellContent
         dimBackground: root.mobile
-        interactive: root.mobile || root.compactDesktop
+        // A mobile widget is a full-height inspector. Swiping within its
+        // ScrollView must never drag or dismiss the entire drawer.
+        interactive: !root.mobile && root.compactDesktop
         width: parent ? (root.mobile ? parent.width
             : Math.min(root.desktopContextRailWidth, parent.width * 0.52))
             : root.desktopContextRailWidth
-        height: parent ? (root.mobile ? Math.min(parent.height * 0.88, 840)
-            : parent.height) : 720
-        contentPadding: root.mobile ? Theme.space2 : 0
+        height: parent ? parent.height : 720
+        contentPadding: root.mobile ? Theme.space3 : 0
 
         contentItem: ColumnLayout {
             spacing: 0
             RowLayout {
                 visible: root.mobile
                 Layout.fillWidth: true
-                Layout.preferredHeight: visible ? 54 : 0
+                Layout.preferredHeight: visible ? Theme.scaleUi(52) : 0
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: Layout.preferredHeight
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
                 Icon {
@@ -2103,11 +2107,12 @@ Item {
                     font.weight: Theme.weightBold
                 }
                 ActionButton {
+                    Layout.alignment: Qt.AlignVCenter
                     compact: true
                     quiet: true
                     iconOnly: true
                     iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.pro.not_now")
+                    text: qsTrId("genycaster.shell.close")
                     onClicked: contextDrawer.close()
                 }
             }

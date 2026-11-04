@@ -369,6 +369,50 @@ ListView {
                 }
             }
 
+            // Compact channel identity belongs on the SAME toolbar line as
+            // Back and Refresh. A separate row wasted vertical space on iOS.
+            RowLayout {
+                objectName: "mobileConversationChannelHeader"
+                visible: root.compact && root.activeView === "cast"
+                    && root.castChannel.length > 0
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: Theme.space1
+                layoutDirection: Theme.uiDirection
+
+                Avatar {
+                    Layout.preferredWidth: 22
+                    Layout.preferredHeight: 22
+                    avatarSize: 22
+                    sourceUrl: root.resolvedChannelImage
+                    forceAutomaticDownload: true
+                    displayName: root.resolvedChannelName
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.maximumWidth: 170
+                    compact: true
+                    quiet: true
+                    elevated: false
+                    pill: true
+                    text: "/" + root.castChannel
+                    Accessible.description: qsTrId("genycaster.detail.open_channel")
+                        .arg("/" + root.castChannel)
+                    onClicked: root.channelRequested(root.castChannel)
+                }
+                DirectionAwareLabel {
+                    visible: root.channelMembershipKnown
+                    Layout.minimumWidth: 0
+                    text: root.channelJoined
+                        ? qsTrId("genycaster.composer.joined_channel")
+                        : qsTrId("genycaster.composer.not_joined_channel")
+                    color: root.channelJoined ? Theme.positive : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    elide: Text.ElideRight
+                }
+            }
+
             // One elastic region separates navigation/context from trailing
             // actions at every width, including wide desktop conversation views.
             Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
@@ -393,49 +437,6 @@ ListView {
                 enabled: !root.busy
                 onClicked: root.refreshRequested()
             }
-        }
-
-        // On phones, channel identity gets a dedicated line instead of
-        // squeezing the title, Compose and Refresh into a single toolbar.
-        RowLayout {
-            visible: root.compact && root.activeView === "cast"
-                     && root.castChannel.length > 0
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            spacing: Theme.space2
-            layoutDirection: Theme.uiDirection
-
-            Avatar {
-                Layout.preferredWidth: 24
-                Layout.preferredHeight: 24
-                avatarSize: 24
-                sourceUrl: root.resolvedChannelImage
-                forceAutomaticDownload: true
-                displayName: root.resolvedChannelName
-            }
-            ActionButton {
-                Layout.maximumWidth: 176
-                compact: true
-                quiet: true
-                elevated: false
-                pill: true
-                text: "/" + root.castChannel
-                Accessible.description: qsTrId("genycaster.detail.open_channel")
-                    .arg("/" + root.castChannel)
-                onClicked: root.channelRequested(root.castChannel)
-            }
-            DirectionAwareLabel {
-                visible: root.channelMembershipKnown
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                text: root.channelJoined
-                    ? qsTrId("genycaster.composer.joined_channel")
-                    : qsTrId("genycaster.composer.not_joined_channel")
-                color: root.channelJoined ? Theme.positive : Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                elide: Text.ElideRight
-            }
-            Item { Layout.fillWidth: !root.channelMembershipKnown }
         }
 
         Superellipse {
@@ -769,36 +770,19 @@ ListView {
                         }
                     }
                     Item { Layout.fillWidth: true }
-                }
-
-                // Destructive actions are deliberately separated from the
-                // ordinary engagement and composition controls.
-                ColumnLayout {
-                    visible: root.activeView === "cast"
-                             && root.interactionsAvailable
-                             && Number(root.detail.authorFid || 0) === Number(root.accountFid)
-                             && Boolean(root.detail.castId)
-                    Layout.fillWidth: true
-                    Layout.topMargin: Theme.space2
-                    spacing: Theme.space2
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: Theme.strokeHairline
-                        color: Theme.divider
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        Item { Layout.fillWidth: true }
-                        ActionButton {
-                            quiet: true
-                            destructive: true
-                            compact: true
-                            iconGlyph: Theme.iconTrash
-                            text: qsTrId("genycaster.detail.delete_cast")
-                            onClicked: root.removeCastRequested(root.detail)
-                        }
+                    // Author-only action stays opposite Reply, never below it
+                    // in a separate row with an unnecessary divider.
+                    ActionButton {
+                        objectName: "detailDeleteCastAction"
+                        visible: root.interactionsAvailable
+                            && Number(root.detail.authorFid || 0) === Number(root.accountFid)
+                            && Boolean(root.detail.castId)
+                        quiet: true
+                        destructive: true
+                        compact: true
+                        iconGlyph: Theme.iconTrash
+                        text: qsTrId("genycaster.detail.delete_cast")
+                        onClicked: root.removeCastRequested(root.detail)
                     }
                 }
 

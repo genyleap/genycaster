@@ -12,6 +12,7 @@ RowLayout {
     signal closeRequested()
 
     spacing: Theme.space3
+    Layout.minimumHeight: Theme.scaleUi(root.subtitle.length > 0 ? 56 : 44)
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
     layoutDirection: Theme.rtl ? Qt.RightToLeft : Qt.LeftToRight
@@ -45,6 +46,7 @@ RowLayout {
 
     ActionButton {
         visible: root.showClose
+        Layout.alignment: Qt.AlignVCenter
         compact: true
         quiet: true
         iconOnly: true

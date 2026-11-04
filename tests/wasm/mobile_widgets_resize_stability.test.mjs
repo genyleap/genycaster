@@ -23,7 +23,9 @@ test('the mobile Widgets bottom sheet reuses the desktop ContextRail and persist
  assert.match(shell,/onWidgetsRequested: \{/);
  assert.match(shell,/objectName: "responsiveWidgetsDrawer"/);
  assert.match(shell,/bottomSheet: root\.mobile/);
- assert.match(shell,/height: parent \? \(root\.mobile \? Math\.min\(parent\.height \* 0\.88, 840\)/);
+ assert.match(shell,/height: parent \? parent\.height : 720/);
+ assert.match(shell,/fullScreen: root\.mobile/);
+ assert.match(shell,/interactive: !root\.mobile && root\.compactDesktop/);
  assert.match(shell,/onClicked: contextDrawer\.close\(\)/);
  assert.match(shell,/contentItem: ColumnLayout \{/);
  assert.match(shell,/ContextRail \{\s*Layout\.fillWidth: true\s*Layout\.fillHeight: true/);

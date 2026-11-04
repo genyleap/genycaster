@@ -38,7 +38,7 @@ GenyDrawer {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            height: Math.max(56,implicitHeight)
+            height: Theme.scaleUi(56)
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
@@ -79,6 +79,7 @@ GenyDrawer {
                 }
             }
             ActionButton {
+                Layout.alignment: Qt.AlignVCenter
                 compact: true
                 quiet: true
                 iconOnly: true

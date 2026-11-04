@@ -437,6 +437,36 @@ GenyDrawer {
         return false
     }
 
+    // An empty new-cast draft is not a useful saved document. Read the live
+    // editor first (the persisted document may lag while the user erases it),
+    // then include actual media, links and populated thread parts. Selecting
+    // a topic/channel alone does not make a draft meaningful.
+    function hasDraftContent() {
+        let hasText = root.hasMeaningfulText(richComposer.safeText)
+        if (root.editorMode === "markdown")
+            hasText = root.hasMeaningfulText(markdownEditor.text)
+        else if (root.editorMode === "visual" && root.compact)
+            hasText = root.hasMeaningfulText(mobilePlainEditor.text)
+        else if (root.editorMode === "visual" && visualEditor.activeEditor !== null
+                 && richComposer.blocks.length <= 1)
+            hasText = visualEditor.hasLiveContent
+        else if (root.editorMode === "visual")
+            hasText = hasText || visualEditor.hasLiveContent
+        const embeds = richComposer.protocolEmbeds || []
+        const hasEmbeds = embeds.some(function(embed) {
+            return String(embed && embed.kind || "") !== "cast-reference"
+        })
+        let hasThreadText = false
+        for (let index = 0; index < threadTailModel.count; ++index) {
+            if (root.hasMeaningfulText(threadTailModel.get(index).text)) {
+                hasThreadText = true
+                break
+            }
+        }
+        return hasText || hasEmbeds || hasThreadText
+            || root.attachedMediaCount > 0 || root.pendingMediaFiles.length > 0
+    }
+
     function threadTailWithinLimit() {
         for (let index = 0; index < threadTailModel.count; ++index) {
             const text = String(threadTailModel.get(index).text || "")
@@ -657,7 +687,8 @@ GenyDrawer {
         if (!presentationBridge.writeBusy && presentationBridge.writePhase !== "queued")
             richComposer.discardUnpublishedManagedMedia()
         if (!root.transientDraft && !root.parentCast && !root.quotedCast
-                && richComposer.dirty && !presentationBridge.writeBusy)
+                && richComposer.dirty && !presentationBridge.writeBusy
+                && root.hasDraftContent())
             richComposer.saveDraft()
         presentationBridge.clearReplyTarget()
         richComposer.setComposerActive(false)
@@ -1510,9 +1541,11 @@ GenyDrawer {
                     quiet: true
                     compact: true
                     text: qsTrId("genycaster.composer.save_draft")
-                    enabled: !presentationBridge.writeBusy
+                    enabled: !presentationBridge.writeBusy && root.hasDraftContent()
                     onClicked: {
-                        if (richComposer.dirty)
+                        if (!root.hasDraftContent()) return
+                        root.synchronizeEditorState()
+                        if (root.hasDraftContent())
                             richComposer.saveDraft()
                         root.close()
                     }

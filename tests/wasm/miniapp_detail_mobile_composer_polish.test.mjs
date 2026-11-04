@@ -31,7 +31,8 @@ test('Mini App screenshots preserve aspect and skip broken publisher assets', ()
 
 test('mobile conversation actions are at the trailing edge and create action uses desktop compose symbol', () => {
   const detail=read('ui/components/DetailSurface.qml');
-  assert.match(detail,/Item \{ Layout\.fillWidth: root\.compact \|\| root\.activeView !== "cast" \}/);
+  assert.match(detail,/objectName: "mobileConversationChannelHeader"/);
+  assert.match(detail,/Item \{ Layout\.fillWidth: true; Layout\.minimumWidth: 0 \}/);
   assert.match(detail,/iconGlyph: Theme\.iconCompose/);
   const theme=read('ui/theme/Theme.qml');
   assert.match(theme,/mobileAction === "settings" \? iconSettings : iconCompose/);

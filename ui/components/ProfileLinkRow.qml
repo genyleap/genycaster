@@ -26,9 +26,11 @@ Button {
                ? Object.assign({}, native, root.browserMetadata) : native
     }
     property bool artworkFallback: false
+    property int browserFaviconVariant: 0
     onTargetUrlChanged: {
         browserMetadata = ({})
         artworkFallback = false
+        browserFaviconVariant = 0
     }
     Component.onCompleted: {
         if (Qt.platform.os === "wasm"
@@ -48,6 +50,23 @@ Button {
     readonly property string websiteTitle: String(metadata.siteName || metadata.title || "").trim()
     readonly property string description: String(metadata.summary || metadata.description || "").trim()
     readonly property string previewArtworkSource: String(metadata.previewImage || "")
+    // WebAssembly cannot reliably fetch arbitrary site icons through the
+    // native remote image provider. The first-party browser image gateway
+    // explicitly allows bounded /favicon.ico downloads with public DNS checks,
+    // raster validation and CORS; native platforms retain their provider path.
+    readonly property string browserFaviconSource: {
+        const match = /^https:\/\/([^\/?#:]+)/i.exec(root.targetUrl)
+        if (!match) return ""
+        const path = ["/favicon.ico", "/favicon.png",
+                      "/apple-touch-icon.png"][root.browserFaviconVariant]
+        // Some publishers only expose an ICO that the public raster gateway
+        // cannot decode. Use their verified OpenGraph artwork as the last
+        // resort instead of a permanent empty monogram.
+        if (!path) return root.previewArtworkSource
+        const favicon = "https://" + match[1] + path
+        return "https://storage-farcaster.genyleap.com/v1/browser/images?url="
+            + encodeURIComponent(favicon)
+    }
     readonly property string faviconUrl: {
         // Prefer the site's actual icon; the OpenGraph poster is artwork,
         // not necessarily a legible 27px favicon. Fall back on raster failure.
@@ -108,8 +127,10 @@ Button {
                 height: width
                 // A favicon is essential UI artwork, not an optional feed
                 // download. Force the bounded remote image provider to admit it.
-                source: root.faviconUrl.length > 0
-                        ? dataStorage.remoteImageSource(root.faviconUrl, "avatars", true) : ""
+                source: Qt.platform.os === "wasm"
+                    ? root.browserFaviconSource
+                    : (root.faviconUrl.length > 0
+                        ? dataStorage.remoteImageSource(root.faviconUrl, "avatars", true) : "")
                 sourceSize.width: Math.ceil(width * 3)
                 sourceSize.height: Math.ceil(height * 3)
                 fillMode: Image.PreserveAspectFit
@@ -119,10 +140,17 @@ Button {
                 function tryArtworkFallback() {
                     // RemoteImageProvider deliberately returns a transparent
                     // 1px placeholder for decode/policy failures (Image.Ready).
+                    const unavailable = status === Image.Error
+                        || (status === Image.Ready
+                            && implicitWidth <= 1 && implicitHeight <= 1)
+                    if (Qt.platform.os === "wasm") {
+                        if (unavailable && root.browserFaviconVariant < 3)
+                            root.browserFaviconVariant++
+                        return
+                    }
                     if (root.artworkFallback || root.previewArtworkSource.length === 0)
                         return
-                    if (status === Image.Error || (status === Image.Ready
-                           && implicitWidth <= 1 && implicitHeight <= 1))
+                    if (unavailable)
                         root.artworkFallback = true
                 }
                 onStatusChanged: tryArtworkFallback()

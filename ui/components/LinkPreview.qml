@@ -532,13 +532,10 @@ Superellipse {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: root.layoutMiniApp ? Theme.space4
-                         : root.compact ? Theme.space2 : Theme.space3
-        anchors.leftMargin: root.layoutMiniApp ? Theme.space4
-                            : root.compact ? Theme.space2 : Theme.space3
-        anchors.rightMargin: root.layoutMiniApp ? Theme.space4
-                             : root.compact ? Theme.space2 : Theme.space3
-        spacing: root.layoutMiniApp ? Theme.space3 : Theme.space2
+        // Link and Mini App cards share the same internal gutter. Extra
+        // miniapp-only padding previously caused a visibly offset edge.
+        anchors.margins: root.compact ? Theme.space2 : Theme.space3
+        spacing: Theme.space2
 
         // Poster/Mini App cards also retain the Cast sentence within the card;
         // ordinary web links place it beside the thumbnail below.
@@ -606,10 +603,12 @@ Superellipse {
                                                                        width / Math.max(0.7, Math.min(3.0, root.previewImageAspect))))
                 // A working Mini App keeps its full 3:2 discovery poster.
                 // Only a confirmed load failure falls back to a compact action.
-                readonly property real targetHeight: root.reserveArtwork ? readyHeight : 0
+                readonly property real targetHeight: root.reserveArtwork
+                    && !root.miniAppArtworkUnavailable ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
+                clip: true
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent
@@ -650,6 +649,7 @@ Superellipse {
                     fillMode: Image.PreserveAspectFit
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
+                    clipToSuperellipse: true
                     curveDepth: Theme.shapeMedia
                     showLoadingIndicator: false
                     showManualLoadIndicator: false
@@ -720,6 +720,7 @@ Superellipse {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     spacing: 0
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -748,7 +749,7 @@ Superellipse {
                     iconGlyph: Theme.iconPlay
                     text: root.miniAppLaunching
                           ? qsTrId("genycaster.miniapp.loading")
-                          : String(root.previewData.miniAppButtonTitle || qsTrId("genycaster.miniapp.open_internal"))
+                          : qsTrId("genycaster.apps.open")
                     Accessible.description: qsTrId("genycaster.miniapp.open_internal")
                     onClicked: root.openPreview()
                 }
@@ -791,10 +792,12 @@ Superellipse {
                 readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
                                                               Math.min(root.compact ? 238 : 328,
                                                                        width / Math.max(0.75, Math.min(3.0, root.previewImageAspect))))
-                readonly property real targetHeight: root.reserveArtwork ? readyHeight : 0
+                readonly property real targetHeight: root.reserveArtwork
+                    && !root.richArtworkUnavailable ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
+                clip: true
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent
@@ -834,6 +837,7 @@ Superellipse {
                     fillMode: Image.PreserveAspectFit
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
+                    clipToSuperellipse: true
                     curveDepth: Theme.shapeMedia
                     showLoadingIndicator: false
                     showFailureIndicator: true
@@ -1075,6 +1079,7 @@ Superellipse {
                                                     && root.previewSource.length > 0
                                                     && !root.genericArtworkUnavailable
                 visible: shouldReserve
+                clip: true
                 // A phone gets a full-bleed 16:9-class preview; preserve the
                 // entire OG image instead of fitting a landscape screenshot
                 // inside a 116x116 square. Keep size stable while it loads.
@@ -1124,6 +1129,7 @@ Superellipse {
                     fillMode: Image.PreserveAspectFit
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
+                    clipToSuperellipse: true
                     curveDepth: Theme.shapeMedia
                     showLoadingIndicator: false
                     showFailureIndicator: true

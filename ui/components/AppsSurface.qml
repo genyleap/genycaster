@@ -1156,7 +1156,12 @@ Item {
         interactive: false
         showHandle: mobilePresentation
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width * 0.9)) : 420
-        height: parent ? (mobilePresentation ? Math.min(parent.height * 0.88, 740) : parent.height) : 640
+        // Fit short Mini App details to their content instead of leaving
+        // a blank shelf above the fixed Open action. Long details scroll.
+        height: parent ? (mobilePresentation
+            ? Math.min(parent.height * 0.92, Math.max(360,
+                detailsColumn.implicitHeight + Theme.scaleUi(150)))
+            : parent.height) : 640
 
         ColumnLayout {
             anchors.fill: parent
@@ -1165,24 +1170,12 @@ Item {
             anchors.bottomMargin: Theme.space3
             spacing: Theme.space3
 
-            RowLayout {
+            ModalHeader {
+                objectName: "miniAppDetailModalHeader"
                 Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.apps.details")
-                    color: Theme.ink
-                    font.weight: Theme.weightBold
-                    font.pixelSize: Theme.typeTitle3Size
-                }
-                ActionButton {
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconClose
-                    text: qsTrId("genycaster.shell.close")
-                    onClicked: miniAppDetailDrawer.close()
-                }
+                Layout.preferredHeight: Theme.scaleUi(48)
+                title: qsTrId("genycaster.apps.details")
+                onCloseRequested: miniAppDetailDrawer.close()
             }
 
             Flickable {
@@ -1456,7 +1449,8 @@ Item {
                     Layout.fillWidth: true
                     prominent: true
                     iconGlyph: Theme.iconPlay
-                    text: qsTrId("genycaster.miniapp.open_internal")
+                    text: qsTrId("genycaster.apps.open")
+                    Accessible.description: qsTrId("genycaster.miniapp.open_internal")
                     onClicked: {
                         const app = root.selectedMiniApp
                         miniAppDetailDrawer.close()
