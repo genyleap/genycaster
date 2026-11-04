@@ -82,7 +82,8 @@ Item {
     readonly property bool artworkWanted: root.rendererUsable
         && root.unicodeSequence.length > 0
         && root.visible && root.insideViewport
-        && Qt.application.state === Qt.ApplicationActive
+        // Keep the vector artwork visible even after the window loses focus.
+        // motionActive alone decides whether its animation may run.
         && (!root.scrollMoving || root.rendererResident)
         && (root.playbackLoops !== 0 || root.preserveArtwork)
     readonly property string assetSource: {
