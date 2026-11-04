@@ -320,6 +320,8 @@ public:
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();
+    /** @brief Rechecks the saved native signer without requesting custody approval. */
+    Q_INVOKABLE void refreshSigner();
     Q_INVOKABLE void provisionSigner();
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
@@ -495,6 +497,7 @@ signals:
     void nativeRecoveryRequested(QString recoveryWords);
     void signInCancelRequested();
     void signOutRequested();
+    void signerRefreshRequested();
     void signerProvisionRequested();
     void signerRevokeRequested();
     void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, QString parentUrl);
