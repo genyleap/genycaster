@@ -2998,10 +2998,15 @@ void connectRuntime(
             if (!bridge.isAuthenticated() || bridge.signerBusy() || bridge.writeReady())
                 return;
 #if defined(__EMSCRIPTEN__)
-            if (bridge.accountFid() != 0)
+            if (bridge.accountFid() != 0) {
+                const auto session = runtime->currentSessionSnapshot();
+                const bool deviceLocalSession = session
+                    && session->identityIssuer == "genycaster:device-local";
                 browserSigner->start(QStringLiteral("restore"),
                     QString::number(bridge.accountFid()),
-                    QJsonObject{{QStringLiteral("rememberLocal"), true}});
+                    deviceLocalSession ? QJsonObject{}
+                        : QJsonObject{{QStringLiteral("rememberLocal"), true}});
+            }
 #else
             if (!runtime->signerService) return;
             const auto session = runtime->currentSessionSnapshot();
