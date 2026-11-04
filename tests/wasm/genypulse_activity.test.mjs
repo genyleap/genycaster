@@ -204,3 +204,11 @@ test('cancelling an in-flight request is safe when abort emits finished synchron
   }
   assert.match(source,/if \(pending\) pending->deleteLater\(\)/);
 });
+
+test('network completions never read from an already closed QNetworkReply',()=>{
+  const reads=[...source.matchAll(/reply->readAll\(\)/g)].length;
+  const guarded=[...source.matchAll(/reply->isReadable\(\)/g)].length;
+  assert.equal(reads,4,'Farcaster, GitHub events, GitHub ID and contribution reads');
+  assert.equal(guarded,reads,
+    'every network response must check QIODevice::isReadable before readAll');
+});

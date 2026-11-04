@@ -127,7 +127,8 @@ void GenyPulseActivityController::fetchFarcasterPage(
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,fid,page] {
         if(m_farcasterReply==reply)m_farcasterReply=nullptr;
         const auto http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto data=reply->bytesAvailable()<=kMaxResponseBytes?reply->readAll():QByteArray{};
+        const auto data=reply->isReadable() && reply->bytesAvailable()<=kMaxResponseBytes
+            ? reply->readAll() : QByteArray{};
         const bool success=http==200 && reply->error()==QNetworkReply::NoError;
         reply->deleteLater();
         if(generation!=m_castGeneration || m_fid!=fid)return;
@@ -234,7 +235,8 @@ void GenyPulseActivityController::requestGitHubId(const QString& accountId) {
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,id] {
         if(m_githubResolveReply==reply)m_githubResolveReply=nullptr;
         const int http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray data=reply->bytesAvailable()<=32'768?reply->readAll():QByteArray{};
+        const QByteArray data=reply->isReadable() && reply->bytesAvailable()<=32'768
+            ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if(generation!=m_githubGeneration || m_githubAccountId!=id)return;
         const auto doc=QJsonDocument::fromJson(data);
@@ -288,7 +290,8 @@ void GenyPulseActivityController::fetchGitHubPage(const QString& username,const 
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,username,page] {
         if(m_githubReply==reply)m_githubReply=nullptr;
         const auto http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const auto data=reply->bytesAvailable()<=kMaxResponseBytes?reply->readAll():QByteArray{};
+        const auto data=reply->isReadable() && reply->bytesAvailable()<=kMaxResponseBytes
+            ? reply->readAll() : QByteArray{};
         const bool success=http==200&&reply->error()==QNetworkReply::NoError;
         reply->deleteLater();
         if(generation!=m_githubGeneration || username!=m_githubLogin)return;
@@ -378,8 +381,8 @@ void GenyPulseActivityController::requestGitHubContributions(const QString& user
             [this,reply,generation,login,year] {
         if(m_githubContributionsReply==reply)m_githubContributionsReply=nullptr;
         const int http=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray data=reply->bytesAvailable()<=96*1024
-            ?reply->readAll():QByteArray{};
+        const QByteArray data=reply->isReadable() && reply->bytesAvailable()<=96*1024
+            ? reply->readAll() : QByteArray{};
         const bool ok=http==200 && reply->error()==QNetworkReply::NoError;
         reply->deleteLater();
         if(generation!=m_githubCalendarGeneration || year!=m_githubCalendarYear ||
