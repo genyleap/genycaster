@@ -33,10 +33,11 @@ test('reorder affordances move to physical left in RTL without eating the title 
     assert.match(rail, /Layout\.leftMargin: Theme\.rtl \? 34 : 0/);
     assert.match(rail, /Layout\.rightMargin: Theme\.rtl \? 0 : 34/);
     const handle = rail.slice(rail.indexOf('id: reorderHandle'), rail.indexOf('id: dragHover'));
-    assert.match(handle, /anchors\.left: Theme\.rtl \? parent\.left : undefined/);
-    assert.match(handle, /anchors\.right: Theme\.rtl \? undefined : parent\.right/);
-    assert.match(handle, /anchors\.leftMargin: Theme\.rtl \? Theme\.space2 : 0/);
-    assert.match(handle, /anchors\.rightMargin: Theme\.rtl \? 0 : Theme\.space2/);
+    assert.match(handle, /x: Theme\.rtl \? Theme\.space2/);
+    assert.match(handle, /: widgetDelegate\.width - width - Theme\.space2/);
+    assert.match(handle, /LayoutMirroring\.enabled: false/);
+    assert.doesNotMatch(handle, /anchors\.left:/);
+    assert.doesNotMatch(handle, /anchors\.right:/);
     assert.match(rail, /text: card\.headerText\s*alignToUi: true/);
     assert.match(rail, /text: card\.headerDetail\s*alignToUi: true/);
     assert.match(rail, /implicitHeight: body\.implicitHeight \+ Theme\.space3 \* 2/);

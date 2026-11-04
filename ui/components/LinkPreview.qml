@@ -497,8 +497,12 @@ Superellipse {
     // Only reserve a compact text baseline while metadata is pending.
     // The old fixed 150–186px floor produced empty cards for text-only links.
     readonly property real genericReservedHeight: root.compact ? 72 : 92
+    // Keep the height contract identical to the actual inner gutter.
+    // The Mini App poster previously needed 16px on each side but the card
+    // only reserved 8px, clipping the launch footer in long feed rows.
     implicitHeight: content.implicitHeight
-                    + (root.compact ? Theme.space2 : Theme.space3) * 2
+                    + (root.layoutMiniApp ? Theme.space4
+                       : root.compact ? Theme.space2 : Theme.space3) * 2
     fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
     borderWidth: Theme.strokeHairline
     borderColor: !root.scrollMoving && hover.hovered ? Theme.borderDefault : Theme.borderSubtle
@@ -544,7 +548,10 @@ Superellipse {
         DirectionAwareLabel {
             visible: root.castCaption.length > 0 && (root.layoutMiniApp || root.preferPosterLayout)
             Layout.fillWidth: true
-            Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
+            // Let a one-line heading stay one line. A forced two-line
+            // reservation left an empty band before every Mini App poster.
+            Layout.preferredHeight: visible
+                ? Math.min(root.bodyLineHeight * 2, implicitHeight) : 0
             text: root.castCaption
             font.pixelSize: Theme.typeBodySize
             font.weight: Theme.weightDemiBold
@@ -559,7 +566,7 @@ Superellipse {
         ColumnLayout {
             visible: root.layoutMiniApp
             Layout.fillWidth: true
-            spacing: Theme.space3
+            spacing: Theme.space2
 
             RowLayout {
                 Layout.fillWidth: true
@@ -589,7 +596,7 @@ Superellipse {
 
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    forceLeftToRight: true
+                    alignToUi: true
                     text: root.siteName.length > 0 ? root.siteName : root.domainText
                     color: root.providerColor
                     font.pixelSize: Theme.typeCaptionSize
@@ -726,6 +733,7 @@ Superellipse {
                     spacing: 0
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        alignToUi: true
                         text: root.titleText
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeBodySize

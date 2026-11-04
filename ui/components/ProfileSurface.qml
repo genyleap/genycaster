@@ -2936,11 +2936,11 @@ Item {
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
         height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 750) : parent.height) : 750
         showHandle: mobilePresentation
-        // Native Drawer drag recognition competes with the nested editor's
-        // vertical Flickable on iOS/WASM. Retain handle and close button but
-        // give touch-drag ownership to the form's scroll surface.
+        // Only the grabber owns swipe-dismissal. The form itself retains its
+        // scroll and text-selection gestures on iOS.
         interactive: false
-        contentPadding: Theme.space4
+        contentPadding: Theme.space3
+        topPadding: mobilePresentation ? Theme.space4 : contentPadding
         onOpened: {
             openProofConnections.checkCloudService()
             const savedCategory = String(root.profileExtras.category || "")
@@ -2975,6 +2975,7 @@ Item {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.profile.edit_details")
                 subtitle: qsTrId("genycaster.profile.edit_sections_subtitle")
+                sheetPresentation: profileExtrasEditor.mobilePresentation
                 onCloseRequested: profileExtrasEditor.close()
             }
             Flickable {
@@ -3409,7 +3410,8 @@ Item {
         // scrolling form real space while the Save action stays above the IME.
         height: parent ? (mobilePresentation ? Math.min(parent.height - Theme.space2, 710)
                                             : parent.height) : 690
-        contentPadding: Theme.space4
+        contentPadding: Theme.space3
+        topPadding: mobilePresentation ? Theme.space4 : contentPadding
         property string selectedMood: "none"
         function revealNoteEditor() {
             if (!opened || !statusNoteEditor.activeFocus || statusFormScroll.height <= 0)
@@ -3479,6 +3481,7 @@ Item {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.status.set")
                 subtitle: qsTrId("genycaster.status.hint")
+                sheetPresentation: profileStatusEditor.mobilePresentation
                 onCloseRequested: profileStatusEditor.close()
             }
             Flickable {

@@ -131,17 +131,41 @@ Drawer {
         curveBottomLeft: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.LeftEdge))
         curveBottomRight: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.RightEdge))
 
-        Superellipse {
-            visible: control.showHandle
+        // Form sheets disable Drawer.interactive so scroll gestures belong to
+        // their Flickable. The isolated grabber remains swipe-dismissable,
+        // without stealing vertical drags anywhere in the editor body.
+        Item {
+            visible: control.bottomSheet && control.showHandle
             anchors.top: parent.top
-            anchors.topMargin: Theme.space2
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 40
-            height: 4
-            fillColor: Theme.textTertiary
-            opacity: 0.5
-            borderWidth: 0
-            curveDepth: 2
+            width: 96
+            height: 28
+            z: 2
+
+            Superellipse {
+                anchors.top: parent.top
+                anchors.topMargin: Theme.space2
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 40
+                height: 4
+                fillColor: Theme.textTertiary
+                opacity: 0.55
+                borderWidth: 0
+                curveDepth: 2
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: !control.interactive
+                property real startY: 0
+                onPressed: mouse => startY = mouse.y
+                onReleased: mouse => {
+                    if (mouse.y - startY > 32) control.close()
+                }
+                Accessible.name: qsTrId("genycaster.shell.close")
+                Accessible.role: Accessible.Button
+                Accessible.onPressAction: control.close()
+            }
         }
     }
 }

@@ -41,45 +41,19 @@ GenyDrawer {
     height: parent ? (phoneLayout ? Math.min(parent.height * 0.82, 680)
                      : parent.height) : 620
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    contentPadding: phoneLayout ? Theme.mobileGutter : Theme.space4
+    contentPadding: phoneLayout ? Theme.space3 : Theme.space4
+    topPadding: phoneLayout ? Theme.space4 : contentPadding
     onOpened: resetDraft()
 
     contentItem: ColumnLayout {
-        spacing: Theme.space3
+        spacing: root.phoneLayout ? Theme.space2 : Theme.space3
 
-        RowLayout {
+        ModalHeader {
             Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            spacing: Theme.space2
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                spacing: Theme.space1
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: root.heading
-                    color: Theme.textPrimary
-                    font.pixelSize: Theme.typeTitle2Size
-                    font.weight: Theme.weightBold
-                    elide: Text.ElideRight
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.filters.hint")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
-                }
-            }
-            ActionButton {
-                iconOnly: true
-                quiet: true
-                iconGlyph: Theme.iconClose
-                text: qsTrId("genycaster.shell.close")
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
-                onClicked: root.close()
-            }
+            title: root.heading
+            subtitle: qsTrId("genycaster.filters.hint")
+            sheetPresentation: root.phoneLayout
+            onCloseRequested: root.close()
         }
 
         // Give the content area an explicit height contract; a nested

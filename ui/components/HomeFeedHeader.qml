@@ -182,9 +182,13 @@ Item {
             Rectangle {
                 id: audienceSelector
                 objectName: "explorerAudienceSelector"
-                Layout.preferredWidth: root.compact ? 205 : 228
+                // Persian labels need real width; do not let the Buttons'
+                // implicit minima push them across their segment boundary.
+                Layout.preferredWidth: root.compact ? 228 : 240
+                Layout.minimumWidth: Layout.preferredWidth
                 Layout.preferredHeight: 38
                 radius: 13
+                clip: true
                 color: Theme.surfaceRaised
                 border.width: Theme.strokeHairline
                 border.color: Theme.borderSubtle
@@ -230,6 +234,9 @@ Item {
                             readonly property bool selected: root.audience === String(modelData.id)
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: (audienceSelector.width - 10) / 2
+                            Layout.maximumWidth: Layout.preferredWidth
                             padding: 0
                             hoverEnabled: true
                             enabled: String(modelData.id) !== "following"

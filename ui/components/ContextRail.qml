@@ -249,12 +249,13 @@ Item {
                         id: reorderHandle
                         width: 30
                         height: 30
-                        anchors.top: parent.top
-                        anchors.left: Theme.rtl ? parent.left : undefined
-                        anchors.right: Theme.rtl ? undefined : parent.right
-                        anchors.topMargin: Theme.space2
-                        anchors.leftMargin: Theme.rtl ? Theme.space2 : 0
-                        anchors.rightMargin: Theme.rtl ? 0 : Theme.space2
+                        // Scene-graph LayoutMirroring may reverse anchors a
+                        // second time. Physical x keeps the grip at the actual
+                        // trailing edge for both RTL and LTR without reflow.
+                        x: Theme.rtl ? Theme.space2
+                                     : widgetDelegate.width - width - Theme.space2
+                        y: Theme.space2
+                        LayoutMirroring.enabled: false
                         z: 5
                         curveDepth: Theme.curveCompact
                         fillColor: reorderDrag.active
@@ -275,7 +276,7 @@ Item {
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconReorder
-                            color: reorderDrag.active ? Theme.accent : Theme.textTertiary
+                            color: reorderDrag.active ? Theme.accent : Theme.textSecondary
                             preferredSize: Theme.iconSize
                         }
 

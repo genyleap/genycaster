@@ -2440,7 +2440,7 @@ GenyDrawer {
                     objectName: "mobileComposerMediaBar"
                     visible: root.compact && root.editorMode === "visual"
                     Layout.fillWidth: true
-                    spacing: Theme.space2
+                    spacing: Theme.space3
                     layoutDirection: Theme.uiDirection
                     ActionButton {
                         compact: true
@@ -2468,8 +2468,16 @@ GenyDrawer {
                         }
                     }
                     ActionButton {
+                        objectName: "mobileComposerGifAction"
                         compact: true
                         quiet: true
+                        // A full-width textual ActionButton crowded the emoji
+                        // glyph on iPhone RTL. This is a compact media tool.
+                        Layout.minimumWidth: Theme.scaleUi(50)
+                        Layout.preferredWidth: Theme.scaleUi(50)
+                        Layout.maximumWidth: Theme.scaleUi(50)
+                        leftPadding: Theme.space1
+                        rightPadding: Theme.space1
                         text: "GIF"
                         enabled: root.canUploadMedia
                         onClicked: {
