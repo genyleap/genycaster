@@ -145,8 +145,8 @@ test('localization covers every activity string across twelve languages',()=>{
 test('normalization and query stay in native adapter, not UI',()=>{
   assert.match(source,/cast\.value\(QStringLiteral\("author"\)\)/);
   assert.match(source,/QDateTime::fromString/);
-  assert.match(source,/m_farcasterReply->abort\(\)/);
-  assert.match(source,/m_githubReply->abort\(\)/);
+  assert.match(source,/cancelReply\(m_farcasterReply, this\)/);
+  assert.match(source,/cancelReply\(m_githubReply, this\)/);
   assert.match(source,/statusMap\(QStringLiteral\("error"\)/);
   assert.match(source,/https:\/\/api\.github\.com\/users/);
 });
@@ -185,4 +185,22 @@ test('GitHub calendar is source-specific, real contributions, selectable by year
   assert.match(qml,/githubTileColor/);
   assert.ok(!qml.includes('genycaster.activity.events'));
   assert.ok(!qml.includes('genycaster.activity.github_window'));
+});
+
+test('cancelling an in-flight request is safe when abort emits finished synchronously',()=>{
+  const cancel=source.slice(source.indexOf('void cancelReply('),source.indexOf('QVariantMap statusMap('));
+  assert.ok(cancel.length>100);
+  const assign=cancel.indexOf('tracked.clear()');
+  const disconnect=cancel.indexOf('QObject::disconnect(');
+  const abort=cancel.indexOf('pending->abort()');
+  const deletion=cancel.indexOf('if (pending) pending->deleteLater()');
+  assert.ok(assign>0 && disconnect>assign && abort>disconnect && deletion>abort,
+    'clear pointer and disconnect finished before calling potentially reentrant abort');
+  for(const reply of ['m_farcasterReply','m_githubReply',
+                      'm_githubResolveReply','m_githubContributionsReply']) {
+    assert.ok(source.includes('cancelReply('+reply+', this)'), 'missing safe cancel for '+reply);
+    assert.ok(!source.includes(reply+'->abort('),
+      'do not call abort on a tracked member pointer');
+  }
+  assert.match(source,/if \(pending\) pending->deleteLater\(\)/);
 });

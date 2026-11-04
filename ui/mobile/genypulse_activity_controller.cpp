@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QTimeZone>
 #include <QUrlQuery>
@@ -18,6 +19,19 @@ constexpr qint64 kCacheMs = 10 * 60 * 1000;
 constexpr int kCastPages = 40;
 constexpr int kGithubPages = 3;
 constexpr int kMaxResponseBytes = 1024 * 1024;
+
+// QNetworkReply::abort() is allowed to emit finished() inline (notably on
+// macOS). Detach and disconnect the completion slot BEFORE aborting; otherwise
+// the slot may schedule deletion and clear the tracked QPointer, making the
+// subsequent deleteLater() a null dereference on the calling stack.
+void cancelReply(QPointer<QNetworkReply>& tracked, QObject* receiver) {
+    QPointer<QNetworkReply> pending = tracked;
+    tracked.clear();
+    if (!pending) return;
+    QObject::disconnect(pending.data(), nullptr, receiver, nullptr);
+    pending->abort();
+    if (pending) pending->deleteLater();
+}
 
 QVariantMap statusMap(const QString& status, const QString& source) {
     return {{QStringLiteral("status"), status}, {QStringLiteral("source"), source}};
@@ -66,7 +80,7 @@ void GenyPulseActivityController::requestFarcaster(const qulonglong fid) {
                       (m_castFetchedAt>0 &&
                        QDateTime::currentMSecsSinceEpoch()-m_castFetchedAt<kCacheMs)))return;
     ++m_castGeneration;
-    if(m_farcasterReply){m_farcasterReply->abort();m_farcasterReply->deleteLater();m_farcasterReply=nullptr;}
+    cancelReply(m_farcasterReply, this);
     // Rebuild each window from fresh pages; previously seen hashes cannot
     // survive a refresh, including casts that were subsequently removed.
     m_castFetchedAt=0;
@@ -165,8 +179,8 @@ void GenyPulseActivityController::requestGitHub(const QString& username) {
        (m_githubReply||(m_githubFetchedAt>0&&
           QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
     ++m_githubGeneration;
-    if(m_githubReply){m_githubReply->abort();m_githubReply->deleteLater();m_githubReply=nullptr;}
-    if(m_githubResolveReply){m_githubResolveReply->abort();m_githubResolveReply->deleteLater();m_githubResolveReply=nullptr;}
+    cancelReply(m_githubReply, this);
+    cancelReply(m_githubResolveReply, this);
     m_githubAccountId.clear();
     // Recompute rather than merging stale public events after cache expiry.
     m_githubFetchedAt=0;
@@ -197,8 +211,8 @@ void GenyPulseActivityController::requestGitHubId(const QString& accountId) {
          QDateTime::currentMSecsSinceEpoch()-m_githubFetchedAt<kCacheMs)))return;
 
     ++m_githubGeneration;
-    if(m_githubReply){m_githubReply->abort();m_githubReply->deleteLater();m_githubReply=nullptr;}
-    if(m_githubResolveReply){m_githubResolveReply->abort();m_githubResolveReply->deleteLater();m_githubResolveReply=nullptr;}
+    cancelReply(m_githubReply, this);
+    cancelReply(m_githubResolveReply, this);
     m_githubAccountId=id;
     m_githubLogin.clear();
     m_githubFetchedAt=0;
@@ -333,11 +347,7 @@ void GenyPulseActivityController::requestGitHubContributions(const QString& user
         return;
 
     ++m_githubCalendarGeneration;
-    if(m_githubContributionsReply) {
-        m_githubContributionsReply->abort();
-        m_githubContributionsReply->deleteLater();
-        m_githubContributionsReply=nullptr;
-    }
+    cancelReply(m_githubContributionsReply, this);
     m_githubCalendarLogin=login;
     m_githubCalendarYear=year;
     m_githubCalendarFetchedAt=0;
