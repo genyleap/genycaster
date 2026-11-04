@@ -457,7 +457,8 @@ Flickable {
             readonly property int columnCount: root.compact || gridAvailableWidth < 660
                 ? 1 : gridAvailableWidth < 1680 ? 2 : 3
             readonly property real cardWidth: Math.min(520, Math.max(0,
-                (gridAvailableWidth - (columnCount - 1) * Theme.space3) / columnCount))
+                (gridAvailableWidth - (columnCount - 1) * Theme.space3) / columnCount
+                - Theme.space3 * 2))
             columns: columnCount
             columnSpacing: Theme.space3
             rowSpacing: Theme.space3
@@ -472,6 +473,7 @@ Flickable {
                 // not from the grid's own derived width.
                 Layout.fillWidth: false
                 Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                Layout.margins: Theme.space3
                 Layout.minimumWidth: savedCastsGrid.cardWidth
                 Layout.preferredWidth: savedCastsGrid.cardWidth
                 Layout.maximumWidth: savedCastsGrid.cardWidth

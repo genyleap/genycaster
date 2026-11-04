@@ -202,27 +202,31 @@ GenyAdaptiveDialog {
                     spacing: Theme.space2
                     Repeater {
                         model: root.sentimentModel
-                        delegate: Superellipse {
+                        delegate: Button {
                             id: moodButton
                             required property var modelData
                             Layout.fillWidth: true
                             Layout.preferredHeight: 50
-                            fillColor: root.sentiment === modelData.value
-                                       ? Theme.primarySurface : Theme.surfaceMuted
-                            borderWidth: root.sentiment === modelData.value
-                                         ? Theme.strokeEmphasis : Theme.strokeHairline
-                            borderColor: root.sentiment === modelData.value
-                                         ? Theme.accent : Theme.borderSubtle
-                            curveDepth: Theme.curveControl
-                            Icon {
-                                anchors.centerIn: parent
+                            hoverEnabled: true
+                            padding: 0
+                            flat: true
+                            Accessible.name: qsTrId("genycaster.feedback.subtitle")
+                            background: Superellipse {
+                                fillColor: root.sentiment === moodButton.modelData.value
+                                           ? Theme.primarySurface : Theme.surfaceMuted
+                                borderWidth: root.sentiment === moodButton.modelData.value
+                                             ? Theme.strokeEmphasis : Theme.strokeHairline
+                                borderColor: root.sentiment === moodButton.modelData.value
+                                             ? Theme.accent : Theme.borderSubtle
+                                curveDepth: Theme.curveControl
+                            }
+                            contentItem: Icon {
                                 text: moodButton.modelData.icon
                                 color: root.sentiment === moodButton.modelData.value
                                        ? Theme.accent : Theme.inkMuted
                                 preferredSize: Theme.iconSizeLarge
                             }
-                            HoverHandler { cursorShape: Qt.PointingHandCursor }
-                            TapHandler { onTapped: root.sentiment = moodButton.modelData.value }
+                            onClicked: root.sentiment = moodButton.modelData.value
                         }
                     }
                 }
@@ -234,22 +238,29 @@ GenyAdaptiveDialog {
                     layoutDirection: Theme.uiDirection
                     Repeater {
                         model: root.categoryModel
-                        delegate: Superellipse {
+                        delegate: Button {
                             id: categoryCard
                             required property var modelData
                             Layout.fillWidth: true
                             Layout.preferredHeight: 48
-                            fillColor: root.category === modelData.id
-                                       ? Theme.primarySurface : Theme.surfaceMuted
-                            borderWidth: root.category === modelData.id
-                                         ? Theme.strokeEmphasis : Theme.strokeHairline
-                            borderColor: root.category === modelData.id
-                                         ? Theme.accent : Theme.borderSubtle
-                            curveDepth: Theme.curveControl
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.margins: Theme.space2
+                            hoverEnabled: true
+                            padding: 0
+                            leftPadding: Theme.space2
+                            rightPadding: Theme.space2
+                            flat: true
+                            Accessible.name: categoryCard.modelData.label
+                            background: Superellipse {
+                                fillColor: root.category === categoryCard.modelData.id
+                                           ? Theme.primarySurface : Theme.surfaceMuted
+                                borderWidth: root.category === categoryCard.modelData.id
+                                             ? Theme.strokeEmphasis : Theme.strokeHairline
+                                borderColor: root.category === categoryCard.modelData.id
+                                             ? Theme.accent : Theme.borderSubtle
+                                curveDepth: Theme.curveControl
+                            }
+                            contentItem: RowLayout {
                                 spacing: Theme.space2
+                                layoutDirection: Theme.uiDirection
                                 Icon {
                                     text: categoryCard.modelData.icon
                                     color: root.category === categoryCard.modelData.id
@@ -265,8 +276,7 @@ GenyAdaptiveDialog {
                                     elide: Text.ElideRight
                                 }
                             }
-                            HoverHandler { cursorShape: Qt.PointingHandCursor }
-                            TapHandler { onTapped: root.category = categoryCard.modelData.id }
+                            onClicked: root.category = categoryCard.modelData.id
                         }
                     }
                 }

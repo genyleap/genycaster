@@ -687,6 +687,22 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(afterSignOut.initialSetupCompleted());
     assert(afterSignOut.legalConsentAccepted());
     assert(afterSignOut.initialSetupRequired());
+
+    // A returning verified account clears the temporary post-logout Setup
+    // gate; it must not be forced through onboarding after recovery sign-in.
+    afterSignOut.applyAuthenticationState(
+        true,
+        QStringLiteral("authenticated"),
+        77,
+        {},
+        {},
+        {},
+        QStringLiteral("https://openproof.genyleap.com"),
+        {},
+        {});
+    assert(!afterSignOut.initialSetupRequired());
+    assert(afterSignOut.initialSetupCompleted());
+    assert(!settings.contains(QStringLiteral("setup/showAfterSignOut")));
 }
 
 

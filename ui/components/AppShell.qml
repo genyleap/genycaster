@@ -1066,6 +1066,7 @@ Item {
             visible: root.desktop
             Layout.fillHeight: true
             Layout.preferredWidth: root.desktopNavigationWidth
+            blurSourceItem: readingBackdrop
             activeView: presentationBridge.activeView
             activeFeed: presentationBridge.activeFeed
             shellRoute: root.shellRoute

@@ -3369,6 +3369,17 @@ void PresentationBridge::applyAuthenticationState(
     } else if (m_isAuthenticated || m_authenticationPhase == QStringLiteral("failed")) {
         m_signOutRequestedByUser = false;
     }
+    // A returning account must not repeat the first-run wizard after a
+    // successful recovery-phrase sign-in. Sign-out deliberately exposes
+    // Setup, but that gate is cleared as soon as the previously onboarded
+    // account is verified again.
+    if (m_isAuthenticated && m_initialSetupCompleted && m_showSetupAfterSignOut) {
+        m_showSetupAfterSignOut = false;
+        if (m_settings != nullptr) {
+            m_settings->remove(QStringLiteral("setup/showAfterSignOut"));
+            m_settings->sync();
+        }
+    }
     m_accountFid = m_isAuthenticated ? fid : 0;
     // The read-only visible-rows projection is account-scoped even when
     // no reaction overlay changed; force rebinding after any viewer switch.

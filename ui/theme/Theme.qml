@@ -503,7 +503,7 @@ QtObject {
     readonly property string iconReorder: "reorder"
     readonly property string iconTrash: "trash"
     readonly property string iconEmoji: "smile"
-    readonly property string iconFeedback: "message"
+    readonly property string iconFeedback: "social/smile"
     readonly property string iconEnergy: "bolt"
     readonly property string iconStreakFlame: "system/flame"
     readonly property string iconFidelity: "social/sparkles"
