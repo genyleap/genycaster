@@ -301,16 +301,13 @@ foundation::result::Status SignerService::restore(
                 observer(m_impl->current);
                 return;
             }
-            if (*stored) {
-                if ((*stored)->local.id.value != record.local.id.value ||
-                    (*stored)->local.publicKey.hex != record.local.publicKey.hex) {
-                    m_impl->current = SignerState{.phase = SignerPhase::Failed,
-                        .record = record, .requiredScopes = m_impl->policy.scopes,
-                        .error = makeError(foundation::error::ErrorCode::StorageFailure,
-                            "Persisted signer metadata does not match the secure-vault key.")};
-                    observer(m_impl->current);
-                    return;
-                }
+            // The vault is authoritative for key identity; SQLite contains
+            // only non-secret, potentially stale metadata. Do not reuse its
+            // registration unless BOTH identifiers match the live vault key.
+            // A changed key must be rechecked against the registry below.
+            if (*stored
+                && (*stored)->local.id.value == record.local.id.value
+                && (*stored)->local.publicKey.hex == record.local.publicKey.hex) {
                 record = std::move(**stored);
             }
 
@@ -335,6 +332,18 @@ foundation::result::Status SignerService::restore(
                 m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
                     .record = record, .requiredScopes = m_impl->policy.scopes,
                     .error = std::move(inspected.error())};
+                observer(m_impl->current);
+                return;
+            }
+            // Never accept a registry snapshot for a different account/key,
+            // even if the provider mistakenly labels it active.
+            if (inspected->registration
+                && (inspected->registration->fid.value != session->fid.value
+                    || inspected->registration->publicKey.hex != record.local.publicKey.hex)) {
+                m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
+                    .record = record, .requiredScopes = m_impl->policy.scopes,
+                    .error = makeError(foundation::error::ErrorCode::Unauthorized,
+                        "Signer registry returned a registration for a different key or account.")};
                 observer(m_impl->current);
                 return;
             }
@@ -416,24 +425,22 @@ foundation::result::Status SignerService::provision(
                 observer(m_impl->current);
                 return;
             }
-            if (*stored) {
-                if ((*stored)->local.id.value != record.local.id.value ||
-                    (*stored)->local.publicKey.hex != record.local.publicKey.hex) {
+            const bool metadataMismatched = *stored
+                && ((*stored)->local.id.value != record.local.id.value
+                    || (*stored)->local.publicKey.hex != record.local.publicKey.hex);
+            if (*stored && !metadataMismatched) {
+                record = std::move(**stored);
+            } else if (!*stored) {
+                if (auto saved = m_impl->metadataStore.save(record); !saved) {
                     m_impl->current = SignerState{.phase = SignerPhase::Failed,
                         .record = record, .requiredScopes = m_impl->policy.scopes,
-                        .error = makeError(foundation::error::ErrorCode::StorageFailure,
-                            "Persisted signer metadata does not match the secure-vault key.")};
+                        .error = std::move(saved.error())};
                     observer(m_impl->current);
                     return;
                 }
-                record = std::move(**stored);
-            } else if (auto saved = m_impl->metadataStore.save(record); !saved) {
-                m_impl->current = SignerState{.phase = SignerPhase::Failed,
-                    .record = record, .requiredScopes = m_impl->policy.scopes,
-                    .error = std::move(saved.error())};
-                observer(m_impl->current);
-                return;
             }
+            // Do not trust or rewrite a stale signer checkpoint until the
+            // current secure-vault public key has been verified by the registry.
 
             if (m_impl->registry == nullptr) {
                 m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
@@ -452,6 +459,17 @@ foundation::result::Status SignerService::provision(
                     .error = std::move(inspected.error())};
                 observer(m_impl->current);
                 return;
+            }
+            if (metadataMismatched) {
+                // Reconcile only public metadata after successful inspection.
+                // Missing or revoked keys remain non-writable pending consent.
+                if (auto saved = m_impl->metadataStore.save(record); !saved) {
+                    m_impl->current = SignerState{.phase = SignerPhase::Failed,
+                        .record = record, .requiredScopes = m_impl->policy.scopes,
+                        .error = std::move(saved.error())};
+                    observer(m_impl->current);
+                    return;
+                }
             }
             if (inspected->registration) {
                 record.lastVerifiedRegistration = inspected->registration;
