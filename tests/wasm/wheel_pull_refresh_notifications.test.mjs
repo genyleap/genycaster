@@ -37,7 +37,7 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
             : /PullToRefresh \{[\s\S]*?onRefreshRequested: root\.refreshRequested\(\)/);
     }
     assert.match(shell, /onRefreshRequested: presentationBridge\.openNotifications\(\)/);
-    assert.match(shell, /onRefreshRequested: root\.primaryDestination === "explorer"[\s\S]*?presentationBridge\.refreshLatestFeed\(\)/);
+    assert.match(shell, /onRefreshRequested: root\.topicBrowseActive && root\.topicBrowseScope==="explorer"[\s\S]*?root\.primaryDestination === "explorer"[\s\S]*?presentationBridge\.refreshLatestFeed\(\)/);
     assert.match(shell, /onRefreshRequested: presentationBridge\.selectProfileFeed\(presentationBridge\.profileFeed\)/);
     assert.match(read('ui/CMakeLists.txt'), /components\/PullToRefresh.qml/);
 });

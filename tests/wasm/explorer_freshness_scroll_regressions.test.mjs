@@ -72,7 +72,8 @@ test('single ordinary link Cast composes author sentence inside the responsive c
     assert.match(panel, /castCaption: root.supportingCount === 1 && root.visualCount === 0/);
     assert.match(embed, /castCaption: root.castCaption/);
     assert.match(preview, /property string castCaption: ""/);
-    assert.match(preview, /Layout.preferredWidth: shouldReserve[\s\S]*?Math.min\(root.compact \? 116 : 184/);
+    assert.match(preview, /Layout.fillWidth: root.compact && shouldReserve/);
+    assert.match(preview, /Layout.preferredWidth: !shouldReserve \? 0 : root.compact[\s\S]*?: Math.min\(184/);
     assert.match(preview, /localizationController.isRightToLeftText\(root.castCaption\)/);
 });
 
@@ -91,7 +92,7 @@ test('explicit Explorer refresh cannot hide new casts behind the background badg
     assert.match(header, /Q_INVOKABLE void refreshLatestFeed\(\)/);
     assert.match(cpp, /void PresentationBridge::refreshLatestFeed\(\)[\s\S]*?m_bufferNextFeedRefresh = false;[\s\S]*?revealPendingPosts\(\);[\s\S]*?selectFeed\(m_activeFeed\)/);
     assert.match(shell, /else if \(\(refreshRequested[\s\S]*?presentationBridge.refreshLatestFeed\(\)/);
-    assert.match(shell, /onRefreshRequested: root.primaryDestination === "explorer"[\s\S]*?presentationBridge.refreshLatestFeed\(\)/);
+    assert.match(shell, /onRefreshRequested: root.topicBrowseActive && root.topicBrowseScope==="explorer"[\s\S]*?root.primaryDestination === "explorer"[\s\S]*?presentationBridge.refreshLatestFeed\(\)/);
 });
 
 test('changing Explorer semantic tabs avoids immediate full ListModel destruction', () => {
@@ -274,7 +275,7 @@ test('tapping ordinary cast text opens conversation without covering interactive
     assert.match(cast, /onBodyActivated: \{/);
     assert.match(cast, /!root\.scrollMoving && castId\.length > 0/);
     assert.match(cast, /root\.openRequested\(castId\)/);
-    assert.match(cast, /onTapped: root\.openMoreMenu\(\)/);
+    assert.match(cast, /onClicked: root\.openMoreMenu\(\)/);
 });
 
 test('desktop quick draft keeps context menu; mobile opens the dedicated editor', () => {
