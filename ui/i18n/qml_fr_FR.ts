@@ -2309,6 +2309,10 @@ Entreprise | https://company.com</translation>
             <source>Wrap</source>
             <translation>Retour à la ligne</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>Widgets</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>Activité</translation>
@@ -2338,8 +2342,8 @@ Entreprise | https://company.com</translation>
             <translation>Valeur totalement diluée</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>GENY est lu sur l’ensemble de vos adresses EVM Farcaster vérifiées sur Base. Aucune signature ni transaction n’est requise.</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>Portefeuilles Base vérifiés · Lecture seule, sans signature.</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2350,8 +2354,8 @@ Entreprise | https://company.com</translation>
             <translation>Détenteur de GENY</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY est plus qu’un jeton : il alimente l’identité, l’accès et le statut dans Genycaster.</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY donne accès aux fonctions de Genycaster.</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

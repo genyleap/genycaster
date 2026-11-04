@@ -2309,6 +2309,10 @@ Company | https://company.com</translation>
             <source>Wrap</source>
             <translation>Wrap</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>Widgets</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>Activity</translation>
@@ -2338,8 +2342,8 @@ Company | https://company.com</translation>
             <translation>Fully diluted value</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>Verified Base wallets · Read-only, no signing.</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2350,8 +2354,8 @@ Company | https://company.com</translation>
             <translation>GENY holder</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY is more than a token — it powers identity, access, and status across Genycaster.</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY powers Genycaster features.</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

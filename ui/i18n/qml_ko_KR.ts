@@ -2308,6 +2308,10 @@ Company | https://company.com</source>
             <source>Wrap</source>
             <translation>줄 바꿈</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>위젯</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>활동</translation>
@@ -2337,8 +2341,8 @@ Company | https://company.com</source>
             <translation>완전 희석 가치</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>Base의 검증된 Farcaster EVM 주소 전체에서 GENY 잔액을 조회합니다. 서명이나 트랜잭션은 필요하지 않습니다.</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>인증된 Base 지갑 · 읽기 전용, 서명 불필요.</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2349,8 +2353,8 @@ Company | https://company.com</source>
             <translation>GENY 보유자</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY는 단순한 토큰이 아니라 Genycaster의 신원, 접근 권한, 상태를 지원합니다.</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY는 Genycaster의 기능을 지원합니다.</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

@@ -38,11 +38,30 @@ Superellipse {
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
     readonly property string shownUsername: root.username.length > 0 ? root.username : "genycaster"
     readonly property real contentPadding: root.compact ? Theme.space2 : Theme.space4
-    // Size to the actual face contents, not an oversized fixed card that
-    // leaves a blank shelf beneath the account actions.
-    readonly property real faceHeight: Math.max(frontContent.implicitHeight,
-                                               backContent.implicitHeight,
-                                               root.compact ? 174 : 200)
+    // Window resizing changes line breaking while Qt is still negotiating
+    // the sidebar width. Commit a measured height after layout settles,
+    // instead of bouncing the bottom account card every frame.
+    property real settledCompactFaceHeight: 190
+    readonly property real faceHeight: root.compact
+        ? settledCompactFaceHeight
+        : Math.max(frontContent.implicitHeight, backContent.implicitHeight, 200)
+    onWidthChanged: compactHeightSettler.restart()
+    onCompactChanged: compactHeightSettler.restart()
+    Timer {
+        id: compactHeightSettler
+        interval: 180
+        repeat: false
+        onTriggered: root.settledCompactFaceHeight = Math.max(174,
+            frontContent.implicitHeight, backContent.implicitHeight)
+    }
+    Connections {
+        target: frontContent
+        function onImplicitHeightChanged() { compactHeightSettler.restart() }
+    }
+    Connections {
+        target: backContent
+        function onImplicitHeightChanged() { compactHeightSettler.restart() }
+    }
 
     function requestProfile() {
         if (root.authenticated)

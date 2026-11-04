@@ -14,6 +14,7 @@ Item {
     property string activeFeed: "trending"
     property string shellRoute: ""
     property string primaryDestination: "home"
+    property bool widgetsOpen: false
     property Item blurSourceItem: null
     property bool glassEnabled: false
     // GraphicsInfo.api can briefly be Unknown/Null while Qt recreates its
@@ -21,7 +22,9 @@ Item {
     // state, not an instruction to turn the glass into a solid surface.
     readonly property bool useBackdropBlur: glassEnabled && blurSourceItem !== null
         && root.visible && root.width > 0 && root.height > 0
-    readonly property bool showSelectedLabel: width >= 375
+    // Six destinations need compact glyph slots on phones. The selected
+    // label is an enhancement reserved for wide handsets.
+    readonly property bool showSelectedLabel: width >= 450
     // The footer owns touch targets only: no full-width painted backdrop.
     // Page content keeps its bottom reservation so lists never end beneath
     // these floating controls.
@@ -33,6 +36,7 @@ Item {
     signal photoRequested()
     signal searchRequested()
     signal settingsRequested()
+    signal widgetsRequested()
     signal profileRequested()
     signal routeRequested(string route)
 
@@ -52,7 +56,7 @@ Item {
         readonly property real expandedWidth: iconSlot + Theme.space1
             + Math.ceil(captionMetrics.advanceWidth) + 16
         readonly property bool labelVisible: active && displayLabel
-            && navigationCapsule.width >= expandedWidth + 4 * 44 + 12
+            && navigationCapsule.width >= expandedWidth + 5 * 40 + 12
         implicitHeight: 48
         implicitWidth: labelVisible ? expandedWidth : 44
         leftPadding: 8
@@ -68,7 +72,7 @@ Item {
             text: destination.caption
         }
         Layout.fillWidth: true
-        Layout.minimumWidth: labelVisible ? expandedWidth : 39
+        Layout.minimumWidth: labelVisible ? expandedWidth : (root.width < 360 ? 34 : 39)
         Layout.preferredWidth: implicitWidth
         Layout.preferredHeight: 48
         flat: true
@@ -334,6 +338,14 @@ Item {
                     caption: qsTrId("genycaster.side_nav.bookmarks")
                     iconGlyph: Theme.iconBookmark
                     onClicked: root.routeRequested("bookmarks")
+                }
+                DockDestination {
+                    objectName: "mobileDockWidgets"
+                    active: root.widgetsOpen
+                    displayLabel: root.showSelectedLabel
+                    caption: qsTrId("genycaster.context.widgets")
+                    iconGlyph: Theme.iconChart
+                    onClicked: root.widgetsRequested()
                 }
                 DockDestination {
                     objectName: "mobileDockProfile"

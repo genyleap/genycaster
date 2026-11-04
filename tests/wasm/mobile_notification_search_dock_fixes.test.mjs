@@ -29,7 +29,7 @@ test('search handles outside taps and offers explicit clearing of results', () =
     assert.match(palette, /onClicked: root\.clearResults\(\)/);
 });
 
-test('mobile dock has five destinations and a separate configurable Action Button', () => {
+test('mobile dock has six destinations and a separate configurable Action Button', () => {
     const nav = read('ui/components/BottomNavigation.qml');
     const shell = read('ui/components/AppShell.qml');
     assert.match(nav, /objectName: "mobileNavigationCapsule"/);
@@ -38,7 +38,7 @@ test('mobile dock has five destinations and a separate configurable Action Butto
     assert.doesNotMatch(nav, /objectName: "mobileContentLowerEdge"/);
     assert.doesNotMatch(nav, /footerColor|footerBackground|contentLowerEdge/);
     for(const id of ['mobileDockHome','mobileDockExplore','mobileDockApps',
-                      'mobileBottomBookmarksButton','mobileDockProfile'])
+                      'mobileBottomBookmarksButton','mobileDockWidgets','mobileDockProfile'])
         assert.match(nav, new RegExp('objectName: "'+id+'"'));
     assert.match(nav, /Layout\.preferredWidth: 52/);
     assert.match(nav, /anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);

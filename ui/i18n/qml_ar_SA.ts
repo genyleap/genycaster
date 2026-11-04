@@ -2308,6 +2308,10 @@ Company | https://company.com</source>
             <source>Wrap</source>
             <translation>التفاف</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>ويدجت</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>النشاط</translation>
@@ -2337,8 +2341,8 @@ Company | https://company.com</source>
             <translation>القيمة المخففة بالكامل</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>يتم احتساب GENY عبر جميع عناوين EVM الموثَّقة في Farcaster على شبكة Base. لا يلزم توقيع أو إجراء معاملة.</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>أرصدة Base الموثّقة، للقراءة فقط دون توقيع.</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2349,8 +2353,8 @@ Company | https://company.com</source>
             <translation>حامل GENY</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY أكثر من مجرد رمز؛ فهو يدعم الهوية والوصول والمكانة داخل Genycaster.</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY يدعم مزايا Genycaster.</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

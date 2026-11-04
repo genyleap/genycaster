@@ -2308,6 +2308,10 @@ Company | https://company.com</source>
             <source>Wrap</source>
             <translation>लाइन रैप</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>विजेट</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>गतिविधि</translation>
@@ -2337,8 +2341,8 @@ Company | https://company.com</source>
             <translation>पूर्णतः पतला मूल्य</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>Base पर आपके सभी सत्यापित Farcaster EVM पतों से GENY बैलेंस पढ़ा जाता है। किसी हस्ताक्षर या लेनदेन की आवश्यकता नहीं है।</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>सत्यापित Base वॉलेट · केवल पढ़ने के लिए, बिना हस्ताक्षर।</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2349,8 +2353,8 @@ Company | https://company.com</source>
             <translation>GENY धारक</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY सिर्फ एक टोकन नहीं है — यह Genycaster में पहचान, एक्सेस और स्टेटस को शक्ति देता है।</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY, Genycaster की सुविधाओं को संचालित करता है।</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

@@ -8,18 +8,18 @@ const theme=read('ui/theme/Theme.qml');
 const settings=read('ui/components/LocaleSettingsPopup.qml');
 const shell=read('ui/components/AppShell.qml');
 
-test('five destinations stay in a capsule and the sixth control is independent',()=>{
+test('six destinations include Widgets and the configurable compose action remains independent',()=>{
   const capsule=dock.slice(dock.indexOf('objectName: "mobileNavigationCapsule"'));
   const action=capsule.slice(capsule.indexOf('objectName: "mobilePrimaryActionButton"'));
   const destinations=['mobileDockHome','mobileDockExplore','mobileDockApps',
-    'mobileBottomBookmarksButton','mobileDockProfile'];
+    'mobileBottomBookmarksButton','mobileDockWidgets','mobileDockProfile'];
   for (const name of destinations)
     assert.match(capsule,new RegExp('objectName: "'+name+'"'));
-  assert.equal((capsule.match(/DockDestination \{/g)||[]).length,5);
+  assert.equal((capsule.match(/DockDestination \{/g)||[]).length,6);
   assert.ok(capsule.indexOf('objectName: "mobilePrimaryActionButton"')
     >capsule.indexOf('objectName: "mobileDockProfile"'));
-  assert.match(dock,/showSelectedLabel: width >= 375/);
-  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : 39/);
+  assert.match(dock,/showSelectedLabel: width >= 450/);
+  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : \(root\.width < 360 \? 34 : 39\)/);
   assert.match(dock,/Layout\.preferredWidth: 52/);
   assert.match(dock,/layoutDirection: Theme\.uiDirection/);
   assert.match(action,/Accessible\.name: text/);

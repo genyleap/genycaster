@@ -1507,10 +1507,16 @@ Item {
                         visible: Boolean(root.activeDetail.bannerUrl)
                         source: root.activeDetail.bannerUrl || ""
                         mediaCategory: "photos"
-                        requestedSourceWidth: Math.max(1, Math.round(width))
-                        requestedSourceHeight: Math.max(1, Math.round(height))
+                        // A fixed decode request avoids changing the provider
+                        // cache key on every pixel of a live desktop resize.
+                        // Only the already-decoded texture is scaled.
+                        requestedSourceWidth: 1200
+                        requestedSourceHeight: 480
                         fillMode: Image.PreserveAspectCrop
                         cache: true
+                        asynchronous: true
+                        framePacedPresentation: false
+                        deferNewLoadsWhileScrolling: false
                         // Profile covers use the direct scene-graph image path.
                         // The large/wide MultiEffect mask can resolve the image
                         // successfully yet produce a blank layer on some render
@@ -1520,9 +1526,9 @@ Item {
                         curveDepth: Theme.shapeMedia
                         fillColor: Theme.surfaceRaised
                         borderWidth: 0
-                        showLoadingIndicator: true
+                        showLoadingIndicator: false
                         showFailureIndicator: true
-                        retainPreviousWhileLoading: false
+                        retainPreviousWhileLoading: true
                     }
 
                     // Keep the cover on the direct Image path, but mask only the

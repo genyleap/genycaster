@@ -23,7 +23,7 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/root\.width >= 375/);
   assert.match(dock,/Theme\.scaleUi\(10\) : Theme\.scaleUi\(4\)/);
-  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : 39/);
+  assert.match(dock,/Layout\.minimumWidth: labelVisible \? expandedWidth : \(root\.width < 360 \? 34 : 39\)/);
 });
 
 test('capsule, selected states and action button are border-free in light and dark themes',()=>{
@@ -56,7 +56,7 @@ test('easing is responsive, interruptible and respects reduced motion',()=>{
 
 test('action routing, RTL mirroring and destinations are unchanged',()=>{
   assert.match(dock,/layoutDirection: Theme\.uiDirection/);
-  const destinations=['mobileDockHome','mobileDockExplore','mobileDockApps','mobileBottomBookmarksButton','mobileDockProfile'];
+  const destinations=['mobileDockHome','mobileDockExplore','mobileDockApps','mobileBottomBookmarksButton','mobileDockWidgets','mobileDockProfile'];
   for(const name of destinations)
     assert.match(dock,new RegExp('objectName: "'+name+'"'));
   for(const [action,signal] of [['photo','photoRequested'],['search','searchRequested'],['settings','settingsRequested']])

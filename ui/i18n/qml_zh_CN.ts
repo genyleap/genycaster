@@ -2308,6 +2308,10 @@ Company | https://company.com</source>
             <source>Wrap</source>
             <translation>自动换行</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>小组件</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>活动</translation>
@@ -2337,8 +2341,8 @@ Company | https://company.com</source>
             <translation>完全稀释估值</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>GENY 余额会从你在 Base 上所有已验证的 Farcaster EVM 地址中读取，无需签名或发起交易。</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>已验证的 Base 钱包 · 只读，无需签名。</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2349,8 +2353,8 @@ Company | https://company.com</source>
             <translation>GENY 持有者</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY 不只是代币，它为 Genycaster 中的身份、访问权限和状态提供支持。</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY 支持 Genycaster 的各项功能。</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>

@@ -1875,6 +1875,11 @@ Item {
                             activeFeed: presentationBridge.activeFeed
                             shellRoute: root.shellRoute
                             primaryDestination: root.primaryDestination
+                            widgetsOpen: contextDrawer.visible
+                            onWidgetsRequested: {
+                                if (contextDrawer.visible) contextDrawer.close()
+                                else contextDrawer.open()
+                            }
                             onTrendingRequested: root.openExplorer()
                             onFollowingRequested: root.openHome()
                             onRouteRequested: route => root.openShellRoute(route)
@@ -1920,12 +1925,15 @@ Item {
                             }
                         }
 
+                        // Preserve the widget tree across responsive rail
+                        // visibility changes, so live resize does not tear down
+                        // and recreate artwork, timers and drag state.
                         Loader {
-                            active: root.showHomeContextRail
-                            visible: active
+                            active: root.desktop && root.homeSurfaceActive
+                            visible: root.showHomeContextRail
                             Layout.fillHeight: true
-                            Layout.preferredWidth: active ? root.desktopContextRailWidth : 0
-                            Layout.maximumWidth: active ? root.desktopContextRailWidth : 0
+                            Layout.preferredWidth: root.showHomeContextRail ? root.desktopContextRailWidth : 0
+                            Layout.maximumWidth: root.showHomeContextRail ? root.desktopContextRailWidth : 0
 
                             sourceComponent: Component {
                                 ContextRail {
@@ -1954,11 +1962,11 @@ Item {
                         }
 
                         Loader {
-                            active: root.showSocialContextRail
-                            visible: active
+                            active: root.desktop && root.socialSurfaceActive
+                            visible: root.showSocialContextRail
                             Layout.fillHeight: true
-                            Layout.preferredWidth: active ? root.desktopContextRailWidth : 0
-                            Layout.maximumWidth: active ? root.desktopContextRailWidth : 0
+                            Layout.preferredWidth: root.showSocialContextRail ? root.desktopContextRailWidth : 0
+                            Layout.maximumWidth: root.showSocialContextRail ? root.desktopContextRailWidth : 0
 
                             sourceComponent: Component {
                                 SocialSidebar {
@@ -2061,14 +2069,52 @@ Item {
 
     GenyDrawer {
         id: contextDrawer
-        bottomSheet: false
+        objectName: "responsiveWidgetsDrawer"
+        bottomSheet: root.mobile
+        showHandle: root.mobile
         blurSourceItem: shellContent
-        dimBackground: false
-        interactive: root.compactDesktop
-        width: parent ? Math.min(root.desktopContextRailWidth, parent.width * 0.52) : root.desktopContextRailWidth
-        height: parent ? parent.height : 720
+        dimBackground: root.mobile
+        interactive: root.mobile || root.compactDesktop
+        width: parent ? (root.mobile ? parent.width
+            : Math.min(root.desktopContextRailWidth, parent.width * 0.52))
+            : root.desktopContextRailWidth
+        height: parent ? (root.mobile ? Math.min(parent.height * 0.88, 840)
+            : parent.height) : 720
+        contentPadding: root.mobile ? Theme.space2 : 0
 
-        contentItem: ContextRail {
+        contentItem: ColumnLayout {
+            spacing: 0
+            RowLayout {
+                visible: root.mobile
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? 54 : 0
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                Icon {
+                    text: Theme.iconChart
+                    color: Theme.ink
+                    preferredSize: Theme.iconSizeLarge
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.context.widgets")
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.pro.not_now")
+                    onClicked: contextDrawer.close()
+                }
+            }
+
+            ContextRail {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             identityName: presentationBridge.isAuthenticated ? presentationBridge.identityName : ""
             accountName: presentationBridge.accountName
             accountFid: presentationBridge.accountFid
@@ -2089,6 +2135,7 @@ Item {
             onProfileRequested: username => root.openSuggestedProfile(username)
             onOwnProfileRequested: root.openMyProfileFromNavigation()
             onMarketSettingsRequested: { root.openLocaleSettings(2) }
+            }
         }
     }
 

@@ -338,10 +338,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: assetsCard.showingDetails
                                             ? Math.min(420, 112 + Math.max(1, assetsCard.addressRows.length) * 78)
-                                            : Math.max(202, assetFrontContent.implicitHeight + Theme.space3 * 2)
-                    Behavior on Layout.preferredHeight {
-                        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast; easing.type: Easing.OutCubic }
-                    }
+                                            : Math.max(152, assetFrontContent.implicitHeight + Theme.space3 * 2)
+                    // Layout height animation on a scrollable card causes
+                    // repeated reflow while Safari resizes the viewport.
+                    // Keep each face stable; only the face itself animates.
 
                     Superellipse {
                         id: assetFront
@@ -372,22 +372,30 @@ Item {
                                 spacing: Theme.space3
                                 layoutDirection: Theme.uiDirection
 
-                                SuperellipseImage {
-                                    Layout.preferredWidth: 46
-                                    Layout.preferredHeight: 46
-                                    source: Theme.dark
-                                        ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
-                                        : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
-                                    showManualLoadIndicator: false
-                                    showLoadingIndicator: false
-                                    showFailureIndicator: false
-                                    fillMode: Image.PreserveAspectFit
-                                    mediaCategory: "other"
-                                    requestedSourceWidth: 96
-                                    requestedSourceHeight: 96
+                                // The official GENY mark is a tall SVG. Show its
+                                // entire viewBox with breathing room; don't
+                                // push it through a square texture mask/crop.
+                                Superellipse {
+                                    Layout.preferredWidth: 48
+                                    Layout.preferredHeight: 48
                                     fillColor: Theme.surfaceRaised
-                                    curveDepth: 15
-                                    exponent: 3.8
+                                    curveDepth: Theme.curveControl
+                                    borderWidth: Theme.strokeHairline
+                                    borderColor: Theme.borderSubtle
+                                    Image {
+                                        id: genyAssetMark
+                                        anchors.fill: parent
+                                        anchors.margins: Theme.space1
+                                        source: Theme.dark
+                                            ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+                                            : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
+                                        fillMode: Image.PreserveAspectFit
+                                        sourceSize.width: 96
+                                        sourceSize.height: 96
+                                        smooth: true
+                                        asynchronous: false
+                                        cache: true
+                                    }
                                 }
 
                                 ColumnLayout {
@@ -414,6 +422,8 @@ Item {
                                               : qsTrId("genycaster.context.geny_membership_hint")
                                         color: assetsCard.holding.available && assetsCard.holding.holder ? Theme.accent : Theme.textSecondary
                                         font.pixelSize: Theme.typeCaptionSize
+                                        maximumLineCount: 2
+                                        elide: Text.ElideRight
                                         wrapMode: Text.Wrap
                                     }
                                 }
@@ -439,7 +449,7 @@ Item {
                                 text: qsTrId("genycaster.context.geny_asset_explainer")
                                 color: Theme.textTertiary
                                 font.pixelSize: Theme.typeCaptionSize
-                                maximumLineCount: 3
+                                maximumLineCount: 2
                                 wrapMode: Text.Wrap
                                 elide: Text.ElideRight
                             }

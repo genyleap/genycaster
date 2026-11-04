@@ -2309,6 +2309,10 @@ Company | https://company.com</source>
             <source>Wrap</source>
             <translation>شکستن خطوط</translation>
         </message>
+        <message id="genycaster.context.widgets">
+            <source>Widgets</source>
+            <translation>ویجت‌ها</translation>
+        </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
             <translation>فعالیت</translation>
@@ -2338,8 +2342,8 @@ Company | https://company.com</source>
             <translation>ارزش‌گذاری کاملاً رقیق‌شده</translation>
         </message>
         <message id="genycaster.context.geny_asset_explainer">
-            <source>GENY is read across your verified Farcaster EVM addresses on Base. No signing or transaction is required.</source>
-            <translation>موجودی GENY از مجموع آدرس‌های EVM تأییدشدهٔ فارکستر شما روی Base خوانده می‌شود؛ بدون امضا یا تراکنش.</translation>
+            <source>Verified Base wallets · Read-only, no signing.</source>
+            <translation>کیف‌پول‌های تأییدشده در Base؛ فقط خواندنی، بدون امضا.</translation>
         </message>
         <message id="genycaster.context.geny_balance_unavailable">
             <source>GENY balance is temporarily unavailable</source>
@@ -2350,8 +2354,8 @@ Company | https://company.com</source>
             <translation>دارنده GENY</translation>
         </message>
         <message id="genycaster.context.geny_membership_hint">
-            <source>GENY is more than a token — it powers identity, access, and status across Genycaster.</source>
-            <translation>GENY فراتر از یک توکن است — هویت، دسترسی و جایگاه را در Genycaster تقویت می‌کند.</translation>
+            <source>GENY powers Genycaster features.</source>
+            <translation>GENY امکانات جنی‌کستر را فعال می‌کند.</translation>
         </message>
         <message id="genycaster.context.geny_utility">
             <source>GENY utility · Base</source>
