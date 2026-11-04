@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GenyCaster
+Comment=Native Farcaster client
+Exec=genycaster
+Icon=genycaster
+Terminal=false
+Categories=Network;SocialNetwork;
+StartupNotify=true

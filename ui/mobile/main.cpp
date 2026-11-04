@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QFontDatabase>
 #include <QFile>
 #include <QFileInfo>
@@ -558,6 +559,11 @@ int main(int argc, char* argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationVersion(QString::fromLatin1(GENYCASTER_APP_VERSION));
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+    // Desktop window/task-switcher identity complements the bundled native
+    // Windows PE and macOS application resources.
+    QGuiApplication::setWindowIcon(QIcon{QStringLiteral(":/genycaster/app-icon.png")});
+#endif
     QQuickStyle::setStyle(QStringLiteral(FARCASTER_QT_QUICK_CONTROLS_STYLE));
     QString bundledPersianFontFamily{};
     QString bundledDevanagariFontFamily{};
