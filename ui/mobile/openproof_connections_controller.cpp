@@ -1985,10 +1985,10 @@ void OpenProofConnectionsController::sendCloudProfileRequest(
                     && object.value(QStringLiteral("category")).isString()) {
                     m_cloudRevision = revision;
                     m_cloudError.clear();
-                    const QVariantMap fields = object.toVariantMap();
-                    m_cloudProfileExtras=fields;
-                    if (upload) emit cloudProfileExtrasSaved(fields);
-                    else emit cloudProfileExtrasReceived(fields);
+                    const QVariantMap confirmedFields = object.toVariantMap();
+                    m_cloudProfileExtras=confirmedFields;
+                    if (upload) emit cloudProfileExtrasSaved(confirmedFields);
+                    else emit cloudProfileExtrasReceived(confirmedFields);
                 } else {
                     m_cloudError = QStringLiteral("Account data service returned invalid profile details.");
                 }
@@ -3258,8 +3258,8 @@ void OpenProofConnectionsController::refreshConnections()
                     }
                 }
                 if (provider == QStringLiteral("linkedin")) {
-                    const QString value = json.value(QStringLiteral("profile_url")).toString();
-                    const QUrl url{value};
+                    const QString profileUrl = json.value(QStringLiteral("profile_url")).toString();
+                    const QUrl url{profileUrl};
                     static const QRegularExpression profilePath{
                         QStringLiteral("^/in/[A-Za-z0-9_-]{3,100}/?$")};
                     static const QRegularExpression vanity{
