@@ -62,7 +62,9 @@ test('status note remains reachable in a resizing mobile sheet with pinned save'
   const start=qml.indexOf('id: profileStatusEditor');
   const end=qml.indexOf('id: profileLinksDrawer',start);
   const editor=qml.slice(start,end);
-  assert.match(editor,/Math\.min\(parent\.height - Theme\.space2, 710\)/);
+  assert.match(editor,/height: parent \? parent\.height : 690/);
+  assert.match(editor,/fullScreen: mobilePresentation/);
+  assert.match(editor,/showHandle: false/);
   assert.match(editor,/function revealNoteEditor\(\)/);
   assert.match(editor,/id: statusFormScroll/);
   assert.match(editor,/onHeightChanged: profileStatusEditor\.revealNoteEditor\(\)/);

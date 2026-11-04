@@ -11,7 +11,9 @@ Drawer {
     property int contentPadding: 0
     property Item hostItem: null
     property Item blurSourceItem: null
-    property bool showHandle: bottomSheet
+    // Full-screen inspectors have their own Cancel/Close navigation. Only
+    // short, gesture-dismissable bottom sheets expose a pull handle.
+    property bool showHandle: bottomSheet && !fullScreen
     readonly property int sheetTopInset: showHandle ? Theme.space5 : 0
     // A predictable, less abrupt motion contract for every shared inspector.
     // Reduced-motion requests bypass both translations and fades.

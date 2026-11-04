@@ -40,13 +40,14 @@ GenyDrawer {
     readonly property bool mobilePresentation: viewportWidth > 0
                                               && viewportWidth < Theme.breakpointMobile
     bottomSheet: mobilePresentation
+    fullScreen: mobilePresentation
     dimBackground: true
     interactive: false
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    showHandle: mobilePresentation
+    showHandle: false
     contentPadding: Theme.space4
     width: parent ? (mobilePresentation ? parent.width : Math.min(500, parent.width * 0.94)) : 500
-    height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 720) : parent.height) : 720
+    height: parent ? parent.height : 720
 
     readonly property string logoRoot: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/"
 

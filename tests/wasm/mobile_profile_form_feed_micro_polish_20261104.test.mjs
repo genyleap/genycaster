@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url),'utf8');
 
-test('profile edit/status sheets place centered titles immediately below the grabber and retain forms',()=>{
+test('profile edit/status sheets fill mobile viewport and retain independently scrolling forms',()=>{
  const qml=source('ProfileSurface');
  const edit=qml.slice(qml.indexOf('id: profileExtrasEditor'),qml.indexOf('id: profileStatusEditor'));
  const status=qml.slice(qml.indexOf('id: profileStatusEditor'),qml.indexOf('id: profileLinksDrawer'));
  for(const section of [edit,status]){
    assert.match(section,/interactive: false/);
-   assert.match(section,/topPadding: mobilePresentation \? Theme\.space4 : contentPadding/);
-   assert.match(section,/sheetPresentation: (profileExtrasEditor|profileStatusEditor)\.mobilePresentation/);
+   assert.match(section,/fullScreen: mobilePresentation/);
+   assert.match(section,/height: parent \? parent\.height/);
+   assert.match(section,/showHandle: false/);
+   assert.match(section,/sheetPresentation: false/);
    assert.match(section,/Layout\.fillHeight: true/);
  }
  assert.match(edit,/id: profileEditorScroll/);

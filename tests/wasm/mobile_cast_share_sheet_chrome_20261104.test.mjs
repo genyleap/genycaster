@@ -7,8 +7,8 @@ const source = file => readFileSync(new URL('../../' + file, import.meta.url), '
 test('mobile cast share is a lazy bottom drawer, desktop remains a positioned popover', () => {
   const qml = source('ui/components/EngagementBar.qml');
   assert.match(qml, /id: castShareMenu\s+active: false/);
-  assert.match(qml, /sourceComponent: root\.compact\s*\? mobileCastShareSheet : desktopCastSharePopup/);
-  assert.match(qml, /if \(!root\.compact\) \{\s*const point = castShareButton\.mapToItem/);
+  assert.match(qml, /sourceComponent: Overlay\.overlay\.width < Theme\.breakpointMobile\s*\? mobileCastShareSheet : desktopCastSharePopup/);
+  assert.match(qml, /if \(Overlay\.overlay\.width >= Theme\.breakpointMobile\) \{\s*const point = castShareButton\.mapToItem/);
   assert.match(qml, /id: mobileCastShareSheet\s+GenyDrawer \{/);
   assert.match(qml, /objectName: "castShareMobileDrawer"/);
   assert.match(qml, /bottomSheet: true\s+showHandle: true\s+dimBackground: true/);

@@ -367,7 +367,7 @@ RowLayout {
             castShareMenu.active = true
             const menu = castShareMenu.item
             if (!menu) return
-            if (!root.compact) {
+            if (Overlay.overlay.width >= Theme.breakpointMobile) {
                 const point = castShareButton.mapToItem(
                     Overlay.overlay, 0, castShareButton.height + Theme.space1)
                 menu.x = Math.max(Theme.space2, Math.min(
@@ -382,7 +382,9 @@ RowLayout {
         Loader {
             id: castShareMenu
             active: false
-            sourceComponent: root.compact
+            // Cast compactness is per-card, not a window breakpoint.
+            // Desktop Bookmarks render dense casts but still need a popup.
+            sourceComponent: Overlay.overlay.width < Theme.breakpointMobile
                 ? mobileCastShareSheet : desktopCastSharePopup
         }
     }

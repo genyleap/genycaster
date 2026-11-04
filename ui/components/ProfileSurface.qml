@@ -2754,13 +2754,14 @@ Item {
         parent: Overlay.overlay
         property bool mobilePresentation: false
         bottomSheet: mobilePresentation
+        fullScreen: mobilePresentation
         dimBackground: true
         interactive: false
-        showHandle: mobilePresentation
+        showHandle: false
         contentPadding: Theme.space4
         width: parent ? (mobilePresentation ? parent.width
             : Math.min(520, Math.max(0, parent.width - Theme.space4*2))) : 520
-        height: parent ? (mobilePresentation ? parent.height*0.85 : parent.height) : 640
+        height: parent ? parent.height : 640
 
         contentItem: ColumnLayout {
             spacing: Theme.space3
@@ -2930,17 +2931,17 @@ Item {
         parent: Overlay.overlay
         readonly property bool mobilePresentation: parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
+        fullScreen: mobilePresentation
         property var secondarySelection: []
         property var roleSelection: []
         dimBackground: true
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width)) : 480
-        height: parent ? (mobilePresentation ? Math.min(parent.height * 0.92, 750) : parent.height) : 750
-        showHandle: mobilePresentation
-        // Only the grabber owns swipe-dismissal. The form itself retains its
-        // scroll and text-selection gestures on iOS.
+        height: parent ? parent.height : 750
+        showHandle: false
+        // Forms own touch-scrolling; the explicit Cancel/Close control owns
+        // dismissal. No misleading draggable handle or clipped top stage.
         interactive: false
         contentPadding: Theme.space3
-        topPadding: mobilePresentation ? Theme.space4 : contentPadding
         onOpened: {
             openProofConnections.checkCloudService()
             const savedCategory = String(root.profileExtras.category || "")
@@ -2975,7 +2976,7 @@ Item {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.profile.edit_details")
                 subtitle: qsTrId("genycaster.profile.edit_sections_subtitle")
-                sheetPresentation: profileExtrasEditor.mobilePresentation
+                sheetPresentation: false
                 onCloseRequested: profileExtrasEditor.close()
             }
             Flickable {
@@ -3401,17 +3402,15 @@ Item {
         readonly property bool mobilePresentation:
             parent && parent.width < Theme.breakpointMobile
         bottomSheet: mobilePresentation
+        fullScreen: mobilePresentation
         dimBackground: true
         interactive: false
-        showHandle: mobilePresentation
+        showHandle: false
         width: parent ? (mobilePresentation ? parent.width : Math.min(430,parent.width)) : 430
-        // On iOS/WASM the Qt viewport shrinks when the keyboard opens. A
-        // near-viewport-height sheet keeps its top anchored and gives the
-        // scrolling form real space while the Save action stays above the IME.
-        height: parent ? (mobilePresentation ? Math.min(parent.height - Theme.space2, 710)
-                                            : parent.height) : 690
+        // Fill the viewport while the keyboard resizes it. The note editor
+        // scrolls independently and Save stays in the dedicated footer.
+        height: parent ? parent.height : 690
         contentPadding: Theme.space3
-        topPadding: mobilePresentation ? Theme.space4 : contentPadding
         property string selectedMood: "none"
         function revealNoteEditor() {
             if (!opened || !statusNoteEditor.activeFocus || statusFormScroll.height <= 0)
@@ -3481,7 +3480,7 @@ Item {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.status.set")
                 subtitle: qsTrId("genycaster.status.hint")
-                sheetPresentation: profileStatusEditor.mobilePresentation
+                sheetPresentation: false
                 onCloseRequested: profileStatusEditor.close()
             }
             Flickable {
