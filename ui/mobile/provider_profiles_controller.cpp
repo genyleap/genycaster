@@ -580,6 +580,18 @@ bool ProviderProfilesController::probeDraftNode(
     return startProbe(QStringLiteral("draft"), contract, endpoint, apiKey);
 }
 
+void ProviderProfilesController::cancelProbeReply()
+{
+    // Qt may deliver QNetworkReply::finished inline during abort(). The
+    // previous generation must not mutate a newly opened provider probe.
+    QPointer<QNetworkReply> pending = m_probeReply;
+    m_probeReply.clear();
+    if (!pending) return;
+    QObject::disconnect(pending.data(), nullptr, this, nullptr);
+    pending->abort();
+    if (pending) pending->deleteLater();
+}
+
 bool ProviderProfilesController::startProbe(
     const QString& id, const QString& contract, const QString& endpoint,
     const QString& draftApiKey)
@@ -590,12 +602,7 @@ bool ProviderProfilesController::startProbe(
     const QString origin = normalizedOrigin(endpoint);
     if (origin.isEmpty() || (contract != QStringLiteral("snapchain-v1")
                              && contract != QStringLiteral("hypersnap-v2"))) {
-        if (m_probeReply) {
-            auto* oldReply = m_probeReply.data();
-            m_probeReply = nullptr;
-            oldReply->abort();
-            oldReply->deleteLater();
-        }
+        cancelProbeReply();
         m_probeProviderId = id;
         m_probeState = QStringLiteral("invalid");
         m_probeMessage = QStringLiteral("invalid_address");
@@ -605,11 +612,7 @@ bool ProviderProfilesController::startProbe(
         emit probeChanged();
         return false;
     }
-    if (m_probeReply) {
-        m_probeReply->abort();
-        m_probeReply->deleteLater();
-        m_probeReply = nullptr;
-    }
+    cancelProbeReply();
     m_probeProviderId = id;
     m_probeState = QStringLiteral("checking");
     m_probeMessage.clear();
@@ -701,7 +704,7 @@ void ProviderProfilesController::runProbeStep(
             const int http =
                 reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
             m_probeHttpStatus = http;
-            const QByteArray body = reply->read(48 * 1024);
+            const QByteArray body = reply->isReadable() ? reply->read(48 * 1024) : QByteArray{};
             const auto parsed = QJsonDocument::fromJson(body);
             const QJsonObject json = parsed.isObject() ? parsed.object() : QJsonObject{};
             bool validShape = false;
@@ -889,12 +892,7 @@ QString ProviderProfilesController::activeReadEndpoint() const
 void ProviderProfilesController::clearDraftProbe()
 {
     if (m_probeProviderId != QStringLiteral("draft")) return;
-    if (m_probeReply) {
-        auto* pending = m_probeReply.data();
-        m_probeReply = nullptr;
-        pending->abort();
-        pending->deleteLater();
-    }
+    cancelProbeReply();
     m_probeProviderId.clear();
     m_probeState = QStringLiteral("idle");
     m_probeMessage.clear();

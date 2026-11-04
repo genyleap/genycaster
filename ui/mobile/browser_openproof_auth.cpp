@@ -54,16 +54,25 @@ BrowserOpenProofAuth::~BrowserOpenProofAuth()
     reset();
 }
 
+void BrowserOpenProofAuth::cancelPendingReply()
+{
+    // abort() can emit finished synchronously. Detach the tracked QPointer
+    // before invoking it; otherwise a reentrant finished callback can clear
+    // m_reply between abort() and deleteLater().
+    QPointer<QNetworkReply> pending = m_reply;
+    m_reply.clear();
+    if (!pending) return;
+    QObject::disconnect(pending.data(), nullptr, this, nullptr);
+    pending->abort();
+    if (pending) pending->deleteLater();
+}
+
 void BrowserOpenProofAuth::reset()
 {
     ++m_generation;
     m_pollTimer.stop();
     m_sessionExpiryTimer.stop();
-    if (m_reply) {
-        m_reply->abort();
-        m_reply->deleteLater();
-        m_reply = nullptr;
-    }
+    cancelPendingReply();
     m_deviceCode.fill('\0');
     m_deviceCode.clear();
     m_farcasterTicket.fill('\0');
@@ -97,10 +106,7 @@ void BrowserOpenProofAuth::fail(QString message)
 
 void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Response callback)
 {
-    if (m_reply) {
-        m_reply->abort();
-        m_reply->deleteLater();
-    }
+    cancelPendingReply();
     const std::uint64_t generation = m_generation;
     QNetworkReply* const reply = body.isNull()
         ? m_network.get(request)
@@ -116,7 +122,7 @@ void BrowserOpenProofAuth::send(QNetworkRequest request, QByteArray body, Respon
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const bool successfulTransport = reply->error() == QNetworkReply::NoError
             || (status >= 400 && status < 500);
-        const QByteArray payload = reply->readAll();
+        const QByteArray payload = reply->isReadable() ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (!successfulTransport || payload.size() > 256 * 1024) {
             fail(qtTrId("genycaster.browser_auth.transport_failure"));

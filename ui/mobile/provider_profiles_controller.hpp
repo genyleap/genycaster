@@ -140,6 +140,7 @@ private:
     bool save(const QString& key, const QString& serialized);
     bool fail(const QString& message);
     void clearError();
+    void cancelProbeReply();
 
     QSettings& m_settings;
     QString m_appliedReadProfiles;

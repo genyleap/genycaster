@@ -57,6 +57,7 @@ private:
     void fail(QString message);
     void emitState(BrowserOpenProofState state);
     void reset();
+    void cancelPendingReply();
 
     QNetworkAccessManager m_network{this};
     QTimer m_pollTimer{this};
