@@ -448,9 +448,14 @@ Flickable {
             id: savedCastsGrid
             objectName: "desktopBookmarkGrid"
             Layout.fillWidth: true
-            columns: root.compact || root.width < 960 ? 1 : 2
-            columnSpacing: Theme.space3
-            rowSpacing: Theme.space3
+            // Three modest columns on broad desktop, two on medium screens,
+            // a single readable column on phones. Never stretch casts into
+            // oversized two-up tiles merely because the sidebar is narrow.
+            readonly property int columnCount: root.compact || width < 690
+                ? 1 : width < 1080 ? 2 : 3
+            columns: columnCount
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
 
             Repeater {
             id: savedCastRepeater
@@ -459,10 +464,12 @@ Flickable {
                 id: bookmarkCard
                 required property var modelData
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: Math.max(0, (savedCastsGrid.width -
                     savedCastsGrid.columnSpacing * (savedCastsGrid.columns - 1)) /
                     savedCastsGrid.columns)
+                Layout.maximumWidth: Layout.preferredWidth
                 implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
@@ -509,7 +516,9 @@ Flickable {
                         Layout.fillWidth: true
                         Layout.preferredHeight: visible ? implicitHeight : 0
                         modelData: bookmarkCard.modelData
-                        compact: root.compact
+                        // Dense desktop columns use the same compact cast
+                        // spacing as mobile without removing rich content.
+                        compact: root.compact || savedCastsGrid.columns >= 3
                         interactionsAvailable: root.interactionsAvailable
                         accountFid: root.accountFid
                         enrichmentActive: bookmarkCard.visible && !root.moving

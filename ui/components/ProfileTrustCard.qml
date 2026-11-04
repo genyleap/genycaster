@@ -37,8 +37,12 @@ Superellipse {
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
     readonly property string shownUsername: root.username.length > 0 ? root.username : "genycaster"
-    readonly property real contentPadding: root.compact ? Theme.space3 : Theme.space4
-    readonly property real faceHeight: Math.max(frontContent.implicitHeight, backContent.implicitHeight, root.compact ? 194 : 218)
+    readonly property real contentPadding: root.compact ? Theme.space2 : Theme.space4
+    // Size to the actual face contents, not an oversized fixed card that
+    // leaves a blank shelf beneath the account actions.
+    readonly property real faceHeight: Math.max(frontContent.implicitHeight,
+                                               backContent.implicitHeight,
+                                               root.compact ? 174 : 200)
 
     function requestProfile() {
         if (root.authenticated)
@@ -121,7 +125,7 @@ Superellipse {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            spacing: root.compact ? Theme.space2 : Theme.space3
+            spacing: root.compact ? Theme.space1 : Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true
@@ -213,13 +217,13 @@ Superellipse {
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
-                maximumLineCount: root.compact ? 2 : 3
+                maximumLineCount: root.compact ? 1 : 3
                 elide: Text.ElideRight
             }
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.compact ? 54 : 58
+                Layout.preferredHeight: root.compact ? 48 : 58
                 fillColor: Theme.surfaceMuted
                 borderWidth: Theme.strokeHairline
                 borderColor: Theme.borderSubtle
@@ -278,15 +282,17 @@ Superellipse {
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
-            }
-
-            ActionButton {
-                objectName: "profileTrustCardAccountButton"
-                Layout.fillWidth: true
-                compact: true
-                quiet: true
-                text: qsTrId("genycaster.header.account")
-                onClicked: root.accountRequested()
+                ActionButton {
+                    objectName: "profileTrustCardAccountButton"
+                    Layout.preferredWidth: 36
+                    Layout.minimumWidth: 36
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconSettings
+                    text: qsTrId("genycaster.header.account")
+                    onClicked: root.accountRequested()
+                }
             }
         }
     }
@@ -313,7 +319,7 @@ Superellipse {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            spacing: root.compact ? Theme.space2 : Theme.space3
+            spacing: root.compact ? Theme.space1 : Theme.space3
 
             RowLayout {
                 Layout.fillWidth: true
@@ -435,14 +441,16 @@ Superellipse {
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
-            }
-
-            ActionButton {
-                Layout.fillWidth: true
-                compact: true
-                quiet: true
-                text: qsTrId("genycaster.header.account")
-                onClicked: root.accountRequested()
+                ActionButton {
+                    Layout.preferredWidth: 36
+                    Layout.minimumWidth: 36
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconSettings
+                    text: qsTrId("genycaster.header.account")
+                    onClicked: root.accountRequested()
+                }
             }
         }
     }

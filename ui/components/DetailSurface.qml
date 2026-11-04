@@ -317,7 +317,10 @@ ListView {
 
             RowLayout {
                 visible: !root.compact && root.activeView === "cast"
-                Layout.fillWidth: true
+                // Keep conversation context close to Back. A separate flex
+                // spacer pins New cast / Refresh against the trailing edge.
+                Layout.fillWidth: false
+                Layout.maximumWidth: Math.max(0, detailColumn.width - Theme.scaleUi(200))
                 Layout.minimumWidth: 0
                 spacing: Theme.space1
                 layoutDirection: Theme.uiDirection
@@ -366,16 +369,16 @@ ListView {
                 }
             }
 
-            // Keep Back at the leading edge; on phones move the cast actions
-            // to the trailing edge, matching the desktop toolbar rhythm.
-            Item { Layout.fillWidth: root.compact || root.activeView !== "cast" }
+            // One elastic region separates navigation/context from trailing
+            // actions at every width, including wide desktop conversation views.
+            Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
 
             ActionButton {
-                visible: root.activeView === "cast"
+                visible: root.activeView === "cast" && !root.compact
                 compact: true
                 quiet: true
                 elevated: false
-                iconOnly: root.compact
+                iconOnly: false
                 iconGlyph: Theme.iconCompose
                 text: qsTrId("genycaster.header.new_cast")
                 onClicked: root.composeRequested()

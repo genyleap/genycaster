@@ -60,7 +60,10 @@ Item {
         spacing: root.compactMode ? Theme.space1 : Theme.space2
 
         RowLayout {
-            Layout.preferredWidth: root.iconOnlyMetadata ? 12 : 112
+            // Live and its source badge are one compact status cluster;
+            // avoid the 112px reserved blank area between them.
+            Layout.preferredWidth: root.iconOnlyMetadata
+                ? 12 : Math.max(34, liveStatusLabel.implicitWidth + Theme.space1 + 7)
             Layout.minimumWidth: Layout.preferredWidth
             Layout.maximumWidth: Layout.preferredWidth
             layoutDirection: Theme.uiDirection
@@ -77,6 +80,7 @@ Item {
             }
 
             Label {
+                id: liveStatusLabel
                 visible: !root.iconOnlyMetadata
                 Layout.fillWidth: true
                 text: root.stateLabel
@@ -97,12 +101,14 @@ Item {
         RowLayout {
             layoutDirection: Theme.uiDirection
             visible: !root.compactMetadata
-            Layout.preferredWidth: 120
-            Layout.maximumWidth: 120
+            Layout.preferredWidth: Math.min(120,
+                Math.max(76, providerLabel.implicitWidth + Theme.space1 + 16))
+            Layout.maximumWidth: Layout.preferredWidth
             spacing: Theme.space1
 
             Icon { text: nodeProviderIcon; color: Theme.textTertiary; preferredSize: 13 }
             Label {
+                id: providerLabel
                 Layout.fillWidth: true
                 text: nodeProviderLabel
                 color: Theme.textTertiary

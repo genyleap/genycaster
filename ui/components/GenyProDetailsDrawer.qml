@@ -18,9 +18,9 @@ GenyDrawer {
     bottomSheet: root.compact
     showHandle: root.compact
     dimBackground: true
-    width: root.compact ? parent.width : Math.min(460,parent.width*0.94)
-    height: root.compact ? Math.min(parent.height*0.92,820) : parent.height
-    contentPadding: Theme.space3
+    width: root.compact ? parent.width : Math.min(440,parent.width*0.94)
+    height: root.compact ? Math.min(parent.height*0.88,760) : parent.height
+    contentPadding: Theme.space4
 
     onOpened: {
         expandedFeature = -1
@@ -38,7 +38,7 @@ GenyDrawer {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            height: Math.max(58,implicitHeight)
+            height: Math.max(56,implicitHeight)
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
@@ -46,9 +46,9 @@ GenyDrawer {
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
                 curveDepth: Theme.curveCompact
-                fillColor: Theme.proSurface
-                borderWidth: 1
-                borderColor: Theme.proBorder
+                fillColor: Theme.surfaceMuted
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.borderSubtle
                 Icon {
                     anchors.centerIn: parent
                     text: Theme.iconSpark
@@ -73,7 +73,7 @@ GenyDrawer {
                               LocaleFormat.formatInteger(root.minimumGeny))
                           : qsTrId("genycaster.pro.requires_pro")
                     font.pixelSize: Theme.typeCaptionSize
-                    color: root.eligible ? Theme.proAccent : Theme.textSecondary
+                    color: root.eligible ? Theme.positive : Theme.textSecondary
                     elide: Text.ElideRight
                 }
             }
@@ -94,8 +94,8 @@ GenyDrawer {
             anchors.right: parent.right
             anchors.top: fixedHeader.bottom
             anchors.bottom: fixedActions.top
-            anchors.topMargin: Theme.space3
-            anchors.bottomMargin: Theme.space3
+            anchors.topMargin: Theme.space2
+            anchors.bottomMargin: Theme.space2
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             contentWidth: width
@@ -107,43 +107,66 @@ GenyDrawer {
                 id: detailsColumn
                 width: detailsViewport.width
                 spacing: Theme.space2
+                // Compact eligibility summary: one calm neutral surface,
+                // strong numeric hierarchy, and no orange-tinted giant box.
                 Superellipse {
+                    objectName: "genyProNeutralEligibilitySummary"
                     Layout.fillWidth: true
-                    implicitHeight: summaryColumn.implicitHeight + Theme.space3*2
-                    fillColor: Theme.proSurface
-                    borderColor: Theme.proBorder
-                    borderWidth: 1
+                    implicitHeight: summaryColumn.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.surfaceRaised
+                    borderColor: Theme.borderSubtle
+                    borderWidth: Theme.strokeHairline
                     curveDepth: Theme.curveContainer
 
-                    ColumnLayout {
+                    RowLayout {
                         id: summaryColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.margins: Theme.space3
-                        spacing: Theme.space2
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: LocaleFormat.formatInteger(root.minimumGeny) + " GENY"
-                            color: Theme.proAccent
-                            font.pixelSize: Theme.typeTitle2Size
-                            font.weight: Theme.weightBold
+                        spacing: Theme.space3
+
+                        Superellipse {
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 40
+                            Layout.alignment: Qt.AlignTop
+                            curveDepth: Theme.curveCompact
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: 0
+                            Icon {
+                                anchors.centerIn: parent
+                                text: Theme.iconWallet
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSizeLarge
+                            }
                         }
-                        DirectionAwareLabel {
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.pro.unlock_hint").arg(
-                                LocaleFormat.formatInteger(root.minimumGeny))
-                            color: Theme.textSecondary
-                            wrapMode: Text.Wrap
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                        DirectionAwareLabel {
-                            visible: root.membership.status === "unavailable"
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.pro.verification_unavailable")
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.Wrap
+                            Layout.minimumWidth: 0
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: LocaleFormat.formatInteger(root.minimumGeny) + " GENY"
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightBold
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.pro.unlock_hint").arg(
+                                    LocaleFormat.formatInteger(root.minimumGeny))
+                                color: Theme.textSecondary
+                                wrapMode: Text.Wrap
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            DirectionAwareLabel {
+                                visible: root.membership.status === "unavailable"
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.pro.verification_unavailable")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
                         }
                     }
                 }
@@ -151,8 +174,8 @@ GenyDrawer {
                 Repeater {
                     model: [
                         { icon: Theme.iconApps,
-                          title: qsTrId("genycaster.miniapp.session_limit"),
-                          detail: qsTrId("genycaster.apps.my_miniapps") },
+                          title: qsTrId("genycaster.apps.my_miniapps"),
+                          detail: qsTrId("genycaster.miniapp.session_limit") },
                         { icon: Theme.iconBookmark,
                           title: qsTrId("genycaster.pro.bookmark_collections"),
                           detail: qsTrId("genycaster.pro.requires_pro") },
@@ -173,7 +196,7 @@ GenyDrawer {
                         readonly property bool expanded: root.expandedFeature === index
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        implicitHeight: Math.max(46, featureLayout.implicitHeight + Theme.space2 * 2)
+                        implicitHeight: Math.max(48, featureLayout.implicitHeight + Theme.space2 * 2)
                         leftPadding: Theme.space3
                         rightPadding: Theme.space3
                         topPadding: Theme.space2
@@ -185,11 +208,15 @@ GenyDrawer {
                         onClicked: root.expandedFeature = expanded ? -1 : index
 
                         background: Superellipse {
-                            fillColor: feature.expanded ? Theme.proSurface
+                            fillColor: feature.expanded ? Theme.surfaceMuted
                                 : feature.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-                            borderColor: feature.expanded ? Theme.proBorder : Theme.borderSubtle
+                            borderColor: Theme.borderSubtle
                             borderWidth: Theme.strokeHairline
                             curveDepth: Theme.curveCompact
+                            Behavior on fillColor {
+                                enabled: !Theme.reduceMotion
+                                ColorAnimation { duration: Theme.motionFast }
+                            }
                         }
                         contentItem: RowLayout {
                             id: featureLayout
@@ -200,13 +227,13 @@ GenyDrawer {
                                 Layout.preferredWidth: 32
                                 Layout.preferredHeight: 32
                                 Layout.alignment: Qt.AlignTop
-                                fillColor: Theme.proSurface
+                                fillColor: Theme.surfaceMuted
                                 borderWidth: 0
                                 curveDepth: Theme.curveCompact
                                 Icon {
                                     anchors.centerIn: parent
                                     text: String(feature.modelData.icon || "")
-                                    color: Theme.proAccent
+                                    color: Theme.inkMuted
                                     preferredSize: Theme.iconSizeSmall
                                 }
                             }
@@ -220,6 +247,8 @@ GenyDrawer {
                                     color: Theme.textPrimary
                                     font.pixelSize: Theme.typeLabelSize
                                     font.weight: Theme.weightDemiBold
+                                    wrapMode: feature.expanded ? Text.WordWrap : Text.NoWrap
+                                    maximumLineCount: feature.expanded ? 2 : 1
                                     elide: Text.ElideRight
                                 }
                                 DirectionAwareLabel {

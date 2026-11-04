@@ -27,11 +27,13 @@ test('Profile Pro badge opens the same responsive drawer on touch and desktop',(
  assert.match(drawer,/onClicked: root\.expandedFeature = expanded \? -1 : index/);
 });
 
-test('desktop bookmarks use a measured two-column grid and mobile stays single-column',()=>{
+test('desktop bookmarks use measured compact columns and mobile stays single-column',()=>{
  const bookmarks=qml('BookmarksSurface.qml');
  const shell=qml('AppShell.qml');
  assert.match(bookmarks,/objectName: "desktopBookmarkGrid"/);
- assert.match(bookmarks,/columns: root\.compact \|\| root\.width < 960 \? 1 : 2/);
+ assert.match(bookmarks,/readonly property int columnCount: root\.compact \|\| width < 690/);
+ assert.match(bookmarks,/width < 1080 \? 2 : 3/);
+ assert.match(bookmarks,/Layout\.alignment: Qt\.AlignTop/);
  assert.match(bookmarks,/card\.mapToItem\(root\.contentItem/);
  assert.match(shell,/Layout\.maximumWidth: root\.compact[\s\S]*?root\.adaptiveDashboardWidth/);
 });
