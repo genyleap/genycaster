@@ -12,7 +12,7 @@ const extract = (start, end) => {
 };
 const nativeDesktopExpr = extract(
     "    readonly property bool nativeDesktop: ",
-    "\n    width: "
+    "\n    // Default to a three-column desktop workspace"
 );
 const widthExpr = extract("    width: ", "\n    height: ");
 const heightExpr = extract("    height: ", "\n    // Browsers can expose");
@@ -25,7 +25,7 @@ test("native Windows, macOS and Linux launch with desktop layout", () => {
         assert.equal(nativeDesktop({ platform: { os } }), true);
         const width = initialWidth(true, { desktopAvailableWidth: 1920 });
         const height = initialHeight(true, { desktopAvailableHeight: 1080 });
-        assert.deepEqual([width, height], [1280, 800]);
+        assert.deepEqual([width, height], [1560, 940]);
         assert.ok(width > 720, "not mistaken for mobile shell at launch");
     }
 });
@@ -33,11 +33,11 @@ test("native Windows, macOS and Linux launch with desktop layout", () => {
 test("window fits the available desktop geometry without changing user resize", () => {
     for (const width of [800, 1024, 1280, 1366, 1440, 1920, 3840]) {
         const initial = initialWidth(true, { desktopAvailableWidth: width });
-        assert.ok(initial <= width - 64 && initial >= 360);
+        assert.ok(initial <= width - 48 && initial >= 360);
     }
     for (const height of [720, 768, 900, 1080, 2160]) {
         const initial = initialHeight(true, { desktopAvailableHeight: height });
-        assert.ok(initial <= height - 64 && initial >= 640);
+        assert.ok(initial <= height - 48 && initial >= 640);
     }
     assert.doesNotMatch(qml, /onWidthChanged\s*:|onHeightChanged\s*:/);
 });
