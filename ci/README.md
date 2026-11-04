@@ -1,8 +1,8 @@
 # GenyCaster GitHub Actions: Controlled Multi-Platform Builds
 
-The workflow is at `.github/workflows/ci.yml`. It adapts the
-matrix/deployment/artifact structure of GenyConnect, but deliberately has
-**no push-to-main, pull-request, schedule, or release-edit triggers**.
+The workflow is at `.github/workflows/ci.yml`. Its controlled
+multi-platform build matrix deliberately has **no push-to-main,
+pull-request, schedule, or release-edit triggers**.
 
 ## When workflows run
 

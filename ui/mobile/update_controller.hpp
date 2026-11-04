@@ -17,7 +17,7 @@ class QTimer;
 /**
  * Asynchronous, opt-out GitHub Releases update discovery.
  *
- * Inspired by GenyConnect's update workflow. Never silently executes code:
+ * Fail-closed update discovery. Never silently executes code:
  * downloads require a platform-matching asset and a verified SHA-256 digest;
  * installation is delegated to the OS after an explicit user click.
  */

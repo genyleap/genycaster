@@ -1,8 +1,7 @@
 # Update delivery and verification
 
-Genycaster's update manager follows the public GenyConnect
-`src/updater.cpp` /`ui/Sections/UpdatesSettings.qml` design principles,
-adapted to the smaller Genycaster release pipeline.
+GenyCaster's update manager uses a fail-closed release discovery and
+verification pipeline designed for its native platforms.
 
 - Asynchronous, quiet check after startup and every 24h, with opt-out in
   Settings > Updates and an explicit Check now button.
@@ -17,8 +16,8 @@ adapted to the smaller Genycaster release pipeline.
   rename, and only then allow the user to open the installer.
 - No silent execution of downloaded installers. The OS installation / package
   manager is deliberately invoked by user action; self-replacing running
-  binaries needs a separately signed, platform-specific helper like
-  GenyConnect's mature updater before it is safe to automate.
+  binaries would require a separately signed, platform-specific helper
+  before automatic replacement could be considered safe.
 - iOS and WebAssembly have no desktop package install action; users can visit
   releases. Signing/codesign/notarization checks and platform updater helpers
   should be added to the packaging pipeline before describing silent updates

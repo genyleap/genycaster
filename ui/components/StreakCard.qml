@@ -271,7 +271,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space1
 
-                // GenyConnect-inspired restrained energy orb: two independent
+                // Restrained achievement orb: two independent
                 // soft pulses, a stable core and a flame. No particles, GPU
                 // loops or attention-grabbing flashes; reduced-motion safe.
                 Item {
