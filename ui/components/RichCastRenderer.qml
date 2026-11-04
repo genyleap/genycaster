@@ -178,7 +178,9 @@ ColumnLayout {
         delegate: Loader {
             required property var modelData
             Layout.fillWidth: true
-            asynchronous: true
+            // These blocks are cheap compared with their images; synchronous
+            // creation avoids orphaned incubators when a feed row is recycled.
+            asynchronous: false
             active: !root.blockSuppressed(modelData)
             sourceComponent: active ? root.componentFor(modelData.kind) : null
             property var blockData: modelData

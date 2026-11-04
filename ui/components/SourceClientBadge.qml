@@ -7,7 +7,7 @@ import QtQuick.Layouts
 Label {
     id: badge
     property string clientName: ""
-    readonly property string sanitizedName: String(clientName || "").replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, 48)
+    readonly property string sanitizedName: String(clientName || "").replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 48)
     visible: sanitizedName.length > 0
     text: sanitizedName
     Accessible.name: qsTrId("genycaster.cast.source_client_accessible").arg(sanitizedName)

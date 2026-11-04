@@ -212,7 +212,7 @@ Item {
                 elevated: false
                 pill: true
                 iconSize: 13
-                iconGlyph: Theme.iconChevronRight
+                iconGlyph: Theme.iconArrowRight
                 text: qsTrId("genycaster.activity.explore")
                 onClicked: root.exploreRequested()
             }

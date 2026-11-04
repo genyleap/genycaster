@@ -468,7 +468,7 @@ ListView {
                     Item {
                         Layout.alignment: Qt.AlignTop
                         Layout.preferredWidth: root.activeView === "profile" ? 68 : (root.compact ? 46 : 52)
-                        Layout.preferredHeight: Layout.preferredWidth
+                        Layout.preferredHeight: root.activeView === "profile" ? 68 : (root.compact ? 46 : 52)
 
                         Avatar {
                             anchors.fill: parent
@@ -496,10 +496,13 @@ ListView {
                             layoutDirection: Theme.uiDirection
 
                             DirectionAwareLabel {
+                                // Never size a Layout child from its own
+                                // RowLayout's computed width: Qt 6.12 detects
+                                // and aborts the resulting recursive arrange.
+                                Layout.fillWidth: root.activeView === "profile"
                                 Layout.minimumWidth: 0
                                 Layout.preferredWidth: Math.min(implicitWidth,
-                                    detailNameAndChannel.width)
-                                Layout.maximumWidth: Layout.preferredWidth
+                                    Math.max(80, root.width * 0.55))
                                 text: root.detail.displayName || root.detail.author || qsTrId("genycaster.detail.canonical_detail")
                                 color: authorNameHover.hovered ? Theme.accent : Theme.ink
                                 font.pixelSize: root.activeView === "profile" ? Theme.typeTitle2Size : Theme.typeTitle3Size
@@ -561,7 +564,7 @@ ListView {
                                 LayoutMirroring.enabled: false
                                 Layout.minimumWidth: 0
                                 Layout.preferredWidth: root.compact && root.activeView === "cast"
-                                    ? Math.min(implicitWidth, parent.width * 0.56) : implicitWidth
+                                    ? Math.min(implicitWidth, Math.max(80, root.width * 0.44)) : implicitWidth
                                 text: root.ltrHandle(root.detail.username)
                                 font.family: Theme.latinFontFamily
                                 color: Theme.inkMuted

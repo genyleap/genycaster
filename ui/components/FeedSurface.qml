@@ -1631,6 +1631,9 @@ Item {
             // Commit the measured height only while the viewport is at rest;
             // completing incubation mid-flick cannot move rows under the pointer.
             height: Math.max(1, committedHeight)
+            // Keep large cast delegates asynchronously incubated: disabling
+            // this blocks scrolling during rapid navigation. Qt may emit a
+            // harmless teardown diagnostic if a pending row is recycled.
             asynchronous: !sectionRow
             sourceComponent: rowDelegate.sectionRow ? sectionRowComponent
                            : root.socialMode ? profileRowComponent : castRowComponent
