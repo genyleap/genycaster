@@ -768,8 +768,10 @@ for visual_path in (ui/'components').glob('*.qml'):
 progress_ring = (ui/'components'/'ProgressRing.qml').read_text(encoding='utf-8')
 profile_trust = (ui/'components'/'ProfileTrustCard.qml').read_text(encoding='utf-8')
 if ('preferredRendererType: Shape.CurveRenderer' not in progress_ring
+        or 'id: streakRing' not in profile_trust
         or 'ProgressRing {' not in profile_trust
-        or 'VectorStroke {' in profile_trust.split('id: scoreRing', 1)[1].split('}', 1)[0]):
+        or ('id: streakRing' in profile_trust
+            and 'VectorStroke {' in profile_trust.split('id: streakRing', 1)[1].split('}', 1)[0])):
     errors.append('Profile trust ring must use the mostly-static CurveRenderer progress primitive instead of dynamic VectorStroke geometry')
 
 animated_emoji = (ui/'components'/'AnimatedEmoji.qml').read_text(encoding='utf-8')
