@@ -1466,6 +1466,7 @@ void PresentationBridge::selectFeed(const QString& feed)
         m_bufferNextFeedRefresh = false;
         m_feedSourceSwitchPending = true;
     }
+    clearDetailHistory();
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
     m_activeFeed = nextFeed;
@@ -1494,6 +1495,7 @@ void PresentationBridge::openChannel(const QString& channelId)
         m_bufferNextFeedRefresh = false;
         m_feedSourceSwitchPending = true;
     }
+    clearDetailHistory();
     m_activeView = QStringLiteral("feed");
     m_feedStarted = true;
     m_activeFeed = QStringLiteral("channel");
@@ -1666,6 +1668,36 @@ void PresentationBridge::markNotificationsRead()
     }
 }
 
+void PresentationBridge::rememberDetailLocation()
+{
+    if (m_restoringDetailHistory) return;
+
+    DetailLocation location{};
+    if (m_activeView == QStringLiteral("cast") && !m_currentCastId.isEmpty()) {
+        location.view = QStringLiteral("cast");
+        location.castId = m_currentCastId;
+    } else if (m_activeView == QStringLiteral("profile")
+               && (m_profileFid != 0 || !m_currentProfileUsername.isEmpty())) {
+        location.view = QStringLiteral("profile");
+        location.profileFid = m_profileFid;
+        location.profileUsername = m_currentProfileUsername;
+        location.profileFeed = m_profileFeed;
+    } else {
+        return;
+    }
+    // A browser can open many quoted casts. Keep the true navigation chain,
+    // but cap memory and avoid repeated entries for the same active surface.
+    constexpr std::size_t maxBreadcrumbs = 24;
+    if (m_detailHistory.size() >= maxBreadcrumbs)
+        m_detailHistory.erase(m_detailHistory.begin());
+    m_detailHistory.push_back(std::move(location));
+}
+
+void PresentationBridge::clearDetailHistory()
+{
+    m_detailHistory.clear();
+}
+
 void PresentationBridge::openCast(const QString& castId)
 {
     if (castId.trimmed().isEmpty()) {
@@ -1673,13 +1705,16 @@ void PresentationBridge::openCast(const QString& castId)
         emit stateChanged();
         return;
     }
-    m_detailReturnView = m_activeView == QStringLiteral("profile")
-        ? QStringLiteral("profile")
-        : QStringLiteral("feed");
+    const QString canonical = castId.trimmed();
+    if (m_activeView == QStringLiteral("cast")
+        && m_currentCastId.compare(canonical, Qt::CaseInsensitive) == 0)
+        return;
+    rememberDetailLocation();
+    m_currentCastId = canonical;
     m_activeView = QStringLiteral("cast");
     m_detail.clear();
     beginIntent(qtTrId("genycaster.bridge.reading_cached_cast"));
-    emit castRequested(castId.trimmed(), consumeRecoveryProbe());
+    emit castRequested(canonical, consumeRecoveryProbe());
 }
 
 bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
@@ -1745,6 +1780,11 @@ void PresentationBridge::openProfileUsername(const QString& username)
     // Route immediately to a clean profile loading state. Keeping the previous
     // detail/list visible while username resolution runs leaks stale identity
     // media into the new navigation target for one or more frames.
+    if (m_activeView == QStringLiteral("profile")
+        && m_currentProfileUsername.compare(canonical, Qt::CaseInsensitive) == 0)
+        return;
+    rememberDetailLocation();
+    m_currentProfileUsername = canonical;
     m_activeView = QStringLiteral("profile");
     m_profileFid = 0;
     m_detail.clear();
@@ -1765,6 +1805,10 @@ void PresentationBridge::openProfileFid(const qulonglong fid)
         emit stateChanged();
         return;
     }
+    if (m_activeView == QStringLiteral("profile") && m_profileFid == fid)
+        return;
+    rememberDetailLocation();
+    m_currentProfileUsername.clear();
     m_profileFid = fid;
     m_activeView = QStringLiteral("profile");
     m_cachedFeedHasMore = false;
@@ -1886,8 +1930,31 @@ void PresentationBridge::returnFromSocial()
 
 void PresentationBridge::returnFromDetail()
 {
-    if (m_detailReturnView == QStringLiteral("profile") && m_profileFid != 0) {
-        openProfileFid(m_profileFid);
+    // Restore the exact previous cast/profile, including nested quote targets
+    // and intermediate profile visits. Do not add a new breadcrumb while
+    // replaying an existing one.
+    while (!m_detailHistory.empty()) {
+        DetailLocation previous = std::move(m_detailHistory.back());
+        m_detailHistory.pop_back();
+        m_restoringDetailHistory = true;
+        if (previous.view == QStringLiteral("cast") && !previous.castId.isEmpty()) {
+            openCast(previous.castId);
+        } else if (previous.view == QStringLiteral("profile")) {
+            if (!previous.profileFeed.isEmpty())
+                m_profileFeed = previous.profileFeed;
+            if (previous.profileFid != 0)
+                openProfileFid(previous.profileFid);
+            else if (!previous.profileUsername.isEmpty())
+                openProfileUsername(previous.profileUsername);
+            else {
+                m_restoringDetailHistory = false;
+                continue;
+            }
+        } else {
+            m_restoringDetailHistory = false;
+            continue;
+        }
+        m_restoringDetailHistory = false;
         return;
     }
     showFeed();

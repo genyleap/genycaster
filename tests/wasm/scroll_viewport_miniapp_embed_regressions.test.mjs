@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
-test('Explorer route re-entry preserves existing scroll; only active tab re-tap scrolls to top',()=>{
+test('Explorer primary navigation always reveals the full inline story header',()=>{
  const src=read('ui/components/AppShell.qml');
  const fn=src.slice(src.indexOf('    function openExplorer() {'),src.indexOf('    function openTrends() {'));
  assert.match(fn,/const wasExplorer =/);
- assert.match(fn,/if \(wasExplorer\) Qt\.callLater/);
- assert.match(fn,/feedSurfaceLoader\.item\.scrollToBeginning\(\)/);
+ assert.match(fn,/\+\+root\.explorerTopRevision/);
+ assert.match(src,/scrollRequestRevision: root\.primaryDestination === "explorer"/);
+ assert.match(read('ui/components/FeedSurface.qml'),/root\.honorPrimaryScrollRequest/);
  assert.doesNotMatch(fn,/presentationBridge\.refreshLatestFeed\(\)/);
 });
 test('large feed re-renders preserve a stable viewport anchor instead of resetting contentY',()=>{

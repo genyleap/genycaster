@@ -38,6 +38,18 @@ Item {
     property bool compact: false
     property real bottomOverlayInset: 0
     property bool presentationActive: true
+    // A main-navigation Explorer tap requests a new top position even if this
+    // reader remained mounted behind an intermediate profile or cast.
+    property int scrollRequestRevision: 0
+    property int appliedScrollRequestRevision: 0
+    function honorPrimaryScrollRequest() {
+        if (!root.presentationActive || root.scrollRequestRevision === 0
+                || root.appliedScrollRequestRevision === root.scrollRequestRevision)
+            return
+        root.appliedScrollRequestRevision = root.scrollRequestRevision
+        root.scrollToBeginning()
+    }
+    onScrollRequestRevisionChanged: Qt.callLater(root.honorPrimaryScrollRequest)
     property double accountFid: 0
     property bool loadMorePending: false
     property bool stableModelSyncPending: false
@@ -1128,6 +1140,7 @@ Item {
             return
         }
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
+        Qt.callLater(root.honorPrimaryScrollRequest)
     }
     Component.onCompleted: requestStableModelSync()
 

@@ -31,7 +31,9 @@ test('Explorer tab does not force network refresh when returning to the top', ()
     assert.match(section, /const wasExplorer/);
     assert.match(section, /if \(!wasExplorer\)/);
     assert.match(section, /selectExplorerPresentationMode\(root\.explorerPresentationMode, false\)/);
-    assert.match(section, /feedSurfaceLoader\.item\.scrollToBeginning\(\)/);
+    assert.match(section, /\+\+root\.explorerTopRevision/);
+    assert.match(shell, /scrollRequestRevision: root\.primaryDestination === "explorer"/);
+    assert.match(qml('FeedSurface'), /function honorPrimaryScrollRequest\(\)/);
     assert.doesNotMatch(section, /refreshLatestFeed\(\)/);
     assert.match(shell, /function returnFromCastDetail\(\) \{[\s\S]*?presentationBridge\.returnFromDetail\(\)/);
 });

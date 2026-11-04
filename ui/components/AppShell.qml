@@ -118,6 +118,9 @@ Item {
     // opened above it. Back from that content restores this route instead of
     // falling through to the Home feed.
     property string pendingReturnShellRoute: ""
+    // Explicit Explorer tab navigation must reveal its real inline header
+    // (including stories), even after returning from a nested detail view.
+    property int explorerTopRevision: 0
     property string committedRichCastId: ""
     property string lastStreakCastId: ""
     property bool awaitingRichCommit: false
@@ -356,10 +359,13 @@ Item {
         openProofConnections.clearCastTopic()
     }
     onShellRouteChanged: {
+        if (root.shellRoute.length > 0)
+            presentationBridge.clearDetailHistory()
         if(root.shellRoute.length > 0 && root.topicBrowseActive)
             root.closeTopicBrowser()
     }
     onPrimaryDestinationChanged: {
+        presentationBridge.clearDetailHistory()
         if (root.topicBrowseActive
             && ((root.topicBrowseScope==="explorer" && root.primaryDestination!=="explorer")
                 || (root.topicBrowseScope==="profile" && root.primaryDestination==="explorer")))
@@ -486,7 +492,10 @@ Item {
     }
 
     function returnToPendingShellRoute() {
-        if (root.pendingReturnShellRoute.length === 0)
+        // A nested Back may restore a parent cast or profile first. Only
+        // surface the originating shell route after the full trail unwinds.
+        if (root.pendingReturnShellRoute.length === 0
+                || presentationBridge.activeView !== "feed")
             return
         root.shellRoute = root.pendingReturnShellRoute
         root.pendingReturnShellRoute = ""
@@ -498,7 +507,7 @@ Item {
     }
 
     function returnFromProfileSurface() {
-        presentationBridge.showFeed()
+        presentationBridge.returnFromDetail()
         root.returnToPendingShellRoute()
     }
 
@@ -534,6 +543,7 @@ Item {
         }
     }
     function openMyProfileFromNavigation() {
+        presentationBridge.clearDetailHistory()
         root.clearPendingShellReturn()
         root.shellRoute = ""
         presentationBridge.openMyProfile()
@@ -653,22 +663,19 @@ Item {
         if (!wasExplorer)
             presentationBridge.refreshFollowingStories()
         root.clearPendingShellReturn()
+        presentationBridge.clearDetailHistory()
         root.primaryDestination = "explorer"
         root.shellRoute = ""
-        // A re-tap navigates within cached rows; it must not trigger an
-        // avoidable network refresh or leave the viewport far down the feed.
         root.selectExplorerPresentationMode(root.explorerPresentationMode, false)
-        // Only tapping an already active Explorer tab means "back to top".
-        // Returning to Explorer from a profile/cast or another main tab must
-        // preserve the scroll offset and the existing ListView delegates.
-        if (wasExplorer) Qt.callLater(() => {
-            if (root.primaryDestination === "explorer" && root.shellRoute === ""
-                    && presentationBridge.activeView === "feed" && feedSurfaceLoader.item)
-                feedSurfaceLoader.item.scrollToBeginning()
-        })
+        // Whether the tab was already selected or opened from a nested
+        // Cast/Profile, the explicit Explorer action goes to its REAL top:
+        // the story strip is part of FeedSurface's inline header, not a row.
+        // The revision also reaches a Loader that becomes active later.
+        ++root.explorerTopRevision
     }
 
     function openTrends() {
+        ++root.explorerTopRevision
         // Direct Home shortcut to the provider-backed Trending timeline.
         // It shares the existing Explorer surface, not a synthetic feed.
         root.clearPendingShellReturn()
@@ -692,13 +699,17 @@ Item {
     function openCastTextLink(url) {
         const target = String(url || "").trim()
         if (/^@fid:[1-9][0-9]*$/.test(target)) {
-            root.clearPendingShellReturn()
+            if (presentationBridge.activeView !== "cast"
+                    && presentationBridge.activeView !== "profile")
+                root.clearPendingShellReturn()
             root.shellRoute = ""
             presentationBridge.openProfileFid(Number(target.substring(5)))
             return
         }
         if (/^@[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*$/.test(target)) {
-            root.clearPendingShellReturn()
+            if (presentationBridge.activeView !== "cast"
+                    && presentationBridge.activeView !== "profile")
+                root.clearPendingShellReturn()
             root.shellRoute = ""
             presentationBridge.openProfileUsername(target.substring(1))
             return
@@ -1507,6 +1518,8 @@ Item {
                                                               ? root.explorerVisualFilter : root.homeVisualFilter
                                                 headerContent: presentationBridge.activeView !== "feed" ? null
                                                                : root.primaryDestination === "explorer" ? explorerFeedExperienceHeaderComponent : null
+                                                scrollRequestRevision: root.primaryDestination === "explorer"
+                                                    ? root.explorerTopRevision : 0
                                                 identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
                                                 feedStarted: presentationBridge.feedStarted
                                                 compact: root.compact

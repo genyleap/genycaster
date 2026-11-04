@@ -6,6 +6,7 @@
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
+#include <vector>
 
 /** @brief QML presentation facade for verified-session state and feature-scoped models. */
 class QSettings;
@@ -229,6 +230,8 @@ public:
     Q_INVOKABLE void openFollowing();
     Q_INVOKABLE void returnFromSocial();
     Q_INVOKABLE void returnFromDetail();
+    /** Explicit primary navigation discards nested cast/profile breadcrumbs. */
+    Q_INVOKABLE void clearDetailHistory();
     Q_INVOKABLE void loadMore();
     /** @brief Update independent local pagination after a cached/fresh read. */
     void applyLocalFeedWindowProgress(bool hasMore, qulonglong nextOffset);
@@ -576,7 +579,18 @@ private:
     qulonglong m_profileFid{};
     qulonglong m_socialFid{};
     QString m_socialReturnView{QStringLiteral("feed")};
-    QString m_detailReturnView{QStringLiteral("feed")};
+    struct DetailLocation {
+        QString view{};
+        QString castId{};
+        qulonglong profileFid{};
+        QString profileUsername{};
+        QString profileFeed{};
+    };
+    void rememberDetailLocation();
+    std::vector<DetailLocation> m_detailHistory{};
+    QString m_currentCastId{};
+    QString m_currentProfileUsername{};
+    bool m_restoringDetailHistory{false};
     QString m_channelId{};
     QString m_identityName{};
     qulonglong m_identityFid{};

@@ -1153,7 +1153,7 @@ Item {
         bottomSheet: mobilePresentation
         fullScreen: false
         dimBackground: true
-        interactive: false
+        interactive: mobilePresentation
         showHandle: mobilePresentation
         width: parent ? (mobilePresentation ? parent.width : Math.min(480, parent.width * 0.9)) : 420
         // Fit short Mini App details to their content instead of leaving
@@ -1175,6 +1175,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Theme.scaleUi(48)
                 title: qsTrId("genycaster.apps.details")
+                sheetPresentation: miniAppDetailDrawer.mobilePresentation
                 onCloseRequested: miniAppDetailDrawer.close()
             }
 

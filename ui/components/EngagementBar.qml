@@ -430,12 +430,13 @@ RowLayout {
             bottomSheet: true
             showHandle: true
             dimBackground: true
-            interactive: false
+            // Gesture-dismissal matches the exposed sheet handle.
+            interactive: true
             width: parent ? parent.width : 390
             height: parent
                 ? Math.min(parent.height * 0.76, Theme.scaleUi(352))
                 : Theme.scaleUi(352)
-            contentPadding: Theme.space3
+            contentPadding: Theme.space4
             contentItem: ColumnLayout {
                 spacing: Theme.space2
 
@@ -443,6 +444,7 @@ RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.scaleUi(44)
                     title: qsTrId("genycaster.share.cast")
+                    sheetPresentation: true
                     onCloseRequested: root.closeShareMenu()
                 }
                 Loader {

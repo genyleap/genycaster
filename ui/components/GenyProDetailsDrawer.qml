@@ -43,8 +43,9 @@ GenyDrawer {
             spacing: Theme.space2
 
             Superellipse {
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
+                visible: !root.compact
+                Layout.preferredWidth: visible ? 40 : 0
+                Layout.preferredHeight: visible ? 40 : 0
                 curveDepth: Theme.curveCompact
                 fillColor: Theme.surfaceMuted
                 borderWidth: Theme.strokeHairline
@@ -62,6 +63,7 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.pro.title")
+                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.textPrimary
@@ -75,10 +77,12 @@ GenyDrawer {
                             : qsTrId("genycaster.pro.requires_pro")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
+                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
             }
             ActionButton {
+                visible: !root.compact
                 Layout.alignment: Qt.AlignVCenter
                 compact: true
                 quiet: true

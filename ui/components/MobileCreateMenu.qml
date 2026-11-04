@@ -13,7 +13,7 @@ GenyDrawer {
 
     bottomSheet: true
     floatingSheet: true
-    interactive: false
+    interactive: true
     dimBackground: true
     contentPadding: Theme.space3
     // The default sheet inset plus a fixed 360px height left empty bands
@@ -32,7 +32,7 @@ GenyDrawer {
         ModalHeader {
             Layout.fillWidth: true
             title: qsTrId("genycaster.bottom_nav.create")
-            subtitle: qsTrId("genycaster.shell.whats_happening")
+            sheetPresentation: true
             onCloseRequested: root.close()
         }
 

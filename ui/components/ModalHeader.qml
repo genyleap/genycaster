@@ -8,6 +8,9 @@ RowLayout {
     property string title: ""
     property string subtitle: ""
     property bool showClose: true
+    // Compact bottom sheets own a drag handle. Their title is centered
+    // beneath it and the redundant corner close action is omitted.
+    property bool sheetPresentation: false
 
     signal closeRequested()
 
@@ -29,7 +32,8 @@ RowLayout {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.typeTitle3Size
             font.weight: Theme.weightDemiBold
-            horizontalAlignment: Theme.textStartAlignment
+            horizontalAlignment: root.sheetPresentation
+                ? Text.AlignHCenter : Theme.textStartAlignment
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
@@ -41,13 +45,14 @@ RowLayout {
             color: Theme.inkMuted
             font.family: Theme.fontFamily
             font.pixelSize: Theme.typeCaptionSize
-            horizontalAlignment: Theme.textStartAlignment
+            horizontalAlignment: root.sheetPresentation
+                ? Text.AlignHCenter : Theme.textStartAlignment
             wrapMode: Text.Wrap
         }
     }
 
     ActionButton {
-        visible: root.showClose
+        visible: root.showClose && !root.sheetPresentation
         Layout.alignment: Qt.AlignVCenter
         compact: true
         quiet: true
