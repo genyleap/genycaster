@@ -255,21 +255,31 @@ GenyAdaptiveDialog {
                                         font.pixelSize: Theme.typeCaptionSize
                                     }
                                 }
+                                // Render the complete report as literal user text.
+                                // AutoText could interpret angle brackets as rich text,
+                                // hiding code snippets or markup included in bug reports.
                                 DirectionAwareLabel {
+                                    id: reportMessage
+                                    objectName: "feedbackReportMessage"
                                     Layout.fillWidth: true
+                                    Layout.preferredHeight: implicitHeight
                                     text: String(reportCard.modelData.message || "")
+                                    textFormat: Text.PlainText
                                     visible: text.length > 0
                                     color: Theme.ink
                                     font.pixelSize: Theme.typeBodySize
-                                    wrapMode: Text.Wrap
+                                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                 }
                                 DirectionAwareLabel {
+                                    objectName: "feedbackReviewNote"
                                     Layout.fillWidth: true
+                                    Layout.preferredHeight: implicitHeight
                                     text: String(reportCard.modelData.review_note || "")
+                                    textFormat: Text.PlainText
                                     visible: text.length > 0
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
-                                    wrapMode: Text.Wrap
+                                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                 }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
