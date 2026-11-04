@@ -44,7 +44,7 @@ test('bookmark grid uses dense desktop columns, top aligned cards and single-col
  assert.match(bookmarks,/CastItem \{/);
 });
 
-test('desktop profile card packs account access beside profile and Pro with natural height',()=>{
+test('desktop profile card keeps compact Pro/Profile actions without redundant account cog',()=>{
  const card=read('ProfileTrustCard');
  const nav=read('SideNavigation');
  assert.match(card,/faceHeight: root\.compact/);
@@ -53,9 +53,9 @@ test('desktop profile card packs account access beside profile and Pro with natu
  assert.match(card,/maximumLineCount: root\.compact \? 1 : 3/);
  const beforeBack=card.slice(0,card.indexOf('id: backFace'));
  assert.match(beforeBack,/onClicked: root\.proRequested\(\)/);
- assert.match(beforeBack,/objectName: "profileTrustCardAccountButton"/);
- assert.match(beforeBack,/iconOnly: true/);
- assert.match(beforeBack,/onClicked: root\.accountRequested\(\)/);
+ assert.doesNotMatch(beforeBack,/profileTrustCardAccountButton|iconGlyph: Theme\.iconSettings/);
+ assert.match(beforeBack,/onClicked: root\.requestProfile\(\)/);
+ assert.match(card,/root\.streakDetailsExpanded\s*\? backContent\.implicitHeight : frontContent\.implicitHeight/);
  assert.match(nav,/ProfileTrustCard \{/);
 });
 
