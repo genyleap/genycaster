@@ -48,10 +48,10 @@ test('bookmarked Cast preview and priority are owner-scoped with explicit v5 sch
   assert.match(source('ui/mobile/main.cpp'),/presentationBridge\.bookmarkEntry\(castId\)/);
 });
 test('profile display prefers server-confirmed same-FID account fields to clean QSettings cache',()=>{
-  assert.match(profile,/const server = openProofConnections\.cloudProfileExtras/);
+  assert.match(profile,/const server = openProofConnections \? openProofConnections\.cloudProfileExtras : null/);
   assert.match(profile,/!root\.cloudLocalDirty/);
   assert.match(source('ui/mobile/openproof_connections_controller.hpp'),/Q_PROPERTY\(QVariantMap cloudProfileExtras/);
-  assert.match(controller,/m_cloudProfileExtras=fields/);
+  assert.match(controller,/m_cloudProfileExtras=confirmedFields/);
 });
 test('connection labels are portable yet separate from upstream verified authority',()=>{
   assert.match(controller,/void OpenProofConnectionsController::publishPortableConnectionLabels/);

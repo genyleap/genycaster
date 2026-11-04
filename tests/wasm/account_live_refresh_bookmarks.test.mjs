@@ -9,7 +9,7 @@ test('own profile refresh reads both canonical profile fields and account draft'
   assert.match(profile,/function refreshProfileAndAccount\(\) \{[\s\S]*?root\.refreshRequested\(\)[\s\S]*?profileRefreshRetry\.restart\(\)[\s\S]*?openProofConnections\.refreshAccountDraft\(\)/);
   assert.match(profile,/onClicked: root\.refreshProfileAndAccount\(\)/);
   assert.match(profile,/onRefreshRequested: root\.refreshProfileAndAccount\(\)/);
-  assert.match(profile,/id: profileRefreshRetry[\s\S]*?if \(!openProofConnections\.cloudBusy\) \{[\s\S]*?fetchCloudProfileExtras\(\)/);
+  assert.match(profile,/id: profileRefreshRetry[\s\S]*?if \(openProofConnections && !openProofConnections\.cloudBusy\) \{[\s\S]*?fetchCloudProfileExtras\(\)/);
   assert.match(profile,/property int profileExtrasGeneration: 0/);
   assert.match(profile,/const generation = root\.profileExtrasGeneration/);
   assert.match(profile,/root\.profileExtrasGeneration\+\+/);

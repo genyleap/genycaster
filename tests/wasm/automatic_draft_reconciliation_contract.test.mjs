@@ -40,7 +40,8 @@ test('account draft replication reuses verified native bearer with durable per-F
   assert.match(account,/QStringLiteral\("\/dirty"\),false/);
   assert.match(account,/status==409/);
   assert.match(account,/setRawHeader\("Authorization","Bearer "\+m_accountBearer\)/);
-  assert.match(account,/m_draftRequest->abort\(\)/);
+  assert.match(account,/cancelNetworkReply\(m_draftRequest, this\)/);
+  assert.doesNotMatch(account,/m_draftRequest->abort\(\)/);
   assert.match(account,/generation!=m_grantGeneration \|\| viewer!=m_viewerFid/);
   assert.match(account,/m_draftRemoteRevision!=m_draftRevision/);
   assert.match(main,/RichComposerController::draftLocallyChanged/);

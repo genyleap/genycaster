@@ -28,7 +28,8 @@ test('topic requests are protected from stale owner and stale topic results',()=
   assert.match(controller,/requestGeneration!=m_topicCastsGeneration/);
   assert.match(controller,/viewer!=m_viewerFid/);
   assert.match(controller,/currentTopic!=m_activeCastTopic/);
-  assert.match(controller,/m_topicCastsRequest->abort\(\)/);
+  assert.match(controller,/cancelNetworkReply\(m_topicCastsRequest, this\)/);
+  assert.doesNotMatch(controller,/m_topicCastsRequest->abort\(\)/);
   assert.match(controller,/body\.size\(\)>64\*1024/);
   assert.match(controller,/m_topicCastsHasMore=rows\.size\(\)==pageSize/);
   assert.match(controller,/clearCastTopic\(\);[\s\S]*?m_grantExpiry\.stop\(\)/);
