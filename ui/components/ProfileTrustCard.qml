@@ -41,18 +41,22 @@ Superellipse {
     // Window resizing changes line breaking while Qt is still negotiating
     // the sidebar width. Commit a measured height after layout settles,
     // instead of bouncing the bottom account card every frame.
-    property real settledCompactFaceHeight: 168
+    property real settledCompactFaceHeight: 148
     readonly property real faceHeight: root.compact
         ? settledCompactFaceHeight
         : Math.max(frontContent.implicitHeight, backContent.implicitHeight, 200)
     onWidthChanged: compactHeightSettler.restart()
     onCompactChanged: compactHeightSettler.restart()
+    onStreakDetailsExpandedChanged: compactHeightSettler.restart()
     Timer {
         id: compactHeightSettler
         interval: 180
         repeat: false
-        onTriggered: root.settledCompactFaceHeight = Math.max(160,
-            frontContent.implicitHeight, backContent.implicitHeight)
+        // Compact faces are measured independently. The taller streak
+        // details side must not leave an empty band under the profile actions.
+        onTriggered: root.settledCompactFaceHeight = Math.max(0,
+            root.streakDetailsExpanded
+                ? backContent.implicitHeight : frontContent.implicitHeight)
     }
     Connections {
         target: frontContent
@@ -339,17 +343,7 @@ Superellipse {
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
-                ActionButton {
-                    objectName: "profileTrustCardAccountButton"
-                    Layout.preferredWidth: 36
-                    Layout.minimumWidth: 36
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconSettings
-                    text: qsTrId("genycaster.header.account")
-                    onClicked: root.accountRequested()
-                }
+
             }
         }
     }
@@ -501,16 +495,7 @@ Superellipse {
                     text: qsTrId("genycaster.side_nav.profile")
                     onClicked: root.requestProfile()
                 }
-                ActionButton {
-                    Layout.preferredWidth: 36
-                    Layout.minimumWidth: 36
-                    compact: true
-                    quiet: true
-                    iconOnly: true
-                    iconGlyph: Theme.iconSettings
-                    text: qsTrId("genycaster.header.account")
-                    onClicked: root.accountRequested()
-                }
+
             }
         }
     }
