@@ -69,7 +69,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
           SELECT $1::uuid,$2,$3,$4,$5,$6,$7,$8,$9
           WHERE (SELECT count(*) FROM feedback_reports
               WHERE issuer=$2 AND subject=$3 AND created_at > now()-interval '24 hours') < 10
-          RETURNING id,category,status,points_awarded,created_at`,
+          RETURNING id,category,status,points_awarded,created_at,message`,
           [randomUUID(),owner.issuer,owner.subject,item.category,item.sentiment,
            item.message,item.platform,item.appVersion,item.route]);
         await client.query('COMMIT');
