@@ -58,7 +58,7 @@ test('Explorer explicit entry scrolls the inline StoryStrip from every previous 
  assert.match(feed,/onScrollRequestRevisionChanged: Qt\.callLater\(root\.honorPrimaryScrollRequest\)/);
  assert.match(feed,/root\.scrollToBeginning\(\)/);
  assert.match(feed,/readList\.positionViewAtBeginning\(\)/);
- assert.match(feed,/headerPositioning: root\.compact \|\| stableRows\.count === 0\s*\? ListView\.InlineHeader/);
+ assert.match(feed,/headerPositioning: root\.compact \|\| root\.activeFeed === "channel"\s*\|\| stableRows\.count === 0\s*\? ListView\.InlineHeader/);
 });
 
 test('short mobile sheets center titles beneath their grabber without duplicate close glyphs',()=>{

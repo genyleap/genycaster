@@ -883,6 +883,110 @@ Item {
         return result
     }
 
+    // Channel browsing has a dedicated, scoped highlight strip. Never reuse
+    // the signed-in account's Following stories in someone else's channel.
+    function channelHighlights() {
+        if (presentationBridge.activeFeed !== "channel") return []
+        const channelId = String(root.selectedChannelInfo.id || "")
+        if (!channelId) return []
+        const source = presentationBridge.rows || []
+        const result = []
+        const authors = new Set()
+        for (let i = 0; i < source.length && result.length < 10; ++i) {
+            const row = source[i] || ({})
+            const rowChannel = String(row.channelId || row.castChannel || "")
+            const parentUrl = String(row.parentUrl || "")
+            if (rowChannel !== channelId
+                    && !parentUrl.includes("/channel/" + channelId)) continue
+            const fid = Number(row.authorFid || 0)
+            const castId = String(row.castId || "")
+            if (!fid || !castId || authors.has(fid)) continue
+            authors.add(fid)
+            result.push({
+                fid: fid, castId: castId,
+                name: String(row.displayName || row.username || row.author || ""),
+                avatar: String(row.avatarUrl || "")
+            })
+        }
+        return result
+    }
+
+    Component {
+        id: channelFeedHeaderComponent
+        Column {
+            width: parent ? parent.width : 0
+            spacing: Theme.space2
+
+            FeedHeader {
+                width: parent.width
+                activeFeed: "channel"
+                channelInfo: root.selectedChannelInfo
+                identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
+                compact: root.compact
+                busy: presentationBridge.isBusy
+                feedStarted: presentationBridge.feedStarted
+                hasContent: presentationBridge.rows.length > 0
+                sourceUnavailable: presentationBridge.sourceUnavailable
+                errorText: presentationBridge.errorText
+                onTrendingRequested: presentationBridge.selectFeed("trending")
+                onFollowingRequested: presentationBridge.selectFeed("following")
+                onSearchRequested: query => presentationBridge.openSearchQuery(query)
+                onRefreshRequested: presentationBridge.retry()
+            }
+
+            // These are the latest contributors in THIS channel, backed only
+            // by the channel-scoped cast rows. They are not global stories.
+            Flickable {
+                id: channelHighlightRail
+                readonly property var channelItems: root.channelHighlights()
+                width: parent.width
+                height: channelItems.length > 0 ? Theme.scaleUi(84) : 0
+                visible: height > 0
+                contentWidth: highlightRow.implicitWidth + Theme.mobileGutter * 2
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                Row {
+                    id: highlightRow
+                    x: Theme.mobileGutter
+                    spacing: Theme.space3
+                    Repeater {
+                        model: channelHighlightRail.channelItems
+                        delegate: Item {
+                            required property var modelData
+                            width: Theme.scaleUi(68)
+                            height: Theme.scaleUi(80)
+                            Avatar {
+                                anchors.top: parent.top
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                avatarSize: Theme.scaleUi(48)
+                                sourceUrl: String(modelData.avatar || "")
+                                displayName: String(modelData.name || "")
+                            }
+                            DirectionAwareLabel {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                text: String(modelData.name || "")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+                            TapHandler {
+                                gesturePolicy: TapHandler.ReleaseWithinBounds
+                                onTapped: presentationBridge.openCast(String(modelData.castId || ""))
+                            }
+                        }
+                    }
+                }
+            }
+            Item { width: parent.width; height: Theme.space2 }
+        }
+    }
+
     Component {
         id: explorerFeedExperienceHeaderComponent
 
@@ -1354,33 +1458,8 @@ Item {
                                         }
                                     }
 
-                                    FeedHeader {
-                                        visible: root.shellRoute.length === 0 && presentationBridge.activeView === "feed"
-                                                 && presentationBridge.activeFeed === "channel"
-                                        opacity: visible ? 1.0 : 0.0
-                                        Layout.fillWidth: true
-                                        Layout.maximumWidth: root.adaptiveReadingWidth
-                                        Layout.alignment: Qt.AlignHCenter
-                                        Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
-                                        Layout.rightMargin: root.compact ? Theme.mobileGutter : Theme.space2
-                                        activeFeed: presentationBridge.activeFeed
-                                        channelInfo: root.selectedChannelInfo
-                                        identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
-                                        compact: root.compact
-                                        busy: presentationBridge.isBusy
-                                        feedStarted: presentationBridge.feedStarted
-                                        hasContent: presentationBridge.rows.length > 0
-                                        sourceUnavailable: presentationBridge.sourceUnavailable
-                                        errorText: presentationBridge.errorText
-                                        onTrendingRequested: { root.shellRoute = ""; presentationBridge.selectFeed("trending") }
-                                        onFollowingRequested: { root.shellRoute = ""; presentationBridge.selectFeed("following") }
-                                        onSearchRequested: query => presentationBridge.openSearchQuery(query)
-                                        onRefreshRequested: presentationBridge.retry()
-
-                                        Behavior on opacity {
-                                            NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
-                                        }
-                                    }
+                                    // Channel chrome lives inside the ListView inline header,
+                                    // so it scrolls with channel posts rather than staying pinned.
 
                                     SectionHeader {
                                         visible: root.shellRoute.length === 0 && (presentationBridge.activeView === "followers"
@@ -1512,12 +1591,19 @@ Item {
                                                 topicFilterActive: root.topicBrowseActive
                                                                    && root.topicBrowseScope==="explorer"
                                                 topicFilterSlug: root.topicBrowseSlug
-                                                presentationMode: root.primaryDestination === "explorer"
-                                                                  ? root.explorerPresentationMode : root.homePresentationMode
-                                                visualFilter: root.primaryDestination === "explorer"
-                                                              ? root.explorerVisualFilter : root.homeVisualFilter
+                                                presentationMode: presentationBridge.activeFeed === "channel"
+                                                                  ? "for-you"
+                                                                  : root.primaryDestination === "explorer"
+                                                                    ? root.explorerPresentationMode : root.homePresentationMode
+                                                visualFilter: presentationBridge.activeFeed === "channel"
+                                                              ? "all"
+                                                              : root.primaryDestination === "explorer"
+                                                                ? root.explorerVisualFilter : root.homeVisualFilter
                                                 headerContent: presentationBridge.activeView !== "feed" ? null
-                                                               : root.primaryDestination === "explorer" ? explorerFeedExperienceHeaderComponent : null
+                                                               : presentationBridge.activeFeed === "channel"
+                                                                 ? channelFeedHeaderComponent
+                                                                 : root.primaryDestination === "explorer"
+                                                                   ? explorerFeedExperienceHeaderComponent : null
                                                 scrollRequestRevision: root.primaryDestination === "explorer"
                                                     ? root.explorerTopRevision : 0
                                                 identityAvailable: presentationBridge.isAuthenticated && root.identityAvailable
@@ -1754,6 +1840,7 @@ Item {
                                                     root.primaryDestination = "explorer"
                                                     root.shellRoute = ""
                                                     presentationBridge.openChannel(channelId)
+                                                    ++root.explorerTopRevision
                                                 }
                                                 onRefreshRequested: presentationBridge.retry()
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
@@ -2213,6 +2300,7 @@ Item {
             root.primaryDestination = "explorer"
             root.shellRoute = ""
             presentationBridge.openChannel(channelId)
+            ++root.explorerTopRevision
         }
         onSearchRequested: query => {
             const scopedChannel = String(query || "").trim().match(/^(?:channel:|\/|#)([a-zA-Z0-9_-]+)/i)

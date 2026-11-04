@@ -1081,6 +1081,11 @@ Item {
     }
     onActiveFeedChanged: {
         root.beginSelectionHandoff()
+        if (root.activeFeed === "channel" && root.presentationActive)
+            Qt.callLater(() => {
+                if (root.activeFeed === "channel" && root.presentationActive)
+                    root.scrollToBeginning()
+            })
         // Following and Trending own independent continuation streams. A real
         // source change starts a fresh bounded semantic-prefetch budget; local
         // Explorer tab switches no longer change activeFeed.
@@ -1295,7 +1300,10 @@ Item {
         // remains bounded during ordinary wheel/flick movement.
         boundsBehavior: Flickable.DragOverBounds
         boundsMovement: Flickable.FollowBoundsBehavior
-        headerPositioning: root.compact || stableRows.count === 0
+        // Channel hero + scoped author strip belong to the scroll content,
+        // not to a pinned desktop overlay; no stale account StoryStrip.
+        headerPositioning: root.compact || root.activeFeed === "channel"
+                           || stableRows.count === 0
                            ? ListView.InlineHeader : ListView.OverlayHeader
         reuseItems: true
         // Keep only a shallow reusable runway. Rich embeds, animated emoji and
