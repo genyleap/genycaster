@@ -9,7 +9,7 @@ test('bookmark cards measure their width from the viewport instead of the grid i
   const card = grid.slice(grid.indexOf('delegate: Superellipse {'), grid.indexOf('ColumnLayout {\n                    id: savedContent'));
   assert.match(grid,/readonly property real gridAvailableWidth: Math\.max\(0,/);
   assert.match(grid,/root\.width - 2 \* \(root\.compact \? Theme\.mobileGutter : Theme\.contentGutter\)/);
-  assert.match(grid,/readonly property real cardWidth: Math\.min\(600/);
+  assert.match(grid,/readonly property real cardWidth: Math\.min\(520/);
   assert.match(grid,/columns: columnCount/);
   assert.match(card,/Layout\.preferredWidth: savedCastsGrid\.cardWidth/);
   assert.match(card,/Layout\.minimumWidth: savedCastsGrid\.cardWidth/);

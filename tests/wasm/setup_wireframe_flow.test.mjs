@@ -77,7 +77,8 @@ test('native recovery authorizes a device signer only with explicit user consent
   const app=source('src/application/signer.cpp');
   assert.match(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);
   assert.match(qml,/deviceSignerConsent\.checked/);
-  assert.match(qml,/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(qml,/GenyCheckRow \{[\s\S]*?id: deviceSignerConsent/);
+  assert.match(source('ui/components/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
   assert.match(qml,/genycaster.setup.recovery_signer_consent/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer\(mnemonic,/);
   assert.match(platform,/wordCount != 24/);
@@ -109,8 +110,9 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(setup,/function refreshCompletion\(\)/);
   assert.match(setup,/nativeRecoveryGrid\.distribute\(text, index\)/);
   assert.match(setup,/id: revealWords\s+objectName: "nativeRecoveryRevealWords"/);
-  assert.match(setup,/Accessible\.role: Accessible\.CheckBox/);
-  assert.match(setup,/fillColor: revealWords\.checked \? Theme\.ink : Theme\.surface/);
+  assert.match(setup,/GenyCheckRow \{[\s\S]*?id: revealWords/);
+  assert.match(source('ui/components/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(source('ui/components/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.ink : "transparent"/);
   assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
   assert.match(bridge,/const auto exactly24Words = \[\]/);
   assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
@@ -229,7 +231,7 @@ test('desktop brand visual persists across all stages without blocking RTL title
   assert.match(s,/property real darkMode: Theme\.dark \? 1\.0 : 0\.0/);
   assert.match(s,/id: desktopBrandMetadata/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
-  assert.match(s,/Qt\.application\.version \|\| "1\.0\.0"/);
+  assert.match(s,/Qt\.application\.version \? "v" \+ LocaleFormat\.localizeDigits\(Qt\.application\.version\)/);
   assert.match(s,/new Date\(\)\.getFullYear\(\)/);
   assert.doesNotMatch(s,/source: .*setup-motif\.svg/);
   assert.match(s,/root.currentStep === 3 \|\| root.currentStep === 6/);
@@ -361,7 +363,7 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/anchors\.right: parent\.right/);
   assert.match(pane,/visible: desktopBrandPane\.visible/);
   assert.match(pane,/new Date\(\)\.getFullYear\(\)/);
-  assert.match(pane,/Beta 1\.0  ·  v/);
+  assert.match(pane,/Qt\.application\.version \? "v" \+ LocaleFormat\.localizeDigits/);
   assert.match(pane,/Qt\.application\.version/);
   assert.match(pane,/Theme\.dark \? "#E2EAF4" : "#DFE8F4"/);
   assert.match(pane,/id: genyleapCopyrightLink/);

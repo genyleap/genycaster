@@ -17,8 +17,11 @@ test('all drawer families close on outside press without dragging their scrollin
     assert.match(search,/onBackgroundTapped: root\.close\(\)/);
     assert.match(settings,/closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
     assert.match(settings,/height: parent \? parent\.height : 820/);
-    for(const q of [settings,composer,create])
+    for(const q of [settings,composer])
         assert.match(q,/interactive: false/);
+    // The small Create menu is intentionally gesture-dismissable, unlike
+    // scrollable full-screen editors.
+    assert.match(create,/interactive: true/);
     assert.match(account,/GenyDrawer \{\s+id: accountPopup/);
 });
 
@@ -35,10 +38,10 @@ test('drawers animate from owning edge with reduced-motion safe transitions',()=
         assert.match(part,/enter: Transition \{/);
         assert.match(part,/exit: Transition \{/);
         assert.match(part,/property: "position"/);
-        assert.match(part,/duration: (?:Theme\.reduceMotion \? 0 : )?Theme\.motionStandard/);
+        assert.match(part,/duration: (?:control\.sheetMotionDuration|Theme\.motionStandard)/);
         assert.doesNotMatch(part,/property: "(?:x|y)"/);
     }
-    assert.match(base,/Theme\.reduceMotion \? 0 : Theme\.motionStandard/);
+    assert.match(base,/sheetMotionDuration: Theme\.reduceMotion \? 0 : 275/);
     assert.match(search,/opacity: root\.position/);
 });
 

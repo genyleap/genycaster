@@ -10,20 +10,17 @@ function readGenycasterMain() {
 }
 
 const read = filename => readFileSync(new URL("../../"+filename,import.meta.url),"utf8");
-test("Beta 1.0 is the public identity across the web shell and Qt headers",()=>{
+test("public app identity stays independent from the injected release label",()=>{
     const cmake=read("CMakeLists.txt");
     const pack=read("ci/package_wasm_assets.py");
     const html=read("ui/wasm/genycaster-shell.html");
     const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
     assert.match(cmake,/VERSION 1\.0\.0/);
-    assert.equal(manifest.name,"Genycaster Beta 1.0");
-    assert.match(html,/<title>Genycaster Beta 1\.0/);
-    assert.match(html,/class="boot-beta">Beta 1\.0/);
-    assert.match(read("ui/components/AppHeader.qml"),/genycaster\.release\.beta_1_0/);
-    assert.match(read("ui/components/SideNavigation.qml"),/genycaster\.release\.beta_1_0/);
-    assert.match(read("ui/components/InitialSetup.qml"),/genycaster\.release\.beta_1_0/);
-    assert.match(pack,/args\.release_label/);
-    assert.match(read("ui/CMakeLists.txt"),/--release-label "Beta 1\.0"/);
+    assert.equal(manifest.name,"Genycaster");
+    assert.match(html,/<title>@@GENYCASTER_PRODUCT_NAME@@<\/title>/);
+    assert.match(html,/class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@/);
+    assert.match(pack, /product_placeholder = "@@GENYCASTER_PRODUCT_NAME@@"/);
+    assert.match(pack, /release_placeholder = "@@GENYCASTER_RELEASE_VERSION@@"/);
 });
 
 test("iOS safe-area background and PWA metadata use the app appearance",()=>{
@@ -55,7 +52,7 @@ test("phone Home is focused on three active actions and a locked Wallet",()=>{
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const loader=read("ui/wasm/genycaster-loader.js");
-    assert.match(html,/<span class="boot-beta">Beta 1\.0<\/span>/);
+    assert.match(html,/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/class="boot-credit"><div>Powered by <strong>Genyleap<\/strong> · WASM Engine<\/div><div class="boot-build" id="boot-build-credit"/);
@@ -80,7 +77,7 @@ test("Feed and profile allow only drag-triggered top refresh; empty state scroll
     assert.match(footer,/id: feedEmptyState/);
     assert.match(footer,/height: stableRows\.count === 0/);
     assert.match(footer,/anchors\.fill: parent/);
-    assert.match(feed,/headerPositioning: root\.compact \|\| stableRows\.count === 0/);
+    assert.match(feed,/headerPositioning: root\.compact \|\| root\.activeFeed === "channel"/);
     assert.equal((feed.match(/\bEmptyState \{/g)||[]).length,1);
     assert.match(empty,/implicitHeight: stateContent\.implicitHeight/);
     assert.doesNotMatch(profile,/verticalOvershoot/);
