@@ -59,11 +59,22 @@ Item {
         layoutDirection: Qt.LeftToRight
         spacing: root.compactMode ? Theme.space1 : Theme.space2
 
+        TextMetrics {
+            id: liveStatusMetrics
+            font: liveStatusLabel.font
+            text: root.stateLabel
+        }
+        TextMetrics {
+            id: providerStatusMetrics
+            font: providerLabel.font
+            text: nodeProviderLabel
+        }
+
         RowLayout {
-            // Live and its source badge are one compact status cluster;
-            // avoid the 112px reserved blank area between them.
+            // Use the actual glyph advance, not a short hard-coded slot.
+            // This keeps Live visible without restoring the old empty gap.
             Layout.preferredWidth: root.iconOnlyMetadata
-                ? 12 : Math.max(34, liveStatusLabel.implicitWidth + Theme.space1 + 7)
+                ? 12 : Math.ceil(liveStatusMetrics.advanceWidth) + 7 + Theme.space2
             Layout.minimumWidth: Layout.preferredWidth
             Layout.maximumWidth: Layout.preferredWidth
             layoutDirection: Theme.uiDirection
@@ -83,6 +94,7 @@ Item {
                 id: liveStatusLabel
                 visible: !root.iconOnlyMetadata
                 Layout.fillWidth: true
+                Layout.minimumWidth: Math.ceil(liveStatusMetrics.advanceWidth)
                 text: root.stateLabel
                 color: root.warningState ? Theme.warning : Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize
@@ -101,8 +113,11 @@ Item {
         RowLayout {
             layoutDirection: Theme.uiDirection
             visible: !root.compactMetadata
-            Layout.preferredWidth: Math.min(120,
-                Math.max(76, providerLabel.implicitWidth + Theme.space1 + 16))
+            // HyperSnap v2 is never artificially capped at 120px.
+            // Match the rendered text plus the network glyph and gap.
+            Layout.preferredWidth: Math.ceil(providerStatusMetrics.advanceWidth)
+                + 13 + Theme.space2
+            Layout.minimumWidth: Layout.preferredWidth
             Layout.maximumWidth: Layout.preferredWidth
             spacing: Theme.space1
 
@@ -110,6 +125,7 @@ Item {
             Label {
                 id: providerLabel
                 Layout.fillWidth: true
+                Layout.minimumWidth: Math.ceil(providerStatusMetrics.advanceWidth)
                 text: nodeProviderLabel
                 color: Theme.textTertiary
                 font.family: Theme.latinFontFamily

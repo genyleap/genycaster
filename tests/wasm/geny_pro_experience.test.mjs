@@ -31,9 +31,10 @@ test('desktop bookmarks use measured compact columns and mobile stays single-col
  const bookmarks=qml('BookmarksSurface.qml');
  const shell=qml('AppShell.qml');
  assert.match(bookmarks,/objectName: "desktopBookmarkGrid"/);
- assert.match(bookmarks,/readonly property int columnCount: root\.compact \|\| width < 690/);
- assert.match(bookmarks,/width < 1080 \? 2 : 3/);
- assert.match(bookmarks,/Layout\.alignment: Qt\.AlignTop/);
+ assert.match(bookmarks,/readonly property int columnCount: root\.compact \|\| gridAvailableWidth < 660/);
+ assert.match(bookmarks,/gridAvailableWidth < 1680 \? 2 : 3/);
+ assert.match(bookmarks,/Layout\.alignment: Qt\.AlignTop \| Qt\.AlignLeft/);
+ assert.match(bookmarks,/Layout\.preferredWidth: savedCastsGrid\.cardWidth/);
  assert.match(bookmarks,/card\.mapToItem\(root\.contentItem/);
  assert.match(shell,/Layout\.maximumWidth: root\.compact[\s\S]*?root\.adaptiveDashboardWidth/);
 });

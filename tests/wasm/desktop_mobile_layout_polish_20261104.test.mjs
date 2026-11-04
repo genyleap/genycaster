@@ -35,11 +35,11 @@ test('Pro drawer uses neutral surfaces and retains fixed header, footer and inte
 
 test('bookmark grid uses dense desktop columns, top aligned cards and single-column mobile',()=>{
  const bookmarks=read('BookmarksSurface');
- assert.match(bookmarks,/readonly property int columnCount: root\.compact \|\| width < 690/);
- assert.match(bookmarks,/width < 1080 \? 2 : 3/);
+ assert.match(bookmarks,/readonly property int columnCount: root\.compact \|\| gridAvailableWidth < 660/);
+ assert.match(bookmarks,/gridAvailableWidth < 1680 \? 2 : 3/);
  assert.match(bookmarks,/columns: columnCount/);
- assert.match(bookmarks,/Layout\.alignment: Qt\.AlignTop/);
- assert.match(bookmarks,/Layout\.maximumWidth: Layout\.preferredWidth/);
+ assert.match(bookmarks,/Layout\.alignment: Qt\.AlignTop \| Qt\.AlignLeft/);
+ assert.match(bookmarks,/Layout\.maximumWidth: savedCastsGrid\.cardWidth/);
  assert.match(bookmarks,/compact: root\.compact \|\| savedCastsGrid\.columns >= 3/);
  assert.match(bookmarks,/CastItem \{/);
 });
@@ -47,8 +47,9 @@ test('bookmark grid uses dense desktop columns, top aligned cards and single-col
 test('desktop profile card packs account access beside profile and Pro with natural height',()=>{
  const card=read('ProfileTrustCard');
  const nav=read('SideNavigation');
- assert.match(card,/faceHeight: Math\.max\(frontContent\.implicitHeight/);
- assert.match(card,/root\.compact \? 174 : 200/);
+ assert.match(card,/faceHeight: root\.compact/);
+ assert.match(card,/settledCompactFaceHeight/);
+ assert.match(card,/Math\.max\(frontContent\.implicitHeight, backContent\.implicitHeight, 200\)/);
  assert.match(card,/maximumLineCount: root\.compact \? 1 : 3/);
  const beforeBack=card.slice(0,card.indexOf('id: backFace'));
  assert.match(beforeBack,/onClicked: root\.proRequested\(\)/);
@@ -61,7 +62,7 @@ test('desktop profile card packs account access beside profile and Pro with natu
 test('status source badge follows Live without reserved 112px gap',()=>{
  const status=read('StatusFooter');
  assert.match(status,/id: liveStatusLabel/);
- assert.match(status,/liveStatusLabel\.implicitWidth \+ Theme\.space1 \+ 7/);
+ assert.match(status,/Math\.ceil\(liveStatusMetrics\.advanceWidth\) \+ 7 \+ Theme\.space2/);
  assert.match(status,/id: providerLabel/);
  assert.doesNotMatch(status,/root\.iconOnlyMetadata \? 12 : 112/);
  assert.match(status,/text: nodeProviderLabel/);

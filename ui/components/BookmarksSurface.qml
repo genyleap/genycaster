@@ -448,14 +448,19 @@ Flickable {
             id: savedCastsGrid
             objectName: "desktopBookmarkGrid"
             Layout.fillWidth: true
-            // Three modest columns on broad desktop, two on medium screens,
-            // a single readable column on phones. Never stretch casts into
-            // oversized two-up tiles merely because the sidebar is narrow.
-            readonly property int columnCount: root.compact || width < 690
-                ? 1 : width < 1080 ? 2 : 3
+            // Qt Quick Layouts must not derive a delegate's preferred width
+            // from its own GridLayout.width: the parent measures the children
+            // first, producing a circular dependency and zero-width cards.
+            // Use the outer Flickable's already-constrained viewport instead.
+            readonly property real gridAvailableWidth: Math.max(0,
+                root.width - 2 * (root.compact ? Theme.mobileGutter : Theme.contentGutter))
+            readonly property int columnCount: root.compact || gridAvailableWidth < 660
+                ? 1 : gridAvailableWidth < 1680 ? 2 : 3
+            readonly property real cardWidth: Math.min(600, Math.max(0,
+                (gridAvailableWidth - (columnCount - 1) * Theme.space3) / columnCount))
             columns: columnCount
-            columnSpacing: Theme.space2
-            rowSpacing: Theme.space2
+            columnSpacing: Theme.space3
+            rowSpacing: Theme.space3
 
             Repeater {
             id: savedCastRepeater
@@ -463,14 +468,16 @@ Flickable {
             delegate: Superellipse {
                 id: bookmarkCard
                 required property var modelData
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignTop
-                Layout.minimumWidth: 0
-                Layout.preferredWidth: Math.max(0, (savedCastsGrid.width -
-                    savedCastsGrid.columnSpacing * (savedCastsGrid.columns - 1)) /
-                    savedCastsGrid.columns)
-                Layout.maximumWidth: Layout.preferredWidth
-                implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
+                // Stable explicit cell geometry, measured from the viewport,
+                // not from the grid's own derived width.
+                Layout.fillWidth: false
+                Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                Layout.minimumWidth: savedCastsGrid.cardWidth
+                Layout.preferredWidth: savedCastsGrid.cardWidth
+                Layout.maximumWidth: savedCastsGrid.cardWidth
+                Layout.preferredHeight: implicitHeight
+                implicitHeight: Math.max(110,
+                    savedContent.implicitHeight + Theme.space2 * 2)
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
                 borderWidth: Theme.strokeHairline
@@ -514,7 +521,7 @@ Flickable {
                         objectName: "bookmarkRichCast"
                         visible: !Boolean(castSkeletonFallback.visible)
                         Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? implicitHeight : 0
+                        Layout.preferredHeight: visible ? Math.max(1, implicitHeight) : 0
                         modelData: bookmarkCard.modelData
                         // Dense desktop columns use the same compact cast
                         // spacing as mobile without removing rich content.
