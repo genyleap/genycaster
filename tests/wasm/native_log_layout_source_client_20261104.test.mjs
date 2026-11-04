@@ -30,3 +30,16 @@ test('deep cast rich blocks do not retain orphaned pending loaders on a feed swi
  // Feed list remains async to avoid long stalls during rapid scrolling.
  assert.match(qml('FeedSurface'),/asynchronous: !sectionRow/);
 });
+
+
+test('HTML served with a misleading image Content-Type never reaches QImageReader', () => {
+ const src=readFileSync(new URL('../../ui/mobile/remote_image_provider.cpp', import.meta.url),'utf8');
+ const predicate=src.slice(src.indexOf('[[nodiscard]] bool responseMayContainImage('),
+   src.indexOf('[[nodiscard]] int quantizedRequestedDimension('));
+ assert.ok(predicate.length>0, 'image response gate is present');
+ assert.match(predicate,/if \(recognizedImagePayload\(bytes\)\) \{\s*return true;\s*\}/);
+ assert.match(predicate,/if \(looksLikeMarkupPayload\(bytes\)\) \{\s*return false;\s*\}/);
+ assert.ok(predicate.indexOf('if (recognizedImagePayload(bytes))') < predicate.indexOf('if (looksLikeMarkupPayload(bytes))'));
+ assert.ok(predicate.indexOf('if (looksLikeMarkupPayload(bytes))') < predicate.indexOf('if (contentType.startsWith('),
+   'decoded content must take priority over a misleading image/* response header');
+});

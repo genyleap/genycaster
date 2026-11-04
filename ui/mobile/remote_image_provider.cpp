@@ -368,6 +368,13 @@ QCache<QString, FailedRequest> failedRequests{failedRequestCacheCapacity};
     if (recognizedImagePayload(bytes)) {
         return true;
     }
+    // Do not trust a remote Content-Type over the actual payload. Some
+    // image URLs resolve to HTML (including branded 200/error pages) while
+    // still advertising image/*. Those pages cannot recover through a
+    // compatibility Accept retry and must never reach QImageReader.
+    if (looksLikeMarkupPayload(bytes)) {
+        return false;
+    }
 
     const QString contentType = responseHeaderValue(response.headers, "Content-Type")
                                     .section(QLatin1Char(';'), 0, 0)
