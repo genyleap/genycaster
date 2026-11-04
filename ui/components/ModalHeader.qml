@@ -19,6 +19,7 @@ RowLayout {
 
     ColumnLayout {
         Layout.fillWidth: true
+        Layout.alignment: Qt.AlignVCenter
         spacing: Theme.space1
 
         Label {
@@ -29,6 +30,7 @@ RowLayout {
             font.pixelSize: Theme.typeTitle3Size
             font.weight: Theme.weightDemiBold
             horizontalAlignment: Theme.textStartAlignment
+            verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }
 

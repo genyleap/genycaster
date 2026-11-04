@@ -13,6 +13,9 @@ Drawer {
     property Item blurSourceItem: null
     property bool showHandle: bottomSheet
     readonly property int sheetTopInset: showHandle ? Theme.space5 : 0
+    // A predictable, less abrupt motion contract for every shared inspector.
+    // Reduced-motion requests bypass both translations and fades.
+    readonly property int sheetMotionDuration: Theme.reduceMotion ? 0 : 275
 
     parent: hostItem ? hostItem : Overlay.overlay
     modal: true
@@ -53,14 +56,14 @@ Drawer {
                 property: "position"
                 from: 0.0
                 to: 1.0
-                duration: Theme.reduceMotion ? 0 : Theme.motionStandard
-                easing.type: Easing.OutCubic
+                duration: control.sheetMotionDuration
+                easing.type: Easing.OutQuart
             }
             NumberAnimation {
                 property: "opacity"
-                from: 0.9
+                from: 0.96
                 to: 1.0
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                duration: control.sheetMotionDuration
             }
         }
     }
@@ -69,13 +72,13 @@ Drawer {
             NumberAnimation {
                 property: "position"
                 to: 0.0
-                duration: Theme.reduceMotion ? 0 : Theme.motionStandard
+                duration: control.sheetMotionDuration
                 easing.type: Easing.InOutCubic
             }
             NumberAnimation {
                 property: "opacity"
-                to: 0.9
-                duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                to: 0.96
+                duration: control.sheetMotionDuration
             }
         }
     }

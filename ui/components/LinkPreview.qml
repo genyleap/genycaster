@@ -532,9 +532,11 @@ Superellipse {
     ColumnLayout {
         id: content
         anchors.fill: parent
-        // Link and Mini App cards share the same internal gutter. Extra
-        // miniapp-only padding previously caused a visibly offset edge.
-        anchors.margins: root.compact ? Theme.space2 : Theme.space3
+        // Mini App artwork and its action row must breathe on all four
+        // sides, without the poster touching the surrounding cast card.
+        // Ordinary web links keep their denser editorial gutter.
+        anchors.margins: root.layoutMiniApp ? Theme.space4
+                        : root.compact ? Theme.space2 : Theme.space3
         spacing: Theme.space2
 
         // Poster/Mini App cards also retain the Cast sentence within the card;

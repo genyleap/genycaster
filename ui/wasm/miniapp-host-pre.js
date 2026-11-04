@@ -10,7 +10,7 @@
         holder: null, tabs: null, titleEl: null, warning: null,
         activeIndex: -1, activeUrl: "", mode: "window",
         fullscreen: false, backdrop: null, warning: null,
-        observer: null, screenButton: null, header: null, user: {}
+        observer: null, screenButton: null, dismissButton: null, header: null, user: {}
     };
 
     function approvedUrl(value) {
@@ -53,6 +53,7 @@
         app.warning = null;
         app.fullscreen = false;
         app.screenButton = null;
+        app.dismissButton = null;
         app.header = null;
         if (element) element.remove();
     }
@@ -86,6 +87,9 @@
         });
         if(app.header) Object.assign(app.header.style,{
             background:colors.chrome,borderBottom:"1px solid "+colors.border
+        });
+        if(app.dismissButton) Object.assign(app.dismissButton.style,{
+            borderColor:colors.border,color:colors.text
         });
         if(app.backdrop)app.backdrop.style.background=colors.backdrop;
         if(app.tabs)app.tabs.style.borderBottom="1px solid "+colors.border;
@@ -330,8 +334,8 @@
         });
         const top = document.createElement("header");
         Object.assign(top.style, {
-            display: "flex", alignItems: "center", gap: "12px",
-            minHeight: "54px", boxSizing: "border-box", padding: "8px 16px"
+            display: "flex", alignItems: "center", gap: "8px",
+            minHeight: "54px", boxSizing: "border-box", padding: "8px 12px"
         });
         const name = document.createElement("strong");
         name.textContent = String(title || url.hostname).slice(0, 160);
@@ -346,13 +350,16 @@
         // An unrelated "Open in Farcaster/browser" toolbar is not part
         // of the native experience and must not interrupt the user here.
         const dismiss = document.createElement("button");
+        dismiss.type = "button";
         dismiss.textContent = "×";
         dismiss.setAttribute("aria-label", String(closeLabel || "Close").slice(0, 80));
         Object.assign(dismiss.style, {
-            color: "inherit", background: "transparent",
-            border: "1px solid #484b54", borderRadius: "10px",
-            cursor: "pointer", fontSize: "24px", minWidth: "42px",
-            height: "38px"
+            display:"flex",alignItems:"center",justifyContent:"center",
+            boxSizing:"border-box",flex:"0 0 40px",padding:"0",
+            color:"inherit",background:"transparent",
+            border:"1px solid",borderRadius:"10px",
+            cursor:"pointer",fontFamily:"inherit",fontWeight:"400",
+            fontSize:"25px",lineHeight:"1",width:"40px",height:"40px"
         });
         dismiss.addEventListener("click", close);
         const fullscreenButton = document.createElement("button");
@@ -362,7 +369,9 @@
         Object.assign(fullscreenButton.style,{
             color:"inherit",background:"transparent",border:"0",
             borderRadius:"10px",cursor:"pointer",fontSize:"24px",
-            minWidth:"42px",height:"38px"
+            boxSizing:"border-box",display:"flex",alignItems:"center",
+            justifyContent:"center",flex:"0 0 40px",padding:"0",
+            width:"40px",height:"40px"
         });
         fullscreenButton.addEventListener("click",()=>{void toggleFullscreen();});
         top.append(name, fullscreenButton, dismiss);
@@ -401,12 +410,21 @@
         app.header=top;
         app.warning = warning;
         app.screenButton = fullscreenButton;
+        app.dismissButton = dismiss;
         const session = {url:url.href,title:appTitle,frame,detach:null,ready:false};
         app.sessions = [session];
         attachSession(session);
         app.fullscreen=false;
         applyPresentation();
         select(0);
+        // The browser-owned Mini App presentation uses the same restrained
+        // entry rhythm as Qt drawers without changing its fixed geometry.
+        if(typeof sheet.animate==="function"
+             && !(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)) {
+            sheet.animate([{opacity:0.3},{opacity:1}],{
+                duration:260,easing:"cubic-bezier(.2,.75,.2,1)"
+            });
+        }
         if(typeof MutationObserver!=="undefined" && document.documentElement){
             app.observer=new MutationObserver(()=>paint());
             app.observer.observe(document.documentElement,{

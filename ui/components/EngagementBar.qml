@@ -10,6 +10,10 @@ RowLayout {
     layoutDirection: Theme.uiDirection
 
     property bool compact: false
+    function closeShareMenu() {
+        if (castShareMenu.item)
+            castShareMenu.item.close()
+    }
     property bool showViews: true
     property var castData: ({})
     property int replyCount: 0
@@ -349,8 +353,9 @@ RowLayout {
                 openProofConnections.requestBookmarkCollectionChoice(root.normalizedCastId)
         }
     }
-    // Lazy share menu: constructing a Popup for every virtualized feed row
-    // would regress scroll performance on mobile WebAssembly.
+    // A single lazy menu per expanded cast. Desktop uses an anchored
+    // popover; a narrow viewport uses a bottom sheet tied to the overlay,
+    // never coordinates projected from a recycled feed delegate.
     EngagementButton {
         id: castShareButton
         objectName: "castShareButton"
@@ -362,92 +367,161 @@ RowLayout {
             castShareMenu.active = true
             const menu = castShareMenu.item
             if (!menu) return
-            const point = castShareButton.mapToItem(Overlay.overlay, 0, castShareButton.height + Theme.space1)
-            menu.x = Math.max(Theme.space2, Math.min(Overlay.overlay.width - menu.width - Theme.space2, point.x + castShareButton.width - menu.width))
-            menu.y = Math.max(Theme.space2, Math.min(Overlay.overlay.height - menu.height - Theme.space2, point.y))
+            if (!root.compact) {
+                const point = castShareButton.mapToItem(
+                    Overlay.overlay, 0, castShareButton.height + Theme.space1)
+                menu.x = Math.max(Theme.space2, Math.min(
+                    Overlay.overlay.width - menu.width - Theme.space2,
+                    point.x + castShareButton.width - menu.width))
+                menu.y = Math.max(Theme.space2, Math.min(
+                    Overlay.overlay.height - menu.height - Theme.space2, point.y))
+            }
             menu.open()
         }
 
         Loader {
             id: castShareMenu
             active: false
-            sourceComponent: Component {
-                Popup {
-                    id: sharePopup
-                    objectName: "castShareMenu"
-                    parent: Overlay.overlay
-                    width: 240
-                    implicitHeight: castShareActions.implicitHeight + Theme.space2
-                    padding: Theme.space1
-                    modal: true
-                    focus: true
-                    dim: false
-                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-                    background: PopupSurface { curveDepth: Theme.curveContainer }
-                    contentItem: ColumnLayout {
-                        id: castShareActions
-                        spacing: 0
-                        ActionButton {
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconShare
-                            text: qsTrId("genycaster.share.share_action")
-                            onClicked: {
-                                sharePopup.close()
-                                presentationBridge.shareUrl(presentationBridge.castShareUrl(root.normalizedCastId))
-                            }
-                        }
-                        ActionButton {
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconCopy
-                            text: qsTrId("genycaster.share.copy_link")
-                            onClicked: {
-                                presentationBridge.copyText(presentationBridge.castShareUrl(root.normalizedCastId))
-                                sharePopup.close()
-                            }
-                        }
-                        ActionButton {
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconCopy
-                            text: qsTrId("genycaster.share.copy_farcaster_link")
-                            onClicked: {
-                                presentationBridge.copyText(presentationBridge.farcasterWebCastUrl(
-                                    root.normalizedCastId, String(root.castData.author || "")))
-                                sharePopup.close()
-                            }
-                        }
-                        ActionButton {
-                            // Always offer the same action. Platform-aware
-                            // app-first/fallback logic belongs in the bridge.
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconArrowUpRight
-                            text: qsTrId("genycaster.share.open_quorum")
-                            onClicked: {
-                                sharePopup.close()
-                                presentationBridge.openQuorumCast(root.normalizedCastId)
-                            }
-                        }
-                        ActionButton {
-                            visible: presentationBridge.farcasterWebCastUrl(root.normalizedCastId, String(root.castData.author || "")).length > 0
-                            Layout.fillWidth: true
-                            quiet: true
-                            alignStart: true
-                            iconGlyph: Theme.iconArrowUpRight
-                            text: qsTrId("genycaster.share.open_farcaster")
-                            onClicked: {
-                                sharePopup.close()
-                                presentationBridge.openFarcasterCast(
-                                    root.normalizedCastId, String(root.castData.author || ""))
-                            }
-                        }
-                    }
+            sourceComponent: root.compact
+                ? mobileCastShareSheet : desktopCastSharePopup
+        }
+    }
+
+    Component {
+        id: desktopCastSharePopup
+        Popup {
+            objectName: "castShareMenu"
+            parent: Overlay.overlay
+            width: Theme.scaleUi(248)
+            implicitHeight: shareActionsLoader.implicitHeight + Theme.space2
+            padding: Theme.space2
+            modal: true
+            focus: true
+            dim: false
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+            background: PopupSurface { curveDepth: Theme.curveContainer }
+            contentItem: Loader {
+                id: shareActionsLoader
+                sourceComponent: castShareActionList
+            }
+            enter: Transition {
+                NumberAnimation {
+                    property: "opacity"
+                    from: 0.6
+                    to: 1.0
+                    duration: Theme.reduceMotion ? 0 : 170
+                    easing.type: Easing.OutCubic
+                }
+            }
+            exit: Transition {
+                NumberAnimation {
+                    property: "opacity"
+                    to: 0
+                    duration: Theme.reduceMotion ? 0 : 135
+                }
+            }
+        }
+    }
+
+    Component {
+        id: mobileCastShareSheet
+        GenyDrawer {
+            objectName: "castShareMobileDrawer"
+            bottomSheet: true
+            showHandle: true
+            dimBackground: true
+            interactive: false
+            width: parent ? parent.width : 390
+            height: parent
+                ? Math.min(parent.height * 0.76, Theme.scaleUi(352))
+                : Theme.scaleUi(352)
+            contentPadding: Theme.space3
+            contentItem: ColumnLayout {
+                spacing: Theme.space2
+
+                ModalHeader {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.scaleUi(44)
+                    title: qsTrId("genycaster.share.cast")
+                    onCloseRequested: root.closeShareMenu()
+                }
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    sourceComponent: castShareActionList
+                }
+            }
+        }
+    }
+
+    Component {
+        id: castShareActionList
+        ColumnLayout {
+            spacing: Theme.space1
+
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                iconGlyph: Theme.iconShare
+                text: qsTrId("genycaster.share.share_action")
+                onClicked: {
+                    root.closeShareMenu()
+                    presentationBridge.shareUrl(presentationBridge.castShareUrl(
+                        root.normalizedCastId))
+                }
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                iconGlyph: Theme.iconCopy
+                text: qsTrId("genycaster.share.copy_link")
+                onClicked: {
+                    presentationBridge.copyText(
+                        presentationBridge.castShareUrl(root.normalizedCastId))
+                    root.closeShareMenu()
+                }
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                iconGlyph: Theme.iconCopy
+                text: qsTrId("genycaster.share.copy_farcaster_link")
+                onClicked: {
+                    presentationBridge.copyText(
+                        presentationBridge.farcasterWebCastUrl(
+                            root.normalizedCastId,
+                            String(root.castData.author || "")))
+                    root.closeShareMenu()
+                }
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                iconGlyph: Theme.iconArrowUpRight
+                text: qsTrId("genycaster.share.open_quorum")
+                onClicked: {
+                    root.closeShareMenu()
+                    presentationBridge.openQuorumCast(root.normalizedCastId)
+                }
+            }
+            ActionButton {
+                visible: presentationBridge.farcasterWebCastUrl(
+                    root.normalizedCastId,
+                    String(root.castData.author || "")).length > 0
+                Layout.fillWidth: true
+                quiet: true
+                alignStart: true
+                iconGlyph: Theme.iconArrowUpRight
+                text: qsTrId("genycaster.share.open_farcaster")
+                onClicked: {
+                    root.closeShareMenu()
+                    presentationBridge.openFarcasterCast(
+                        root.normalizedCastId,
+                        String(root.castData.author || ""))
                 }
             }
         }

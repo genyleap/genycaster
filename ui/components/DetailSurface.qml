@@ -297,7 +297,7 @@ ListView {
                             : Theme.readingWidth)
         x: Math.max(root.compact ? Theme.space2 : Theme.contentGutter, (root.width - width) / 2)
         y: root.compact ? Theme.space3 : Theme.space4
-        spacing: Theme.space3
+        spacing: root.compact ? Theme.space2 : Theme.space3
 
         // Contextual conversation toolbar. Keep a real back action, but name
         // the destination and make its channel navigable independently.
@@ -375,8 +375,12 @@ ListView {
                 objectName: "mobileConversationChannelHeader"
                 visible: root.compact && root.activeView === "cast"
                     && root.castChannel.length > 0
-                Layout.fillWidth: true
+                // Preserve the natural width of channel identity instead of
+                // distributing Back, avatar, channel and membership across
+                // the entire toolbar.
+                Layout.fillWidth: false
                 Layout.minimumWidth: 0
+                Layout.alignment: Qt.AlignVCenter
                 spacing: Theme.space1
                 layoutDirection: Theme.uiDirection
 
@@ -389,9 +393,10 @@ ListView {
                     displayName: root.resolvedChannelName
                 }
                 ActionButton {
-                    Layout.fillWidth: true
+                    Layout.fillWidth: false
                     Layout.minimumWidth: 0
-                    Layout.maximumWidth: 170
+                    Layout.maximumWidth: 142
+                    Layout.preferredWidth: Math.min(implicitWidth, 142)
                     compact: true
                     quiet: true
                     elevated: false
@@ -753,6 +758,14 @@ ListView {
 
 
 
+                Rectangle {
+                    objectName: "castActionTopDivider"
+                    visible: root.activeView === "cast" && Boolean(root.detail.castId)
+                    Layout.fillWidth: true
+                    implicitHeight: Theme.strokeHairline
+                    color: Theme.borderSubtle
+                }
+
                 RowLayout {
                     visible: root.activeView === "cast" && Boolean(root.detail.castId)
                     Layout.fillWidth: true
@@ -784,6 +797,14 @@ ListView {
                         text: qsTrId("genycaster.detail.delete_cast")
                         onClicked: root.removeCastRequested(root.detail)
                     }
+                }
+
+                Rectangle {
+                    objectName: "castActionBottomDivider"
+                    visible: root.activeView === "cast" && Boolean(root.detail.castId)
+                    Layout.fillWidth: true
+                    implicitHeight: Theme.strokeHairline
+                    color: Theme.borderSubtle
                 }
 
                 RowLayout {
@@ -831,7 +852,7 @@ ListView {
             Layout.fillWidth: true
             // Keep the reply header connected to the parent cast without a
             // doubled layout gap before the first conversation rail.
-            Layout.topMargin: Theme.space3
+            Layout.topMargin: root.compact ? 0 : Theme.space2
             spacing: Theme.space2
 
             RowLayout {
