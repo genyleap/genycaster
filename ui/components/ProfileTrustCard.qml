@@ -41,7 +41,7 @@ Superellipse {
     // Window resizing changes line breaking while Qt is still negotiating
     // the sidebar width. Commit a measured height after layout settles,
     // instead of bouncing the bottom account card every frame.
-    property real settledCompactFaceHeight: 190
+    property real settledCompactFaceHeight: 168
     readonly property real faceHeight: root.compact
         ? settledCompactFaceHeight
         : Math.max(frontContent.implicitHeight, backContent.implicitHeight, 200)
@@ -51,7 +51,7 @@ Superellipse {
         id: compactHeightSettler
         interval: 180
         repeat: false
-        onTriggered: root.settledCompactFaceHeight = Math.max(174,
+        onTriggered: root.settledCompactFaceHeight = Math.max(160,
             frontContent.implicitHeight, backContent.implicitHeight)
     }
     Connections {
@@ -94,7 +94,20 @@ Superellipse {
         property string labelText: ""
         property string iconGlyph: ""
         property color valueColor: Theme.textPrimary
+        property bool interactive: false
+        signal activated()
+        Layout.minimumWidth: 0
         spacing: 0
+        Accessible.role: metric.interactive ? Accessible.Button : Accessible.StaticText
+        Accessible.name: metric.labelText + " " + metric.valueText
+        HoverHandler {
+            enabled: metric.interactive
+            cursorShape: Qt.PointingHandCursor
+        }
+        TapHandler {
+            enabled: metric.interactive
+            onTapped: metric.activated()
+        }
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
             spacing: Theme.space1
@@ -107,7 +120,8 @@ Superellipse {
             DirectionAwareLabel {
                 text: metric.valueText
                 color: metric.valueColor
-                font.pixelSize: Theme.typeMetaSize
+                font.pixelSize: root.compact ? Math.max(10, Theme.typeMetaSize - 1)
+                                             : Theme.typeMetaSize
                 font.weight: Theme.weightBold
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -118,7 +132,9 @@ Superellipse {
             color: Theme.textTertiary
             font.pixelSize: Theme.typeCaptionSize
             horizontalAlignment: Text.AlignHCenter
-            elide: Text.ElideRight
+            wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideNone
         }
     }
 
@@ -172,7 +188,9 @@ Superellipse {
                             color: Theme.textPrimary
                             font.pixelSize: root.compact ? Theme.typeLabelSize : Theme.typeTitle3Size
                             font.weight: Theme.weightBold
-                            elide: Text.ElideRight
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideNone
                         }
                         Icon {
                             visible: root.verified
@@ -190,7 +208,9 @@ Superellipse {
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize
                         horizontalAlignment: Theme.rtl ? Text.AlignRight : Text.AlignLeft
-                        elide: Text.ElideRight
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: 2
+                        elide: Text.ElideNone
                     }
 
                     DirectionAwareLabel {
@@ -230,7 +250,9 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.bio.length > 0
+                // The sidebar is a numeric account snapshot, not a truncated
+                // biography. Full biographies remain in the profile surface.
+                visible: !root.compact && root.bio.length > 0
                 Layout.fillWidth: true
                 text: root.bio
                 color: Theme.textSecondary
@@ -242,7 +264,7 @@ Superellipse {
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.compact ? 48 : 58
+                Layout.preferredHeight: root.compact ? 54 : 58
                 fillColor: Theme.surfaceMuted
                 borderWidth: Theme.strokeHairline
                 borderColor: Theme.borderSubtle
@@ -276,6 +298,20 @@ Superellipse {
                         iconGlyph: Theme.iconStreakFlame
                         valueColor: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
+                    Rectangle {
+                        Layout.preferredWidth: Theme.strokeHairline
+                        Layout.preferredHeight: 28
+                        color: Theme.divider
+                    }
+                    Metric {
+                        objectName: "sidebarFidMetric"
+                        Layout.fillWidth: true
+                        valueText: Number(root.fid) > 0
+                            ? LocaleFormat.formatInteger(root.fid) : "—"
+                        labelText: "FID"
+                        interactive: true
+                        onActivated: root.requestProfile()
+                    }
                 }
             }
 
@@ -290,11 +326,13 @@ Superellipse {
                     quiet: true
                     iconGlyph: Theme.iconSpark
                     balancedIcon: true
-                    text: qsTrId("genycaster.pro.title")
+                    text: root.compact ? qsTrId("genycaster.pro.short")
+                                       : qsTrId("genycaster.pro.title")
                     onClicked: root.proRequested()
                 }
                 ActionButton {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: root.compact ? 84 : 0
                     compact: true
                     iconGlyph: Theme.iconProfile
                     balancedIcon: true
@@ -375,7 +413,9 @@ Superellipse {
                         color: Theme.textTertiary
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
+                        wrapMode: Text.WrapAnywhere
+                        maximumLineCount: 2
+                        elide: Text.ElideNone
                     }
                 }
 
@@ -403,21 +443,20 @@ Superellipse {
                     spacing: Theme.space1
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.streak.activity_rule")
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeCaptionSize
+                        text: qsTrId("genycaster.streak.best").arg(root.streakKnown
+                            ? LocaleFormat.formatInteger(root.streakRecord) : "—")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: Theme.weightDemiBold
                         wrapMode: Text.Wrap
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.streak.best")
-                            .arg(root.streakKnown
-                                ? LocaleFormat.formatInteger(root.streakRecord) : "—")
-                        color: Theme.textTertiary
+                        text: qsTrId("genycaster.streak.next").arg(root.streakKnown && root.streakNext > 0
+                            ? LocaleFormat.formatInteger(root.streakNext) : "—")
+                        color: Theme.textSecondary
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
                     }
                 }
             }
@@ -448,12 +487,14 @@ Superellipse {
                     Layout.fillWidth: true
                     compact: true
                     quiet: true
+                    iconOnly: root.compact
                     iconGlyph: Theme.iconBack
                     text: qsTrId("genycaster.profile.back_back_to_feed")
                     onClicked: root.toggleFace()
                 }
                 ActionButton {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: root.compact ? 84 : 0
                     compact: true
                     iconGlyph: Theme.iconProfile
                     balancedIcon: true

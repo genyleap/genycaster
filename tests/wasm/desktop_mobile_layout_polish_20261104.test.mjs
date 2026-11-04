@@ -29,8 +29,8 @@ test('Pro drawer uses neutral surfaces and retains fixed header, footer and inte
  assert.match(pro,/id: fixedActions/);
  assert.match(pro,/id: detailsViewport/);
  assert.match(pro,/onClicked: root\.expandedFeature = expanded \? -1 : index/);
- assert.match(pro,/title: qsTrId\("genycaster\.apps\.my_miniapps"\)/);
- assert.match(pro,/detail: qsTrId\("genycaster\.miniapp\.session_limit"\)/);
+ assert.match(pro,/title: qsTrId\("genycaster\.pro\.feature_miniapps_title"\)/);
+ assert.match(pro,/detail: qsTrId\("genycaster\.pro\.feature_miniapps_desc"\)/);
 });
 
 test('bookmark grid uses dense desktop columns, top aligned cards and single-column mobile',()=>{

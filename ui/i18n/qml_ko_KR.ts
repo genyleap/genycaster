@@ -6596,6 +6596,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>복구 구문 표시</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>Pro 활성 · 지갑 인증됨</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>상태를 확인할 수 없음</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>Base의 인증된 Farcaster 지갑 하나에 %1 GENY를 보유하세요.</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>Mini App 동시 실행</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>Pro에서는 Mini App을 최대 4개 동시 실행할 수 있습니다(Basic: 1개). 작업 관리자에서 관리하세요.</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>저장된 캐스트를 위한 사용자 컬렉션을 만드세요. 기본 북마크는 Basic에서도 사용할 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>Pro로 계정 연결을 추가하세요. 기존 연결은 계속 확인하고 해제할 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>Market Pulse 토큰을 최대 16개 추적합니다(Basic: 4개).</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>고급 편집기</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>인라인·블록 코드, 최대 4개 이미지와 4,096자 초안을 지원합니다. 긴 글은 확인 후에만 스레드로 게시됩니다.</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>스레드로 게시할까요?</translation>

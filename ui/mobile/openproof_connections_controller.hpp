@@ -46,6 +46,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap proEntitlements READ proEntitlements NOTIFY proEntitlementsChanged)
+    Q_PROPERTY(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged)
     Q_PROPERTY(QVariantMap genyAssets READ genyAssets NOTIFY genyAssetsChanged)
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
@@ -115,6 +116,9 @@ public:
     [[nodiscard]] QVariantMap proEntitlements() const {
         return m_proEntitlementsFid == m_viewerFid && m_viewerFid != 0
             ? m_proEntitlements : QVariantMap{};
+    }
+    [[nodiscard]] bool proEntitlementsBusy() const noexcept {
+        return m_proEntitlementsRead != nullptr;
     }
     Q_INVOKABLE void fetchProEntitlements(bool force = false);
     [[nodiscard]] QVariantMap genyAssets() const {

@@ -69,9 +69,10 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.eligible
-                          ? qsTrId("genycaster.pro.verified_wallet").arg(
-                              LocaleFormat.formatInteger(root.minimumGeny))
-                          : qsTrId("genycaster.pro.requires_pro")
+                          ? qsTrId("genycaster.pro.status_verified")
+                          : root.membership.status === "unavailable"
+                            ? qsTrId("genycaster.pro.status_unavailable")
+                            : qsTrId("genycaster.pro.requires_pro")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
                     elide: Text.ElideRight
@@ -153,7 +154,7 @@ GenyDrawer {
                             }
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                text: qsTrId("genycaster.pro.unlock_hint").arg(
+                                text: qsTrId("genycaster.pro.eligibility_summary").arg(
                                     LocaleFormat.formatInteger(root.minimumGeny))
                                 color: Theme.textSecondary
                                 wrapMode: Text.Wrap
@@ -174,20 +175,20 @@ GenyDrawer {
                 Repeater {
                     model: [
                         { icon: Theme.iconApps,
-                          title: qsTrId("genycaster.apps.my_miniapps"),
-                          detail: qsTrId("genycaster.miniapp.session_limit") },
+                          title: qsTrId("genycaster.pro.feature_miniapps_title"),
+                          detail: qsTrId("genycaster.pro.feature_miniapps_desc") },
                         { icon: Theme.iconBookmark,
                           title: qsTrId("genycaster.pro.bookmark_collections"),
-                          detail: qsTrId("genycaster.pro.requires_pro") },
+                          detail: qsTrId("genycaster.pro.feature_collections_desc") },
                         { icon: Theme.iconLink,
                           title: qsTrId("genycaster.pro.connections"),
-                          detail: qsTrId("genycaster.pro.connections_hint") },
+                          detail: qsTrId("genycaster.pro.feature_connections_desc") },
                         { icon: Theme.iconChart,
                           title: qsTrId("genycaster.pro.market_pulse"),
-                          detail: qsTrId("genycaster.pro.market_pulse_hint") },
+                          detail: qsTrId("genycaster.pro.feature_market_desc") },
                         { icon: Theme.iconCompose,
-                          title: qsTrId("genycaster.pro.advanced_editor"),
-                          detail: qsTrId("genycaster.pro.thread_explanation") }
+                          title: qsTrId("genycaster.pro.feature_composer_title"),
+                          detail: qsTrId("genycaster.pro.feature_composer_desc") }
                     ]
                     delegate: Button {
                         id: feature
@@ -300,6 +301,9 @@ GenyDrawer {
                 compact: true
                 prominent: true
                 iconGlyph: Theme.iconRefresh
+                spinIconWhileBusy: true
+                busy: openProofConnections.proEntitlementsBusy
+                enabled: !busy
                 text: qsTrId("genycaster.pro.check_status")
                 onClicked: openProofConnections.fetchProEntitlements(true)
             }

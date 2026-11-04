@@ -6596,6 +6596,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>リカバリーフレーズを表示</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>Pro 有効 · ウォレット確認済み</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>状態を確認できません</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>Base 上で検証済みの Farcaster ウォレット1つに %1 GENY を保有してください。</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>Mini App の同時利用</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>Pro は最大4つの Mini App を同時利用できます（Basic は1つ）。タスクマネージャーで管理できます。</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>保存した Cast の独自コレクションを作成できます。通常のブックマークは Basic でも利用可能です。</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>Pro でアカウント連携を追加できます。既存の連携は表示・解除できます。</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>Market Pulse で最大16トークンを追跡できます（Basic は4）。</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>高度なエディター</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>インライン・ブロックコード、最大4枚の画像、4,096文字の下書きに対応。長文は確認後にのみスレッドとして投稿されます。</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>スレッドとして投稿しますか？</translation>

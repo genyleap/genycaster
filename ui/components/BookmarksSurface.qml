@@ -482,6 +482,9 @@ Flickable {
                 borderColor: Theme.borderSubtle
                 borderWidth: Theme.strokeHairline
                 curveDepth: Theme.curveContainer
+                // Keep delayed media textures and date labels inside their
+                // own rounded bookmark card, even during WASM layout updates.
+                clip: true
 
                 // Render bookmarked content through the exact same rich cast
                 // presentation as feed/profile, including parent context,

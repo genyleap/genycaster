@@ -6596,6 +6596,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>Wiederherstellungswörter anzeigen</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>Pro aktiv · Wallet bestätigt</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>Status nicht verfügbar</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>Halte %1 GENY in einer verifizierten Farcaster-Wallet auf Base.</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>Mehrere Mini-Apps gleichzeitig</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>Pro erlaubt bis zu 4 Mini-Apps gleichzeitig (Basic: 1). Verwalte sie im Task-Manager.</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>Erstelle eigene Sammlungen für gespeicherte Casts. Lesezeichen bleiben auch mit Basic verfügbar.</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>Füge mit Pro weitere Kontoverbindungen hinzu. Bestehende Verknüpfungen bleiben sichtbar und entfernbar.</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>Verfolge bis zu 16 Market-Pulse-Token (Basic: 4).</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>Erweiterter Editor</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>Inline- und Blockcode, bis zu 4 Bilder und 4.096 Zeichen pro Entwurf. Lange Entwürfe werden nur nach Bestätigung als Thread veröffentlicht.</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>Als Thread veröffentlichen?</translation>

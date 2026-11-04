@@ -29,7 +29,8 @@ test('Geny Pro replaces the sidebar Streak CTA with a themed, interactive drawer
  const shell=file('ui/components/AppShell.qml');
  const drawer=file('ui/components/GenyProDetailsDrawer.qml');
  assert.match(trust,/signal proRequested\(\)/);
- assert.match(trust,/text: qsTrId\("genycaster\.pro\.title"\)/);
+ assert.match(trust,/text: root\.compact \? qsTrId\("genycaster\.pro\.short"\)/);
+ assert.match(trust,/: qsTrId\("genycaster\.pro\.title"\)/);
  assert.match(trust,/onClicked: root\.proRequested\(\)/);
  assert.match(nav,/onProRequested: root\.proRequested\(\)/);
  assert.match(shell,/onProRequested: genyProDetailsDrawer\.open\(\)/);

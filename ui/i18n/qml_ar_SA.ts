@@ -6596,6 +6596,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>إظهار كلمات الاسترداد</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>برو نشط · المحفظة موثقة</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>الحالة غير متاحة</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>احتفظ بـ %1 GENY في محفظة Farcaster موثقة واحدة على Base.</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>تشغيل تطبيقات مصغرة متعددة</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>يدعم برو تشغيل 4 تطبيقات مصغرة معًا (الأساسي: 1). أدِرها من مدير المهام.</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>أنشئ مجموعات مخصصة للمنشورات المحفوظة. تظل الإشارات المرجعية متاحة في الخطة الأساسية.</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>أضف حسابات مرتبطة باستخدام برو. تبقى الروابط الحالية مرئية وقابلة للإزالة.</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>تتبع حتى 16 رمزًا في Market Pulse (الأساسي: 4).</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>محرر متقدم</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>تنسيق الشيفرة ضمن السطر وفي كتل، وإرفاق حتى 4 صور، ومسودات حتى 4,096 حرفًا. لا تُنشر النصوص الطويلة كسلاسل إلا بعد التأكيد.</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>النشر كسلسلة منشورات؟</translation>

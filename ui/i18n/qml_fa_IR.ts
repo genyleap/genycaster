@@ -6597,6 +6597,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>نمایش واژه‌های بازیابی</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>پرو فعال · کیف‌پول تأیید شده</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>وضعیت در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>برای پرو، %1 توکن GENY در یک کیف‌پول تأییدشدهٔ فارکستر روی Base نگه دارید.</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>چندوظیفگی مینی‌اپ‌ها</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>پرو تا ۴ مینی‌اپ هم‌زمان را پشتیبانی می‌کند (عادی: ۱). مدیریت از Task Manager انجام می‌شود.</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>برای کست‌های ذخیره‌شده مجموعه‌های دلخواه بسازید. نشانک‌های معمولی در نسخه عادی هم در دسترس‌اند.</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>با پرو حساب‌های جدید متصل کنید. اتصال‌های قبلی همچنان قابل مشاهده و حذف هستند.</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>پیگیری حداکثر ۱۶ توکن در Market Pulse (عادی: ۴).</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>ویرایشگر پیشرفته</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>کد درون‌خطی و بلوکی، حداکثر ۴ تصویر و پیش‌نویس ۴٬۰۹۶ نویسه‌ای. متن بلند فقط با تأیید شما به رشته‌کست تبدیل می‌شود.</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>انتشار به‌صورت رشته‌کست؟</translation>

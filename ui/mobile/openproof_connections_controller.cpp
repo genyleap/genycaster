@@ -1502,6 +1502,7 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
     authorizeCloudRequest(request);
     auto* reply = m_network.get(request);
     m_proEntitlementsRead = reply;
+    emit proEntitlementsChanged(); // QML busy indicator starts with the HTTP request.
     const auto viewer = m_viewerFid;
     const auto generation = m_grantGeneration;
     connect(reply, &QNetworkReply::finished, this, [this,reply,viewer,generation] {

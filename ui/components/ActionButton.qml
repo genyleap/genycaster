@@ -30,6 +30,9 @@ Button {
     property bool badgeDot: false
     property string badgeText: ""
     property bool busy: false
+    // Opt in for refresh actions that keep their recognizable glyph rotating
+    // while the backing request is actually in progress.
+    property bool spinIconWhileBusy: false
 
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
@@ -139,7 +142,7 @@ Button {
     // operation temporarily disables the action (opacity indicates disabled).
     readonly property color foregroundColor: destructiveFilled ? Theme.dangerInk
                                                : destructive ? Theme.danger
-                                               : !enabled ? Theme.inkDisabled
+                                               : !enabled && !busy ? Theme.inkDisabled
                                                : positive ? Theme.contrastInk(Theme.success)
                                                : prominent ? Theme.accentInk
                                                : selected ? (customSelectedColor.a > 0 ? customSelectedColor : Theme.accent)
@@ -151,7 +154,7 @@ Button {
         layoutDirection: Theme.uiDirection
 
         GenySpinner {
-            visible: control.busy
+            visible: control.busy && !control.spinIconWhileBusy
             running: visible
             color: control.foregroundColor
             Layout.preferredWidth: Math.min(18, control.iconSize)
@@ -160,8 +163,19 @@ Button {
         }
 
         Icon {
-            visible: !control.busy && control.iconGlyph.length > 0
+            id: actionGlyph
+            visible: (!control.busy || control.spinIconWhileBusy)
+                     && control.iconGlyph.length > 0
             text: control.iconGlyph
+            RotationAnimator on rotation {
+                from: 0
+                to: 360
+                duration: Theme.reduceMotion ? 1400 : 840
+                loops: Animation.Infinite
+                running: control.busy && control.spinIconWhileBusy
+                onStopped: actionGlyph.rotation = 0
+            }
+            onVisibleChanged: if (!visible) rotation = 0
             filled: control.selected
             color: control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
             Behavior on color {
@@ -234,7 +248,7 @@ Button {
 
     background: Superellipse {
         fillColor: {
-            if (!control.enabled)
+            if (!control.enabled && !control.busy)
                 return control.quiet ? "transparent" : Theme.surfaceMuted
             if (control.destructiveFilled)
                 return control.down ? Qt.darker(Theme.danger, 1.12) : Theme.danger

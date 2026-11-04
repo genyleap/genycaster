@@ -6596,6 +6596,46 @@ Company | https://company.com</source>
             <source>Show recovery words</source>
             <translation>रिकवरी शब्द दिखाएँ</translation>
         </message>
+        <message id="genycaster.pro.status_verified">
+            <source>Pro active · wallet verified</source>
+            <translation>Pro सक्रिय · वॉलेट सत्यापित</translation>
+        </message>
+        <message id="genycaster.pro.status_unavailable">
+            <source>Status unavailable</source>
+            <translation>स्थिति उपलब्ध नहीं</translation>
+        </message>
+        <message id="genycaster.pro.eligibility_summary">
+            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
+            <translation>Base पर एक सत्यापित Farcaster वॉलेट में %1 GENY रखें।</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_title">
+            <source>Mini App multitasking</source>
+            <translation>एक साथ कई Mini Apps</translation>
+        </message>
+        <message id="genycaster.pro.feature_miniapps_desc">
+            <source>Pro supports up to 4 Mini Apps at once (Basic: 1). Manage them in Task Manager.</source>
+            <translation>Pro में एक साथ 4 Mini Apps चल सकती हैं (Basic: 1)। Task Manager में प्रबंधित करें।</translation>
+        </message>
+        <message id="genycaster.pro.feature_collections_desc">
+            <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
+            <translation>सहेजे गए कास्ट के लिए अपने संग्रह बनाएँ। Basic में भी बुकमार्क उपलब्ध रहते हैं।</translation>
+        </message>
+        <message id="genycaster.pro.feature_connections_desc">
+            <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
+            <translation>Pro से नए खाते जोड़ें। मौजूदा लिंक देखे और हटाए जा सकते हैं।</translation>
+        </message>
+        <message id="genycaster.pro.feature_market_desc">
+            <source>Track up to 16 Market Pulse tokens (Basic: 4).</source>
+            <translation>Market Pulse में 16 टोकन तक ट्रैक करें (Basic: 4)।</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_title">
+            <source>Advanced composer</source>
+            <translation>उन्नत संपादक</translation>
+        </message>
+        <message id="genycaster.pro.feature_composer_desc">
+            <source>Inline and block code, up to 4 images and 4,096 draft characters. Longer drafts publish as threads only after confirmation.</source>
+            <translation>इनलाइन और ब्लॉक कोड, 4 तक चित्र और 4,096 अक्षरों के ड्राफ्ट। लंबे ड्राफ्ट पुष्टि के बाद ही थ्रेड में प्रकाशित होते हैं।</translation>
+        </message>
         <message id="genycaster.pro.thread_title">
             <source>Publish as a thread?</source>
             <translation>थ्रेड के रूप में पोस्ट करें?</translation>
