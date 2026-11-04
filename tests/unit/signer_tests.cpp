@@ -725,6 +725,86 @@ void restartRestoreRechecksNetworkWithoutSecretPersistence()
     assert(states.back().phase == application::signer::SignerPhase::Ready);
 }
 
+void staleSignerMetadataRequiresFreshRegistryVerification()
+{
+    ImmediateExecutor executor{};
+    MemoryVault vault{};
+    vault.exists = true;
+    MemoryMetadataStore metadata{};
+    FakeRegistry registry{};
+    const auto session = makeSession(42);
+    const domain::signer::SignerRecord stale{
+        .local = domain::signer::LocalSigner{
+            .fid = session.fid,
+            .id = domain::signer::SignerId{"old-vault:fid:42"},
+            .publicKey = domain::signer::PublicKey{std::string(64U, 'f')},
+            .createdAt = foundation::time::now(),
+        },
+        .lastVerifiedRegistration = activeRegistration(session.fid),
+    };
+
+    // The live vault key is registered. Reconcile non-secret metadata only
+    // after checking it, without erasing or regenerating the secure key.
+    metadata.record = stale;
+    registry.snapshot.registration = activeRegistration(session.fid);
+    {
+        application::signer::SignerService service{
+            executor, vault, metadata, &registry, nullptr, nullptr};
+        std::vector<application::signer::SignerState> states{};
+        assert(service.restore(session, [&](auto state) { states.push_back(std::move(state)); }));
+        assert(states.back().phase == application::signer::SignerPhase::Ready);
+        assert(metadata.record);
+        assert(metadata.record->local.id.value == "fake-vault:fid:42");
+        assert(metadata.record->local.publicKey.hex == PublicKeyHex);
+        assert(metadata.record->lastVerifiedRegistration);
+        assert(vault.eraseCount == 0U);
+    }
+
+    // A provider returning another key must never turn the signer write-ready.
+    metadata.record = stale;
+    registry.snapshot.registration = activeRegistration(session.fid);
+    registry.snapshot.registration->publicKey.hex = std::string(64U, 'a');
+    {
+        application::signer::SignerService service{
+            executor, vault, metadata, &registry, nullptr, nullptr};
+        std::vector<application::signer::SignerState> states{};
+        assert(service.restore(session, [&](auto state) { states.push_back(std::move(state)); }));
+        assert(states.back().phase == application::signer::SignerPhase::Unavailable);
+        assert(application::signer::evaluateWriteGate(
+            session, states.back(), domain::signer::Scope::CastAdd)
+            == application::signer::WriteGate::SignerRequired);
+        assert(metadata.record && metadata.record->local.id.value == "old-vault:fid:42");
+    }
+
+    // A different unregistered key requires fresh user authorization; the
+    // previous cached Active registration must not carry over.
+    metadata.record = stale;
+    registry.snapshot.registration.reset();
+    {
+        application::signer::SignerService service{
+            executor, vault, metadata, &registry, nullptr, nullptr};
+        std::vector<application::signer::SignerState> states{};
+        assert(service.restore(session, [&](auto state) { states.push_back(std::move(state)); }));
+        assert(states.back().phase == application::signer::SignerPhase::AuthorizationRequired);
+        assert(metadata.record && !metadata.record->lastVerifiedRegistration);
+        assert(metadata.record->local.id.value == "fake-vault:fid:42");
+        assert(vault.eraseCount == 0U);
+    }
+
+    // Provisioning likewise must not copy stale authorization from SQLite.
+    metadata.record = stale;
+    {
+        application::signer::SignerService service{
+            executor, vault, metadata, &registry, nullptr, nullptr};
+        std::vector<application::signer::SignerState> states{};
+        assert(service.provision(session, [&](auto state) { states.push_back(std::move(state)); }));
+        assert(states.back().phase == application::signer::SignerPhase::AuthorizationRequired);
+        assert(metadata.record && !metadata.record->lastVerifiedRegistration);
+        assert(metadata.record->local.publicKey.hex == PublicKeyHex);
+        assert(vault.eraseCount == 0U);
+    }
+}
+
 void selfRevokeUsesRequesterNonceAndErasesSecureKey()
 {
     ImmediateExecutor executor{};
@@ -807,6 +887,7 @@ int main()
     vaultFailureIsExplicitAndGuestReadsRemainIndependent();
     nonceOverflowFailsClosedBeforeAuthorization();
     restartRestoreRechecksNetworkWithoutSecretPersistence();
+    staleSignerMetadataRequiresFreshRegistryVerification();
     selfRevokeUsesRequesterNonceAndErasesSecureKey();
     sqliteSignerMetadataRoundTripContainsOnlyPublicCheckpoint();
     return 0;
