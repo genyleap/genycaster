@@ -84,7 +84,7 @@ GenyAdaptiveDialog {
         RowLayout {
             objectName: "feedbackTabBar"
             Layout.fillWidth: true
-            spacing: Theme.space2
+            spacing: Theme.space4
             Repeater {
                 model: [qsTrId("genycaster.feedback.title"),
                         qsTrId("genycaster.feedback.recent_reports")]
@@ -92,22 +92,40 @@ GenyAdaptiveDialog {
                     id: feedbackTab
                     required property int index
                     required property string modelData
-                    Layout.fillWidth: true
-                    text: modelData
+                    Layout.fillWidth: false
+                    implicitWidth: tabLabel.implicitWidth + Theme.space3 * 2
+                    implicitHeight: 40
                     flat: true
-                    highlighted: root.activeTab === index
                     Accessible.name: modelData
-                    background: Superellipse {
-                        fillColor: root.activeTab === feedbackTab.index
-                                   ? Theme.primarySurface : Theme.surfaceMuted
-                        borderWidth: Theme.strokeHairline
-                        borderColor: root.activeTab === feedbackTab.index
-                                     ? Theme.accent : Theme.borderSubtle
-                        curveDepth: Theme.curveControl
+                    contentItem: DirectionAwareLabel {
+                        id: tabLabel
+                        text: feedbackTab.modelData
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        color: root.activeTab === feedbackTab.index ? Theme.ink : Theme.inkMuted
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: root.activeTab === feedbackTab.index
+                                     ? Theme.weightDemiBold : Font.Normal
                     }
-                    onClicked: root.activeTab = index
+                    background: Item {
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width
+                            height: 2
+                            radius: 1
+                            color: Theme.accent
+                            visible: root.activeTab === feedbackTab.index
+                        }
+                    }
+                    onClicked: {
+                        root.activeTab = index
+                        if (index === 1 && root.canSubmitFeedback)
+                            openProofConnections.fetchFeedback()
+                    }
                 }
             }
+            Item { Layout.fillWidth: true }
         }
 
         ScrollView {
@@ -242,14 +260,8 @@ GenyAdaptiveDialog {
                     }
                 }
 
-                DirectionAwareLabel {
-                    visible: root.activeTab === 0
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.feedback.subtitle")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.Wrap
-                }
+                // The dialog header already explains the form; avoid repeating
+                // the same sentence between the tabs and sentiment choices.
                 RowLayout {
                     visible: root.activeTab === 0
                     Layout.fillWidth: true

@@ -265,7 +265,9 @@ Item {
                     blurEnabled: true
                     blur: 0.72
                     blurMax: 32
-                    blurMultiplier: 0.0
+                    // A zero multiplier suppresses the actual convolution on
+                    // some Qt RHI backends even with blurEnabled set.
+                    blurMultiplier: 1.0
                     saturation: -0.22
                     maskEnabled: true
                     maskSource: capsuleMask
