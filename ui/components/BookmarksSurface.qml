@@ -456,7 +456,7 @@ Flickable {
                 root.width - 2 * (root.compact ? Theme.mobileGutter : Theme.contentGutter))
             readonly property int columnCount: root.compact || gridAvailableWidth < 660
                 ? 1 : gridAvailableWidth < 1680 ? 2 : 3
-            readonly property real cardWidth: Math.min(600, Math.max(0,
+            readonly property real cardWidth: Math.min(520, Math.max(0,
                 (gridAvailableWidth - (columnCount - 1) * Theme.space3) / columnCount))
             columns: columnCount
             columnSpacing: Theme.space3
@@ -522,7 +522,7 @@ Flickable {
                     CastItem {
                         id: savedCast
                         objectName: "bookmarkRichCast"
-                        visible: !Boolean(castSkeletonFallback.visible)
+                        visible: root.compact && !Boolean(castSkeletonFallback.visible)
                         Layout.fillWidth: true
                         Layout.preferredHeight: visible ? Math.max(1, implicitHeight) : 0
                         modelData: bookmarkCard.modelData
@@ -542,6 +542,102 @@ Flickable {
                         onExternalRequested: url => root.externalRequested(url)
                         onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
                         onAuthenticationRequested: root.authenticationRequested()
+                    }
+
+                    // Desktop bookmarks are an index into the saved casts, not
+                    // a second full feed. Keep each card bounded and open the
+                    // complete rich cast in its dedicated detail surface.
+                    ColumnLayout {
+                        objectName: "desktopBookmarkSummary"
+                        visible: !root.compact && !castSkeletonFallback.visible
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        spacing: Theme.space2
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            Avatar {
+                                avatarSize: 36
+                                Layout.preferredWidth: 36
+                                Layout.preferredHeight: 36
+                                sourceUrl: String(bookmarkCard.modelData.avatarUrl || "")
+                                displayName: String(bookmarkCard.modelData.displayName
+                                                    || bookmarkCard.modelData.author || "")
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                spacing: 0
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(bookmarkCard.modelData.displayName
+                                                 || bookmarkCard.modelData.author || "")
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: "@" + String(bookmarkCard.modelData.username
+                                                      || bookmarkCard.modelData.author || "")
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    elide: Text.ElideRight
+                                }
+                            }
+                            DirectionAwareLabel {
+                                visible: Number(bookmarkCard.modelData.createdAtMs || 0) > 0
+                                text: LocaleFormat.formatRelativeTime(
+                                    Number(bookmarkCard.modelData.createdAtMs || 0))
+                                color: Theme.textTertiary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                        }
+                        DirectionAwareLabel {
+                            objectName: "desktopBookmarkExcerpt"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            visible: text.length > 0
+                            text: String(bookmarkCard.modelData.text || "")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeBodySize
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 4
+                            elide: Text.ElideRight
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                visible: Number(bookmarkCard.modelData.embedCount || 0) > 0
+                                text: Theme.iconImage
+                                color: Theme.textSecondary
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                visible: Number(bookmarkCard.modelData.embedCount || 0) > 0
+                                text: LocaleFormat.formatInteger(
+                                    Number(bookmarkCard.modelData.embedCount || 0))
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                            ActionButton {
+                                objectName: "desktopBookmarkOpenCast"
+                                quiet: true
+                                compact: true
+                                iconGlyph: Theme.iconArrowRight
+                                text: qsTrId("genycaster.bookmarks.open_saved_cast")
+                                onClicked: root.castRequested(
+                                    String(bookmarkCard.modelData.castId || ""))
+                            }
+                        }
                     }
 
                     RowLayout {
