@@ -11,6 +11,45 @@ const ids=['short','title','verified_wallet','unlock_hint',
     'bookmark_collections','connections','requires_pro',
     'connections_hint','advanced_editor','market_pulse_hint','market_pulse'];
 
+
+test('Profile Pro badge opens the same responsive drawer on touch and desktop',()=>{
+ const badge=qml('ProfileProBadge.qml');
+ const profile=qml('ProfileSurface.qml');
+ const shell=qml('AppShell.qml');
+ const drawer=qml('GenyProDetailsDrawer.qml');
+ assert.match(badge,/signal detailsRequested\(\)/);
+ assert.match(badge,/onClicked: \{[\s\S]*?root\.detailsRequested\(\)/);
+ assert.match(profile,/onDetailsRequested: root\.proRequested\(\)/);
+ assert.match(shell,/onProRequested: genyProDetailsDrawer\.open\(\)/);
+ assert.match(drawer,/bottomSheet: root\.compact/);
+ assert.match(drawer,/objectName: "genyProDrawerScrollableDetails"/);
+ assert.match(drawer,/property int expandedFeature: -1/);
+ assert.match(drawer,/onClicked: root\.expandedFeature = expanded \? -1 : index/);
+});
+
+test('desktop bookmarks use a measured two-column grid and mobile stays single-column',()=>{
+ const bookmarks=qml('BookmarksSurface.qml');
+ const shell=qml('AppShell.qml');
+ assert.match(bookmarks,/objectName: "desktopBookmarkGrid"/);
+ assert.match(bookmarks,/columns: root\.compact \|\| root\.width < 960 \? 1 : 2/);
+ assert.match(bookmarks,/card\.mapToItem\(root\.contentItem/);
+ assert.match(shell,/Layout\.maximumWidth: root\.compact[\s\S]*?root\.adaptiveDashboardWidth/);
+});
+
+test('cast replies clear the dock and channel toolbar separates narrow layouts',()=>{
+ const detail=qml('DetailSurface.qml');
+ const shell=qml('AppShell.qml');
+ assert.match(detail,/bottomMargin: root\.compact \? root\.bottomOverlayInset/);
+ assert.match(detail,/footer: Item \{/);
+ assert.match(detail,/visible: root\.compact && root\.activeView === "cast"[\s\S]*?sourceUrl: root\.resolvedChannelImage/);
+ assert.match(shell,/DetailSurface \{[\s\S]*?bottomOverlayInset: mobileBottomNavigation\.visible/);
+});
+
+test('explorer and profile filter chips share the normal hairline stroke',()=>{
+ const filters=qml('ContentFilterSheet.qml');
+ assert.match(filters,/borderWidth: Theme\.strokeHairline/);
+ assert.doesNotMatch(filters,/borderWidth: chip\.chosen \? 2/);
+});
 test('Pro badge shares the streak row, with themed popup and accessible inputs',()=>{
     const profile=qml('ProfileSurface.qml');
     const badge=qml('ProfileProBadge.qml');

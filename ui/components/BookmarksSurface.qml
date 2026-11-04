@@ -121,8 +121,11 @@ Flickable {
         const requested = []
         for (let i = 0; i < root.sortedRows.length; ++i) {
             const card = savedCastRepeater.itemAt(i)
-            if (!card || card.y + card.height < root.contentY - root.height * 0.5
-                    || card.y > root.contentY + root.height * 1.5)
+            // Cards live inside an adaptive GridLayout. Their local y is a
+            // grid-relative coordinate, not the scroll content coordinate.
+            const cardY = card ? card.mapToItem(root.contentItem, 0, 0).y : 0
+            if (!card || cardY + card.height < root.contentY - root.height * 0.5
+                    || cardY > root.contentY + root.height * 1.5)
                 continue
             const item = root.sortedRows[i]
             if (!item || Boolean(item.richHydrated)) continue
@@ -441,13 +444,25 @@ Flickable {
             wrapMode: Text.Wrap
         }
 
-        Repeater {
+        GridLayout {
+            id: savedCastsGrid
+            objectName: "desktopBookmarkGrid"
+            Layout.fillWidth: true
+            columns: root.compact || root.width < 960 ? 1 : 2
+            columnSpacing: Theme.space3
+            rowSpacing: Theme.space3
+
+            Repeater {
             id: savedCastRepeater
             model: root.sortedRows
             delegate: Superellipse {
                 id: bookmarkCard
                 required property var modelData
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: Math.max(0, (savedCastsGrid.width -
+                    savedCastsGrid.columnSpacing * (savedCastsGrid.columns - 1)) /
+                    savedCastsGrid.columns)
                 implicitHeight: savedContent.implicitHeight + Theme.space2 * 2
                 fillColor: Theme.surfaceRaised
                 borderColor: Theme.borderSubtle
@@ -573,6 +588,7 @@ Flickable {
                         }
                     }
                 }
+            }
             }
         }
     }

@@ -13,15 +13,20 @@ GenyDrawer {
                                      && membership.tier === "pro"
                                      && membership.eligible === true
     readonly property int minimumGeny: Math.max(1,Number(membership.minimum_geny || 16000))
+    property int expandedFeature: -1
 
     bottomSheet: root.compact
     showHandle: root.compact
     dimBackground: true
     width: root.compact ? parent.width : Math.min(460,parent.width*0.94)
-    height: root.compact ? Math.min(parent.height*0.9,780) : parent.height
+    height: root.compact ? Math.min(parent.height*0.92,820) : parent.height
     contentPadding: Theme.space3
 
-    onOpened: openProofConnections.fetchProEntitlements(true)
+    onOpened: {
+        expandedFeature = -1
+        detailsViewport.contentY = 0
+        openProofConnections.fetchProEntitlements(true)
+    }
 
     contentItem: Item {
         id: viewport
@@ -33,13 +38,13 @@ GenyDrawer {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            height: Math.max(66,implicitHeight)
+            height: Math.max(58,implicitHeight)
             layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
             Superellipse {
-                Layout.preferredWidth: 48
-                Layout.preferredHeight: 48
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
                 curveDepth: Theme.curveCompact
                 fillColor: Theme.proSurface
                 borderWidth: 1
@@ -57,7 +62,7 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.pro.title")
-                    font.pixelSize: Theme.typeTitle2Size
+                    font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.textPrimary
                 }
@@ -101,10 +106,10 @@ GenyDrawer {
             ColumnLayout {
                 id: detailsColumn
                 width: detailsViewport.width
-                spacing: Theme.space3
+                spacing: Theme.space2
                 Superellipse {
                     Layout.fillWidth: true
-                    implicitHeight: summaryColumn.implicitHeight + Theme.space4*2
+                    implicitHeight: summaryColumn.implicitHeight + Theme.space3*2
                     fillColor: Theme.proSurface
                     borderColor: Theme.proBorder
                     borderWidth: 1
@@ -115,28 +120,29 @@ GenyDrawer {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Theme.space4
+                        anchors.margins: Theme.space3
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.pro.title")
+                            text: LocaleFormat.formatInteger(root.minimumGeny) + " GENY"
                             color: Theme.proAccent
-                            font.pixelSize: Theme.typeTitle3Size
+                            font.pixelSize: Theme.typeTitle2Size
                             font.weight: Theme.weightBold
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.pro.unlock_hint").arg(
                                 LocaleFormat.formatInteger(root.minimumGeny))
-                            color: Theme.textPrimary
+                            color: Theme.textSecondary
                             wrapMode: Text.Wrap
-                            font.pixelSize: Theme.typeBodySize
+                            font.pixelSize: Theme.typeCaptionSize
                         }
                         DirectionAwareLabel {
                             visible: root.membership.status === "unavailable"
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.pro.verification_unavailable")
                             color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
                         }
                     }
@@ -160,45 +166,76 @@ GenyDrawer {
                           title: qsTrId("genycaster.pro.advanced_editor"),
                           detail: qsTrId("genycaster.pro.thread_explanation") }
                     ]
-                    delegate: Superellipse {
+                    delegate: Button {
                         id: feature
                         required property var modelData
+                        required property int index
+                        readonly property bool expanded: root.expandedFeature === index
                         Layout.fillWidth: true
-                        implicitHeight: featureLayout.implicitHeight + Theme.space3*2
-                        fillColor: Theme.surfaceRaised
-                        borderColor: Theme.borderSubtle
-                        borderWidth: Theme.strokeHairline
-                        curveDepth: Theme.curveCompact
-                        RowLayout {
+                        Layout.minimumWidth: 0
+                        implicitHeight: Math.max(46, featureLayout.implicitHeight + Theme.space2 * 2)
+                        leftPadding: Theme.space3
+                        rightPadding: Theme.space3
+                        topPadding: Theme.space2
+                        bottomPadding: Theme.space2
+                        flat: true
+                        hoverEnabled: !root.compact
+                        Accessible.name: String(modelData.title || "")
+                        Accessible.description: String(modelData.detail || "")
+                        onClicked: root.expandedFeature = expanded ? -1 : index
+
+                        background: Superellipse {
+                            fillColor: feature.expanded ? Theme.proSurface
+                                : feature.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+                            borderColor: feature.expanded ? Theme.proBorder : Theme.borderSubtle
+                            borderWidth: Theme.strokeHairline
+                            curveDepth: Theme.curveCompact
+                        }
+                        contentItem: RowLayout {
                             id: featureLayout
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.margins: Theme.space3
-                            spacing: Theme.space3
-                            Icon {
-                                text: String(feature.modelData.icon || "")
-                                color: Theme.proAccent
-                                preferredSize: Theme.iconSize
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+
+                            Superellipse {
+                                Layout.preferredWidth: 32
+                                Layout.preferredHeight: 32
                                 Layout.alignment: Qt.AlignTop
+                                fillColor: Theme.proSurface
+                                borderWidth: 0
+                                curveDepth: Theme.curveCompact
+                                Icon {
+                                    anchors.centerIn: parent
+                                    text: String(feature.modelData.icon || "")
+                                    color: Theme.proAccent
+                                    preferredSize: Theme.iconSizeSmall
+                                }
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 spacing: Theme.space1
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
                                     text: String(feature.modelData.title || "")
                                     color: Theme.textPrimary
-                                    wrapMode: Text.Wrap
+                                    font.pixelSize: Theme.typeLabelSize
                                     font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
                                 }
                                 DirectionAwareLabel {
+                                    visible: feature.expanded
                                     Layout.fillWidth: true
                                     text: String(feature.modelData.detail || "")
                                     color: Theme.textSecondary
                                     font.pixelSize: Theme.typeCaptionSize
                                     wrapMode: Text.Wrap
                                 }
+                            }
+                            Icon {
+                                Layout.alignment: Qt.AlignTop
+                                text: feature.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSizeSmall
                             }
                         }
                     }

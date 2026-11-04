@@ -1170,7 +1170,9 @@ Item {
                                         visible: active
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        Layout.maximumWidth: root.adaptiveDetailWidth
+                                        // Wider desktop canvas allows two cast cards side by side.
+                                        Layout.maximumWidth: root.compact
+                                            ? root.adaptiveDetailWidth : root.adaptiveDashboardWidth
                                         Layout.alignment: Qt.AlignHCenter
                                         sourceComponent: Component {
                                             BookmarksSurface {
@@ -1659,6 +1661,7 @@ Item {
                                                 accountFid: presentationBridge.accountFid
                                                 accountIssuer: presentationBridge.accountIdentityIssuer
                                                 onBackRequested: root.returnFromProfileSurface()
+                                                onProRequested: genyProDetailsDrawer.open()
                                                 onFollowersRequested: presentationBridge.openFollowers()
                                                 onFollowingRequested: presentationBridge.openFollowing()
                                                 onRefreshRequested: presentationBridge.selectProfileFeed(presentationBridge.profileFeed)
@@ -1723,6 +1726,7 @@ Item {
                                                 activeView: presentationBridge.activeView
                                                 detail: presentationBridge.detail
                                                 compact: root.compact
+                                                bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                                 busy: presentationBridge.isBusy
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady

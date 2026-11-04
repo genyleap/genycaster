@@ -14,6 +14,7 @@ Button {
                                      && entitlement.eligible === true
     readonly property int minimumGeny: Math.max(1,
         Number(entitlement.minimum_geny || 16000))
+    signal detailsRequested()
     visible: eligible
     implicitHeight: Theme.scaleUi(32)
     implicitWidth: Math.max(Theme.scaleUi(68),
@@ -43,10 +44,12 @@ Button {
             proHint.close()
         }
     }
+    // A click or mobile tap opens the full responsive Pro explanation.
+    // The themed tooltip remains a desktop hover-only affordance.
     onClicked: {
         hintDelay.stop()
-        if (proHint.visible) proHint.close()
-        else root.showHint()
+        proHint.close()
+        root.detailsRequested()
     }
     Keys.onEscapePressed: proHint.close()
 

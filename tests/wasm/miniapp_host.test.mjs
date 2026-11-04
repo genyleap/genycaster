@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const hostSource = readFileSync(
     new URL('../../ui/wasm/miniapp-host-pre.js', import.meta.url), 'utf8');
 
-function browser() {
+function browser(width=1024) {
     const nodes = [];
     class Element {
         constructor(tagName) {
@@ -28,7 +28,7 @@ function browser() {
         createElement: name => new Element(name),
         body: { append(node) { node.isConnected = true; } },
     };
-    const window = { location: { origin: 'https://app.genycaster.example' } };
+    const window = { location: { origin: 'https://app.genycaster.example' }, innerWidth: width };
     vm.runInNewContext(hostSource, { window, document, URL,
         navigator: { language: 'en-US' },
         setTimeout: () => 1, clearTimeout: () => {} }, {
@@ -89,7 +89,7 @@ test('Web Mini App follows presentation mode and provides in-place Full Screen',
  assert.equal(controller.mode(),'right');
  const sheet=nodes.find(node=>node.tagName==='section');
  assert.equal(sheet.style.inset,'0 0 0 auto');
- assert.match(sheet.style.width,/520px/);
+ assert.match(sheet.style.width,/424px/);
  assert.equal(nodes.some(n=>n.textContent==='Open in Farcaster'
      || n.textContent==='Open in browser'),false);
  assert.equal(nodes.filter(n=>n.tagName==='iframe').length,1);
@@ -104,11 +104,37 @@ test('Web Mini App follows presentation mode and provides in-place Full Screen',
  assert.equal(sheet.style.inset,'0 0 0 auto');
  controller.setMode('bottom');
  assert.equal(controller.mode(),'bottom');
- assert.match(sheet.style.height,/86dvh/);
+ assert.match(sheet.style.height,/755px/);
  assert.equal(nodes.filter(n=>n.tagName==='iframe').length,1);
  controller.close();
  assert.equal(controller.active(),false);
 });
+
+test('mobile Mini Apps occupy the viewport regardless of the selected desktop mode',()=>{
+ const {controller,nodes}=browser(390);
+ assert.equal(controller.open('https://game.example.org/','Game','Close','right'),true);
+ const sheet=nodes.find(n=>n.tagName==='section');
+ assert.equal(sheet.style.inset,'0');
+ assert.equal(sheet.style.width,'100%');
+ assert.equal(sheet.style.height,'100%');
+ assert.match(nodes.find(n=>n.tagName==='header').style.paddingTop,/safe-area-inset-top/);
+ controller.setMode('bottom');
+ assert.equal(sheet.style.height,'100%');
+ controller.setMode('window');
+ assert.equal(sheet.style.width,'100%');
+ controller.close();
+});
+
+test('desktop window Mini Apps match native content width without stretching the iframe',()=>{
+ const {controller,nodes}=browser(1440);
+ assert.equal(controller.open('https://game.example.org/','Game','Close','window'),true);
+ const sheet=nodes.find(n=>n.tagName==='section');
+ assert.match(sheet.style.width,/424px/);
+ assert.match(sheet.style.height,/755px/);
+ assert.equal(nodes.filter(n=>n.tagName==='iframe').length,1);
+ controller.close();
+});
+
 test('verified Pro supports four isolated web Mini App iframes and fails closed on a fifth',()=>{
  const {controller,nodes}=browser();
  controller.setLimit(4);

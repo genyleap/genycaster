@@ -98,9 +98,10 @@
     function applyPresentation() {
         if (!app.element) return;
         const sheet=app.element;
+        // On mobile every presentation mode becomes a true viewport-filling app.
+        // Desktop retains the selected floating/docked presentation.
         const narrow=(window.innerWidth || 1024)<640;
-        const effective=app.fullscreen?"fullscreen"
-            : narrow && app.mode==="window"?"bottom":app.mode;
+        const effective=(app.fullscreen || narrow)?"fullscreen":app.mode;
         const base={
             position:"fixed",zIndex:"2147483000",
             display:"flex",flexDirection:"column",
@@ -112,25 +113,27 @@
             inset:"0",width:"100%",height:"100%",borderRadius:"0"
         });
         else if(effective==="bottom")Object.assign(base,{
-            inset:"auto 0 0 0",width:narrow?"100%":"min(820px,100%)",
-            left:narrow?"0":"50%",right:"auto",
-            transform:narrow?"none":"translateX(-50%)",
-            height:narrow?"min(88dvh,950px)":"min(86dvh,880px)",
+            inset:"auto 0 0 0",width:"min(424px,100%)",
+            left:"50%",right:"auto",
+            transform:"translateX(-50%)",
+            height:"min(755px,94dvh)",
             borderRadius:"20px 20px 0 0"
         });
         else if(effective==="left")Object.assign(base,{
-            inset:"0 auto 0 0",width:narrow?"min(92vw,500px)":"min(520px,90vw)",
+            inset:"0 auto 0 0",width:"min(424px,90vw)",
             height:"100%",borderRadius:"0 20px 20px 0"
         });
         else if(effective==="right")Object.assign(base,{
-            inset:"0 0 0 auto",width:narrow?"min(92vw,500px)":"min(520px,90vw)",
+            inset:"0 0 0 auto",width:"min(424px,90vw)",
             height:"100%",borderRadius:"20px 0 0 20px"
         });
         else Object.assign(base,{
             inset:"50% auto auto 50%",
             transform:"translate(-50%,-50%)",
-            width:"min(850px,calc(100vw - 44px))",
-            height:"min(850px,calc(100dvh - 44px))",
+            // Match the native 424 x 755 Mini App window instead of a
+            // broad desktop dialog that stretches mobile-oriented content.
+            width:"min(424px,calc(100vw - 32px))",
+            height:"min(755px,calc(100dvh - 32px))",
             borderRadius:"20px"
         });
         // Reset properties to avoid stale values after changing presentation
@@ -138,6 +141,11 @@
         for(const key of ["inset","top","right","bottom","left","width",
                           "height","transform","borderRadius"])sheet.style[key]="";
         Object.assign(sheet.style,base);
+        // iOS standalone browser safe-area belongs to the overlay chrome.
+        if(app.header) app.header.style.paddingTop = narrow
+            ? "calc(8px + env(safe-area-inset-top,0px))" : "8px";
+        if(app.holder) app.holder.style.paddingBottom = narrow
+            ? "env(safe-area-inset-bottom,0px)" : "0";
         if(app.backdrop)app.backdrop.style.display=app.fullscreen?"none":"block";
         if(app.screenButton){
             app.screenButton.textContent=app.fullscreen?"⤡":"⤢";
@@ -408,6 +416,10 @@
         dismiss.focus();
         return true;
     }
+
+    // Recompute on rotation and browser viewport changes without reloading the iframe.
+    if (typeof window.addEventListener === "function")
+        window.addEventListener("resize", () => { if (app.element) applyPresentation(); });
 
     window.__genycasterMiniAppOverlay = Object.freeze({
         open, close, setLimit, setMode, toggleFullscreen, enableSdk, setUser,

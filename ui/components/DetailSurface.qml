@@ -8,6 +8,7 @@ ListView {
     property string activeView: ""
     property var detail
     property bool compact: false
+    property real bottomOverlayInset: 0
     property bool busy: false
     property bool interactionsAvailable: false
     property double accountFid: 0
@@ -277,6 +278,8 @@ ListView {
     }
 
     clip: true
+    // Floating navigation must never obscure the last reply or its actions.
+    bottomMargin: root.compact ? root.bottomOverlayInset + Theme.space2 : 0
     boundsBehavior: Flickable.StopAtBounds
     spacing: Theme.space2
     reuseItems: true
@@ -313,7 +316,7 @@ ListView {
             }
 
             RowLayout {
-                visible: root.activeView === "cast"
+                visible: !root.compact && root.activeView === "cast"
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 spacing: Theme.space1
@@ -385,6 +388,49 @@ ListView {
                 enabled: !root.busy
                 onClicked: root.refreshRequested()
             }
+        }
+
+        // On phones, channel identity gets a dedicated line instead of
+        // squeezing the title, Compose and Refresh into a single toolbar.
+        RowLayout {
+            visible: root.compact && root.activeView === "cast"
+                     && root.castChannel.length > 0
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+
+            Avatar {
+                Layout.preferredWidth: 24
+                Layout.preferredHeight: 24
+                avatarSize: 24
+                sourceUrl: root.resolvedChannelImage
+                forceAutomaticDownload: true
+                displayName: root.resolvedChannelName
+            }
+            ActionButton {
+                Layout.maximumWidth: 176
+                compact: true
+                quiet: true
+                elevated: false
+                pill: true
+                text: "/" + root.castChannel
+                Accessible.description: qsTrId("genycaster.detail.open_channel")
+                    .arg("/" + root.castChannel)
+                onClicked: root.channelRequested(root.castChannel)
+            }
+            DirectionAwareLabel {
+                visible: root.channelMembershipKnown
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: root.channelJoined
+                    ? qsTrId("genycaster.composer.joined_channel")
+                    : qsTrId("genycaster.composer.not_joined_channel")
+                color: root.channelJoined ? Theme.positive : Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                elide: Text.ElideRight
+            }
+            Item { Layout.fillWidth: !root.channelMembershipKnown }
         }
 
         Superellipse {
@@ -502,6 +548,9 @@ ListView {
                             Label {
                                 visible: Boolean(root.detail.username)
                                 LayoutMirroring.enabled: false
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: root.compact && root.activeView === "cast"
+                                    ? Math.min(implicitWidth, parent.width * 0.56) : implicitWidth
                                 text: root.ltrHandle(root.detail.username)
                                 font.family: Theme.latinFontFamily
                                 color: Theme.inkMuted
@@ -527,6 +576,7 @@ ListView {
                                 visible: root.activeView === "cast"
                                          && Number(root.detail.createdAtMs || 0) > 0
                                 Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 text: {
                                     const milliseconds = Number(root.detail.createdAtMs || 0)
                                     return milliseconds > 0
@@ -835,6 +885,11 @@ ListView {
         }
     }
 
+    footer: Item {
+        width: root.width
+        height: root.compact ? Theme.space4 : Theme.space3
+    }
+
     delegate: ThreadReplyItem {
         required property var modelData
         width: Math.min(root.width - (root.compact ? Theme.space2 * 2 : Theme.contentGutter * 2),
@@ -874,7 +929,8 @@ ListView {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact ? Theme.space2 + 12 : Theme.space4
+        anchors.bottomMargin: root.compact
+                              ? root.bottomOverlayInset + Theme.space3 : Theme.space4
     }
     ContentRefreshIndicator {
         anchors.left: parent.left

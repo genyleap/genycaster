@@ -647,6 +647,7 @@ Item {
     signal mediaRequested(var mediaItems, int index)
     signal authenticationRequested()
     signal loadMoreRequested()
+    signal proRequested()
 
     readonly property bool profileMuted: root.mutedProfileFids.indexOf(
         String(Number(root.activeDetail.fid || 0))) >= 0
@@ -2186,6 +2187,7 @@ Item {
                                 compact: root.compact
                                 entitlement: openProofConnections.proEntitlements
                                 visible: root.isOwnProfile && eligible
+                                onDetailsRequested: root.proRequested()
                             }
 
                             Button {

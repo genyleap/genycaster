@@ -194,7 +194,8 @@ GenyDrawer {
                                             height: root.phoneLayout ? 34 : 38
                                             fillColor: chip.chosen ? Theme.primarySurface
                                                                   : Theme.surfaceRaised
-                                            borderWidth: chip.chosen ? 2 : Theme.strokeHairline
+                                            // Keep selected pills aligned with the shared hairline control system.
+                                            borderWidth: Theme.strokeHairline
                                             borderColor: chip.chosen ? Theme.accent
                                                                      : Theme.borderDefault
                                             curveDepth: height / 2

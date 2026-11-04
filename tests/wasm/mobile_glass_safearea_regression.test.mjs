@@ -10,8 +10,8 @@ const profile=read('ui/components/ProfileSurface.qml');
 test('mobile header gains vertical breathing room without duplicating iOS safe-area',()=>{
   const block=shell.slice(shell.indexOf('id: mobileWorkspace'),
       shell.indexOf('id: readingPane'));
-  assert.match(block,/AppHeader \{[\s\S]*?Layout\.topMargin: root\.mobile \? Theme\.space3 : 0/);
-  assert.match(block,/AppHeader \{[\s\S]*?Layout\.bottomMargin: root\.mobile \? Theme\.space3 : 0/);
+  assert.match(block,/AppHeader \{[\s\S]*?Layout\.topMargin: root\.mobile && Qt\.platform\.os !== \"android\" \? Theme\.space3 : 0/);
+  assert.match(block,/AppHeader \{[\s\S]*?Layout\.bottomMargin: root\.mobile && Qt\.platform\.os !== \"android\" \? Theme\.space3 : 0/);
   assert.doesNotMatch(block,/safeAreaTop|safe-area-inset-top/);
 });
 
