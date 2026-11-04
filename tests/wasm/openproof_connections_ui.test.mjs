@@ -13,7 +13,7 @@ const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 test('profile links, profession and holder trust remain separately scoped and disclosed', () => {
   assert.match(qml,/category: "genycaster-profile-extras"/);
   assert.match(qml,/profileExtrasOwnerKey: root.isOwnProfile/);
-  assert.match(qml,/function saveExtraDetails\(profession, rawLinks, category\)/);
+  assert.match(qml,/function saveExtraDetails\(profession, rawLinks, category, secondaryCategories, roles\)/);
   assert.match(qml,/profileExtrasSettings.entriesJson = JSON.stringify\(entries\)/);
   assert.match(qml,/genycaster.profile.links_editor_hint/);
   assert.match(qml,/objectName: "profileMoreLinksInline"/);
@@ -106,7 +106,7 @@ test('owner remembers only last-known social proofs and never persists account b
   assert.match(controller, /m_cachedSnapshot = true/);
   assert.match(controller, /if \(!m_settings \|\| !m_verified \|\| !m_viewerFid\) return/);
   assert.match(controller, /m_accountBearer\.fill\(/);
-  assert.match(qml, /cachedSnapshot: openProofConnections\.cachedSnapshot/);
+  assert.match(qml, /cachedSnapshot: openProofConnections \? openProofConnections\.cachedSnapshot/);
   assert.match(popup, /editAccessRequested/);
   assert.match(popup, /genycaster\.connections\.copy_edit_connections/);
   assert.match(qml, /ownerVerifiedSocialBadgeStrip/);
@@ -277,5 +277,5 @@ test('provider OAuth success completes in a self-closing first-party popup', () 
 test('provider listing failure is a subdued offline hint, never an auth error', () => {
   assert.match(controller, /m_catalogFallback = latest\.isEmpty\(\)/);
   assert.doesNotMatch(controller, /m_error = QStringLiteral\("Provider catalog unavailable/);
-  assert.match(qml, /catalogFallback: openProofConnections\.catalogFallback/);
+  assert.match(qml, /catalogFallback: openProofConnections \? openProofConnections\.catalogFallback/);
 });
