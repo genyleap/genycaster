@@ -2925,6 +2925,12 @@ void PresentationBridge::signOut()
     emit signOutRequested();
 }
 
+void PresentationBridge::refreshSigner()
+{
+    if (!m_isAuthenticated || m_signerBusy || m_writeReady) { return; }
+    emit signerRefreshRequested();
+}
+
 void PresentationBridge::provisionSigner()
 {
     if (!m_isAuthenticated || m_signerBusy) { return; }
