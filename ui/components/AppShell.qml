@@ -2780,8 +2780,12 @@ Item {
 
                     ActionButton {
                         visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady
+                        readonly property bool canRetryVerification:
+                            presentationBridge.signerPhase === "unavailable"
+                            || presentationBridge.signerPhase === "failed"
                         Layout.fillWidth: true
-                        text: presentationBridge.signerBusy
+                        text: canRetryVerification ? qsTrId("genycaster.empty.retry")
+                              : presentationBridge.signerBusy
                               ? qsTrId("genycaster.shell.enabling")
                               : wasmReadOnly
                                 ? qsTrId("genycaster.shell.enable_publishing_with_recovery_phrase")
@@ -2791,8 +2795,8 @@ Item {
                         // signer path. An unavailable *native* keychain must not
                         // disable the browser custody approval workflow.
                         enabled: !presentationBridge.signerBusy
-                                 && (wasmReadOnly || presentationBridge.signerPhase !== "unavailable")
-                        onClicked: presentationBridge.provisionSigner()
+                        onClicked: canRetryVerification ? presentationBridge.refreshSigner()
+                                                        : presentationBridge.provisionSigner()
                     }
 
                     ActionButton {
