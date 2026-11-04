@@ -49,7 +49,7 @@ Item {
         root.appliedScrollRequestRevision = root.scrollRequestRevision
         root.scrollToBeginning()
     }
-    onScrollRequestRevisionChanged: Qt.callLater(root.honorPrimaryScrollRequest)
+    onScrollRequestRevisionChanged: primaryScrollRequestTimer.restart()
     property double accountFid: 0
     property bool loadMorePending: false
     property bool stableModelSyncPending: false
@@ -1082,10 +1082,7 @@ Item {
     onActiveFeedChanged: {
         root.beginSelectionHandoff()
         if (root.activeFeed === "channel" && root.presentationActive)
-            Qt.callLater(() => {
-                if (root.activeFeed === "channel" && root.presentationActive)
-                    root.scrollToBeginning()
-            })
+            channelScrollTopTimer.restart()
         // Following and Trending own independent continuation streams. A real
         // source change starts a fresh bounded semantic-prefetch budget; local
         // Explorer tab switches no longer change activeFeed.
@@ -1145,7 +1142,7 @@ Item {
             return
         }
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
-        Qt.callLater(root.honorPrimaryScrollRequest)
+        primaryScrollRequestTimer.restart()
     }
     Component.onCompleted: requestStableModelSync()
 
@@ -1193,6 +1190,26 @@ Item {
         interval: 0
         repeat: false
         onTriggered: root.restoreViewportAfterRebuild()
+    }
+
+    // Object-owned, zero-delay timers replace orphan Qt.callLater callbacks.
+    // They are destroyed together with this FeedSurface and never invoke a
+    // detached QML context after route changes or component incubation.
+    Timer {
+        id: primaryScrollRequestTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.honorPrimaryScrollRequest()
+    }
+
+    Timer {
+        id: channelScrollTopTimer
+        interval: 0
+        repeat: false
+        onTriggered: {
+            if (root.activeFeed === "channel" && root.presentationActive)
+                root.scrollToBeginning()
+        }
     }
 
     Timer {

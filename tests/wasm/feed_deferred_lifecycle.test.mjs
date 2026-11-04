@@ -10,7 +10,7 @@ assert.ok(start >= 0 && end > start, 'extract actual FeedSurface schedule functi
 const deferredFunction = qml.slice(start, end).trim();
 const timerStart = qml.indexOf('    Timer {\n        id: feedWorkTimer');
 const triggeredAt = qml.indexOf('        onTriggered: {', timerStart);
-const nextTimer = qml.indexOf('\n    Timer {\n        id: positionAtTopTimer', triggeredAt);
+const nextTimer = qml.indexOf('\n    Timer {\n        id: primaryScrollRequestTimer', triggeredAt);
 assert.ok(timerStart >= 0 && triggeredAt > timerStart && nextTimer > triggeredAt,
   'extract object-owned zero-delay timer');
 const block = qml.slice(triggeredAt, nextTimer);
@@ -82,4 +82,6 @@ test('FeedSurface owns its deferred work and does not queue orphan callLater clo
   assert.match(qml, /id: feedWorkTimer/);
   assert.match(qml, /feedWorkTimer\.stop\(\)/);
   assert.match(qml, /id: positionAtTopTimer/);
+  assert.match(qml, /id: primaryScrollRequestTimer/);
+  assert.match(qml, /id: channelScrollTopTimer/);
 });
