@@ -169,7 +169,7 @@ Item {
             // Source coordinates refer to the active page in its own local
             // space. Keep overscan inside that page's bounds so a
             // capsule near the viewport edge never samples transparent black.
-            readonly property real blurOverscan: 36
+            readonly property real blurOverscan: 48
             readonly property point backdropOrigin: {
                 // mapFromItem() does not itself subscribe to geometry changes.
                 // Observe the dock/viewport geometry so resize, RTL and the
@@ -275,12 +275,12 @@ Item {
                     visible: root.useBackdropBlur
                     source: capsuleBackdrop
                     blurEnabled: true
-                    blur: 0.72
+                    blur: 0.87
                     blurMax: 32
                     // Extend the radius beyond blurMax without increasing
                     // texture lookups; the Qt 6 default (0) simply leaves
                     // the radius unextended.
-                    blurMultiplier: 1.0
+                    blurMultiplier: 1.3
                     saturation: -0.22
                     maskEnabled: true
                     maskSource: capsuleMaskTexture
