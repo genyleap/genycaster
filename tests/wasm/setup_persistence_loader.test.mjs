@@ -133,7 +133,8 @@ test('completed Setup is independent of a volatile session and signer revocation
     assert.doesNotMatch(observer,/restore-for-setup/);
     assert.match(observer,/browserSigner->start\(QStringLiteral\("restore"\)/);
     const setup=read('ui/components/InitialSetup.qml');
-    assert.match(setup,/root\.guestSelected = true/);
+    assert.doesNotMatch(setup,/guestSelected|continue_as_guest/);
+    assert.match(setup,/if \(currentStep === 5\) return authenticated \|\| reviewMode/);
     assert.match(setup,/signal closeReviewRequested\(\)/);
 });
 function fakeElement() {
@@ -278,7 +279,7 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
     assert.match(bridge,/m_authenticationPhase == QStringLiteral\("signed-out"\)/);
     assert.match(bridge,/m_showSetupAfterSignOut = true/);
     assert.match(bridge,/m_settings->remove\(QStringLiteral\("setup\/showAfterSignOut"\)\)/);
-    assert.match(bridge,/return !m_setupBypassedForVerification\s*&& \(!m_initialSetupCompleted \|\| m_showSetupAfterSignOut\)/);
+    assert.match(bridge,/return !m_setupBypassedForVerification\s*&& \(!m_isAuthenticated \|\| !m_initialSetupCompleted \|\| m_showSetupAfterSignOut\)/);
     assert.match(app,/returningAfterLogout: presentationBridge\.initialSetupCompleted/);
     assert.match(setup,/switchStep\(0\)/);
     assert.doesNotMatch(bridge.split('void PresentationBridge::applyAuthenticationState(')[1]

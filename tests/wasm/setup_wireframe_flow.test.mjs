@@ -36,12 +36,12 @@ test('existing authentication and secure recovery stay connected to the bridge',
   assert.match(shell, /presentationBridge.beginNativeRecoverySetup\(recoveryWords\)/);
 });
 
-test('legal consent and guest access are respected', () => {
+test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /if \(!consentChecked\) return/);
   assert.match(setup, /acceptLegalConsent\(true, true, true\)/);
   assert.match(setup, /if \(currentStep === 2\) return consentChecked/);
-  assert.match(setup, /root.guestSelected = true/);
-  assert.match(setup, /visible: root.browserReadOnly/);
+  assert.doesNotMatch(setup, /guestSelected|continue_as_guest/);
+  assert.match(setup, /if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted && authenticated\)/);
   assert.match(setup, /finishSetup\(\)/);
 });
 

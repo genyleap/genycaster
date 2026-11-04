@@ -3765,6 +3765,10 @@ Company | https://company.com</translation>
             <source>Frame interval</source>
             <translation>Frame interval</translation>
         </message>
+        <message id="genycaster.rendering.frame_target">
+            <source>Target frame rate</source>
+            <translation>Target frame rate</translation>
+        </message>
         <message id="genycaster.rendering.msaa">
             <source>MSAA</source>
             <translation>MSAA</translation>

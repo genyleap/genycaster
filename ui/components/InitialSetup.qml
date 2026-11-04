@@ -65,7 +65,6 @@ Item {
         legalReader.open()
     }
     property bool showAdvanced: false
-    property bool guestSelected: false
     property bool consentChecked: false
     readonly property bool phone: width < 680
     readonly property int setupGutter: phone ? 24 : 48
@@ -133,7 +132,7 @@ Item {
         let target = Math.max(0, Math.min(7, step))
         if (!reviewMode && !legalConsentAccepted && !consentChecked && target > 2)
             target = 2
-        if (!reviewMode && !authenticated && !guestSelected && target > 5)
+        if (!reviewMode && !authenticated && target > 5)
             target = 5
         if (target === currentStep && !stageTransitioning)
             return
@@ -175,7 +174,7 @@ Item {
             return
         }
         if (currentStep === 5) {
-            if (authenticated || guestSelected || reviewMode) switchStep(6)
+            if (authenticated || reviewMode) switchStep(6)
             return
         }
         if (currentStep === 6) { switchStep(7); return }
@@ -189,7 +188,6 @@ Item {
             if (reviewMode) closeReviewRequested()
             return
         }
-        if (currentStep === 6 && guestSelected) { switchStep(4); return }
         if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
             cancelAuthentication()
             recoverySubmitPending = false
@@ -206,8 +204,8 @@ Item {
         if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
         if (currentStep === 4) return authenticated
-        if (currentStep === 5) return authenticated || guestSelected || reviewMode
-        if (currentStep === 7) return reviewMode || legalConsentAccepted && (authenticated || guestSelected)
+        if (currentStep === 5) return authenticated || reviewMode
+        if (currentStep === 7) return reviewMode || (legalConsentAccepted && authenticated)
         return true
     }
     onVisibleChanged: {
@@ -233,7 +231,6 @@ Item {
             highestReachedStep = 0
             accountIntent = ""
             showRecovery = false
-            guestSelected = false
             consentChecked = legalConsentAccepted
         }
         forceActiveFocus()
@@ -1329,17 +1326,6 @@ Item {
                 iconGlyph: Theme.iconCheck
                 complete: true
                 onClicked: root.switchStep(5)
-            }
-            ActionButton {
-                visible: root.browserReadOnly && !root.authenticated
-                Layout.alignment: Qt.AlignHCenter
-                quiet: true
-                compact: true
-                text: qsTrId("genycaster.setup.continue_as_guest")
-                onClicked: {
-                    root.guestSelected = true
-                    root.switchStep(6)
-                }
             }
             DirectionAwareLabel {
                 visible: root.authenticationErrorText.length > 0

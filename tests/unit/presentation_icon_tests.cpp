@@ -623,8 +623,8 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
     assert(!settings.contains(QStringLiteral("setup/initialSetupCompleted")));
 
-    // Completed onboarding survives restarts, sign-out and signer revocation;
-    // write privileges are still independently gated by authentication.
+    // Completed onboarding persists, but access is still gated on a verified
+    // session. Restarts and sign-out return to Setup without anonymous feed.
     PresentationBridge restored{nullptr, &settings,
         QStringLiteral("fixture-independent"), QStringLiteral("fixture-hosted")};
     assert(restored.initialSetupCompleted());
@@ -632,7 +632,8 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(restored.preferredNetwork() == QStringLiteral("fixture-hosted"));
     assert(restored.setPreferredNetwork(QStringLiteral("fixture-independent")));
     assert(restored.preferredNetwork() == QStringLiteral("fixture-independent"));
-    assert(!restored.initialSetupRequired());
+    // On restart a saved onboarding record alone does not grant guest access.
+    assert(restored.initialSetupRequired());
     restored.applyAuthenticationState(
         true,
         QStringLiteral("authenticated"),
@@ -664,7 +665,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     assert(!restored.initialSetupRequired());
     assert(settings.value(QStringLiteral("setup/onboardingVersion")).toInt() == 4);
 
-    // Signing out removes write permissions, not the completed Setup flag.
+    // Signing out retains consent, but returns to the Setup overlay.
     restored.applyAuthenticationState(
         true,
         QStringLiteral("signed-out"),
@@ -676,7 +677,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
         {},
         {});
     assert(restored.initialSetupCompleted());
-    assert(!restored.initialSetupRequired());
+    assert(restored.initialSetupRequired());
     assert(!restored.writeReady());
     assert(restored.legalConsentAccepted());
     settings.sync();
@@ -685,7 +686,7 @@ void testInitialSetupRequiresAuthenticationAndFirstRunCompletion()
     PresentationBridge afterSignOut{nullptr, &settings};
     assert(afterSignOut.initialSetupCompleted());
     assert(afterSignOut.legalConsentAccepted());
-    assert(!afterSignOut.initialSetupRequired());
+    assert(afterSignOut.initialSetupRequired());
 }
 
 

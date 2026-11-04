@@ -887,10 +887,12 @@ bool PresentationBridge::runtimeReady() const noexcept { return m_runtimeReady; 
 bool PresentationBridge::authenticationAvailable() const noexcept { return m_authenticationAvailable; }
 bool PresentationBridge::initialSetupRequired() const noexcept
 {
-    // Completed onboarding is independent of the transient signed-in session.
-    // Guest/viewer access must never re-open the six-step wizard on refresh.
+    // The Setup surface is the only first-run/signed-out entry point.
+    // Persisting consent and onboarding never grants anonymous feed access.
+    // Auth session restore may complete asynchronously; keep Setup visible
+    // until the verified account is actually available.
     return !m_setupBypassedForVerification
-        && (!m_initialSetupCompleted || m_showSetupAfterSignOut);
+        && (!m_isAuthenticated || !m_initialSetupCompleted || m_showSetupAfterSignOut);
 }
 bool PresentationBridge::initialSetupCompleted() const noexcept { return m_initialSetupCompleted; }
 bool PresentationBridge::legalConsentAccepted() const noexcept { return m_legalConsentAccepted; }
@@ -2766,13 +2768,10 @@ bool PresentationBridge::acceptLegalConsent(
 
 void PresentationBridge::completeInitialSetup()
 {
-#if defined(__EMSCRIPTEN__)
-    if (!m_legalConsentAccepted
-        || (m_initialSetupCompleted && !m_showSetupAfterSignOut)) return;
-#else
+    // Browser setup previously allowed guest completion; all platforms now
+    // require one authenticated account before unlocking the application.
     if (!m_isAuthenticated || !m_legalConsentAccepted
         || (m_initialSetupCompleted && !m_showSetupAfterSignOut)) return;
-#endif
     m_initialSetupCompleted = true;
     m_showSetupAfterSignOut = false;
     if (m_settings != nullptr) {

@@ -226,8 +226,12 @@ GenyAdaptiveDialog {
 
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.backend"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
                     Label { text: renderingController.graphicsApi; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
-                    DirectionAwareLabel { text: qsTrId("genycaster.rendering.frame_interval"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
-                    Label { text: renderingController.frameIntervalMs > 0 ? LocaleFormat.formatNumber(renderingController.frameIntervalMs, 1) + " ms" : "—"; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
+                    // FPS is recognizable to readers; milliseconds are a
+                    // pacing interval, not an observed benchmark frame rate.
+                    DirectionAwareLabel { text: qsTrId("genycaster.rendering.frame_target"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
+                    Label { text: renderingController.frameIntervalMs > 0
+                                 ? LocaleFormat.formatInteger(Math.round(1000 / renderingController.frameIntervalMs)) + " FPS"
+                                 : "—"; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.display"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }
                     Label { text: LocaleFormat.formatInteger(Math.round(renderingController.refreshRate)) + " Hz · DPR " + LocaleFormat.formatNumber(renderingController.devicePixelRatio, 1) + "×"; color: Theme.ink; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightDemiBold }
                     DirectionAwareLabel { text: qsTrId("genycaster.rendering.msaa"); color: Theme.inkMuted; font.pixelSize: Theme.typeCaptionSize }

@@ -1466,6 +1466,8 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.rendering.off");
     //% "Restart Genycaster to apply the selected MSAA level. Live effect and media quality changes are already active."
     (void)qtTrId("genycaster.rendering.restart_required");
+    //% "Target frame rate"
+    (void)qtTrId("genycaster.rendering.frame_target");
     //% "Send feedback"
     (void)qtTrId("genycaster.feedback.title");
     //% "Tell us what feels broken, slow, confusing, or worth improving."

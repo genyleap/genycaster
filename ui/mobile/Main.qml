@@ -13,13 +13,16 @@ ApplicationWindow {
     readonly property bool nativeDesktop: Qt.platform.os === "windows"
                                           || Qt.platform.os === "osx"
                                           || Qt.platform.os === "linux"
+    // Default to a three-column desktop workspace when the monitor allows
+    // it: navigation, cast feed and widgets are visible from first launch.
+    // Keep smaller monitors within their available work area.
     width: nativeDesktop
-           ? Math.min(1280, Screen.desktopAvailableWidth > 0
-                      ? Math.max(360, Screen.desktopAvailableWidth - 64) : 1280)
+           ? Math.min(1560, Screen.desktopAvailableWidth > 0
+                      ? Math.max(360, Screen.desktopAvailableWidth - 48) : 1560)
            : 430
     height: nativeDesktop
-            ? Math.min(800, Screen.desktopAvailableHeight > 0
-                       ? Math.max(640, Screen.desktopAvailableHeight - 64) : 800)
+            ? Math.min(940, Screen.desktopAvailableHeight > 0
+                       ? Math.max(640, Screen.desktopAvailableHeight - 48) : 940)
             : 860
     // Browsers can expose a visual viewport shorter than the native app's
     // 640px minimum (especially with navigation bars or a software keyboard).

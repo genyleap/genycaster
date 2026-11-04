@@ -3765,6 +3765,10 @@ Company | https://company.com</source>
             <source>Frame interval</source>
             <translation>فاصلهٔ فریم</translation>
         </message>
+        <message id="genycaster.rendering.frame_target">
+            <source>Target frame rate</source>
+            <translation>نرخ فریم هدف</translation>
+        </message>
         <message id="genycaster.rendering.msaa">
             <source>MSAA</source>
             <translation>نمونه‌برداری چندگانه (MSAA)</translation>
