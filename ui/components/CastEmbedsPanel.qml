@@ -323,7 +323,10 @@ ColumnLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         active: tile.admitted
-                        asynchronous: true
+                        // Admission is already delayed until scrolling settles.
+                        // A second asynchronous incubation can outlive a
+                        // recycled delegate and log destroyed-context errors.
+                        asynchronous: false
                         sourceComponent: Component {
                             EmbedPreview {
                                 embed: tile.embedData

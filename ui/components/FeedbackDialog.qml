@@ -43,6 +43,13 @@ GenyAdaptiveDialog {
         }
     }
 
+    function categoryLabel(value) {
+        for (const item of root.categoryModel) {
+            if (item.id === value) return item.label
+        }
+        return String(value || "")
+    }
+
     function statusLabel(value) {
         switch (value) {
         case "submitted": return qsTrId("genycaster.feedback.status_submitted")
@@ -65,7 +72,7 @@ GenyAdaptiveDialog {
                 root.pendingMessage = ""
                 root.successAcknowledged = true
                 root.activeTab = 1
-                openProofConnections.fetchFeedback()
+                // Submission handler already refreshes the private history.
                 feedbackField.text = ""
             }
         }
@@ -213,48 +220,64 @@ GenyAdaptiveDialog {
                     visible: root.activeTab === 1 && root.canSubmitFeedback
                              && openProofConnections.feedbackReports.length > 0
                     Layout.fillWidth: true
-                    spacing: Theme.space1
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.feedback.recent_reports")
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
+                    spacing: Theme.space2
                     Repeater {
-                        model: openProofConnections.feedbackReports.slice(0, 5)
-                        delegate: ColumnLayout {
+                        // The server bounds this owner-only history to 30 records.
+                        model: openProofConnections.feedbackReports
+                        delegate: Superellipse {
+                            id: reportCard
                             required property var modelData
                             Layout.fillWidth: true
-                            spacing: Theme.space1
-                            RowLayout {
-                                Layout.fillWidth: true
+                            Layout.preferredHeight: reportBody.implicitHeight + Theme.space3 * 2
+                            fillColor: Theme.surfaceMuted
+                            borderWidth: Theme.strokeHairline
+                            borderColor: Theme.borderSubtle
+                            curveDepth: Theme.curveContainer
+
+                            ColumnLayout {
+                                id: reportBody
+                                anchors.fill: parent
+                                anchors.margins: Theme.space3
+                                spacing: Theme.space2
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: Theme.space2
+                                    DirectionAwareLabel {
+                                        Layout.fillWidth: true
+                                        text: root.categoryLabel(reportCard.modelData.category)
+                                        color: Theme.ink
+                                        font.pixelSize: Theme.typeLabelSize
+                                        font.weight: Theme.weightDemiBold
+                                    }
+                                    DirectionAwareLabel {
+                                        text: root.statusLabel(reportCard.modelData.status)
+                                        color: Theme.accent
+                                        font.pixelSize: Theme.typeCaptionSize
+                                    }
+                                }
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
-                                    text: String(modelData.category || "")
+                                    text: String(reportCard.modelData.message || "")
+                                    visible: text.length > 0
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeBodySize
+                                    wrapMode: Text.Wrap
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(reportCard.modelData.review_note || "")
+                                    visible: text.length > 0
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: String(reportCard.modelData.created_at || "").slice(0, 10)
+                                    visible: text.length > 0
                                     color: Theme.inkMuted
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
-                                DirectionAwareLabel {
-                                    text: root.statusLabel(modelData.status)
-                                    color: Theme.accent
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: String(modelData.message || "")
-                                visible: text.length > 0
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeBodySize
-                                wrapMode: Text.Wrap
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: String(modelData.review_note || "")
-                                visible: text.length > 0
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.Wrap
                             }
                         }
                     }
@@ -368,21 +391,21 @@ GenyAdaptiveDialog {
                     }
                 }
                 DirectionAwareLabel {
-                    visible: root.activeTab === 0 && !root.canSubmitFeedback
+                    visible: !root.canSubmitFeedback
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.feedback.authentication_required")
                     color: Theme.warning
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
-                    visible: root.activeTab === 0 && openProofConnections.feedbackError.length > 0
+                    visible: openProofConnections.feedbackError.length > 0
                     Layout.fillWidth: true
                     text: root.feedbackErrorLabel(openProofConnections.feedbackError)
                     color: Theme.warning
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
-                    visible: root.activeTab === 0 && root.successAcknowledged
+                    visible: root.successAcknowledged
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.feedback.sent")
                     color: Theme.positive

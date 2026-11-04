@@ -364,17 +364,21 @@ RowLayout {
         enabled: root.normalizedCastId.length > 0
         Accessible.name: qsTrId("genycaster.share.cast")
         onClicked: {
+            const overlay = Overlay.overlay
+            // Recycled cast delegates can outlive their window overlay during
+            // teardown; never dereference a destroyed overlay.
+            if (!overlay) return
             castShareMenu.active = true
             const menu = castShareMenu.item
             if (!menu) return
-            if (Overlay.overlay.width >= Theme.breakpointMobile) {
+            if (overlay.width >= Theme.breakpointMobile) {
                 const point = castShareButton.mapToItem(
-                    Overlay.overlay, 0, castShareButton.height + Theme.space1)
+                    overlay, 0, castShareButton.height + Theme.space1)
                 menu.x = Math.max(Theme.space2, Math.min(
-                    Overlay.overlay.width - menu.width - Theme.space2,
+                    overlay.width - menu.width - Theme.space2,
                     point.x + castShareButton.width - menu.width))
                 menu.y = Math.max(Theme.space2, Math.min(
-                    Overlay.overlay.height - menu.height - Theme.space2, point.y))
+                    overlay.height - menu.height - Theme.space2, point.y))
             }
             menu.open()
         }
@@ -384,7 +388,8 @@ RowLayout {
             active: false
             // Cast compactness is per-card, not a window breakpoint.
             // Desktop Bookmarks render dense casts but still need a popup.
-            sourceComponent: Overlay.overlay.width < Theme.breakpointMobile
+            sourceComponent: Overlay.overlay && Overlay.overlay.width > 0
+                             && Overlay.overlay.width < Theme.breakpointMobile
                 ? mobileCastShareSheet : desktopCastSharePopup
         }
     }

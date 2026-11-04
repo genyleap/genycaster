@@ -2321,14 +2321,22 @@ GenyDrawer {
                                 }
                             }
                         }
-                        DirectionAwareLabel {
-                            visible: !root.marketProEligible
-                                && root.enabledMarketCount >= root.marketAssetLimit
+                        // Construct the limit notice only when required. The
+                        // old Label.visible binding could loop while the
+                        // catalog and its parent layout were recalculating.
+                        Loader {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.pro.market_pulse_hint")
-                            color: Theme.proAccent
-                            font.pixelSize: Theme.typeCaptionSize
-                            wrapMode: Text.Wrap
+                            active: !root.marketProEligible
+                                    && root.enabledMarketCount >= root.marketAssetLimit
+                            visible: active
+                            sourceComponent: Component {
+                                DirectionAwareLabel {
+                                    text: qsTrId("genycaster.pro.market_pulse_hint")
+                                    color: Theme.proAccent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                            }
                         }
                         DirectionAwareLabel {
                             visible: root.marketInputError

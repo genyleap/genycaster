@@ -1,0 +1,48 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const source = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
+
+test('private feedback history includes report text and notes from PostgreSQL', () => {
+  const store = source('services/account-sync/pg_store.mjs');
+  const dialog = source('ui/components/FeedbackDialog.qml');
+  const controller = source('ui/mobile/openproof_connections_controller.cpp');
+  assert.match(store, /SELECT id,category,message,status,review_note,points_awarded,created_at,updated_at/);
+  assert.match(store, /WHERE issuer=\$1 AND subject=\$2/);
+  assert.match(dialog, /model: openProofConnections\.feedbackReports/);
+  assert.match(dialog, /String\(reportCard\.modelData\.message \|\| ""\)/);
+  assert.match(dialog, /String\(reportCard\.modelData\.review_note \|\| ""\)/);
+  assert.match(dialog, /Layout\.preferredHeight: reportBody\.implicitHeight/);
+  assert.match(controller, /reply->bytesAvailable\(\) <= 512 \* 1024/);
+});
+
+test('recycled cast share menus guard missing window overlay', () => {
+  const bar = source('ui/components/EngagementBar.qml');
+  assert.match(bar, /const overlay = Overlay\.overlay/);
+  assert.match(bar, /if \(!overlay\) return/);
+  assert.match(bar, /sourceComponent: Overlay\.overlay && Overlay\.overlay\.width > 0/);
+});
+
+test('market token limit notice no longer has a directly recursive visible binding', () => {
+  const settings = source('ui/components/LocaleSettingsPopup.qml');
+  assert.match(settings, /Loader \{\s+Layout\.fillWidth: true\s+active: !root\.marketProEligible/);
+  assert.doesNotMatch(settings, /DirectionAwareLabel \{\s+visible: !root\.marketProEligible\s+&& root\.enabledMarketCount/);
+});
+
+test('mobile blur uses an explicit texture-backed mask, not the desktop sidebar', () => {
+  const dock = source('ui/components/BottomNavigation.qml');
+  const side = source('ui/components/SideNavigation.qml');
+  assert.match(dock, /id: capsuleMaskTexture/);
+  assert.match(dock, /sourceItem: capsuleMask/);
+  assert.match(dock, /maskSource: capsuleMaskTexture/);
+  assert.match(dock, /source: capsuleBackdrop/);
+  assert.match(side, /fillColor: Theme\.surfacePrimary/);
+  assert.doesNotMatch(side, /desktopNavigationGlassBlur/);
+});
+
+test('embed previews only instantiate once a scrolling card is admitted', () => {
+  const embeds = source('ui/components/CastEmbedsPanel.qml');
+  assert.match(embeds, /active: tile\.admitted\s+\/\//);
+  assert.match(embeds, /asynchronous: false/);
+});

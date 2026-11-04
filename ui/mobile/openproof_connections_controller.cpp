@@ -3493,7 +3493,9 @@ void OpenProofConnectionsController::fetchFeedback()
         // abort() can synchronously finish a closed reply on macOS. Do not
         // read an unreadable QIODevice or adopt another account's results.
         const QByteArray bytes = status == 200 && reply->isReadable()
-            && reply->bytesAvailable() <= 32'768 ? reply->readAll() : QByteArray{};
+            // Owner-only history now includes full report text and notes.
+            // Up to 30 bounded reports may exceed the old 32 KiB cap.
+            && reply->bytesAvailable() <= 512 * 1024 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         const auto doc = QJsonDocument::fromJson(bytes);

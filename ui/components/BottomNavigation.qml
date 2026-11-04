@@ -244,8 +244,9 @@ Item {
                     id: capsuleMask
                     anchors.fill: parent
                     visible: false
-                    layer.enabled: root.useBackdropBlur
-
+                    // Render the shape through an explicit texture source below.
+                    // Relying on an invisible Item's layer as maskSource can
+                    // produce an empty mask on some mobile scenegraph backends.
                     Rectangle {
                         x: navigationCapsule.sampleLeft
                         y: navigationCapsule.sampleTop
@@ -257,6 +258,17 @@ Item {
                     }
                 }
 
+                ShaderEffectSource {
+                    id: capsuleMaskTexture
+                    anchors.fill: parent
+                    visible: false
+                    sourceItem: capsuleMask
+                    sourceRect: Qt.rect(0, 0, capsuleMask.width, capsuleMask.height)
+                    live: root.useBackdropBlur
+                    recursive: false
+                    hideSource: false
+                }
+
                 MultiEffect {
                     objectName: "mobileCapsuleGlassBlur"
                     anchors.fill: parent
@@ -265,14 +277,15 @@ Item {
                     blurEnabled: true
                     blur: 0.72
                     blurMax: 32
-                    // A zero multiplier suppresses the actual convolution on
-                    // some Qt RHI backends even with blurEnabled set.
+                    // Extend the radius beyond blurMax without increasing
+                    // texture lookups; the Qt 6 default (0) simply leaves
+                    // the radius unextended.
                     blurMultiplier: 1.0
                     saturation: -0.22
                     maskEnabled: true
-                    maskSource: capsuleMask
+                    maskSource: capsuleMaskTexture
                     maskThresholdMin: 0.5
-                    maskSpreadAtMin: 1.0
+                    maskSpreadAtMin: 0.0
                     autoPaddingEnabled: false
                     antialiasing: true
                 }
