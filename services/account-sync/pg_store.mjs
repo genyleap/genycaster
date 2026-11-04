@@ -34,7 +34,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -47,8 +47,56 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const secondaryCategoriesReady=versions.has(8);
   const multipleRolesReady=versions.has(9);
   const streakReady=versions.has(10);
+  const feedbackReady=versions.has(11);
   return {
     close:()=>pool.end(),
+    feedbackReady:()=>feedbackReady,
+    async submitFeedback(owner, item) {
+      if (!feedbackReady) throw new Error('feedback_schema_unavailable');
+      // Serialize quota checks for this verified identity. A naked COUNT
+      // inside INSERT can otherwise admit >10 reports when parallel requests
+      // read the same snapshot. The transaction releases the lock on exit.
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          'SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+          [owner.issuer,owner.subject]);
+        // The only writable fields come from validated input. Ownership,
+        // status, points and timestamps are always server-assigned.
+        const result=await client.query(`INSERT INTO feedback_reports
+            (id,issuer,subject,category,sentiment,message,platform,app_version,route)
+          SELECT $1::uuid,$2,$3,$4,$5,$6,$7,$8,$9
+          WHERE (SELECT count(*) FROM feedback_reports
+              WHERE issuer=$2 AND subject=$3 AND created_at > now()-interval '24 hours') < 10
+          RETURNING id,category,status,points_awarded,created_at`,
+          [randomUUID(),owner.issuer,owner.subject,item.category,item.sentiment,
+           item.message,item.platform,item.appVersion,item.route]);
+        await client.query('COMMIT');
+        return result.rows[0] || null;
+      } catch(error) {
+        try {await client.query('ROLLBACK');} catch {}
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+    async getFeedbackOverview(owner) {
+      if (!feedbackReady) throw new Error('feedback_schema_unavailable');
+      const [counts,reports]=await Promise.all([
+        pool.query(`SELECT count(*)::integer AS total,
+          count(*) FILTER(WHERE status IN ('accepted','resolved'))::integer AS accepted,
+          count(*) FILTER(WHERE status='resolved')::integer AS resolved,
+          count(*) FILTER(WHERE status='rejected')::integer AS rejected,
+          coalesce(sum(points_awarded),0)::integer AS points
+          FROM feedback_reports WHERE issuer=$1 AND subject=$2`,
+          [owner.issuer,owner.subject]),
+        pool.query(`SELECT id,category,status,points_awarded,created_at,updated_at
+          FROM feedback_reports WHERE issuer=$1 AND subject=$2
+          ORDER BY created_at DESC LIMIT 30`,[owner.issuer,owner.subject])
+      ]);
+      return {stats:counts.rows[0],reports:reports.rows};
+    },
     // A reserved account-owned notification record, distinct from notifications
     // displayed to users. No schema changes or additional database privileges.
     async getPublicProfileStatus(fid,issuer) {

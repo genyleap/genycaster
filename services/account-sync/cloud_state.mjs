@@ -2,6 +2,7 @@
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
+import {validateFeedback} from './feedback.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
@@ -526,7 +527,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
       'entitlements','geny/assets','streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
-      'muted_profiles',
+      'muted_profiles','feedback',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
     }
@@ -620,6 +621,26 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     try {owner=await authorize(request);}catch{}
     if (!owner) {respond(response,401,{error:'authentication_required'});return true;}
     try {
+      if(entity==='feedback') {
+        if(typeof store.feedbackReady!=='function' || !store.feedbackReady()) {
+          respond(response,503,{error:'feedback_unavailable'});return true;
+        }
+        if(request.method==='GET') {
+          respond(response,200,await store.getFeedbackOverview(owner));return true;
+        }
+        if(request.method!=='POST') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const input=await readBody(request,16_384);
+        const report=validateFeedback(input);
+        if(!report) {respond(response,400,{error:'invalid_feedback'});return true;}
+        const saved=await store.submitFeedback(owner,report);
+        if(!saved) {respond(response,429,{error:'feedback_limit_reached'});return true;}
+        respond(response,201,{report:saved});return true;
+      }
       if(entity==='geny/assets') {
         if(request.method!=='GET') {
           respond(response,405,{error:'method_not_allowed'});return true;
