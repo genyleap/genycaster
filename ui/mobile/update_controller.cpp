@@ -390,7 +390,7 @@ void UpdateController::refreshWebApp()
     auto* reply = m_network.get(request);
     connect(reply, &QNetworkReply::finished, this, [this, reply] {
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray bytes = reply->readAll();
+        const QByteArray bytes = reply->isReadable() ? reply->readAll() : QByteArray{};
         const bool networkOkay = reply->error() == QNetworkReply::NoError && status == 200;
         reply->deleteLater();
         const QJsonDocument manifest = QJsonDocument::fromJson(bytes);
@@ -473,7 +473,7 @@ void UpdateController::checkWebManifest(const bool manual)
     connect(reply, &QNetworkReply::finished, this, [this, reply, manual] {
         m_checking = false;
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        const QByteArray data = reply->readAll();
+        const QByteArray data = reply->isReadable() ? reply->readAll() : QByteArray{};
         const auto error = reply->error();
         reply->deleteLater();
         const QJsonDocument manifest = QJsonDocument::fromJson(data);
@@ -543,7 +543,7 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
     m_checkReply = nullptr;
     m_checking = false;
     const int code = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    const QByteArray body = reply->readAll();
+    const QByteArray body = reply->isReadable() ? reply->readAll() : QByteArray{};
     const auto netError = reply->error();
     const QString netErrorText = reply->errorString();
     reply->deleteLater();
@@ -682,7 +682,7 @@ void UpdateController::downloadUpdate()
     m_downloadReply = reply;
     connect(reply, &QIODevice::readyRead, this, [this, reply] {
         if (!m_file || !m_file->isOpen()) return;
-        const auto bytes = reply->readAll();
+        const auto bytes = reply->isReadable() ? reply->readAll() : QByteArray{};
         if (bytes.size() > 0 && m_file->write(bytes) != bytes.size()) {
             reply->abort();
             return;
@@ -702,7 +702,7 @@ void UpdateController::finishDownload(QNetworkReply* reply)
     if (m_downloadReply != reply) return;
     m_downloadReply = nullptr;
     if (m_file && m_file->isOpen()) {
-        const auto rest = reply->readAll();
+        const auto rest = reply->isReadable() ? reply->readAll() : QByteArray{};
         if (m_file->write(rest) != rest.size()) {
             m_file->close();
             reply->deleteLater();

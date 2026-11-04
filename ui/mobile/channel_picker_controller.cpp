@@ -321,7 +321,7 @@ void ChannelPickerController::request(
     connect(reply, &QNetworkReply::finished, this,
         [reply, done = std::move(done)]() {
             reply->deleteLater();
-            const QByteArray payload = reply->readAll();
+            const QByteArray payload = reply->isReadable() ? reply->readAll() : QByteArray{};
             if (reply->error() != QNetworkReply::NoError) {
                 done({}, reply->errorString());
                 return;
@@ -366,7 +366,7 @@ void ChannelPickerController::requestDirectory(
     connect(reply, &QNetworkReply::finished, this,
         [reply, done = std::move(done)] {
             reply->deleteLater();
-            const QByteArray body = reply->readAll();
+            const QByteArray body = reply->isReadable() ? reply->readAll() : QByteArray{};
             if (reply->error() != QNetworkReply::NoError) {
                 done({}, reply->errorString());
                 return;

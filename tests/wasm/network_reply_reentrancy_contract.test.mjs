@@ -60,3 +60,17 @@ test('cancelled network replies are never read after QIODevice closes',()=>{
   assert.match(browser,/reply->isReadable\(\) \? reply->readAll\(\) : QByteArray\{\}/);
   assert.match(provider,/reply->isReadable\(\) \? reply->read\(48 \* 1024\) : QByteArray\{\}/);
 });
+
+test('channel discovery and updates never drain closed QNetworkReply devices',()=>{
+  const channel=file('ui/mobile/channel_picker_controller.cpp');
+  const updater=file('ui/mobile/update_controller.cpp');
+  for(const [source,expected] of [[channel,2],[updater,5]]){
+    const reads=(source.match(/reply->readAll\(\)/g)||[]).length;
+    const readable=(source.match(/reply->isReadable\(\) \? reply->readAll\(\)/g)||[]).length;
+    assert.equal(reads,expected,'known number of response reads is explicit');
+    assert.equal(readable,reads,'all reads guard against cancelled/closed devices');
+  }
+  assert.match(updater,/m_hash\.addData\(rest\)/);
+  assert.match(updater,/m_hash\.addData\(bytes\)/);
+  assert.match(updater,/m_file->write\(rest\)/);
+});
