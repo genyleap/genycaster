@@ -460,6 +460,16 @@ foundation::result::Status SignerService::provision(
                 observer(m_impl->current);
                 return;
             }
+            if (inspected->registration
+                && (inspected->registration->fid.value != session->fid.value
+                    || inspected->registration->publicKey.hex != record.local.publicKey.hex)) {
+                m_impl->current = SignerState{.phase = SignerPhase::Unavailable,
+                    .record = record, .requiredScopes = m_impl->policy.scopes,
+                    .error = makeError(foundation::error::ErrorCode::Unauthorized,
+                        "Signer registry returned a registration for a different key or account.")};
+                observer(m_impl->current);
+                return;
+            }
             if (metadataMismatched) {
                 // Reconcile only public metadata after successful inspection.
                 // Missing or revoked keys remain non-writable pending consent.
