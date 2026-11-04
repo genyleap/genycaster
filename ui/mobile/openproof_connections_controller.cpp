@@ -3557,12 +3557,15 @@ void OpenProofConnectionsController::submitFeedback(
     emit feedbackChanged();
     const auto generation = m_grantGeneration;
     const auto viewer = m_viewerFid;
-    connect(reply, &QNetworkReply::finished, this, [this, reply, generation, viewer] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, generation, viewer, body] {
         if (m_feedbackWrite != reply) { reply->deleteLater(); return; }
         m_feedbackWrite.clear();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        // Success is acknowledged only after an authenticated, server-side
-        // insert returns 201. A locally clicked action is never a success.
+        // Only a server-confirmed 201 may place the submitted message in history.
+        // This prevents the newly submitted report disappearing while its GET
+        // refresh is pending (or a previous history GET is still in flight).
+        const QByteArray confirmationBytes = status == 201 && reply->isReadable()
+            && reply->bytesAvailable() <= 16 * 1024 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         m_feedbackSubmitted = status == 201;
@@ -3571,7 +3574,33 @@ void OpenProofConnectionsController::submitFeedback(
             : status == 400 ? QStringLiteral("invalid_feedback")
             : status == 401 ? QStringLiteral("authentication_required")
             : QStringLiteral("feedback_unavailable");
+        if (m_feedbackSubmitted) {
+            const auto confirmation = QJsonDocument::fromJson(confirmationBytes);
+            if (confirmation.isObject()
+                && confirmation.object().value(QStringLiteral("report")).isObject()) {
+                auto report = confirmation.object().value(QStringLiteral("report")).toObject().toVariantMap();
+                // Older API versions returned the ID/status but omitted the
+                // text. The submitted body is safe to show only after 201.
+                if (report.value(QStringLiteral("message")).toString().isEmpty())
+                    report.insert(QStringLiteral("message"), body);
+                const QString reportId = report.value(QStringLiteral("id")).toString();
+                if (!reportId.isEmpty()) {
+                    bool alreadyPresent = false;
+                    for (const auto& existing : m_feedbackReports) {
+                        if (existing.toMap().value(QStringLiteral("id")).toString() == reportId) {
+                            alreadyPresent = true;
+                            break;
+                        }
+                    }
+                    if (!alreadyPresent) m_feedbackReports.prepend(report);
+                }
+            }
+        }
         emit feedbackChanged();
-        if (m_feedbackSubmitted) fetchFeedback();
+        if (m_feedbackSubmitted) {
+            // Do not let an older in-flight GET replace a newly confirmed report.
+            cancelNetworkReply(m_feedbackRead, this);
+            fetchFeedback();
+        }
     });
 }
