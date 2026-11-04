@@ -241,9 +241,9 @@ void BrowserOpenProofAuth::pollFarcaster()
     request.setTransferTimeout(15'000);
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       QStringLiteral("application/json"));
-    const QByteArray payload = QByteArrayLiteral("{\"ticket\":\"")
+    const QByteArray pollRequestBody = QByteArrayLiteral("{\"ticket\":\"")
         + m_farcasterTicket + QByteArrayLiteral("\"}");
-    send(std::move(request), payload,
+    send(std::move(request), pollRequestBody,
         [this](const int status, QByteArray payload) {
         const auto json = objectFrom(payload);
         if (status == 202 && json.value(QStringLiteral("pending")).toBool()) {
