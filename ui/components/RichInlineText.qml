@@ -414,7 +414,7 @@ Item {
                 surface: root.emojiSurface
                 preserveArtwork: true
                 active: root.visible && root.width > 0 && root.height > 0
-                        && Qt.application.state === Qt.ApplicationActive
+                        
                 reducedMotion: root.reducedMotion
                 onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                 onRequestFailedChanged: {
@@ -443,7 +443,7 @@ Item {
                         preserveArtwork: true
                         viewportVisible: emojiOverlay.visible
                         active: root.visible && root.width > 0 && root.height > 0
-                                && Qt.application.state === Qt.ApplicationActive
+                                
                         reducedMotion: root.reducedMotion
                         onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                     }
