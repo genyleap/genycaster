@@ -233,7 +233,7 @@ for surface_name, surface in (("FeedSurface", feed), ("DetailSurface", detail)):
         errors.append(f"{surface_name} must not expose a visible primary reading scrollbar")
 # The profile editor is a long form and intentionally has a scrollbar; the
 # profile reading surface itself must remain free of a visible primary bar.
-if "ScrollBar.vertical: GenyScrollBar" in profile.split("id: profileEditorScroll", 1)[0]:
+if "ScrollBar.vertical: GenyScrollBar" in profile.split("id: streakDrawer", 1)[0]:
     errors.append("Profile reading surface must not expose a visible primary scrollbar")
 
 for token in (
