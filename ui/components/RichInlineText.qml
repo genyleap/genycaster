@@ -445,6 +445,10 @@ Item {
                 unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
                 surface: root.emojiSurface
                 preserveArtwork: true
+                // Reusing the same cast delegate during a short scroll must
+                // pause the Lottie, not destroy and re-incubate its scene.
+                // The owning feed delegate still releases it on destruction.
+                retainLoadedRenderer: true
                 active: root.visible && root.width > 0 && root.height > 0
                 // Keep the renderer loading while its pixels are transparent.
                 // Only one of Unicode, Lottie or Sprite may paint this box.
