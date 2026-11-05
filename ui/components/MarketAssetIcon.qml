@@ -82,7 +82,10 @@ Item {
         sourceSize.height: 112
         fillMode: Image.PreserveAspectFit
         smooth: true
-        mipmap: true
+        // Small theme-switching vector glyphs are already rasterized at
+        // a bounded sourceSize. Switching mipmapping before their first
+        // texture upload produces QSGPlainTexture warnings on Qt 6.12.
+        mipmap: false
     }
 
     SuperellipseImage {
