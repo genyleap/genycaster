@@ -274,6 +274,13 @@ void testAccountAccessConsentIsRememberedPerOrigin()
     assert(firstResponse.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
     assert(!firstResponse.get().error);
 
+    // Many EIP-1193 wallets announce the already-approved account once more
+    // after eth_requestAccounts resolves. This is not an identity switch.
+    const auto sameAccountEvent = request(
+        firstUrl, http::verb::post, firstUrl.target + "/event",
+        R"({"event":"accountsChanged","params":[["0x1111111111111111111111111111111111111111"]]})");
+    assert(sameAccountEvent.result() == http::status::ok);
+
     (*bridge)->endSession();
     assert((*bridge)->beginSession("Test Mini App", "https://mini.example"));
 
@@ -311,6 +318,18 @@ void testAccountAccessConsentIsRememberedPerOrigin()
     assert(secondPosted.result() == http::status::ok);
     assert(secondResponse.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
     assert(!secondResponse.get().error);
+
+    // A real principal switch must still revoke the origin grant.
+    const auto differentAccountEvent = request(
+        secondUrl, http::verb::post, secondUrl.target + "/event",
+        R"({"event":"accountsChanged","params":[["0x2222222222222222222222222222222222222222"]]})");
+    assert(differentAccountEvent.result() == http::status::ok);
+    std::promise<capability::wallet::EthereumRpcResponse> revokedPromise{};
+    auto revoked = revokedPromise.get_future();
+    (*bridge)->request({.id=221U,.method="eth_accounts",.paramsJson="[]"},
+        [&revokedPromise](auto response) { revokedPromise.set_value(std::move(response)); });
+    assert(revoked.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(revoked.get().resultJson == "[]");
 
     (*bridge)->endSession();
     assert((*bridge)->beginSession("Other Mini App", "https://other.example"));
