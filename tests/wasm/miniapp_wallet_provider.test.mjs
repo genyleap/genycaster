@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet,walletApprovalCopy,mobileWalletBrowserLinks} from '../../ui/wasm/miniapp-wallet-provider.mjs';
+import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet,walletApprovalCopy,mobileWalletBrowserLinks,requestMiniAppWalletApproval} from '../../ui/wasm/miniapp-wallet-provider.mjs';
 import {readFileSync} from 'node:fs';
 
 function fakeWallet(){
@@ -326,4 +326,67 @@ test('account switching or disconnecting revokes a previously granted wallet',as
  await assert.rejects(wallet.provider.request({method:'personal_sign'}),
    e=>e.code===4100);
  wallet.dispose();
+});
+
+
+test('host WalletConnect prompt stays open for QR pairing and resolves only after session approval',async()=>{
+  const previousDoc=Object.getOwnPropertyDescriptor(globalThis,'document');
+  const previousWindow=Object.getOwnPropertyDescriptor(globalThis,'window');
+  class Element {
+    constructor(tag){
+      this.tag=tag;this.children=[];this.style={};this.listeners={};this.attrs={};
+      this.textContent='';this.hidden=false;this.disabled=false;this.src='';
+    }
+    setAttribute(key,value){this.attrs[key]=value;}
+    append(...children){this.children.push(...children);}
+    replaceChildren(...children){this.children=[...children];}
+    addEventListener(name,callback){this.listeners[name]=callback;}
+    removeEventListener(name){delete this.listeners[name];}
+    remove(){this.removed=true;}
+    focus(){}
+  }
+  const body=new Element('body');
+  const document={body,documentElement:{lang:'fa-IR'},
+    createElement:tag=>new Element(tag)};
+  const window={__genycasterPreferredLanguage:'fa-IR'};
+  Object.defineProperty(globalThis,'document',{configurable:true,value:document});
+  Object.defineProperty(globalThis,'window',{configurable:true,value:window});
+  try{
+    let finishPairing;
+    let pairUri=false;
+    const provider={session:{topic:'test'},request:async()=>[],
+      on(){},removeListener(){}};
+    const registry=createDiscoveredBrowserWallet(new EventTarget(),{
+      walletConnectFactory:async({onUri})=>{
+        onUri({uri:'wc:123456ab@2?relay-protocol=irn&symKey=example',
+          qr:'data:image/png;base64,AA=='});
+        return new Promise(resolve=>{finishPairing=()=>resolve(provider);});
+      }
+    });
+    const approval=requestMiniAppWalletApproval('https://mini.example',new AbortController().signal,registry);
+    const panel=body.children[0].children[0];
+    assert.equal(panel.attrs.dir,'rtl');
+    const actions=panel.children.find(c=>c.tag==='div' &&
+      c.children.some(child=>child.tag==='button'));
+    assert.ok(actions);
+    const approve=actions.children.find(e=>e.tag==='button' &&
+      e.textContent.includes('WalletConnect'));
+    assert.ok(approve);
+    const qr=panel.children.find(e=>e.tag==='section' && e.hidden);
+    assert.ok(qr);
+    await approve.listeners.click();
+    assert.equal(qr.hidden,false);
+    assert.equal(qr.children[1].src,'data:image/png;base64,AA==');
+    assert.equal(approve.disabled,true);
+    // Merely creating the pairing URI never grants the Mini App access.
+    finishPairing();
+    assert.equal(await approval,true);
+    assert.equal(body.children[0].removed,true);
+    registry.dispose();
+  } finally {
+    if(previousDoc)Object.defineProperty(globalThis,'document',previousDoc);
+    else delete globalThis.document;
+    if(previousWindow)Object.defineProperty(globalThis,'window',previousWindow);
+    else delete globalThis.window;
+  }
 });
