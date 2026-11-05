@@ -23,12 +23,6 @@ module;
 #include <string_view>
 #include <thread>
 #include <utility>
-#if defined(_WIN32)
-#include <winsock2.h>
-#else
-#include <sys/socket.h>
-#include <sys/time.h>
-#endif
 #include <vector>
 
 module farcaster.provider.compatibility.browser_wallet.bridge;
@@ -50,27 +44,9 @@ using Clock = std::chrono::steady_clock;
 constexpr std::size_t TokenBytes = 32U;
 constexpr std::size_t MaximumQueuedRequests = 32U;
 constexpr std::chrono::milliseconds PollDelay{20};
-// The per-socket HTTP read/write budget is separate from the wallet approval
-// timeout (minutes). A stalled/half-open loopback connection must not keep
-// the bridge's jthread blocked indefinitely during application shutdown.
-constexpr int HttpSocketTimeoutSeconds = 3;
-
-void setHttpSocketTimeouts(tcp::socket& socket) noexcept
-{
-#if defined(_WIN32)
-    const DWORD timeout = HttpSocketTimeoutSeconds * 1000U;
-    const auto handle = socket.native_handle();
-    (void)::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO,
-                       reinterpret_cast<const char*>(&timeout), sizeof(timeout));
-    (void)::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO,
-                       reinterpret_cast<const char*>(&timeout), sizeof(timeout));
-#else
-    const timeval timeout{HttpSocketTimeoutSeconds, 0};
-    const auto handle = socket.native_handle();
-    (void)::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    (void)::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-#endif
-}
+// The local HTTP transport has a short deadline independent of the wallet
+// approval window. Never allow a partial HTTP request to stall shutdown.
+constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
 
 [[nodiscard]] foundation::error::Error makeError(
     const foundation::error::ErrorCode code,
@@ -661,8 +637,7 @@ private:
                 std::this_thread::sleep_for(PollDelay);
                 continue;
             }
-            setHttpSocketTimeouts(socket);
-            handle(std::move(socket));
+            handle(std::move(socket), stopToken);
         }
     }
 
@@ -688,13 +663,30 @@ private:
         }
     }
 
-    void handle(tcp::socket socket) {
+    void handle(tcp::socket socket, const std::stop_token stopToken) {
         beast::flat_buffer buffer{};
         http::request_parser<http::string_body> parser{};
         parser.body_limit(m_config.maxRequestBytes);
         boost::system::error_code error{};
-        http::read(socket, buffer, parser, error);
+        socket.non_blocking(true, error);
         if (error) return;
+
+        // Boost.Asio retries EWOULDBLOCK internally on blocking sockets, so
+        // SO_RCVTIMEO is not sufficient. Incremental nonblocking reads keep
+        // the parser state and let us honor both deadlines and shutdown.
+        const auto deadline = Clock::now() + HttpTransportTimeout;
+        while (!stopToken.stop_requested() && !parser.is_done()
+               && Clock::now() < deadline) {
+            error.clear();
+            http::read_some(socket, buffer, parser, error);
+            if (error == asio::error::would_block
+                || error == asio::error::try_again) {
+                std::this_thread::sleep_for(PollDelay);
+                continue;
+            }
+            if (error) return;
+        }
+        if (stopToken.stop_requested() || !parser.is_done()) return;
         const auto request = parser.release();
         // URL capabilities alone do not protect a loopback listener from DNS
         // rebinding or cross-site requests. Only the browser document served
@@ -738,7 +730,7 @@ private:
             secureHeaders(response, nonce);
             response.body() = bridgePage(base, nonce, appName, origin);
             response.prepare_payload();
-            http::write(socket, response, error);
+            writeBounded(socket, response);
             return;
         }
         if (request.method() == http::verb::get && suffix == "/next") {
@@ -781,7 +773,7 @@ private:
             http::response<http::empty_body> response{http::status::no_content, version};
             secureHeaders(response);
             boost::system::error_code error{};
-            http::write(socket, response, error);
+            writeBounded(socket, response);
             return;
         }
         writeJson(socket, version, *payload);
@@ -909,6 +901,23 @@ private:
         writeText(socket, http::status::ok, "ok");
     }
 
+    template <class Body>
+    void writeBounded(tcp::socket& socket, http::response<Body>& response) const
+    {
+        http::response_serializer<Body> serializer{response};
+        const auto deadline = Clock::now() + HttpTransportTimeout;
+        while (!serializer.is_done() && Clock::now() < deadline) {
+            boost::system::error_code error{};
+            http::write_some(socket, serializer, error);
+            if (error == asio::error::would_block
+                || error == asio::error::try_again) {
+                std::this_thread::sleep_for(PollDelay);
+                continue;
+            }
+            if (error) return;
+        }
+    }
+
     void writeText(tcp::socket& socket, const http::status status, std::string body) const {
         http::response<http::string_body> response{status, 11};
         response.set(http::field::content_type, "text/plain; charset=utf-8");
@@ -916,7 +925,7 @@ private:
         response.body() = std::move(body);
         response.prepare_payload();
         boost::system::error_code error{};
-        http::write(socket, response, error);
+        writeBounded(socket, response);
     }
 
     void writeJson(tcp::socket& socket, const unsigned version, const json::value& value) const {
@@ -926,7 +935,7 @@ private:
         response.body() = json::serialize(value);
         response.prepare_payload();
         boost::system::error_code error{};
-        http::write(socket, response, error);
+        writeBounded(socket, response);
     }
 
     Config m_config{};
