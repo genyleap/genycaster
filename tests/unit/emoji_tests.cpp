@@ -579,8 +579,8 @@ void testPolicy()
         MotionPolicy::decide(Surface::Feed, false, false, false).mode == PlaybackMode::Static,
         "invisible feed static");
     expect(
-        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::PlayOnce,
-        "visible feed plays once");
+        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::Loop,
+        "visible feed loops without disappearing at the one-shot terminal frame");
     expect(
         MotionPolicy::decide(Surface::PickerCell, false, false, true).mode == PlaybackMode::Static,
         "inactive picker cell static");
