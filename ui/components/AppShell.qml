@@ -1739,10 +1739,10 @@ Item {
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                       ? root.topicInlineRows() : presentationBridge.rows
                                                 mutedProfileFids: root.mutedActorIds
-                                                muteSettingsReady: openProofConnections.mutedProfilesReady
-                                                muteWriteBusy: openProofConnections.mutedProfilesBusy
+                                                muteSettingsReady: openProofConnections ? openProofConnections.mutedProfilesReady : false
+                                                muteWriteBusy: openProofConnections ? openProofConnections.mutedProfilesBusy : false
                                                 onMuteRequested: (fid,muted) =>
-                                                    openProofConnections.setProfileMuted(Math.floor(fid),muted)
+                                                    { if (openProofConnections) openProofConnections.setProfileMuted(Math.floor(fid),muted) }
                                                 topicFilterActive: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                 topicFilterSlug: root.topicBrowseSlug
                                                 topicFilterBusy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
