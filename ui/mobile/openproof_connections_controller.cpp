@@ -159,6 +159,10 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             pumpDraftChanges();
             pumpTopicWrites();
             pumpStreakWrites();
+            // Rehydration may have raced the initial account view. Retry a
+            // missing server snapshot on the normal account-data poll.
+            if (m_streak.isEmpty() && !m_streakRead && !m_streakWrite)
+                fetchStreak();
         }
     });
     m_connectionPoll.setInterval(3'000);
@@ -306,6 +310,8 @@ void OpenProofConnectionsController::restoreAccountSession()
         m_bookmarkPoll.start();
         publishPortableConnectionLabels();
         if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
+        fetchStreak();
+        fetchStreakPreferences();
         emit stateChanged();
         if(m_cloudServiceAvailable) {
             pumpBookmarkChanges();
@@ -390,6 +396,8 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     m_bookmarkPoll.start();
     publishPortableConnectionLabels();
     if(!m_portableConnectionsRequest)refreshAccountConnectionsSnapshot();
+    fetchStreak();
+    fetchStreakPreferences();
     emit stateChanged();
     if(m_cloudServiceAvailable) {
         pumpBookmarkChanges();
@@ -458,6 +466,10 @@ void OpenProofConnectionsController::checkCloudService()
             pumpDraftChanges();
             pumpTopicWrites();
             pumpStreakWrites();
+            // Rehydration may have raced the initial account view. Retry a
+            // missing server snapshot on the normal account-data poll.
+            if (m_streak.isEmpty() && !m_streakRead && !m_streakWrite)
+                fetchStreak();
         }
     });
 }
@@ -1634,8 +1646,8 @@ void OpenProofConnectionsController::fetchStreakLeaderboard(const QString& track
 void OpenProofConnectionsController::fetchStreak()
 {
     if (!m_viewerFid || !cloudAuthorizationReady()
-        || !trustedHttpsEndpoint(m_cloudUrl) || m_streakWrite) return;
-    cancelNetworkReply(m_streakRead, this);
+        || !trustedHttpsEndpoint(m_cloudUrl) || m_streakWrite
+        || m_streakRead) return;
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/streak"));
     auto request=QNetworkRequest{url};
@@ -1661,6 +1673,9 @@ void OpenProofConnectionsController::fetchStreak()
         if(status==200 && doc.isObject()
             && doc.object().value(QStringLiteral("streak")).isObject()) {
             m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
+            // Only store a server-validated, account-scoped public snapshot.
+            if (m_settings)
+                m_settings->setValue(QStringLiteral("streak/snapshot/%1").arg(viewer), m_streak);
             m_streakError.clear();
         } else {
             m_streakError=QStringLiteral("Streak is temporarily unavailable.");
@@ -1721,6 +1736,8 @@ void OpenProofConnectionsController::pumpStreakWrites()
         if(accepted || status==400 || status==409) {
             if(accepted) {
                 m_streak=doc.object().value(QStringLiteral("streak")).toObject().toVariantMap();
+                if (m_settings)
+                    m_settings->setValue(QStringLiteral("streak/snapshot/%1").arg(viewer), m_streak);
                 m_streakError.clear();
             } else {
                 m_streakError=QStringLiteral("Unable to record this streak cast.");
@@ -2992,7 +3009,9 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     cancelNetworkReply(m_streakLeaderboardRead, this);
     m_streakPreferences.clear();
     m_streakLeaderboard.clear();
-    m_streak.clear();
+    m_streak = m_settings && fid
+        ? m_settings->value(QStringLiteral("streak/snapshot/%1").arg(fid)).toMap()
+        : QVariantMap{};
     m_streakError.clear();
     emit streakChanged();
     cancelNetworkReply(m_bookmarkCollectionRequest, this);
