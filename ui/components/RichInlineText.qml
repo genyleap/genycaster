@@ -378,7 +378,9 @@ Item {
     }
 
     Repeater {
-        model: textLayout.emojiRects
+        // The native TextEdit handles its own glyphs when OS selection is
+        // enabled; it must not also spawn the animated QML overlay.
+        model: root.usePlatformSelection ? [] : textLayout.emojiRects
         delegate: Item {
             id: emojiOverlay
 
@@ -390,27 +392,48 @@ Item {
             property bool spriteFallbackArmed: false
             readonly property bool spriteReady: spriteEmojiLoader.item !== null
                                                 && Boolean(spriteEmojiLoader.item.animationReady)
-            // Exactly one overlay renderer may own the emoji box. Unicode
-            // remains the fallback until either Lottie succeeds or an explicit
-            // failure selects the sprite path.
+            // The QML delegate owns a reliable native-rendered fallback glyph
+            // even while Qt VectorImage/Sprite changes readiness. The native
+            // QTextDocument only paints its emergency glyph when no matching
+            // overlay exists at all (e.g. before incubation or on teardown).
+            // This avoids depending on two different scene-graph layers
+            // receiving readiness callbacks in exactly the same frame.
             readonly property bool artworkReady: lottieEmoji.animationReady
                                                  || (!lottieEmoji.animationReady
                                                      && emojiOverlay.spriteReady)
 
-            function syncAnimatedState() {
+            function claimFallbackOwnership() {
                 if (emojiPosition >= 0 && emojiGeneration >= 0)
-                    textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, emojiOverlay.artworkReady)
+                    textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, true)
             }
-            // A delegate may be reused at the same document position after
-            // word-wrap or text changes. Refresh replacement ownership even
-            // when its previously decoded artwork stays ready.
-            onEmojiGenerationChanged: emojiOverlay.syncAnimatedState()
-            onArtworkReadyChanged: emojiOverlay.syncAnimatedState()
+            // Only delegate lifetime and document generation control
+            // QTextDocument glyph suppression. Lottie status transitions now
+            // affect only the two locally co-located QML renderers.
+            onEmojiGenerationChanged: emojiOverlay.claimFallbackOwnership()
 
             x: Number(emojiRect.x || 0)
             y: root.emojiVerticalInset + Number(emojiRect.y || 0)
             width: Number(emojiRect.width || 0)
             height: Number(emojiRect.height || 0)
+
+            // Always keep a native color-emoji fallback within this same
+            // scene-graph delegate. Qt's QTextObjectInterface glyph is not
+            // reliably repainted during a VectorImage's last transparent
+            // frame or recycled delegate transitions on macOS.
+            Label {
+                id: inlineStaticEmoji
+                objectName: "richInlineEmojiStaticFallback"
+                anchors.fill: parent
+                visible: !emojiOverlay.artworkReady
+                text: String(emojiOverlay.emojiRect.sequence || "")
+                textFormat: Text.PlainText
+                renderType: Text.NativeRendering
+                font.pixelSize: Math.max(1, Math.round(emojiOverlay.height * 0.86))
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.NoWrap
+                clip: false
+            }
 
             // Lottie remains the preferred Noto Animated Emoji renderer. If the
             // scene graph/backend cannot present it, or an individual asset does
@@ -427,14 +450,11 @@ Item {
                 // Only one of Unicode, Lottie or Sprite may paint this box.
                 opacity: animationReady ? 1 : 0
                 reducedMotion: root.reducedMotion
-                onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                 onRequestFailedChanged: {
                     emojiOverlay.spriteFallbackArmed = requestFailed || !rendererUsable
-                    emojiOverlay.syncAnimatedState()
                 }
                 onRendererUsableChanged: {
                     emojiOverlay.spriteFallbackArmed = !rendererUsable || requestFailed
-                    emojiOverlay.syncAnimatedState()
                 }
             }
 
@@ -456,17 +476,14 @@ Item {
                         viewportVisible: emojiOverlay.visible
                         active: root.visible && root.width > 0 && root.height > 0
                         reducedMotion: root.reducedMotion
-                        onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                     }
                 }
-
-                onLoaded: emojiOverlay.syncAnimatedState()
             }
 
             Component.onCompleted: {
                 if (!lottieEmoji.rendererUsable)
                     emojiOverlay.spriteFallbackArmed = true
-                emojiOverlay.syncAnimatedState()
+                emojiOverlay.claimFallbackOwnership()
             }
             Component.onDestruction: {
                 if (emojiPosition >= 0)
