@@ -8,7 +8,8 @@ GenyDrawer {
     id: root
     objectName: "genyProDetailsDrawer"
     property bool compact: false
-    readonly property var membership: openProofConnections.proEntitlements || ({})
+    readonly property var membership: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool eligible: membership.status === "verified"
                                      && membership.tier === "pro"
                                      && membership.eligible === true
@@ -25,7 +26,7 @@ GenyDrawer {
     onOpened: {
         expandedFeature = -1
         detailsViewport.contentY = 0
-        openProofConnections.fetchProEntitlements(true)
+        if (openProofConnections) openProofConnections.fetchProEntitlements(true)
     }
 
     contentItem: Item {
@@ -307,10 +308,10 @@ GenyDrawer {
                 prominent: true
                 iconGlyph: Theme.iconRefresh
                 spinIconWhileBusy: true
-                busy: openProofConnections.proEntitlementsBusy
+                busy: openProofConnections ? openProofConnections.proEntitlementsBusy : false
                 enabled: !busy
                 text: qsTrId("genycaster.pro.check_status")
-                onClicked: openProofConnections.fetchProEntitlements(true)
+                onClicked: if (openProofConnections) openProofConnections.fetchProEntitlements(true)
             }
         }
     }
