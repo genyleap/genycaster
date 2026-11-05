@@ -97,6 +97,13 @@ public:
         domain::identity::Fid target,
         std::function<void(foundation::result::Result<bool>)> completion);
 
+    /** @brief Resolves an exact protocol Link(type=block) from the selected node. */
+    [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
+    isBlocked(
+        domain::identity::Fid source,
+        domain::identity::Fid target,
+        std::function<void(foundation::result::Result<bool>)> completion);
+
 private:
     struct RecentWindowCache;
     /** @brief Loads confirmed network casts, keeping blocking work off Qt. */
