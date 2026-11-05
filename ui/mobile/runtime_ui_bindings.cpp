@@ -1405,6 +1405,8 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
     case OperationKind::UndoRecast: return QStringLiteral("undo-recast");
     case OperationKind::Follow: return QStringLiteral("follow");
     case OperationKind::Unfollow: return QStringLiteral("unfollow");
+    case OperationKind::Block: return QStringLiteral("block");
+    case OperationKind::Unblock: return QStringLiteral("unblock");
     }
     return QStringLiteral("protocol-write");
 }
@@ -1424,6 +1426,8 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
     case OperationKind::UndoRecast: return qtTrId("genycaster.runtime.recast_removal");
     case OperationKind::Follow: return qtTrId("genycaster.runtime.follow");
     case OperationKind::Unfollow: return qtTrId("genycaster.runtime.unfollow");
+    case OperationKind::Block: return QStringLiteral("block");
+    case OperationKind::Unblock: return QStringLiteral("unblock");
     }
     return qtTrId("genycaster.runtime.protocol_write");
 }
@@ -3553,6 +3557,50 @@ void connectRuntime(
                 runtime->currentSessionSnapshot(),
                 domain::identity::Fid{static_cast<std::uint64_t>(targetFid)},
                 following,
+                writeObserver);
+            if (!status) {
+                bridge.applyWriteState(
+                    QStringLiteral("failed"),
+                    false,
+                    qtTrId("genycaster.runtime.follow_change_could_not_be_scheduled"),
+                    QString::fromStdString(status.error().message));
+            }
+        });
+
+    QObject::connect(&bridge, &PresentationBridge::blockingMutationRequested, &bridge,
+        [&bridge, runtime, writeObserver
+#if defined(__EMSCRIPTEN__)
+        , browserSigner
+#endif
+        ](const qulonglong targetFid, const bool blocked) {
+#if defined(__EMSCRIPTEN__)
+
+            if (!bridge.isAuthenticated() || !bridge.writeReady()
+                || targetFid == 0 || targetFid == bridge.accountFid()) {
+                bridge.applyWriteState(QStringLiteral("blocked"), false, {},
+                    qtTrId("genycaster.runtime.interaction_signer_is_not_enabled_yet"));
+                return;
+            }
+            browserSigner->start(QStringLiteral("block"),
+                QString::number(bridge.accountFid()),
+                QJsonObject{{QStringLiteral("targetFid"), QString::number(targetFid)},
+                            {QStringLiteral("active"), following}});
+            return;
+#endif
+            if (!runtime->writeService) {
+                bridge.applyWriteState(
+                    QStringLiteral("blocked"),
+                    false,
+                    qtTrId("genycaster.runtime.follow_changes_are_unavailable_in_this_runtime"),
+                    runtime->writeSetupError
+                        ? QString::fromStdString(runtime->writeSetupError->message)
+                        : qtTrId("genycaster.runtime.durable_follow_composition_is_not_available"));
+                return;
+            }
+            auto status = runtime->writeService->setBlocked(
+                runtime->currentSessionSnapshot(),
+                domain::identity::Fid{static_cast<std::uint64_t>(targetFid)},
+                blocked,
                 writeObserver);
             if (!status) {
                 bridge.applyWriteState(
