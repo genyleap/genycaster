@@ -2364,10 +2364,10 @@ void PresentationBridge::openEmbeddedMedia(const QString& url, const QString& ti
     emit embeddedMediaRequested(parsed.toString(QUrl::FullyEncoded), title.trimmed());
 }
 
-void PresentationBridge::copyText(const QString& text)
+bool PresentationBridge::copyText(const QString& text)
 {
     if (text.isEmpty()) {
-        return;
+        return false;
     }
 #if defined(__EMSCRIPTEN__)
     // Invoke the browser Clipboard API synchronously inside the user's Copy
@@ -2433,7 +2433,19 @@ void PresentationBridge::copyText(const QString& text)
 #endif
     if (QClipboard* const clipboard = QGuiApplication::clipboard(); clipboard != nullptr) {
         clipboard->setText(text);
+#if !defined(__EMSCRIPTEN__)
+        // A visible success check must be based on native clipboard evidence,
+        // not only on a button click or a successful method invocation.
+        return clipboard->text() == text;
+#endif
     }
+#if defined(__EMSCRIPTEN__)
+    // Browser Clipboard API is asynchronous. This confirms dispatch only;
+    // the Promise above still logs permission/fallback failures.
+    return true;
+#else
+    return false;
+#endif
 }
 
 namespace {
