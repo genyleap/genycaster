@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     expect(source.startsWith("qrc:/"), "bundled asset is a QML resource URL");
     expect(QFile::exists(QUrl{source}.toString().mid(3)), "bundled URL resolves");
     expect(controller.pendingFetches() == 0, "bundled asset requires no network");
-    expect(controller.playbackLoops(1, false, true, true) == -1, "visible feed loops");
+    expect(controller.playbackLoops(1, false, true, true) == 1, "visible feed plays once");
     expect(controller.playbackLoops(2, false, true, true) == -1, "detail loops");
     expect(controller.playbackLoops(0, false, true, true) == -1, "composer loops");
     expect(controller.playbackLoops(3, false, false, true) == 0, "inactive picker stays static");
@@ -358,25 +358,30 @@ int main(int argc, char** argv)
         }
         object->setProperty("surface", 1);
         object->setProperty("unicodeSequence", joy);
+        object->setProperty("preserveArtwork", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("configuredLoops").toInt() == -1
-                && object->property("playbackLoops").toInt() == -1;
-        }), "visible feed uses an infinite animation loop");
-        QTest::qWait(2500);
-        expect(object->property("animationReady").toBool(),
-               "feed artwork remains resident after the former one-shot endpoint");
-        // Changing viewport/scroll eligibility may pause the scene but must
-        // never downgrade VectorImage's configured loop count to one.
+            return object->property("configuredLoops").toInt() == 1
+                && object->property("playbackLoops").toInt() == 1
+                && object->property("animationReady").toBool();
+        }, 5000), "visible feed starts one real animated playback");
+        // A short scroll must pause the in-flight one-shot without changing
+        // its configured duration or sending the vector to its empty end.
         object->setProperty("active", false);
         expect(QTest::qWaitFor([&] {
             return object->property("playbackLoops").toInt() == 0;
-        }), "inactive feed pauses playback");
-        expect(object->property("configuredLoops").toInt() == -1,
-               "feed preserves infinite loop count while paused");
+        }), "scrolled feed pauses playback");
+        expect(object->property("configuredLoops").toInt() == 1,
+               "paused one-shot keeps its loop count unchanged");
         object->setProperty("active", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("playbackLoops").toInt() == -1;
-        }), "feed resumes its original loop without restarting a one-shot");
+            return object->property("playbackLoops").toInt() == 1;
+        }), "feed resumes the same one-shot");
+        expect(QTest::qWaitFor([&] {
+            return !object->property("animationReady").toBool();
+        }, 6000), "completed one-shot releases its inline Unicode fallback");
+        expect(object->property("rendererResident").toBool(),
+               "completed source remains cached without hiding the native glyph");
+        object->setProperty("preserveArtwork", false);
         object->setProperty("surface", 3);
         object->setProperty("active", false);
         expect(QTest::qWaitFor([&] { return !object->property("animationReady").toBool(); }),
