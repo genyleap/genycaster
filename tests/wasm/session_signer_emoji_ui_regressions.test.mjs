@@ -19,8 +19,8 @@ test('inactive windows preserve inline emoji frames while motion is paused', () 
   const spriteArtwork = sprite.slice(sprite.indexOf('readonly property bool artworkWanted:'),
                                      sprite.indexOf('readonly property bool animationReady:'));
   assert.doesNotMatch(spriteArtwork, /Qt\.application\.state/);
-  assert.match(sprite, /running: root\.playbackLoops !== 0/);
-  assert.match(sprite, /&& root\.artworkWanted\s+onStatusChanged:/);
+  assert.match(sprite, /paused: running && !root\.motionActive/);
+  assert.match(sprite, /source: root\.artworkWanted \|\| root\.retainLoadedRenderer/);
 });
 
 test('saved signer verification never requires a new custody approval', () => {
@@ -75,7 +75,7 @@ test('inline emoji reserve ink space and replace Unicode only in their live layo
 });
 
 
-test('completed feed emoji releases the Unicode glyph without blinking on scroll', () => {
+test('feed emoji loop continuously and pause without changing the configured iterations', () => {
   const policy = source('src/application/emoji/animation_policy.cpp');
   const emoji = source('ui/components/AnimatedEmoji.qml');
   const lottie = source('ui/components/AnimatedEmojiLottie.qml');
@@ -83,19 +83,22 @@ test('completed feed emoji releases the Unicode glyph without blinking on scroll
   const rich = source('ui/components/RichInlineText.qml');
   const feed = policy.slice(policy.indexOf('case Surface::Feed:'),
                             policy.indexOf('case Surface::PickerCell:'));
-  assert.match(feed, /PlaybackMode::PlayOnce/);
+  assert.match(feed, /PlaybackMode::Loop/);
+  assert.match(feed, /loopCount = 0U/);
   assert.match(feed, /pauseWhenInvisible = true/);
   assert.match(emoji, /readonly property int configuredLoops:/);
-  assert.match(emoji, /readonly property int playbackLoops: root\.motionActive \? root\.configuredLoops : 0/);
+  assert.match(emoji, /root\.surface, false, true, true/);
+  assert.match(emoji, /readonly property int playbackLoops: root\.motionActive && !root\.reducedMotion\s+\? root\.configuredLoops : 0/);
   assert.match(emoji, /lottie\.item\.playCount = root\.configuredLoops === 0 \? 1 : root\.configuredLoops/);
   assert.match(emoji, /lottie\.item\.animationActive = root\.playbackLoops !== 0/);
   assert.match(emoji, /!lottie\.item\.playbackCompleted/);
-  assert.match(lottie, /animation\.runningChanged\.connect/);
-  assert.match(lottie, /root\.playbackCompleted = true/);
-  assert.match(lottie, /interval: 100/);
+  assert.match(lottie, /root\.status === VectorImage\.Ready/);
+  assert.match(lottie, /root\.timeline\.visible/);
+  assert.match(lottie, /root\.timeline\.frameCounter >= root\.timeline\.endFrame/);
+  assert.doesNotMatch(lottie, /oneShotCompletion|runningChanged\.connect/);
   assert.match(sprite, /property bool playbackFinished: false/);
   assert.match(sprite, /!root\.requestFailed && !root\.playbackFinished/);
-  assert.match(sprite, /finishBehavior: AnimatedSprite\.FinishAtFinalFrame/);
+  assert.match(sprite, /id: frameViewport\s+anchors\.fill: parent\s+clip: true/);
   assert.match(sprite, /onFinished:/);
   assert.match(sprite, /opacity: root\.animationReady \? 1 : 0/);
   assert.match(rich, /onEmojiGenerationChanged: emojiOverlay\.claimFallbackOwnership\(\)/);

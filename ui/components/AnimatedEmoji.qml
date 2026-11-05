@@ -77,12 +77,13 @@ Item {
         && root.GraphicsInfo.api !== GraphicsInfo.Unknown
         && root.GraphicsInfo.api !== GraphicsInfo.Software
         && root.GraphicsInfo.api !== GraphicsInfo.Null
-    // Keep the configured loop count independent of transient focus, scroll
-    // and viewport changes. Reconfiguring a paused Lottie during a fling can
-    // finish its one-shot early and strand its transparent final frame.
+    // Motion preferences and lifecycle changes only pause playback. Changing
+    // an infinite animation to one iteration after it has looped can finish
+    // it immediately and replace healthy artwork with the Unicode fallback.
     readonly property int configuredLoops: root.controller !== null ? root.controller.playbackLoops(
-        root.surface, root.reducedMotion, root.active, true) : 0
-    readonly property int playbackLoops: root.motionActive ? root.configuredLoops : 0
+        root.surface, false, true, true) : 0
+    readonly property int playbackLoops: root.motionActive && !root.reducedMotion
+        ? root.configuredLoops : 0
     readonly property bool artworkWanted: root.rendererUsable
         && root.unicodeSequence.length > 0
         && root.visible && root.insideViewport
@@ -98,6 +99,8 @@ Item {
     readonly property bool animationReady: lottie.status === Loader.Ready
         && lottie.item !== null && lottie.item.renderReady
         && !lottie.item.playbackCompleted
+    readonly property bool rendererFailed: lottie.status === Loader.Error
+        || (lottie.item !== null && lottie.item.renderFailed)
     readonly property bool rendererRetained: root.retainLoadedRenderer
         && root.rendererResident && root.assetSource.length > 0
 

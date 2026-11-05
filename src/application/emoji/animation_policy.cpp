@@ -46,22 +46,19 @@ AnimationDecision MotionPolicy::decide(
             .pauseWhenInvisible = true,
         };
     case Surface::Feed:
-        // Feed emoji play once. The UI restores the native Unicode fallback
-        // when the authored animation completes, rather than leaving a
-        // transparent last Lottie frame in the inline layout indefinitely.
-        // This preserves a legible cast without dozens of perpetual loops.
+        // Timeline/profile casts use the same continuous artwork as detail.
+        // Presentation pauses offscreen/background instances without replacing
+        // their loaded artwork or changing the configured loop count.
         return AnimationDecision{
-            .mode = PlaybackMode::PlayOnce,
-            .loopCount = 1U,
+            .mode = PlaybackMode::Loop,
+            .loopCount = 0U,
             .pauseWhenInvisible = true,
         };
     case Surface::PickerCell:
-        // Special-picker cells animate as soon as they enter the viewport.
-        // Playing once keeps the initial reveal lively without leaving dozens
-        // of persistent loops competing with scrolling and asset decoding.
+        // Visible animated-picker cells retain continuous playback too.
         return AnimationDecision{
-            .mode = active ? PlaybackMode::PlayOnce : PlaybackMode::Static,
-            .loopCount = 1U,
+            .mode = active ? PlaybackMode::Loop : PlaybackMode::Static,
+            .loopCount = active ? 0U : 1U,
             .pauseWhenInvisible = true,
         };
     case Surface::PickerPreview:

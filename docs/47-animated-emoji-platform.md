@@ -101,10 +101,10 @@ there is no layout shift when an asset arrives.
 Playback is centralized and visibility-aware: overlays activate only when the
 block is visible, the window is active, motion reduction is off, and a
 validated asset exists; deactivation unloads the Lottie renderer immediately.
-Feed emoji play once, then explicitly return to the native Unicode fallback:
-the authored Lottie/sprite last frame can be transparent and cannot safely
-remain the sole owner of the inline emoji. Scrolling and app inactivity pause
-the in-progress animation without changing its configured loop count.
+Feed/profile casts, detail and active animated-picker cells all loop continuously.
+Healthy loaded artwork stays animated instead of returning to Unicode after
+one iteration. Scrolling, app inactivity and reduced motion pause the
+in-progress animation without changing its configured infinite loop count.
 List recycling destroys offscreen delegates.
 
 The composer picker deliberately separates the complete **Emoji** catalog from

@@ -87,10 +87,11 @@ int main(int argc, char** argv)
     expect(source.startsWith("qrc:/"), "bundled asset is a QML resource URL");
     expect(QFile::exists(QUrl{source}.toString().mid(3)), "bundled URL resolves");
     expect(controller.pendingFetches() == 0, "bundled asset requires no network");
-    expect(controller.playbackLoops(1, false, true, true) == 1, "visible feed plays once");
+    expect(controller.playbackLoops(1, false, true, true) == -1, "visible feed loops like detail");
     expect(controller.playbackLoops(2, false, true, true) == -1, "detail loops");
     expect(controller.playbackLoops(0, false, true, true) == -1, "composer loops");
     expect(controller.playbackLoops(3, false, false, true) == 0, "inactive picker stays static");
+    expect(controller.playbackLoops(3, false, true, true) == -1, "active picker cells loop");
     expect(controller.playbackLoops(4, false, true, true) == -1, "picker preview loops");
     expect(controller.playbackLoops(2, true, true, true) == 0, "reduced motion disables playback");
     expect(controller.playbackLoops(2, false, true, false) == 0, "invisible emoji disables playback");
@@ -360,27 +361,57 @@ int main(int argc, char** argv)
         object->setProperty("unicodeSequence", joy);
         object->setProperty("preserveArtwork", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("configuredLoops").toInt() == 1
-                && object->property("playbackLoops").toInt() == 1
+            return object->property("configuredLoops").toInt() == -1
+                && object->property("playbackLoops").toInt() == -1
                 && object->property("animationReady").toBool();
-        }, 5000), "visible feed starts one real animated playback");
-        // A short scroll must pause the in-flight one-shot without changing
+        }, 5000), "visible feed starts continuous animated playback");
+        // A short scroll must pause the in-flight animation without changing
         // its configured duration or sending the vector to its empty end.
+        QTest::qWait(450);
         object->setProperty("active", false);
         expect(QTest::qWaitFor([&] {
             return object->property("playbackLoops").toInt() == 0;
         }), "scrolled feed pauses playback");
-        expect(object->property("configuredLoops").toInt() == 1,
-               "paused one-shot keeps its loop count unchanged");
+        expect(object->property("configuredLoops").toInt() == -1,
+               "paused feed keeps its infinite loop count unchanged");
+        const auto pausedFeedFrame = window.grabWindow();
+        QTest::qWait(350);
+        expect(object->property("animationReady").toBool(),
+               "pausing a feed retains visible artwork");
+        expect(window.grabWindow() == pausedFeedFrame,
+               "pausing freezes the actual generated Lottie timeline");
         object->setProperty("active", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("playbackLoops").toInt() == 1;
-        }), "feed resumes the same one-shot");
-        expect(QTest::qWaitFor([&] {
-            return !object->property("animationReady").toBool();
-        }, 6000), "completed one-shot releases its inline Unicode fallback");
+            return object->property("playbackLoops").toInt() == -1;
+        }), "feed resumes continuous playback");
+        const auto animationDocument = QJsonDocument::fromJson(data).object();
+        const double frameRate = animationDocument.value("fr").toDouble();
+        expect(frameRate > 0.0, "bundled animation declares a frame rate");
+        const int loopDuration = frameRate > 0.0
+            ? qRound(1000.0 * (animationDocument.value("op").toDouble()
+                - animationDocument.value("ip").toDouble()) / frameRate) : 6000;
+        QTest::qWait(2 * loopDuration + 100);
+        expect(object->property("animationReady").toBool(),
+               "feed keeps animated artwork after multiple complete iterations");
+        const auto loopingFeedFrame = window.grabWindow();
+        QTest::qWait(450);
+        expect(window.grabWindow() != loopingFeedFrame,
+               "feed pixels continue animating beyond the first iteration");
         expect(object->property("rendererResident").toBool(),
-               "completed source remains cached without hiding the native glyph");
+               "looping source remains resident");
+        object->setProperty("reducedMotion", true);
+        expect(object->property("configuredLoops").toInt() == -1,
+               "reduced motion pauses without shortening an already-looping animation");
+        const auto reducedMotionFrame = window.grabWindow();
+        QTest::qWait(350);
+        expect(object->property("animationReady").toBool()
+                   && window.grabWindow() == reducedMotionFrame,
+               "reduced motion retains the same paused provider artwork");
+        object->setProperty("reducedMotion", false);
+        QTest::qWait(450);
+        expect(object->property("animationReady").toBool()
+                   && window.grabWindow() != reducedMotionFrame,
+               "disabling reduced motion resumes the loaded animation");
         object->setProperty("preserveArtwork", false);
         object->setProperty("surface", 3);
         object->setProperty("active", false);

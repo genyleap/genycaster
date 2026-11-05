@@ -579,14 +579,20 @@ void testPolicy()
         MotionPolicy::decide(Surface::Feed, false, false, false).mode == PlaybackMode::Static,
         "invisible feed static");
     expect(
-        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::PlayOnce,
-        "visible feed plays once and then returns to a persistent static glyph");
+        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::Loop,
+        "visible feed loops like cast detail without requiring hover");
+    expect(
+        MotionPolicy::decide(Surface::Feed, false, false, true).loopCount == 0U,
+        "feed playback has no finite iteration limit");
     expect(
         MotionPolicy::decide(Surface::PickerCell, false, false, true).mode == PlaybackMode::Static,
         "inactive picker cell static");
     expect(
-        MotionPolicy::decide(Surface::PickerCell, false, true, true).mode == PlaybackMode::PlayOnce,
-        "active picker cell plays once");
+        MotionPolicy::decide(Surface::PickerCell, false, true, true).mode == PlaybackMode::Loop,
+        "active picker cell loops");
+    expect(
+        MotionPolicy::decide(Surface::PickerCell, false, true, true).loopCount == 0U,
+        "active picker playback has no finite iteration limit");
     expect(
         MotionPolicy::decide(Surface::Composer, false, false, true).mode == PlaybackMode::Loop,
         "composer loops");

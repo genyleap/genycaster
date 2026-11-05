@@ -389,7 +389,8 @@ Item {
             readonly property int emojiPosition: emojiRect.position === undefined
                 ? -1 : Number(emojiRect.position)
             readonly property int emojiGeneration: Number(emojiRect.generation || -1)
-            property bool spriteFallbackArmed: false
+            readonly property bool spriteFallbackArmed: lottieEmoji.requestFailed
+                || !lottieEmoji.rendererUsable || lottieEmoji.rendererFailed
             readonly property bool spriteReady: spriteEmojiLoader.item !== null
                                                 && Boolean(spriteEmojiLoader.item.animationReady)
             // The QML delegate owns a reliable native-rendered fallback glyph
@@ -454,12 +455,6 @@ Item {
                 // Only one of Unicode, Lottie or Sprite may paint this box.
                 opacity: animationReady ? 1 : 0
                 reducedMotion: root.reducedMotion
-                onRequestFailedChanged: {
-                    emojiOverlay.spriteFallbackArmed = requestFailed || !rendererUsable
-                }
-                onRendererUsableChanged: {
-                    emojiOverlay.spriteFallbackArmed = !rendererUsable || requestFailed
-                }
             }
 
             Loader {
@@ -477,16 +472,15 @@ Item {
                         unicodeSequence: String(emojiOverlay.emojiRect.sequence || "")
                         surface: root.emojiSurface
                         preserveArtwork: true
-                        viewportVisible: emojiOverlay.visible
-                        active: root.visible && root.width > 0 && root.height > 0
+                        retainLoadedRenderer: true
+                        viewportVisible: lottieEmoji.insideViewport
+                        active: lottieEmoji.motionActive
                         reducedMotion: root.reducedMotion
                     }
                 }
             }
 
             Component.onCompleted: {
-                if (!lottieEmoji.rendererUsable)
-                    emojiOverlay.spriteFallbackArmed = true
                 emojiOverlay.claimFallbackOwnership()
             }
             Component.onDestruction: {

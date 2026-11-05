@@ -31,12 +31,61 @@ serialize cache access and validation on a bounded worker. UI callbacks own no p
 
 ## Interaction and layout contract
 
-Feed animates once and returns to a persistent native Unicode glyph after the last
-Lottie/sprite frame (which can be fully transparent); detail loops while visible;
-picker cells keep a static fallback after their one-shot completes. Composer and picker-preview loop policies are covered natively;
+Feed/profile casts, detail, and active animated-picker cells loop continuously
+while motion is allowed. Loaded artwork does not return to Unicode after one
+iteration. Composer and picker-preview loop policies are covered natively;
 the existing TextArea editor still displays Unicode. Reduced motion pauses provider artwork on
-visible picker/rich-text surfaces; hidden/clipped items and background windows release renderers. Text layout owns
+visible picker/rich-text surfaces; retained renderers pause while clipped or in background windows
+and are released with their owning delegates. Text layout owns
 inline bounds, including RTL and repeated identical emoji; proportional line-height ratios are
 converted to QText percentages and overlay rectangles are clamped to their owning text line.
 A transparent animation replaces its glyph instead of painting over it.
 Existing theme, keyboard navigation, picker selection and published Unicode remain intact.
+
+## Rendering lifecycle correction — 2026-11-05
+
+Scope: existing local emoji presentation only; the feature gate above remains
+unchanged. Qt 6.12 is already the project's minimum. The pinned engineering
+authority and its required implementation/Qt guides were read for this change.
+
+Source inspection of Qt 6.12 identified two invalid readiness assumptions:
+
+- Lottie's generated `NumberAnimation on frameCounter` is a property value
+  source, not an entry in `Item.data`. The previous recursive search could not
+  observe or pause it. At `endFrame`, Qt makes the generated root invisible
+  while its children and implicit dimensions remain present. The previous
+  readiness expression therefore hid Unicode behind an invisible vector.
+- A hidden Image preloading a sheet cannot report AnimatedSprite's texture
+  readiness. Destroying that sprite during viewport changes, or stopping it
+  on a multi-row sheet, also separates fallback state from actual pixels.
+
+Lottie readiness now uses `VectorImage.status`, `generatedItem`, and the
+generated timeline's visibility/end frame. Pause uses `animations.paused`,
+guarded against completion; no recursive animation search, signal closures,
+or delayed completion timer remains. Renderer errors activate the existing
+sprite fallback; source replacement returns to Unicode while loading.
+
+Sprite playback now moves one cached Image under a fixed frame-sized clip.
+The same Image owns readiness and pixels, with explicit row/column addressing.
+A NumberAnimation advances the frame index and pauses without releasing the
+sheet or restarting a one-shot. Completed one-shots restore Unicode without
+restarting the loading indicator. Inline sprites share the vector's viewport
+and motion state and retain loaded sheets during short scroll transitions.
+
+Verification: source/diff review only. Configure, build, lint, automated tests,
+and runtime/visual checks were intentionally not run at the user's request.
+Existing regression expectations were updated and the runtime pause/completion
+case strengthened, but these changes remain unexecuted. Manual acceptance:
+feed one-shot completion, pause mid-animation, repeated scroll/focus changes,
+picker multi-row sprites, reduced motion, and missing/corrupt vector assets.
+
+### Continuous playback policy
+
+The user's follow-up supersedes the earlier feed/picker one-shot policy:
+all visible animated surfaces now loop. Unicode remains the unavailable/error
+fallback, not the resting state of a healthy animation. Reduced motion, focus,
+and viewport changes pause the existing renderer without replacing its infinite
+loop count with a finite one. The native policy and existing regression cases
+now cover feed/detail parity, playback beyond multiple iterations, and pausing
+after multiple iterations. These follow-up checks were also not executed;
+configure/build/test remain deferred to the user.

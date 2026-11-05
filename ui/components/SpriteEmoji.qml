@@ -20,6 +20,7 @@ Item {
     property bool explicitRetry: false
     property var spriteData: ({})
     property string requestedSequence: ""
+    property real framePosition: 0
     readonly property var controller: typeof emojiController !== "undefined" ? emojiController : null
     readonly property bool rendererUsable: root.controller !== null && root.controller.spriteAvailable
         && root.GraphicsInfo.api !== GraphicsInfo.Unknown
@@ -32,10 +33,19 @@ Item {
         // Deactivation pauses playback, but must not release the painted frame.
         && (root.active || root.preserveArtwork)
     readonly property bool animationReady: !root.requestFailed && !root.playbackFinished
-        && atlas.status === Image.Ready && spriteLoader.item !== null
-    readonly property bool loading: root.artworkWanted && !root.animationReady && !root.requestFailed
-    readonly property int playbackLoops: root.reducedMotion || !root.active ? 0
-        : root.controller !== null ? root.controller.playbackLoops(root.surface, false, true, root.artworkWanted) : 0
+        && root.rendererUsable && atlas.status === Image.Ready
+    readonly property bool loading: root.artworkWanted && !root.animationReady
+        && !root.requestFailed && !root.playbackFinished
+    // Configure the lifetime of a playback independently from pause/resume.
+    readonly property int configuredLoops: root.controller !== null
+        ? root.controller.playbackLoops(root.surface, false, true, true) : 0
+    readonly property bool motionActive: root.active && !root.reducedMotion
+        && root.visible && root.viewportVisible
+        && Qt.application.state === Qt.ApplicationActive
+    readonly property int frameSize: Math.max(1, Number(root.spriteData.frameSize || 96))
+    readonly property int frameCount: Math.max(1, Number(root.spriteData.frameCount || 1))
+    readonly property int frameDuration: Math.max(1, Number(root.spriteData.frameDuration || 40))
+    readonly property int frameIndex: Math.min(root.frameCount - 1, Math.floor(root.framePosition))
 
     function syncInterest() {
         const wantedSequence = root.artworkWanted ? root.unicodeSequence : ""
@@ -125,6 +135,7 @@ Item {
     onArtworkWantedChanged: Qt.callLater(root.syncInterest)
     onUnicodeSequenceChanged: {
         root.spriteData = ({})
+        root.framePosition = 0
         root.requestFailed = false
         root.playbackFinished = false
         root.failureReason = ""
@@ -165,53 +176,44 @@ Item {
         }
     }
 
-    // Warm the exact URL at its natural size on Qt's image-loading thread.
-    Image {
-        id: atlas
-        visible: false
-        asynchronous: true
-        cache: true
-        source: root.artworkWanted || root.retainLoadedRenderer
-            ? String(root.spriteData.source || "") : ""
-        onStatusChanged: if (status === Image.Error) {
-            // console.warn("Genycaster emoji", root.unicodeSequence, "image: prepared atlas could not be loaded")
-            root.fail("image: prepared atlas could not be loaded")
+    // Paint the same Image whose readiness we observe. A hidden preload Image
+    // cannot establish that AnimatedSprite has assembled/uploaded its texture.
+    // Move the cached sheet under a fixed clip: no per-frame decode, source
+    // changes, delegate recreation or stopped multi-row sprite UV calculation.
+    Item {
+        id: frameViewport
+        anchors.fill: parent
+        clip: true
+        opacity: root.animationReady ? 1 : 0
+        Image {
+            id: atlas
+            readonly property int columns: Math.max(1, Math.floor(sourceSize.width / root.frameSize))
+            width: frameViewport.width * sourceSize.width / root.frameSize
+            height: frameViewport.height * sourceSize.height / root.frameSize
+            x: -(root.frameIndex % columns) * frameViewport.width
+            y: -Math.floor(root.frameIndex / columns) * frameViewport.height
+            asynchronous: true
+            cache: true
+            smooth: true
+            source: root.artworkWanted || root.retainLoadedRenderer
+                ? String(root.spriteData.source || "") : ""
+            onStatusChanged: {
+                if (status === Image.Error)
+                    root.fail("image: prepared atlas could not be loaded")
+            }
         }
     }
 
-    Loader {
-        id: spriteLoader
-        anchors.fill: parent
-        // Keep the final state resident for a cheap reverse scroll, but let
-        // the caller's always-available Unicode fallback paint after a
-        // one-shot finishes. The loader must not mask it with blank pixels.
-        opacity: root.animationReady ? 1 : 0
-        active: root.rendererUsable && atlas.status === Image.Ready
-                && root.artworkWanted
-        onStatusChanged: if (status === Loader.Error) {
-            // console.warn("Genycaster emoji", root.unicodeSequence, "renderer: sprite component failed")
-            root.fail("renderer: sprite component failed")
-        }
-        sourceComponent: AnimatedSprite {
-            source: atlas.source
-            frameWidth: Number(root.spriteData.frameSize || 96)
-            frameHeight: frameWidth
-            frameCount: Number(root.spriteData.frameCount || 1)
-            frameDuration: Number(root.spriteData.frameDuration || 40)
-            interpolate: false
-            smooth: true
-            loops: root.playbackLoops < 0 ? AnimatedSprite.Infinite : 1
-            // Qt 6.12's AnimatedSprite::setPaused() logs when it is asked to
-            // pause its internal NumberAnimation before it has started. Never
-            // bind running to the rapidly changing viewport/active state.
-            // Stopping retains the first rendered frame. Recreating the
-            // delegate on focus loss caused the inline glyph to disappear.
-            running: root.playbackLoops !== 0
-            finishBehavior: AnimatedSprite.FinishAtFinalFrame
-            onFinished: {
-                if (root.playbackLoops > 0)
-                    root.playbackFinished = true
-            }
-        }
+    NumberAnimation {
+        id: spritePlayback
+        target: root
+        property: "framePosition"
+        from: 0
+        to: root.frameCount
+        duration: root.frameCount * root.frameDuration
+        loops: root.configuredLoops < 0 ? Animation.Infinite : 1
+        running: root.rendererUsable && atlas.status === Image.Ready && !root.playbackFinished
+        paused: running && !root.motionActive
+        onFinished: root.playbackFinished = true
     }
 }

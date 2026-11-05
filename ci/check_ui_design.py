@@ -636,8 +636,7 @@ if ('id: spriteEmojiLoader' not in rich_inline_text
         or 'asynchronous: true' not in rich_inline_text):
     errors.append('Inline emoji must keep exactly one overlay renderer: sprite fallback is failure-driven, never timer-driven or layered over healthy Lottie')
 animated_emoji_lottie = (ui/'components'/'AnimatedEmojiLottie.qml').read_text(encoding='utf-8')
-if ('root.animations.paused = true' not in animated_emoji_lottie
-        or 'root.animations.paused = false' not in animated_emoji_lottie
+if ('animations.paused: !root.animationActive && !root.playbackCompleted' not in animated_emoji_lottie
         or 'animations.restart()' in animated_emoji_lottie):
     errors.append('Animated emoji scrolling must pause/resume the current VectorImage frame instead of restarting animation on every flick')
 link_preview_resolver = (ui/'mobile'/'link_preview_resolver.cpp').read_text(encoding='utf-8')
