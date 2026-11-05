@@ -83,6 +83,14 @@ int main(int argc, char* argv[])
         {QStringLiteral("pfpUrl"), qtAvatar}
     });
     assert(controller.user().value(QStringLiteral("pfpUrl")).toString() == publicAvatar);
+    controller.setUser({
+        {QStringLiteral("fid"), QVariant::fromValue<qulonglong>(44)},
+        {QStringLiteral("username"), QStringLiteral("example.eth")},
+        {QStringLiteral("pfpUrl"), QStringLiteral("image://remote/v22/profile/auto/")
+            + QString::fromLatin1(publicAvatar.toUtf8().toBase64(
+                QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals))}
+    });
+    assert(controller.user().value(QStringLiteral("pfpUrl")).toString() == publicAvatar);
     const int userSwitchClosures = closeAllRequests;
     controller.setUser({
         {QStringLiteral("fid"), QVariant::fromValue<qulonglong>(44)},
