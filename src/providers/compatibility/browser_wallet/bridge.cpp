@@ -241,7 +241,7 @@ const box=document.getElementById('request'),approve=document.getElementById('ap
 const options=document.getElementById('options'),reject=document.getElementById('reject');
 const method=document.getElementById('method'),params=document.getElementById('params');
 const message=document.getElementById('message'),kind=document.getElementById('kind');
-let current=null,busy=false,selected=null,listeners=[];
+let current=null,busy=false,selected=null,listeners=[],undelivered=null;
 const providers=[];
 const events=['accountsChanged','chainChanged','connect','disconnect','message'];
 const show=(msg,level='')=>{status.className=level;status.textContent=msg;};
