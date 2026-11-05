@@ -901,7 +901,11 @@ void RemoteImageProvider::Impl::start(
     }
     // A deliberate user tap is an explicit retry intent and must not be
     // suppressed by the short automatic-failure backoff window.
-    if (!manual && (requestIsBackedOff(urlText) || originTemporarilyForbidden(urlText))) {
+    // The 'manual' descriptor also covers UI-critical force-auto media.
+    // Neither mode may bypass an origin-wide 401/403 cooldown: otherwise
+    // recycled forced-cover/avatar items would continue hammering private R2.
+    if (originTemporarilyForbidden(urlText)
+        || (!manual && requestIsBackedOff(urlText))) {
         deliverResponse(control, transparentFailureImage(nullptr));
         return;
     }
@@ -962,7 +966,7 @@ void RemoteImageProvider::Impl::startNetwork(
         return;
     }
     // Do not keep retrying other automatic asset URLs on a private R2/CDN origin.
-    if (!manual && originTemporarilyForbidden(urlText)) {
+    if (originTemporarilyForbidden(urlText)) {
         deliverResponse(control, transparentFailureImage(nullptr));
         return;
     }
