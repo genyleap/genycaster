@@ -13,7 +13,8 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     property string featureLabel: ""
-    readonly property var membership: openProofConnections.proEntitlements || ({})
+    readonly property var membership: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property int minimumGeny: Math.max(1, Number(membership.minimum_geny || 16000))
     width: parent ? Math.min(Theme.scaleUi(380), parent.width - Theme.space4 * 2)
                   : Theme.scaleUi(360)
@@ -93,7 +94,7 @@ Popup {
                 iconGlyph: Theme.iconRefresh
                 text: qsTrId("genycaster.pro.check_status")
                 onClicked: {
-                    openProofConnections.fetchProEntitlements(true)
+                    if (openProofConnections) openProofConnections.fetchProEntitlements(true)
                     root.close()
                 }
             }
