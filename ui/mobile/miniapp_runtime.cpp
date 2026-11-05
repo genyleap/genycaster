@@ -1241,6 +1241,20 @@ private:
         const QString type = message.value(QStringLiteral("type")).toString();
         if (type == QStringLiteral("GET") && path.size() == 1
             && path.first().toString() == QStringLiteral("context")) {
+            // The public PFP can arrive after the initial Farcaster account
+            // restore. A launch-time JSON snapshot would permanently omit it
+            // from this Mini App even after the profile finished hydrating.
+            // Refresh only the user for the SAME FID; never expose another
+            // account's identity to an already-open third-party document.
+            const QJsonObject currentUser = QJsonObject::fromVariantMap(m_controller.user());
+            const double currentFid = currentUser.value(QStringLiteral("fid")).toDouble();
+            const double sessionFid = session.context.value(QStringLiteral("user"))
+                                          .toObject().value(QStringLiteral("fid")).toDouble();
+            if (currentFid <= 0.0 || currentFid != sessionFid) {
+                reject(QStringLiteral("Mini App account context is no longer valid"));
+                return;
+            }
+            session.context.insert(QStringLiteral("user"), currentUser);
             session.browser->reply(rawResponse(id, session.context), document);
             return;
         }
