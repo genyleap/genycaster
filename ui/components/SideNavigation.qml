@@ -53,7 +53,7 @@ Rectangle {
     // Fetch verified activity when a session is ready, even before opening Profile.
     property double streakRequestedFid: 0
     function requestSidebarStreak() {
-        if(!root.isAuthenticated || !openProofConnections.cloudAuthorizationReady
+        if(!root.isAuthenticated || !openProofConnections || !openProofConnections.cloudAuthorizationReady
             || Number(root.accountFid)<=0 || openProofConnections.streakBusy)
             return
         if(root.streakRequestedFid===Number(root.accountFid))
@@ -71,7 +71,7 @@ Rectangle {
     }
     Component.onCompleted: requestSidebarStreak()
     Connections {
-        target: openProofConnections
+        target: openProofConnections ? openProofConnections : null
         function onStateChanged() { root.requestSidebarStreak() }
     }
 
@@ -289,7 +289,7 @@ Rectangle {
             verified: root.ownsProfileDetail && Boolean(root.profileDetail.verified || false)
             following: root.profileFollowing
             followers: root.profileFollowers
-            streakSnapshot: openProofConnections.streak
+            streakSnapshot: openProofConnections ? openProofConnections.streak : ({})
             loading: root.profileLoading || (root.isAuthenticated && !root.ownsProfileDetail)
             compact: true
             onProfileRequested: root.profileRequested()
