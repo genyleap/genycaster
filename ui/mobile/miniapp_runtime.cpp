@@ -448,6 +448,7 @@ private:
         bool ready{};
         bool failed{};
         bool pendingSignIn{};
+        quint64 signInSequence{};
         QHash<QString, PendingCompose> pendingCompose{};
     };
 
@@ -1594,12 +1595,14 @@ private:
     }
 
     void finishSignIn(const QString& taskId, const quint64 generation,
-                      const QString& document, const QJsonValue& id,
+                      const quint64 sequence, const QString& document,
+                      const QJsonValue& id,
                       const QString& message = {}, const QString& signature = {},
                       const bool authAddress = false)
     {
         Session* const session = find(taskId);
         if (!session || !session->pendingSignIn
+            || session->signInSequence != sequence
             || session->documentGeneration != generation
             || session->documentToken != document || !session->browser) return;
         session->pendingSignIn = false;
@@ -1697,20 +1700,22 @@ private:
             return;
         }
         session.pendingSignIn = true;
-        QTimer::singleShot(180'000, this, [this, taskId, generation, document, id] {
-            finishSignIn(taskId, generation, document, id);
-        });
+        const quint64 sequence = ++session.signInSequence;
+        QTimer::singleShot(180'000, this,
+            [this, taskId, generation, sequence, document, id] {
+                finishSignIn(taskId, generation, sequence, document, id);
+            });
         requestSignInWallet(capability::wallet::EthereumRpcRequest{
             .id = ++m_nextSignInRpcId, .method = "eth_requestAccounts",
             .paramsJson = "[]",
-        }, [taskId, generation, document, id, nonce, fid, appUrl,
+        }, [taskId, generation, sequence, document, id, nonce, fid, appUrl,
             expires, notBefore, now, acceptAuthAddress](
                 Impl& runtime, capability::wallet::EthereumRpcResponse response) {
             Session* const active = runtime.find(taskId);
             if (!active || !active->pendingSignIn || !active->foreground
                 || active->documentGeneration != generation
                 || active->documentToken != document || response.error) {
-                runtime.finishSignIn(taskId, generation, document, id);
+                runtime.finishSignIn(taskId, generation, sequence, document, id);
                 return;
             }
             const QJsonValue accounts = parseJsonValue(response.resultJson);
@@ -1720,7 +1725,7 @@ private:
             static const QRegularExpression validAddress{
                 QStringLiteral("^0x[0-9a-fA-F]{40}$")};
             if (!validAddress.match(account).hasMatch()) {
-                runtime.finishSignIn(taskId, generation, document, id);
+                runtime.finishSignIn(taskId, generation, sequence, document, id);
                 return;
             }
             const QString domain = appUrl.host().toLower();
@@ -1746,20 +1751,20 @@ private:
                 .method = "personal_sign",
                 .paramsJson = QJsonDocument(params)
                     .toJson(QJsonDocument::Compact).toStdString(),
-            }, [taskId, generation, document, id, nonce, fid, domain, uri,
+            }, [taskId, generation, sequence, document, id, nonce, fid, domain, uri,
                 siwe, acceptAuthAddress](Impl& owner,
                      capability::wallet::EthereumRpcResponse signedResponse) {
                 Session* const current = owner.find(taskId);
                 if (!current || !current->pendingSignIn
                     || current->documentGeneration != generation
                     || current->documentToken != document || signedResponse.error) {
-                    owner.finishSignIn(taskId, generation, document, id);
+                    owner.finishSignIn(taskId, generation, sequence, document, id);
                     return;
                 }
                 const QString signature = parseJsonValue(signedResponse.resultJson).toString();
                 if (!signature.startsWith(QStringLiteral("0x"))
                     || signature.size() < 132 || signature.size() > 2048) {
-                    owner.finishSignIn(taskId, generation, document, id);
+                    owner.finishSignIn(taskId, generation, sequence, document, id);
                     return;
                 }
                 // Verification is blocking RPC/crypto work: perform it away
@@ -1769,7 +1774,7 @@ private:
                 const bool direct = owner.m_useDirectProxy;
                 const std::string rpc = owner.m_optimismRpcUrl;
                 QThreadPool::globalInstance()->start(
-                    [weakGate, direct, rpc, taskId, generation, document, id,
+                    [weakGate, direct, rpc, taskId, generation, sequence, document, id,
                      nonce, fid, domain, uri, siwe, signature, acceptAuthAddress] {
                     auto transport = farcaster::transport::qtnetwork::makeTransport(
                         direct ? farcaster::transport::qtnetwork::ProxyPolicy::Direct
@@ -1793,13 +1798,13 @@ private:
                     if (!gate->runtime) return;
                     Impl* const runtime = gate->runtime;
                     QMetaObject::invokeMethod(runtime,
-                        [runtime, taskId, generation, document, id, siwe, signature,
+                        [runtime, taskId, generation, sequence, document, id, siwe, signature,
                          verified, authAddress] {
                             if (verified)
                                 runtime->finishSignIn(taskId, generation, document,
                                     id, siwe, signature, authAddress);
                             else
-                                runtime->finishSignIn(taskId, generation, document, id);
+                                runtime->finishSignIn(taskId, generation, sequence, document, id);
                         }, Qt::QueuedConnection);
                 });
             });
