@@ -347,6 +347,8 @@ public:
         const QString& kind, qulonglong targetAuthorFid, const QString& targetCastId, bool active);
     /** @brief Adds or removes the authenticated account's follow link to targetFid. */
     Q_INVOKABLE void setFollowing(qulonglong targetFid, bool following);
+    /** @brief Publishes a canonical Block/Unblock against the selected protocol node. */
+    Q_INVOKABLE void setBlocked(qulonglong targetFid, bool blocked);
     /** @brief Deletes one cast only when its author is the authenticated account. */
     Q_INVOKABLE void removeCast(qulonglong authorFid, const QString& castId);
 
@@ -442,6 +444,8 @@ public:
      * Local follow mutations take precedence; absent results are ignored.
      */
     void applySearchFollowing(qulonglong fid, bool following);
+    /** @brief Records confirmed protocol Link(type=block) state by direction. */
+    void applyProfileBlockRelation(qulonglong fid, bool outgoing, bool blocked);
     /** @brief Loads deterministic content for smoke and visual verification only. */
     void applyVerificationFixture();
 
@@ -505,6 +509,7 @@ signals:
     void publishThreadRequested(QVariantList casts, qulonglong parentAuthorFid, QString parentCastId);
     void reactionRequested(QString kind, qulonglong targetAuthorFid, QString targetCastId, bool active);
     void followingMutationRequested(qulonglong targetFid, bool following);
+    void blockingMutationRequested(qulonglong targetFid, bool blocked);
     void protocolProfileUpdateRequested(QVariantMap fields);
     /** @brief Terminal confirmation for the user's protocol profile operation only. */
     void protocolProfileWriteCompleted(bool confirmed, QString message);
@@ -566,6 +571,11 @@ private:
     QHash<QString, quint8> m_viewerReactionKnownStates{};
     QVariantMap m_reactionOverrides{};
     QVariantMap m_followOverrides{};
+    // Account-scoped verified block link evidence, never inferred from 404s
+    // of an unrelated endpoint or the absence of a profile.
+    QVariantMap m_blockByMeSnapshot{};
+    QVariantMap m_blocksMeSnapshot{};
+    QVariantMap m_blockOverrides{};
     QVariantList m_followingStoryProfiles{};
     QHash<qulonglong, QVariantMap> m_followingStoryActivity{};
     qulonglong m_followingStoriesViewerFid{};
