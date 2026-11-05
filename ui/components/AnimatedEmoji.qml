@@ -162,6 +162,12 @@ Item {
         viewportTimer.restart()
         requestTimer.restart()
     }
+    onParentChanged: {
+        // A pooled ListView or detail drawer can reparent inline artwork.
+        // Never keep viewport/clip references from the previous surface.
+        root.resolveHosts()
+        viewportTimer.restart()
+    }
     onXChanged: viewportTimer.restart()
     onYChanged: viewportTimer.restart()
     onWidthChanged: viewportTimer.restart()
