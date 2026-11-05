@@ -1378,7 +1378,10 @@ Item {
                                 focus: true
                                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                                 background: PopupSurface { curveDepth: Theme.curveContainer }
-                                onClosed: menuCopyCloseTimer.stop()
+                                onClosed: {
+                                    menuCopyCloseTimer.stop()
+                                    copyProfileLinkAction.clearCopyFeedback()
+                                }
                                 Timer {
                                     id: menuCopyCloseTimer
                                     interval: 1100
