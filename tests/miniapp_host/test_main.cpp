@@ -46,6 +46,29 @@ int main(int argc, char* argv[])
             return 2;
         }
     }
+    // Pro allows up to four isolated native documents; invalid or oversized
+    // grants must not bypass the bounded resource ceiling.
+    assert(controller.sessionLimit() == 1);
+    controller.setSessionLimit(8);
+    assert(controller.sessionLimit() == 4);
+    controller.setSessionLimit(0);
+    assert(controller.sessionLimit() == 1);
+
+    // A minimized Mini App has active() == false, but its browser/wallet
+    // document is still alive. Switching FIDs must revoke that session.
+    int closeAllRequests{};
+    QObject::connect(&controller, &MiniAppHostController::closeAllRequested,
+                     &application, [&closeAllRequests] { ++closeAllRequests; });
+    controller.setUser({{QStringLiteral("fid"), QVariant::fromValue<qulonglong>(42)}});
+    closeAllRequests = 0;
+    controller.setState(false);
+    controller.setUser({{QStringLiteral("fid"), QVariant::fromValue<qulonglong>(43)}});
+    assert(closeAllRequests == 1);
+    controller.setUser({{QStringLiteral("fid"), QVariant::fromValue<qulonglong>(43)}});
+    assert(closeAllRequests == 1);
+    controller.setUser({});
+    assert(closeAllRequests == 2);
+
     // A valid external HTTPS origin is still not a sign-in credential.
     // Without an authenticated FID, the controller must not open a browser.
     controller.openWithMetadata(
