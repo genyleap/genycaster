@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet} from '../../ui/wasm/miniapp-wallet-provider.mjs';
+import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet,walletApprovalCopy} from '../../ui/wasm/miniapp-wallet-provider.mjs';
 import {readFileSync} from 'node:fs';
 
 function fakeWallet(){
@@ -127,4 +127,50 @@ test('EIP-6963 registry lets the user choose among actual injected providers',as
   wallet.dispose();
   registry.dispose();
   assert.equal(registry.available(),false);
+});
+
+
+test('wallet approval follows the active Persian and Arabic direction without changing origin',()=>{
+  for(const lang of ['fa-IR','ar-SA']){
+    const copy=walletApprovalCopy(lang);
+    assert.equal(copy.direction,'rtl');
+    assert.notEqual(copy.cancel,'Cancel');
+    assert.notEqual(copy.title,'Connect wallet');
+    assert.ok(copy.question.length>8);
+  }
+  assert.equal(walletApprovalCopy('en-US').direction,'ltr');
+  assert.equal(walletApprovalCopy('zh-CN').direction,'ltr');
+  assert.equal(walletApprovalCopy('xx').title,'Connect wallet');
+  const source=readFileSync(new URL('../../ui/wasm/miniapp-wallet-provider.mjs',import.meta.url),'utf8');
+  assert.match(source,/window\.__genycasterPreferredLanguage/);
+  assert.match(source,/panel\.setAttribute\('dir',copy\.direction\)/);
+  assert.match(source,/appOrigin\.textContent=origin/);
+  assert.match(source,/appOrigin\.setAttribute\('dir','ltr'\)/);
+  assert.match(source,/panel\.append\(title,appOrigin,details\)/);
+  assert.doesNotMatch(source,/WalletConnect.*enabled:\s*true/);
+});
+
+test('native Mini App toolbar titles take the remaining span instead of collapsing to ellipses',()=>{
+  const native=readFileSync(new URL('../../ui/mobile/miniapp_browser_macos.mm',import.meta.url),'utf8');
+  assert.match(native,/\[identity\.leadingAnchor constraintEqualToAnchor:m_back\.trailingAnchor constant:8\]/);
+  assert.match(native,/\[identity\.trailingAnchor constraintEqualToAnchor:reload\.leadingAnchor constant:-8\]/);
+  assert.doesNotMatch(native,/identity\.centerXAnchor constraintEqualToAnchor:toolbar\.centerXAnchor/);
+});
+
+test('wallet chooser uses translated IDs in all locales and direction-aware controls',()=>{
+  const source=readFileSync(new URL('../../ui/components/WalletBrowserPicker.qml',import.meta.url),'utf8');
+  const ids=['browser_title','default_browser','previous_browser','last_used',
+    'approval_hint','cancel','browser_open_failed'];
+  for(const id of ids){
+    const full='genycaster.wallet.'+id;
+    for(const locale of ['en_US','fa_IR','ar_SA','de_DE','ja_JP','ko_KR',
+      'zh_CN','hi_IN','es_ES','fr_FR','pt_BR','ru_RU']){
+      const catalog=readFileSync(new URL('../../ui/i18n/qml_'+locale+'.ts',import.meta.url),'utf8');
+      assert.ok(catalog.includes('<message id="'+full+'">'),locale+' missing '+id);
+    }
+    if(id!=='browser_open_failed')assert.ok(source.includes(full));
+  }
+  assert.match(source,/layoutDirection: Theme\.uiDirection/);
+  assert.match(source,/Theme\.rtl \? Theme\.iconArrowLeft : Theme\.iconArrowRight/);
+  assert.match(source,/forceLeftToRight: true/);
 });
