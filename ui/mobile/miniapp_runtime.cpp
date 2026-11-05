@@ -1713,6 +1713,7 @@ private:
                 Impl& runtime, capability::wallet::EthereumRpcResponse response) {
             Session* const active = runtime.find(taskId);
             if (!active || !active->pendingSignIn || !active->foreground
+                || active->signInSequence != sequence
                 || active->documentGeneration != generation
                 || active->documentToken != document || response.error) {
                 runtime.finishSignIn(taskId, generation, sequence, document, id);
@@ -1756,6 +1757,7 @@ private:
                      capability::wallet::EthereumRpcResponse signedResponse) {
                 Session* const current = owner.find(taskId);
                 if (!current || !current->pendingSignIn
+                    || current->signInSequence != sequence
                     || current->documentGeneration != generation
                     || current->documentToken != document || signedResponse.error) {
                     owner.finishSignIn(taskId, generation, sequence, document, id);
@@ -1801,7 +1803,7 @@ private:
                         [runtime, taskId, generation, sequence, document, id, siwe, signature,
                          verified, authAddress] {
                             if (verified)
-                                runtime->finishSignIn(taskId, generation, document,
+                                runtime->finishSignIn(taskId, generation, sequence, document,
                                     id, siwe, signature, authAddress);
                             else
                                 runtime->finishSignIn(taskId, generation, sequence, document, id);
