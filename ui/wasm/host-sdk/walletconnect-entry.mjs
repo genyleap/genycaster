@@ -91,7 +91,7 @@ export async function connectWalletConnect({onUri,onStatus,signal}={}){
   };
   const onDisplayUri=uri=>{
     if(cancelled||signal?.aborted||typeof uri!=='string'||
-        !/^wc:[a-zA-Z0-9-]+@2\\?/.test(uri)||uri.length>4096)return;
+        !/^wc:[a-zA-Z0-9-]+@2\?/.test(uri)||uri.length>4096)return;
     if(pairingUriReceived)return;
     pairingUriReceived=true;
     onUri?.(uri);
