@@ -99,10 +99,10 @@ public:
     /** @brief Laid-out content height in item coordinates. */
     [[nodiscard]] qreal contentHeight() const noexcept;
 
-    /** @brief Emoji boxes in item coordinates: [{sequence,x,y,width,height}]. */
+    /** @brief Emoji boxes in item coordinates, including a layout generation. */
     [[nodiscard]] QVariantList emojiRects() const;
     /** @brief Suppresses one inline glyph only while its animation replaces it; layout is unchanged. */
-    Q_INVOKABLE void setEmojiAnimated(int position, bool animated);
+    Q_INVOKABLE void setEmojiAnimated(int position, int generation, bool animated);
     [[nodiscard]] QString selectedText() const;
     [[nodiscard]] QPointF selectionMenuPosition() const noexcept;
     [[nodiscard]] QRectF selectionStartRect() const;
