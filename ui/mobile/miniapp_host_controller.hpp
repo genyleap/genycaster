@@ -18,6 +18,10 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
     Q_PROPERTY(bool walletBrowserPickerActive READ walletBrowserPickerActive NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(bool walletBrowserWaiting READ walletBrowserWaiting NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(QString walletBrowserAppName READ walletBrowserAppName NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(QString walletBrowserOrigin READ walletBrowserOrigin NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(QString walletBrowserSelectedName READ walletBrowserSelectedName NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QVariantList walletBrowserOptions READ walletBrowserOptions NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QString walletBrowserError READ walletBrowserError NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QString presentationMode READ presentationMode NOTIFY presentationModeChanged)
@@ -32,10 +36,20 @@ public:
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString launchUrl() const;
     [[nodiscard]] bool walletBrowserPickerActive() const noexcept;
+    [[nodiscard]] bool walletBrowserWaiting() const noexcept;
+    [[nodiscard]] QString walletBrowserAppName() const;
+    [[nodiscard]] QString walletBrowserOrigin() const;
+    [[nodiscard]] QString walletBrowserSelectedName() const;
     [[nodiscard]] QVariantList walletBrowserOptions() const;
     [[nodiscard]] QString walletBrowserError() const;
-    /** GUI-thread request from the external EVM wallet transport, never from a Mini App document. */
+    /** Trusted runtime supplies the visible Mini App identity for wallet consent. */
+    void setWalletBrowserContext(const QString& appName, const QString& origin);
+    /** GUI-thread request from the EVM transport, never from Mini App JS. */
     void requestWalletBrowser(const QString& localSessionUrl);
+    /** Clear a stale chooser when runtime focus/document authority changes. */
+    void walletBrowserSessionEnded();
+    /** A wallet RPC settled; dismiss waiting and remember only a successful choice. */
+    void walletBrowserRequestFinished(bool successful);
     Q_INVOKABLE void chooseWalletBrowser(const QString& browserId);
     Q_INVOKABLE void cancelWalletBrowser();
     /** @brief Returns window/bottom/left/right; physical directions are locale-independent. */
@@ -89,6 +103,8 @@ signals:
     void userChanged();
     void sessionLimitChanged();
     void walletBrowserPickerChanged();
+    /** Cancel the wallet RPC only; do not terminate the Mini App host. */
+    void walletBrowserCancelRequested();
     void presentationModeChanged();
 private:
     QSettings& m_settings;
@@ -101,6 +117,11 @@ private:
     QString m_launchUrl{};
     QString m_walletBrowserSessionUrl{};
     QString m_walletBrowserError{};
+    QString m_walletBrowserAppName{};
+    QString m_walletBrowserOrigin{};
+    QString m_walletBrowserSelectedId{};
+    QString m_walletBrowserSelectedName{};
+    bool m_walletBrowserWaiting{};
     QVariantList m_walletBrowserOptions{};
     QVariantMap m_user{};
 #if defined(__EMSCRIPTEN__)

@@ -175,8 +175,17 @@ MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& s
 }
 bool MiniAppHostController::walletBrowserPickerActive() const noexcept
 {
-    return !m_walletBrowserSessionUrl.isEmpty();
+    return !m_walletBrowserSessionUrl.isEmpty() && !m_walletBrowserWaiting;
 }
+
+bool MiniAppHostController::walletBrowserWaiting() const noexcept
+{
+    return !m_walletBrowserSessionUrl.isEmpty() && m_walletBrowserWaiting;
+}
+
+QString MiniAppHostController::walletBrowserAppName() const { return m_walletBrowserAppName; }
+QString MiniAppHostController::walletBrowserOrigin() const { return m_walletBrowserOrigin; }
+QString MiniAppHostController::walletBrowserSelectedName() const { return m_walletBrowserSelectedName; }
 
 QVariantList MiniAppHostController::walletBrowserOptions() const
 {
@@ -188,44 +197,89 @@ QString MiniAppHostController::walletBrowserError() const
     return m_walletBrowserError;
 }
 
+void MiniAppHostController::setWalletBrowserContext(
+    const QString& appName, const QString& origin)
+{
+    m_walletBrowserAppName = appName.left(80);
+    m_walletBrowserOrigin = origin.left(512);
+    emit walletBrowserPickerChanged();
+}
+
+void MiniAppHostController::walletBrowserSessionEnded()
+{
+    const bool changed = !m_walletBrowserSessionUrl.isEmpty()
+        || m_walletBrowserWaiting || !m_walletBrowserError.isEmpty();
+    m_walletBrowserSessionUrl.clear();
+    m_walletBrowserSelectedId.clear();
+    m_walletBrowserSelectedName.clear();
+    m_walletBrowserWaiting = false;
+    m_walletBrowserError.clear();
+    m_walletBrowserAppName.clear();
+    m_walletBrowserOrigin.clear();
+    if (changed) emit walletBrowserPickerChanged();
+}
+
+void MiniAppHostController::walletBrowserRequestFinished(const bool successful)
+{
+    if (m_walletBrowserSessionUrl.isEmpty()) return;
+    // Opening an executable is not proof that its wallet was usable:
+    // remember the preference only after the real wallet replied successfully.
+    if (successful && !m_walletBrowserSelectedId.isEmpty()
+        && m_walletBrowserSelectedId != QStringLiteral("system")) {
+        m_settings.setValue(QStringLiteral("miniapps/walletBrowserChoice"),
+                            m_walletBrowserSelectedId);
+    }
+    m_walletBrowserSessionUrl.clear();
+    m_walletBrowserWaiting = false;
+    m_walletBrowserError.clear();
+    m_walletBrowserSelectedId.clear();
+    m_walletBrowserSelectedName.clear();
+    emit walletBrowserPickerChanged();
+}
+
 void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
 {
-    if (!safeWalletSessionUrl(localSessionUrl)) return;
+    // A launch callback can arrive after a Mini App was dismissed or
+    // switched; its session URL must not resurrect a stale wallet picker.
+    if (m_walletBrowserAppName.isEmpty() || !safeWalletSessionUrl(localSessionUrl))
+        return;
+    if (m_walletBrowserSessionUrl == localSessionUrl)
+        return;
     m_walletBrowserSessionUrl = localSessionUrl;
+    m_walletBrowserWaiting = false;
     m_walletBrowserError.clear();
+    m_walletBrowserSelectedId.clear();
+    m_walletBrowserSelectedName.clear();
     m_walletBrowserOptions.clear();
     const auto candidates = installedWalletBrowsers();
     for (const auto& candidate : candidates) {
         m_walletBrowserOptions.append(QVariantMap{
             {QStringLiteral("id"), candidate.id},
             {QStringLiteral("label"), candidate.label},
+            {QStringLiteral("icon"), candidate.id},
         });
     }
-    // Never silently send the request to Safari. The system-default browser
-    // is offered only as an explicitly selected last resort.
     m_walletBrowserOptions.append(QVariantMap{
         {QStringLiteral("id"), QStringLiteral("system")},
-        {QStringLiteral("label"), QStringLiteral("Default browser (wallet may be unavailable")},
+        {QStringLiteral("label"), QStringLiteral("Default browser")},
+        {QStringLiteral("icon"), QStringLiteral("system")},
     });
-    emit walletBrowserPickerChanged();
-    // Keep the picker available on every request: a browser can have its
-    // extension removed or locked between launches. Remembering the choice
-    // never proves wallet availability and must not trap users in one browser.
-    const QString previous = m_settings.value(QStringLiteral("miniapps/walletBrowserChoice")).toString();
+
+    const QString previous = m_settings.value(
+        QStringLiteral("miniapps/walletBrowserChoice")).toString();
     if (!previous.isEmpty() && previous != QStringLiteral("system")) {
         for (qsizetype index = 0; index < m_walletBrowserOptions.size(); ++index) {
             const auto option = m_walletBrowserOptions.at(index).toMap();
             if (option.value(QStringLiteral("id")).toString() == previous) {
                 m_walletBrowserOptions.removeAt(index);
                 auto labeled = option;
-                labeled.insert(QStringLiteral("label"), option.value(QStringLiteral("label")).toString()
-                    + QStringLiteral(" · Last used"));
+                labeled.insert(QStringLiteral("lastUsed"), true);
                 m_walletBrowserOptions.prepend(labeled);
                 break;
             }
         }
-        emit walletBrowserPickerChanged();
     }
+    emit walletBrowserPickerChanged();
 }
 
 void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
@@ -239,13 +293,16 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
     const auto candidates = installedWalletBrowsers();
     const QUrl url{m_walletBrowserSessionUrl, QUrl::StrictMode};
     bool launched = false;
+    QString selectedName{};
     if (browserId == QStringLiteral("system")) {
+        selectedName = QStringLiteral("default browser");
         launched = QDesktopServices::openUrl(url);
     } else {
         const auto selected = std::ranges::find_if(candidates, [&browserId](const auto& item) {
             return item.id == browserId;
         });
         if (selected == candidates.end()) return;
+        selectedName = selected->label;
 #if defined(Q_OS_MACOS)
         launched = QProcess::startDetached(QStringLiteral("/usr/bin/open"),
             {QStringLiteral("-a"), selected->executable, url.toString(QUrl::FullyEncoded)});
@@ -255,12 +312,15 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
 #endif
     }
     if (!launched) {
-        m_walletBrowserError = QStringLiteral("Could not open the selected browser. Choose another browser.");
+        m_walletBrowserError = QStringLiteral("Could not open this browser. Try another one.");
         emit walletBrowserPickerChanged();
         return;
     }
-    m_settings.setValue(QStringLiteral("miniapps/walletBrowserChoice"), browserId);
-    m_walletBrowserSessionUrl.clear();
+    // Do not discard the session token or dismiss the pending RPC here.
+    // The same Mini App stays alive until wallet response/cancel/timeout.
+    m_walletBrowserSelectedId = browserId;
+    m_walletBrowserSelectedName = selectedName;
+    m_walletBrowserWaiting = true;
     m_walletBrowserError.clear();
     emit walletBrowserPickerChanged();
 #endif
@@ -268,12 +328,16 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
 
 void MiniAppHostController::cancelWalletBrowser()
 {
-    if (!walletBrowserPickerActive()) return;
+    if (m_walletBrowserSessionUrl.isEmpty()) return;
     m_walletBrowserSessionUrl.clear();
+    m_walletBrowserWaiting = false;
     m_walletBrowserError.clear();
+    m_walletBrowserSelectedId.clear();
+    m_walletBrowserSelectedName.clear();
     emit walletBrowserPickerChanged();
-    // Closing the foreground Mini App invalidates its pending wallet session.
-    close();
+    // User cancellation rejects the current wallet request but must NEVER
+    // close the entire native Mini App or its unrelated browser window.
+    emit walletBrowserCancelRequested();
 }
 
 QString MiniAppHostController::presentationMode() const { return m_presentationMode; }

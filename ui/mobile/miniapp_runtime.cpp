@@ -357,6 +357,8 @@ public:
             [this] { terminateForeground(); });
         connect(&m_controller, &MiniAppHostController::closeAllRequested, this,
             [this] { terminateAll(); });
+        connect(&m_controller, &MiniAppHostController::walletBrowserCancelRequested,
+                this, [this] { endWalletSession(); });
         connect(&m_controller, &MiniAppHostController::composeCastCompleted, this,
             [this](const QString& requestId, const QVariantMap& result) {
                 completeComposeCast(requestId, result);
@@ -546,6 +548,7 @@ private:
             m_wallet->endSession();
         }
         m_walletTaskId.clear();
+        m_controller.walletBrowserSessionEnded();
     }
 
     [[nodiscard]] bool useCachedManifest(Session& session, const QUrl& requestedLaunch)
@@ -1033,6 +1036,7 @@ private:
             });
         };
         callbacks.navigationStarted = [this, taskId] {
+            if (m_walletTaskId == taskId) endWalletSession();
             Session* active = find(taskId);
             if (active == nullptr) {
                 return;
@@ -1556,6 +1560,8 @@ private:
             return false;
         }
         m_walletTaskId = session.taskId;
+        m_controller.setWalletBrowserContext(
+            session.title, origin.toString(QUrl::FullyEncoded));
         return true;
     }
 
@@ -1574,12 +1580,13 @@ private:
     // The same already user-approved EIP-1193 wallet transport used by Mini
     // Apps performs each sensitive operation. Never read native signer seeds.
     void requestSignInWallet(
+        const QString& taskId,
         capability::wallet::EthereumRpcRequest request,
         std::function<void(Impl&, capability::wallet::EthereumRpcResponse)> completion)
     {
         const std::weak_ptr<CallbackGate> weakGate = m_callbackGate;
         m_wallet->request(std::move(request),
-            [weakGate, completion = std::move(completion)](
+            [weakGate, taskId, completion = std::move(completion)](
                 capability::wallet::EthereumRpcResponse response) mutable {
                 auto gate = weakGate.lock();
                 if (!gate) return;
@@ -1587,8 +1594,10 @@ private:
                 if (!gate->runtime) return;
                 Impl* const runtime = gate->runtime;
                 QMetaObject::invokeMethod(runtime,
-                    [runtime, completion = std::move(completion),
+                    [runtime, taskId, completion = std::move(completion),
                      response = std::move(response)]() mutable {
+                        if (runtime->m_walletTaskId == taskId)
+                            runtime->m_controller.walletBrowserRequestFinished(!response.error);
                         completion(*runtime, std::move(response));
                     }, Qt::QueuedConnection);
             });
@@ -1710,7 +1719,7 @@ private:
             [this, taskId, generation, sequence, document, id] {
                 finishSignIn(taskId, generation, sequence, document, id);
             });
-        requestSignInWallet(capability::wallet::EthereumRpcRequest{
+        requestSignInWallet(taskId, capability::wallet::EthereumRpcRequest{
             .id = ++m_nextSignInRpcId, .method = "eth_requestAccounts",
             .paramsJson = "[]",
         }, [taskId, generation, sequence, document, id, nonce, fid, appUrl,
@@ -1753,7 +1762,7 @@ private:
             const QString encoded = QStringLiteral("0x")
                 + QString::fromLatin1(siwe.toUtf8().toHex());
             const QJsonArray params{encoded, account};
-            runtime.requestSignInWallet(capability::wallet::EthereumRpcRequest{
+            runtime.requestSignInWallet(taskId, capability::wallet::EthereumRpcRequest{
                 .id = ++runtime.m_nextSignInRpcId,
                 .method = "personal_sign",
                 .paramsJson = QJsonDocument(params)
@@ -1926,6 +1935,8 @@ private:
                             || active->documentGeneration != documentGeneration) {
                             return;
                         }
+                        if (runtime->m_walletTaskId == taskId)
+                            runtime->m_controller.walletBrowserRequestFinished(!response.error);
                         QJsonObject rpcResponse{
                             {QStringLiteral("jsonrpc"), QStringLiteral("2.0")},
                             {QStringLiteral("id"), static_cast<double>(response.id)},

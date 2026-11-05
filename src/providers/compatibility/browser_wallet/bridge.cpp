@@ -531,6 +531,14 @@ public:
                         && request.method != "wallet_getCapabilities"))) {
                 immediateError = rpcError(
                     request.id, 4100, "Connect your wallet to this Mini App before requesting this operation.");
+            } else if (!m_pageLaunched
+                && request.method != "eth_requestAccounts"
+                && request.method != "wallet_requestPermissions") {
+                // Passive chain discovery / read-only RPC must not launch a
+                // browser and steal focus whenever a Mini App opens. The
+                // wallet's actual chain cannot be fabricated before connect.
+                immediateError = rpcError(
+                    request.id, 4900, "Connect a wallet before making this request.");
             } else if (m_pending.size() >= MaximumQueuedRequests) {
                 immediateError = rpcError(request.id, 4900, "Too many wallet requests are pending.");
             } else {
