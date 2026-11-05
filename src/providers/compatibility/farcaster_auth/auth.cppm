@@ -65,6 +65,25 @@ struct RecoveryIdentity final {
     int expiresSeconds{};
 };
 
+/** Verified SIWF proof for one third-party Mini App origin and current FID.
+ * This is an identity credential, NOT a protocol cast/reaction signature.
+ * The wallet must sign the exact EIP-4361 message; Optimism verifies custody
+ * or a currently authorized Farcaster auth address independent of the user's
+ * selected Hypersnap/Snapchain read/write route. */
+struct MiniAppSignInProof final {
+    bool authAddress{};
+};
+[[nodiscard]] foundation::result::Result<MiniAppSignInProof> verifyMiniAppSignIn(
+    transport::http::IHttpTransport& transport,
+    std::string message,
+    std::string signature,
+    std::string expectedDomain,
+    std::string expectedUri,
+    std::string expectedNonce,
+    domain::identity::Fid fid,
+    bool acceptAuthAddress,
+    Config config = {});
+
 /** After IdRegistry verification, request a fresh gateway-bound proof. */
 [[nodiscard]] foundation::result::Result<RecoveryChallenge>
 startRecoveryChallenge(transport::http::IHttpTransport& transport,
