@@ -208,14 +208,23 @@ void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
         {QStringLiteral("label"), QStringLiteral("Default browser (wallet may be unavailable")},
     });
     emit walletBrowserPickerChanged();
-    const QString remembered = m_settings.value(QStringLiteral("miniapps/walletBrowserChoice")).toString();
-    if (remembered != QStringLiteral("system")
-        && std::ranges::any_of(candidates, [&remembered](const auto& candidate) {
-            return candidate.id == remembered;
-        })) {
-        // Only remember the chosen browser, not an unverified wallet or an
-        // approval. Sensitive EVM operations always reach the real wallet.
-        chooseWalletBrowser(remembered);
+    // Keep the picker available on every request: a browser can have its
+    // extension removed or locked between launches. Remembering the choice
+    // never proves wallet availability and must not trap users in one browser.
+    const QString previous = m_settings.value(QStringLiteral("miniapps/walletBrowserChoice")).toString();
+    if (!previous.isEmpty() && previous != QStringLiteral("system")) {
+        for (qsizetype index = 0; index < m_walletBrowserOptions.size(); ++index) {
+            const auto option = m_walletBrowserOptions.at(index).toMap();
+            if (option.value(QStringLiteral("id")).toString() == previous) {
+                m_walletBrowserOptions.removeAt(index);
+                auto labeled = option;
+                labeled.insert(QStringLiteral("label"), option.value(QStringLiteral("label")).toString()
+                    + QStringLiteral(" · Last used"));
+                m_walletBrowserOptions.prepend(labeled);
+                break;
+            }
+        }
+        emit walletBrowserPickerChanged();
     }
 }
 
