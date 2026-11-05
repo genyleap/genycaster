@@ -276,7 +276,7 @@ const options=document.getElementById('options'),reject=document.getElementById(
 const method=document.getElementById('method'),params=document.getElementById('params');
 const message=document.getElementById('message'),kind=document.getElementById('kind');
 let current=null,busy=false,selected=null,listeners=[],undelivered=null;
-let stopped=false, nextTimer=null, lastPromptVisible=false;
+let stopped=false, nextTimer=null, lastConsentResultShown=false;
 const scheduleNext=(delay=750)=>{if(!stopped)nextTimer=setTimeout(poll,delay);};
 const stopPolling=()=>{
   stopped=true;
@@ -374,7 +374,7 @@ const readable=rpc=>{
 const completed=()=>{
   current=null;undelivered=null;busy=false;
   approve.disabled=false;reject.disabled=false;box.hidden=true;
-  lastPromptVisible=false;
+  // Keep the final result visible until the next explicit consent request.
 };
 const execute=async()=>{
   if(!current||busy)return;
@@ -397,9 +397,11 @@ const execute=async()=>{
   const response=undelivered;
   try{
     await post('/result',response);
-    if(showApproval)
+    if(showApproval){
+      lastConsentResultShown=true;
       show(response.error?(response.error.code===4001?'Request declined.':'Wallet request failed.')
         :'Approved. Return to GenyCaster.',response.error?'error':'ok');
+    }
     completed();
   }catch(error){
     busy=false;approve.disabled=false;reject.disabled=false;
@@ -433,7 +435,10 @@ const poll=async()=>{
     if(response.status===404||response.status===410){
       stopPolling();
       box.hidden=true;
-      show('Session ended. Return to GenyCaster.','ok');
+      // A normal hand-off closes its bridge session on the host. Do not
+      // replace the successful acknowledgement with a new status frame.
+      if(!lastConsentResultShown)
+        show('Session ended. Return to GenyCaster.','ok');
       return;
     }
     if(!response.ok)throw new Error('Wallet session unavailable.');
@@ -452,7 +457,7 @@ const poll=async()=>{
     // Reopening the consent card for each background RPC caused visible
     // layout jumps and looked like a page refresh after confirmation.
     box.hidden=!rpc.requiresApproval;
-    lastPromptVisible=Boolean(rpc.requiresApproval);
+    if(rpc.requiresApproval) lastConsentResultShown=false;
     approve.textContent=rpc.requiresApproval?'Continue to wallet':'Use selected wallet';
     if(rpc.requiresApproval)
       show('Confirm in your wallet.');
