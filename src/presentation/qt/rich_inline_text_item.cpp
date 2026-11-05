@@ -103,6 +103,10 @@ public:
     {
         // QTextCursor selections from a recycled cast are never retained.
         selection.clearSelection();
+        // Emoji delegates can outlive a document rebuild for one QML frame.
+        // Invalidate their replacement ownership before inserting new text.
+        handler.animatedPositions.clear();
+        emojiLayoutDirty = true;
         buildDocument();
         recomputeLayout(owner.width());
         emit owner.selectionChanged();
@@ -171,9 +175,22 @@ public:
                 }
             }
         }
-        if (rects != emojiRects) {
+        if (rects != rawEmojiRects || emojiLayoutDirty) {
+            rawEmojiRects = rects;
+            emojiLayoutDirty = false;
+            handler.animatedPositions.clear();
+            ++emojiRectGeneration;
+            // Old Repeater delegates may emit Component.onDestruction after
+            // new delegates are ready. A generation prevents their cleanup
+            // from revealing the Unicode under a new animated overlay.
+            for (auto& entry : rects) {
+                auto item = entry.toMap();
+                item.insert(QStringLiteral("generation"), emojiRectGeneration);
+                entry = std::move(item);
+            }
             emojiRects = std::move(rects);
             emit owner.emojiRectsChanged();
+            owner.update();
         }
     }
 
@@ -354,6 +371,9 @@ public:
 
     qreal contentHeight{0.0};
     QVariantList emojiRects{};
+    QVariantList rawEmojiRects{};
+    int emojiRectGeneration{};
+    bool emojiLayoutDirty{};
 };
 
 RichInlineTextItem::RichInlineTextItem(QQuickItem* parent)
@@ -565,13 +585,20 @@ QVariantList RichInlineTextItem::emojiRects() const
     return m_impl->emojiRects;
 }
 
-void RichInlineTextItem::setEmojiAnimated(const int position, const bool animated)
+void RichInlineTextItem::setEmojiAnimated(
+    const int position, const int generation, const bool animated)
 {
-    if (animated) {
+    if (generation != m_impl->emojiRectGeneration)
+        return;
+    // Preserve the exact original Unicode until the matching renderer is
+    // actually ready; redundant state notifications must not repaint text.
+    const bool wasAnimated = m_impl->handler.animatedPositions.contains(position);
+    if (wasAnimated == animated)
+        return;
+    if (animated)
         m_impl->handler.animatedPositions.insert(position);
-    } else {
+    else
         m_impl->handler.animatedPositions.remove(position);
-    }
     update();
 }
 
