@@ -393,3 +393,39 @@ test('host WalletConnect prompt stays open for QR pairing and resolves only afte
     else delete globalThis.window;
   }
 });
+
+
+test('WalletConnect relay and initialization deadlines are finite and abortable',async()=>{
+ const source=readFileSync(new URL('../../ui/wasm/host-sdk/walletconnect-entry.mjs',import.meta.url),'utf8');
+ const first=source.indexOf('export function withWalletDeadline(');
+ const last=source.indexOf('const initialize=',first);
+ assert.ok(first>=0 && last>first);
+ const helper=source.slice(first,last).replace('export function ','function ');
+ const bounded=new Function(helper+'\nreturn withWalletDeadline;')();
+ const never=new Promise(()=>{});
+ await assert.rejects(
+   bounded(never,4,undefined,'Pairing URI not available'),
+   e=>e.code===4900 && e.message==='Pairing URI not available');
+ const controller=new AbortController();
+ const pending=bounded(never,1000,controller.signal,'Network timed out');
+ controller.abort();
+ await assert.rejects(pending,e=>e.code===4001);
+ assert.match(source,/PAIRING_URI_TIMEOUT_MS=20000/);
+ assert.match(source,/INITIALIZE_TIMEOUT_MS=20000/);
+ assert.match(source,/WALLET_APPROVAL_TIMEOUT_MS=120000/);
+ assert.match(source,/provider\.on\('display_uri',onDisplayUri\)/);
+ assert.match(source,/provider\.signer\?\.on\?\.\('display_uri',onDisplayUri\)/);
+});
+
+test('mobile wallet handoff is not blocked by asynchronous QR creation',()=>{
+ const source=readFileSync(new URL('../../ui/wasm/miniapp-wallet-provider.mjs',import.meta.url),'utf8');
+ const handler=source.slice(source.indexOf('const onUri=data=>{'),
+   source.indexOf('      try{\n        await injected.connectWalletConnect',source.indexOf('const onUri=data=>{')));
+ assert.ok(handler.includes('walletLinks.append(anchor)'));
+ assert.ok(handler.includes("import('./genycaster-walletconnect.mjs')"));
+ assert.ok(handler.indexOf('walletLinks.append(anchor)')<
+   handler.indexOf("import('./genycaster-walletconnect.mjs')"),
+   'mobile wallet links must be offered before awaiting QR generation');
+ assert.ok(handler.includes('qrContainer.hidden=false'));
+ assert.ok(source.includes("stage==='creating'?promptText.creating"));
+});
