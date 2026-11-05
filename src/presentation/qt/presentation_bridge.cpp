@@ -1353,10 +1353,10 @@ void PresentationBridge::applyCloudBookmarkChanges(const QVariantList& changes)
              QStringLiteral("username"),QStringLiteral("displayName"),
              QStringLiteral("avatarUrl"),QStringLiteral("createdAtMs"),
              QStringLiteral("text")}) {
-            const auto value=preview.value(key);
-            if(!value.isNull() && !value.toString().isEmpty()
-               && (key!=QStringLiteral("authorFid") || value.toULongLong()>0))
-                row.insert(key,value);
+            const auto previewValue=preview.value(key);
+            if(!previewValue.isNull() && !previewValue.toString().isEmpty()
+               && (key!=QStringLiteral("authorFid") || previewValue.toULongLong()>0))
+                row.insert(key,previewValue);
         }
         // Until server schema v5 is active, feed rows can fill known metadata.
         for(const auto& known:m_rows) {
