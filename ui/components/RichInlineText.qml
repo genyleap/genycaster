@@ -33,12 +33,13 @@ Item {
         String(root.safeBlockData.text || ""))
     readonly property int textSize: root.kind === "heading" ? Theme.typeTitle3Size : Theme.typeBodySize
     readonly property bool reducedMotion: Theme.reduceMotion
+    // Reserve real room above/below the line box for color-emoji ascenders
+    // and animated artwork; clipping a perfectly valid glyph is not allowed.
+    readonly property real emojiVerticalInset: Math.max(2, Math.ceil(root.textSize * 0.15))
 
-    implicitHeight: root.usePlatformSelection ? platformText.implicitHeight
-                                              : textLayout.contentHeight
-    // Painted inline emoji and text must never spill outside a recycled Cast
-    // delegate before the native QTextDocument recomputes after a resize.
-    clip: true
+    implicitHeight: (root.usePlatformSelection ? platformText.implicitHeight
+                                              : textLayout.contentHeight) + emojiVerticalInset * 2
+    clip: false
 
     // Flattens blockData into one inline-span list; list markers become plain
     // spans separated by newlines (the same layout RichTextView produced with
@@ -113,6 +114,7 @@ Item {
         visible: root.usePlatformSelection && root.textBlock
         width: parent.width
         height: implicitHeight
+        y: root.emojiVerticalInset
         readOnly: true
         selectByMouse: true
         selectByKeyboard: true
@@ -175,6 +177,7 @@ Item {
         visible: !root.usePlatformSelection
         anchors.left: parent.left
         anchors.right: parent.right
+        y: root.emojiVerticalInset
         height: textLayout.contentHeight
         inlines: root.flattenedInlines()
         pixelSize: root.textSize
@@ -383,6 +386,7 @@ Item {
             readonly property var emojiRect: modelData || ({})
             readonly property int emojiPosition: emojiRect.position === undefined
                 ? -1 : Number(emojiRect.position)
+            readonly property int emojiGeneration: Number(emojiRect.generation || -1)
             property bool spriteFallbackArmed: false
             readonly property bool spriteReady: spriteEmojiLoader.item !== null
                                                 && Boolean(spriteEmojiLoader.item.animationReady)
@@ -395,11 +399,11 @@ Item {
 
             function syncAnimatedState() {
                 if (emojiPosition >= 0)
-                    textLayout.setEmojiAnimated(emojiPosition, emojiOverlay.artworkReady)
+                    textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, emojiOverlay.artworkReady)
             }
 
             x: Number(emojiRect.x || 0)
-            y: Number(emojiRect.y || 0)
+            y: root.emojiVerticalInset + Number(emojiRect.y || 0)
             width: Number(emojiRect.width || 0)
             height: Number(emojiRect.height || 0)
 
@@ -414,7 +418,9 @@ Item {
                 surface: root.emojiSurface
                 preserveArtwork: true
                 active: root.visible && root.width > 0 && root.height > 0
-                        
+                // Keep the renderer loading while its pixels are transparent.
+                // Only one of Unicode, Lottie or Sprite may paint this box.
+                opacity: animationReady ? 1 : 0
                 reducedMotion: root.reducedMotion
                 onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                 onRequestFailedChanged: {
@@ -433,6 +439,7 @@ Item {
                 z: 1
                 active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady
                 visible: active && !lottieEmoji.animationReady
+                opacity: emojiOverlay.spriteReady && !lottieEmoji.animationReady ? 1 : 0
                 asynchronous: true
 
                 sourceComponent: Component {
@@ -443,7 +450,6 @@ Item {
                         preserveArtwork: true
                         viewportVisible: emojiOverlay.visible
                         active: root.visible && root.width > 0 && root.height > 0
-                                
                         reducedMotion: root.reducedMotion
                         onAnimationReadyChanged: emojiOverlay.syncAnimatedState()
                     }
@@ -459,7 +465,7 @@ Item {
             }
             Component.onDestruction: {
                 if (emojiPosition >= 0)
-                    textLayout.setEmojiAnimated(emojiPosition, false)
+                    textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, false)
             }
         }
     }
