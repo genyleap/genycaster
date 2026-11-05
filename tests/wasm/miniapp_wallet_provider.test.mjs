@@ -202,7 +202,7 @@ test('WalletConnect is explicitly offered, and missing providers fail closed',()
  assert.match(source,/if\(!choices\.length\)/);
  assert.match(source,/approve\.disabled=true/);
  assert.match(source,/id==='walletconnect'/);
- assert.match(source,/injected\.connectWalletConnect\(\{onUri,signal:pairAbort\.signal\}\)/);
+ assert.match(source,/injected\.connectWalletConnect\(\{\s*onUri,onStatus:updateStatus,signal:pairAbort\.signal\s*\}\)/);
  assert.match(source,/uri\.length>4096/);
  assert.doesNotMatch(source,/new WalletConnect\(/);
 });
