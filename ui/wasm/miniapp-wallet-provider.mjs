@@ -18,7 +18,76 @@ function denied(message = 'Mini App wallet access was not authorized', code = 41
   return Object.assign(new Error(message), {code});
 }
 
-export function requestMiniAppWalletApproval(origin, signal) {
+
+// Discover EIP-6963 providers without inspecting browser profiles or extensions.
+// Announcement names are self-reported: never present them as verified wallets.
+// One registry belongs to one Mini App document and is disposed on teardown.
+export function createDiscoveredBrowserWallet(win) {
+  const wallets=[];
+  const listeners=new Map();
+  let active=null;
+  let closed=false;
+  const add=(name,provider)=>{
+    if(closed||!provider||typeof provider.request!=='function'||
+        wallets.some(item=>item.provider===provider)||wallets.length>=12)return;
+    const entry={id:'wallet-'+wallets.length,name:String(name||'Browser wallet').slice(0,64),provider};
+    wallets.push(entry);
+    if(!active)active=entry;
+  };
+  const announce=event=>{
+    const detail=event?.detail;
+    if(detail?.info&&typeof detail.info.name==='string')
+      add(detail.info.name,detail.provider);
+  };
+  const changeTo=id=>{
+    if(closed) return false;
+    const next=wallets.find(wallet=>wallet.id===id);
+    if(!next)return false;
+    if(next===active)return true;
+    for(const [event,callbacks] of listeners)for(const callback of callbacks)
+      active?.provider.removeListener?.(event,callback);
+    active=next;
+    for(const [event,callbacks] of listeners)for(const callback of callbacks)
+      active.provider.on?.(event,callback);
+    // A provider change immediately invalidates any prior account grant.
+    for(const callback of listeners.get('accountsChanged')||[])callback([]);
+    return true;
+  };
+  win.addEventListener?.('eip6963:announceProvider',announce);
+  // A synchronous EIP-6963 announcement may arrive immediately when requested.
+  win.dispatchEvent?.(new Event('eip6963:requestProvider'));
+  if(win.ethereum?.request)add('Browser wallet',win.ethereum);
+  return {
+    available:()=>!closed&&!!active,
+    choices:()=>closed?[]:wallets.map(({id,name})=>({id,name})),
+    select:changeTo,
+    request(payload){
+      if(closed) return Promise.reject(denied('Mini App wallet session closed',4900));
+      if(!active)return Promise.reject(denied('No wallet installed in this browser',4900));
+      return active.provider.request(payload);
+    },
+    on(event,callback){
+      if(closed||typeof callback!=='function')return;
+      if(!listeners.has(event))listeners.set(event,new Set());
+      listeners.get(event).add(callback);
+      active?.provider.on?.(event,callback);
+    },
+    removeListener(event,callback){
+      listeners.get(event)?.delete(callback);
+      active?.provider.removeListener?.(event,callback);
+    },
+    dispose(){
+      if(closed)return;
+      closed=true;
+      win.removeEventListener?.('eip6963:announceProvider',announce);
+      for(const [event,callbacks] of listeners)for(const callback of callbacks)
+        active?.provider.removeListener?.(event,callback);
+      listeners.clear();wallets.length=0;active=null;
+    }
+  };
+}
+
+export function requestMiniAppWalletApproval(origin, signal, injected) {
   if(typeof document === 'undefined' || !document.body)
     return Promise.resolve(false);
   return new Promise(resolve => {
@@ -46,6 +115,25 @@ export function requestMiniAppWalletApproval(origin, signal) {
     Object.assign(details.style,{lineHeight:'1.5',fontSize:'14px',color:'#c2c3cc'});
     const actions=document.createElement('div');
     Object.assign(actions.style,{display:'flex',gap:'10px',justifyContent:'flex-end'});
+    const candidates=injected?.choices?.()||[];
+    let walletSelection=null;
+    if(candidates.length>1) {
+      const selectLabel=document.createElement('label');
+      selectLabel.textContent='Wallet to use';
+      Object.assign(selectLabel.style,{display:'block',fontSize:'13px',
+        color:'#c2c3cc',margin:'14px 0 9px'});
+      walletSelection=document.createElement('select');
+      walletSelection.setAttribute('aria-label','Choose wallet');
+      Object.assign(walletSelection.style,{display:'block',width:'100%',
+        padding:'12px',marginTop:'7px',borderRadius:'9px',
+        border:'1px solid #52535b',background:'#33343c',color:'#f4f4f5'});
+      for(const item of candidates){
+        const option=document.createElement('option');
+        option.value=item.id;option.textContent=item.name;
+        walletSelection.append(option);
+      }
+      selectLabel.append(walletSelection);panel.append(selectLabel);
+    }
     const cancel=document.createElement('button');
     cancel.textContent='Cancel';
     const approve=document.createElement('button');
@@ -57,6 +145,10 @@ export function requestMiniAppWalletApproval(origin, signal) {
     }
     approve.style.background='#7359f5';
     approve.style.borderColor='#7359f5';
+    if(injected?.available && !injected.available()) {
+      approve.disabled=true;
+      details.textContent='No browser wallet found. Enable a wallet extension or use a compatible wallet browser.';
+    }
     let resolved=false;
     const cleanup=()=>{signal?.removeEventListener('abort',abort);
       scrim.removeEventListener('keydown',onKey);scrim.remove();};
@@ -65,7 +157,10 @@ export function requestMiniAppWalletApproval(origin, signal) {
     const onKey=event=>{if(event.key==='Escape')finish(false);};
     signal?.addEventListener('abort',abort,{once:true});
     cancel.addEventListener('click',()=>finish(false));
-    approve.addEventListener('click',()=>finish(true));
+    approve.addEventListener('click',()=>{
+      if(walletSelection&&!injected.select(walletSelection.value))return;
+      finish(true);
+    });
     scrim.addEventListener('keydown',onKey);
     actions.append(cancel,approve);panel.append(title,details,actions);
     scrim.append(panel);document.body.append(scrim);
@@ -117,7 +212,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(method==='eth_requestAccounts'){
         if(!granted){
           if(!pendingApproval)pendingApproval=Promise.resolve()
-            .then(()=>authorize(origin,controller.signal))
+            .then(()=>authorize(origin,controller.signal,injected))
             .finally(()=>{pendingApproval=null;});
           if(!await pendingApproval)throw denied('Wallet access was rejected by the user',4001);
           guard();

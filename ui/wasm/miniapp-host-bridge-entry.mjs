@@ -3,7 +3,7 @@
 // Only explicitly implemented, unprivileged capabilities are advertised.
 // There is NO wallet, signer, or fabricated Farcaster authentication bridge.
 import {exposeToIframe} from '@farcaster/miniapp-host';
-import {createMiniAppEthereumProvider} from './miniapp-wallet-provider.mjs';
+import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet} from './miniapp-wallet-provider.mjs';
 
 const limitedCapabilities = Object.freeze([
   'actions.ready', 'actions.close', 'actions.openUrl',
@@ -52,7 +52,8 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
   let active = true;
   // The authenticated Farcaster identity is read-only context. A separate,
   // user-approved EIP-1193 grant is required for a browser-injected wallet.
-  const wallet = createMiniAppEthereumProvider(url.origin, window.ethereum);
+  const injected = createDiscoveredBrowserWallet(window);
+  const wallet = createMiniAppEthereumProvider(url.origin, injected);
   const host = {
     context: {
       user: identity(verifiedUser),
@@ -76,10 +77,10 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     },
     requestFullScreen: async () => callbacks.fullscreen?.(true),
     exitFullScreen: async () => callbacks.fullscreen?.(false),
-    getCapabilities: async () => wallet
+    getCapabilities: async () => wallet && injected.available()
       ? [...limitedCapabilities,'wallet.getEthereumProvider']
       : [...limitedCapabilities],
-    getChains: async () => wallet ? wallet.chains() : [],
+    getChains: async () => wallet && injected.available() ? wallet.chains() : [],
     // Requests for unimplemented financial, identity or protocol writes fail.
     signIn: unsupported,
     signManifest: unsupported,
@@ -107,6 +108,7 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     active = false;
     exposed.cleanup();
     wallet?.dispose();
+    injected.dispose();
   };
   // The host's public metadata may finish hydrating after the iframe was
   // mounted. Update the same-FID context in place for later SDK context reads

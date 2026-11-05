@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMiniAppEthereumProvider} from '../../ui/wasm/miniapp-wallet-provider.mjs';
+import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet} from '../../ui/wasm/miniapp-wallet-provider.mjs';
 import {readFileSync} from 'node:fs';
 
 function fakeWallet(){
@@ -92,9 +92,39 @@ test('Invalid methods and unsupported wallets fail closed without fabricated sig
 
 test('official SDK host exposes injected wallet only by explicit per-origin grant',()=>{
   const bridge=readFileSync(new URL('../../ui/wasm/miniapp-host-bridge-entry.mjs',import.meta.url),'utf8');
-  assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, window\.ethereum\)/);
+  assert.match(bridge,/createDiscoveredBrowserWallet\(window\)/);
+  assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, injected\)/);
   assert.match(bridge,/ethProvider:wallet\?\.provider/);
   assert.match(bridge,/wallet\?\.dispose\(\)/);
   assert.match(bridge,/wallet\.getEthereumProvider/);
   assert.match(bridge,/signIn: unsupported/);
+});
+
+test('EIP-6963 registry lets the user choose among actual injected providers',async()=>{
+  const first=fakeWallet();
+  const second=fakeWallet();
+  const win=new EventTarget();
+  win.ethereum=first.provider;
+  win.addEventListener('eip6963:requestProvider',()=>{
+    const event=new Event('eip6963:announceProvider');
+    Object.defineProperty(event,'detail',{value:{
+      info:{name:'Rabby',uuid:'wallet-2'},provider:second.provider}});
+    win.dispatchEvent(event);
+  });
+  const registry=createDiscoveredBrowserWallet(win);
+  assert.equal(registry.available(),true);
+  assert.equal(registry.choices().length,2);
+  assert.equal(registry.choices()[0].name,'Rabby');
+  const wallet=createMiniAppEthereumProvider('https://app.example',registry,
+    (_origin,_signal,selection)=>{
+      assert.equal(selection,registry);
+      assert.equal(selection.select('wallet-0'),true);
+      return true;
+    });
+  await wallet.provider.request({method:'eth_requestAccounts'});
+  assert.deepEqual(second.calls,['eth_requestAccounts']);
+  assert.deepEqual(first.calls,[]);
+  wallet.dispose();
+  registry.dispose();
+  assert.equal(registry.available(),false);
 });
