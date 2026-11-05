@@ -197,12 +197,13 @@ test('mobile wallet-browser links use original HTTPS Mini App URL, never localho
  assert.match(copy.externalExplanation,/جنی‌کستر/);
 });
 
-test('a missing injected provider does not claim a WalletConnect session',()=>{
+test('WalletConnect is explicitly offered, and missing providers fail closed',()=>{
  const source=readFileSync(new URL('../../ui/wasm/miniapp-wallet-provider.mjs',import.meta.url),'utf8');
- assert.match(source,/if\(injected\?\.available && !injected\.available\(\)\)/);
+ assert.match(source,/if\(!choices\.length\)/);
  assert.match(source,/approve\.disabled=true/);
- assert.match(source,/target='_blank'/);
- assert.match(source,/separate session/);
+ assert.match(source,/id==='walletconnect'/);
+ assert.match(source,/injected\.connectWalletConnect\(\{onUri,signal:pairAbort\.signal\}\)/);
+ assert.match(source,/uri\.length>4096/);
  assert.doesNotMatch(source,/new WalletConnect\(/);
 });
 
