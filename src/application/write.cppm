@@ -171,6 +171,13 @@ public:
         bool isFollowing,
         Observer observer);
 
+    /** @brief Adds/removes an account-wide protocol block via LINK_ADD/REMOVE. */
+    [[nodiscard]] foundation::result::Status setBlocked(
+        std::optional<domain::session::ClientSession> session,
+        domain::identity::Fid target,
+        bool isBlocked,
+        Observer observer);
+
     /** @brief Processes due pending records after startup/network/signer recovery. */
     [[nodiscard]] foundation::result::Status resume(
         std::optional<domain::session::ClientSession> session,
