@@ -85,6 +85,10 @@ test('wallet approval stays steady after consent and stops polling on session en
 test('failed private media origins back off and tiny SVGs avoid uninitialized mipmaps',()=>{
  const image=read('ui/mobile/remote_image_provider.cpp');
  assert.match(image,/originTemporarilyForbidden\(urlText\)/);
+ // Force-download artwork shares the 'manual' descriptor, so authorization
+ // refusal must be honored regardless of that flag.
+ assert.match(image,/if \(originTemporarilyForbidden\(urlText\)\)/);
+ assert.doesNotMatch(image,/if \(!manual && originTemporarilyForbidden\(urlText\)\)/);
  assert.match(image,/forbiddenOriginBackoff = std::chrono::minutes\{10\}/);
  assert.match(image,/result->statusCode == 401U \|\| result->statusCode == 403U/);
  assert.match(image,/!deniedByOrigin && !gatewayFallbackAttempt/);
