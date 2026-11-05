@@ -180,13 +180,55 @@ int main(int argc, char** argv)
 
     const QImage fallback = painted(text);
     for (const auto& box : boxes) {
-        text.setEmojiAnimated(box.toMap().value("position").toInt(), true);
+        const auto item = box.toMap();
+        text.setEmojiAnimated(item.value("position").toInt(),
+                              item.value("generation").toInt(), true);
     }
     expect(painted(text) != fallback, "ready animations suppress underlying glyphs");
     for (const auto& box : boxes) {
-        text.setEmojiAnimated(box.toMap().value("position").toInt(), false);
+        const auto item = box.toMap();
+        text.setEmojiAnimated(item.value("position").toInt(),
+                              item.value("generation").toInt(), false);
     }
     expect(painted(text) == fallback, "glyphs return when animations unload");
+
+    // Wrapping/recycling may destroy an old QML overlay after a new emoji
+    // delegate becomes ready at the same document position. Old generations
+    // are forbidden from changing the new glyph's replacement state.
+    RichInlineTextItem wrappedEmoji;
+    wrappedEmoji.setWidth(320);
+    wrappedEmoji.setPixelSize(28);
+    wrappedEmoji.setFontFamily("Helvetica");
+    wrappedEmoji.setInlines({QVariantMap{{"kind", "text"},
+        {"text", joy + QStringLiteral(" animated glyph inside wrapped content ") + joy}}});
+    const auto oldBoxes = wrappedEmoji.emojiRects();
+    expect(oldBoxes.size() == 2, "two Unicode clusters are laid out");
+    wrappedEmoji.setWidth(92);
+    const auto newBoxes = wrappedEmoji.emojiRects();
+    expect(newBoxes.size() == 2, "both clusters remain after line wrapping");
+    if (!oldBoxes.isEmpty() && !newBoxes.isEmpty()) {
+        const auto previous = oldBoxes.first().toMap();
+        const auto current = newBoxes.first().toMap();
+        expect(previous.value("generation").toInt() != current.value("generation").toInt(),
+               "geometry changes advance emoji layout generation");
+        const QImage wrappedFallback = painted(wrappedEmoji);
+        wrappedEmoji.setEmojiAnimated(previous.value("position").toInt(),
+            previous.value("generation").toInt(), true);
+        expect(painted(wrappedEmoji) == wrappedFallback,
+               "stale emoji overlay cannot hide a newer Unicode fallback");
+        wrappedEmoji.setEmojiAnimated(current.value("position").toInt(),
+            current.value("generation").toInt(), true);
+        expect(painted(wrappedEmoji) != wrappedFallback,
+               "current emoji overlay suppresses its matching Unicode glyph");
+        wrappedEmoji.setEmojiAnimated(previous.value("position").toInt(),
+            previous.value("generation").toInt(), false);
+        expect(painted(wrappedEmoji) != wrappedFallback,
+               "old delegate teardown cannot reveal Unicode below animation");
+        wrappedEmoji.setEmojiAnimated(current.value("position").toInt(),
+            current.value("generation").toInt(), false);
+        expect(painted(wrappedEmoji) == wrappedFallback,
+               "unloading current animation restores the native glyph");
+    }
 
     QQmlEngine engine;
     engine.rootContext()->setContextProperty("emojiController", &controller);
