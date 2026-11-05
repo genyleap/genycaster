@@ -1789,6 +1789,8 @@ Item {
                                                     presentationBridge.setReaction(kind, Number(cast.authorFid || 0), String(cast.castId || ""), active)
                                                 onFollowingMutationRequested: (targetFid, following) =>
                                                     presentationBridge.setFollowing(targetFid, following)
+                                                onBlockingMutationRequested: (targetFid, blocked) =>
+                                                    presentationBridge.setBlocked(targetFid, blocked)
                                                 onRemoveCastRequested: cast =>
                                                     presentationBridge.removeCast(Number(cast.authorFid || 0), String(cast.castId || ""))
                                                 onExternalRequested: url => root.openCastTextLink(url)
