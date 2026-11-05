@@ -805,7 +805,8 @@ Item {
                                 cellHeight: root.compact
                                             ? (width < Theme.scaleUi(540)
                                                ? Theme.scaleUi(148) : Theme.scaleUi(118))
-                                            : Theme.scaleUi(112)
+                                            : (width < Theme.scaleUi(660)
+                                               ? Theme.scaleUi(152) : Theme.scaleUi(112))
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -833,6 +834,8 @@ Item {
                                     // actions remain visible rather than truncating Resume.
                                     readonly property bool mobileActionsStacked: root.compact
                                         && width < Theme.scaleUi(540)
+                                    readonly property bool desktopActionsStacked: !root.compact
+                                        && width < Theme.scaleUi(660)
 
                                     Item {
                                         id: miniAppStoreTile
@@ -1001,13 +1004,20 @@ Item {
                                             color: Theme.divider
                                         }
 
-                                        RowLayout {
+                                        GridLayout {
                                             anchors.left: parent.left
                                             anchors.right: parent.right
                                             anchors.verticalCenter: parent.verticalCenter
-                                            spacing: Theme.space3
+                                            columns: cardCell.desktopActionsStacked ? 1 : 2
+                                            rowSpacing: Theme.space1
+                                            columnSpacing: Theme.space3
                                             layoutDirection: Theme.uiDirection
 
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                                spacing: Theme.space3
+                                                layoutDirection: Theme.uiDirection
                                             Item {
                                                 Layout.preferredWidth: 60
                                                 Layout.preferredHeight: 60
@@ -1090,6 +1100,18 @@ Item {
                                                     elide: Text.ElideRight
                                                 }
                                             }
+                                            }
+
+                                            RowLayout {
+                                                Layout.fillWidth: cardCell.desktopActionsStacked
+                                                Layout.alignment: Qt.AlignVCenter
+                                                spacing: Theme.space1
+                                                layoutDirection: Theme.uiDirection
+                                                Item {
+                                                    visible: cardCell.desktopActionsStacked
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: 1
+                                                }
 
                                             ActionButton {
                                                 objectName: "miniAppStoreOpenButton"
@@ -1139,6 +1161,7 @@ Item {
                                                     else if (!saved)
                                                         miniAppCatalog.addToMyMiniApps(cardCell.modelData)
                                                 }
+                                            }
                                             }
                                         }
                                     }
