@@ -18,16 +18,8 @@ Button {
     // A copy action can acknowledge successful clipboard dispatch without
     // closing its menu before the user sees the result.
     property bool copyConfirmed: false
-    function acknowledgeCopy() {
-        control.copyConfirmed = true
-        copyConfirmationTimer.restart()
-    }
-    Timer {
-        id: copyConfirmationTimer
-        interval: 1300
-        repeat: false
-        onTriggered: control.copyConfirmed = false
-    }
+    function acknowledgeCopy() { control.copyConfirmed = true }
+    function clearCopyFeedback() { control.copyConfirmed = false }
     property color customSelectedColor: "transparent"
     property color customSelectedSurface: "transparent"
     property string iconGlyph: ""
