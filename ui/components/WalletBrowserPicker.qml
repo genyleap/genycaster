@@ -133,7 +133,7 @@ Item {
                         readonly property bool previous: Boolean(modelData.lastUsed)
 
                         Layout.fillWidth: true
-                        implicitHeight: Theme.scaleUi(52)
+                        implicitHeight: Theme.scaleUi(48)
                         padding: 0
                         hoverEnabled: true
                         focusPolicy: Qt.StrongFocus
@@ -151,63 +151,70 @@ Item {
                             curveDepth: Theme.curveControl
                         }
 
-                        contentItem: RowLayout {
-                            spacing: Theme.space3
-                            LayoutMirroring.enabled: false
-                            LayoutMirroring.childrenInherit: true
-                            layoutDirection: Theme.uiDirection
+                        contentItem: Item {
+                            implicitHeight: Theme.scaleUi(48)
+                            implicitWidth: Theme.scaleUi(320)
 
-                            Superellipse {
-                                Layout.preferredWidth: Theme.scaleUi(34)
-                                Layout.preferredHeight: Theme.scaleUi(34)
-                                fillColor: Theme.surface
-                                borderColor: Theme.borderSubtle
-                                borderWidth: Theme.strokeHairline
-                                curveDepth: Theme.curveCompact
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: Theme.space3
+                                anchors.rightMargin: Theme.space3
+                                spacing: Theme.space2
+                                layoutDirection: Theme.uiDirection
 
-                                Image {
-                                    id: browserLogo
-                                    anchors.centerIn: parent
-                                    width: Theme.scaleUi(23)
-                                    height: Theme.scaleUi(23)
-                                    source: picker.browserIcon(choice.browserId)
-                                    sourceSize.width: 72
-                                    sourceSize.height: 72
-                                    fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                    mipmap: true
-                                    visible: source.toString().length > 0
-                                             && status === Image.Ready
+                                Superellipse {
+                                    Layout.preferredWidth: Theme.scaleUi(32)
+                                    Layout.preferredHeight: Theme.scaleUi(32)
+                                    fillColor: Theme.surface
+                                    borderColor: Theme.borderSubtle
+                                    borderWidth: Theme.strokeHairline
+                                    curveDepth: Theme.curveCompact
+
+                                    Image {
+                                        id: browserLogo
+                                        anchors.centerIn: parent
+                                        width: Theme.scaleUi(22)
+                                        height: Theme.scaleUi(22)
+                                        source: picker.browserIcon(choice.browserId)
+                                        sourceSize.width: 64
+                                        sourceSize.height: 64
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        mipmap: true
+                                        visible: source.toString().length > 0
+                                                 && status === Image.Ready
+                                    }
+                                    Icon {
+                                        anchors.centerIn: parent
+                                        visible: !browserLogo.visible
+                                        text: Theme.iconGlobe
+                                        preferredSize: Theme.iconSizeSmall
+                                        color: Theme.inkMuted
+                                    }
                                 }
+
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    text: choice.browserName
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeBodySize
+                                    font.weight: Theme.weightDemiBold
+                                    elide: Text.ElideRight
+                                }
+
+                                DirectionAwareLabel {
+                                    visible: choice.previous
+                                    text: qsTr("Last used")
+                                    color: Theme.inkSubtle
+                                    font.pixelSize: Theme.typeCaptionSize
+                                }
+
                                 Icon {
-                                    anchors.centerIn: parent
-                                    visible: !browserLogo.visible
-                                    text: Theme.iconGlobe
+                                    text: Theme.iconArrowRight
+                                    color: choice.hovered ? Theme.accent : Theme.inkMuted
                                     preferredSize: Theme.iconSizeSmall
-                                    color: Theme.inkMuted
                                 }
-                            }
-
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: choice.browserName
-                                color: Theme.ink
-                                font.pixelSize: Theme.typeBodySize
-                                font.weight: Theme.weightDemiBold
-                                elide: Text.ElideRight
-                            }
-
-                            DirectionAwareLabel {
-                                visible: choice.previous
-                                text: qsTr("Last used")
-                                color: Theme.inkSubtle
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-
-                            Icon {
-                                text: Theme.iconArrowRight
-                                color: Theme.inkMuted
-                                preferredSize: Theme.iconSizeSmall
                             }
                         }
                     }

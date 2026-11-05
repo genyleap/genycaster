@@ -45,11 +45,17 @@ struct WalletBrowserCandidate final {
              std::pair{QStringLiteral("chrome"), QStringLiteral("Google Chrome")},
              std::pair{QStringLiteral("firefox"), QStringLiteral("Firefox")}}) {
         const QString bundle = app + QStringLiteral(".app");
-        if (QFileInfo::exists(QStringLiteral("/Applications/") + bundle)
-            || QFileInfo::exists(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)
-                                 + QLatin1Char('/') + bundle)
-            || QFileInfo::exists(QDir::homePath() + QStringLiteral("/Applications/") + bundle)) {
-            available.append({id, app, app});
+        for (const QString& folder : {
+                 QStringLiteral("/Applications"),
+                 QDir::homePath() + QStringLiteral("/Applications"),
+                 QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)}) {
+            const QString application = QDir(folder).filePath(bundle);
+            if (QFileInfo(application).isDir()) {
+                // Launch the discovered bundle, not an ambiguous display
+                // name. Its existence is not proof of a wallet extension.
+                available.append({id, app, application});
+                break;
+            }
         }
     }
 #elif defined(Q_OS_WIN)
