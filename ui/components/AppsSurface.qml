@@ -177,6 +177,24 @@ Item {
         }
     }
     Connections {
+        target: miniAppTaskManager
+        function onTasksChanged() {
+            if (root.pendingEntitlementLaunch
+                    && miniAppTaskManager.taskCount < miniAppHost.sessionLimit) {
+                const pending = root.pendingEntitlementLaunch
+                root.clearPendingEntitlementLaunch()
+                if (presentationBridge.isAuthenticated
+                        && Number(presentationBridge.accountFid || 0) === pending.fid)
+                    root.directLaunch(pending.app)
+            } else if (root.quotaErrorKind.length > 0
+                    && miniAppTaskManager.taskCount < miniAppHost.sessionLimit) {
+                root.launchErrorText = ""
+                root.quotaErrorKind = ""
+                launchErrorTimeout.stop()
+            }
+        }
+    }
+    Connections {
         target: miniAppHost
         function onSessionLimitChanged() {
             if (miniAppHost.sessionLimit > 1 && root.quotaErrorKind !== "full") {
