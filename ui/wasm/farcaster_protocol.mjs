@@ -287,13 +287,20 @@ export function unsignedReaction({
     return unsignedSocial({fid,publicKeyHex,
         kind:active?3:4,bodyField:7,body,timestamp});
 }
-export function unsignedFollow({
-    fid,publicKeyHex,targetFid,active=true,timestamp=farcasterTimestamp()
+function unsignedSocialLink({
+    fid,publicKeyHex,targetFid,linkType,active=true,timestamp=farcasterTimestamp()
 }){
-    invariant(fidString(fid)!==fidString(targetFid),'cannot follow self');
-    const body=concat(fieldBytes(1,'follow'),fieldNum(3,fidString(targetFid)));
+    invariant(linkType==='follow'||linkType==='block','unsupported social link type');
+    invariant(fidString(fid)!==fidString(targetFid),'cannot link to self');
+    const body=concat(fieldBytes(1,linkType),fieldNum(3,fidString(targetFid)));
     return unsignedSocial({fid,publicKeyHex,
         kind:active?5:6,bodyField:14,body,timestamp});
+}
+export function unsignedFollow(args){
+    return unsignedSocialLink({...args,linkType:'follow'});
+}
+export function unsignedBlock(args){
+    return unsignedSocialLink({...args,linkType:'block'});
 }
 export function unsignedCastRemove({
     fid,publicKeyHex,target,timestamp=farcasterTimestamp()
