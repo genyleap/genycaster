@@ -1319,9 +1319,9 @@ Item {
         boundsMovement: Flickable.FollowBoundsBehavior
         // Channel hero + scoped author strip belong to the scroll content,
         // not to a pinned desktop overlay; no stale account StoryStrip.
-        headerPositioning: root.compact || root.activeFeed === "channel"
-                           || stableRows.count === 0
-                           ? ListView.InlineHeader : ListView.OverlayHeader
+        // Explorer stories and filters belong to the scrolling content on
+        // desktop too. An overlay header pinned the entire story strip.
+        headerPositioning: ListView.InlineHeader
         reuseItems: true
         // Keep only a shallow reusable runway. Rich embeds, animated emoji and
         // image masks are expensive delegate trees; pagination continuity must
