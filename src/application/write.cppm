@@ -35,6 +35,8 @@ enum class OperationKind : std::uint8_t {
     UndoRecast,
     Follow,
     Unfollow,
+    Block,
+    Unblock,
 };
 
 /** @brief Application-facing target snapshot for one social mutation. */
