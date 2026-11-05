@@ -1951,10 +1951,12 @@ int main(int argc, char* argv[])
                      &OpenProofConnectionsController::proEntitlementsChanged,
                      &liveInsightsController, [&openProofConnections, &liveInsightsController] {
         const auto status = openProofConnections.proEntitlements();
-        const bool pro = status.value(QStringLiteral("status")).toString()
-                             == QStringLiteral("verified")
-                      && status.value(QStringLiteral("eligible")).toBool();
-        liveInsightsController.setProMarketLimit(pro ? 16 : 4);
+        // A transient grant refresh or an unavailable balance provider is
+        // not an authoritative revocation of a previously verified Pro tier.
+        if (status.value(QStringLiteral("status")).toString() != QStringLiteral("verified"))
+            return;
+        liveInsightsController.setProMarketLimit(
+            status.value(QStringLiteral("eligible")).toBool() ? 16 : 4);
     });
 #if GENYCASTER_HAS_MINIAPP_HOST
     QObject::connect(&openProofConnections,
@@ -1963,20 +1965,22 @@ int main(int argc, char* argv[])
                      [&openProofConnections, &miniAppRuntimeOwner] {
         if (!miniAppRuntimeOwner) return;
         const auto status = openProofConnections.proEntitlements();
-        const bool verified = status.value(QStringLiteral("status")).toString()
-                                  == QStringLiteral("verified")
-                              && status.value(QStringLiteral("eligible")).toBool();
-        miniAppRuntimeOwner->setSessionLimit(verified ? 4 : 1);
+        // Unknown/unavailable verification must not evict running Mini Apps.
+        // Only a fresh, server-confirmed entitlement may change the limit.
+        if (status.value(QStringLiteral("status")).toString() != QStringLiteral("verified"))
+            return;
+        miniAppRuntimeOwner->setSessionLimit(
+            status.value(QStringLiteral("eligible")).toBool() ? 4 : 1);
     });
 #endif
     QObject::connect(&openProofConnections,
                      &OpenProofConnectionsController::proEntitlementsChanged,
                      &miniAppHost, [&openProofConnections, &miniAppHost] {
         const auto status = openProofConnections.proEntitlements();
-        const bool verified = status.value(QStringLiteral("status")).toString()
-                                  == QStringLiteral("verified")
-                              && status.value(QStringLiteral("eligible")).toBool();
-        miniAppHost.setSessionLimit(verified ? 4 : 1);
+        if (status.value(QStringLiteral("status")).toString() != QStringLiteral("verified"))
+            return;
+        miniAppHost.setSessionLimit(
+            status.value(QStringLiteral("eligible")).toBool() ? 4 : 1);
     });
     QObject::connect(&openProofConnections,
                      &OpenProofConnectionsController::stateChanged,
@@ -1988,17 +1992,34 @@ int main(int argc, char* argv[])
 #endif
         }
     });
+    const auto initialFid = presentationBridge.isAuthenticated()
+        ? presentationBridge.accountFid() : 0;
+    // A Pro allowance must never bleed into another FID on shared devices.
+    qulonglong miniAppEntitlementFid = initialFid;
     QObject::connect(&presentationBridge, &PresentationBridge::authenticationStateChanged,
-        &openProofConnections, [&presentationBridge, &openProofConnections, &richComposerController] {
+        &openProofConnections, [&presentationBridge, &openProofConnections,
+                                &richComposerController, &miniAppHost, &miniAppEntitlementFid
+#if GENYCASTER_HAS_MINIAPP_HOST
+                                , &miniAppRuntimeOwner
+#endif
+                                ] {
             const auto fid = presentationBridge.isAuthenticated()
                 ? presentationBridge.accountFid() : 0;
+            if (fid != miniAppEntitlementFid) {
+                miniAppEntitlementFid = fid;
+                // End every session, including minimized documents and wallet
+                // authority, before a new account may receive its own limit.
+                miniAppHost.closeAll();
+                miniAppHost.setSessionLimit(1);
+#if GENYCASTER_HAS_MINIAPP_HOST
+                if (miniAppRuntimeOwner) miniAppRuntimeOwner->setSessionLimit(1);
+#endif
+            }
             // Account-scoped unpublished drafts must never carry over when the
             // active Farcaster identity changes on a shared device.
             richComposerController.setViewerFid(fid);
             openProofConnections.setViewerFid(fid);
         });
-    const auto initialFid = presentationBridge.isAuthenticated()
-        ? presentationBridge.accountFid() : 0;
     richComposerController.setViewerFid(initialFid);
     openProofConnections.setViewerFid(initialFid);
     QObject::connect(&richComposerController, &RichComposerController::draftLocallyChanged,
