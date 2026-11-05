@@ -180,7 +180,10 @@ public:
     [[nodiscard]] QString topicsError() const { return m_topicsError; }
     Q_INVOKABLE void fetchTopics();
     [[nodiscard]] QVariantList topicCastItems() const { return m_topicCastItems; }
-    [[nodiscard]] bool topicCastsBusy() const noexcept { return m_topicCastsRequest != nullptr; }
+    [[nodiscard]] bool topicCastsBusy() const noexcept {
+        return m_topicCastsRequest != nullptr
+            || (!m_activeCastTopic.isEmpty() && !cloudAuthorizationReady());
+    }
     [[nodiscard]] bool topicCastsHasMore() const noexcept { return m_topicCastsHasMore; }
     [[nodiscard]] QString topicCastsError() const { return m_topicCastsError; }
     [[nodiscard]] QString activeCastTopic() const { return m_activeCastTopic; }
