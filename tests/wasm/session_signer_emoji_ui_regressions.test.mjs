@@ -41,3 +41,31 @@ test('saved signer verification never requires a new custody approval', () => {
   assert.match(runtime, /bridge\.refreshSigner\(\)/);
   assert.match(shell, /onClicked: canRetryVerification \? presentationBridge\.refreshSigner\(\)/);
 });
+
+test('Mini App rows reflow and keep Resume text readable at compact widths', () => {
+  const apps = source('ui/components/AppsSurface.qml');
+  const manager = source('ui/components/TaskManagerPopup.qml');
+  assert.match(apps, /readonly property bool mobileActionsStacked:/);
+  assert.match(apps, /columns: cardCell\.mobileActionsStacked \? 1 : 2/);
+  assert.match(apps, /Layout\.minimumWidth: Math\.max\(96, implicitWidth\)/);
+  assert.match(apps, /Layout\.minimumWidth: Math\.max\(104, implicitWidth\)/);
+  assert.match(manager, /readonly property bool narrow:/);
+  assert.match(manager, /Layout\.minimumWidth: 0/);
+  assert.match(manager, /Layout\.preferredHeight: Theme\.scaleUi\(62\)/);
+});
+
+test('inline emoji reserve ink space and replace Unicode only in their live layout', () => {
+  const rich = source('ui/components/RichInlineText.qml');
+  const textView = source('ui/components/RichTextView.qml');
+  const cpp = source('src/presentation/qt/rich_inline_text_item.cpp');
+  const header = source('src/presentation/qt/rich_inline_text_item.hpp');
+  assert.match(rich, /readonly property real emojiVerticalInset:/);
+  assert.match(rich, /clip: false/);
+  assert.match(textView, /clip: false/);
+  assert.match(rich, /opacity: animationReady \? 1 : 0/);
+  assert.match(rich, /onEmojiGenerationChanged: emojiOverlay\.syncAnimatedState\(\)/);
+  assert.match(rich, /textLayout\.setEmojiAnimated\(emojiPosition, emojiGeneration/);
+  assert.match(header, /setEmojiAnimated\(int position, int generation, bool animated\)/);
+  assert.match(cpp, /generation != m_impl->emojiRectGeneration/);
+  assert.match(cpp, /handler\.animatedPositions\.clear\(\)/);
+});
