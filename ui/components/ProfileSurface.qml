@@ -1574,7 +1574,9 @@ Item {
                         fillColor: Theme.surfaceRaised
                         borderWidth: 0
                         showLoadingIndicator: false
-                        showFailureIndicator: true
+                        // A failed cover offers an explicit retry, not a generic
+                        // broken-image glyph in the middle of the profile.
+                        showFailureIndicator: false
                         // Never expose the previous user's cover during a
                         // new profile navigation or metadata refresh.
                         retainPreviousWhileLoading: false
@@ -1676,8 +1678,27 @@ Item {
                         }
                     }
 
+                    ActionButton {
+                        id: retryProfileCover
+                        z: 3
+                        anchors.centerIn: parent
+                        visible: bannerImage.loadFailed && !bannerImage.policyBlocked
+                                 && Boolean(root.activeDetail.bannerUrl)
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconRefresh
+                        text: qsTrId("genycaster.profile.refresh")
+                        onClicked: {
+                            // Manual retry intentionally bypasses the media
+                            // provider's short negative-cache backoff.
+                            bannerImage.manualLoadRequested = false
+                            bannerImage.manualLoadRequested = true
+                        }
+                    }
+
                     TapHandler {
-                        enabled: Boolean(root.activeDetail.bannerUrl)
+                        enabled: bannerImage.ready
                         gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: root.mediaRequested([
                             { imageSource: String(root.activeDetail.bannerUrl || ""), kind: "image" }
