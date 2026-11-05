@@ -194,45 +194,59 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     const std::string_view appName,
     const std::string_view origin)
 {
-    std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect wallet · GenyCaster</title><style nonce=")html";
+    std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wallet approval · GenyCaster</title><style nonce=")html";
     page += nonce;
     page += R"html(">
-:root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#131317;color:#f6f5f9;padding:16px}
-main{width:min(100%,510px);padding:28px;background:#1e1e24;border:1px solid #383840;border-radius:21px;box-shadow:0 20px 64px #0005}
-h1{font-size:1.52rem;letter-spacing:-.03em;margin:0 0 4px}h2{font-size:1.12rem;margin:7px 0 12px}
-.subtitle{font-size:.86rem;color:#b4b3bd;margin:0 0 22px;line-height:1.55}
-.label{font-size:.76rem;font-weight:750;color:#b1a0ff;letter-spacing:.035em}
-.card{border:1px solid #393943;background:#26262d;border-radius:14px;padding:14px 16px;margin:14px 0}
-#origin{overflow-wrap:anywhere;font-size:.85rem;line-height:1.5;margin-top:6px}
-#app-name{font-weight:750;margin:4px 0}
-#options{display:grid;gap:7px;margin-top:12px}
-button{font:inherit;color:#f8f7fb;background:#303038;border:1px solid #4c4b58;padding:11px 14px;border-radius:11px;cursor:pointer;text-align:left}
-button:hover:enabled{border-color:#ac94ff}
-button:focus-visible{outline:3px solid #b5a0ff;outline-offset:2px}
+:root{color-scheme:dark;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111116;color:#f4f3fa;padding:16px}
+main{width:min(100%,420px);background:#202027;border:1px solid #363640;border-radius:18px;padding:22px;box-shadow:0 18px 60px #0005}
+h1{font-size:1.27rem;letter-spacing:-.02em;line-height:1.2;margin:0 0 14px}
+h2{font-size:1.02rem;line-height:1.4;margin:5px 0 8px}
+.app{padding:11px 12px;border:1px solid #393944;border-radius:11px;background:#292930;margin-bottom:14px}
+#app-name{display:block;font-weight:700}
+#origin{font-size:.78rem;color:#aaaab9;overflow-wrap:anywhere;line-height:1.3;margin-top:3px}
+.label{display:block;font-size:.73rem;font-weight:650;color:#ada4c5;margin-bottom:6px}
+#options{display:block;width:100%;font:inherit;font-weight:600;color:#f5f4fb;background:#2f2e3a;border:1px solid #585362;border-radius:10px;padding:10px;margin-bottom:5px;cursor:pointer}
+button{font:inherit;cursor:pointer;border-radius:10px;padding:10px 12px;border:1px solid #494854;color:#f6f5fa;background:#303038}
 button:disabled{opacity:.55;cursor:not-allowed}
-.wallet-choice[aria-pressed="true"]{border-color:#a68aff;background:#403557}
+button:hover:enabled,#options:hover{border-color:#a38dff}
+button:focus-visible,#options:focus-visible,summary:focus-visible{outline:2px solid #bca9ff;outline-offset:2px}
+#request{margin:15px 0 0;padding:13px;border:1px solid #41404c;border-radius:12px;background:#27272f}
 #request[hidden],#message[hidden]{display:none}
-#kind{font-size:.74rem;font-weight:750;color:#b1a0ff}
-#message{font:.8rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;white-space:pre-wrap;max-height:200px;overflow:auto}
-details{margin-top:10px;color:#b5b4be;font-size:.8rem}summary{cursor:pointer}
-pre{background:#16161b;border-radius:9px;padding:12px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:190px;font:.75rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
-.actions{display:flex;gap:10px;margin-top:16px}.actions button{flex:1;text-align:center}
-#approve{background:#825de7;border-color:#825de7;font-weight:750}
-#status,#wallet{font-size:.84rem;line-height:1.5;margin-top:10px;color:#bbbac4}
-#status.error,#wallet.error{color:#ffa0a7}#status.ok,#wallet.ok{color:#8de1aa}
-.help{font-size:.77rem;color:#abaab6;line-height:1.65;margin:20px 0 0}
-@media(max-width:480px){main{padding:20px}}
-@media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}
-</style></head><body><main><h1>Connect your wallet</h1><p class="subtitle">GenyCaster securely forwards requests to a wallet in your browser.</p>
-<div class="card"><div class="label">MINI APP</div><div id="app-name">)html";
+#kind{font-size:.73rem;color:#b8a3ff;font-weight:650}
+#message{max-height:92px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.78rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:10px;border-radius:8px;background:#19191f;color:#dcdbe8;margin:9px 0}
+details{font-size:.77rem;color:#aaa9b6;margin:8px 0}
+summary{cursor:pointer}
+pre{background:#18181e;padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;max-height:160px;font:.72rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:#deddea}
+.actions{display:flex;gap:8px;margin-top:14px}
+.actions button{flex:1;text-align:center}
+#approve{background:#8159e7;border-color:#8159e7;color:white;font-weight:700}
+#status,#wallet{font-size:.78rem;color:#aaaab5;line-height:1.4;margin:8px 0 0}
+#status.error,#wallet.error{color:#ffa1aa}
+#status.ok,#wallet.ok{color:#9ae6b7}
+.help{margin:14px 0 0;font-size:.75rem;line-height:1.45;color:#a8a7b2}
+@media(max-width:450px){main{padding:17px}body{padding:10px}}
+@media(prefers-reduced-motion:no-preference){button,#options{transition:border-color .15s ease}}
+</style></head><body><main><h1>Wallet approval</h1><section class="app"><strong id="app-name">)html";
     page += htmlEscape(appName);
-    page += R"html(</div><div id="origin">)html";
+    page += R"html(</strong><div id="origin">)html";
     page += htmlEscape(origin);
-    page += R"html(</div></div>
-<div class="label">CHOOSE A WALLET</div><div id="options" role="group" aria-label="Detected wallet providers"></div><p id="wallet" role="status" aria-live="polite">Checking for browser wallets…</p>
-<section id="request" class="card" hidden><div id="kind">Explicit approval required</div><h2 id="method">Wallet request</h2><pre id="message" hidden></pre><details><summary>View technical request</summary><pre id="params"></pre></details><div class="actions"><button id="reject">Cancel</button><button id="approve">Continue to wallet</button></div></section>
-<p id="status" role="status" aria-live="polite">Waiting for a Mini App request…</p><p class="help">Your private keys never enter GenyCaster. Every signature or transaction requires approval in your real wallet. Your wallet may display the local bridge address as the requesting page; check the Mini App origin and message before signing.</p>
+    page += R"html(</div></section>
+<label class="label" for="options">Wallet</label>
+<select id="options" aria-label="Choose wallet"></select>
+<p id="wallet" role="status" aria-live="polite">Looking for wallets…</p>
+<section id="request" hidden><div id="kind">Explicit approval required</div>
+<h2 id="method">Wallet request</h2>
+<pre id="message" hidden></pre>
+<details><summary>View technical request</summary><pre id="params"></pre></details>
+<div class="actions"><button id="reject" type="button">Cancel</button>
+<button id="approve" type="button">Continue to wallet</button></div></section>
+<p id="status" role="status" aria-live="polite">Waiting for wallet request…</p>
+<p class="help">Confirm in your wallet. Your private key stays there.</p>
+<details><summary>Why is this a local page?</summary>
+This one-time page passes the request to your installed wallet extension. Your wallet may display 127.0.0.1 as the requesting site; check the Mini App domain and full message before approving.
+</details>
 <script nonce=")html";
     page += nonce;
     page += R"html(">
@@ -261,19 +275,16 @@ const describe=async()=>{
   if(!selected){wallet.className='error';wallet.textContent='No browser wallet selected.';return;}
   try{
     const accounts=await selected.provider.request({method:'eth_accounts'});
-    const chain=await selected.provider.request({method:'eth_chainId'});
     wallet.className='ok';
-    wallet.textContent=selected.name+' · '+String(chain)+
-      (Array.isArray(accounts)&&accounts[0]?' · '+String(accounts[0]):' · not connected');
+    wallet.textContent=Array.isArray(accounts)&&accounts[0]
+      ? 'Wallet connected' : 'Connect in the wallet when prompted';
   }catch(error){wallet.className='error';wallet.textContent=String(error?.message||error);}
 };
 const select=index=>{
   if(busy)return;
   detach();selected=providers[index];
   if(!selected)return;
-  options.querySelectorAll('button').forEach((button,i)=>{
-    button.setAttribute('aria-pressed',String(i===index));
-  });
+  options.value=String(index);
   if(typeof selected.provider.on==='function')for(const event of events){
     const callback=value=>{
       post('/event',{event,params:[value]}).catch(()=>{});
@@ -290,12 +301,13 @@ const add=(name,provider)=>{
       ||providers.length>=12)return;
   const entry={name:String(name||'Browser wallet').slice(0,64),provider};
   const index=providers.push(entry)-1;
-  const button=document.createElement('button');
-  button.className='wallet-choice';button.type='button';
-  button.textContent=entry.name;button.setAttribute('aria-pressed','false');
-  button.addEventListener('click',()=>select(index));options.append(button);
+  const item=document.createElement('option');
+  item.value=String(index);
+  item.textContent=entry.name;
+  options.append(item);
   if(!selected)select(index);
 };
+options.addEventListener('change',()=>select(Number(options.value)));
 window.addEventListener('eip6963:announceProvider',event=>{
   const detail=event.detail;
   if(detail&&detail.info&&typeof detail.info.name==='string')
@@ -385,11 +397,13 @@ const poll=async()=>{
     kind.textContent=rpc.requiresApproval?'Explicit approval required':'Read-only request';
     method.textContent=requestLabel(rpc.method);
     params.textContent=JSON.stringify({method:rpc.method,params:rpc.params},null,2);
-    const text=readable(rpc);message.hidden=!text;message.textContent=text;
+    const text=readable(rpc);
+    message.hidden=!text;
+    message.textContent=text.length>240?text.slice(0,240)+'…':text;
     box.hidden=false;
     approve.textContent=rpc.requiresApproval?'Continue to wallet':'Use selected wallet';
-    show(rpc.requiresApproval?'Review this request and approve it in your wallet.'
-      :'Checking the selected wallet…');
+    show(rpc.requiresApproval?'Review and confirm in your wallet.'
+      :'Checking your wallet…');
     if(!rpc.requiresApproval&&selected)execute();
   }catch(error){show(String(error?.message||error),'error');}
   setTimeout(poll,500);
