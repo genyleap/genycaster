@@ -798,11 +798,14 @@ Item {
                                 // identical to its existing contract.
                                 readonly property int targetColumns: root.compact
                                                                     ? 1
-                                                                    : (width < 900 ? 1 : 2)
+                                                                    : (width < Theme.scaleUi(1160) ? 1 : 2)
                                 cellWidth: Math.max(1, width / Math.max(1, targetColumns))
                                 // Desktop rows are dense and borderless;
                                 // phone icon-grid geometry is unchanged.
-                                cellHeight: root.compact ? 116 : 112
+                                cellHeight: root.compact
+                                            ? (width < Theme.scaleUi(540)
+                                               ? Theme.scaleUi(148) : Theme.scaleUi(118))
+                                            : Theme.scaleUi(112)
 
                                 ScrollBar.vertical: GenyScrollBar {
                                     policy: root.compact ? ScrollBar.AlwaysOff : ScrollBar.AsNeeded
@@ -826,6 +829,10 @@ Item {
                                     readonly property bool running: runtimeState === "foreground"
                                                                      || runtimeState === "background"
                                                                      || runtimeState === "minimized"
+                                    // Phone-width rows give the app identity its own line;
+                                    // actions remain visible rather than truncating Resume.
+                                    readonly property bool mobileActionsStacked: root.compact
+                                        && width < Theme.scaleUi(540)
 
                                     Item {
                                         id: miniAppStoreTile
@@ -838,11 +845,18 @@ Item {
                                             height: Theme.strokeHairline
                                             color: Theme.divider
                                         }
-                                        RowLayout {
+                                        GridLayout {
                                             anchors.fill: parent
                                             anchors.margins: Theme.space1
-                                            spacing: Theme.space2
+                                            columns: cardCell.mobileActionsStacked ? 1 : 2
+                                            rowSpacing: Theme.space1
+                                            columnSpacing: Theme.space3
                                             layoutDirection: Theme.uiDirection
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
+                                                spacing: Theme.space2
+                                                layoutDirection: Theme.uiDirection
                                             Item {
                                                 Layout.preferredWidth: 56
                                                 Layout.preferredHeight: 56
@@ -912,12 +926,21 @@ Item {
                                                     elide: Text.ElideRight
                                                 }
                                             }
-                                            ColumnLayout {
+                                            }
+                                            RowLayout {
+                                                Layout.fillWidth: cardCell.mobileActionsStacked
                                                 Layout.alignment: Qt.AlignVCenter
                                                 spacing: Theme.space1
+                                                layoutDirection: Theme.uiDirection
+                                                Item {
+                                                    visible: cardCell.mobileActionsStacked
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: 1
+                                                }
                                                 ActionButton {
                                                     objectName: "miniAppMobileOpenButton"
-                                                    Layout.preferredWidth: 72
+                                                    Layout.preferredWidth: Math.max(96, implicitWidth)
+                                                    Layout.minimumWidth: Math.max(96, implicitWidth)
                                                     compact: true
                                                     pill: true
                                                     elevated: false
@@ -928,8 +951,8 @@ Item {
                                                     onClicked: root.openApp(cardCell.modelData)
                                                 }
                                                 RowLayout {
-                                                    Layout.alignment: Qt.AlignHCenter
-                                                    spacing: 0
+                                                    Layout.alignment: Qt.AlignVCenter
+                                                    spacing: Theme.space1
                                                     ActionButton {
                                                         compact: true
                                                         quiet: true
@@ -1071,7 +1094,8 @@ Item {
                                             ActionButton {
                                                 objectName: "miniAppStoreOpenButton"
                                                 Layout.alignment: Qt.AlignVCenter
-                                                Layout.preferredWidth: 76
+                                                Layout.preferredWidth: Math.max(104, implicitWidth)
+                                                Layout.minimumWidth: Math.max(104, implicitWidth)
                                                 compact: true
                                                 pill: true
                                                 elevated: false
