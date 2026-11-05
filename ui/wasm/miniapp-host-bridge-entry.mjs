@@ -57,9 +57,12 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     // WalletConnect; no relay connection is opened on Mini App launch.
     walletConnectChains:['eip155:10','eip155:8453','eip155:1',
       'eip155:42161','eip155:137','eip155:7777777'],
-    walletConnectFactory: async ({onUri,signal})=>{
+    walletConnectFactory: async ({onUri,onStatus,signal})=>{
+      onStatus?.('loading');
       const sdk=await import('./genycaster-walletconnect.mjs');
-      return sdk.connectWalletConnect({onUri,signal});
+      if(signal?.aborted)throw Object.assign(
+        new Error('Wallet connection cancelled'),{code:4001});
+      return sdk.connectWalletConnect({onUri,onStatus,signal});
     }
   });
   const wallet = createMiniAppEthereumProvider(url.origin, injected, undefined, url.href);
