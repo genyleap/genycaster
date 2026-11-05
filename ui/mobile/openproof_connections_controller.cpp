@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDebug>
 #include <QDesktopServices>
 #include <QFile>
 #include <QJsonArray>
@@ -1541,6 +1542,7 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
         if (m_proEntitlementsRead != reply) { reply->deleteLater(); return; }
         m_proEntitlementsRead.clear();
         const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto networkError = reply->error();
         const auto bytes = reply->bytesAvailable() <= 8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
@@ -1565,6 +1567,13 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
             m_proEntitlements = {{QStringLiteral("status"),
                                   QStringLiteral("unavailable")}};
             m_proEntitlementsFid = viewer;
+        }
+        if (!verified) {
+            // No bearer, cookie, wallet address or response body in logs.
+            // HTTP status differentiates a missing Genycaster session (401)
+            // from an unavailable balance/eligibility provider (200).
+            qWarning() << "Genycaster Pro entitlement check unavailable: HTTP"
+                       << status << "network error" << static_cast<int>(networkError);
         }
         // Failed checks are retryable immediately; only server-verified
         // entitlements qualify for the normal short cache interval.
