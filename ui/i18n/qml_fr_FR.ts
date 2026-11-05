@@ -6777,5 +6777,21 @@ Entreprise | https://company.com</translation>
             <source>More Market Pulse tokens</source>
             <translation>Plus de tokens Market Pulse</translation>
         </message>
+        <message id="genycaster.profile.block_user">
+            <source>Block user</source>
+            <translation>Bloquer cet utilisateur</translation>
+        </message>
+        <message id="genycaster.profile.unblock_user">
+            <source>Unblock user</source>
+            <translation>Débloquer cet utilisateur</translation>
+        </message>
+        <message id="genycaster.profile.you_blocked_user">
+            <source>You blocked this user.</source>
+            <translation>Vous avez bloqué cet utilisateur.</translation>
+        </message>
+        <message id="genycaster.profile.user_blocked_you">
+            <source>This user blocked you.</source>
+            <translation>Cet utilisateur vous a bloqué.</translation>
+        </message>
     </context>
 </TS>
