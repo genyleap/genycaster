@@ -23,6 +23,12 @@ module;
 #include <string_view>
 #include <thread>
 #include <utility>
+#if defined(_WIN32)
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#include <sys/time.h>
+#endif
 #include <vector>
 
 module farcaster.provider.compatibility.browser_wallet.bridge;
@@ -44,6 +50,27 @@ using Clock = std::chrono::steady_clock;
 constexpr std::size_t TokenBytes = 32U;
 constexpr std::size_t MaximumQueuedRequests = 32U;
 constexpr std::chrono::milliseconds PollDelay{20};
+// The per-socket HTTP read/write budget is separate from the wallet approval
+// timeout (minutes). A stalled/half-open loopback connection must not keep
+// the bridge's jthread blocked indefinitely during application shutdown.
+constexpr int HttpSocketTimeoutSeconds = 3;
+
+void setHttpSocketTimeouts(tcp::socket& socket) noexcept
+{
+#if defined(_WIN32)
+    const DWORD timeout = HttpSocketTimeoutSeconds * 1000U;
+    const auto handle = socket.native_handle();
+    (void)::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO,
+                       reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+    (void)::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO,
+                       reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+#else
+    const timeval timeout{HttpSocketTimeoutSeconds, 0};
+    const auto handle = socket.native_handle();
+    (void)::setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    (void)::setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+#endif
+}
 
 [[nodiscard]] foundation::error::Error makeError(
     const foundation::error::ErrorCode code,
@@ -634,6 +661,7 @@ private:
                 std::this_thread::sleep_for(PollDelay);
                 continue;
             }
+            setHttpSocketTimeouts(socket);
             handle(std::move(socket));
         }
     }
