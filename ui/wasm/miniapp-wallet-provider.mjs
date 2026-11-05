@@ -22,22 +22,34 @@ function denied(message = 'Mini App wallet access was not authorized', code = 41
 // Discover EIP-6963 providers without inspecting browser profiles or extensions.
 // Announcement names are self-reported: never present them as verified wallets.
 // One registry belongs to one Mini App document and is disposed on teardown.
-export function createDiscoveredBrowserWallet(win) {
+export function createDiscoveredBrowserWallet(win, options={}) {
   const wallets=[];
   const listeners=new Map();
   let active=null;
   let closed=false;
-  const add=(name,provider)=>{
+  let walletConnectClient=null;
+  let userSelected=false;
+  let pairing=null;
+  const wcSubscriptions=new Map();
+  // Client-side option only: no relay connection is made until explicit consent.
+  const wcFactory=typeof options.walletConnectFactory==='function'
+    ? options.walletConnectFactory:null;
+
+  const add=(name,provider,id)=>{
     if(closed||!provider||typeof provider.request!=='function'||
         wallets.some(item=>item.provider===provider)||wallets.length>=12)return;
-    const entry={id:'wallet-'+wallets.length,name:String(name||'Browser wallet').slice(0,64),provider};
+    const entry={id:id||'wallet-'+wallets.length,
+      name:String(name||'Browser wallet').slice(0,64),provider};
     wallets.push(entry);
-    if(!active) {
+    if(!active || (active.id==='walletconnect'&&!userSelected&&id!=='walletconnect')) {
+      const previous=active;
+      for(const [event,callbacks] of listeners)for(const callback of callbacks)
+        previous?.provider.removeListener?.(event,callback);
       active=entry;
-      // Announcements may arrive after the Mini App facade has subscribed.
       for(const [event,callbacks] of listeners)for(const callback of callbacks)
         active.provider.on?.(event,callback);
     }
+    return entry;
   };
   const announce=event=>{
     const detail=event?.detail;
@@ -45,29 +57,77 @@ export function createDiscoveredBrowserWallet(win) {
       add(detail.info.name,detail.provider);
   };
   const changeTo=id=>{
-    if(closed) return false;
+    if(closed)return false;
     const next=wallets.find(wallet=>wallet.id===id);
     if(!next)return false;
+    userSelected=true;
     if(next===active)return true;
     for(const [event,callbacks] of listeners)for(const callback of callbacks)
       active?.provider.removeListener?.(event,callback);
     active=next;
     for(const [event,callbacks] of listeners)for(const callback of callbacks)
       active.provider.on?.(event,callback);
-    // A provider change immediately invalidates any prior account grant.
+    // Switching providers invalidates any Mini App origin grant, including
+    // when the wallet returns the same public account on a different chain.
     for(const callback of listeners.get('accountsChanged')||[])callback([]);
     return true;
   };
+  const wcProxy={
+    request(payload){
+      if(!walletConnectClient || !walletConnectClient.session)
+        return Promise.reject(denied('Connect WalletConnect before requesting accounts',4900));
+      return walletConnectClient.request(payload);
+    },
+    on(event,callback){
+      if(typeof callback!=='function')return;
+      if(!wcSubscriptions.has(event))wcSubscriptions.set(event,new Set());
+      wcSubscriptions.get(event).add(callback);
+      walletConnectClient?.on?.(event,callback);
+    },
+    removeListener(event,callback){
+      wcSubscriptions.get(event)?.delete(callback);
+      walletConnectClient?.removeListener?.(event,callback);
+    }
+  };
   win.addEventListener?.('eip6963:announceProvider',announce);
-  // A synchronous EIP-6963 announcement may arrive immediately when requested.
   win.dispatchEvent?.(new Event('eip6963:requestProvider'));
   if(win.ethereum?.request)add('Browser wallet',win.ethereum);
+  if(wcFactory)add('WalletConnect',wcProxy,'walletconnect');
+  const connectWalletConnect=async ({onUri,signal}={})=>{
+    if(!wcFactory||closed)throw denied('WalletConnect is not available',4900);
+    if(signal?.aborted)throw denied('Wallet connection cancelled',4001);
+    if(pairing)return pairing;
+    pairing=(async()=>{
+      const provider=await wcFactory({onUri,signal});
+      if(closed||signal?.aborted)throw denied('Wallet connection cancelled',4001);
+      if(!provider?.session || typeof provider.request!=='function')
+        throw denied('WalletConnect connection was not approved',4900);
+      if(walletConnectClient!==provider){
+        // A renewed WalletConnect session cannot inherit a previous origin
+        // approval. Forward only events subscribed by live Mini App facades.
+        if(walletConnectClient){
+          for(const [event,callbacks] of wcSubscriptions)for(const callback of callbacks)
+            walletConnectClient.removeListener?.(event,callback);
+        }
+        walletConnectClient=provider;
+        for(const [event,callbacks] of wcSubscriptions)for(const callback of callbacks)
+          provider.on?.(event,callback);
+      }
+      return provider;
+    })();
+    try{return await pairing;}finally{pairing=null;}
+  };
   return {
     available:()=>!closed&&!!active,
     choices:()=>closed?[]:wallets.map(({id,name})=>({id,name})),
+    selectedId:()=>active?.id||'',
+    supportsWalletConnect:()=>!closed&&!!wcFactory,
+    walletConnectConnected:()=>!!walletConnectClient?.session,
+    supportedChains:()=>wcFactory?(options.walletConnectChains||[]).slice():[],
+    connectWalletConnect,
     select:changeTo,
     request(payload){
-      if(closed) return Promise.reject(denied('Mini App wallet session closed',4900));
+      if(closed)return Promise.reject(denied('Mini App wallet session closed',4900));
       if(!active)return Promise.reject(denied('No wallet installed in this browser',4900));
       return active.provider.request(payload);
     },
@@ -87,11 +147,12 @@ export function createDiscoveredBrowserWallet(win) {
       win.removeEventListener?.('eip6963:announceProvider',announce);
       for(const [event,callbacks] of listeners)for(const callback of callbacks)
         active?.provider.removeListener?.(event,callback);
-      listeners.clear();wallets.length=0;active=null;
+      listeners.clear();
+      wcSubscriptions.clear();
+      wallets.length=0;active=null;walletConnectClient=null;
     }
   };
 }
-
 
 // The Qt locale is forwarded to the browser host as a preference. Keep this
 // independent from provider names (wallet self-reported branding is not verified).
