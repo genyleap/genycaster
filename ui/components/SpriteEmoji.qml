@@ -11,6 +11,10 @@ Item {
     property int surface: 3
     property bool viewportVisible: true
     property bool requestFailed: false
+    // An authored one-shot may terminate on a fully transparent frame.
+    // Return the inline Unicode/Qt color emoji when it finishes rather than
+    // continuing to mask the text with an empty sprite.
+    property bool playbackFinished: false
     property string failureReason: ""
     property int retryCount: 0
     property bool explicitRetry: false
@@ -27,8 +31,8 @@ Item {
         && root.width > 0 && root.height > 0 && root.unicodeSequence.length > 0
         // Deactivation pauses playback, but must not release the painted frame.
         && (root.active || root.preserveArtwork)
-    readonly property bool animationReady: !root.requestFailed && atlas.status === Image.Ready
-        && spriteLoader.item !== null
+    readonly property bool animationReady: !root.requestFailed && !root.playbackFinished
+        && atlas.status === Image.Ready && spriteLoader.item !== null
     readonly property bool loading: root.artworkWanted && !root.animationReady && !root.requestFailed
     readonly property int playbackLoops: root.reducedMotion || !root.active ? 0
         : root.controller !== null ? root.controller.playbackLoops(root.surface, false, true, root.artworkWanted) : 0
@@ -69,6 +73,7 @@ Item {
         root.requestedSequence = ""
         root.spriteData = ({})
         root.requestFailed = false
+        root.playbackFinished = false
         root.failureReason = ""
         root.explicitRetry = explicit
         admission.restart()
@@ -121,6 +126,7 @@ Item {
     onUnicodeSequenceChanged: {
         root.spriteData = ({})
         root.requestFailed = false
+        root.playbackFinished = false
         root.failureReason = ""
         root.retryCount = 0
         root.explicitRetry = false
@@ -176,6 +182,10 @@ Item {
     Loader {
         id: spriteLoader
         anchors.fill: parent
+        // Keep the final state resident for a cheap reverse scroll, but let
+        // the caller's always-available Unicode fallback paint after a
+        // one-shot finishes. The loader must not mask it with blank pixels.
+        opacity: root.animationReady ? 1 : 0
         active: root.rendererUsable && atlas.status === Image.Ready
                 && root.artworkWanted
         onStatusChanged: if (status === Loader.Error) {
@@ -197,7 +207,11 @@ Item {
             // Stopping retains the first rendered frame. Recreating the
             // delegate on focus loss caused the inline glyph to disappear.
             running: root.playbackLoops !== 0
-            finishBehavior: AnimatedSprite.FinishAtInitialFrame
+            finishBehavior: AnimatedSprite.FinishAtFinalFrame
+            onFinished: {
+                if (root.playbackLoops > 0)
+                    root.playbackFinished = true
+            }
         }
     }
 }
