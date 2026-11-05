@@ -182,6 +182,31 @@ void socialOperationsUseCanonicalTargetsAndKinds()
         key);
     assert(unfollow && unfollow->kind == domain::write::OperationKind::Unfollow);
 
+    const auto block = codec->prepareFollow(
+        domain::write::FollowIntent{
+            .author = domain::identity::Fid{42U},
+            .target = domain::identity::Fid{99U},
+            .isFollowing = true,
+            .kind = domain::write::LinkKind::Block,
+            .createdAt = fixtureTime(),
+        }, key);
+    assert(block && block->kind == domain::write::OperationKind::Block);
+    assert(block->target.fid && block->target.fid->value == 99U);
+    assert(block->dataBytes.find("block") != std::string::npos);
+    assert(block->idempotencyKey.value != follow->idempotencyKey.value);
+
+    const auto unblock = codec->prepareFollow(
+        domain::write::FollowIntent{
+            .author = domain::identity::Fid{42U},
+            .target = domain::identity::Fid{99U},
+            .isFollowing = false,
+            .kind = domain::write::LinkKind::Block,
+            .createdAt = fixtureTime(),
+        }, key);
+    assert(unblock && unblock->kind == domain::write::OperationKind::Unblock);
+    assert(unblock->dataBytes.find("block") != std::string::npos);
+    assert(unblock->hashBytes != block->hashBytes);
+
     auto sealed = codec->seal(*like, domain::signer::Signature{std::string(64U, 's')});
     assert(sealed);
     assert(sealed->kind == domain::write::OperationKind::Like);
