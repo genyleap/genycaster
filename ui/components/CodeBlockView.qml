@@ -105,7 +105,14 @@ Superellipse {
                     if (root.source.length === 0) return
                     presentationBridge.copyText(root.source)
                     copyCodeButton.acknowledgeCopy()
+                    copyCodeFeedbackTimer.restart()
                 }
+            }
+            Timer {
+                id: copyCodeFeedbackTimer
+                interval: 1300
+                repeat: false
+                onTriggered: copyCodeButton.clearCopyFeedback()
             }
         }
 
