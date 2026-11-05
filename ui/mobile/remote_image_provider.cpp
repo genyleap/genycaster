@@ -60,6 +60,8 @@ constexpr int imageCacheCapacityKiB = 128 * 1024;
 #endif
 constexpr int failedRequestCacheCapacity = 256;
 constexpr auto failedRequestBackoff = std::chrono::seconds{30};
+constexpr auto forbiddenOriginBackoff = std::chrono::minutes{10};
+constexpr int forbiddenOriginCapacity = 64;
 constexpr std::size_t imageDecodeWorkerCount = 2U;
 constexpr qint64 maximumDecodedPixelCount = 20LL * 1024LL * 1024LL;
 constexpr int maximumImageDimension = 16'384;
@@ -225,6 +227,45 @@ struct FailedRequest final {
 QMutex imageCacheMutex{};
 QCache<QString, CachedImage> imageCache{imageCacheCapacityKiB};
 QCache<QString, FailedRequest> failedRequests{failedRequestCacheCapacity};
+QCache<QString, FailedRequest> forbiddenOrigins{forbiddenOriginCapacity};
+
+[[nodiscard]] QString imageOriginKey(const QString& source)
+{
+    const QUrl url{source};
+    if (!url.isValid() || url.host().isEmpty()) return {};
+    return url.scheme().toLower() + QStringLiteral("://") + url.host().toLower()
+        + QLatin1Char(':') + QString::number(url.port(
+            url.scheme() == QStringLiteral("https") ? 443 : 80));
+}
+
+[[nodiscard]] bool originTemporarilyForbidden(const QString& source)
+{
+    const QString key = imageOriginKey(source);
+    if (key.isEmpty()) return false;
+    const QMutexLocker lock{&imageCacheMutex};
+    const auto* entry = forbiddenOrigins.object(key);
+    if (!entry) return false;
+    if (entry->retryAfter > std::chrono::steady_clock::now()) return true;
+    forbiddenOrigins.remove(key);
+    return false;
+}
+
+void rememberForbiddenOrigin(const QString& source)
+{
+    const QString key = imageOriginKey(source);
+    if (key.isEmpty()) return;
+    const QMutexLocker lock{&imageCacheMutex};
+    forbiddenOrigins.insert(key, new FailedRequest{
+        .retryAfter = std::chrono::steady_clock::now() + forbiddenOriginBackoff}, 1);
+}
+
+void clearForbiddenOrigin(const QString& source)
+{
+    const QString key = imageOriginKey(source);
+    if (key.isEmpty()) return;
+    const QMutexLocker lock{&imageCacheMutex};
+    forbiddenOrigins.remove(key);
+}
 
 [[nodiscard]] QImage transparentFailureImage(QSize* const size)
 {
@@ -860,7 +901,7 @@ void RemoteImageProvider::Impl::start(
     }
     // A deliberate user tap is an explicit retry intent and must not be
     // suppressed by the short automatic-failure backoff window.
-    if (!manual && requestIsBackedOff(urlText)) {
+    if (!manual && (requestIsBackedOff(urlText) || originTemporarilyForbidden(urlText))) {
         deliverResponse(control, transparentFailureImage(nullptr));
         return;
     }
@@ -917,6 +958,11 @@ void RemoteImageProvider::Impl::startNetwork(
     const auto networkAtStart = policy.networkClass;
     const auto rule = storage_policy::downloadRule(policy, category, networkAtStart);
     if (!manual && !rule.enabled) {
+        deliverResponse(control, transparentFailureImage(nullptr));
+        return;
+    }
+    // Do not keep retrying other automatic asset URLs on a private R2/CDN origin.
+    if (!manual && originTemporarilyForbidden(urlText)) {
         deliverResponse(control, transparentFailureImage(nullptr));
         return;
     }
@@ -980,6 +1026,9 @@ void RemoteImageProvider::Impl::startNetwork(
                 return;
             }
             if (!result || result->statusCode < 200U || result->statusCode >= 300U) {
+                const bool deniedByOrigin = result
+                    && (result->statusCode == 401U || result->statusCode == 403U);
+                if (deniedByOrigin) rememberForbiddenOrigin(urlText);
 #if defined(__EMSCRIPTEN__)
                 // Do not log full URLs: CDNs may put identifying tokens in
                 // paths or queries. Record only host and bounded status.
@@ -1004,6 +1053,7 @@ void RemoteImageProvider::Impl::startNetwork(
                 deliverResponse(control, transparentFailureImage(nullptr));
                 return;
             }
+            clearForbiddenOrigin(urlText);
             if (self->m_storageState) {
                 self->m_storageState->recordDownloadedBytes(
                     category, networkAtStart, static_cast<std::uint64_t>(result->body.size()));
