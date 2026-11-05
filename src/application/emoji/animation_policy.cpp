@@ -46,19 +46,17 @@ AnimationDecision MotionPolicy::decide(
             .pauseWhenInvisible = true,
         };
     case Surface::Feed:
-        // Feed emoji play once on entry and stay on the final frame. Replaying
-        // on hover is allowed where the UI exposes hover/focus.
-        return active
-            ? AnimationDecision{
-                  .mode = PlaybackMode::PlayOnce,
-                  .loopCount = 1U,
-                  .pauseWhenInvisible = true,
-              }
-            : AnimationDecision{
-                  .mode = PlaybackMode::PlayOnce,
-                  .loopCount = 1U,
-                  .pauseWhenInvisible = true,
-              };
+        // A completed one-shot Lottie often ends on a transparent frame:
+        // the inline Unicode has already yielded to the animated renderer,
+        // so the emoji appears to vanish from the cast. Keep visible feed
+        // emoji looping just like detail emoji, and pause them when scrolled
+        // offscreen, during a fling or while the app is inactive. Never
+        // restart the animation on a transient viewport/motion change.
+        return AnimationDecision{
+            .mode = PlaybackMode::Loop,
+            .loopCount = 0U,
+            .pauseWhenInvisible = true,
+        };
     case Surface::PickerCell:
         // Special-picker cells animate as soon as they enter the viewport.
         // Playing once keeps the initial reveal lively without leaving dozens
