@@ -298,3 +298,32 @@ test('WalletConnect module is self-hosted, loaded lazily and does not overwrite 
  assert.match(driver,/provider\.session/);
  assert.doesNotMatch(driver,/privateKey|mnemonic|signerSecret/);
 });
+
+
+test('account switching or disconnecting revokes a previously granted wallet',async()=>{
+ const events=new Map();
+ const provider={
+   async request({method}){
+     if(method==='eth_requestAccounts')
+       return ['0x0000000000000000000000000000000000000003'];
+     if(method==='personal_sign')return '0xreal-wallet-result';
+     return ['0x0000000000000000000000000000000000000003'];
+   },
+   on(event,cb){if(!events.has(event))events.set(event,new Set());events.get(event).add(cb);},
+   removeListener(event,cb){events.get(event)?.delete(cb);},
+   fire(event,value){for(const fn of events.get(event)||[])fn(value);}
+ };
+ const wallet=createMiniAppEthereumProvider('https://mini.example',provider,()=>true);
+ await wallet.provider.request({method:'eth_requestAccounts'});
+ provider.fire('accountsChanged',['0x0000000000000000000000000000000000000003']);
+ assert.equal(await wallet.provider.request({method:'personal_sign'}),
+   '0xreal-wallet-result');
+ provider.fire('accountsChanged',['0x0000000000000000000000000000000000000004']);
+ await assert.rejects(wallet.provider.request({method:'personal_sign'}),
+   e=>e.code===4100);
+ await wallet.provider.request({method:'eth_requestAccounts'});
+ provider.fire('disconnect',{code:4900});
+ await assert.rejects(wallet.provider.request({method:'personal_sign'}),
+   e=>e.code===4100);
+ wallet.dispose();
+});
