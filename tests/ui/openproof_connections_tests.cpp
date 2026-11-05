@@ -37,6 +37,16 @@ int main(int argc, char** argv)
     assert(!controller.providers().contains(QStringLiteral("farcaster")));
     assert(!controller.providers().contains(QStringLiteral("local")));
     controller.setViewerFid(42);
+    // Reading a selected topic while the existing account grant restores
+    // is pending, not a request to sign a new protocol message.
+    controller.selectCastTopic(QStringLiteral("art"), QStringLiteral("42"));
+    assert(controller.activeCastTopic() == QStringLiteral("art"));
+    assert(controller.topicCastsBusy());
+    assert(controller.topicCastsError().isEmpty());
+    controller.clearCastTopic();
+    assert(!controller.topicCastsBusy());
+    controller.selectCastTopic(QStringLiteral("ART"), QStringLiteral("42"));
+    assert(controller.activeCastTopic().isEmpty());
     assert(controller.recoveryGatewayOrigin().startsWith(QStringLiteral("https://")));
     controller.acceptRecoveryGrant(QByteArrayLiteral("invalid-ticket"),
         QStringLiteral("subject-42"), 42, 2700);
