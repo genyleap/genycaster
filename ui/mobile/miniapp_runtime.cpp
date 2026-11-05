@@ -1598,7 +1598,7 @@ private:
                       const quint64 sequence, const QString& document,
                       const QJsonValue& id,
                       const QString& message = {}, const QString& signature = {},
-                      const bool authAddress = false)
+                      const bool authAddress = false, const bool userRejected = false)
     {
         Session* const session = find(taskId);
         if (!session || !session->pendingSignIn
@@ -1615,12 +1615,17 @@ private:
             return;
         }
         if (message.isEmpty() || signature.isEmpty()) {
-            // The SDK represents a rejected native approval as a typed
-            // rejected_by_user result. Do not fabricate an identity proof.
-            session->browser->reply(rawResponse(id, QJsonObject{
-                {QStringLiteral("error"), QJsonObject{
-                    {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
-            }), document);
+            if (userRejected) {
+                // Exact official Mini App wire result for wallet rejection.
+                session->browser->reply(rawResponse(id, QJsonObject{
+                    {QStringLiteral("error"), QJsonObject{
+                        {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
+                }), document);
+            } else {
+                session->browser->reply(errorResponse(id, QStringLiteral(
+                    "Sign in failed: the wallet proof could not be verified for this FID. "
+                    "Use a current Farcaster custody/auth address wallet and retry.")), document);
+            }
             return;
         }
         session->browser->reply(rawResponse(id, QJsonObject{
@@ -1716,7 +1721,8 @@ private:
                 || active->signInSequence != sequence
                 || active->documentGeneration != generation
                 || active->documentToken != document || response.error) {
-                runtime.finishSignIn(taskId, generation, sequence, document, id);
+                runtime.finishSignIn(taskId, generation, sequence, document, id,
+                    {}, {}, false, response.error && response.error->code == 4001);
                 return;
             }
             const QJsonValue accounts = parseJsonValue(response.resultJson);
@@ -1760,7 +1766,9 @@ private:
                     || current->signInSequence != sequence
                     || current->documentGeneration != generation
                     || current->documentToken != document || signedResponse.error) {
-                    owner.finishSignIn(taskId, generation, sequence, document, id);
+                    owner.finishSignIn(taskId, generation, sequence, document, id,
+                        {}, {}, false, signedResponse.error
+                            && signedResponse.error->code == 4001);
                     return;
                 }
                 const QString signature = parseJsonValue(signedResponse.resultJson).toString();
