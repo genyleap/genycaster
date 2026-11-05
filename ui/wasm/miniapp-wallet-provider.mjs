@@ -235,24 +235,32 @@ export function mobileWalletBrowserLinks(launchUrl, userAgent='') {
 }
 
 export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl=origin) {
-  if(typeof document === 'undefined' || !document.body)
-    return Promise.resolve(false);
-  return new Promise(resolve => {
-    if(signal?.aborted) { resolve(false); return; }
+  if(typeof document==='undefined'||!document.body)return Promise.resolve(false);
+  return new Promise(resolve=>{
+    if(signal?.aborted){resolve(false);return;}
     const language=typeof window!=='undefined'
       ? (window.__genycasterPreferredLanguage || document.documentElement?.lang
-        || (typeof navigator!=='undefined'?navigator.language:'en'))
-      : 'en';
+        || (typeof navigator!=='undefined'?navigator.language:'en')):'en';
     const copy=walletApprovalCopy(language);
+    const fa=copy.direction==='rtl';
+    const promptText=fa
+      ? {connect:'اتصال با WalletConnect',connecting:'در انتظار تأیید کیف پول…',
+         scan:'کد را با کیف پول اسکن کنید یا برنامه را باز کنید.',
+         retry:'تلاش دوباره',failed:'اتصال برقرار نشد. دوباره تلاش کنید.',
+         onekey:'بازکردن OneKey',metamask:'بازکردن MetaMask'}
+      : {connect:'Connect with WalletConnect',connecting:'Waiting for wallet approval…',
+         scan:'Scan with your wallet, or open a wallet app.',
+         retry:'Try again',failed:'Connection failed. Please try again.',
+         onekey:'Open OneKey',metamask:'Open MetaMask'};
     const scrim=document.createElement('div');
-    Object.assign(scrim.style,{position:'fixed',inset:'0',
-      zIndex:'2147483647',background:'rgba(0,0,0,.76)',
-      display:'flex',alignItems:'center',justifyContent:'center',
-      padding:'24px',boxSizing:'border-box'});
+    Object.assign(scrim.style,{position:'fixed',inset:'0',zIndex:'2147483647',
+      background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',
+      justifyContent:'center',padding:'16px',boxSizing:'border-box'});
     const panel=document.createElement('section');
-    Object.assign(panel.style,{width:'min(390px,100%)',background:'#202126',
-      color:'#f4f4f5',border:'1px solid #44454d',borderRadius:'18px',
-      padding:'20px',boxSizing:'border-box',fontFamily:'system-ui,sans-serif',
+    Object.assign(panel.style,{width:'min(390px,100%)',maxHeight:'92dvh',
+      overflowY:'auto',background:'#202126',color:'#f4f4f5',
+      border:'1px solid #45434d',borderRadius:'18px',padding:'20px',
+      boxSizing:'border-box',fontFamily:'system-ui,sans-serif',
       boxShadow:'0 15px 60px rgba(0,0,0,.45)'});
     panel.setAttribute('role','dialog');
     panel.setAttribute('aria-modal','true');
@@ -261,99 +269,157 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
     const title=document.createElement('h2');
     title.textContent=copy.title;
     Object.assign(title.style,{margin:'0 0 10px',fontSize:'20px'});
+    const originText=document.createElement('div');
+    originText.textContent=origin;
+    originText.setAttribute('dir','ltr');
+    Object.assign(originText.style,{fontSize:'12px',color:'#b7b3c3',
+      overflowWrap:'anywhere',padding:'10px',background:'#2b2b34',
+      borderRadius:'9px',textAlign:'start'});
     const details=document.createElement('p');
     details.textContent=copy.question;
-    const appOrigin=document.createElement('div');
-    appOrigin.textContent=origin;
-    appOrigin.setAttribute('dir','ltr');
-    Object.assign(appOrigin.style,{fontSize:'12px',color:'#b7b3c3',
-      overflowWrap:'anywhere',padding:'9px 11px',background:'#2b2b34',
-      borderRadius:'9px',marginBottom:'12px',textAlign:'start'});
-    Object.assign(details.style,{lineHeight:'1.5',fontSize:'14px',color:'#c2c3cc'});
-    panel.append(title,appOrigin,details);
-    const actions=document.createElement('div');
-    Object.assign(actions.style,{display:'flex',gap:'10px',justifyContent:'flex-end'});
-    const candidates=injected?.choices?.()||[];
-    let walletSelection=null;
-    if(candidates.length>1) {
-      const selectLabel=document.createElement('label');
-      selectLabel.textContent=copy.wallet;
-      Object.assign(selectLabel.style,{display:'block',fontSize:'13px',
-        color:'#c2c3cc',margin:'14px 0 9px'});
-      walletSelection=document.createElement('select');
-      walletSelection.setAttribute('aria-label',copy.wallet);
-      Object.assign(walletSelection.style,{display:'block',width:'100%',
-        padding:'12px',marginTop:'7px',borderRadius:'9px',
-        border:'1px solid #52535b',background:'#33343c',color:'#f4f4f5'});
-      for(const item of candidates){
+    Object.assign(details.style,{lineHeight:'1.5',fontSize:'14px',
+      color:'#c2c3cc',margin:'12px 0'});
+    panel.append(title,originText,details);
+    const choices=injected?.choices?.()||[];
+    const select=choices.length>1?document.createElement('select'):null;
+    if(select){
+      select.setAttribute('aria-label',copy.wallet);
+      Object.assign(select.style,{display:'block',width:'100%',padding:'12px',
+        marginBottom:'12px',borderRadius:'10px',border:'1px solid #53525d',
+        background:'#303039',color:'#f4f4f5',font:'inherit'});
+      for(const choice of choices){
         const option=document.createElement('option');
-        option.value=item.id;option.textContent=item.name;
-        walletSelection.append(option);
+        option.value=choice.id;option.textContent=choice.name;
+        select.append(option);
       }
-      selectLabel.append(walletSelection);panel.append(selectLabel);
+      const current=injected.selectedId?.();
+      if(choices.some(item=>item.id===current))select.value=current;
+      panel.append(select);
     }
+    const qrContainer=document.createElement('section');
+    qrContainer.hidden=true;
+    Object.assign(qrContainer.style,{textAlign:'center',margin:'6px 0 12px'});
+    const pairingText=document.createElement('p');
+    pairingText.textContent=promptText.scan;
+    Object.assign(pairingText.style,{fontSize:'13px',color:'#c2c3cc',
+      lineHeight:'1.5',margin:'8px'});
+    const qr=document.createElement('img');
+    qr.alt='WalletConnect pairing QR code';
+    Object.assign(qr.style,{display:'block',width:'min(220px,100%)',
+      height:'auto',margin:'10px auto',borderRadius:'10px',
+      background:'white',padding:'8px'});
+    const walletLinks=document.createElement('div');
+    Object.assign(walletLinks.style,{display:'flex',gap:'8px',
+      justifyContent:'center',flexWrap:'wrap'});
+    qrContainer.append(pairingText,qr,walletLinks);
+    panel.append(qrContainer);
+    const error=document.createElement('p');
+    error.setAttribute('role','alert');
+    Object.assign(error.style,{fontSize:'12px',color:'#ff9ca6',
+      lineHeight:'1.5',margin:'0 0 10px'});
+    panel.append(error);
+    const actions=document.createElement('div');
+    Object.assign(actions.style,{display:'flex',gap:'10px',
+      justifyContent:'flex-end'});
     const cancel=document.createElement('button');
-    cancel.textContent=copy.cancel;
+    cancel.type='button';cancel.textContent=copy.cancel;
     const approve=document.createElement('button');
-    approve.textContent=copy.continue;
-    for(const button of [cancel,approve]) {
-      Object.assign(button.style,{padding:'11px 14px',font:'inherit',
-        borderRadius:'9px',cursor:'pointer',border:'1px solid #52535b',
-        background:'#33343c',color:'#f4f4f5'});
+    approve.type='button';approve.textContent=copy.continue;
+    for(const button of [cancel,approve]){
+      Object.assign(button.style,{flex:'1',padding:'11px 14px',
+        font:'inherit',borderRadius:'10px',cursor:'pointer',
+        border:'1px solid #52535b',background:'#33343c',color:'#f4f4f5'});
     }
     approve.style.background='#7359f5';
     approve.style.borderColor='#7359f5';
-    if(injected?.available && !injected.available()) {
-      approve.disabled=true;
-      approve.style.opacity='.48';
-      approve.style.cursor='not-allowed';
-      approve.setAttribute('aria-disabled','true');
+    if(!choices.length){
+      approve.disabled=true;approve.style.opacity='.5';
       details.textContent=copy.missing;
-      const external=mobileWalletBrowserLinks(launchUrl,
-        typeof navigator!=='undefined'?navigator.userAgent:'');
-      if(external.length){
-        const heading=document.createElement('p');
-        heading.textContent=copy.externalTitle;
-        Object.assign(heading.style,{margin:'14px 0 8px',fontSize:'13px',
-          fontWeight:'600',color:'#f4f4f5'});
-        panel.append(heading);
-        const links=document.createElement('div');
-        Object.assign(links.style,{display:'grid',gap:'8px',marginBottom:'10px'});
-        for(const wallet of external){
-          const anchor=document.createElement('a');
-          anchor.href=wallet.href;
-          anchor.target='_blank';
-          anchor.rel='noopener noreferrer';
-          anchor.textContent=wallet.name;
-          anchor.setAttribute('aria-label',copy.externalTitle+': '+wallet.name);
-          Object.assign(anchor.style,{display:'block',padding:'12px 14px',
-            background:'#33343c',border:'1px solid #53515f',
-            color:'#f5f3fc',borderRadius:'10px',textDecoration:'none',
-            fontWeight:'600',textAlign:'center'});
-          links.append(anchor);
-        }
-        const note=document.createElement('p');
-        note.textContent=copy.externalExplanation;
-        Object.assign(note.style,{fontSize:'12px',color:'#b7b3c3',
-          lineHeight:'1.55',margin:'0 0 12px'});
-        panel.append(links,note);
-      }
+    }else if(choices.length===1 && choices[0].id==='walletconnect'){
+      approve.textContent=promptText.connect;
     }
-    let resolved=false;
-    const cleanup=()=>{signal?.removeEventListener('abort',abort);
-      scrim.removeEventListener('keydown',onKey);scrim.remove();};
-    const finish=value=>{if(resolved)return;resolved=true;cleanup();resolve(value);};
-    const abort=()=>finish(false);
-    const onKey=event=>{if(event.key==='Escape')finish(false);};
-    signal?.addEventListener('abort',abort,{once:true});
-    cancel.addEventListener('click',()=>finish(false));
-    approve.addEventListener('click',()=>{
-      if(walletSelection&&!injected.select(walletSelection.value))return;
-      finish(true);
-    });
-    scrim.addEventListener('keydown',onKey);
     actions.append(cancel,approve);panel.append(actions);
     scrim.append(panel);document.body.append(scrim);
+    let resolved=false,connecting=false,pairAbort=null;
+    const cleanup=()=>{
+      signal?.removeEventListener('abort',onAbort);
+      scrim.removeEventListener('keydown',onKey);
+      scrim.remove();
+    };
+    const finish=value=>{
+      if(resolved)return;
+      resolved=true;
+      if(!value)pairAbort?.abort();
+      cleanup();resolve(value);
+    };
+    const onAbort=()=>finish(false);
+    const onKey=event=>{if(event.key==='Escape')finish(false);};
+    signal?.addEventListener('abort',onAbort,{once:true});
+    cancel.addEventListener('click',()=>finish(false));
+    scrim.addEventListener('keydown',onKey);
+
+    approve.addEventListener('click',async()=>{
+      if(resolved||connecting)return;
+      const id=select?.value||choices[0]?.id||'';
+      if(!id||!injected?.select?.(id))return;
+      if(id!=='walletconnect'){finish(true);return;}
+      connecting=true;
+      error.textContent='';
+      approve.disabled=true;
+      approve.textContent=promptText.connecting;
+      details.textContent=promptText.connecting;
+      pairAbort=new AbortController();
+      const mobile=/Android|iPhone|iPad|iPod/i.test(
+        typeof navigator!=='undefined'?navigator.userAgent:'');
+      const onUri=async data=>{
+        if(resolved||pairAbort?.signal.aborted)return;
+        // Only valid WalletConnect v2 pairing URIs may enter a QR or deep link.
+        const uri=typeof data==='string'?data:data?.uri;
+        if(typeof uri!=='string'||!/^wc:[a-zA-Z0-9-]+@2\?/.test(uri)
+            ||uri.length>4096)return;
+        qrContainer.hidden=false;
+        qr.src=data?.qr||'';
+        if(!qr.src){
+          try{
+            const wc=await import('./genycaster-walletconnect.mjs');
+            const url=await wc.createQrImage(uri);
+            if(!resolved&&!pairAbort.signal.aborted)qr.src=url;
+          }catch{}
+        }
+        walletLinks.replaceChildren();
+        if(mobile){
+          const links=[
+            {text:promptText.metamask,
+             url:'https://metamask.app.link/wc?uri='+encodeURIComponent(uri)},
+            {text:promptText.onekey,
+             url:'https://app.onekey.so/wc/connect/wc?uri='+encodeURIComponent(uri)}
+          ];
+          for(const link of links){
+            const anchor=document.createElement('a');
+            anchor.textContent=link.text;
+            anchor.href=link.url;
+            anchor.target='_blank';
+            anchor.rel='noopener noreferrer';
+            Object.assign(anchor.style,{display:'inline-block',fontSize:'13px',
+              padding:'9px 10px',borderRadius:'9px',border:'1px solid #53525d',
+              color:'#f4f4f5',background:'#303039',textDecoration:'none'});
+            walletLinks.append(anchor);
+          }
+        }
+      };
+      try{
+        await injected.connectWalletConnect({onUri,signal:pairAbort.signal});
+        if(!resolved)finish(true);
+      }catch(e){
+        if(resolved)return;
+        connecting=false;
+        qrContainer.hidden=true;
+        approve.disabled=false;
+        approve.textContent=promptText.retry;
+        details.textContent=copy.question;
+        error.textContent=promptText.failed;
+      }
+    });
     cancel.focus();
   });
 }
