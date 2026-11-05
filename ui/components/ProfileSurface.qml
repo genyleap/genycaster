@@ -1561,7 +1561,9 @@ Item {
                         borderWidth: 0
                         showLoadingIndicator: false
                         showFailureIndicator: true
-                        retainPreviousWhileLoading: true
+                        // Never expose the previous user's cover during a
+                        // new profile navigation or metadata refresh.
+                        retainPreviousWhileLoading: false
                     }
 
                     // Keep the cover on the direct Image path, but mask only the
