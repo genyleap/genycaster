@@ -121,6 +121,7 @@ Item {
     // Explicit Explorer tab navigation must reveal its real inline header
     // (including stories), even after returning from a nested detail view.
     property int explorerTopRevision: 0
+    property int profileTopRevision: 0
     property string committedRichCastId: ""
     property string lastStreakCastId: ""
     property bool awaitingRichCommit: false
@@ -543,6 +544,7 @@ Item {
         }
     }
     function openMyProfileFromNavigation() {
+        ++root.profileTopRevision
         presentationBridge.clearDetailHistory()
         root.clearPendingShellReturn()
         root.shellRoute = ""
@@ -1328,7 +1330,9 @@ Item {
                                                     presentationBridge.hydrateBookmarkedCasts(castIds)
                                                 onProfileRequested: fid => {
                                                     root.rememberShellRouteForReturn()
+                                                    presentationBridge.clearDetailHistory()
                                                     root.shellRoute = ""
+                                                    ++root.profileTopRevision
                                                     presentationBridge.openProfileFid(fid)
                                                 }
                                                 onReplyRequested: cast => root.openComposer(cast)
@@ -1440,11 +1444,14 @@ Item {
                                                 onSignInRequested: root.openAccountPopup()
                                                 onProfileRequested: fid => {
                                                     root.rememberShellRouteForReturn()
+                                                    presentationBridge.clearDetailHistory()
                                                     root.shellRoute = ""
+                                                    ++root.profileTopRevision
                                                     presentationBridge.openProfileFid(fid)
                                                 }
                                                 onCastRequested: castId => {
                                                     root.rememberShellRouteForReturn()
+                                                    presentationBridge.clearDetailHistory()
                                                     root.shellRoute = ""
                                                     presentationBridge.openCast(castId)
                                                 }
@@ -1617,7 +1624,10 @@ Item {
                                                 pendingNewPostCount: presentationBridge.activeView === "feed"
                                                                      ? presentationBridge.pendingNewPostCount : 0
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
-                                                onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                                onProfileRequested: fid => {
+                                                    ++root.profileTopRevision
+                                                    presentationBridge.openProfileFid(fid)
+                                                }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
                                                 onReactionRequested: (kind, cast, active) =>
@@ -1727,6 +1737,7 @@ Item {
                                             ProfileSurface {
                                                 bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                                 detail: presentationBridge.detail
+                                                navigationRevision: root.profileTopRevision
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                       ? root.topicInlineRows() : presentationBridge.rows
                                                 mutedProfileFids: root.mutedActorIds
@@ -1771,7 +1782,10 @@ Item {
                                                     presentationBridge.selectProfileFeed(feed)
                                                 }
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
-                                                onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                                onProfileRequested: fid => {
+                                                    ++root.profileTopRevision
+                                                    presentationBridge.openProfileFid(fid)
+                                                }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
                                                 onReactionRequested: (kind, cast, active) =>
@@ -1845,7 +1859,10 @@ Item {
                                                 }
                                                 onRefreshRequested: presentationBridge.retry()
                                                 onCastRequested: castId => presentationBridge.openCast(castId)
-                                                onProfileRequested: fid => presentationBridge.openProfileFid(fid)
+                                                onProfileRequested: fid => {
+                                                    ++root.profileTopRevision
+                                                    presentationBridge.openProfileFid(fid)
+                                                }
                                                 onReplyRequested: cast => root.openComposer(cast)
                                                 onQuoteRequested: cast => root.openQuoteComposer(cast)
                                                 onReactionRequested: (kind, cast, active) =>
