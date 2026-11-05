@@ -234,7 +234,7 @@ pre{background:#18181e;padding:10px;border-radius:8px;white-space:pre-wrap;overf
     page += htmlEscape(origin);
     page += R"html(</div></section>
 <label class="label" for="options">Wallet</label>
-<select id="options" aria-label="Choose wallet"></select>
+<select id="options" aria-label="Choose wallet" disabled><option>Searching for wallets…</option></select>
 <p id="wallet" role="status" aria-live="polite">Looking for wallets…</p>
 <section id="request" hidden><div id="kind">Explicit approval required</div>
 <h2 id="method">Wallet request</h2>
@@ -301,6 +301,7 @@ const add=(name,provider)=>{
       ||providers.length>=12)return;
   const entry={name:String(name||'Browser wallet').slice(0,64),provider};
   const index=providers.push(entry)-1;
+  if(index===0){options.replaceChildren();options.disabled=false;}
   const item=document.createElement('option');
   item.value=String(index);
   item.textContent=entry.name;
@@ -330,7 +331,8 @@ const requestLabel=name=>{
 };
 const readable=rpc=>{
   if(rpc.method!=='personal_sign'||!Array.isArray(rpc.params))return '';
-  const hex=rpc.params.find(value=>typeof value==='string'&&/^0x(?:[0-9a-fA-F]{2}){1,4096}$/.test(value));
+  const hex=rpc.params.filter(value=>typeof value==='string'&&/^0x(?:[0-9a-fA-F]{2}){1,4096}$/.test(value)
+    && value.length>42).sort((a,b)=>b.length-a.length)[0];
   if(!hex)return '';
   try{
     const text=new TextDecoder('utf-8',{fatal:true}).decode(

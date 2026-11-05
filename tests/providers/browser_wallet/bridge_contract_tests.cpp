@@ -116,6 +116,9 @@ void testBridgeRoutesWalletRequestsAndEvents()
     assert(page.body().find("Test Mini App") != std::string::npos);
     assert(page.body().find("https://mini.example") != std::string::npos);
     assert(page.body().find("Explicit approval required") != std::string::npos);
+    assert(page.body().find("<select id=\"options\"") != std::string::npos);
+    assert(page.body().find("Why is this a local page?") != std::string::npos);
+    assert(page.body().find("Your private key stays there.") != std::string::npos);
     assert(page.body().find("window.ethereum.request") != std::string::npos);
     const auto wrongHost = request(url, http::verb::get, url.target, {}, {}, "attacker.example");
     assert(wrongHost.result() == http::status::forbidden);

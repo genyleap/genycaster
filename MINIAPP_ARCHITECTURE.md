@@ -52,6 +52,33 @@ The accepted chain set defaults to the EVM CAIP-2 chains represented by the curr
 manifest schema. Deployments can reduce that set through `GENYCASTER_MINIAPP_EVM_CHAINS`; unsupported or
 malformed requested chains remain absent from `getChains()`.
 
+### Platform wallet routing and consent
+
+- **Native desktop:** An injected EIP-1193/EIP-6963 browser extension lives
+  inside its browser's origin, so Qt cannot invoke the extension directly or
+  launch it by extension ID with the Mini App's authority. The loopback
+  approval page is intentionally an isolated relay. The chooser temporarily
+  hides the native WKWebView surface during selection and restores the same
+  Mini App document afterward. The approval page uses one native wallet
+  selector and a compact summary, with the full RPC payload and localhost
+  explanation available on demand.
+- **Independent desktop wallet applications:** Launching an installed app
+  alone does not establish an Ethereum provider or a signing channel.
+  WalletConnect v2 pairing/session negotiation (or a wallet's explicitly
+  supported, authenticated native transport) is required before offering
+  such a destination. No unverified desktop app is offered as a working
+  signer.
+- **Android/iOS:** A platform wallet-app handoff must use authenticated
+  universal/app links and a verified callback/session transport, not the
+  local desktop bridge URL. The current Android Mini App WebView does not
+  assert injected-wallet availability; no unsupported native-wallet button
+  is exposed.
+- **Web/WASM:** Use the same-page injected EIP-6963 wallet registry, with
+  EIP-1193 fallback, session-scoped consent and no loopback native launcher.
+
+Wallet account permission and signature approval remain distinct. Neither
+remembering a browser nor opening an application grants signing rights.
+
 ### Native wallet-browser selection
 
 Native desktop Mini App requests now open a GenyCaster-themed browser selector rather

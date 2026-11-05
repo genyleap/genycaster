@@ -388,6 +388,7 @@ Item {
     readonly property bool overlayOpen: root.initialSetupOpen || root.localeSettingsOpen || root.dataStorageSettingsOpen
                                         || composerDrawer.opened || accountPopup.opened
                                         || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
+                                        || miniAppHost.walletBrowserPickerActive
                                              || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
                                              || mediaGallery.opened || signOutConfirm.opened
 
