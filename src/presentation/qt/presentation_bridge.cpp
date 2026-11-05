@@ -3276,6 +3276,30 @@ void PresentationBridge::setFollowing(const qulonglong targetFid, const bool fol
     emit followingMutationRequested(targetFid, following);
 }
 
+void PresentationBridge::setBlocked(const qulonglong targetFid, const bool blocked)
+{
+    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+        m_writeErrorText = !m_isAuthenticated
+            ? QStringLiteral("Sign in before blocking a user.")
+            : QStringLiteral("A verified signer is required to update a protocol block.");
+        emit stateChanged();
+        return;
+    }
+    if (targetFid == 0U || targetFid == m_accountFid) {
+        m_writeErrorText = QStringLiteral("Cannot block this account.");
+        emit stateChanged();
+        return;
+    }
+    m_writeBusy = true;
+    m_writePhase = QStringLiteral("preparing");
+    m_writeStatusText = blocked
+        ? QStringLiteral("Preparing protocol block.")
+        : QStringLiteral("Preparing protocol unblock.");
+    m_writeErrorText.clear();
+    emit stateChanged();
+    emit blockingMutationRequested(targetFid, blocked);
+}
+
 void PresentationBridge::removeCast(const qulonglong authorFid, const QString& castId)
 {
     const QString canonicalCastId = castId.trimmed();
@@ -3454,6 +3478,18 @@ void PresentationBridge::applyAuthenticationState(
         m_reactionOverrides.clear();
         m_followOverrides.clear();
         m_followsMeSnapshot.clear();
+        m_blockOverrides.clear();
+        m_blockByMeSnapshot.clear();
+        m_blocksMeSnapshot.clear();
+        const auto eraseBlockFields = [](QVariantMap& value) {
+            value.remove(QStringLiteral("blockedByMe"));
+            value.remove(QStringLiteral("blockedByMeKnown"));
+            value.remove(QStringLiteral("blocksMe"));
+            value.remove(QStringLiteral("blocksMeKnown"));
+        };
+        eraseBlockFields(m_detail);
+        for (auto it = m_profileDetailCache.begin(); it != m_profileDetailCache.end(); ++it)
+            eraseBlockFields(it.value());
         clearSearchSuggestions();
         m_lastPublishedCastId.clear();
         m_accountProfile.clear();
@@ -3640,6 +3676,23 @@ void PresentationBridge::applyWriteState(
         applyFollowingOverrides(m_rows, m_followOverrides);
         writeRowsChanged = !m_rows.isEmpty();
         applyFollowingOverride(m_detail, m_followOverrides);
+    } else if ((operationKind == QStringLiteral("block")
+                || operationKind == QStringLiteral("unblock"))
+               && m_writePhase == QStringLiteral("confirmed")) {
+        const qulonglong targetFid =
+            presentationMutation.value(QStringLiteral("targetFid")).toULongLong();
+        if (targetFid != 0 && targetFid != m_accountFid) {
+            const QString key = QString::number(targetFid);
+            const bool blocked = operationKind == QStringLiteral("block");
+            m_blockOverrides.insert(key, blocked);
+            m_blockByMeSnapshot.insert(key, blocked);
+            if (m_activeView == QStringLiteral("profile")
+                && m_detail.value(QStringLiteral("fid")).toULongLong() == targetFid) {
+                m_detail.insert(QStringLiteral("blockedByMe"), blocked);
+                m_detail.insert(QStringLiteral("blockedByMeKnown"), true);
+                m_profileDetailCache.insert(targetFid, m_detail);
+            }
+        }
     } else if (operationKind == QStringLiteral("remove-cast") && !targetCastId.isEmpty()
                && m_writePhase == QStringLiteral("confirmed")) {
         m_lastRemovedCastId = targetCastId;
@@ -4319,6 +4372,23 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
     applyFollowingOverride(m_detail, m_followOverrides);
     if (m_activeView == QStringLiteral("profile")) {
         applyFollowsMeSnapshot(m_detail, m_followsMeSnapshot);
+        // Viewer-specific block relations are sourced from the selected
+        // protocol, never from unauthenticated public profile metadata.
+        m_detail.remove(QStringLiteral("blockedByMe"));
+        m_detail.remove(QStringLiteral("blockedByMeKnown"));
+        m_detail.remove(QStringLiteral("blocksMe"));
+        m_detail.remove(QStringLiteral("blocksMeKnown"));
+        const QString key = QString::number(m_detail.value(QStringLiteral("fid")).toULongLong());
+        const QVariantMap& outbound = m_blockOverrides.contains(key)
+            ? m_blockOverrides : m_blockByMeSnapshot;
+        if (outbound.contains(key)) {
+            m_detail.insert(QStringLiteral("blockedByMe"), outbound.value(key).toBool());
+            m_detail.insert(QStringLiteral("blockedByMeKnown"), true);
+        }
+        if (m_blocksMeSnapshot.contains(key)) {
+            m_detail.insert(QStringLiteral("blocksMe"), m_blocksMeSnapshot.value(key).toBool());
+            m_detail.insert(QStringLiteral("blocksMeKnown"), true);
+        }
     }
     if (m_activeView == QStringLiteral("profile") && m_profileFid != 0) {
         m_profileDetailCache.insert(m_profileFid, m_detail);
@@ -4368,6 +4438,34 @@ void PresentationBridge::applySearchFollowing(const qulonglong fid, const bool f
         m_detail.insert(QStringLiteral("followingByMe"), following);
         m_detail.insert(QStringLiteral("followingKnown"), true);
         applyFollowingOverride(m_detail, m_followOverrides);
+        m_profileDetailCache.insert(fid, m_detail);
+        emit stateChanged();
+    }
+}
+
+void PresentationBridge::applyProfileBlockRelation(
+    const qulonglong fid, const bool outgoing, const bool blocked)
+{
+    if (!m_isAuthenticated || fid == 0U || fid == m_accountFid) return;
+    const QString key = QString::number(fid);
+    if (outgoing) {
+        // Confirmed local writes take precedence over an older node index.
+        if (!m_blockOverrides.contains(key))
+            m_blockByMeSnapshot.insert(key, blocked);
+    } else {
+        m_blocksMeSnapshot.insert(key, blocked);
+    }
+    if (m_activeView == QStringLiteral("profile")
+        && m_detail.value(QStringLiteral("fid")).toULongLong() == fid) {
+        if (outgoing) {
+            const bool effective = m_blockOverrides.contains(key)
+                ? m_blockOverrides.value(key).toBool() : blocked;
+            m_detail.insert(QStringLiteral("blockedByMe"), effective);
+            m_detail.insert(QStringLiteral("blockedByMeKnown"), true);
+        } else {
+            m_detail.insert(QStringLiteral("blocksMe"), blocked);
+            m_detail.insert(QStringLiteral("blocksMeKnown"), true);
+        }
         m_profileDetailCache.insert(fid, m_detail);
         emit stateChanged();
     }
