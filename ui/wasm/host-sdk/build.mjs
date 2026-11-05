@@ -9,6 +9,9 @@ await build({
   entryPoints:[resolve(input)],
   outfile:resolve(output),
   bundle:true, platform:'browser', format:'esm', target:'es2022',
+  // The WalletConnect engine is a distinct, locally hosted lazy module.
+  // Never download executable wallet code from an untrusted CDN.
+  external:['./genycaster-walletconnect.mjs'],
   minify:true, legalComments:'inline', sourcemap:false
 });
 console.log('Built origin-scoped Farcaster Mini App host SDK asset');
