@@ -772,7 +772,6 @@ private:
         if (!payload) {
             http::response<http::empty_body> response{http::status::no_content, version};
             secureHeaders(response);
-            boost::system::error_code error{};
             writeBounded(socket, response);
             return;
         }
@@ -924,7 +923,6 @@ private:
         secureHeaders(response);
         response.body() = std::move(body);
         response.prepare_payload();
-        boost::system::error_code error{};
         writeBounded(socket, response);
     }
 
@@ -934,7 +932,6 @@ private:
         secureHeaders(response);
         response.body() = json::serialize(value);
         response.prepare_payload();
-        boost::system::error_code error{};
         writeBounded(socket, response);
     }
 
