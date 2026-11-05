@@ -287,6 +287,9 @@ Rectangle {
             bio: root.ownsProfileDetail ? String(root.profileDetail.bio || "") : ""
             location: root.ownsProfileDetail ? String(root.profileDetail.location || "") : ""
             verified: root.ownsProfileDetail && Boolean(root.profileDetail.verified || false)
+            proEligible: openProofConnections
+                && openProofConnections.proEntitlements.status === "verified"
+                && openProofConnections.proEntitlements.eligible === true
             following: root.profileFollowing
             followers: root.profileFollowers
             streakSnapshot: openProofConnections ? openProofConnections.streak : ({})
