@@ -1492,12 +1492,31 @@ void OpenProofConnectionsController::setStreakPreferences(
     });
 }
 
+void OpenProofConnectionsController::retryProEntitlements()
+{
+    if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl) || m_sessionRevoking)
+        return;
+    if (cloudAuthorizationReady()) {
+        fetchProEntitlements(true);
+        return;
+    }
+    // A signed-in Farcaster user may already have a verified GenyCaster
+    // HttpOnly session. Restore it before interpreting a missing Pro response
+    // as Basic. This never opens a signer/approval window.
+    if (m_sessionRequest)
+        return;
+    if (!m_accountBearer.isEmpty()
+        && (m_verified || m_accountBearer.startsWith("recovery.")))
+        bootstrapAccountSession();
+    else
+        restoreAccountSession();
+}
+
 void OpenProofConnectionsController::fetchProEntitlements(const bool force)
 {
     if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
-        m_proEntitlements.clear();
-        m_proEntitlementsFid = 0;
-        emit proEntitlementsChanged();
+        // Network/session restoration is not evidence of revoked membership.
+        // A viewer switch resets this snapshot in clearAccountGrant().
         return;
     }
     const qint64 now = QDateTime::currentMSecsSinceEpoch();
@@ -1526,18 +1545,31 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
         reply->deleteLater();
         if (viewer != m_viewerFid || generation != m_grantGeneration) return;
         const auto doc = QJsonDocument::fromJson(bytes);
-        m_proEntitlements = {};
-        if (status == 200 && doc.isObject() &&
-            doc.object().value(QStringLiteral("entitlements")).isObject()) {
-            const auto parsed = doc.object().value(QStringLiteral("entitlements")).toObject().toVariantMap();
-            const bool verified = parsed.value(QStringLiteral("status")).toString() ==
-                QStringLiteral("verified");
-            const bool eligible = parsed.value(QStringLiteral("eligible")).toBool();
-            // No client-side upgrade based on "balance", screenshots or unknown states.
-            if (verified || !eligible) m_proEntitlements = parsed;
+        bool verified = false;
+        if (status == 200 && doc.isObject()
+            && doc.object().value(QStringLiteral("entitlements")).isObject()) {
+            const auto parsed = doc.object().value(QStringLiteral("entitlements"))
+                                    .toObject().toVariantMap();
+            verified = parsed.value(QStringLiteral("status")).toString()
+                       == QStringLiteral("verified");
+            if (verified) {
+                // A new verified Basic response may revoke an earlier Pro
+                // grant. An unavailable balance provider must not do so.
+                m_proEntitlements = parsed;
+                m_proEntitlementsFid = viewer;
+            }
         }
-        m_proEntitlementsFid = viewer;
-        m_proEntitlementsFetchedAt = QDateTime::currentMSecsSinceEpoch();
+        if (!verified && (m_proEntitlementsFid != viewer
+            || m_proEntitlements.value(QStringLiteral("status")).toString()
+                != QStringLiteral("verified"))) {
+            m_proEntitlements = {{QStringLiteral("status"),
+                                  QStringLiteral("unavailable")}};
+            m_proEntitlementsFid = viewer;
+        }
+        // Failed checks are retryable immediately; only server-verified
+        // entitlements qualify for the normal short cache interval.
+        m_proEntitlementsFetchedAt = verified
+            ? QDateTime::currentMSecsSinceEpoch() : 0;
         emit proEntitlementsChanged();
     });
 }
