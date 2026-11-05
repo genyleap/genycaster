@@ -11,7 +11,17 @@ GenyAdaptiveDialog {
     property string pendingMessage: ""
     property bool successAcknowledged: false
     property int activeTab: 0 // 0: new feedback, 1: submitted reports
-    readonly property bool canSubmitFeedback: openProofConnections.cloudAuthorizationReady
+    readonly property bool canSubmitFeedback: Boolean(openProofConnections
+                                                      && openProofConnections.cloudAuthorizationReady)
+    // A modal may briefly outlive its account service during shutdown.
+    readonly property var feedbackStats: openProofConnections
+        ? (openProofConnections.feedbackStats || ({})) : ({})
+    readonly property var feedbackReports: openProofConnections
+        ? (openProofConnections.feedbackReports || []) : []
+    readonly property string feedbackError: openProofConnections
+        ? String(openProofConnections.feedbackError || "") : ""
+    readonly property bool feedbackBusy: openProofConnections
+        ? Boolean(openProofConnections.feedbackBusy) : false
     readonly property var sentimentModel: [
         { value: 1, icon: Theme.iconMoodFrustrated, tint: "#E66B66" },
         { value: 2, icon: Theme.iconMoodSad, tint: "#E8A65D" },
@@ -66,9 +76,10 @@ GenyAdaptiveDialog {
         if (root.canSubmitFeedback) openProofConnections.fetchFeedback()
     }
     Connections {
-        target: openProofConnections
+        target: openProofConnections ? openProofConnections : null
         function onFeedbackChanged() {
-            if (root.pendingMessage.length > 0 && openProofConnections.feedbackSubmitted) {
+            if (root.pendingMessage.length > 0 && openProofConnections
+                && openProofConnections.feedbackSubmitted) {
                 root.pendingMessage = ""
                 root.successAcknowledged = true
                 root.activeTab = 1
@@ -178,11 +189,11 @@ GenyAdaptiveDialog {
                             rowSpacing: Theme.space1
                             Repeater {
                                 model: [
-                                    { value: Number(openProofConnections.feedbackStats.total || 0),
+                                    { value: Number(root.feedbackStats.total || 0),
                                       label: qsTrId("genycaster.feedback.stats_total") },
-                                    { value: Number(openProofConnections.feedbackStats.accepted || 0),
+                                    { value: Number(root.feedbackStats.accepted || 0),
                                       label: qsTrId("genycaster.feedback.stats_accepted") },
-                                    { value: Number(openProofConnections.feedbackStats.resolved || 0),
+                                    { value: Number(root.feedbackStats.resolved || 0),
                                       label: qsTrId("genycaster.feedback.stats_resolved") }
                                 ]
                                 delegate: ColumnLayout {
@@ -209,7 +220,7 @@ GenyAdaptiveDialog {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.feedback.points")
                                   .arg(LocaleFormat.formatInteger(
-                                    Number(openProofConnections.feedbackStats.points || 0)))
+                                    Number(root.feedbackStats.points || 0)))
                             color: Theme.inkMuted
                             font.pixelSize: Theme.typeCaptionSize
                         }
@@ -218,12 +229,12 @@ GenyAdaptiveDialog {
 
                 ColumnLayout {
                     visible: root.activeTab === 1 && root.canSubmitFeedback
-                             && openProofConnections.feedbackReports.length > 0
+                             && root.feedbackReports.length > 0
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Repeater {
                         // The server bounds this owner-only history to 30 records.
-                        model: openProofConnections.feedbackReports
+                        model: root.feedbackReports
                         delegate: Superellipse {
                             id: reportCard
                             required property var modelData
@@ -408,9 +419,9 @@ GenyAdaptiveDialog {
                     wrapMode: Text.Wrap
                 }
                 DirectionAwareLabel {
-                    visible: openProofConnections.feedbackError.length > 0
+                    visible: root.feedbackError.length > 0
                     Layout.fillWidth: true
-                    text: root.feedbackErrorLabel(openProofConnections.feedbackError)
+                    text: root.feedbackErrorLabel(root.feedbackError)
                     color: Theme.warning
                     wrapMode: Text.Wrap
                 }
@@ -444,10 +455,10 @@ GenyAdaptiveDialog {
                 Layout.fillWidth: true
                 visible: root.activeTab === 0
                 positive: true
-                busy: openProofConnections.feedbackBusy
+                busy: root.feedbackBusy
                 iconGlyph: Theme.iconArrowUpRight
                 text: qsTrId("genycaster.feedback.submit")
-                enabled: root.canSubmitFeedback && !openProofConnections.feedbackBusy
+                enabled: root.canSubmitFeedback && !root.feedbackBusy
                          && feedbackField.text.trim().length >= 10
                 onClicked: {
                     root.successAcknowledged = false
