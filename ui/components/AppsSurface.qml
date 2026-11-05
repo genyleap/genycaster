@@ -123,8 +123,12 @@ Item {
                 && miniAppTaskManager.taskCount < miniAppHost.sessionLimit) {
             // The C++ entitlement handler has already installed the limit.
             root.directLaunch(pending.app)
-        } else if (status.eligible === true) {
+        } else if (status.eligible === true && miniAppHost.sessionLimit >= 4) {
             root.showLaunchError(qsTrId("genycaster.miniapp.session_limit"), "full")
+        } else if (status.eligible === true) {
+            // A verified Pro response must first propagate to BOTH the
+            // native runtime and its public UI-facing host controller.
+            root.showLaunchError(qsTrId("genycaster.pro.verification_unavailable"), "verify")
         } else {
             root.showLaunchError(qsTrId("genycaster.pro.requires_pro"), "basic")
         }
@@ -143,7 +147,8 @@ Item {
     }
     Timer {
         id: proLaunchTimeout
-        interval: 18000
+        // Session restore (9s) plus entitlement verification (14s).
+        interval: 28000
         repeat: false
         onTriggered: {
             if (!root.pendingEntitlementLaunch) return
@@ -167,6 +172,18 @@ Item {
                 openProofConnections.fetchProEntitlements(true)
         }
         function onProEntitlementsChanged() {
+            if (root.pendingEntitlementLaunch)
+                Qt.callLater(root.resolvePendingEntitlementLaunch)
+        }
+    }
+    Connections {
+        target: miniAppHost
+        function onSessionLimitChanged() {
+            if (miniAppHost.sessionLimit > 1 && root.quotaErrorKind !== "full") {
+                root.launchErrorText = ""
+                root.quotaErrorKind = ""
+                launchErrorTimeout.stop()
+            }
             if (root.pendingEntitlementLaunch)
                 Qt.callLater(root.resolvePendingEntitlementLaunch)
         }
@@ -948,6 +965,8 @@ Item {
                                         miniAppTaskManager.revision
                                         return miniAppTaskManager.isLaunchingUrl(cardCell.appUrl)
                                     }
+                                    readonly property bool proCheckBusy: root.pendingEntitlementLaunch !== null
+                                        && String(root.pendingEntitlementLaunch.app.homeUrl || "") === cardCell.appUrl
                                     readonly property string runtimeState: {
                                         miniAppTaskManager.revision
                                         return miniAppTaskManager.stateForUrl(cardCell.appUrl)
@@ -1072,9 +1091,10 @@ Item {
                                                     compact: true
                                                     pill: true
                                                     elevated: false
-                                                    busy: cardCell.launchBusy
-                                                    enabled: !cardCell.launchBusy
-                                                    text: cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
+                                                    busy: cardCell.launchBusy || cardCell.proCheckBusy
+                                                    enabled: !cardCell.launchBusy && !cardCell.proCheckBusy
+                                                    text: cardCell.proCheckBusy ? qsTrId("genycaster.pro.check_status")
+                                                        : cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
                                                         : cardCell.running ? qsTrId("genycaster.apps.resume") : qsTrId("genycaster.apps.open")
                                                     onClicked: root.openApp(cardCell.modelData)
                                                 }
@@ -1246,9 +1266,10 @@ Item {
                                                 compact: true
                                                 pill: true
                                                 elevated: false
-                                                busy: cardCell.launchBusy
-                                                enabled: !cardCell.launchBusy
-                                                text: cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
+                                                busy: cardCell.launchBusy || cardCell.proCheckBusy
+                                                enabled: !cardCell.launchBusy && !cardCell.proCheckBusy
+                                                text: cardCell.proCheckBusy ? qsTrId("genycaster.pro.check_status")
+                                                      : cardCell.launchBusy ? qsTrId("genycaster.apps.opening")
                                                       : cardCell.running ? qsTrId("genycaster.apps.resume") : qsTrId("genycaster.apps.open")
                                                 onClicked: root.openApp(cardCell.modelData)
                                             }
