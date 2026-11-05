@@ -89,6 +89,23 @@ constexpr auto HttpTransportTimeout = std::chrono::seconds{3};
     return escaped;
 }
 
+[[nodiscard]] std::string normalizedEthereumAddress(const json::value& value)
+{
+    if (!value.is_string()) return {};
+    std::string address{value.as_string()};
+    if (address.size() != 42U || address[0] != '0'
+        || (address[1] != 'x' && address[1] != 'X')) return {};
+    address[1] = 'x';
+    for (std::size_t i = 2; i < address.size(); ++i) {
+        char& character = address[i];
+        if (character >= 'A' && character <= 'F')
+            character = static_cast<char>(character - 'A' + 'a');
+        if (!((character >= '0' && character <= '9')
+            || (character >= 'a' && character <= 'f'))) return {};
+    }
+    return address;
+}
+
 [[nodiscard]] bool validMethod(const std::string_view method)
 {
     return method == "personal_sign" || method == "net_version" || method == "web3_clientVersion"
@@ -883,8 +900,11 @@ private:
                 .code = code, .message = std::move(message), .details = std::move(details)};
         } else if (const auto* result = object.if_contains("result")) {
             response.resultJson = json::serialize(*result);
-            bool grantedAccounts = pending.request.method == "eth_requestAccounts"
-                && result->is_array() && !result->as_array().empty();
+            const std::string grantedAddress = pending.request.method == "eth_requestAccounts"
+                && result->is_array() && !result->as_array().empty()
+                    ? normalizedEthereumAddress(result->as_array().front())
+                    : std::string{};
+            bool grantedAccounts = !grantedAddress.empty();
             if (pending.request.method == "wallet_requestPermissions" && result->is_array()) {
                 // EIP-2255 permissions must explicitly contain eth_accounts;
                 // a successful response to an unrelated capability is not
@@ -901,6 +921,10 @@ private:
             if (grantedAccounts) {
                 std::scoped_lock lock{m_mutex};
                 m_accountAccessGrants.insert(pending.origin);
+                if (!grantedAddress.empty())
+                    m_grantedAccountByOrigin[pending.origin] = grantedAddress;
+                else
+                    m_grantedAccountByOrigin.erase(pending.origin);
             }
         } else {
             response.error = capability::wallet::EthereumRpcError{
@@ -938,10 +962,24 @@ private:
             }
             const bool disconnected = *kind == capability::wallet::EthereumWalletEventKind::Disconnect;
             const bool accountChanged = *kind == capability::wallet::EthereumWalletEventKind::AccountsChanged;
-            // Even a non-empty account switch changes the principal. It must
-            // invalidate any consent remembered for the previous account.
-            if (disconnected || accountChanged) {
+            bool principalChanged = disconnected;
+            if (accountChanged) {
+                // The provider may emit accountsChanged with the SAME account
+                // immediately after a successful connect. Do not treat that
+                // acknowledgement as an identity switch and re-open consent.
+                std::string announced{};
+                const auto& values = params->as_array();
+                if (!values.empty() && values.front().is_array()
+                    && !values.front().as_array().empty())
+                    announced = normalizedEthereumAddress(values.front().as_array().front());
+                const auto known = m_grantedAccountByOrigin.find(m_origin);
+                principalChanged = announced.empty()
+                    || known == m_grantedAccountByOrigin.end()
+                    || known->second != announced;
+            }
+            if (principalChanged) {
                 m_accountAccessGrants.erase(m_origin);
+                m_grantedAccountByOrigin.erase(m_origin);
             }
             sink = m_eventSink;
         }
@@ -1004,6 +1042,9 @@ private:
     bool m_pageLaunched{};
     std::map<std::uint64_t, Pending> m_pending{};
     std::set<std::string, std::less<>> m_accountAccessGrants{};
+    // Store only the public address tied to an explicit account grant.
+    // Never persist private keys, signatures or wallet permissions to disk.
+    std::map<std::string, std::string, std::less<>> m_grantedAccountByOrigin{};
     capability::wallet::EthereumWalletEventSink m_eventSink{};
     std::jthread m_worker{};
 };
