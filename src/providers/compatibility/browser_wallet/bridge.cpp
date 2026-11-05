@@ -323,22 +323,25 @@ const readable=rpc=>{
     return /^[\x09\x0a\x0d\x20-\x7e]+$/.test(text)?text:'';
   }catch{return '';}
 };
-const completed=()=>{current=null;busy=false;approve.disabled=false;reject.disabled=false;box.hidden=true;describe();};
+const completed=()=>{current=null;undelivered=null;busy=false;approve.disabled=false;reject.disabled=false;box.hidden=true;describe();};
 const execute=async()=>{
   if(!current||busy)return;
   if(!selected){show('Choose a wallet before continuing.','error');return;}
   busy=true;approve.disabled=true;reject.disabled=true;
   const request=current;
-  show('Waiting for '+selected.name+'…');
-  let response;
-  try{
-    response={transportId:request.transportId,result:
-      await selected.provider.request({method:request.method,params:request.params})};
-    if(response.result===undefined)response.result=null;
-  }catch(error){
-    const code=Number.isInteger(Number(error?.code))?Number(error.code):4900;
-    response={transportId:request.transportId,error:{code,message:String(error?.message||error).slice(0,512)}};
+  if(!undelivered){
+    show('Waiting for '+selected.name+'…');
+    try{
+      undelivered={transportId:request.transportId,result:
+        await selected.provider.request({method:request.method,params:request.params})};
+      if(undelivered.result===undefined)undelivered.result=null;
+    }catch(error){
+      const code=Number.isInteger(Number(error?.code))?Number(error.code):4900;
+      undelivered={transportId:request.transportId,error:{code,message:String(error?.message||error).slice(0,512)}};
+    }
   }
+  // Retrying transport delivery must not repeat a wallet approval.
+  const response=undelivered;
   try{
     await post('/result',response);
     show(response.error?(response.error.code===4001?'Wallet request declined.':'Wallet request failed.')
@@ -346,11 +349,13 @@ const execute=async()=>{
     completed();
   }catch(error){
     busy=false;approve.disabled=false;reject.disabled=false;
-    show('Could not deliver the wallet response. Please retry.','error');
+    approve.textContent='Retry delivery';
+    reject.disabled=true;
+    show('Your wallet already answered. Retry sending its result to GenyCaster without approving again.','error');
   }
 };
 const cancel=async()=>{
-  if(!current||busy)return;
+  if(!current||busy||undelivered)return;
   busy=true;approve.disabled=true;reject.disabled=true;
   try{
     await post('/result',{transportId:current.transportId,
@@ -373,6 +378,7 @@ const poll=async()=>{
     if(!rpc||typeof rpc.method!=='string'||!Array.isArray(rpc.params))
       throw new Error('Invalid wallet request.');
     current=rpc;
+    undelivered=null;
     kind.textContent=rpc.requiresApproval?'Explicit approval required':'Read-only request';
     method.textContent=requestLabel(rpc.method);
     params.textContent=JSON.stringify({method:rpc.method,params:rpc.params},null,2);
