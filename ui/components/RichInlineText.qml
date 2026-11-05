@@ -398,9 +398,14 @@ Item {
                                                      && emojiOverlay.spriteReady)
 
             function syncAnimatedState() {
-                if (emojiPosition >= 0)
+                if (emojiPosition >= 0 && emojiGeneration >= 0)
                     textLayout.setEmojiAnimated(emojiPosition, emojiGeneration, emojiOverlay.artworkReady)
             }
+            // A delegate may be reused at the same document position after
+            // word-wrap or text changes. Refresh replacement ownership even
+            // when its previously decoded artwork stays ready.
+            onEmojiGenerationChanged: emojiOverlay.syncAnimatedState()
+            onArtworkReadyChanged: emojiOverlay.syncAnimatedState()
 
             x: Number(emojiRect.x || 0)
             y: root.emojiVerticalInset + Number(emojiRect.y || 0)
