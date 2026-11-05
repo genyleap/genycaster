@@ -150,6 +150,8 @@ namespace {
     case DomainKind::UndoRecast: return OperationKind::UndoRecast;
     case DomainKind::Follow: return OperationKind::Follow;
     case DomainKind::Unfollow: return OperationKind::Unfollow;
+    case DomainKind::Block: return OperationKind::Block;
+    case DomainKind::Unblock: return OperationKind::Unblock;
     }
     return OperationKind::PublishCast;
 }
@@ -795,6 +797,45 @@ foundation::result::Status WriteService::setFollowing(
                 *signer);
             if (!prepared) {
                 observer(WriteState{.phase = WritePhase::Failed, .error = std::move(prepared.error())});
+                return;
+            }
+            m_impl->enqueuePrepared(session, std::move(*prepared), observer);
+        });
+}
+
+foundation::result::Status WriteService::setBlocked(
+    std::optional<domain::session::ClientSession> session,
+    const domain::identity::Fid target,
+    const bool isBlocked,
+    Observer observer)
+{
+    if (!observer) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Block mutation requires a write-state observer."));
+    }
+    return m_impl->executor.post(
+        [this, session = std::move(session), target, isBlocked, observer = std::move(observer)]() mutable {
+            const auto scope = isBlocked ? domain::signer::Scope::LinkAdd
+                                         : domain::signer::Scope::LinkRemove;
+            auto signer = m_impl->currentAuthority(session, scope);
+            if (!signer) {
+                observer(WriteState{.phase = WritePhase::Blocked,
+                                    .error = std::move(signer.error())});
+                return;
+            }
+            auto prepared = m_impl->codec.prepareFollow(
+                domain::write::FollowIntent{
+                    .author = session->fid,
+                    .target = target,
+                    .isFollowing = isBlocked,
+                    .kind = domain::write::LinkKind::Block,
+                    .createdAt = foundation::time::now(),
+                },
+                *signer);
+            if (!prepared) {
+                observer(WriteState{.phase = WritePhase::Failed,
+                                    .error = std::move(prepared.error())});
                 return;
             }
             m_impl->enqueuePrepared(session, std::move(*prepared), observer);
