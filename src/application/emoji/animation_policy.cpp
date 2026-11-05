@@ -46,15 +46,13 @@ AnimationDecision MotionPolicy::decide(
             .pauseWhenInvisible = true,
         };
     case Surface::Feed:
-        // A completed one-shot Lottie often ends on a transparent frame:
-        // the inline Unicode has already yielded to the animated renderer,
-        // so the emoji appears to vanish from the cast. Keep visible feed
-        // emoji looping just like detail emoji, and pause them when scrolled
-        // offscreen, during a fling or while the app is inactive. Never
-        // restart the animation on a transient viewport/motion change.
+        // Feed emoji play once. The UI restores the native Unicode fallback
+        // when the authored animation completes, rather than leaving a
+        // transparent last Lottie frame in the inline layout indefinitely.
+        // This preserves a legible cast without dozens of perpetual loops.
         return AnimationDecision{
-            .mode = PlaybackMode::Loop,
-            .loopCount = 0U,
+            .mode = PlaybackMode::PlayOnce,
+            .loopCount = 1U,
             .pauseWhenInvisible = true,
         };
     case Surface::PickerCell:
