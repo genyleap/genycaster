@@ -125,3 +125,15 @@ test('inline emoji remain painted while Lottie starts, finishes, or is recycled'
   assert.match(cpp, /generation != m_impl->emojiRectGeneration/);
   assert.match(rich, /model: root\.usePlatformSelection \? \[\] : textLayout\.emojiRects/);
 });
+
+
+test('profile public activity remains null-safe through service teardown and profile switches', () => {
+  const qml = source('ui/components/ProfileSurface.qml');
+  assert.match(qml, /readonly property bool publicActivityMatchesProfile: Boolean\(openProofConnections/);
+  assert.match(qml, /Number\(openProofConnections\.publicActivityFid\)/);
+  assert.match(qml, /readonly property string publicActivityGithubLogin: root\.publicActivityMatchesProfile/);
+  assert.match(qml, /readonly property string publicActivitySource: root\.publicActivityMatchesProfile/);
+  assert.match(qml, /String\(openProofConnections\.publicActivitySource \|\| "casts"\)/);
+  assert.doesNotMatch(qml, /publicActivitySource: root\.publicActivityMatchesProfile\s*\? root\.publicActivitySource/);
+  assert.doesNotMatch(qml, /:\s*Number\(openProofConnections\.publicActivityFid\)/);
+});
