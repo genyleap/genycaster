@@ -100,13 +100,16 @@ export function walletApprovalCopy(language) {
   const messages={
     en:['Connect wallet','Allow this Mini App to see your wallet address?',
       'Wallet','Cancel','Continue','No browser wallet found. Enable a wallet extension.',
-      'Connect wallet to Mini App'],
+      'Connect wallet to Mini App',
+      'Open in a wallet app','Opens the Mini App outside GenyCaster. This is a separate session, not a WalletConnect connection.'],
     fa:['اتصال کیف پول','به این مینی‌اپ اجازه می‌دهید نشانی کیف پولتان را ببیند؟',
       'کیف پول','انصراف','ادامه','کیف پولی در مرورگر پیدا نشد. افزونه کیف پول را فعال کنید.',
-      'اتصال کیف پول به مینی‌اپ'],
+      'اتصال کیف پول به مینی‌اپ',
+      'بازکردن در برنامه کیف پول','مینی‌اپ خارج از جنی‌کستر و در نشست جداگانه باز می‌شود؛ این اتصال WalletConnect نیست.'],
     ar:['ربط المحفظة','هل تسمح لهذا التطبيق المصغّر بعرض عنوان محفظتك؟',
       'المحفظة','إلغاء','متابعة','لم يتم العثور على محفظة في المتصفح. فعّل إضافة المحفظة.',
-      'ربط المحفظة بالتطبيق المصغّر'],
+      'ربط المحفظة بالتطبيق المصغّر',
+      'فتح في تطبيق المحفظة','سيفتح التطبيق المصغّر خارج GenyCaster في جلسة منفصلة. هذا ليس اتصال WalletConnect.'],
     de:['Wallet verbinden','Darf diese Mini-App Ihre Wallet-Adresse sehen?',
       'Wallet','Abbrechen','Weiter','Keine Browser-Wallet gefunden. Aktivieren Sie eine Wallet-Erweiterung.',
       'Wallet mit Mini-App verbinden'],
@@ -139,11 +142,38 @@ export function walletApprovalCopy(language) {
   return {
     direction:code==='fa'||code==='ar'?'rtl':'ltr',
     title:text[0],question:text[1],wallet:text[2],
-    cancel:text[3],continue:text[4],missing:text[5],aria:text[6]
+    cancel:text[3],continue:text[4],missing:text[5],aria:text[6],
+    externalTitle:text[7]||messages.en[7],
+    externalExplanation:text[8]||messages.en[8]
   };
 }
 
-export function requestMiniAppWalletApproval(origin, signal, injected) {
+
+// A browser without an injected provider cannot sign an RPC on behalf of the
+// GenyCaster-hosted Mini App. Offer a clearly labelled *external* browser
+// handoff on phones, never a fictitious WalletConnect/approval button.
+// The destination is the original HTTPS Mini App URL, not the local bridge or
+// a fabricated wallet session. Wallet-browser support depends on that app.
+export function mobileWalletBrowserLinks(launchUrl, userAgent='') {
+  if(!/Android|iPhone|iPad|iPod/i.test(String(userAgent))) return [];
+  let url;
+  try { url=new URL(String(launchUrl)); } catch { return []; }
+  if(url.protocol!=='https:' || url.username || url.password ||
+     !url.hostname || url.port || url.hostname==='localhost' ||
+     url.hostname.endsWith('.localhost') || url.hostname.endsWith('.local') ||
+     /^(?:127\.|10\.|192\.168\.|169\.254\.)/.test(url.hostname) ||
+     /^172\.(?:1[6-9]|2\d|3[01])\./.test(url.hostname) ||
+     /^\d+\.\d+\.\d+\.\d+$/.test(url.hostname)) return [];
+  return [
+    {id:'metamask',name:'MetaMask',
+     href:'https://link.metamask.io/dapp/'+encodeURIComponent(
+       url.host+url.pathname+url.search+url.hash)},
+    {id:'coinbase',name:'Coinbase Wallet',
+     href:'https://go.cb-w.com/dapp?cb_url='+encodeURIComponent(url.href)}
+  ];
+}
+
+export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl=origin) {
   if(typeof document === 'undefined' || !document.body)
     return Promise.resolve(false);
   return new Promise(resolve => {
@@ -214,7 +244,39 @@ export function requestMiniAppWalletApproval(origin, signal, injected) {
     approve.style.borderColor='#7359f5';
     if(injected?.available && !injected.available()) {
       approve.disabled=true;
+      approve.style.opacity='.48';
+      approve.style.cursor='not-allowed';
+      approve.setAttribute('aria-disabled','true');
       details.textContent=copy.missing;
+      const external=mobileWalletBrowserLinks(launchUrl,
+        typeof navigator!=='undefined'?navigator.userAgent:'');
+      if(external.length){
+        const heading=document.createElement('p');
+        heading.textContent=copy.externalTitle;
+        Object.assign(heading.style,{margin:'14px 0 8px',fontSize:'13px',
+          fontWeight:'600',color:'#f4f4f5'});
+        panel.append(heading);
+        const links=document.createElement('div');
+        Object.assign(links.style,{display:'grid',gap:'8px',marginBottom:'10px'});
+        for(const wallet of external){
+          const anchor=document.createElement('a');
+          anchor.href=wallet.href;
+          anchor.target='_blank';
+          anchor.rel='noopener noreferrer';
+          anchor.textContent=wallet.name;
+          anchor.setAttribute('aria-label',copy.externalTitle+': '+wallet.name);
+          Object.assign(anchor.style,{display:'block',padding:'12px 14px',
+            background:'#33343c',border:'1px solid #53515f',
+            color:'#f5f3fc',borderRadius:'10px',textDecoration:'none',
+            fontWeight:'600',textAlign:'center'});
+          links.append(anchor);
+        }
+        const note=document.createElement('p');
+        note.textContent=copy.externalExplanation;
+        Object.assign(note.style,{fontSize:'12px',color:'#b7b3c3',
+          lineHeight:'1.55',margin:'0 0 12px'});
+        panel.append(links,note);
+      }
     }
     let resolved=false;
     const cleanup=()=>{signal?.removeEventListener('abort',abort);
