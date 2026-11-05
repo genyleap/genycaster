@@ -73,6 +73,16 @@ Item {
         ? Boolean(openProofConnections.streakBusy) : false
     readonly property string streakErrorSnapshot: openProofConnections
         ? String(openProofConnections.streakError || "") : ""
+    // Public activity belongs to the exact profile currently displayed.
+    // Modal panels can survive the account service during application teardown.
+    readonly property bool publicActivityMatchesProfile: Boolean(openProofConnections
+        && Number(root.activeDetail.fid || 0) > 0
+        && Number(openProofConnections.publicActivityFid)
+            === Number(root.activeDetail.fid || 0))
+    readonly property string publicActivityGithubLogin: root.publicActivityMatchesProfile
+        ? String(openProofConnections.publicActivityGithubLogin || "") : ""
+    readonly property string publicActivitySource: root.publicActivityMatchesProfile
+        ? root.publicActivitySource : "casts"
     property double accountFid: 0
     property string accountIssuer: ""
     // GENY holder status is *never* derived from a user-editable bio, display
@@ -2527,12 +2537,12 @@ Item {
                 // just to read the verified public GitHub login.
                 verifiedGitHub: root.isOwnProfile
                     ? (root.verifiedGithubActivityAccount.login || "")
-                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
-                        ? openProofConnections.publicActivityGithubLogin : ""
+                    : root.publicActivityMatchesProfile
+                        ? root.publicActivityGithubLogin : ""
                 githubLinked: root.isOwnProfile
                     ? root.verifiedGithubActivityAccount.linked
-                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
-                        && openProofConnections.publicActivityGithubLogin.length>0
+                    : root.publicActivityMatchesProfile
+                        && root.publicActivityGithubLogin.length > 0
                 githubAccountId: root.verifiedGithubActivityAccount.id
                 verifiedWallet: {
                     const verified=root.activeDetail.verifiedEthAddresses || []
@@ -2544,8 +2554,8 @@ Item {
                 }
                 previewSource: root.isOwnProfile
                     ? String(root.streakPreferencesSnapshot.activity_source || "casts")
-                    : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
-                        ? String(openProofConnections.publicActivitySource || "casts") : "casts"
+                    : root.publicActivityMatchesProfile
+                        ? root.publicActivitySource : "casts"
                 onExploreRequested: {
                     activityDrawer.mobilePresentation = root.compact
                     activityDrawer.open()
@@ -2943,12 +2953,12 @@ Item {
                     isOwnProfile: root.isOwnProfile
                     verifiedGitHub: root.isOwnProfile
                         ? (root.verifiedGithubActivityAccount.login || "")
-                        : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
-                            ? openProofConnections.publicActivityGithubLogin : ""
+                        : root.publicActivityMatchesProfile
+                            ? root.publicActivityGithubLogin : ""
                     githubLinked: root.isOwnProfile
                         ? root.verifiedGithubActivityAccount.linked
-                        : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
-                            && openProofConnections.publicActivityGithubLogin.length>0
+                        : root.publicActivityMatchesProfile
+                            && root.publicActivityGithubLogin.length > 0
                     githubAccountId: root.verifiedGithubActivityAccount.id
                     verifiedWallet: {
                         const addresses = root.activeDetail.verifiedEthAddresses || []
