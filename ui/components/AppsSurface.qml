@@ -234,7 +234,8 @@ Item {
                         : root.proEntitlements.status === "verified"
                           ? qsTrId("genycaster.pro.requires_pro")
                           : qsTrId("genycaster.pro.verification_unavailable"),
-                        root.proEntitlements.status === "verified" ? "basic" : "verify")
+                        root.proVerified ? "verify"
+                        : root.proEntitlements.status === "verified" ? "basic" : "verify")
                 } else {
                     root.showLaunchError(miniAppHost.errorText, isQuota ? "full" : "")
                 }
