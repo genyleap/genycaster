@@ -117,6 +117,10 @@ test('inline emoji remain painted while Lottie starts, finishes, or is recycled'
   assert.match(qmlFallback, /textFormat: Text\.PlainText/);
   assert.match(qmlFallback, /renderType: Text\.NativeRendering/);
   assert.match(qmlFallback, /clip: false/);
+  assert.match(rich, /retainLoadedRenderer: true/);
+  const emoji = source('ui/components/AnimatedEmoji.qml');
+  assert.match(emoji, /onParentChanged: \{/);
+  assert.match(emoji, /root\.resolveHosts\(\)/);
   // The native text renderer is suppressed only when a QML delegate with its
   // own guaranteed glyph is alive, never because the animation became ready.
   assert.match(ownership, /setEmojiAnimated\(emojiPosition, emojiGeneration, true\)/);
