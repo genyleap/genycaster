@@ -2250,4 +2250,47 @@ foundation::result::Result<AppRequest> AsyncGateway::isFollowing(
     return applicationRequest(group);
 }
 
+foundation::result::Result<AppRequest> AsyncGateway::isBlocked(
+    const domain::identity::Fid source,
+    const domain::identity::Fid target,
+    std::function<void(foundation::result::Result<bool>)> completion)
+{
+    if (!completion) {
+        return std::unexpected(makeError(ErrorCode::InvalidArgument, "Block relation completion is required."));
+    }
+    if (source.value == 0U || target.value == 0U || source.value == target.value) {
+        completion(false);
+        return AppRequest{};
+    }
+    auto group = std::make_shared<Group>();
+    auto operation = m_client.getJson(
+        "/v1/linkById",
+        {
+            {"fid", std::to_string(source.value)},
+            {"target_fid", std::to_string(target.value)},
+            {"link_type", "block"},
+        },
+        [group, completion = std::move(completion)](foundation::result::Result<std::string> body) mutable {
+            if (group->cancelled.load(std::memory_order_acquire)) {
+                return;
+            }
+            if (body) {
+                completion(true);
+                return;
+            }
+            if (body.error().code == ErrorCode::NotFound) {
+                completion(false);
+                return;
+            }
+            completion(std::unexpected(std::move(body.error())));
+        },
+        request::GetOptions{.timeout = std::chrono::milliseconds{4'000}},
+        transport::async_http::Priority::Visible);
+    if (!operation) {
+        return std::unexpected(std::move(operation.error()));
+    }
+    group->add(std::move(*operation));
+    return applicationRequest(group);
+}
+
 }
