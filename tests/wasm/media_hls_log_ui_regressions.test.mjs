@@ -62,3 +62,35 @@ test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
  assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
  assert.match(tile,/clip: true/);
 });
+
+
+test('wallet approval stays steady after consent and stops polling on session end',()=>{
+ const bridge=read('src/providers/compatibility/browser_wallet/bridge.cpp');
+ assert.match(bridge,/box\.hidden=!rpc\.requiresApproval/);
+ assert.match(bridge,/response\.status===404\|\|response\.status===410/);
+ assert.match(bridge,/window\.addEventListener\('pagehide',stopPolling/);
+ assert.match(bridge,/if\(!lastConsentResultShown\)/);
+ assert.match(bridge,/known->second != announced/);
+ // The bridge page's inline JavaScript is a C++ raw string with only the
+ // base path injected by native code. Parse the actual client script as JS.
+ const start=bridge.indexOf('const base=")html";');
+ const finish=bridge.indexOf('</script></main></body></html>)html";',start);
+ assert.ok(start>0 && finish>start);
+ const js=bridge.slice(start,finish).replace(
+   'const base=")html";\n    page += basePath;\n    page += R"html(";',
+   'const base="/session/test";');
+ assert.doesNotThrow(()=>new Function(js));
+});
+
+test('failed private media origins back off and tiny SVGs avoid uninitialized mipmaps',()=>{
+ const image=read('ui/mobile/remote_image_provider.cpp');
+ assert.match(image,/originTemporarilyForbidden\(urlText\)/);
+ assert.match(image,/forbiddenOriginBackoff = std::chrono::minutes\{10\}/);
+ assert.match(image,/result->statusCode == 401U \|\| result->statusCode == 403U/);
+ assert.match(image,/!deniedByOrigin && !gatewayFallbackAttempt/);
+ assert.match(image,/clearForbiddenOrigin\(urlText\)/);
+ for(const file of ['ui/components/MarketAssetIcon.qml','ui/components/HomeDashboard.qml']){
+   const qml=read(file);
+   assert.doesNotMatch(qml,/mipmap:\s*true/);
+ }
+});
