@@ -6792,5 +6792,33 @@ Company | https://company.com</source>
             <source>This user blocked you.</source>
             <translation>이 사용자가 회원님을 차단했습니다.</translation>
         </message>
+        <message id="genycaster.wallet.browser_title">
+            <source>Choose a browser</source>
+            <translation>지갑 브라우저 선택</translation>
+        </message>
+        <message id="genycaster.wallet.default_browser">
+            <source>Default browser</source>
+            <translation>기본 브라우저</translation>
+        </message>
+        <message id="genycaster.wallet.previous_browser">
+            <source>Previously used</source>
+            <translation>이전에 사용한 브라우저</translation>
+        </message>
+        <message id="genycaster.wallet.last_used">
+            <source>Last used</source>
+            <translation>마지막 사용</translation>
+        </message>
+        <message id="genycaster.wallet.approval_hint">
+            <source>Confirm in your wallet. Your keys stay there.</source>
+            <translation>지갑에서 승인하세요. 개인 키는 지갑 안에 안전하게 보관됩니다.</translation>
+        </message>
+        <message id="genycaster.wallet.cancel">
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message id="genycaster.wallet.browser_open_failed">
+            <source>Could not open this browser. Choose another.</source>
+            <translation>브라우저를 열 수 없습니다. 다른 브라우저를 선택하세요.</translation>
+        </message>
     </context>
 </TS>

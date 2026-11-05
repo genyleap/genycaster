@@ -6792,5 +6792,33 @@ Company | https://company.com</source>
             <source>This user blocked you.</source>
             <translation>このユーザーはあなたをブロックしています。</translation>
         </message>
+        <message id="genycaster.wallet.browser_title">
+            <source>Choose a browser</source>
+            <translation>ウォレット用ブラウザーを選択</translation>
+        </message>
+        <message id="genycaster.wallet.default_browser">
+            <source>Default browser</source>
+            <translation>既定のブラウザー</translation>
+        </message>
+        <message id="genycaster.wallet.previous_browser">
+            <source>Previously used</source>
+            <translation>以前使用したブラウザー</translation>
+        </message>
+        <message id="genycaster.wallet.last_used">
+            <source>Last used</source>
+            <translation>前回使用</translation>
+        </message>
+        <message id="genycaster.wallet.approval_hint">
+            <source>Confirm in your wallet. Your keys stay there.</source>
+            <translation>ウォレットで承認してください。秘密鍵はウォレット内に保持されます。</translation>
+        </message>
+        <message id="genycaster.wallet.cancel">
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message id="genycaster.wallet.browser_open_failed">
+            <source>Could not open this browser. Choose another.</source>
+            <translation>ブラウザーを開けませんでした。別のブラウザーを選択してください。</translation>
+        </message>
     </context>
 </TS>

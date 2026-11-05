@@ -6797,5 +6797,33 @@ Company | https://company.com</source>
             <source>This user blocked you.</source>
             <translation>این کاربر شما را مسدود کرده است.</translation>
         </message>
+        <message id="genycaster.wallet.browser_title">
+            <source>Choose a browser</source>
+            <translation>مرورگر کیف پول را انتخاب کنید</translation>
+        </message>
+        <message id="genycaster.wallet.default_browser">
+            <source>Default browser</source>
+            <translation>مرورگر پیش‌فرض</translation>
+        </message>
+        <message id="genycaster.wallet.previous_browser">
+            <source>Previously used</source>
+            <translation>مرورگری که قبلاً استفاده شده</translation>
+        </message>
+        <message id="genycaster.wallet.last_used">
+            <source>Last used</source>
+            <translation>آخرین استفاده</translation>
+        </message>
+        <message id="genycaster.wallet.approval_hint">
+            <source>Confirm in your wallet. Your keys stay there.</source>
+            <translation>در کیف پول خود تأیید کنید. کلیدهای خصوصی شما در همان کیف پول می‌مانند.</translation>
+        </message>
+        <message id="genycaster.wallet.cancel">
+            <source>Cancel</source>
+            <translation>انصراف</translation>
+        </message>
+        <message id="genycaster.wallet.browser_open_failed">
+            <source>Could not open this browser. Choose another.</source>
+            <translation>مرورگر باز نشد. مرورگر دیگری انتخاب کنید.</translation>
+        </message>
     </context>
 </TS>
