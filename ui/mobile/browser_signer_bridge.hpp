@@ -211,6 +211,27 @@ private:
                             QStringLiteral("confirmed"), false, {}, {});
                         emit presentation->protocolProfileWriteCompleted(true, {});
                         presentation->openMyProfile();
+                    } else if (operation == QStringLiteral("follow")
+                               || operation == QStringLiteral("block")) {
+                        bool valid = false;
+                        const qulonglong targetFid =
+                            event.value(QStringLiteral("targetFid")).toString().toULongLong(&valid);
+                        if (!valid || targetFid == 0 || targetFid == presentation->accountFid()) {
+                            presentation->applyWriteState(
+                                QStringLiteral("failed"), false, {},
+                                QStringLiteral("Confirmed social link has no valid target."));
+                        } else {
+                            const bool active = event.value(QStringLiteral("active")).toBool();
+                            presentation->applyWriteState(
+                                QStringLiteral("confirmed"), false, {}, {},
+                                QVariantMap{
+                                    {QStringLiteral("operationKind"),
+                                     operation == QStringLiteral("block")
+                                         ? (active ? QStringLiteral("block") : QStringLiteral("unblock"))
+                                         : (active ? QStringLiteral("follow") : QStringLiteral("unfollow"))},
+                                    {QStringLiteral("targetFid"), targetFid},
+                                });
+                        }
                     } else if (operation == QStringLiteral("remove")) {
                         const QString castId = event.value(QStringLiteral("targetCastId")).toString();
                         // A confirmed CastRemove has its *own* message hash.
