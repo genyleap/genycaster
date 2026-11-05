@@ -113,7 +113,7 @@ Item {
         RowLayout {
             layoutDirection: Theme.uiDirection
             visible: !root.compactMetadata
-            // HyperSnap v2 is never artificially capped at 120px.
+            // Dynamic provider labels are never artificially capped at 120px.
             // Match the rendered text plus the network glyph and gap.
             Layout.preferredWidth: Math.ceil(providerStatusMetrics.advanceWidth)
                 + 13 + Theme.space2
