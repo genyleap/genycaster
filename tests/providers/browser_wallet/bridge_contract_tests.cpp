@@ -9,6 +9,7 @@
 #include <future>
 #include <string>
 #include <string_view>
+#include <thread>
 
 import farcaster.capability.wallet;
 import farcaster.foundation.result;
@@ -480,6 +481,45 @@ void testPassiveChainDiscoveryDoesNotOpenBrowser()
     assert(connectFuture.get().error->code == 4900);
 }
 
+void testClosingBridgeWithHalfOpenHttpConnectionIsBounded()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> launchPromise{};
+    auto launched = launchPromise.get_future();
+    auto bridge = makeBridge(Config{
+        .launch = [&launchPromise](const std::string& url) -> foundation::result::Status {
+            launchPromise.set_value(url);
+            return {};
+        },
+        .supportedChains = {"eip155:8453"},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Closing app", "https://app.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> pendingPromise{};
+    (*bridge)->request({.id=71U,.method="eth_requestAccounts",.paramsJson="[]"},
+        [&pendingPromise](auto response) { pendingPromise.set_value(std::move(response)); });
+    assert(launched.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl url = parseLoopbackUrl(launched.get());
+
+    asio::io_context io{};
+    tcp::socket stalled{io};
+    stalled.connect(tcp::endpoint{asio::ip::make_address_v4(url.host), url.port});
+    const std::string partial = "GET " + url.target + " HTTP/1.1\r\nHost: "
+        + url.host + ":" + std::to_string(url.port) + "\r\n";
+    asio::write(stalled, asio::buffer(partial));
+    std::this_thread::sleep_for(std::chrono::milliseconds{100});
+
+    // A half-written browser request used to block http::read indefinitely
+    // and could keep the bridge's jthread from joining on application exit.
+    const auto shutdownStarted = std::chrono::steady_clock::now();
+    bridge->reset();
+    const auto elapsed = std::chrono::steady_clock::now() - shutdownStarted;
+    assert(elapsed < std::chrono::seconds{8});
+}
+
 void testBridgeRejectsUnsupportedChainBeforeWallet()
 {
     using provider::compatibility::browser_wallet::bridge::Config;
@@ -518,5 +558,6 @@ int main()
     testAccountPrivacyUntilExplicitPermission();
     testBridgeRejectsUnsupportedChainBeforeWallet();
     testPassiveChainDiscoveryDoesNotOpenBrowser();
+    testClosingBridgeWithHalfOpenHttpConnectionIsBounded();
     return 0;
 }
