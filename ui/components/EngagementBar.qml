@@ -252,12 +252,18 @@ RowLayout {
         metricText: root.recastCount > 0 ? LocaleFormat.formatCompactNumber(root.recastCount) : ""
         active: root.effectiveRecastedByMe
         activeColor: Theme.positive
-        enabled: true
+        enabled: !presentationBridge.isAuthenticated || !presentationBridge.writeBusy
         Accessible.name: root.effectiveRecastedByMe
                          ? qsTrId("genycaster.engagement.undo_recast_value_recasts").arg(LocaleFormat.formatInteger(root.recastCount))
                          : qsTrId("genycaster.engagement.recast_value_recasts").arg(LocaleFormat.formatInteger(root.recastCount))
         onClicked: {
             if (!root.recastInteractive) {
+                // An in-flight signed operation temporarily changes write
+                // readiness. Never interpret that as revoked authorization.
+                if (presentationBridge.isAuthenticated &&
+                    (presentationBridge.writeBusy || presentationBridge.signerBusy
+                     || presentationBridge.signerPhase === "checking"))
+                    return
                 root.authenticationRequested()
                 return
             }
@@ -275,12 +281,16 @@ RowLayout {
         activeColor: Theme.negative
         metricText: root.likeCount > 0 ? LocaleFormat.formatCompactNumber(root.likeCount) : ""
         active: root.effectiveLikedByMe
-        enabled: true
+        enabled: !presentationBridge.isAuthenticated || !presentationBridge.writeBusy
         Accessible.name: root.effectiveLikedByMe
                          ? qsTrId("genycaster.engagement.unlike_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
                          : qsTrId("genycaster.engagement.like_value_likes").arg(LocaleFormat.formatInteger(root.likeCount))
         onClicked: {
             if (!root.likeInteractive) {
+                if (presentationBridge.isAuthenticated &&
+                    (presentationBridge.writeBusy || presentationBridge.signerBusy
+                     || presentationBridge.signerPhase === "checking"))
+                    return
                 root.authenticationRequested()
                 return
             }
