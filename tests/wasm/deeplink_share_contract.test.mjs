@@ -35,7 +35,7 @@ test('profile sharing appears on the shared profile surface', () => {
   assert.match(profile, /openFarcasterProfile/);
 });
 
-test('unfinished moderation stays out of cast/profile menus and does not filter feed rows', () => {
+test('profile moderation uses signed Block while Mute remains client-account scoped', () => {
   const cast = read('ui/components/CastItem.qml');
   const profile = read('ui/components/ProfileSurface.qml');
   for (const view of [cast, profile]) {
@@ -47,6 +47,8 @@ test('unfinished moderation stays out of cast/profile menus and does not filter 
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
   assert.match(bridge, /QVariantList PresentationBridge::rows\(\) const \{ return m_rows; \}/);
   assert.doesNotMatch(bridge, /moderation\/%1\/mute|moderation\/%1\/block/);
+  assert.match(profile,/onClicked: \{[\s\S]*root\.blockingMutationRequested\(/);
+  assert.match(read('ui/components/AppShell.qml'),/onBlockingMutationRequested/);
 });
 
 test('mobile footer has tightly grouped reactions and always-visible trailing bookmark/share', () => {
