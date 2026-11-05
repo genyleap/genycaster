@@ -35,18 +35,20 @@ GenyDrawer {
     // Account quotas are fetched from the authenticated Geny Pro service.
     // Farcaster ordinary messages still have a 1024-byte/2-embed limit;
     // larger drafts require an explicitly confirmed multi-cast thread.
+    readonly property var proEntitlements: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool verifiedGenyPro:
-        openProofConnections.proEntitlements.status === "verified"
-        && openProofConnections.proEntitlements.eligible === true
+        proEntitlements.status === "verified"
+        && proEntitlements.eligible === true
     readonly property int maxComposerCharacters: verifiedGenyPro
         ? Math.min(4096, Math.max(1024, Number(
-            openProofConnections.proEntitlements.limits?.cast_characters || 4096)))
+            root.proEntitlements.limits?.cast_characters || 4096)))
         : 1024
     readonly property int authoredCharacters: ProCastPolicy.characterCount(richComposer.safeText)
     readonly property bool withinAccountCharacterLimit: authoredCharacters <= maxComposerCharacters
     readonly property int maxMediaUploads: verifiedGenyPro
         ? Math.min(4, Math.max(1, Number(
-            openProofConnections.proEntitlements.limits?.image_embeds || 4)))
+            root.proEntitlements.limits?.image_embeds || 4)))
         : 1
     property var pendingPublicationCasts: []
     property string publicationPlanError: ""
