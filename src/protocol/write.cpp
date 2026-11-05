@@ -208,6 +208,7 @@ public:
             .fid = intent.author,
             .publicKey = signerPublicKey,
             .target = intent.target,
+            .linkType = intent.kind == domain::write::LinkKind::Block ? "block" : "follow",
             .isFollowing = intent.isFollowing,
             .timestamp = *timestamp,
             .network = m_network,
@@ -216,7 +217,9 @@ public:
             return std::unexpected(std::move(message.error()));
         }
         return preparedFrom(
-            intent.isFollowing ? domain::write::OperationKind::Follow : domain::write::OperationKind::Unfollow,
+            intent.kind == domain::write::LinkKind::Block
+                ? (intent.isFollowing ? domain::write::OperationKind::Block : domain::write::OperationKind::Unblock)
+                : (intent.isFollowing ? domain::write::OperationKind::Follow : domain::write::OperationKind::Unfollow),
             intent.author,
             domain::write::OperationTarget{.fid = intent.target},
             std::nullopt,
