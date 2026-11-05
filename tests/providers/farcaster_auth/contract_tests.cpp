@@ -1,4 +1,6 @@
 #include <cassert>
+#include <chrono>
+#include <ctime>
 #include <cstdint>
 #include <deque>
 #include <expected>
@@ -732,8 +734,53 @@ void nativeRecoveryGatewayNeverReceivesCustodySecrets()
     }
 }
 
+void miniAppSignInProofBindsOriginNonceAndFid()
+{
+    const auto due = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now() + std::chrono::minutes{4});
+    const std::tm utc = *std::gmtime(&due);
+    char expiration[32]{};
+    assert(std::strftime(expiration, sizeof(expiration),
+                         "%Y-%m-%dT%H:%M:%SZ", &utc) > 0U);
+    const std::string message = siweMessage(
+        42, std::string{"Expiration Time: "} + expiration);
+    const std::string signature = "0x" + std::string(128, '0') + "1b";
+    const provider::Config config{.optimismRpcUrl = "https://rpc.example"};
+    FakeTransport transport{};
+    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x01\\"}");
+    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
+        + abiWord(0) + abiWord(0) + "\\"}");
+    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
+        + abiWord(42) + "\\"}");
+    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
+        + abiAddressWord('1') + "\\"}");
+    const auto proof = provider::verifyMiniAppSignIn(
+        transport, message, signature, "genycaster.example",
+        "https://genycaster.example/sign-in", "abcdef12",
+        domain::identity::Fid{42}, true, config);
+    assert(proof && !proof->authAddress);
+    assert(transport.calls().size() == 4);
+    FakeTransport wrongOrigin{};
+    assert(!provider::verifyMiniAppSignIn(wrongOrigin, message, signature,
+        "other.example", "https://genycaster.example/sign-in", "abcdef12",
+        domain::identity::Fid{42}, true, config));
+    assert(wrongOrigin.calls().empty());
+    FakeTransport wrongFid{};
+    assert(!provider::verifyMiniAppSignIn(wrongFid, message, signature,
+        "genycaster.example", "https://genycaster.example/sign-in", "abcdef12",
+        domain::identity::Fid{99}, true, config));
+    assert(wrongFid.calls().empty());
+    FakeTransport future{};
+    assert(!provider::verifyMiniAppSignIn(future,
+        siweMessage(42, "Expiration Time: 2099-01-01T00:00:00Z"),
+        signature, "genycaster.example", "https://genycaster.example/sign-in",
+        "abcdef12", domain::identity::Fid{42}, true, config));
+    assert(future.calls().empty());
+}
+
 int main()
 {
+    miniAppSignInProofBindsOriginNonceAndFid();
     nativeRecoveryGatewayNeverReceivesCustodySecrets();
     nativeRecoveryMustVerifyOptimismAndRoundTripCustody();
     verifiedCustodyFlowReturnsNormalizedSession();
