@@ -71,20 +71,24 @@ test('inline emoji reserve ink space and replace Unicode only in their live layo
 });
 
 
-test('feed emojis keep one renderer alive across loops, scrolling and one-shot sprite completion', () => {
+test('completed feed emoji releases the Unicode glyph without blinking on scroll', () => {
   const policy = source('src/application/emoji/animation_policy.cpp');
   const emoji = source('ui/components/AnimatedEmoji.qml');
+  const lottie = source('ui/components/AnimatedEmojiLottie.qml');
   const sprite = source('ui/components/SpriteEmoji.qml');
   const rich = source('ui/components/RichInlineText.qml');
   const feed = policy.slice(policy.indexOf('case Surface::Feed:'),
                             policy.indexOf('case Surface::PickerCell:'));
-  assert.match(feed, /PlaybackMode::Loop/);
-  assert.doesNotMatch(feed, /PlaybackMode::PlayOnce/);
+  assert.match(feed, /PlaybackMode::PlayOnce/);
   assert.match(feed, /pauseWhenInvisible = true/);
   assert.match(emoji, /readonly property int configuredLoops:/);
   assert.match(emoji, /readonly property int playbackLoops: root\.motionActive \? root\.configuredLoops : 0/);
   assert.match(emoji, /lottie\.item\.playCount = root\.configuredLoops === 0 \? 1 : root\.configuredLoops/);
   assert.match(emoji, /lottie\.item\.animationActive = root\.playbackLoops !== 0/);
+  assert.match(emoji, /!lottie\.item\.playbackCompleted/);
+  assert.match(lottie, /animation\.runningChanged\.connect/);
+  assert.match(lottie, /root\.playbackCompleted = true/);
+  assert.match(lottie, /interval: 100/);
   assert.match(sprite, /property bool playbackFinished: false/);
   assert.match(sprite, /!root\.requestFailed && !root\.playbackFinished/);
   assert.match(sprite, /finishBehavior: AnimatedSprite\.FinishAtFinalFrame/);
