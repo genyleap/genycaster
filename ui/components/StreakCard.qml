@@ -25,9 +25,15 @@ Item {
     readonly property bool flameMotion: root.activePage !== "leaderboard"
         && root.current > 0 && root.visible
         && !Theme.reduceMotion && !Theme.powerSave
-    readonly property bool leaderboardVisible:
-        openProofConnections.streakPreferences.leaderboard_visible === true
-    readonly property var leaderboardEntries: openProofConnections.streakLeaderboard || []
+    readonly property var streakPreferences: openProofConnections
+        ? (openProofConnections.streakPreferences || ({})) : ({})
+    readonly property bool leaderboardVisible: streakPreferences.leaderboard_visible === true
+    readonly property var leaderboardEntries: openProofConnections
+        ? (openProofConnections.streakLeaderboard || []) : []
+    readonly property bool leaderboardBusy: openProofConnections
+        ? Boolean(openProofConnections.streakLeaderboardBusy) : false
+    readonly property bool leaderboardCanJoin: openProofConnections
+        ? Boolean(openProofConnections.cloudAuthorizationReady) : false
 
     readonly property var track: activeTrack === "creator"
         ? (snapshot.creator || ({})) : (snapshot.activity || ({}))
@@ -241,7 +247,7 @@ Item {
             onActivated: id => {
                 root.activePage = id
                 if(id === "leaderboard")
-                    openProofConnections.fetchStreakLeaderboard(root.leaderboardTrack)
+                    if (openProofConnections) openProofConnections.fetchStreakLeaderboard(root.leaderboardTrack)
                 else
                     root.activeTrack = id
                 root.pageChanged()
@@ -538,7 +544,7 @@ Item {
                 ]
                 onActivated: id => {
                     root.leaderboardTrack = id
-                    openProofConnections.fetchStreakLeaderboard(id)
+                    if (openProofConnections) openProofConnections.fetchStreakLeaderboard(id)
                 }
             }
             // A three-person preview is visible even without joining.
@@ -560,8 +566,8 @@ Item {
                 }
                 ActionButton {
                     Layout.fillWidth: true
-                    visible: openProofConnections.cloudAuthorizationReady
-                    enabled: !openProofConnections.streakLeaderboardBusy
+                    visible: root.leaderboardCanJoin
+                    enabled: !root.leaderboardBusy
                     compact: true
                     quiet: !root.leaderboardVisible
                     selected: root.leaderboardVisible
@@ -571,14 +577,14 @@ Item {
                     onClicked: {
                         // Membership affects the user's OWN rank, never the
                         // ability to read everyone else's public ranking.
-                        openProofConnections.setStreakPreferences(
-                            String(openProofConnections.streakPreferences.activity_source || "casts"),
+                        if (openProofConnections) openProofConnections.setStreakPreferences(
+                            String(root.streakPreferences.activity_source || "casts"),
                             !root.leaderboardVisible)
                     }
                 }
                 Label {
                     Layout.fillWidth: true
-                    visible: !openProofConnections.streakLeaderboardBusy
+                    visible: !root.leaderboardBusy
                         && root.leaderboardEntries.length === 0
                     text: qsTrId("genycaster.streak.leaderboard_empty")
                     color: Theme.inkMuted
@@ -588,7 +594,7 @@ Item {
                 GenySpinner {
                     Layout.alignment: Qt.AlignHCenter
                     running: visible
-                    visible: openProofConnections.streakLeaderboardBusy
+                    visible: root.leaderboardBusy
                 }
                 ColumnLayout {
                     objectName: "streakTop100"
