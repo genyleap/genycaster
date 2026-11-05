@@ -359,6 +359,31 @@ public:
             [this] { terminateAll(); });
         connect(&m_controller, &MiniAppHostController::walletBrowserCancelRequested,
                 this, [this] { endWalletSession(); });
+        // A native WKWebView drawer is an NSView above the Qt scene graph.
+        // QML popup z-order cannot cover it. Reveal the Qt wallet chooser
+        // while preserving the live Mini App document and its pending RPC.
+        connect(&m_controller, &MiniAppHostController::walletBrowserPickerChanged,
+                this, [this] {
+                    if (m_controller.walletBrowserPickerActive()) {
+                        Session* current = foreground();
+                        if (m_walletChooserHiddenTaskId.isEmpty() && current
+                            && current->browser && current->taskId == m_walletTaskId) {
+                            m_walletChooserHiddenTaskId = current->taskId;
+                            current->browser->setVisible(false);
+                        }
+                        return;
+                    }
+                    if (m_walletChooserHiddenTaskId.isEmpty()) return;
+                    const QString hiddenTask = std::exchange(m_walletChooserHiddenTaskId, QString{});
+                    // Let Qt dismiss the modal before restoring the native
+                    // surface, preventing an NSView/QML stacking race.
+                    QTimer::singleShot(0, this, [this, hiddenTask] {
+                        Session* current = foreground();
+                        if (current && current->browser && current->taskId == hiddenTask
+                            && !m_controller.walletBrowserPickerActive())
+                            current->browser->setVisible(true);
+                    });
+                });
         connect(&m_controller, &MiniAppHostController::composeCastCompleted, this,
             [this](const QString& requestId, const QVariantMap& result) {
                 completeComposeCast(requestId, result);
@@ -1987,6 +2012,7 @@ private:
     QString m_foregroundTaskId{};
     QString m_focusIntentTaskId{};
     QString m_walletTaskId{};
+    QString m_walletChooserHiddenTaskId{};
     QHash<QString, QString> m_composeRequestToTask{};
     QHash<QString, ManifestCacheEntry> m_manifestCache{};
     std::size_t m_allowedSessions{1U};
