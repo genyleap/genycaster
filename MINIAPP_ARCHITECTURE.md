@@ -57,6 +57,43 @@ extension that exposes `window.ethereum`. If none is available, the request fail
 provider. A future embedded Genycaster wallet can implement the same `IEthereumWalletBridge` interface
 without changing the Mini App runtime contract.
 
+## Mini App Sign In with Farcaster (SIWF)
+
+Native macOS Mini App sessions implement **`actions.signIn`** as an independent
+identity capability. This is not a cast/reaction signer and does not select or
+override the user's preferred content node: Hypersnap remains the default, while
+Snapchain is independently selectable. Farcaster identity proofs are anchored to
+the FID and custody/auth-address registry on **Optimism (chain ID 10)**, not to a
+Snapchain write transaction.
+
+- The capability is advertised dynamically only when the build contains the
+  verified SIWF adapter, an authenticated account FID is present, a real EIP-1193
+  wallet bridge is available, and a trusted HTTPS Optimism verifier is configured.
+- The Mini App provides a server-generated alphanumeric nonce (8–128 chars).
+  Genycaster constructs a short-lived EIP-4361 message with the *actual Mini App
+  origin and launch URL*, a single `farcaster://fid/<fid>` resource, and a
+  maximum 10-minute expiration. An option to disallow auth addresses is enforced.
+- The selected wallet must explicitly approve `eth_requestAccounts` when not
+  already granted and separately approve each `personal_sign` request.
+  No phrase, native protocol Ed25519 signer, OpenProof bearer, or cookie is
+  exported to the Mini App.
+- Off the UI thread, the existing SIWF verifier validates the exact domain,
+  URI, nonce, expiration, EIP-191/1271/6492 signature, and FID-to-custody or
+  currently active auth-address mapping on Optimism. Only a verified proof is
+  returned as `{result:{message,signature,authMethod}}` per the official
+  Mini App wire contract. User rejection is typed as `rejected_by_user`.
+- Pending authorization belongs to one foreground task, document generation
+  and FID. Closing, navigating away, signing out, or moving to another account
+  invalidates the result. Sensitive operations never run on a background app.
+- WebAssembly and platforms without the native wallet+verification flow do
+  **not** advertise `actions.signIn`. A web-host adaptation must supply its
+  own trusted verification and explicit approval before enabling it; inventing
+  a signed proof or routing via Snapchain is prohibited.
+
+Relying-party Mini App servers are still responsible for nonce issuance,
+one-time consumption, signature verification, and binding the result to their
+own login session.
+
 ## Apps surface
 
 `Apps` is a first-class shell route with two application families:
