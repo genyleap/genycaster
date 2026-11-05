@@ -233,6 +233,12 @@ QCache<QString, FailedRequest> forbiddenOrigins{forbiddenOriginCapacity};
 {
     const QUrl url{source};
     if (!url.isValid() || url.host().isEmpty()) return {};
+    // An r2.dev hostname identifies one development bucket, so an HTTP
+    // authorization denial is meaningful for its whole origin. Generic CDNs
+    // may return 403 for one object while serving others publicly; continue
+    // using their per-URL negative cache instead of blocking the full host.
+    if (!url.host().endsWith(QStringLiteral(".r2.dev"), Qt::CaseInsensitive))
+        return {};
     return url.scheme().toLower() + QStringLiteral("://") + url.host().toLower()
         + QLatin1Char(':') + QString::number(url.port(
             url.scheme() == QStringLiteral("https") ? 443 : 80));
