@@ -78,8 +78,8 @@ Item {
         && root.GraphicsInfo.api !== GraphicsInfo.Software
         && root.GraphicsInfo.api !== GraphicsInfo.Null
     // Keep the configured loop count independent of transient focus, scroll
-    // and viewport changes. Swapping an already-running infinite loop to a
-    // one-shot during a fling makes VectorImage end on a transparent frame.
+    // and viewport changes. Reconfiguring a paused Lottie during a fling can
+    // finish its one-shot early and strand its transparent final frame.
     readonly property int configuredLoops: root.controller !== null ? root.controller.playbackLoops(
         root.surface, root.reducedMotion, root.active, true) : 0
     readonly property int playbackLoops: root.motionActive ? root.configuredLoops : 0
@@ -97,6 +97,7 @@ Item {
     }
     readonly property bool animationReady: lottie.status === Loader.Ready
         && lottie.item !== null && lottie.item.renderReady
+        && !lottie.item.playbackCompleted
     readonly property bool rendererRetained: root.retainLoadedRenderer
         && root.rendererResident && root.assetSource.length > 0
 
