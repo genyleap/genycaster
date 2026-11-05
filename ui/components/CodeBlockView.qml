@@ -98,9 +98,14 @@ Superellipse {
                 compact: true
                 quiet: true
                 iconOnly: root.compact
+                id: copyCodeButton
                 iconGlyph: Theme.iconCopy
                 text: qsTrId("genycaster.composer.copy_code")
-                onClicked: presentationBridge.copyText(root.source)
+                onClicked: {
+                    if (root.source.length === 0) return
+                    presentationBridge.copyText(root.source)
+                    copyCodeButton.acknowledgeCopy()
+                }
             }
         }
 
