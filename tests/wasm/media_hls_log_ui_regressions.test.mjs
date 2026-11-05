@@ -98,3 +98,68 @@ test('failed private media origins back off and tiny SVGs avoid uninitialized mi
    assert.doesNotMatch(qml,/mipmap:\s*true/);
  }
 });
+
+
+test('consent page keeps a confirmed approval steady through a follow-up read and session close',async()=>{
+ const bridge=read('src/providers/compatibility/browser_wallet/bridge.cpp');
+ const a=bridge.indexOf('const base=")html";');
+ const b=bridge.indexOf('</script></main></body></html>)html";',a);
+ assert.ok(a>=0 && b>a);
+ const script=bridge.slice(a,b).replace(
+   'const base=")html";\n    page += basePath;\n    page += R"html(";','const base="/session/test";');
+ const elements={};
+ const element=id=>elements[id]??(elements[id]={
+   textContent:'',className:'',hidden:id==='request',disabled:id==='options',
+   value:'',listeners:{},
+   addEventListener(event,callback){this.listeners[event]=callback;},
+   replaceChildren(){this.children=[];},
+   append(node){(this.children??=[]).push(node);}
+ });
+ const doc={getElementById:element,createElement:()=>({textContent:'',value:''})};
+ const statuses=[];
+ const status=element('status');
+ Object.defineProperty(status,'textContent',{
+   get(){return this._text;},
+   set(value){this._text=value;statuses.push(value);}
+ });
+ const wallet={request:async({method})=>method==='eth_chainId'?'0x1':
+    ['0x1111111111111111111111111111111111111111'],
+   on(){},removeListener(){}};
+ const win={ethereum:wallet,addEventListener(){},dispatchEvent(){}};
+ const next=[
+   {method:'eth_requestAccounts',requiresApproval:true,transportId:1,params:[]},
+   {method:'eth_chainId',requiresApproval:false,transportId:2,params:[]}
+ ];
+ const posted=[];let queue=[],timerId=0;
+ const schedule=callback=>{queue.push({id:++timerId,callback});return timerId;};
+ const cancel=id=>{queue=queue.filter(item=>item.id!==id);};
+ const fetch=async(url,options)=>{
+   if(url.endsWith('/next'))
+     return next.length?{ok:true,status:200,json:async()=>next.shift()}:
+       {ok:false,status:410};
+   if(url.endsWith('/result')){
+     posted.push(JSON.parse(options.body));
+     return {ok:true,status:200};
+   }
+   return {ok:true,status:200};
+ };
+ const execute=new Function('window','document','fetch','setTimeout','clearTimeout',
+   'Event','TextDecoder',script);
+ execute(win,doc,fetch,schedule,cancel,class{constructor(type){this.type=type;}},
+   class{decode(){return '';}});
+ const flush=async()=>{for(let i=0;i<16;i++)await Promise.resolve();};
+ await flush();
+ assert.equal(element('request').hidden,false);
+ await element('approve').listeners.click();
+ await flush();
+ assert.equal(element('request').hidden,true);
+ for(let i=0;i<18&&queue.length;i++){
+   const task=queue.shift();
+   task.callback();
+   await flush();
+ }
+ assert.deepEqual(posted.map(entry=>entry.transportId),[1,2]);
+ assert.equal(element('request').hidden,true);
+ assert.equal(statuses.at(-1),'Approved. Return to GenyCaster.');
+ assert.equal(queue.length,0);
+});
