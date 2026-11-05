@@ -2532,6 +2532,11 @@ QString OpenProofConnectionsController::topicOutboxKey() const
 
 void OpenProofConnectionsController::fetchTopics()
 {
+    // Resume the user's last read-only filter after a verified account grant
+    // is restored. No signer provisioning, protocol write or login popup.
+    if (cloudAuthorizationReady() && !m_activeCastTopic.isEmpty()
+        && !m_topicCastsRequest && m_topicCastItems.isEmpty())
+        fetchTopicCastPage();
     // Topic metadata belongs to authenticated GenyCaster accounts. Never
     // probe the protected endpoint without a verified bearer or browser session.
     if(m_topicCatalogRequest || !cloudAuthorizationReady()
@@ -2611,8 +2616,10 @@ void OpenProofConnectionsController::selectCastTopic(
         return;
     m_activeCastTopic=slug;
     m_topicAuthorFid=authorFid;
-    if(!cloudAuthorizationReady()) {
-        m_topicCastsError=QStringLiteral("Sign in to browse GenyCaster topics");
+    if (!cloudAuthorizationReady()) {
+        // Keep the selected topic and show pending state. fetchTopics()
+        // will resume this read when the existing account grant returns.
+        // Do not ask the user to re-sign a protocol message.
         emit topicCastsChanged();
         return;
     }
