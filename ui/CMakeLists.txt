@@ -396,6 +396,16 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_compile_features(farcaster_miniapp_runtime PUBLIC cxx_std_26)
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
         PRIVATE Qt6::Network farcaster_miniapp_browser)
+    # SIWF identity verification is a separate chain-backed authorization
+    # operation. It does not select/change the Farcaster write/read provider.
+    if(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS)
+        target_compile_definitions(farcaster_miniapp_runtime PRIVATE GENYCASTER_MINIAPP_SIWF=1)
+        target_link_libraries(farcaster_miniapp_runtime PRIVATE
+            farcaster::provider_compatibility_auth
+            farcaster::transport_qt_network)
+    else()
+        target_compile_definitions(farcaster_miniapp_runtime PRIVATE GENYCASTER_MINIAPP_SIWF=0)
+    endif()
     farcaster_enable_warnings(farcaster_miniapp_runtime)
     target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=1)
     target_link_libraries(genycaster PRIVATE farcaster_miniapp_runtime)
