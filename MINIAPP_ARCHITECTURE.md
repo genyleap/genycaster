@@ -33,7 +33,7 @@ The current invariants are:
    `wallet_getPermissions` return empty arrays until the Mini App receives
    account access. `eth_requestAccounts` or a successfully approved EIP-2255
    `wallet_requestPermissions` result containing `eth_accounts` grants access
-   for the origin. Wallet disconnect or *any* `accountsChanged` revokes it.
+   for the origin. Wallet disconnect or a genuine `accountsChanged` principal switch revokes it; a duplicate announcement of the same approved address does not.
    Signing, transactions and sensitive wallet operations need account access
    and explicit wallet approval; no successful approval is fabricated.
 5. `wallet_switchEthereumChain` and `wallet_addEthereumChain` are checked against the configured chain
@@ -78,6 +78,20 @@ malformed requested chains remain absent from `getChains()`.
 
 Wallet account permission and signature approval remain distinct. Neither
 remembering a browser nor opening an application grants signing rights.
+The bridge approval document intentionally exposes the actual local HTTP
+origin to EIP-1193 extensions. Security alerts about `127.0.0.1` cannot
+safely be suppressed or relabelled as the Mini App origin: a verified HTTPS
+wallet transport (for example, correctly paired WalletConnect) is needed to
+avoid this origin mismatch. The approval document now keeps the final
+acknowledgement stable, automatically processes read-only RPCs without
+flashing the consent panel, and stops polling after the session is gone.
+
+Image fetches from unauthorized public-development `r2.dev` origins may
+produce HTTP 401/403 and Qt HTTP/2 diagnostics. The remote image provider
+now pauses further requests to a denied origin for 10 minutes, including
+critical/forced artwork, but does not fabricate access or replace a private
+object URL. The publisher must supply a readable asset on an authorized
+public production endpoint.
 
 ### Native wallet-browser selection
 
