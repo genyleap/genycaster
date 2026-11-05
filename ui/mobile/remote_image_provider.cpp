@@ -1038,7 +1038,7 @@ void RemoteImageProvider::Impl::startNetwork(
 #endif
 
 #if !defined(__EMSCRIPTEN__)
-                if (!gatewayFallbackAttempt
+                if (!deniedByOrigin && !gatewayFallbackAttempt
                     && category == storage_policy::MediaCategory::Photos) {
                     self->startNetwork(std::move(control), std::move(urlText), category, manual,
                                        decodeRequest, std::move(cacheKey), false, true);
