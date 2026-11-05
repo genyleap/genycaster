@@ -915,7 +915,7 @@ private:
                     }
                 }
                 QStringList missingCapabilities{};
-                const QJsonArray supportedCapabilities = capabilities(m_wallet);
+                const QJsonArray supportedCapabilities = capabilities(m_wallet, signInAvailable());
                 for (const QJsonValue capability : required.toArray()) {
                     if (!capability.isString() || capability.toString().trimmed().isEmpty()) {
                         fail(*active, qtTrId("genycaster.miniapp.invalid_manifest"));
@@ -1042,6 +1042,7 @@ private:
             active->providerUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
             active->rateWindow.restart();
             active->messageCount = 0;
+            active->pendingSignIn = false;
             active->ready = false;
             const quint64 readyGeneration = active->readyGeneration;
             QTimer::singleShot(readyTimeoutMs, this, [this, taskId, readyGeneration] {
@@ -1282,7 +1283,8 @@ private:
         }
         const QString method = path.first().toString();
         const bool requiresForegroundAttention =
-            method == QStringLiteral("viewProfile")
+            method == QStringLiteral("signIn")
+            || method == QStringLiteral("viewProfile")
             || method == QStringLiteral("viewCast")
             || method == QStringLiteral("openMiniApp")
             || method == QStringLiteral("composeCast");
@@ -1305,13 +1307,19 @@ private:
             : args.first().toObject().value(QStringLiteral("value"));
 
         if (method == QStringLiteral("getCapabilities")) {
-            session.browser->reply(rawResponse(id, capabilities(m_wallet)), document);
+            session.browser->reply(rawResponse(id, capabilities(m_wallet, signInAvailable())), document);
         } else if (method == QStringLiteral("getChains")) {
             session.browser->reply(rawResponse(id, chains(m_wallet)), document);
         } else if (method == QStringLiteral("ethProviderRequestV2")) {
             receiveEthereumRequest(session, id, argument, document);
         } else if (method == QStringLiteral("eip6963RequestProvider")) {
             announceEthereumProvider(session, id, document);
+        } else if (method == QStringLiteral("signIn")) {
+#if GENYCASTER_MINIAPP_SIWF
+            beginSignIn(session, id, argument, document);
+#else
+            reject(QStringLiteral("Mini App sign in is unavailable on this platform."));
+#endif
         } else if (method == QStringLiteral("ready")) {
             bool disableNativeGestures = false;
             if (!argument.isUndefined() && !argument.isNull()) {
@@ -1549,6 +1557,255 @@ private:
         m_walletTaskId = session.taskId;
         return true;
     }
+
+    [[nodiscard]] bool signInAvailable() const
+    {
+#if GENYCASTER_MINIAPP_SIWF
+        return m_wallet != nullptr && m_wallet->available()
+            && m_controller.user().value(QStringLiteral("fid")).toULongLong() > 0U
+            && m_optimismRpcUrl.starts_with("https://");
+#else
+        return false;
+#endif
+    }
+
+#if GENYCASTER_MINIAPP_SIWF
+    // The same already user-approved EIP-1193 wallet transport used by Mini
+    // Apps performs each sensitive operation. Never read native signer seeds.
+    void requestSignInWallet(
+        capability::wallet::EthereumRpcRequest request,
+        std::function<void(Impl&, capability::wallet::EthereumRpcResponse)> completion)
+    {
+        const std::weak_ptr<CallbackGate> weakGate = m_callbackGate;
+        m_wallet->request(std::move(request),
+            [weakGate, completion = std::move(completion)](
+                capability::wallet::EthereumRpcResponse response) mutable {
+                auto gate = weakGate.lock();
+                if (!gate) return;
+                std::scoped_lock lock{gate->mutex};
+                if (!gate->runtime) return;
+                Impl* const runtime = gate->runtime;
+                QMetaObject::invokeMethod(runtime,
+                    [runtime, completion = std::move(completion),
+                     response = std::move(response)]() mutable {
+                        completion(*runtime, std::move(response));
+                    }, Qt::QueuedConnection);
+            });
+    }
+
+    void finishSignIn(const QString& taskId, const quint64 generation,
+                      const QString& document, const QJsonValue& id,
+                      const QString& message = {}, const QString& signature = {},
+                      const bool authAddress = false)
+    {
+        Session* const session = find(taskId);
+        if (!session || !session->pendingSignIn
+            || session->documentGeneration != generation
+            || session->documentToken != document || !session->browser) return;
+        session->pendingSignIn = false;
+        if (!session->foreground || m_foregroundTaskId != taskId
+            || m_controller.user().value(QStringLiteral("fid")).toULongLong()
+                != session->context.value(QStringLiteral("user")).toObject()
+                   .value(QStringLiteral("fid")).toDouble()) {
+            session->browser->reply(errorResponse(
+                id, QStringLiteral("Mini App authentication was cancelled.")), document);
+            return;
+        }
+        if (message.isEmpty() || signature.isEmpty()) {
+            // The SDK represents a rejected native approval as a typed
+            // rejected_by_user result. Do not fabricate an identity proof.
+            session->browser->reply(rawResponse(id, QJsonObject{
+                {QStringLiteral("error"), QJsonObject{
+                    {QStringLiteral("type"), QStringLiteral("rejected_by_user")}}}
+            }), document);
+            return;
+        }
+        session->browser->reply(rawResponse(id, QJsonObject{
+            {QStringLiteral("result"), QJsonObject{
+                {QStringLiteral("message"), message},
+                {QStringLiteral("signature"), signature},
+                {QStringLiteral("authMethod"), authAddress
+                    ? QStringLiteral("authAddress") : QStringLiteral("custody")}
+            }}
+        }), document);
+    }
+
+    void beginSignIn(Session& session, const QJsonValue& id,
+                     const QJsonValue& value, const QString& document)
+    {
+        const QJsonObject currentUser = QJsonObject::fromVariantMap(m_controller.user());
+        const QJsonObject sessionUser = session.context.value(QStringLiteral("user")).toObject();
+        const QUrl appUrl = session.launchUrl;
+        const QString taskId = session.taskId;
+        const quint64 generation = session.documentGeneration;
+        const qulonglong fid = static_cast<qulonglong>(currentUser.value(
+            QStringLiteral("fid")).toDouble());
+        if (!signInAvailable() || !session.foreground
+            || m_foregroundTaskId != taskId || !publicHttps(appUrl)
+            || fid == 0U || fid != static_cast<qulonglong>(
+                sessionUser.value(QStringLiteral("fid")).toDouble())
+            || session.documentToken != document || session.pendingSignIn
+            || !value.isObject()) {
+            session.browser->reply(errorResponse(id, QStringLiteral(
+                "Sign in requires the foreground Mini App and a verified account.")), document);
+            return;
+        }
+        const QJsonObject options = value.toObject();
+        const QString nonce = options.value(QStringLiteral("nonce")).toString();
+        static const QRegularExpression validNonce{QStringLiteral("^[A-Za-z0-9]{8,128}$")};
+        if (!validNonce.match(nonce).hasMatch()
+            || (options.contains(QStringLiteral("acceptAuthAddress"))
+                && !options.value(QStringLiteral("acceptAuthAddress")).isBool())) {
+            session.browser->reply(errorResponse(id, QStringLiteral(
+                "Sign in requires a valid relying-party nonce and options.")), document);
+            return;
+        }
+        const bool acceptAuthAddress = options.value(QStringLiteral("acceptAuthAddress"))
+                                           .toBool(true);
+        const QDateTime now = QDateTime::currentDateTimeUtc();
+        const auto readTime = [&options](const QString& field) -> QDateTime {
+            if (!options.contains(field)) return {};
+            const QString raw = options.value(field).toString();
+            if (raw.size() < 20 || raw.size() > 40) return {};
+            const QDateTime result = QDateTime::fromString(raw, Qt::ISODateWithMs);
+            return result.isValid() ? result.toUTC()
+                                   : QDateTime::fromString(raw, Qt::ISODate).toUTC();
+        };
+        QDateTime expires = now.addSecs(300);
+        QDateTime notBefore{};
+        if (options.contains(QStringLiteral("expirationTime"))) {
+            expires = readTime(QStringLiteral("expirationTime"));
+            if (!expires.isValid() || expires <= now
+                || expires > now.addSecs(600)) {
+                session.browser->reply(errorResponse(id, QStringLiteral(
+                    "Sign in expiration must be within ten minutes.")), document);
+                return;
+            }
+        }
+        if (options.contains(QStringLiteral("notBefore"))) {
+            notBefore = readTime(QStringLiteral("notBefore"));
+            if (!notBefore.isValid() || notBefore > now.addSecs(120)
+                || notBefore >= expires) {
+                session.browser->reply(errorResponse(id, QStringLiteral(
+                    "Sign in validity time is outside the permitted window.")), document);
+                return;
+            }
+        }
+        if (!ensureWalletSession(session)) {
+            session.browser->reply(errorResponse(id, QStringLiteral(
+                "No approved Mini App wallet session is available.")), document);
+            return;
+        }
+        session.pendingSignIn = true;
+        QTimer::singleShot(180'000, this, [this, taskId, generation, document, id] {
+            finishSignIn(taskId, generation, document, id);
+        });
+        requestSignInWallet(capability::wallet::EthereumRpcRequest{
+            .id = ++m_nextSignInRpcId, .method = "eth_requestAccounts",
+            .paramsJson = "[]",
+        }, [taskId, generation, document, id, nonce, fid, appUrl,
+            expires, notBefore, now, acceptAuthAddress](
+                Impl& runtime, capability::wallet::EthereumRpcResponse response) {
+            Session* const active = runtime.find(taskId);
+            if (!active || !active->pendingSignIn || !active->foreground
+                || active->documentGeneration != generation
+                || active->documentToken != document || response.error) {
+                runtime.finishSignIn(taskId, generation, document, id);
+                return;
+            }
+            const QJsonValue accounts = parseJsonValue(response.resultJson);
+            const QString account = accounts.isArray()
+                && !accounts.toArray().isEmpty()
+                ? accounts.toArray().first().toString() : QString{};
+            static const QRegularExpression validAddress{
+                QStringLiteral("^0x[0-9a-fA-F]{40}$")};
+            if (!validAddress.match(account).hasMatch()) {
+                runtime.finishSignIn(taskId, generation, document, id);
+                return;
+            }
+            const QString domain = appUrl.host().toLower();
+            const QString uri = normalizedUrl(appUrl);
+            const QString stamp = now.toString(Qt::ISODate);
+            QString siwe = domain + QStringLiteral(
+                " wants you to sign in with your Ethereum account:\n")
+                + account + QStringLiteral(
+                "\n\nFarcaster Auth\n\nURI: ") + uri + QStringLiteral(
+                "\nVersion: 1\nChain ID: 10\nNonce: ") + nonce
+                + QStringLiteral("\nIssued At: ") + stamp
+                + QStringLiteral("\nExpiration Time: ")
+                + expires.toString(Qt::ISODate);
+            if (notBefore.isValid())
+                siwe += QStringLiteral("\nNot Before: ") + notBefore.toString(Qt::ISODate);
+            siwe += QStringLiteral("\nResources:\n- farcaster://fid/")
+                    + QString::number(fid);
+            const QString encoded = QStringLiteral("0x")
+                + QString::fromLatin1(siwe.toUtf8().toHex());
+            const QJsonArray params{encoded, account};
+            runtime.requestSignInWallet(capability::wallet::EthereumRpcRequest{
+                .id = ++runtime.m_nextSignInRpcId,
+                .method = "personal_sign",
+                .paramsJson = QJsonDocument(params)
+                    .toJson(QJsonDocument::Compact).toStdString(),
+            }, [taskId, generation, document, id, nonce, fid, domain, uri,
+                siwe, acceptAuthAddress](Impl& owner,
+                     capability::wallet::EthereumRpcResponse signedResponse) {
+                Session* const current = owner.find(taskId);
+                if (!current || !current->pendingSignIn
+                    || current->documentGeneration != generation
+                    || current->documentToken != document || signedResponse.error) {
+                    owner.finishSignIn(taskId, generation, document, id);
+                    return;
+                }
+                const QString signature = parseJsonValue(signedResponse.resultJson).toString();
+                if (!signature.startsWith(QStringLiteral("0x"))
+                    || signature.size() < 132 || signature.size() > 2048) {
+                    owner.finishSignIn(taskId, generation, document, id);
+                    return;
+                }
+                // Verification is blocking RPC/crypto work: perform it away
+                // from the GUI. Document generation + FID are rechecked
+                // before returning the signed credential to third-party JS.
+                const std::weak_ptr<CallbackGate> weakGate = owner.m_callbackGate;
+                const bool direct = owner.m_useDirectProxy;
+                const std::string rpc = owner.m_optimismRpcUrl;
+                QThreadPool::globalInstance()->start(
+                    [weakGate, direct, rpc, taskId, generation, document, id,
+                     nonce, fid, domain, uri, siwe, signature, acceptAuthAddress] {
+                    auto transport = farcaster::transport::qtnetwork::makeTransport(
+                        direct ? farcaster::transport::qtnetwork::ProxyPolicy::Direct
+                               : farcaster::transport::qtnetwork::ProxyPolicy::System);
+                    bool verified = false;
+                    bool authAddress = false;
+                    if (transport) {
+                        farcaster::provider::compatibility::auth::Config config{};
+                        config.optimismRpcUrl = rpc;
+                        const auto proof = farcaster::provider::compatibility::auth::verifyMiniAppSignIn(
+                            **transport, siwe.toStdString(), signature.toStdString(),
+                            domain.toStdString(), uri.toStdString(), nonce.toStdString(),
+                            farcaster::domain::identity::Fid{fid}, acceptAuthAddress,
+                            std::move(config));
+                        verified = proof.has_value();
+                        authAddress = verified && proof->authAddress;
+                    }
+                    const auto gate = weakGate.lock();
+                    if (!gate) return;
+                    std::scoped_lock lock{gate->mutex};
+                    if (!gate->runtime) return;
+                    Impl* const runtime = gate->runtime;
+                    QMetaObject::invokeMethod(runtime,
+                        [runtime, taskId, generation, document, id, siwe, signature,
+                         verified, authAddress] {
+                            if (verified)
+                                runtime->finishSignIn(taskId, generation, document,
+                                    id, siwe, signature, authAddress);
+                            else
+                                runtime->finishSignIn(taskId, generation, document, id);
+                        }, Qt::QueuedConnection);
+                });
+            });
+        });
+    }
+#endif
 
     void announceEthereumProvider(Session& session, const QJsonValue& id, const QString& document)
     {
