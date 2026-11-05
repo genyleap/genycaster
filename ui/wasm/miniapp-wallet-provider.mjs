@@ -297,7 +297,7 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
   });
 }
 
-export function createMiniAppEthereumProvider(origin, injected, authorize=requestMiniAppWalletApproval) {
+export function createMiniAppEthereumProvider(origin, injected, authorize=requestMiniAppWalletApproval, launchUrl=origin) {
   if(!injected || typeof injected.request !== 'function')
     return null;
   const callbacks = new Map();
@@ -341,7 +341,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(method==='eth_requestAccounts'){
         if(!granted){
           if(!pendingApproval)pendingApproval=Promise.resolve()
-            .then(()=>authorize(origin,controller.signal,injected))
+            .then(()=>authorize(origin,controller.signal,injected,launchUrl))
             .finally(()=>{pendingApproval=null;});
           if(!await pendingApproval)throw denied('Wallet access was rejected by the user',4001);
           guard();
