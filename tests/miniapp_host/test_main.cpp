@@ -1,6 +1,7 @@
 #include "../../ui/mobile/miniapp_host_controller.hpp"
 
 #include <QCoreApplication>
+#include <QByteArray>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QStringList>
@@ -68,6 +69,49 @@ int main(int argc, char* argv[])
     assert(closeAllRequests == 1);
     controller.setUser({});
     assert(closeAllRequests == 2);
+
+    // The Farcaster SDK requires an absolute public HTTPS pfpUrl. Qt's
+    // image://remote alias is valid in GenyCaster's scene graph but not in
+    // untrusted WKWebView HTML; decode it before constructing SDK context.
+    const QString publicAvatar = QStringLiteral("https://images.example.com/pfp/me.png");
+    const QString qtAvatar = QStringLiteral("image://remote/")
+        + QString::fromLatin1(publicAvatar.toUtf8().toBase64(
+            QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+    controller.setUser({
+        {QStringLiteral("fid"), QVariant::fromValue<qulonglong>(44)},
+        {QStringLiteral("username"), QStringLiteral("example.eth")},
+        {QStringLiteral("pfpUrl"), qtAvatar}
+    });
+    assert(controller.user().value(QStringLiteral("pfpUrl")).toString() == publicAvatar);
+    const int userSwitchClosures = closeAllRequests;
+    controller.setUser({
+        {QStringLiteral("fid"), QVariant::fromValue<qulonglong>(44)},
+        {QStringLiteral("username"), QStringLiteral("example.eth")},
+        {QStringLiteral("pfpUrl"), QStringLiteral("https://images.example.com/new.png")}
+    });
+    assert(closeAllRequests == userSwitchClosures);
+    assert(controller.user().value(QStringLiteral("pfpUrl")).toString()
+           == QStringLiteral("https://images.example.com/new.png"));
+
+    // No untrusted Mini App receives a local, credentialed, or network-internal
+    // image location even if a source profile contains a malformed URL.
+    const QStringList unsafeAvatars{
+        QStringLiteral("file:///tmp/private.png"),
+        QStringLiteral("data:image/png;base64,AAAA"),
+        QStringLiteral("http://images.example.com/pfp.png"),
+        QStringLiteral("https://127.0.0.1/private.png"),
+        QStringLiteral("https://admin.internal/secret.png"),
+        QStringLiteral("https://user:pass@images.example.com/private.png"),
+        QStringLiteral("https://images.example.com:8443/private.png")
+    };
+    for (const QString& candidate : unsafeAvatars) {
+        controller.setUser({
+            {QStringLiteral("fid"), QVariant::fromValue<qulonglong>(44)},
+            {QStringLiteral("pfpUrl"), candidate}
+        });
+        assert(!controller.user().contains(QStringLiteral("pfpUrl")));
+        assert(closeAllRequests == userSwitchClosures);
+    }
 
     // A valid external HTTPS origin is still not a sign-in credential.
     // Without an authenticated FID, the controller must not open a browser.
