@@ -112,6 +112,9 @@ NSString* bridgeScript() {
     farcaster::platform::miniapp::PresentationMode m_mode;
     BOOL m_animating;
     BOOL m_fullscreen;
+    // Backdrop is a visual layer only: it must not steal input from the
+    // underlying Qt shell, including an active wallet-approval dialog.
+    BOOL m_passThroughBackdrop;
 }
 - (NSRect)panelFrame;
 - (NSRect)hiddenFrame;
@@ -149,7 +152,19 @@ NSString* bridgeScript() {
     [super setFrameSize:size];
     self.needsLayout = YES;
 }
+- (NSView*)hitTest:(NSPoint)point {
+    // NSView's point is in the *superview* coordinate space. Returning nil
+    // outside the actual drawer panel lets AppKit route events to the Qt
+    // content view beneath this overlay instead of silently dismissing the app.
+    if (m_passThroughBackdrop) {
+        const NSPoint local = [self convertPoint:point fromView:self.superview];
+        if (!NSPointInRect(local, m_panel.frame))
+            return nil;
+    }
+    return [super hitTest:point];
+}
 - (void)mouseDown:(NSEvent*)event {
+    if (m_passThroughBackdrop) return;
     const NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];
     if (NSPointInRect(point, m_panel.frame)) { return; }
     [NSApp sendAction:self.action to:self.target from:self];
@@ -440,6 +455,8 @@ static NSWindow* genycasterHostWindow()
         m_drawer = [[GenyMiniAppDrawer alloc] initWithFrame:parentContent.bounds];
         m_drawer->m_mode = mode;
         m_drawer->m_fullscreen = NO;
+        m_drawer->m_passThroughBackdrop = role
+            == farcaster::platform::miniapp::BrowserRole::MiniApp;
         m_drawer.target = self;
         m_drawer.action = @selector(dismiss:);
         m_drawer.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
