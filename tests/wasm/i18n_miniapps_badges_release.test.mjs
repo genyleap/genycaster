@@ -131,3 +131,40 @@ test("foreign Mini App titles and descriptions align to the locale without reord
         assert.doesNotMatch(qml,/text:\s*qsTr\(String\(/,"never machine-translate metadata");
     }
 });
+
+
+test("verified Geny Pro admission recovers saved sessions before rejecting another Mini App", () => {
+    const apps=read("ui/components/AppsSurface.qml");
+    const shell=read("ui/components/AppShell.qml");
+    const openproof=read("ui/mobile/openproof_connections_controller.cpp");
+    const header=read("ui/mobile/openproof_connections_controller.hpp");
+    const startup=read("ui/mobile/main.cpp");
+    const card=read("ui/components/ProfileTrustCard.qml");
+    const sidebar=read("ui/components/SideNavigation.qml");
+
+    assert.match(header,/Q_INVOKABLE void retryProEntitlements\(\)/);
+    const retry=openproof.slice(openproof.indexOf(
+        "void OpenProofConnectionsController::retryProEntitlements()"),
+        openproof.indexOf("void OpenProofConnectionsController::fetchProEntitlements"));
+    assert.match(retry,/cloudAuthorizationReady\(\)/);
+    assert.match(retry,/restoreAccountSession\(\)/);
+    assert.match(retry,/bootstrapAccountSession\(\)/);
+    assert.doesNotMatch(retry,/authorizeAccount|signer|requestFid|provision/);
+
+    assert.match(apps,/pendingEntitlementLaunch/);
+    assert.match(apps,/openProofConnections\.retryProEntitlements\(\)/);
+    assert.match(apps,/onProEntitlementsChanged\(\)/);
+    assert.match(apps,/miniAppTaskManager\.taskCount < miniAppHost\.sessionLimit/);
+    assert.match(apps,/status\.eligible === true/);
+    assert.match(apps,/Number\(presentationBridge\.accountFid \|\| 0\) !== pending\.fid/);
+    assert.match(apps,/qsTrId\("genycaster\.pro\.requires_pro"\)/);
+    assert.match(apps,/qsTrId\("genycaster\.pro\.verification_unavailable"\)/);
+    assert.match(shell,/onProDetailsRequested: genyProDetailsDrawer\.open\(\)/);
+
+    assert.match(startup,/status\.value\(QStringLiteral\("status"\)\)\.toString\(\) != QStringLiteral\("verified"\)/);
+    assert.match(startup,/miniAppRuntimeOwner->setSessionLimit\(/);
+    assert.match(startup,/miniAppHost\.setSessionLimit\(/);
+    assert.match(card,/root\.compact && root\.proEligible/);
+    assert.match(sidebar,/proEligible: openProofConnections/);
+    assert.match(openproof,/m_proEntitlementsFetchedAt = verified/);
+});
