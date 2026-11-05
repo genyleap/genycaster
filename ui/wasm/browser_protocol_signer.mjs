@@ -6,7 +6,7 @@ import { createBrowserSignerVault } from './secure_signer_vault.mjs';
 import {
     abiMetadata, farcasterTimestamp, fromHex, hex, keyAddTypedData,
     sealMessage, SOCIAL_SCOPES, unsignedCastAdd, unsignedCastRemove,
-    unsignedFollow, unsignedKeyAdd, unsignedKeyRemove, unsignedReaction,
+    unsignedBlock, unsignedFollow, unsignedKeyAdd, unsignedKeyRemove, unsignedReaction,
     unsignedUserDataAdd,
 } from './farcaster_protocol.mjs';
 
@@ -519,6 +519,8 @@ export function createBrowserProtocolSigner({
         unsignedReaction({fid:id,publicKeyHex:key,target,reaction:kind,active}));
     const follow=(fid,targetFid,active)=>signedWrite(fid,active?5:6,(key,id)=>
         unsignedFollow({fid:id,publicKeyHex:key,targetFid,active}));
+    const block=(fid,targetFid,active)=>signedWrite(fid,active?5:6,(key,id)=>
+        unsignedBlock({fid:id,publicKeyHex:key,targetFid,active}));
 
     // Each modified slot is an independently durable Farcaster message. A
     // partially accepted update is surfaced as an error; it is never claimed
@@ -567,7 +569,7 @@ export function createBrowserProtocolSigner({
     }
     function signedOut(){generation++;activeFid=null;activeKey=null;state('signed-out');}
     return Object.freeze({
-        restore,provision,provisionFromRecovery,recoverAccountFromPhrase,publishCast,publishThread,castRemove,reaction,follow,updateProfile,revoke,signedOut,
+        restore,provision,provisionFromRecovery,recoverAccountFromPhrase,publishCast,publishThread,castRemove,reaction,follow,block,updateProfile,revoke,signedOut,
         get ready(){return !!activeFid&&!!activeKey&&!busy&&lastPhase==='ready';},
     });
 }
