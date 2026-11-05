@@ -92,7 +92,7 @@ test('Invalid methods and unsupported wallets fail closed without fabricated sig
 
 test('official SDK host exposes injected wallet only by explicit per-origin grant',()=>{
   const bridge=readFileSync(new URL('../../ui/wasm/miniapp-host-bridge-entry.mjs',import.meta.url),'utf8');
-  assert.match(bridge,/createDiscoveredBrowserWallet\(window\)/);
+  assert.match(bridge,/createDiscoveredBrowserWallet\(window,\{/);
   assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, injected, undefined, url\.href\)/);
   assert.match(bridge,/ethProvider:wallet\?\.provider/);
   assert.match(bridge,/wallet\?\.dispose\(\)/);
@@ -144,9 +144,9 @@ test('wallet approval follows the active Persian and Arabic direction without ch
   const source=readFileSync(new URL('../../ui/wasm/miniapp-wallet-provider.mjs',import.meta.url),'utf8');
   assert.match(source,/window\.__genycasterPreferredLanguage/);
   assert.match(source,/panel\.setAttribute\('dir',copy\.direction\)/);
-  assert.match(source,/appOrigin\.textContent=origin/);
-  assert.match(source,/appOrigin\.setAttribute\('dir','ltr'\)/);
-  assert.match(source,/panel\.append\(title,appOrigin,details\)/);
+  assert.match(source,/originText\.textContent=origin/);
+  assert.match(source,/originText\.setAttribute\('dir','ltr'\)/);
+  assert.match(source,/panel\.append\(title,originText,details\)/);
   assert.doesNotMatch(source,/WalletConnect.*enabled:\s*true/);
 });
 
@@ -204,4 +204,96 @@ test('a missing injected provider does not claim a WalletConnect session',()=>{
  assert.match(source,/target='_blank'/);
  assert.match(source,/separate session/);
  assert.doesNotMatch(source,/new WalletConnect\(/);
+});
+
+
+test('WalletConnect is offered without injected extensions and returns real signer results to its origin',async()=>{
+ const win=new EventTarget();
+ const seen=[];
+ let connected=0;
+ const handlers=new Map();
+ const remote={
+   session:{topic:'approved-pairing'},
+   async request({method}){
+     seen.push(method);
+     if(method==='eth_requestAccounts'||method==='eth_accounts')
+       return ['0x0000000000000000000000000000000000000001'];
+     if(method==='eth_chainId')return '0xa';
+     if(method==='personal_sign')return '0xsigned-from-wallet';
+     return null;
+   },
+   on(event,cb){if(!handlers.has(event))handlers.set(event,new Set());handlers.get(event).add(cb);},
+   removeListener(event,cb){handlers.get(event)?.delete(cb);}
+ };
+ const registry=createDiscoveredBrowserWallet(win,{
+   walletConnectChains:['eip155:10','eip155:8453'],
+   walletConnectFactory:async({onUri,signal})=>{
+     connected++;
+     assert.equal(signal.aborted,false);
+     onUri('wc:topic@2?relay-protocol=irn&symKey=placeholder');
+     return remote;
+   }
+ });
+ assert.equal(registry.available(),true);
+ assert.deepEqual(registry.choices(),[{id:'walletconnect',name:'WalletConnect'}]);
+ assert.deepEqual(registry.supportedChains(),['eip155:10','eip155:8453']);
+ const origins=[];
+ const wallet=createMiniAppEthereumProvider('https://mini.example',registry,
+   async(origin,signal,injected)=>{
+     origins.push(origin);
+     assert.equal(injected.select('walletconnect'),true);
+     await injected.connectWalletConnect({signal,onUri:()=>{}});
+     return true;
+   });
+ assert.deepEqual(await wallet.provider.request({method:'eth_accounts'}),[]);
+ assert.deepEqual(await wallet.provider.request({method:'eth_requestAccounts'}),
+   ['0x0000000000000000000000000000000000000001']);
+ assert.equal(await wallet.provider.request({method:'personal_sign',params:['0x1234']}),
+   '0xsigned-from-wallet');
+ assert.deepEqual(origins,['https://mini.example']);
+ assert.equal(connected,1);
+ assert.deepEqual(seen,['eth_requestAccounts','personal_sign']);
+ wallet.dispose();
+ registry.dispose();
+ assert.ok([...handlers.values()].every(set=>set.size===0));
+});
+
+test('WalletConnect origin grant cannot be reused by another Mini App or after teardown',async()=>{
+ const win=new EventTarget();
+ const provider={session:{topic:'existing'},request:async({method})=>
+   method==='eth_requestAccounts'?['0x0000000000000000000000000000000000000002']:'0xsigned',
+   on(){},removeListener(){}};
+ const registry=createDiscoveredBrowserWallet(win,{
+   walletConnectFactory:async()=>provider
+ });
+ const approve=async(_origin,signal,injected)=>{
+   injected.select('walletconnect');
+   await injected.connectWalletConnect({signal});
+   return true;
+ };
+ const first=createMiniAppEthereumProvider('https://a.example',registry,approve);
+ const second=createMiniAppEthereumProvider('https://b.example',registry,async()=>false);
+ await first.provider.request({method:'eth_requestAccounts'});
+ await assert.rejects(second.provider.request({method:'personal_sign',params:[]}),
+   error=>error.code===4100);
+ await assert.rejects(second.provider.request({method:'eth_requestAccounts'}),
+   error=>error.code===4001);
+ first.dispose();
+ await assert.rejects(first.provider.request({method:'eth_accounts'}),
+   error=>error.code===4900);
+ second.dispose();
+ registry.dispose();
+});
+
+test('WalletConnect module is self-hosted, loaded lazily and does not overwrite the Farcaster custody signer',()=>{
+ const host=readFileSync(new URL('../../ui/wasm/miniapp-host-bridge-entry.mjs',import.meta.url),'utf8');
+ const build=readFileSync(new URL('../../ui/wasm/host-sdk/build.mjs',import.meta.url),'utf8');
+ const driver=readFileSync(new URL('../../ui/wasm/host-sdk/walletconnect-entry.mjs',import.meta.url),'utf8');
+ assert.match(host,/walletConnectFactory: async/);
+ assert.match(host,/import\('\.\/genycaster-walletconnect\.mjs'\)/);
+ assert.match(build,/external:\['\.\/genycaster-walletconnect\.mjs'\]/);
+ assert.match(driver,/showQrModal:false/);
+ assert.match(driver,/provider\.on\('display_uri'/);
+ assert.match(driver,/provider\.session/);
+ assert.doesNotMatch(driver,/privateKey|mnemonic|signerSecret/);
 });
