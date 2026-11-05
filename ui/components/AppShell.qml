@@ -247,7 +247,7 @@ Item {
     // Explorer/Profile cast lists. They never replace the navigation surface.
     property var topicHydrationAttempted: ({})
     function canonicalTopicHash(value) {
-        // Provider feeds may supply bare HyperSnap hashes, but the topic
+        // Provider feeds may supply bare cast hashes, but the topic
         // index always supplies 0x-prefixed Farcaster hashes.
         const digits = String(value || "").toLowerCase().replace(/^0x/, "")
         return /^[0-9a-f]{40}$/.test(digits) ? "0x" + digits : ""
