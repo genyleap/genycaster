@@ -426,10 +426,13 @@ static NSWindow* genycasterHostWindow()
         [reload.trailingAnchor constraintEqualToAnchor:minimize.leadingAnchor constant:-4],
         [reload.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
         [reload.widthAnchor constraintEqualToConstant:32], [reload.heightAnchor constraintEqualToConstant:32],
-        [identity.centerXAnchor constraintEqualToAnchor:toolbar.centerXAnchor],
+        // The toolbar is asymmetric: there is one Back button on the left
+        // and several actions on the right. Centering the identity in the
+        // *whole toolbar* compresses both labels into “…” and “h…”.
+        // Center inside the actual remaining span instead.
         [identity.centerYAnchor constraintEqualToAnchor:toolbar.centerYAnchor],
-        [identity.leadingAnchor constraintGreaterThanOrEqualToAnchor:m_back.trailingAnchor constant:12],
-        [identity.trailingAnchor constraintEqualToAnchor:reload.leadingAnchor constant:-12],
+        [identity.leadingAnchor constraintEqualToAnchor:m_back.trailingAnchor constant:8],
+        [identity.trailingAnchor constraintEqualToAnchor:reload.leadingAnchor constant:-8],
         [heading.widthAnchor constraintEqualToAnchor:identity.widthAnchor],
         [domain.widthAnchor constraintEqualToAnchor:identity.widthAnchor],
         [m_web.topAnchor constraintEqualToAnchor:toolbar.bottomAnchor],
