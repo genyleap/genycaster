@@ -6776,5 +6776,21 @@ Company | https://company.com</source>
             <source>More Market Pulse tokens</source>
             <translation>अधिक Market Pulse टोकन</translation>
         </message>
+        <message id="genycaster.profile.block_user">
+            <source>Block user</source>
+            <translation>उपयोगकर्ता को ब्लॉक करें</translation>
+        </message>
+        <message id="genycaster.profile.unblock_user">
+            <source>Unblock user</source>
+            <translation>उपयोगकर्ता को अनब्लॉक करें</translation>
+        </message>
+        <message id="genycaster.profile.you_blocked_user">
+            <source>You blocked this user.</source>
+            <translation>आपने इस उपयोगकर्ता को ब्लॉक किया है।</translation>
+        </message>
+        <message id="genycaster.profile.user_blocked_you">
+            <source>This user blocked you.</source>
+            <translation>इस उपयोगकर्ता ने आपको ब्लॉक किया है।</translation>
+        </message>
     </context>
 </TS>
