@@ -2,6 +2,8 @@
 #include <QHostAddress>
 #include <QUrl>
 #include <QSettings>
+#include <QByteArray>
+#include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <algorithm>
@@ -19,6 +21,57 @@ namespace {
 bool validPresentationMode(const QString& mode) {
     return mode == QStringLiteral("window") || mode == QStringLiteral("bottom")
         || mode == QStringLiteral("left") || mode == QStringLiteral("right");
+}
+
+// Native images may be shown through Qt's image://remote provider. Farcaster
+// Mini Apps receive an ordinary HTTPS URL in sdk.context.user.pfpUrl, not a
+// process-local QQuickImageProvider address that WKWebView cannot resolve.
+[[nodiscard]] QString sdkProfileImageUrl(const QString& value)
+{
+    QString source = value.trimmed();
+    if (source.isEmpty() || source.size() > 4096) return {};
+
+    QUrl parsed{source, QUrl::StrictMode};
+    if (parsed.scheme() == QStringLiteral("image")
+        && parsed.host() == QStringLiteral("remote")
+        && parsed.path().startsWith(QLatin1Char('/'))) {
+        const QByteArray encoded = parsed.path().mid(1).toLatin1();
+        if (encoded.isEmpty() || encoded.size() > 8192) return {};
+        const QByteArray decoded = QByteArray::fromBase64(
+            encoded, QByteArray::Base64UrlEncoding | QByteArray::AbortOnBase64DecodingErrors);
+        source = QString::fromUtf8(decoded);
+        parsed = QUrl{source, QUrl::StrictMode};
+    }
+    // Never expose local files, data blobs, credentials or internal service
+    // URLs to an untrusted third-party Mini App.
+    if (!parsed.isValid() || parsed.scheme() != QStringLiteral("https")
+        || !parsed.userInfo().isEmpty() || parsed.port(443) != 443
+        || parsed.host().size() > 253 || source.size() > 4096) return {};
+    const QString host = parsed.host().toLower();
+    if (!host.contains(QLatin1Char('.')) || host == QStringLiteral("localhost")
+        || host.endsWith(QStringLiteral(".localhost"))
+        || host.endsWith(QStringLiteral(".local"))
+        || host.endsWith(QStringLiteral(".internal"))
+        || host.endsWith(QStringLiteral(".test"))
+        || host.endsWith(QStringLiteral(".invalid"))) return {};
+    QHostAddress address{};
+    if (address.setAddress(host)) return {};
+    parsed.setFragment(QString{});
+    return parsed.toString(QUrl::FullyEncoded);
+}
+
+[[nodiscard]] QVariantMap sanitizedMiniAppUser(const QVariantMap& input)
+{
+    const qulonglong fid = input.value(QStringLiteral("fid")).toULongLong();
+    if (!fid || fid > 9007199254740991ULL) return {};
+    QVariantMap result{
+        {QStringLiteral("fid"), QVariant::fromValue(fid)},
+        {QStringLiteral("username"), input.value(QStringLiteral("username")).toString().left(100)},
+        {QStringLiteral("displayName"), input.value(QStringLiteral("displayName")).toString().left(140)}
+    };
+    const QString avatar = sdkProfileImageUrl(input.value(QStringLiteral("pfpUrl")).toString());
+    if (!avatar.isEmpty()) result.insert(QStringLiteral("pfpUrl"), avatar);
+    return result;
 }
 }
 MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& settings, QObject* parent)
@@ -81,16 +134,19 @@ void MiniAppHostController::setState(bool active, const QString& error) {
     emit stateChanged();
 }
 void MiniAppHostController::setUser(const QVariantMap& user) {
+    const QVariantMap publicUser = sanitizedMiniAppUser(user);
+    if (m_user == publicUser) return;
     const auto previousFid = m_user.value(QStringLiteral("fid")).toULongLong();
-    const auto nextFid = user.value(QStringLiteral("fid")).toULongLong();
+    const auto nextFid = publicUser.value(QStringLiteral("fid")).toULongLong();
     // An anonymous-to-authenticated switch is also an identity change.
     // Do not leak the previous iframe's session/context across accounts.
     // Background/minimized Mini Apps remain live even when m_active is
     // false. Revoke every isolated document on an account identity change.
     if (previousFid != nextFid) closeAll();
-    m_user = user;
+    m_user = publicUser;
+    emit userChanged();
 #if defined(__EMSCRIPTEN__)
-    const auto json = QJsonDocument(QJsonObject::fromVariantMap(user))
+    const auto json = QJsonDocument(QJsonObject::fromVariantMap(publicUser))
                           .toJson(QJsonDocument::Compact);
     EM_ASM({
         const host = window.__genycasterMiniAppOverlay;
