@@ -1056,7 +1056,7 @@ Item {
     RowLayout {
         id: shellContent
         // Do not render shell navigation or header behind full-window Setup.
-        visible: !root.initialSetupOpen
+        visible: presentationBridge.authenticationStateObserved && !root.initialSetupOpen
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -1978,7 +1978,8 @@ Item {
                             id: mobileBottomNavigation
                             // This stays under readingPane; never reparent a
                             // Layout-owned item after layout has run.
-                            visible: root.mobile && !root.initialSetupOpen
+                            visible: root.mobile && presentationBridge.authenticationStateObserved
+                 && !root.initialSetupOpen
                                      && !root.homeComposerFocused
                             z: 800
                             height: Qt.platform.os === "android" && root.mobile ? 74 : 88
@@ -2142,7 +2143,8 @@ Item {
     StatusFooter {
         id: globalStatus
         z: 40
-        visible: !root.mobile && !root.initialSetupOpen
+        visible: !root.mobile && presentationBridge.authenticationStateObserved
+                 && !root.initialSetupOpen
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
