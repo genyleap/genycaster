@@ -3,7 +3,6 @@
 #include <QUrl>
 #include <QSettings>
 #include <QByteArray>
-#include <QRegularExpression>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <algorithm>
@@ -35,7 +34,16 @@ bool validPresentationMode(const QString& mode) {
     if (parsed.scheme() == QStringLiteral("image")
         && parsed.host() == QStringLiteral("remote")
         && parsed.path().startsWith(QLatin1Char('/'))) {
-        const QByteArray encoded = parsed.path().mid(1).toLatin1();
+        QString encodedText = parsed.path().mid(1);
+        // Storage-policy sources have a version/category/manual-or-auto
+        // envelope. Decode the actual final URL exactly as the project's
+        // RemoteImageProvider does; never pass image://remote/v22/... to WKWebView.
+        if (encodedText.startsWith(QStringLiteral("v22/"))) {
+            const QStringList parts = encodedText.split(QLatin1Char('/'));
+            if (parts.size() < 4) return {};
+            encodedText = parts.mid(3).join(QLatin1Char('/'));
+        }
+        const QByteArray encoded = encodedText.toLatin1();
         if (encoded.isEmpty() || encoded.size() > 8192) return {};
         const QByteArray decoded = QByteArray::fromBase64(
             encoded, QByteArray::Base64UrlEncoding | QByteArray::AbortOnBase64DecodingErrors);
