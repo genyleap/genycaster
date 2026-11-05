@@ -77,8 +77,12 @@ Item {
         && root.GraphicsInfo.api !== GraphicsInfo.Unknown
         && root.GraphicsInfo.api !== GraphicsInfo.Software
         && root.GraphicsInfo.api !== GraphicsInfo.Null
-    readonly property int playbackLoops: root.controller !== null ? root.controller.playbackLoops(
-        root.surface, root.reducedMotion, root.active, root.motionActive) : 0
+    // Keep the configured loop count independent of transient focus, scroll
+    // and viewport changes. Swapping an already-running infinite loop to a
+    // one-shot during a fling makes VectorImage end on a transparent frame.
+    readonly property int configuredLoops: root.controller !== null ? root.controller.playbackLoops(
+        root.surface, root.reducedMotion, root.active, true) : 0
+    readonly property int playbackLoops: root.motionActive ? root.configuredLoops : 0
     readonly property bool artworkWanted: root.rendererUsable
         && root.unicodeSequence.length > 0
         && root.visible && root.insideViewport
@@ -112,7 +116,7 @@ Item {
             return
         // A paused renderer still needs one animation iteration configured so
         // VectorImage materializes the authored first frame.
-        lottie.item.playCount = root.playbackLoops === 0 ? 1 : root.playbackLoops
+        lottie.item.playCount = root.configuredLoops === 0 ? 1 : root.configuredLoops
         lottie.item.animationActive = root.playbackLoops !== 0
     }
 
@@ -130,6 +134,7 @@ Item {
         onTriggered: root.evaluateViewport()
     }
 
+    onConfiguredLoopsChanged: root.syncRendererState()
     onPlaybackLoopsChanged: {
         requestTimer.restart()
         root.syncRendererState()
