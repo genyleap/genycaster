@@ -136,6 +136,11 @@ import farcaster.routing.router;
 import farcaster.capability.model;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+// The Qt adapter uses AsyncGateway directly for provider-specific block reads.
+// Imports from genycaster.ui.runtime are not re-exported to this unit.
+import farcaster.provider.hypersnap.async_gateway;
+#endif
 #if FARCASTER_HAS_MEDIA_UPLOAD
 import farcaster.application.media.upload;
 import farcaster.application.media.lifecycle;
