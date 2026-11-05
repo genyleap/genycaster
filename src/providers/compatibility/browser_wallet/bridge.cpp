@@ -802,8 +802,22 @@ private:
                 .code = code, .message = std::move(message), .details = std::move(details)};
         } else if (const auto* result = object.if_contains("result")) {
             response.resultJson = json::serialize(*result);
-            if (pending.request.method == "eth_requestAccounts"
-                && result->is_array() && !result->as_array().empty()) {
+            bool grantedAccounts = pending.request.method == "eth_requestAccounts"
+                && result->is_array() && !result->as_array().empty();
+            if (pending.request.method == "wallet_requestPermissions" && result->is_array()) {
+                // EIP-2255 permissions must explicitly contain eth_accounts;
+                // a successful response to an unrelated capability is not
+                // permission to disclose account addresses or sign.
+                for (const auto& permission : result->as_array()) {
+                    if (!permission.is_object()) continue;
+                    const auto* scope = permission.as_object().if_contains("parentCapability");
+                    if (scope && scope->is_string() && scope->as_string() == "eth_accounts") {
+                        grantedAccounts = true;
+                        break;
+                    }
+                }
+            }
+            if (grantedAccounts) {
                 std::scoped_lock lock{m_mutex};
                 m_accountAccessGrants.insert(pending.origin);
             }
