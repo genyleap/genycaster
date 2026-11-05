@@ -20,8 +20,16 @@ Item {
             else root.requestedInitialDiscovery = false
         })
     }
-    Component.onCompleted: root.ensureDiscovery()
-    onVisibleChanged: if (visible) root.ensureDiscovery()
+    Component.onCompleted: {
+        root.ensureDiscovery()
+        if (openProofConnections && openProofConnections.cloudAuthorizationReady)
+            openProofConnections.fetchProEntitlements()
+    }
+    onVisibleChanged: if (visible) {
+        root.ensureDiscovery()
+        if (openProofConnections && openProofConnections.cloudAuthorizationReady)
+            openProofConnections.fetchProEntitlements()
+    }
     property string topicFilter: "all"
     readonly property var availableCategories: {
         LocaleFormat.observeRevision()
@@ -60,18 +68,117 @@ Item {
 
     signal authenticationRequested()
     signal taskManagerRequested()
+    signal proDetailsRequested()
     readonly property bool sessionQuotaReached:
         miniAppHost.sessionLimit > 0
         && miniAppTaskManager.taskCount >= miniAppHost.sessionLimit
-    readonly property bool sessionLimitError:
-        root.launchErrorText === qsTrId("genycaster.miniapp.session_limit")
+    readonly property bool sessionLimitError: root.quotaErrorKind.length > 0
+    readonly property var proEntitlements: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property bool proVerified: proEntitlements.status === "verified"
+        && proEntitlements.eligible === true
+    property string quotaErrorKind: ""
     property var selectedMiniApp: ({})
     property var pendingLaunchApp: null
+    property var pendingEntitlementLaunch: null
     property string launchErrorText: ""
+
+    function showLaunchError(message, kind) {
+        root.launchErrorText = String(message || "")
+        root.quotaErrorKind = String(kind || "")
+        launchErrorTimeout.restart()
+    }
+    function clearPendingEntitlementLaunch() {
+        proLaunchTimeout.stop()
+        root.pendingEntitlementLaunch = null
+    }
+    function directLaunch(app) {
+        const url = String(app && app.homeUrl || "")
+        if (!url) return
+        root.launchErrorText = ""
+        root.quotaErrorKind = ""
+        root.pendingLaunchApp = app
+        miniAppHost.openWithMetadata(url, String(app.name || ""),
+                                     String(app.iconSource || ""))
+    }
+    function resolvePendingEntitlementLaunch() {
+        const pending = root.pendingEntitlementLaunch
+        if (!pending) return
+        if (!presentationBridge.isAuthenticated
+                || Number(presentationBridge.accountFid || 0) !== pending.fid) {
+            root.clearPendingEntitlementLaunch()
+            return
+        }
+        if (!openProofConnections || !openProofConnections.cloudAuthorizationReady
+                || openProofConnections.proEntitlementsBusy)
+            return
+        const status = root.proEntitlements
+        if (status.status !== "verified") {
+            root.clearPendingEntitlementLaunch()
+            root.showLaunchError(qsTrId("genycaster.pro.verification_unavailable"), "verify")
+            return
+        }
+        root.clearPendingEntitlementLaunch()
+        if (status.eligible === true && miniAppHost.sessionLimit >= 2
+                && miniAppTaskManager.taskCount < miniAppHost.sessionLimit) {
+            // The C++ entitlement handler has already installed the limit.
+            root.directLaunch(pending.app)
+        } else if (status.eligible === true) {
+            root.showLaunchError(qsTrId("genycaster.miniapp.session_limit"), "full")
+        } else {
+            root.showLaunchError(qsTrId("genycaster.pro.requires_pro"), "basic")
+        }
+    }
+    function requestEntitlementForLaunch(app) {
+        // The account-controlled endpoint, not a profile badge or user-owned
+        // property, decides whether a second native WebKit session is allowed.
+        root.pendingEntitlementLaunch = {
+            app: app, fid: Number(presentationBridge.accountFid || 0)
+        }
+        root.launchErrorText = ""
+        root.quotaErrorKind = ""
+        proLaunchTimeout.restart()
+        if (openProofConnections && openProofConnections.cloudAuthorizationReady)
+            openProofConnections.fetchProEntitlements(true)
+    }
+    Timer {
+        id: proLaunchTimeout
+        interval: 18000
+        repeat: false
+        onTriggered: {
+            if (!root.pendingEntitlementLaunch) return
+            root.clearPendingEntitlementLaunch()
+            root.showLaunchError(qsTrId("genycaster.pro.verification_unavailable"), "verify")
+        }
+    }
     Timer {
         id: launchErrorTimeout
         interval: 7000
-        onTriggered: root.launchErrorText = ""
+        onTriggered: {
+            root.launchErrorText = ""
+            root.quotaErrorKind = ""
+        }
+    }
+    Connections {
+        target: openProofConnections ? openProofConnections : null
+        function onStateChanged() {
+            if (root.pendingEntitlementLaunch && openProofConnections.cloudAuthorizationReady
+                    && !openProofConnections.proEntitlementsBusy)
+                openProofConnections.fetchProEntitlements(true)
+        }
+        function onProEntitlementsChanged() {
+            if (root.pendingEntitlementLaunch)
+                Qt.callLater(root.resolvePendingEntitlementLaunch)
+        }
+    }
+    Connections {
+        target: presentationBridge
+        function onAuthenticationStateChanged() {
+            if (root.pendingEntitlementLaunch
+                    && Number(presentationBridge.accountFid || 0)
+                       !== root.pendingEntitlementLaunch.fid)
+                root.clearPendingEntitlementLaunch()
+        }
     }
     Connections {
         target: miniAppHost
@@ -82,9 +189,20 @@ Item {
         }
         function onStateChanged() {
             if (miniAppHost.errorText.length > 0) {
-                root.launchErrorText = miniAppHost.errorText
+                // Do not show the four-session message when the running host
+                // is actually constrained to a single Basic session.
+                const isQuota = miniAppHost.errorText === qsTrId("genycaster.miniapp.session_limit")
+                if (isQuota && miniAppHost.sessionLimit < 4) {
+                    root.showLaunchError(root.proVerified
+                        ? qsTrId("genycaster.pro.verification_unavailable")
+                        : root.proEntitlements.status === "verified"
+                          ? qsTrId("genycaster.pro.requires_pro")
+                          : qsTrId("genycaster.pro.verification_unavailable"),
+                        root.proEntitlements.status === "verified" ? "basic" : "verify")
+                } else {
+                    root.showLaunchError(miniAppHost.errorText, isQuota ? "full" : "")
+                }
                 root.pendingLaunchApp = null
-                launchErrorTimeout.restart()
             } else if (miniAppHost.active && root.pendingLaunchApp !== null) {
                 miniAppCatalog.recordRecentUse(root.pendingLaunchApp)
                 root.pendingLaunchApp = null
@@ -138,16 +256,23 @@ Item {
 
     function openApp(app) {
         const url = String(app && app.homeUrl ? app.homeUrl : "")
-        const name = String(app && app.name ? app.name : "")
-        if (url.length === 0)
-            return
+        if (!url) return
         root.launchErrorText = ""
+        root.quotaErrorKind = ""
         if (Number(presentationBridge.accountFid || 0) <= 0) {
             root.authenticationRequested()
             return
         }
-        root.pendingLaunchApp = app
-        miniAppHost.openWithMetadata(url, name, String(app && app.iconSource ? app.iconSource : ""))
+        // Resuming an existing session does not consume an extra slot.
+        const current = String(miniAppTaskManager.stateForUrl(url) || "")
+        const alreadyOpen = ["foreground", "background", "minimized",
+                             "resolving", "loading"].indexOf(current) >= 0
+        if (!alreadyOpen && root.sessionQuotaReached
+                && miniAppHost.sessionLimit < 4) {
+            root.requestEntitlementForLaunch(app)
+            return
+        }
+        root.directLaunch(app)
     }
 
     Flickable {
@@ -1223,11 +1348,18 @@ Item {
                 compact: true
                 quiet: true
                 iconGlyph: Theme.iconCpu
-                text: qsTrId("genycaster.task_manager.title")
+                text: root.quotaErrorKind === "full"
+                      ? qsTrId("genycaster.task_manager.title")
+                      : qsTrId("genycaster.pro.title")
                 onClicked: {
+                    const kind = root.quotaErrorKind
                     root.launchErrorText = ""
+                    root.quotaErrorKind = ""
                     launchErrorTimeout.stop()
-                    root.taskManagerRequested()
+                    if (kind === "full")
+                        root.taskManagerRequested()
+                    else
+                        root.proDetailsRequested()
                 }
             }
         }
