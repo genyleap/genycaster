@@ -374,12 +374,15 @@ test('host WalletConnect prompt stays open for QR pairing and resolves only afte
     assert.ok(approve);
     const qr=panel.children.find(e=>e.tag==='section' && e.hidden);
     assert.ok(qr);
-    await approve.listeners.click();
+    const click=approve.listeners.click();
+    // Pairing stays pending until the real wallet accepts the session.
+    for(let i=0;i<6;i++)await Promise.resolve();
     assert.equal(qr.hidden,false);
     assert.equal(qr.children[1].src,'data:image/png;base64,AA==');
     assert.equal(approve.disabled,true);
     // Merely creating the pairing URI never grants the Mini App access.
     finishPairing();
+    await click;
     assert.equal(await approval,true);
     assert.equal(body.children[0].removed,true);
     registry.dispose();
