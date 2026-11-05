@@ -53,7 +53,7 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
   // The authenticated Farcaster identity is read-only context. A separate,
   // user-approved EIP-1193 grant is required for a browser-injected wallet.
   const injected = createDiscoveredBrowserWallet(window);
-  const wallet = createMiniAppEthereumProvider(url.origin, injected);
+  const wallet = createMiniAppEthereumProvider(url.origin, injected, undefined, url.href);
   const host = {
     context: {
       user: identity(verifiedUser),
