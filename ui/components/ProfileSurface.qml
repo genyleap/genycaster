@@ -1378,6 +1378,13 @@ Item {
                                 focus: true
                                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                                 background: PopupSurface { curveDepth: Theme.curveContainer }
+                                onClosed: menuCopyCloseTimer.stop()
+                                Timer {
+                                    id: menuCopyCloseTimer
+                                    interval: 1100
+                                    repeat: false
+                                    onTriggered: sharePopup.close()
+                                }
                                 contentItem: ColumnLayout {
                                     id: shareActions
                                     spacing: 0
@@ -1409,12 +1416,14 @@ Item {
                                         Layout.fillWidth: true
                                         quiet: true
                                         alignStart: true
+                                        id: copyProfileLinkAction
                                         iconGlyph: Theme.iconCopy
                                         text: qsTrId("genycaster.share.copy_profile_link")
                                         onClicked: {
                                             presentationBridge.copyText(presentationBridge.profileShareUrl(
                                                 Number(root.activeDetail.fid || 0)))
-                                            sharePopup.close()
+                                            copyProfileLinkAction.acknowledgeCopy()
+                                            menuCopyCloseTimer.restart()
                                         }
                                     }
                                     ActionButton {
@@ -1429,6 +1438,7 @@ Item {
                                                                 : qsTrId("genycaster.profile.mute")
                                         enabled: root.muteSettingsReady && !root.muteWriteBusy
                                         busy: root.muteWriteBusy
+                                        customForegroundColor: Theme.warning
                                         onClicked: {
                                             if (!root.muteSettingsReady) return
                                             sharePopup.close()
@@ -1443,6 +1453,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconWarning
+                                        destructive: true
                                         text: Boolean(root.activeDetail.blockedByMe)
                                               ? qsTrId("genycaster.profile.unblock_user")
                                               : qsTrId("genycaster.profile.block_user")
@@ -1818,37 +1829,7 @@ Item {
                         }
                     }
 
-                    ActionButton {
-                        x: root.profileContentRtl ? root.profileContentX : root.profileContentX + root.profileContentWidth - width
-                        anchors.top: parent.top
-                        anchors.topMargin: Theme.space2
-                        // Unknown is not a confirmed negative relationship.
-                        // Keep the button discoverable without blind protocol writes.
-                        visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
-                                 && !Boolean(root.activeDetail.blockedByMe)
-                        // Do not strand Follow in a disabled state when the
-                        // relationship endpoint cannot yet provide evidence.
-                        // The protocol writer still performs signer checks.
-                        enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
-                        busy: !Boolean(root.activeDetail.followingKnown) && root.busy
-                        compact: true
-                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
-                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                        selected: Boolean(root.activeDetail.followingByMe)
-                        prominent: !Boolean(root.activeDetail.followingByMe)
-                        Accessible.description: !Boolean(root.activeDetail.followingKnown)
-                                                ? qsTrId("genycaster.search.relationship_unknown")
-                                                : Boolean(root.activeDetail.followingByMe)
-                                                  ? qsTrId("genycaster.profile.unfollow") : text
-                        onClicked: {
-                            if (!root.interactionsAvailable) {
-                                root.authenticationRequested()
-                                return
-                            }
-                            root.followingMutationRequested(
-                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
-                        }
-                    }
+                    
                 }
 
                 ColumnLayout {
@@ -1863,16 +1844,44 @@ Item {
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: Theme.scaleUi(root.compact ? 76 : 125)
+                            Layout.fillWidth: false
+                            Layout.minimumWidth: 0
+                            Layout.maximumWidth: Math.max(100, root.profileContentWidth
+                                * (root.compact ? 0.43 : 0.57))
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
                             horizontalAlignment: Theme.textStartAlignment
-                            wrapMode: root.compact ? Text.NoWrap : Text.Wrap
-                            elide: root.compact ? Text.ElideRight : Text.ElideNone
+                            wrapMode: Text.NoWrap
+                            elide: Text.ElideRight
+                        }
+
+                        Item {
+                            id: followsYouBadge
+                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
+                                     && !root.isOwnProfile
+                            implicitWidth: followsYouText.implicitWidth + Theme.space3
+                            implicitHeight: Math.max(22, followsYouText.implicitHeight + Theme.space1)
+                            Layout.alignment: Qt.AlignVCenter
+
+                            Superellipse {
+                                anchors.fill: parent
+                                fillColor: Theme.surfaceRaised
+                                borderWidth: 1
+                                borderColor: Theme.borderStrong
+                                curveDepth: Math.round(height / 2)
+                            }
+
+                            Label {
+                                id: followsYouText
+                                anchors.centerIn: parent
+                                text: qsTrId("genycaster.profile.follows_you")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
                         }
 
                         // Reserved for a future server-signed, wallet-bound GENY
@@ -1910,30 +1919,65 @@ Item {
                         }
 
 
-                        Item {
-                            id: followsYouBadge
-                            visible: Boolean(root.activeDetail.followsMeKnown) && Boolean(root.activeDetail.followsMe)
-                                     && !root.isOwnProfile
-                            implicitWidth: followsYouText.implicitWidth + Theme.space3
-                            implicitHeight: Math.max(24, followsYouText.implicitHeight + Theme.space1)
+                        
 
-                            Superellipse {
-                                anchors.fill: parent
-                                fillColor: Theme.surfaceRaised
-                                borderWidth: 1
-                                borderColor: Theme.borderStrong
-                                curveDepth: Math.round(height / 2)
-                            }
+                        
+                        Item { Layout.fillWidth: true }
 
-                            Label {
-                                id: followsYouText
-                                anchors.centerIn: parent
-                                text: qsTrId("genycaster.profile.follows_you")
-                                color: Theme.inkMuted
-                                font.pixelSize: Theme.typeCaptionSize
-                                font.weight: Theme.weightDemiBold
+                        ActionButton {
+                        // Unknown is not a confirmed negative relationship.
+                        // Keep the button discoverable without blind protocol writes.
+                        visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                                 && !Boolean(root.activeDetail.blockedByMe)
+                        // Do not strand Follow in a disabled state when the
+                        // relationship endpoint cannot yet provide evidence.
+                        // The protocol writer still performs signer checks.
+                        enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
+                        busy: !Boolean(root.activeDetail.followingKnown) && root.busy
+                        compact: true
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitHeight: Theme.scaleUi(30)
+                        leftPadding: Theme.space2
+                        rightPadding: Theme.space2
+                        iconSize: Theme.scaleUi(14)
+                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                        selected: Boolean(root.activeDetail.followingByMe)
+                        prominent: !Boolean(root.activeDetail.followingByMe)
+                        Accessible.description: !Boolean(root.activeDetail.followingKnown)
+                                                ? qsTrId("genycaster.search.relationship_unknown")
+                                                : Boolean(root.activeDetail.followingByMe)
+                                                  ? qsTrId("genycaster.profile.unfollow") : text
+                        onClicked: {
+                            if (!root.interactionsAvailable) {
+                                root.authenticationRequested()
+                                return
                             }
+                            root.followingMutationRequested(
+                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
                         }
+                    }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space1
+                        layoutDirection: Theme.uiDirection
+
+                        Label {
+                            visible: root.showUsername
+                            Layout.maximumWidth: Math.max(160, parent.width * 0.72)
+                            LayoutMirroring.enabled: false
+                            text: root.ltrHandle(root.activeDetail.username)
+                            font.family: Theme.latinFontFamily
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeMetaSize
+                            horizontalAlignment: Theme.textStartAlignment
+                            elide: Text.ElideRight
+                        }
+
+
+                        Item { Layout.fillWidth: true }
 
                         RowLayout {
                             id: identityLinks
@@ -2006,27 +2050,6 @@ Item {
                                 onClicked: profileLinksDrawer.open()
                             }
                         }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
-                        layoutDirection: Theme.uiDirection
-
-                        Label {
-                            visible: root.showUsername
-                            Layout.maximumWidth: Math.max(160, parent.width * 0.72)
-                            LayoutMirroring.enabled: false
-                            text: root.ltrHandle(root.activeDetail.username)
-                            font.family: Theme.latinFontFamily
-                            color: Theme.inkMuted
-                            font.pixelSize: Theme.typeMetaSize
-                            horizontalAlignment: Theme.textStartAlignment
-                            elide: Text.ElideRight
-                        }
-
-
-                        Item { Layout.fillWidth: true }
                     }
 
                     RowLayout {
