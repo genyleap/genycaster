@@ -1120,8 +1120,8 @@ Item {
                         iconGlyph: Theme.iconCopy
                         text: qsTrId("genycaster.cast.copy_text")
                         onClicked: {
-                            presentationBridge.copyText(String(root.modelData.text || ""))
-                            castCopyTextAction.acknowledgeCopy()
+                            const copied = presentationBridge.copyText(String(root.modelData.text || ""))
+                            castCopyTextAction.acknowledgeCopy(copied)
                             castCopyCloseTimer.restart()
                         }
                     }
@@ -1135,8 +1135,8 @@ Item {
                         iconGlyph: Theme.iconLink
                         text: qsTrId("genycaster.cast.copy_link")
                         onClicked: {
-                            presentationBridge.copyText(root.castPermalink)
-                            castCopyLinkAction.acknowledgeCopy()
+                            const copied = presentationBridge.copyText(root.castPermalink)
+                            castCopyLinkAction.acknowledgeCopy(copied)
                             castCopyCloseTimer.restart()
                         }
                     }
@@ -1150,8 +1150,8 @@ Item {
                         iconGlyph: Theme.iconCopy
                         text: qsTrId("genycaster.cast.copy_cast_id")
                         onClicked: {
-                            presentationBridge.copyText(String(root.modelData.castId || ""))
-                            castCopyIdAction.acknowledgeCopy()
+                            const copied = presentationBridge.copyText(String(root.modelData.castId || ""))
+                            castCopyIdAction.acknowledgeCopy(copied)
                             castCopyCloseTimer.restart()
                         }
                     }
