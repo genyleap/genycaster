@@ -27,13 +27,15 @@ test('verified outgoing state reaches active profile, not only search suggestion
   assert.match(method,/emit stateChanged\(\)/);
 });
 
-test('Follow remains discoverable with an unknown relationship and never sends a blind protocol write',()=>{
+test('Follow remains actionable while relationship evidence loads, with signer and Block gates',()=>{
   const qml=source('ui/components/ProfileSurface.qml');
   const begin=qml.indexOf('visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile');
   const end=qml.indexOf('root.followingMutationRequested(',begin);
   assert.ok(begin>0 && end>begin);
   const button=qml.slice(begin,end);
-  assert.match(button,/enabled: Boolean\(root\.activeDetail\.followingKnown\) && !root\.busy/);
+  assert.match(button,/enabled: !root\.busy && !Boolean\(root\.activeDetail\.blocksMe\)/);
+  assert.match(button,/!Boolean\(root\.activeDetail\.blockedByMe\)/);
+  assert.match(button,/if \(!root\.interactionsAvailable\)/);
   assert.match(button,/qsTrId\("genycaster.search.relationship_unknown"\)/);
   assert.match(button,/qsTrId\("genycaster.profile.unfollow"\)/);
 });
