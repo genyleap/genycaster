@@ -239,8 +239,10 @@ using domain::write::OperationKind;
     case OperationKind::Recast: return "MESSAGE_TYPE_REACTION_ADD";
     case OperationKind::Unlike:
     case OperationKind::UndoRecast: return "MESSAGE_TYPE_REACTION_REMOVE";
-    case OperationKind::Follow: return "MESSAGE_TYPE_LINK_ADD";
-    case OperationKind::Unfollow: return "MESSAGE_TYPE_LINK_REMOVE";
+    case OperationKind::Follow:
+    case OperationKind::Block: return "MESSAGE_TYPE_LINK_ADD";
+    case OperationKind::Unfollow:
+    case OperationKind::Unblock: return "MESSAGE_TYPE_LINK_REMOVE";
     }
     return "MESSAGE_TYPE_NONE";
 }
@@ -263,11 +265,13 @@ using domain::write::OperationKind;
     case OperationKind::Like:
     case OperationKind::Recast:
     case OperationKind::Follow:
+    case OperationKind::Block:
         return true;
     case OperationKind::RemoveCast:
     case OperationKind::Unlike:
     case OperationKind::UndoRecast:
     case OperationKind::Unfollow:
+    case OperationKind::Unblock:
         return false;
     }
     return false;
@@ -411,8 +415,11 @@ using domain::write::OperationKind;
     if (!targetFid) {
         return std::unexpected(std::move(targetFid.error()));
     }
-    if (*type != "follow" || *targetFid != operation.target.fid->value) {
-        return std::unexpected(protocolError("Snapchain follow target does not match the requested FID."));
+    const bool isBlock = operation.kind == OperationKind::Block
+        || operation.kind == OperationKind::Unblock;
+    if (*type != (isBlock ? "block" : "follow")
+        || *targetFid != operation.target.fid->value) {
+        return std::unexpected(protocolError("Protocol link type/target does not match the requested FID."));
     }
     return {};
 }
@@ -507,6 +514,8 @@ using domain::write::OperationKind;
         break;
     case OperationKind::Follow:
     case OperationKind::Unfollow:
+    case OperationKind::Block:
+    case OperationKind::Unblock:
         if (!operation.target.fid || operation.target.fid->value == operation.author.value) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::InvalidArgument,
@@ -603,8 +612,12 @@ using domain::write::OperationKind;
                 operation.kind == OperationKind::Unlike) ? "Like" : "Recast");
     case OperationKind::Follow:
     case OperationKind::Unfollow:
+    case OperationKind::Block:
+    case OperationKind::Unblock:
         return base + "/v1/linkById?fid=" + std::to_string(operation.author.value) +
-            "&target_fid=" + std::to_string(operation.target.fid->value) + "&link_type=follow";
+            "&target_fid=" + std::to_string(operation.target.fid->value) +
+            "&link_type=" + ((operation.kind == OperationKind::Block
+                || operation.kind == OperationKind::Unblock) ? "block" : "follow");
     }
     return base;
 }
@@ -684,6 +697,8 @@ public:
             break;
         case OperationKind::Follow:
         case OperationKind::Unfollow:
+        case OperationKind::Block:
+        case OperationKind::Unblock:
             verified = verifyFollowState(response->body, operation);
             break;
         }
