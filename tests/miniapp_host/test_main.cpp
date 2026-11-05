@@ -70,6 +70,42 @@ int main(int argc, char* argv[])
     controller.setUser({});
     assert(closeAllRequests == 2);
 
+    // The wallet picker owns only the external approval prompt. Canceling
+    // must reject that wallet RPC, not close the native Mini App.
+    int walletCancels{};
+    int miniAppCloseRequests{};
+    QObject::connect(&controller, &MiniAppHostController::walletBrowserCancelRequested,
+                     &application, [&walletCancels] { ++walletCancels; });
+    QObject::connect(&controller, &MiniAppHostController::closeRequested,
+                     &application, [&miniAppCloseRequests] { ++miniAppCloseRequests; });
+    const QString localSession = QStringLiteral("http://127.0.0.1:64141/session/")
+        + QString(64, QLatin1Char('a'));
+    controller.requestWalletBrowser(localSession);
+    assert(!controller.walletBrowserPickerActive()); // No current trusted app context.
+    controller.setWalletBrowserContext(
+        QStringLiteral("Example Mini App"), QStringLiteral("https://example.com"));
+    controller.requestWalletBrowser(QStringLiteral("https://evil.example/session/")
+                                    + QString(64, QLatin1Char('a')));
+    assert(!controller.walletBrowserPickerActive());
+    controller.requestWalletBrowser(localSession);
+    assert(controller.walletBrowserPickerActive());
+    assert(!controller.walletBrowserWaiting());
+    assert(controller.walletBrowserAppName() == QStringLiteral("Example Mini App"));
+    assert(controller.walletBrowserOrigin() == QStringLiteral("https://example.com"));
+    assert(!controller.walletBrowserOptions().isEmpty());
+    controller.cancelWalletBrowser();
+    assert(!controller.walletBrowserPickerActive());
+    assert(walletCancels == 1);
+    assert(miniAppCloseRequests == 0);
+    controller.requestWalletBrowser(localSession);
+    assert(controller.walletBrowserPickerActive());
+    controller.walletBrowserSessionEnded();
+    assert(!controller.walletBrowserPickerActive());
+    assert(!controller.walletBrowserWaiting());
+    controller.requestWalletBrowser(localSession);
+    assert(!controller.walletBrowserPickerActive()); // Closed session cannot reopen picker.
+    assert(miniAppCloseRequests == 0);
+
     // The Farcaster SDK requires an absolute public HTTPS pfpUrl. Qt's
     // image://remote alias is valid in GenyCaster's scene graph but not in
     // untrusted WKWebView HTML; decode it before constructing SDK context.

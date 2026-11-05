@@ -436,6 +436,50 @@ void testAccountPrivacyUntilExplicitPermission()
     assert(differentOrigin.get().resultJson == "[]");
 }
 
+void testPassiveChainDiscoveryDoesNotOpenBrowser()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::atomic_int launchCount{};
+    auto bridge = makeBridge(Config{
+        .launch = [&launchCount](const std::string&) -> foundation::result::Status {
+            launchCount.fetch_add(1, std::memory_order_relaxed);
+            return {};
+        },
+        .supportedChains = {"eip155:8453"},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Passive app", "https://passive.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> chainPromise{};
+    auto chainFuture = chainPromise.get_future();
+    (*bridge)->request({.id=101U,.method="eth_chainId",.paramsJson="[]"},
+        [&chainPromise](auto response) { chainPromise.set_value(std::move(response)); });
+    assert(chainFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto chain = chainFuture.get();
+    assert(chain.error && chain.error->code == 4900);
+    assert(launchCount.load(std::memory_order_relaxed) == 0);
+
+    std::promise<capability::wallet::EthereumRpcResponse> accountsPromise{};
+    auto accountsFuture = accountsPromise.get_future();
+    (*bridge)->request({.id=102U,.method="eth_accounts",.paramsJson="[]"},
+        [&accountsPromise](auto response) { accountsPromise.set_value(std::move(response)); });
+    assert(accountsFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto accounts = accountsFuture.get();
+    assert(!accounts.error && accounts.resultJson == "[]");
+    assert(launchCount.load(std::memory_order_relaxed) == 0);
+
+    std::promise<capability::wallet::EthereumRpcResponse> connectPromise{};
+    auto connectFuture = connectPromise.get_future();
+    (*bridge)->request({.id=103U,.method="eth_requestAccounts",.paramsJson="[]"},
+        [&connectPromise](auto response) { connectPromise.set_value(std::move(response)); });
+    assert(launchCount.load(std::memory_order_relaxed) == 1);
+    (*bridge)->endSession();
+    assert(connectFuture.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(connectFuture.get().error->code == 4900);
+}
+
 void testBridgeRejectsUnsupportedChainBeforeWallet()
 {
     using provider::compatibility::browser_wallet::bridge::Config;
@@ -473,5 +517,6 @@ int main()
     testAccountAccessConsentIsRememberedPerOrigin();
     testAccountPrivacyUntilExplicitPermission();
     testBridgeRejectsUnsupportedChainBeforeWallet();
+    testPassiveChainDiscoveryDoesNotOpenBrowser();
     return 0;
 }

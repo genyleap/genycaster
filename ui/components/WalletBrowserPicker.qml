@@ -42,6 +42,21 @@ Item {
         // Dismissal must NEVER revoke a wallet session implicitly. Only
         // explicit Cancel/X/Escape rejects the pending request.
         closePolicy: Popup.NoAutoClose
+        // GenyModal's usual dimmer closes on any background click. Wallet
+        // authorization is an explicit choice, so keep the backdrop inert.
+        Overlay.modal: Rectangle {
+            color: Theme.overlay
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.AllButtons
+                hoverEnabled: true
+                preventStealing: true
+                onPressed: mouse => { mouse.accepted = true }
+                onReleased: mouse => { mouse.accepted = true }
+                onClicked: mouse => { mouse.accepted = true }
+                onWheel: wheel => { wheel.accepted = true }
+            }
+        }
 
         Shortcut {
             sequence: "Escape"

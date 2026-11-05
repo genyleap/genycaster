@@ -62,7 +62,16 @@ bridge in that browser through a platform process launcher. The remembered choic
 is a browser preference only, never wallet authorization. Users can explicitly
 choose the default browser as a fallback. The picker validates the exact random
 loopback session URL and does not accept URLs from third-party Mini App content.
-Cancellation closes the foreground session and invalidates pending requests.
+An explicit cancel rejects the current wallet request, but never closes the
+foreground Mini App. Opening the browser retains the loopback capability token
+until wallet response, cancellation, focus/document revocation or timeout. The
+modal shows an explicit waiting state, and it has a non-dismissable backdrop so
+Qt's popup close transition cannot accidentally tear down an active wallet
+session. Passive RPCs such as initial `eth_chainId` no longer open a browser before
+an explicit `eth_requestAccounts` or `wallet_requestPermissions` request.
+The picker uses bundled CC0 Simple Icons SVG glyphs (Brave, Chrome, Firefox)
+inside the standard GenyCaster theme; browser labels are not wallet detection.
+A chosen browser is remembered only after a successful wallet response.
 
 ### External-wallet requirement
 
