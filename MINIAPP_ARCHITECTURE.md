@@ -18,7 +18,7 @@ adapter that connects Mini Apps to a real EIP-1193 provider without moving priva
 The bridge is compiled independently from the custody authorizer.
 
 The adapter creates a per-Mini-App loopback session on `127.0.0.1` with a cryptographically random session
-path. The approval page delegates requests to the browser's real `window.ethereum` provider. The host
+path. The approval page discovers injected wallets via EIP-6963 with an EIP-1193 fallback. The host
 routes Farcaster `ethProviderRequestV2` requests into that session and returns JSON-RPC responses using the
 SDK wire contract.
 
@@ -29,11 +29,13 @@ The current invariants are:
 2. `getChains()` reports only configured CAIP-2 `eip155:*` chains. Solana is not advertised by this bridge.
 3. A wallet session is created lazily on the first actual Ethereum provider RPC, not merely because a Mini
    App was opened or its manifest was inspected.
-4. Read-only RPC calls route automatically. The first `eth_requestAccounts` request for each Mini App
-   origin requires an explicit Continue action; a successful account-access grant is remembered for the
-   current Genycaster process so reopening/refocusing that same origin does not ask again. Wallet disconnect
-   or an empty `accountsChanged` event revokes the grant. Signing, transaction submission, and sensitive
-   `wallet_*` methods continue to require explicit approval for every request.
+4. Unprivileged chain reads may route without account consent; `eth_accounts` and
+   `wallet_getPermissions` return empty arrays until the Mini App receives
+   account access. `eth_requestAccounts` or a successfully approved EIP-2255
+   `wallet_requestPermissions` result containing `eth_accounts` grants access
+   for the origin. Wallet disconnect or *any* `accountsChanged` revokes it.
+   Signing, transactions and sensitive wallet operations need account access
+   and explicit wallet approval; no successful approval is fabricated.
 5. `wallet_switchEthereumChain` and `wallet_addEthereumChain` are checked against the configured chain
    policy and fail closed for disallowed networks.
 6. EIP-1193 errors are preserved where possible. User rejection remains `4001`; disallowed chains use
@@ -42,7 +44,7 @@ The current invariants are:
    only to the currently live Mini App document. Native delivery is scoped by the document token so stale
    events cannot cross a navigation boundary.
 8. EIP-6963 provider discovery is supported: the SDK's `eip6963RequestProvider` host call triggers an
-   `eip6963:announceProvider` client event describing the Genycaster Wallet Bridge.
+   `eip6963:announceProvider` client event describing GenyCaster as an external-wallet host.
 9. No private key, seed phrase, custody secret, or raw wallet credential crosses the Mini App bridge.
 10. Closing, failing, or replacing a Mini App tears down its active bridge session.
 
@@ -64,10 +66,23 @@ Cancellation closes the foreground session and invalidates pending requests.
 
 ### External-wallet requirement
 
-The browser approval page requires a real EIP-1193 wallet, either through a wallet browser or a browser
-extension that exposes `window.ethereum`. If none is available, the request fails rather than fabricating a
-provider. A future embedded Genycaster wallet can implement the same `IEthereumWalletBridge` interface
-without changing the Mini App runtime contract.
+The browser approval page uses EIP-6963 to find multiple providers, with
+`window.ethereum` as an EIP-1193 compatibility fallback. Requests are
+summarized by intent; printable `personal_sign` content is shown to the user,
+and the original JSON-RPC payload remains available for review. Results that
+were signed but could not be delivered are retried without invoking the wallet
+a second time. The loopback service validates exact Host, same-origin POST
+Origin, and (when present) Fetch Metadata headers. No provider is fabricated.
+
+The WASM host also supports EIP-6963 discovery and per-session provider
+selection without crossing the Mini App iframe's origin-grant boundary.
+
+**Not implemented in this iteration:** WalletConnect v2 pairing/relay, direct
+native mobile deep-link return, and complete wallet-backed Mini App execution
+on Windows, Linux, Android or iOS. These capabilities must not be advertised
+before a real adapter, verified pairing/permissions, and platform lifecycle
+tests exist. An optional future embedded wallet can implement the same
+`IEthereumWalletBridge` boundary without changing the Mini App contract.
 
 ## Mini App Sign In with Farcaster (SIWF)
 
