@@ -24,6 +24,7 @@ module;
 #include <QRegularExpression>
 #include <QStringList>
 #include <QTimer>
+#include <QThreadPool>
 #include <QUrl>
 #include <QUuid>
 #include <QVariant>
@@ -32,6 +33,7 @@ module;
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -43,6 +45,11 @@ module;
 module farcaster.runtime.miniapp;
 
 import farcaster.capability.wallet;
+#if GENYCASTER_MINIAPP_SIWF
+import farcaster.provider.compatibility.auth;
+import farcaster.transport.qtnetwork;
+import farcaster.domain.identity;
+#endif
 
 namespace farcaster::runtime::miniapp {
 namespace {
@@ -55,7 +62,8 @@ constexpr int manifestTimeoutMs = 10'000;
 constexpr int readyTimeoutMs = 20'000;
 constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
 
-[[nodiscard]] QJsonArray capabilities(const capability::wallet::IEthereumWalletBridge* wallet)
+[[nodiscard]] QJsonArray capabilities(const capability::wallet::IEthereumWalletBridge* wallet,
+                                      const bool supportsSignIn = false)
 {
     QJsonArray result{
         QStringLiteral("actions.ready"),
@@ -69,6 +77,8 @@ constexpr qint64 manifestCacheTtlMs = 5 * 60 * 1000;
     if (wallet != nullptr && wallet->available() && !wallet->supportedChains().empty()) {
         result.push_back(QStringLiteral("wallet.getEthereumProvider"));
     }
+    if (supportsSignIn && wallet != nullptr && wallet->available())
+        result.push_back(QStringLiteral("actions.signIn"));
     return result;
 }
 
@@ -305,12 +315,15 @@ public:
          MiniAppTaskManagerController& taskManager,
          const bool useDirectProxy,
          const qulonglong clientFid,
-         capability::wallet::IEthereumWalletBridge* wallet)
+         capability::wallet::IEthereumWalletBridge* wallet,
+         std::string optimismRpcUrl)
         : m_controller(controller),
           m_catalog(catalog),
           m_taskManager(taskManager),
           m_clientFid(clientFid),
           m_wallet(wallet),
+          m_optimismRpcUrl(std::move(optimismRpcUrl)),
+          m_useDirectProxy(useDirectProxy),
           m_callbackGate(std::make_shared<CallbackGate>())
     {
         m_callbackGate->runtime = this;
@@ -434,6 +447,7 @@ private:
         bool minimized{};
         bool ready{};
         bool failed{};
+        bool pendingSignIn{};
         QHash<QString, PendingCompose> pendingCompose{};
     };
 
@@ -1681,6 +1695,9 @@ private:
     MiniAppTaskManagerController& m_taskManager;
     const qulonglong m_clientFid;
     capability::wallet::IEthereumWalletBridge* m_wallet{};
+    const std::string m_optimismRpcUrl{};
+    const bool m_useDirectProxy{};
+    std::uint64_t m_nextSignInRpcId{8'000'000U};
     std::shared_ptr<CallbackGate> m_callbackGate{};
     QNetworkAccessManager m_network{};
     std::vector<std::unique_ptr<Session>> m_sessions{};
@@ -1697,9 +1714,11 @@ MiniAppRuntime::MiniAppRuntime(MiniAppHostController& controller,
                                MiniAppTaskManagerController& taskManager,
                                const bool useDirectProxy,
                                const qulonglong clientFid,
-                               capability::wallet::IEthereumWalletBridge* walletBridge)
+                               capability::wallet::IEthereumWalletBridge* walletBridge,
+                               std::string optimismRpcUrl)
     : m_impl(std::make_unique<Impl>(
-        controller, catalog, taskManager, useDirectProxy, clientFid, walletBridge))
+        controller, catalog, taskManager, useDirectProxy, clientFid, walletBridge,
+        std::move(optimismRpcUrl)))
 {}
 
 MiniAppRuntime::~MiniAppRuntime() = default;
