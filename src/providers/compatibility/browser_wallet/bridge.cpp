@@ -512,6 +512,25 @@ public:
             if (!m_active || !available()) {
                 immediateError = rpcError(
                     request.id, 4900, "No active Genycaster wallet session is available.");
+            } else if (!m_accountAccessGrants.contains(m_origin)
+                && (request.method == "eth_accounts" || request.method == "wallet_getPermissions")) {
+                // A Mini App must not obtain accounts or existing wallet
+                // permissions before consent for its exact origin.
+                capability::wallet::EthereumRpcResponse empty{};
+                empty.id = request.id;
+                empty.resultJson = "[]";
+                immediateError = std::move(empty);
+            } else if (!m_accountAccessGrants.contains(m_origin)
+                && (request.method == "eth_coinbase" || request.method == "personal_sign"
+                    || request.method.starts_with("eth_sign")
+                    || request.method.starts_with("eth_send")
+                    || request.method == "eth_decrypt"
+                    || request.method == "eth_getEncryptionPublicKey"
+                    || (request.method.starts_with("wallet_")
+                        && request.method != "wallet_requestPermissions"
+                        && request.method != "wallet_getCapabilities"))) {
+                immediateError = rpcError(
+                    request.id, 4100, "Connect your wallet to this Mini App before requesting this operation.");
             } else if (m_pending.size() >= MaximumQueuedRequests) {
                 immediateError = rpcError(request.id, 4900, "Too many wallet requests are pending.");
             } else {
