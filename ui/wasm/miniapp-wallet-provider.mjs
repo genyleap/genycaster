@@ -265,11 +265,19 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
     const promptText=fa
       ? {connect:'اتصال با WalletConnect',connecting:'در انتظار تأیید کیف پول…',
          scan:'کد را با کیف پول اسکن کنید یا برنامه را باز کنید.',
-         retry:'تلاش دوباره',failed:'اتصال برقرار نشد. دوباره تلاش کنید.',
+         retry:'تلاش دوباره',failed:'اتصال برقرار نشد. اتصال اینترنت یا دسترسی به سرویس کیف پول را بررسی کنید و دوباره تلاش کنید.',
+         loading:'در حال آماده‌سازی WalletConnect…',
+         creating:'در حال ساخت لینک امن کیف پول…',
+         approval:'منتظر تأیید در کیف پول…',
+         showQr:'نمایش کد QR',
          onekey:'بازکردن OneKey',metamask:'بازکردن MetaMask'}
       : {connect:'Connect with WalletConnect',connecting:'Waiting for wallet approval…',
          scan:'Scan with your wallet, or open a wallet app.',
-         retry:'Try again',failed:'Connection failed. Please try again.',
+         retry:'Try again',failed:'Connection could not start. Check your network or wallet service, then retry.',
+         loading:'Preparing WalletConnect…',
+         creating:'Creating a secure wallet pairing link…',
+         approval:'Waiting for approval in your wallet…',
+         showQr:'Show QR code',
          onekey:'Open OneKey',metamask:'Open MetaMask'};
     const scrim=document.createElement('div');
     Object.assign(scrim.style,{position:'fixed',inset:'0',zIndex:'2147483647',
@@ -385,28 +393,45 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
       connecting=true;
       error.textContent='';
       approve.disabled=true;
-      approve.textContent=promptText.connecting;
-      details.textContent=promptText.connecting;
+      approve.textContent=promptText.loading;
+      details.textContent=promptText.loading;
       pairAbort=new AbortController();
+      const updateStatus=stage=>{
+        if(resolved || pairAbort?.signal.aborted)return;
+        const label=stage==='loading'||stage==='initializing'
+          ? promptText.loading
+          : stage==='creating'?promptText.creating
+          : stage==='approval'?promptText.approval
+          : promptText.connecting;
+        details.textContent=label;
+        approve.textContent=label;
+      };
       const mobile=/Android|iPhone|iPad|iPod/i.test(
         typeof navigator!=='undefined'?navigator.userAgent:'');
-      const onUri=async data=>{
+      const onUri=data=>{
         if(resolved||pairAbort?.signal.aborted)return;
         // Only valid WalletConnect v2 pairing URIs may enter a QR or deep link.
         const uri=typeof data==='string'?data:data?.uri;
         if(typeof uri!=='string'||!/^wc:[a-zA-Z0-9-]+@2\?/.test(uri)
             ||uri.length>4096)return;
+        // Show mobile wallet handoff immediately, without waiting for QR
+        // generation. Mobile Safari cannot scan the code on its own screen.
         qrContainer.hidden=false;
-        qr.src=data?.qr||'';
-        if(!qr.src){
-          try{
-            const wc=await import('./genycaster-walletconnect.mjs');
-            const url=await wc.createQrImage(uri);
-            if(!resolved&&!pairAbort.signal.aborted)qr.src=url;
-          }catch{}
-        }
+        details.textContent=promptText.scan;
+        approve.textContent=promptText.approval;
+        qr.hidden=true;
         walletLinks.replaceChildren();
         if(mobile){
+          qrContainer.replaceChildren(pairingText,walletLinks,qr);
+          const showQr=document.createElement('button');
+          showQr.type='button';
+          showQr.textContent=promptText.showQr;
+          Object.assign(showQr.style,{border:'0',background:'transparent',
+            color:'#c1b7fd',padding:'8px',font:'inherit'});
+          showQr.addEventListener('click',()=>{
+            qr.hidden=!qr.hidden;
+          });
+          qrContainer.append(showQr);
           const links=[
             {text:promptText.metamask,
              url:'https://metamask.app.link/wc?uri='+encodeURIComponent(uri)},
@@ -425,9 +450,25 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
             walletLinks.append(anchor);
           }
         }
+        if(data?.qr){
+          qr.src=data.qr;qr.hidden=!mobile;
+        }else{
+          import('./genycaster-walletconnect.mjs')
+            .then(wc=>wc.createQrImage(uri))
+            .then(url=>{
+              if(!resolved&&!pairAbort.signal.aborted){
+                qr.src=url;qr.hidden=!mobile;
+              }
+            }).catch(()=>{
+              if(!resolved)
+                error.textContent=promptText.failed;
+            });
+        }
       };
       try{
-        await injected.connectWalletConnect({onUri,signal:pairAbort.signal});
+        await injected.connectWalletConnect({
+          onUri,onStatus:updateStatus,signal:pairAbort.signal
+        });
         if(!resolved)finish(true);
       }catch(e){
         if(resolved)return;
