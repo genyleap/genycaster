@@ -3060,6 +3060,11 @@ Item {
         source: active ? "qrc:/qt/qml/Farcaster/Client/components/AndroidMiniAppWebView.qml" : ""
     }
 
+    WalletBrowserPicker {
+        id: walletBrowserPicker
+        parent: Overlay.overlay
+    }
+
     TaskManagerPopup {
         id: taskManagerPopup
         parent: Overlay.overlay

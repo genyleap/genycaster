@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QPointer>
 #include <QDir>
 #include <QDebug>
 #include <QFont>
@@ -1728,7 +1729,22 @@ int main(int argc, char* argv[])
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     {
         auto walletBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
-            .launch = makeWalletApprovalLauncher(walletLaunchTemplate),
+            .launch = walletLaunchTemplate.isEmpty()
+                ? farcaster::provider::compatibility::browser_wallet::bridge::WalletLauncher{
+                    [host = QPointer<MiniAppHostController>{&miniAppHost}](const std::string& url)
+                        -> foundation::result::Status {
+                        if (!host) {
+                            return std::unexpected(foundation::error::Error::make(
+                                foundation::error::ErrorCode::Unavailable,
+                                "Mini App wallet picker is no longer available."));
+                        }
+                        const QString sessionUrl = QString::fromStdString(url);
+                        QMetaObject::invokeMethod(host, [host, sessionUrl] {
+                            if (host) host->requestWalletBrowser(sessionUrl);
+                        }, Qt::QueuedConnection);
+                        return {};
+                    }}
+                : makeWalletApprovalLauncher(walletLaunchTemplate),
             .supportedChains = miniAppEthereumChains(),
         });
         if (walletBridge) {

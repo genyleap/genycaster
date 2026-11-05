@@ -50,6 +50,18 @@ The accepted chain set defaults to the EVM CAIP-2 chains represented by the curr
 manifest schema. Deployments can reduce that set through `GENYCASTER_MINIAPP_EVM_CHAINS`; unsupported or
 malformed requested chains remain absent from `getChains()`.
 
+### Native wallet-browser selection
+
+Native desktop Mini App requests now open a GenyCaster-themed browser selector rather
+than immediately opening the system default browser (which might be Safari without
+an EIP-1193 provider). Detected *browsers* are candidates, not evidence that a
+wallet extension exists or is unlocked. Each selection opens the local wallet
+bridge in that browser through a platform process launcher. The remembered choice
+is a browser preference only, never wallet authorization. Users can explicitly
+choose the default browser as a fallback. The picker validates the exact random
+loopback session URL and does not accept URLs from third-party Mini App content.
+Cancellation closes the foreground session and invalidates pending requests.
+
 ### External-wallet requirement
 
 The browser approval page requires a real EIP-1193 wallet, either through a wallet browser or a browser

@@ -146,6 +146,7 @@ set(farcasterQmlFiles
     components/StatusStrip.qml
     components/StatusFooter.qml
     components/TaskManagerPopup.qml
+    components/WalletBrowserPicker.qml
     components/RenderingSettingsPopup.qml
     components/SystemStatusCard.qml
     components/TokenSparkline.qml

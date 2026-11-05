@@ -5,6 +5,7 @@
 #include <QString>
 #include <QTimer>
 #include <QVariantMap>
+#include <QVariantList>
 
 class QSettings;
 
@@ -16,6 +17,9 @@ class MiniAppHostController final : public QObject {
     Q_PROPERTY(int sessionLimit READ sessionLimit NOTIFY sessionLimitChanged)
     Q_PROPERTY(QString errorText READ errorText NOTIFY stateChanged)
     Q_PROPERTY(QString launchUrl READ launchUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool walletBrowserPickerActive READ walletBrowserPickerActive NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(QVariantList walletBrowserOptions READ walletBrowserOptions NOTIFY walletBrowserPickerChanged)
+    Q_PROPERTY(QString walletBrowserError READ walletBrowserError NOTIFY walletBrowserPickerChanged)
     Q_PROPERTY(QString presentationMode READ presentationMode NOTIFY presentationModeChanged)
 public:
     /** @brief Borrows GUI-thread settings, which must outlive this controller. */
@@ -27,6 +31,13 @@ public:
     void setSessionLimit(int limit);
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString launchUrl() const;
+    [[nodiscard]] bool walletBrowserPickerActive() const noexcept;
+    [[nodiscard]] QVariantList walletBrowserOptions() const;
+    [[nodiscard]] QString walletBrowserError() const;
+    /** GUI-thread request from the external EVM wallet transport, never from a Mini App document. */
+    void requestWalletBrowser(const QString& localSessionUrl);
+    Q_INVOKABLE void chooseWalletBrowser(const QString& browserId);
+    Q_INVOKABLE void cancelWalletBrowser();
     /** @brief Returns window/bottom/left/right; physical directions are locale-independent. */
     [[nodiscard]] QString presentationMode() const;
     /** @brief Persists a valid mode for the next launch without restarting a running app. */
@@ -77,6 +88,7 @@ signals:
     /** @brief Public SDK user metadata changed without an account switch. */
     void userChanged();
     void sessionLimitChanged();
+    void walletBrowserPickerChanged();
     void presentationModeChanged();
 private:
     QSettings& m_settings;
@@ -87,6 +99,9 @@ private:
     bool m_active{};
     QString m_error{};
     QString m_launchUrl{};
+    QString m_walletBrowserSessionUrl{};
+    QString m_walletBrowserError{};
+    QVariantList m_walletBrowserOptions{};
     QVariantMap m_user{};
 #if defined(__EMSCRIPTEN__)
     QTimer m_browserVisibilityTimer{};

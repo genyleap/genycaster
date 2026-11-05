@@ -5,7 +5,17 @@
 #include <QByteArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
+#include <QStandardPaths>
+#include <QFileInfo>
+#include <QDir>
+#include <tuple>
+#include <utility>
+#if !defined(__EMSCRIPTEN__)
+#include <QProcess>
+#endif
 #include <algorithm>
+#include <ranges>
 #if !defined(__EMSCRIPTEN__)
 #include <QDesktopServices>
 #endif
@@ -17,6 +27,69 @@
 #endif
 
 namespace {
+struct WalletBrowserCandidate final {
+    QString id;
+    QString label;
+    QString executable;
+};
+
+[[nodiscard]] QList<WalletBrowserCandidate> installedWalletBrowsers()
+{
+    QList<WalletBrowserCandidate> available{};
+#if defined(Q_OS_MACOS)
+    // Installed browsers are only candidates. The user's wallet extension
+    // is detected by EIP-1193/EIP-6963 inside the browser, never by probing
+    // or reading private browser profiles.
+    for (const auto& [id, app] : {
+             std::pair{QStringLiteral("brave"), QStringLiteral("Brave Browser")},
+             std::pair{QStringLiteral("chrome"), QStringLiteral("Google Chrome")},
+             std::pair{QStringLiteral("firefox"), QStringLiteral("Firefox")}}) {
+        const QString bundle = app + QStringLiteral(".app");
+        if (QFileInfo::exists(QStringLiteral("/Applications/") + bundle)
+            || QFileInfo::exists(QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation)
+                                 + QLatin1Char('/') + bundle)
+            || QFileInfo::exists(QDir::homePath() + QStringLiteral("/Applications/") + bundle)) {
+            available.append({id, app, app});
+        }
+    }
+#elif defined(Q_OS_WIN)
+    for (const auto& [id, name, executable] : {
+             std::tuple{QStringLiteral("brave"), QStringLiteral("Brave Browser"), QStringLiteral("brave.exe")},
+             std::tuple{QStringLiteral("chrome"), QStringLiteral("Google Chrome"), QStringLiteral("chrome.exe")},
+             std::tuple{QStringLiteral("firefox"), QStringLiteral("Firefox"), QStringLiteral("firefox.exe")}}) {
+        const QString onPath = QStandardPaths::findExecutable(executable);
+        const QString base = qEnvironmentVariable("ProgramFiles");
+        const QString appPath = id == QStringLiteral("brave")
+            ? QStringLiteral("/BraveSoftware/Brave-Browser/Application/brave.exe")
+            : id == QStringLiteral("chrome") ? QStringLiteral("/Google/Chrome/Application/chrome.exe")
+                                            : QStringLiteral("/Mozilla Firefox/firefox.exe");
+        const QString located = !onPath.isEmpty() ? onPath : base + appPath;
+        if (QFileInfo::exists(located) && QFileInfo(located).isFile())
+            available.append({id, name, located});
+    }
+#elif defined(Q_OS_LINUX)
+    for (const auto& [id, name, executable] : {
+             std::tuple{QStringLiteral("brave"), QStringLiteral("Brave Browser"), QStringLiteral("brave-browser")},
+             std::tuple{QStringLiteral("chrome"), QStringLiteral("Google Chrome"), QStringLiteral("google-chrome")},
+             std::tuple{QStringLiteral("firefox"), QStringLiteral("Firefox"), QStringLiteral("firefox")}}) {
+        const QString located = QStandardPaths::findExecutable(executable);
+        if (!located.isEmpty()) available.append({id, name, located});
+    }
+#endif
+    return available;
+}
+
+[[nodiscard]] bool safeWalletSessionUrl(const QString& value)
+{
+    const QUrl url{value, QUrl::StrictMode};
+    static const QRegularExpression sessionPath{
+        QStringLiteral("^/session/[0-9a-f]{64}$")};
+    return url.isValid() && url.scheme() == QStringLiteral("http")
+        && url.host() == QStringLiteral("127.0.0.1") && url.port() > 0
+        && url.userInfo().isEmpty() && !url.hasQuery() && !url.hasFragment()
+        && sessionPath.match(url.path()).hasMatch();
+}
+
 bool validPresentationMode(const QString& mode) {
     return mode == QStringLiteral("window") || mode == QStringLiteral("bottom")
         || mode == QStringLiteral("left") || mode == QStringLiteral("right");
@@ -100,6 +173,100 @@ MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& s
     });
 #endif
 }
+bool MiniAppHostController::walletBrowserPickerActive() const noexcept
+{
+    return !m_walletBrowserSessionUrl.isEmpty();
+}
+
+QVariantList MiniAppHostController::walletBrowserOptions() const
+{
+    return m_walletBrowserOptions;
+}
+
+QString MiniAppHostController::walletBrowserError() const
+{
+    return m_walletBrowserError;
+}
+
+void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
+{
+    if (!safeWalletSessionUrl(localSessionUrl)) return;
+    m_walletBrowserSessionUrl = localSessionUrl;
+    m_walletBrowserError.clear();
+    m_walletBrowserOptions.clear();
+    const auto candidates = installedWalletBrowsers();
+    for (const auto& candidate : candidates) {
+        m_walletBrowserOptions.append(QVariantMap{
+            {QStringLiteral("id"), candidate.id},
+            {QStringLiteral("label"), candidate.label},
+        });
+    }
+    // Never silently send the request to Safari. The system-default browser
+    // is offered only as an explicitly selected last resort.
+    m_walletBrowserOptions.append(QVariantMap{
+        {QStringLiteral("id"), QStringLiteral("system")},
+        {QStringLiteral("label"), QStringLiteral("Default browser (wallet may be unavailable")},
+    });
+    emit walletBrowserPickerChanged();
+    const QString remembered = m_settings.value(QStringLiteral("miniapps/walletBrowserChoice")).toString();
+    if (remembered != QStringLiteral("system")
+        && std::ranges::any_of(candidates, [&remembered](const auto& candidate) {
+            return candidate.id == remembered;
+        })) {
+        // Only remember the chosen browser, not an unverified wallet or an
+        // approval. Sensitive EVM operations always reach the real wallet.
+        chooseWalletBrowser(remembered);
+    }
+}
+
+void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
+{
+#if defined(__EMSCRIPTEN__)
+    Q_UNUSED(browserId);
+    return;
+#else
+    if (!walletBrowserPickerActive() || !safeWalletSessionUrl(m_walletBrowserSessionUrl))
+        return;
+    const auto candidates = installedWalletBrowsers();
+    const QUrl url{m_walletBrowserSessionUrl, QUrl::StrictMode};
+    bool launched = false;
+    if (browserId == QStringLiteral("system")) {
+        launched = QDesktopServices::openUrl(url);
+    } else {
+        const auto selected = std::ranges::find_if(candidates, [&browserId](const auto& item) {
+            return item.id == browserId;
+        });
+        if (selected == candidates.end()) return;
+#if defined(Q_OS_MACOS)
+        launched = QProcess::startDetached(QStringLiteral("/usr/bin/open"),
+            {QStringLiteral("-a"), selected->executable, url.toString(QUrl::FullyEncoded)});
+#else
+        launched = QProcess::startDetached(selected->executable,
+            {url.toString(QUrl::FullyEncoded)});
+#endif
+    }
+    if (!launched) {
+        m_walletBrowserError = QStringLiteral("Could not open the selected browser. Choose another browser.");
+        emit walletBrowserPickerChanged();
+        return;
+    }
+    m_settings.setValue(QStringLiteral("miniapps/walletBrowserChoice"), browserId);
+    m_walletBrowserSessionUrl.clear();
+    m_walletBrowserError.clear();
+    emit walletBrowserPickerChanged();
+#endif
+}
+
+void MiniAppHostController::cancelWalletBrowser()
+{
+    if (!walletBrowserPickerActive()) return;
+    m_walletBrowserSessionUrl.clear();
+    m_walletBrowserError.clear();
+    emit walletBrowserPickerChanged();
+    // Closing the foreground Mini App invalidates its pending wallet session.
+    close();
+}
+
 QString MiniAppHostController::presentationMode() const { return m_presentationMode; }
 void MiniAppHostController::setPresentationMode(const QString& mode) {
     if (!validPresentationMode(mode) || mode == m_presentationMode) { return; }
