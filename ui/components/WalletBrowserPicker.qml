@@ -2,55 +2,50 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-// Pure presentation: no loopback session token, secret or wallet key is
-// exposed to QML. Only the trusted controller may launch a browser.
+// Wallet approval is owned by the trusted host. The native Mini App surface
+// is temporarily hidden while this Qt modal is open, then restored unchanged.
 Item {
     id: picker
     implicitWidth: 0
     implicitHeight: 0
 
-    readonly property bool hasRequest: miniAppHost.walletBrowserPickerActive
-                                      || miniAppHost.walletBrowserWaiting
-
     function browserIcon(id) {
-        const path = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/"
+        const base = "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/"
         switch (String(id || "")) {
-        case "brave": return path + "brave.svg"
-        case "chrome": return path + "chrome.svg"
-        case "firefox": return path + "firefox.svg"
+        case "brave": return base + "brave.svg"
+        case "chrome": return base + "chrome.svg"
+        case "firefox": return base + "firefox.svg"
         default: return ""
         }
     }
 
-    function synchronize() {
-        if (hasRequest) {
-            if (!dialog.opened)
-                dialog.open()
-        } else if (dialog.opened) {
+    function sync() {
+        // Waiting after launch belongs to the Mini App, not a second modal
+        // stacked beneath its native WebKit window.
+        const selecting = miniAppHost.walletBrowserPickerActive
+        if (selecting && !dialog.opened)
+            dialog.open()
+        else if (!selecting && dialog.opened)
             dialog.close()
-        }
     }
 
     GenyModal {
         id: dialog
         parent: picker.parent
         z: 1200
-        padding: Theme.space4
-        width: Math.min(420, parent ? Math.max(300, parent.width - Theme.space5 * 2) : 420)
-        height: Math.min(parent ? Math.max(280, parent.height - Theme.space5 * 2) : 490,
-                         contentLayout.implicitHeight + topPadding + bottomPadding)
-        // Dismissal must NEVER revoke a wallet session implicitly. Only
-        // explicit Cancel/X/Escape rejects the pending request.
+        padding: Theme.space3
+        width: Math.min(380, parent ? Math.max(280, parent.width - Theme.space4 * 2) : 380)
+        height: Math.min(parent ? parent.height - Theme.space4 * 2 : 420,
+                         column.implicitHeight + topPadding + bottomPadding)
         closePolicy: Popup.NoAutoClose
-        // GenyModal's usual dimmer closes on any background click. Wallet
-        // authorization is an explicit choice, so keep the backdrop inert.
+
+        // A click outside the chooser must not close the Mini App or silently
+        // reject a pending wallet request.
         Overlay.modal: Rectangle {
             color: Theme.overlay
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.AllButtons
-                hoverEnabled: true
-                preventStealing: true
                 onPressed: mouse => { mouse.accepted = true }
                 onReleased: mouse => { mouse.accepted = true }
                 onClicked: mouse => { mouse.accepted = true }
@@ -65,182 +60,111 @@ Item {
         }
 
         contentItem: ColumnLayout {
-            id: contentLayout
-            spacing: Theme.space3
+            id: column
+            spacing: Theme.space2
 
             ModalHeader {
                 Layout.fillWidth: true
-                title: miniAppHost.walletBrowserWaiting
-                       ? qsTr("Waiting for your wallet")
-                       : qsTr("Connect a wallet")
-                subtitle: miniAppHost.walletBrowserAppName.length
-                          ? miniAppHost.walletBrowserAppName
-                          : qsTr("Mini App wallet request")
+                title: qsTr("Open wallet request")
+                subtitle: miniAppHost.walletBrowserAppName
                 onCloseRequested: miniAppHost.cancelWalletBrowser()
             }
 
-            Superellipse {
+            DirectionAwareLabel {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.scaleUi(43)
-                fillColor: Theme.surfaceMuted
-                borderColor: Theme.borderSubtle
-                borderWidth: Theme.strokeHairline
-                curveDepth: Theme.curveControl
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.space3
-                    anchors.rightMargin: Theme.space3
-                    spacing: Theme.space2
-
-                    Icon {
-                        text: Theme.iconWallet
-                        color: Theme.accent
-                        preferredSize: Theme.iconSizeSmall
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: miniAppHost.walletBrowserOrigin
-                        color: Theme.inkMuted
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideMiddle
-                        maximumLineCount: 1
-                    }
-                }
+                text: miniAppHost.walletBrowserOrigin
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                elide: Text.ElideMiddle
             }
 
-            ColumnLayout {
-                visible: !miniAppHost.walletBrowserWaiting
-                Layout.fillWidth: true
-                spacing: Theme.space2
+            Repeater {
+                model: miniAppHost.walletBrowserOptions
 
-                DirectionAwareLabel {
+                delegate: Button {
+                    id: option
+                    required property var modelData
+                    readonly property string browserId: String(modelData.id || "")
+                    readonly property string browserName: String(modelData.label || "")
+                    readonly property bool lastUsed: Boolean(modelData.lastUsed)
+
                     Layout.fillWidth: true
-                    text: qsTr("Open the request in a browser with your wallet extension.")
-                    color: Theme.inkMuted
-                    wrapMode: Text.Wrap
-                    font.pixelSize: Theme.typeCaptionSize
-                }
+                    implicitHeight: Theme.scaleUi(44)
+                    padding: 0
+                    hoverEnabled: true
+                    focusPolicy: Qt.StrongFocus
+                    Accessible.name: browserName
+                    Accessible.description: lastUsed ? qsTr("Previously used") : ""
+                    onClicked: miniAppHost.chooseWalletBrowser(browserId)
 
-                Repeater {
-                    model: miniAppHost.walletBrowserOptions
+                    background: Superellipse {
+                        fillColor: option.down ? Theme.primarySurface
+                                   : option.hovered || option.activeFocus
+                                     ? Theme.surface : Theme.surfaceMuted
+                        borderColor: option.activeFocus ? Theme.accent : Theme.borderSubtle
+                        borderWidth: Theme.strokeHairline
+                        curveDepth: Theme.curveControl
+                    }
 
-                    delegate: Button {
-                        id: choice
-                        required property var modelData
-                        readonly property string browserId: String(modelData.id || "")
-                        readonly property string browserName: String(modelData.label || "")
-                        readonly property bool previous: Boolean(modelData.lastUsed)
+                    contentItem: RowLayout {
+                        spacing: Theme.space2
+                        layoutDirection: Theme.uiDirection
 
-                        Layout.fillWidth: true
-                        implicitHeight: Theme.scaleUi(48)
-                        padding: 0
-                        hoverEnabled: true
-                        focusPolicy: Qt.StrongFocus
-                        Accessible.name: browserName
-                        Accessible.description: previous ? qsTr("Last used browser") : ""
-                        onClicked: miniAppHost.chooseWalletBrowser(browserId)
-
-                        background: Superellipse {
-                            fillColor: choice.down ? Theme.primarySurface
-                                       : choice.hovered || choice.activeFocus
-                                         ? Theme.surface : Theme.surfaceMuted
+                        Superellipse {
+                            Layout.preferredWidth: Theme.scaleUi(30)
+                            Layout.preferredHeight: Theme.scaleUi(30)
+                            Layout.leftMargin: Theme.space2
+                            fillColor: Theme.surface
+                            borderColor: Theme.borderSubtle
                             borderWidth: Theme.strokeHairline
-                            borderColor: choice.activeFocus
-                                         ? Theme.accent : Theme.borderSubtle
-                            curveDepth: Theme.curveControl
-                        }
+                            curveDepth: Theme.curveCompact
 
-                        contentItem: Item {
-                            implicitHeight: Theme.scaleUi(48)
-                            implicitWidth: Theme.scaleUi(320)
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.space3
-                                anchors.rightMargin: Theme.space3
-                                spacing: Theme.space2
-                                layoutDirection: Theme.uiDirection
-
-                                Superellipse {
-                                    Layout.preferredWidth: Theme.scaleUi(32)
-                                    Layout.preferredHeight: Theme.scaleUi(32)
-                                    fillColor: Theme.surface
-                                    borderColor: Theme.borderSubtle
-                                    borderWidth: Theme.strokeHairline
-                                    curveDepth: Theme.curveCompact
-
-                                    Image {
-                                        id: browserLogo
-                                        anchors.centerIn: parent
-                                        width: Theme.scaleUi(22)
-                                        height: Theme.scaleUi(22)
-                                        source: picker.browserIcon(choice.browserId)
-                                        sourceSize.width: 64
-                                        sourceSize.height: 64
-                                        fillMode: Image.PreserveAspectFit
-                                        smooth: true
-                                        mipmap: true
-                                        visible: source.toString().length > 0
-                                                 && status === Image.Ready
-                                    }
-                                    Icon {
-                                        anchors.centerIn: parent
-                                        visible: !browserLogo.visible
-                                        text: Theme.iconGlobe
-                                        preferredSize: Theme.iconSizeSmall
-                                        color: Theme.inkMuted
-                                    }
-                                }
-
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                    text: choice.browserName
-                                    color: Theme.ink
-                                    font.pixelSize: Theme.typeBodySize
-                                    font.weight: Theme.weightDemiBold
-                                    elide: Text.ElideRight
-                                }
-
-                                DirectionAwareLabel {
-                                    visible: choice.previous
-                                    text: qsTr("Last used")
-                                    color: Theme.inkSubtle
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-
-                                Icon {
-                                    text: Theme.iconArrowRight
-                                    color: choice.hovered ? Theme.accent : Theme.inkMuted
-                                    preferredSize: Theme.iconSizeSmall
-                                }
+                            Image {
+                                id: brand
+                                anchors.centerIn: parent
+                                width: Theme.scaleUi(20)
+                                height: Theme.scaleUi(20)
+                                source: picker.browserIcon(option.browserId)
+                                sourceSize.width: 60
+                                sourceSize.height: 60
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                mipmap: true
+                                visible: status === Image.Ready && source.toString().length > 0
+                            }
+                            Icon {
+                                anchors.centerIn: parent
+                                visible: !brand.visible
+                                text: Theme.iconGlobe
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.inkMuted
                             }
                         }
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: option.browserName
+                            font.weight: Theme.weightDemiBold
+                            font.pixelSize: Theme.typeMetaSize
+                            color: Theme.ink
+                            elide: Text.ElideRight
+                        }
+
+                        DirectionAwareLabel {
+                            visible: option.lastUsed
+                            text: qsTr("Last used")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.inkMuted
+                        }
+
+                        Icon {
+                            Layout.rightMargin: Theme.space2
+                            text: Theme.iconArrowRight
+                            preferredSize: Theme.iconSizeSmall
+                            color: option.hovered ? Theme.accent : Theme.inkMuted
+                        }
                     }
-                }
-            }
-
-            ColumnLayout {
-                visible: miniAppHost.walletBrowserWaiting
-                Layout.fillWidth: true
-                spacing: Theme.space2
-
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTr("Complete the request in %1.").arg(
-                              miniAppHost.walletBrowserSelectedName)
-                    color: Theme.ink
-                    font.pixelSize: Theme.typeMetaSize
-                    font.weight: Theme.weightDemiBold
-                    wrapMode: Text.Wrap
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTr("The Mini App stays open. This window will close when your wallet responds.")
-                    color: Theme.inkMuted
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.Wrap
                 }
             }
 
@@ -248,16 +172,16 @@ Item {
                 visible: miniAppHost.walletBrowserError.length > 0
                 Layout.fillWidth: true
                 text: miniAppHost.walletBrowserError
+                font.pixelSize: Theme.typeCaptionSize
                 color: Theme.danger
                 wrapMode: Text.Wrap
-                font.pixelSize: Theme.typeCaptionSize
             }
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("Your keys stay in your wallet. Every signature needs separate approval.")
-                color: Theme.inkSubtle
+                text: qsTr("You'll confirm the request in your wallet. Your keys stay there.")
                 font.pixelSize: Theme.typeCaptionSize
+                color: Theme.inkMuted
                 wrapMode: Text.Wrap
             }
 
@@ -267,22 +191,16 @@ Item {
                 ActionButton {
                     quiet: true
                     compact: true
-                    text: miniAppHost.walletBrowserWaiting
-                          ? qsTr("Cancel request") : qsTr("Cancel")
+                    text: qsTr("Cancel")
                     onClicked: miniAppHost.cancelWalletBrowser()
                 }
             }
         }
-
-        // No implicit cancel in onClosed. A successful browser launch, focus
-        // transition, or Qt popup animation must not terminate a Mini App.
     }
 
     Connections {
         target: miniAppHost
-        function onWalletBrowserPickerChanged() {
-            picker.synchronize()
-        }
+        function onWalletBrowserPickerChanged() { picker.sync() }
     }
-    Component.onCompleted: picker.synchronize()
+    Component.onCompleted: picker.sync()
 }
