@@ -425,10 +425,13 @@ void appendMessage(
 [[nodiscard]] foundation::result::Result<std::string> encodeFollowBody(const FollowInput& input)
 {
     if (input.target.value == 0U || input.target.value == input.fid.value) {
-        return std::unexpected(invalid("LINK follow requires a non-zero target FID different from the author."));
+        return std::unexpected(invalid("LINK requires a non-zero target FID different from the author."));
+    }
+    if (input.linkType != "follow" && input.linkType != "block") {
+        return std::unexpected(invalid("Unsupported canonical social link type."));
     }
     std::string body{};
-    appendBytes(body, 1U, "follow");
+    appendBytes(body, 1U, input.linkType);
     appendUint(body, 3U, input.target.value);
     return body;
 }
