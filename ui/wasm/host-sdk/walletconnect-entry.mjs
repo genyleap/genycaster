@@ -14,6 +14,7 @@ const optionalMethods=[
   'wallet_getCapabilities','wallet_sendCalls','wallet_getCallsStatus'
 ];
 let initPromise=null;
+let pairingInProgress=false;
 const initialize=()=>{
   if(!initPromise){
     initPromise=EthereumProvider.init({
@@ -39,7 +40,11 @@ export async function connectWalletConnect({onUri,signal}={}){
   const provider=await initialize();
   if(signal?.aborted)throw Object.assign(new Error('Wallet request cancelled'),{code:4001});
   if(provider.session)return provider;
+  if(pairingInProgress)
+    throw Object.assign(new Error('Another wallet pairing is in progress'),{code:4900});
+  pairingInProgress=true;
   let cancelled=false;
+  let abortReject=()=>{};
   const onAbort=()=>{cancelled=true;
     // Do not disconnect any already-authorized session owned by another
     // Mini App. Cancel only the still-pending pairing handshake.
@@ -52,13 +57,21 @@ export async function connectWalletConnect({onUri,signal}={}){
   signal?.addEventListener('abort',onAbort,{once:true});
   provider.on('display_uri',onDisplayUri);
   try {
-    await provider.connect();
+    const aborted=new Promise((_,reject)=>{
+      abortReject=()=>reject(Object.assign(
+        new Error('Wallet connection cancelled'),{code:4001}));
+      if(signal?.aborted)abortReject();
+      else signal?.addEventListener('abort',abortReject,{once:true});
+    });
+    await Promise.race([provider.connect(),aborted]);
     if(cancelled||signal?.aborted)
       throw Object.assign(new Error('Wallet request cancelled'),{code:4001});
     if(!provider.session)throw new Error('Wallet did not approve a WalletConnect session');
     return provider;
   } finally {
+    pairingInProgress=false;
     provider.removeListener?.('display_uri',onDisplayUri);
     signal?.removeEventListener('abort',onAbort);
+    signal?.removeEventListener('abort',abortReject);
   }
 }
