@@ -73,8 +73,29 @@ malformed requested chains remain absent from `getChains()`.
   local desktop bridge URL. The current Android Mini App WebView does not
   assert injected-wallet availability; no unsupported native-wallet button
   is exposed.
-- **Web/WASM:** Use the same-page injected EIP-6963 wallet registry, with
-  EIP-1193 fallback, session-scoped consent and no loopback native launcher.
+- **Web/WASM:** Support injected EIP-6963 / EIP-1193 providers and an
+  independently loaded, official WalletConnect v2 Ethereum Provider. Reown
+  pairing is invoked *only* after an explicit user choice. Its QR code can be
+  scanned by a separate mobile wallet; mobile WC deep links require a further
+  user tap. The SDK speaks to Reown's encrypted relay, and the wallet confirms
+  each requested signature or transaction. The result returns to the same
+  GenyCaster Mini App iframe rather than opening the Mini App in another
+  browser. No native Qt/WASM binary rebuild is needed for this self-hosted
+  JavaScript capability. The public Reown Project ID is an identifier, not a
+  custody credential.
+
+The deployed browser uses two bundles: `miniapp-host-bridge.mjs` for the
+official Farcaster host and wallet authorization boundary, and
+`genycaster-walletconnect.mjs` for the lazily loaded WalletConnect
+Ethereum Provider and local QR renderer. The asset manifest hashes both,
+and neither bundle is fetched from a third-party executable CDN.
+WalletConnect session persistence does **not** convey account grants between
+Mini App origins. Disconnect or an account-principal change revokes the
+current origin's grant. A completed pairing is not itself a signature.
+
+Native desktop/iOS/Android WalletConnect adapters are separate follow-on
+work. Reown Project IDs and relay sessions on web must not be presented as
+an installed, functional native WalletConnect adapter.
 
 Wallet account permission and signature approval remain distinct. Neither
 remembering a browser nor opening an application grants signing rights.
