@@ -20,7 +20,9 @@ Item {
         String(root.safeBlockData.text || ""))
 
     implicitHeight: content.implicitHeight
-    clip: true
+    // RichInlineText reserves its own vertical ink insets; do not crop the
+    // vector/sprite artwork at the parent paragraph boundary.
+    clip: false
 
     RowLayout {
         id: content
