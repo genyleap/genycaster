@@ -103,8 +103,8 @@ Superellipse {
                 text: qsTrId("genycaster.composer.copy_code")
                 onClicked: {
                     if (root.source.length === 0) return
-                    presentationBridge.copyText(root.source)
-                    copyCodeButton.acknowledgeCopy()
+                    const copied = presentationBridge.copyText(root.source)
+                    copyCodeButton.acknowledgeCopy(copied)
                     copyCodeFeedbackTimer.restart()
                 }
             }
