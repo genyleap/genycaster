@@ -6781,5 +6781,21 @@ Company | https://company.com</source>
             <source>More Market Pulse tokens</source>
             <translation>توکن‌های بیشتر در Market Pulse</translation>
         </message>
+        <message id="genycaster.profile.block_user">
+            <source>Block user</source>
+            <translation>مسدود کردن کاربر</translation>
+        </message>
+        <message id="genycaster.profile.unblock_user">
+            <source>Unblock user</source>
+            <translation>رفع مسدودسازی کاربر</translation>
+        </message>
+        <message id="genycaster.profile.you_blocked_user">
+            <source>You blocked this user.</source>
+            <translation>شما این کاربر را مسدود کرده‌اید.</translation>
+        </message>
+        <message id="genycaster.profile.user_blocked_you">
+            <source>This user blocked you.</source>
+            <translation>این کاربر شما را مسدود کرده است.</translation>
+        </message>
     </context>
 </TS>
