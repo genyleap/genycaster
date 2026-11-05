@@ -1423,9 +1423,9 @@ Item {
                                         iconGlyph: Theme.iconCopy
                                         text: qsTrId("genycaster.share.copy_profile_link")
                                         onClicked: {
-                                            presentationBridge.copyText(presentationBridge.profileShareUrl(
+                                            const copied = presentationBridge.copyText(presentationBridge.profileShareUrl(
                                                 Number(root.activeDetail.fid || 0)))
-                                            copyProfileLinkAction.acknowledgeCopy()
+                                            copyProfileLinkAction.acknowledgeCopy(copied)
                                             menuCopyCloseTimer.restart()
                                         }
                                     }
