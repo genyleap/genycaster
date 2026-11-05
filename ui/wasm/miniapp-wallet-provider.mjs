@@ -93,12 +93,31 @@ export function createDiscoveredBrowserWallet(win, options={}) {
   win.dispatchEvent?.(new Event('eip6963:requestProvider'));
   if(win.ethereum?.request)add('Browser wallet',win.ethereum);
   if(wcFactory)add('WalletConnect',wcProxy,'walletconnect');
-  const connectWalletConnect=async ({onUri,signal}={})=>{
+  const connectWalletConnect=async ({onUri,onStatus,signal}={})=>{
     if(!wcFactory||closed)throw denied('WalletConnect is not available',4900);
     if(signal?.aborted)throw denied('Wallet connection cancelled',4001);
     if(pairing)return pairing;
     pairing=(async()=>{
-      const provider=await wcFactory({onUri,signal});
+      // A stalled script fetch cannot hold the Mini App indefinitely.
+      // Abort/timeout ends the UI request even if the browser continues
+      // resolving its network import in the background.
+      onStatus?.('loading');
+      const provider=await new Promise((resolve,reject)=>{
+        let settled=false;
+        const settle=(error,value)=>{
+          if(settled)return;
+          settled=true;
+          clearTimeout(timer);
+          signal?.removeEventListener('abort',abort);
+          if(error)reject(error);else resolve(value);
+        };
+        const abort=()=>settle(denied('Wallet connection cancelled',4001));
+        const timer=setTimeout(()=>settle(denied(
+          'WalletConnect module did not load. Check your connection and retry.',4900)),25000);
+        signal?.addEventListener('abort',abort,{once:true});
+        Promise.resolve().then(()=>wcFactory({onUri,onStatus,signal}))
+          .then(value=>settle(null,value),error=>settle(error));
+      });
       if(closed||signal?.aborted)throw denied('Wallet connection cancelled',4001);
       if(!provider?.session || typeof provider.request!=='function')
         throw denied('WalletConnect connection was not approved',4900);
