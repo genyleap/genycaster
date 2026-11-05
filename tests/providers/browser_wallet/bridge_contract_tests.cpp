@@ -349,6 +349,93 @@ void testAccountAccessConsentIsRememberedPerOrigin()
     assert(rejected.error->code == 4001);
 }
 
+void testAccountPrivacyUntilExplicitPermission()
+{
+    using provider::compatibility::browser_wallet::bridge::Config;
+    using provider::compatibility::browser_wallet::bridge::makeBridge;
+
+    std::promise<std::string> launchPromise{};
+    auto launched = launchPromise.get_future();
+    auto bridge = makeBridge(Config{
+        .launch = [&launchPromise](const std::string& url) -> foundation::result::Status {
+            launchPromise.set_value(url);
+            return {};
+        },
+        .supportedChains = {"eip155:8453"},
+    });
+    assert(bridge);
+    assert((*bridge)->beginSession("Accounts", "https://accounts.example"));
+
+    std::promise<capability::wallet::EthereumRpcResponse> privateAccountsPromise{};
+    auto privateAccounts = privateAccountsPromise.get_future();
+    (*bridge)->request({.id=40U,.method="eth_accounts",.paramsJson="[]"},
+        [&privateAccountsPromise](auto result) {
+            privateAccountsPromise.set_value(std::move(result));
+        });
+    assert(privateAccounts.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const auto privateResult = privateAccounts.get();
+    assert(!privateResult.error);
+    assert(privateResult.resultJson == "[]");
+    assert(launched.wait_for(std::chrono::milliseconds{50}) == std::future_status::timeout);
+
+    std::promise<capability::wallet::EthereumRpcResponse> signPromise{};
+    auto sign = signPromise.get_future();
+    (*bridge)->request({.id=41U,.method="personal_sign",.paramsJson="[]"},
+        [&signPromise](auto result) { signPromise.set_value(std::move(result)); });
+    assert(sign.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(sign.get().error->code == 4100);
+
+    std::promise<capability::wallet::EthereumRpcResponse> permissionPromise{};
+    auto permission = permissionPromise.get_future();
+    (*bridge)->request({
+        .id=42U,.method="wallet_requestPermissions",
+        .paramsJson=R"([{"eth_accounts":{}}])"},
+        [&permissionPromise](auto result) {
+            permissionPromise.set_value(std::move(result));
+        });
+    assert(launched.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    const ParsedUrl url = parseLoopbackUrl(launched.get());
+    const auto next = request(url,http::verb::get,url.target+"/next");
+    assert(next.result() == http::status::ok);
+    boost::system::error_code parseError{};
+    const auto payload = json::parse(next.body(),parseError);
+    assert(!parseError && payload.is_object());
+    const auto transport = payload.as_object().at("transportId");
+    const auto transportId = transport.is_uint64()
+        ? transport.as_uint64() : static_cast<std::uint64_t>(transport.as_int64());
+    const auto posted = request(url,http::verb::post,url.target+"/result",
+        json::serialize(json::object{
+            {"transportId",transportId},
+            {"result",json::array{json::object{{"parentCapability","eth_accounts"}}}},
+        }));
+    assert(posted.result() == http::status::ok);
+    assert(permission.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(!permission.get().error);
+
+    std::promise<capability::wallet::EthereumRpcResponse> exposedAccountsPromise{};
+    auto exposedAccounts = exposedAccountsPromise.get_future();
+    (*bridge)->request({.id=43U,.method="eth_accounts",.paramsJson="[]"},
+        [&exposedAccountsPromise](auto result) {
+            exposedAccountsPromise.set_value(std::move(result));
+        });
+    const auto accountsNext = request(url,http::verb::get,url.target+"/next");
+    assert(accountsNext.result() == http::status::ok);
+    const auto accountsPayload = json::parse(accountsNext.body(),parseError);
+    assert(!parseError && accountsPayload.is_object());
+    assert(accountsPayload.as_object().at("method").as_string() == "eth_accounts");
+    (*bridge)->endSession();
+
+    assert((*bridge)->beginSession("Other app","https://other.example"));
+    std::promise<capability::wallet::EthereumRpcResponse> differentOriginPromise{};
+    auto differentOrigin = differentOriginPromise.get_future();
+    (*bridge)->request({.id=44U,.method="eth_accounts",.paramsJson="[]"},
+        [&differentOriginPromise](auto result) {
+            differentOriginPromise.set_value(std::move(result));
+        });
+    assert(differentOrigin.wait_for(std::chrono::seconds{1}) == std::future_status::ready);
+    assert(differentOrigin.get().resultJson == "[]");
+}
+
 void testBridgeRejectsUnsupportedChainBeforeWallet()
 {
     using provider::compatibility::browser_wallet::bridge::Config;
@@ -384,6 +471,7 @@ int main()
 {
     testBridgeRoutesWalletRequestsAndEvents();
     testAccountAccessConsentIsRememberedPerOrigin();
+    testAccountPrivacyUntilExplicitPermission();
     testBridgeRejectsUnsupportedChainBeforeWallet();
     return 0;
 }
