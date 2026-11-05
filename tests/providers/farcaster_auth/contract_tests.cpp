@@ -747,13 +747,13 @@ void miniAppSignInProofBindsOriginNonceAndFid()
     const std::string signature = "0x" + std::string(128, '0') + "1b";
     const provider::Config config{.optimismRpcUrl = "https://rpc.example"};
     FakeTransport transport{};
-    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x01\\"}");
-    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
-        + abiWord(0) + abiWord(0) + "\\"}");
-    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
-        + abiWord(42) + "\\"}");
-    transport.enqueue(200, "{\\"jsonrpc\\":\\"2.0\\",\\"id\\":1,\\"result\\":\\"0x"
-        + abiAddressWord('1') + "\\"}");
+    transport.enqueue(200, "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x01\"}");
+    transport.enqueue(200, "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x"
+        + abiWord(0) + abiWord(0) + "\"}");
+    transport.enqueue(200, "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x"
+        + abiWord(42) + "\"}");
+    transport.enqueue(200, "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x"
+        + abiAddressWord('1') + "\"}");
     const auto proof = provider::verifyMiniAppSignIn(
         transport, message, signature, "genycaster.example",
         "https://genycaster.example/sign-in", "abcdef12",
