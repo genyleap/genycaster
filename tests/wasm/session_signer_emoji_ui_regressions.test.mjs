@@ -69,3 +69,26 @@ test('inline emoji reserve ink space and replace Unicode only in their live layo
   assert.match(cpp, /generation != m_impl->emojiRectGeneration/);
   assert.match(cpp, /handler\.animatedPositions\.clear\(\)/);
 });
+
+
+test('feed emojis keep one renderer alive across loops, scrolling and one-shot sprite completion', () => {
+  const policy = source('src/application/emoji/animation_policy.cpp');
+  const emoji = source('ui/components/AnimatedEmoji.qml');
+  const sprite = source('ui/components/SpriteEmoji.qml');
+  const rich = source('ui/components/RichInlineText.qml');
+  const feed = policy.slice(policy.indexOf('case Surface::Feed:'),
+                            policy.indexOf('case Surface::PickerCell:'));
+  assert.match(feed, /PlaybackMode::Loop/);
+  assert.doesNotMatch(feed, /PlaybackMode::PlayOnce/);
+  assert.match(feed, /pauseWhenInvisible = true/);
+  assert.match(emoji, /readonly property int configuredLoops:/);
+  assert.match(emoji, /readonly property int playbackLoops: root\.motionActive \? root\.configuredLoops : 0/);
+  assert.match(emoji, /lottie\.item\.playCount = root\.configuredLoops === 0 \? 1 : root\.configuredLoops/);
+  assert.match(emoji, /lottie\.item\.animationActive = root\.playbackLoops !== 0/);
+  assert.match(sprite, /property bool playbackFinished: false/);
+  assert.match(sprite, /!root\.requestFailed && !root\.playbackFinished/);
+  assert.match(sprite, /finishBehavior: AnimatedSprite\.FinishAtFinalFrame/);
+  assert.match(sprite, /onFinished:/);
+  assert.match(sprite, /opacity: root\.animationReady \? 1 : 0/);
+  assert.match(rich, /onArtworkReadyChanged: emojiOverlay\.syncAnimatedState\(\)/);
+});
