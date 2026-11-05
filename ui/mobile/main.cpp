@@ -1107,8 +1107,6 @@ int main(int argc, char* argv[])
         qCritical().noquote() << "Snapchain read URL must be a credential-free HTTP(S) origin.";
         return 2;
     }
-    const std::optional<std::string> snapchainBaseUrl{snapchainBaseUrlText.toStdString()};
-
     // A selected read-only Snapchain node cannot accept submissions. Configure
     // its validator/write route separately; with no override, preserve the
     // prior one-origin behavior for deployments whose node supports both.
@@ -1124,11 +1122,54 @@ int main(int argc, char* argv[])
     }
     snapchainWriteBaseUrlText = normalizeConfigurationToken(
         std::move(snapchainWriteBaseUrlText));
+
+    // The primary Farcaster message writer is selected by the active
+    // protocol, not by the historical name of the Snapchain-compatible
+    // /v1/ adapter. HyperSnap also accepts canonical signed protobuf at
+    // /v1/submitMessage. Never silently send a HyperSnap user's block,
+    // reaction or follow to a different Snapchain origin.
+    const bool primaryProtocolWriter =
+        !preferredWriteProviderId || *preferredWriteProviderId == "primary-protocol-writer";
+    if (primaryProtocolWriter && preferredReadProviderId) {
+        QString selectedProtocolOrigin{};
+        if (*preferredReadProviderId == "hypersnap-v2") {
+            selectedProtocolOrigin = appliedNodeEndpoint;
+        } else if (*preferredReadProviderId != "farcaster-snapchain") {
+            const auto match = std::find_if(
+                additionalReadProviders.cbegin(), additionalReadProviders.cend(),
+                [&](const genycaster::ui::runtime::ReadProviderProfile& profile) {
+                    return profile.id == *preferredReadProviderId;
+                });
+            if (match != additionalReadProviders.cend()
+                && (match->adapterContract == "hypersnap-v2"
+                    || match->adapterContract == "snapchain-v1")) {
+                selectedProtocolOrigin = QString::fromStdString(match->endpoint);
+            } else {
+                // Incompatible/unknown read contracts cannot be treated as
+                // canonical write endpoints. Refuse rather than cross-post.
+                qCritical().noquote()
+                    << "Selected protocol has no compatible canonical message writer.";
+                return 2;
+            }
+        }
+        if (!selectedProtocolOrigin.isEmpty()) {
+            if (!isValidHttpServiceUrl(selectedProtocolOrigin)) {
+                qCritical().noquote() << "Selected protocol writer URL is invalid.";
+                return 2;
+            }
+            // Both signer registry and signed writes must use the SAME
+            // selected node. Caller may still choose an explicit separate
+            // write provider through network/preferredWriteProviderId.
+            snapchainBaseUrlText = selectedProtocolOrigin;
+            snapchainWriteBaseUrlText = selectedProtocolOrigin;
+        }
+    }
     if (!snapchainWriteBaseUrlText.isEmpty()
         && !isValidHttpServiceUrl(snapchainWriteBaseUrlText)) {
         qCritical().noquote() << "Snapchain validator/write URL must be a credential-free HTTP(S) origin.";
         return 2;
     }
+    const std::optional<std::string> snapchainBaseUrl{snapchainBaseUrlText.toStdString()};
     const std::optional<std::string> snapchainWriteBaseUrl =
         snapchainWriteBaseUrlText.isEmpty()
             ? snapchainBaseUrl
