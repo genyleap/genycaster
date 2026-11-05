@@ -1390,6 +1390,7 @@ Item {
                                                 compact: root.compact
                                                 onAuthenticationRequested: root.openAccountPopup()
                                                 onTaskManagerRequested: taskManagerPopup.open()
+                                                onProDetailsRequested: genyProDetailsDrawer.open()
                                             }
                                         }
 
