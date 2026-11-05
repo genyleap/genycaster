@@ -495,6 +495,8 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     case OperationKind::UndoRecast: return "undo-recast";
     case OperationKind::Follow: return "follow";
     case OperationKind::Unfollow: return "unfollow";
+    case OperationKind::Block: return "block";
+    case OperationKind::Unblock: return "unblock";
     }
     return "publish-cast";
 }
@@ -511,6 +513,8 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
     if (text == "undo-recast") return OperationKind::UndoRecast;
     if (text == "follow") return OperationKind::Follow;
     if (text == "unfollow") return OperationKind::Unfollow;
+    if (text == "block") return OperationKind::Block;
+    if (text == "unblock") return OperationKind::Unblock;
     return std::unexpected(storageFailure("Write outbox contains an unsupported operation kind."));
 }
 
@@ -589,11 +593,13 @@ FROM cast_embed_items WHERE cast_id = ? ORDER BY position ASC;
         return {};
     case OperationKind::Follow:
     case OperationKind::Unfollow:
+    case OperationKind::Block:
+    case OperationKind::Unblock:
         if (hasOptimisticCast || hasCastTarget || !hasFidTarget ||
             operation.target.fid->value == 0U || operation.target.fid->value == operation.author.value) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::InvalidArgument,
-                "Follow operations require exactly one non-self FID target."));
+                "Social link operations require exactly one non-self FID target."));
         }
         return {};
     }
