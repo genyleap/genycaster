@@ -669,6 +669,20 @@ private:
             m_allowedSessions == 1U && m_sessions.size() == 1U
             && !handoffSourceTaskId.isEmpty() && find(handoffSourceTaskId);
         if (m_sessions.size() >= m_allowedSessions && !replacingOnlySession) {
+            // A failed document may remain in Task Manager for retry/error
+            // inspection, but it must not permanently reserve a Pro slot.
+            // Reclaim ONLY failed, non-publishing sessions when the user
+            // explicitly launches another app. Never evict live sessions.
+            while (m_sessions.size() >= m_allowedSessions) {
+                const auto failed = std::ranges::find_if(m_sessions, [](const auto& item) {
+                    return item->failed && item->pendingCompose.isEmpty();
+                });
+                if (failed == m_sessions.end()) break;
+                const QString failedTaskId = (*failed)->taskId;
+                terminate(failedTaskId);
+            }
+        }
+        if (m_sessions.size() >= m_allowedSessions && !replacingOnlySession) {
             if (!handoffSourceTaskId.isEmpty()) {
                 rejectOpenMiniAppHandoff(handoffSourceTaskId, handoffSourceGeneration,
                                          handoffOuterId, handoffDocument,
