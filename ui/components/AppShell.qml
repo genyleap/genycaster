@@ -1389,6 +1389,7 @@ Item {
                                             AppsSurface {
                                                 compact: root.compact
                                                 onAuthenticationRequested: root.openAccountPopup()
+                                                onTaskManagerRequested: taskManagerPopup.open()
                                             }
                                         }
 
