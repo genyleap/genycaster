@@ -52,7 +52,16 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
   let active = true;
   // The authenticated Farcaster identity is read-only context. A separate,
   // user-approved EIP-1193 grant is required for a browser-injected wallet.
-  const injected = createDiscoveredBrowserWallet(window);
+  const injected = createDiscoveredBrowserWallet(window,{
+    // The self-hosted Reown SDK is loaded only when the user selects
+    // WalletConnect; no relay connection is opened on Mini App launch.
+    walletConnectChains:['eip155:10','eip155:8453','eip155:1',
+      'eip155:42161','eip155:137','eip155:7777777'],
+    walletConnectFactory: async ({onUri,signal})=>{
+      const sdk=await import('./genycaster-walletconnect.mjs');
+      return sdk.connectWalletConnect({onUri,signal});
+    }
+  });
   const wallet = createMiniAppEthereumProvider(url.origin, injected, undefined, url.href);
   const host = {
     context: {
@@ -80,7 +89,12 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     getCapabilities: async () => wallet && injected.available()
       ? [...limitedCapabilities,'wallet.getEthereumProvider']
       : [...limitedCapabilities],
-    getChains: async () => wallet && injected.available() ? wallet.chains() : [],
+    getChains: async () => {
+      if(!wallet||!injected.available())return [];
+      if(injected.selectedId()==='walletconnect' && !injected.walletConnectConnected())
+        return injected.supportedChains();
+      return wallet.chains();
+    },
     // Requests for unimplemented financial, identity or protocol writes fail.
     signIn: unsupported,
     signManifest: unsupported,
