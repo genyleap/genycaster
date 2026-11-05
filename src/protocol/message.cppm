@@ -71,6 +71,7 @@ struct FollowInput final {
     domain::identity::Fid fid{};
     domain::signer::PublicKey publicKey{};
     domain::identity::Fid target{};
+    std::string linkType{"follow"};
     bool isFollowing{true};
     std::uint32_t timestamp{};
     Network network{Network::Mainnet};
