@@ -4,6 +4,7 @@ module;
 #include "miniapp_host_controller.hpp"
 #include "miniapp_task_manager_controller.hpp"
 #include <memory>
+#include <string>
 
 export module farcaster.runtime.miniapp;
 
@@ -30,7 +31,8 @@ public:
         MiniAppTaskManagerController& taskManager,
         bool useDirectProxy,
         qulonglong clientFid,
-        capability::wallet::IEthereumWalletBridge* walletBridge = nullptr);
+        capability::wallet::IEthereumWalletBridge* walletBridge = nullptr,
+        std::string optimismRpcUrl = "https://mainnet.optimism.io");
     ~MiniAppRuntime();
     /** Bounded by the verified account's Geny Pro entitlement (1 or 4). */
     void setSessionLimit(int limit);
