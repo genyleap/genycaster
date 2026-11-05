@@ -3584,7 +3584,7 @@ void connectRuntime(
             browserSigner->start(QStringLiteral("block"),
                 QString::number(bridge.accountFid()),
                 QJsonObject{{QStringLiteral("targetFid"), QString::number(targetFid)},
-                            {QStringLiteral("active"), following}});
+                            {QStringLiteral("active"), blocked}});
             return;
 #endif
             if (!runtime->writeService) {
