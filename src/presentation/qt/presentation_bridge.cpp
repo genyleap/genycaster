@@ -1214,7 +1214,7 @@ void PresentationBridge::applyHydratedTopicCast(QString castId, QVariantMap cast
     const auto hash = canonicalProtocolCastId(castId);
     if (hash.isEmpty() || canonicalProtocolCastId(
         cast.value(QStringLiteral("castId")).toString()) != hash) return;
-    // HyperSnap may return a bare 40-hex hash while the topic index and QML
+    // Indexed providers may return bare 40-hex hashes while the topic index and QML
     // membership keys use 0x-prefixed hashes. Normalize at the presentation
     // boundary so hydrated previews cannot disappear from the topic filter.
     cast.insert(QStringLiteral("castId"), hash);
