@@ -318,7 +318,7 @@ void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
 #endif
     }
     if (!launched) {
-        m_walletBrowserError = QStringLiteral("Could not open this browser. Try another one.");
+        m_walletBrowserError = qtTrId("genycaster.wallet.browser_open_failed");
         emit walletBrowserPickerChanged();
         return;
     }

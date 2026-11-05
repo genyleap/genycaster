@@ -34,6 +34,7 @@ Item {
         parent: picker.parent
         z: 1200
         padding: Theme.space3
+        LayoutMirroring.enabled: false
         width: Math.min(380, parent ? Math.max(280, parent.width - Theme.space4 * 2) : 380)
         height: Math.min(parent ? parent.height - Theme.space4 * 2 : 420,
                          column.implicitHeight + topPadding + bottomPadding)
@@ -62,10 +63,12 @@ Item {
         contentItem: ColumnLayout {
             id: column
             spacing: Theme.space2
+            LayoutMirroring.enabled: false
+            layoutDirection: Theme.uiDirection
 
             ModalHeader {
                 Layout.fillWidth: true
-                title: qsTr("Open wallet request")
+                title: qsTrId("genycaster.wallet.browser_title")
                 subtitle: miniAppHost.walletBrowserAppName
                 onCloseRequested: miniAppHost.cancelWalletBrowser()
             }
@@ -73,6 +76,7 @@ Item {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: miniAppHost.walletBrowserOrigin
+                forceLeftToRight: true
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideMiddle
@@ -85,7 +89,9 @@ Item {
                     id: option
                     required property var modelData
                     readonly property string browserId: String(modelData.id || "")
-                    readonly property string browserName: String(modelData.label || "")
+                    readonly property string browserName: browserId === "system"
+                        ? qsTrId("genycaster.wallet.default_browser")
+                        : String(modelData.label || "")
                     readonly property bool lastUsed: Boolean(modelData.lastUsed)
 
                     Layout.fillWidth: true
@@ -94,7 +100,7 @@ Item {
                     hoverEnabled: true
                     focusPolicy: Qt.StrongFocus
                     Accessible.name: browserName
-                    Accessible.description: lastUsed ? qsTr("Previously used") : ""
+                    Accessible.description: lastUsed ? qsTrId("genycaster.wallet.previous_browser") : ""
                     onClicked: miniAppHost.chooseWalletBrowser(browserId)
 
                     background: Superellipse {
@@ -106,14 +112,18 @@ Item {
                         curveDepth: Theme.curveControl
                     }
 
-                    contentItem: RowLayout {
-                        spacing: Theme.space2
-                        layoutDirection: Theme.uiDirection
+                    contentItem: Item {
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.space2
+                            anchors.rightMargin: Theme.space2
+                            spacing: Theme.space2
+                            LayoutMirroring.enabled: false
+                            layoutDirection: Theme.uiDirection
 
                         Superellipse {
                             Layout.preferredWidth: Theme.scaleUi(30)
                             Layout.preferredHeight: Theme.scaleUi(30)
-                            Layout.leftMargin: Theme.space2
                             fillColor: Theme.surface
                             borderColor: Theme.borderSubtle
                             borderWidth: Theme.strokeHairline
@@ -129,7 +139,7 @@ Item {
                                 sourceSize.height: 60
                                 fillMode: Image.PreserveAspectFit
                                 smooth: true
-                                mipmap: true
+                                mipmap: false
                                 visible: status === Image.Ready && source.toString().length > 0
                             }
                             Icon {
@@ -145,6 +155,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             text: option.browserName
+                            alignToUi: true
                             font.weight: Theme.weightDemiBold
                             font.pixelSize: Theme.typeMetaSize
                             color: Theme.ink
@@ -153,16 +164,16 @@ Item {
 
                         DirectionAwareLabel {
                             visible: option.lastUsed
-                            text: qsTr("Last used")
+                            text: qsTrId("genycaster.wallet.last_used")
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.inkMuted
                         }
 
                         Icon {
-                            Layout.rightMargin: Theme.space2
-                            text: Theme.iconArrowRight
+                            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
                             preferredSize: Theme.iconSizeSmall
                             color: option.hovered ? Theme.accent : Theme.inkMuted
+                        }
                         }
                     }
                 }
@@ -179,7 +190,7 @@ Item {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTr("You'll confirm the request in your wallet. Your keys stay there.")
+                text: qsTrId("genycaster.wallet.approval_hint")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.inkMuted
                 wrapMode: Text.Wrap
@@ -191,7 +202,7 @@ Item {
                 ActionButton {
                     quiet: true
                     compact: true
-                    text: qsTr("Cancel")
+                    text: qsTrId("genycaster.wallet.cancel")
                     onClicked: miniAppHost.cancelWalletBrowser()
                 }
             }
