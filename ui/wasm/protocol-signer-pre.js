@@ -283,6 +283,8 @@
                             payload.reaction,payload.active); break;
                     case "follow":
                         hash = await current.follow(fid,payload.targetFid,payload.active); break;
+                    case "block":
+                        hash = await current.block(fid,payload.targetFid,payload.active); break;
                     case "profile":
                         hash = await current.updateProfile(fid,payload); break;
                     default:
@@ -291,6 +293,10 @@
                     if (epoch === thisEpoch && owner === fid)
                         report({kind: "write", phase: "confirmed", fid, hash,
                             operation: action,
+                            targetFid: action==='follow'||action==='block'
+                                ? String(payload.targetFid||'') : '',
+                            active: action==='follow'||action==='block'
+                                ? payload.active===true : false,
                             targetCastId: action==='remove'
                                 ? String(payload.target?.hash||'') : ''});
                     }
