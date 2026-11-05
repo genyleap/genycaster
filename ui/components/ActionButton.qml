@@ -18,8 +18,15 @@ Button {
     // A copy action can acknowledge successful clipboard dispatch without
     // closing its menu before the user sees the result.
     property bool copyConfirmed: false
-    function acknowledgeCopy() { control.copyConfirmed = true }
-    function clearCopyFeedback() { control.copyConfirmed = false }
+    property bool copyFailed: false
+    function acknowledgeCopy(succeeded) {
+        control.copyConfirmed = succeeded === true
+        control.copyFailed = succeeded === false
+    }
+    function clearCopyFeedback() {
+        control.copyConfirmed = false
+        control.copyFailed = false
+    }
     property color customSelectedColor: "transparent"
     property color customSelectedSurface: "transparent"
     property string iconGlyph: ""
@@ -148,6 +155,7 @@ Button {
     // operation temporarily disables the action (opacity indicates disabled).
     readonly property color foregroundColor: destructiveFilled ? Theme.dangerInk
                                                : destructive ? Theme.danger
+                                               : copyFailed ? Theme.danger
                                                : copyConfirmed ? Theme.success
                                                : customForegroundColor.a > 0 ? customForegroundColor
                                                : !enabled && !busy ? Theme.inkDisabled
@@ -173,8 +181,9 @@ Button {
         Icon {
             id: actionGlyph
             visible: (!control.busy || control.spinIconWhileBusy)
-                     && (control.iconGlyph.length > 0 || control.copyConfirmed)
-            text: control.copyConfirmed ? Theme.iconCheck : control.iconGlyph
+                     && (control.iconGlyph.length > 0 || control.copyConfirmed || control.copyFailed)
+            text: control.copyFailed ? Theme.iconWarning
+                  : control.copyConfirmed ? Theme.iconCheck : control.iconGlyph
             RotationAnimator on rotation {
                 from: 0
                 to: 360
@@ -185,7 +194,7 @@ Button {
             }
             onVisibleChanged: if (!visible) rotation = 0
             filled: control.selected
-            color: control.copyConfirmed ? Theme.success
+            color: control.copyFailed ? Theme.danger : control.copyConfirmed ? Theme.success
                    : control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
             Behavior on color {
                 ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
