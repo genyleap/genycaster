@@ -1444,6 +1444,58 @@ completeRecoveryChallenge(transport::http::IHttpTransport& transport,
     };
 }
 
+foundation::result::Result<MiniAppSignInProof>
+verifyMiniAppSignIn(
+    transport::http::IHttpTransport& transport,
+    std::string message,
+    std::string signature,
+    std::string expectedDomain,
+    std::string expectedUri,
+    std::string expectedNonce,
+    const domain::identity::Fid fid,
+    const bool acceptAuthAddress,
+    Config config)
+{
+    if (fid.value == 0U || message.size() < 80U || message.size() > 4096U
+        || signature.size() < 130U || signature.size() > 2048U
+        || expectedNonce.size() < 8U || expectedNonce.size() > 128U
+        || !config.optimismRpcUrl.starts_with("https://")
+        || !isValidHttpUri(config.optimismRpcUrl)
+        || config.requestTimeout <= std::chrono::milliseconds::zero()) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::InvalidArgument,
+            "Invalid Mini App SIWF proof, nonce, or verification endpoint."));
+    }
+    auto parsed = parseSiwe(message);
+    if (!parsed) return std::unexpected(std::move(parsed.error()));
+    if (auto checked = validateSiwe(*parsed, expectedDomain, expectedUri,
+                                    expectedNonce, fid.value); !checked) {
+        return std::unexpected(std::move(checked.error()));
+    }
+    // A server-generated nonce and a short, origin-specific expiry are
+    // essential for replay resistance. The Mini App relying party MUST also
+    // verify these fields on its own server.
+    if (!parsed->expirationTime) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "Mini App SIWF proof requires a short expiration time."));
+    }
+    const auto now = foundation::time::now();
+    if (*parsed->expirationTime > now + std::chrono::minutes{10}) {
+        return std::unexpected(makeError(
+            foundation::error::ErrorCode::Unauthorized,
+            "Mini App SIWF proof has an excessive lifetime."));
+    }
+    EthereumVerifier verifier{transport, std::move(config.optimismRpcUrl),
+                              config.requestTimeout};
+    auto result = verifier.verify(message, signature, parsed->address, fid,
+                                  acceptAuthAddress);
+    if (!result) return std::unexpected(std::move(result.error()));
+    return MiniAppSignInProof{
+        .authAddress = result->method == domain::session::AuthenticationMethod::AuthAddress,
+    };
+}
+
 foundation::result::Result<domain::identity::Fid>
 resolveRecoveryCustodyFid(
     transport::http::IHttpTransport& transport,
