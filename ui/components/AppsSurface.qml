@@ -59,6 +59,12 @@ Item {
     }
 
     signal authenticationRequested()
+    signal taskManagerRequested()
+    readonly property bool sessionQuotaReached:
+        miniAppHost.sessionLimit > 0
+        && miniAppTaskManager.taskCount >= miniAppHost.sessionLimit
+    readonly property bool sessionLimitError:
+        root.launchErrorText === qsTrId("genycaster.miniapp.session_limit")
     property var selectedMiniApp: ({})
     property var pendingLaunchApp: null
     property string launchErrorText: ""
@@ -215,6 +221,19 @@ Item {
                     font.pixelSize: Theme.typeMetaSize
                     wrapMode: Text.Wrap
                 }
+            }
+
+            ActionButton {
+                objectName: "miniAppActiveSessions"
+                visible: root.section === "farcaster" && miniAppTaskManager.taskCount > 0
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconCpu
+                customForegroundColor: root.sessionQuotaReached ? Theme.warning : "transparent"
+                text: LocaleFormat.formatInteger(miniAppTaskManager.taskCount)
+                      + " / " + LocaleFormat.formatInteger(miniAppHost.sessionLimit)
+                      + (root.compact ? "" : " · " + qsTrId("genycaster.task_manager.title"))
+                onClicked: root.taskManagerRequested()
             }
 
             ActionButton {
@@ -1128,19 +1147,42 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Theme.space3
-        height: Math.max(52, launchFailure.implicitHeight + Theme.space3 * 2)
-        fillColor: Theme.dangerSurface
+        height: Math.max(52,
+            Math.max(launchFailure.implicitHeight, limitManageButton.implicitHeight)
+            + Theme.space3 * 2)
+        fillColor: root.sessionLimitError ? Theme.surfaceRaised : Theme.dangerSurface
         borderWidth: Theme.strokeHairline
-        borderColor: Theme.danger
+        borderColor: root.sessionLimitError ? Theme.warning : Theme.danger
         curveDepth: Theme.curveControl
-        DirectionAwareLabel {
-            id: launchFailure
+        RowLayout {
             anchors.fill: parent
             anchors.margins: Theme.space3
-            text: root.launchErrorText
-            color: Theme.textPrimary
-            font.pixelSize: Theme.typeLabelSize
-            wrapMode: Text.WordWrap
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+
+            DirectionAwareLabel {
+                id: launchFailure
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: root.launchErrorText
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeLabelSize
+                wrapMode: Text.WordWrap
+            }
+            ActionButton {
+                id: limitManageButton
+                objectName: "miniAppLimitManageSessions"
+                visible: root.sessionLimitError
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconCpu
+                text: qsTrId("genycaster.task_manager.title")
+                onClicked: {
+                    root.launchErrorText = ""
+                    launchErrorTimeout.stop()
+                    root.taskManagerRequested()
+                }
+            }
         }
     }
 
