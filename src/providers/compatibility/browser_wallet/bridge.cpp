@@ -259,6 +259,14 @@ const options=document.getElementById('options'),reject=document.getElementById(
 const method=document.getElementById('method'),params=document.getElementById('params');
 const message=document.getElementById('message'),kind=document.getElementById('kind');
 let current=null,busy=false,selected=null,listeners=[],undelivered=null;
+let stopped=false, nextTimer=null, lastPromptVisible=false;
+const scheduleNext=(delay=750)=>{if(!stopped)nextTimer=setTimeout(poll,delay);};
+const stopPolling=()=>{
+  stopped=true;
+  if(nextTimer!==null)clearTimeout(nextTimer);
+  nextTimer=null;
+  detach();
+};
 const providers=[];
 const events=['accountsChanged','chainChanged','connect','disconnect','message'];
 const show=(msg,level='')=>{status.className=level;status.textContent=msg;};
@@ -272,13 +280,18 @@ const detach=()=>{
   listeners=[];
 };
 const describe=async()=>{
-  if(!selected){wallet.className='error';wallet.textContent='No browser wallet selected.';return;}
+  const chosen=selected;
+  if(!chosen){wallet.className='error';wallet.textContent='Choose a wallet.';return;}
   try{
-    const accounts=await selected.provider.request({method:'eth_accounts'});
+    const accounts=await chosen.provider.request({method:'eth_accounts'});
+    if(stopped||selected!==chosen)return;
     wallet.className='ok';
     wallet.textContent=Array.isArray(accounts)&&accounts[0]
-      ? 'Wallet connected' : 'Connect in the wallet when prompted';
-  }catch(error){wallet.className='error';wallet.textContent=String(error?.message||error);}
+      ? 'Wallet connected' : 'Connect in your wallet when prompted';
+  }catch(error){
+    if(stopped||selected!==chosen)return;
+    wallet.className='error';wallet.textContent=String(error?.message||error);
+  }
 };
 const select=index=>{
   if(busy)return;
@@ -287,8 +300,9 @@ const select=index=>{
   options.value=String(index);
   if(typeof selected.provider.on==='function')for(const event of events){
     const callback=value=>{
+      if(stopped)return;
       post('/event',{event,params:[value]}).catch(()=>{});
-      describe();
+      if(!busy&&event==='accountsChanged')describe();
     };
     selected.provider.on(event,callback);
     listeners.push([event,callback]);
@@ -340,14 +354,19 @@ const readable=rpc=>{
     return /^[\x09\x0a\x0d\x20-\x7e]+$/.test(text)?text:'';
   }catch{return '';}
 };
-const completed=()=>{current=null;undelivered=null;busy=false;approve.disabled=false;reject.disabled=false;box.hidden=true;describe();};
+const completed=()=>{
+  current=null;undelivered=null;busy=false;
+  approve.disabled=false;reject.disabled=false;box.hidden=true;
+  lastPromptVisible=false;
+};
 const execute=async()=>{
   if(!current||busy)return;
   if(!selected){show('Choose a wallet before continuing.','error');return;}
   busy=true;approve.disabled=true;reject.disabled=true;
   const request=current;
+  const showApproval=Boolean(request.requiresApproval);
   if(!undelivered){
-    show('Waiting for '+selected.name+'…');
+    if(showApproval)show('Waiting for wallet approval…');
     try{
       undelivered={transportId:request.transportId,result:
         await selected.provider.request({method:request.method,params:request.params})};
@@ -361,14 +380,16 @@ const execute=async()=>{
   const response=undelivered;
   try{
     await post('/result',response);
-    show(response.error?(response.error.code===4001?'Wallet request declined.':'Wallet request failed.')
-      :'Wallet request completed. Return to GenyCaster.',response.error?'error':'ok');
+    if(showApproval)
+      show(response.error?(response.error.code===4001?'Request declined.':'Wallet request failed.')
+        :'Approved. Return to GenyCaster.',response.error?'error':'ok');
     completed();
   }catch(error){
     busy=false;approve.disabled=false;reject.disabled=false;
     approve.textContent='Retry delivery';
     reject.disabled=true;
-    show('Your wallet already answered. Retry sending its result to GenyCaster without approving again.','error');
+    box.hidden=false;
+    show('The wallet responded. Retry delivery without signing again.','error');
   }
 };
 const cancel=async()=>{
@@ -386,10 +407,18 @@ const cancel=async()=>{
 approve.addEventListener('click',execute);
 reject.addEventListener('click',cancel);
 const poll=async()=>{
-  if(busy||current){setTimeout(poll,500);return;}
+  if(stopped)return;
+  if(busy||current){scheduleNext(500);return;}
   try{
     const response=await fetch(base+'/next',{cache:'no-store'});
-    if(response.status===204){setTimeout(poll,650);return;}
+    if(stopped)return;
+    if(response.status===204){scheduleNext(1000);return;}
+    if(response.status===404||response.status===410){
+      stopPolling();
+      box.hidden=true;
+      show('Session ended. Return to GenyCaster.','ok');
+      return;
+    }
     if(!response.ok)throw new Error('Wallet session unavailable.');
     const rpc=await response.json();
     if(!rpc||typeof rpc.method!=='string'||!Array.isArray(rpc.params))
@@ -402,14 +431,21 @@ const poll=async()=>{
     const text=readable(rpc);
     message.hidden=!text;
     message.textContent=text.length>240?text.slice(0,240)+'…':text;
-    box.hidden=false;
+    // Chain/account reads following sign-in are forwarded silently.
+    // Reopening the consent card for each background RPC caused visible
+    // layout jumps and looked like a page refresh after confirmation.
+    box.hidden=!rpc.requiresApproval;
+    lastPromptVisible=Boolean(rpc.requiresApproval);
     approve.textContent=rpc.requiresApproval?'Continue to wallet':'Use selected wallet';
-    show(rpc.requiresApproval?'Review and confirm in your wallet.'
-      :'Checking your wallet…');
+    if(rpc.requiresApproval)
+      show('Confirm in your wallet.');
     if(!rpc.requiresApproval&&selected)execute();
-  }catch(error){show(String(error?.message||error),'error');}
-  setTimeout(poll,500);
+  }catch(error){
+    if(!stopped)show(String(error?.message||error),'error');
+  }
+  scheduleNext(800);
 };
+window.addEventListener('pagehide',stopPolling,{once:true});
 poll();
 </script></main></body></html>)html";
     return page;
