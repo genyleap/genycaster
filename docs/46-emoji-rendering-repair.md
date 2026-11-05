@@ -31,8 +31,9 @@ serialize cache access and validation on a bounded worker. UI callbacks own no p
 
 ## Interaction and layout contract
 
-Feed plays once; detail loops; picker cells always present Noto Animated artwork and advance
-it only on selection/hover. Composer and picker-preview loop policies are covered natively;
+Feed animates once and returns to a persistent native Unicode glyph after the last
+Lottie/sprite frame (which can be fully transparent); detail loops while visible;
+picker cells keep a static fallback after their one-shot completes. Composer and picker-preview loop policies are covered natively;
 the existing TextArea editor still displays Unicode. Reduced motion pauses provider artwork on
 visible picker/rich-text surfaces; hidden/clipped items and background windows release renderers. Text layout owns
 inline bounds, including RTL and repeated identical emoji; proportional line-height ratios are
