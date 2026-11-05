@@ -6776,5 +6776,21 @@ Company | https://company.com</source>
             <source>More Market Pulse tokens</source>
             <translation>Market Pulse 토큰 추가</translation>
         </message>
+        <message id="genycaster.profile.block_user">
+            <source>Block user</source>
+            <translation>사용자 차단</translation>
+        </message>
+        <message id="genycaster.profile.unblock_user">
+            <source>Unblock user</source>
+            <translation>사용자 차단 해제</translation>
+        </message>
+        <message id="genycaster.profile.you_blocked_user">
+            <source>You blocked this user.</source>
+            <translation>이 사용자를 차단했습니다.</translation>
+        </message>
+        <message id="genycaster.profile.user_blocked_you">
+            <source>This user blocked you.</source>
+            <translation>이 사용자가 회원님을 차단했습니다.</translation>
+        </message>
     </context>
 </TS>
