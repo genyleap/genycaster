@@ -6792,5 +6792,33 @@ Company | https://company.com</source>
             <source>This user blocked you.</source>
             <translation>इस उपयोगकर्ता ने आपको ब्लॉक किया है।</translation>
         </message>
+        <message id="genycaster.wallet.browser_title">
+            <source>Choose a browser</source>
+            <translation>वॉलेट ब्राउज़र चुनें</translation>
+        </message>
+        <message id="genycaster.wallet.default_browser">
+            <source>Default browser</source>
+            <translation>डिफ़ॉल्ट ब्राउज़र</translation>
+        </message>
+        <message id="genycaster.wallet.previous_browser">
+            <source>Previously used</source>
+            <translation>पहले उपयोग किया गया ब्राउज़र</translation>
+        </message>
+        <message id="genycaster.wallet.last_used">
+            <source>Last used</source>
+            <translation>पिछली बार उपयोग किया गया</translation>
+        </message>
+        <message id="genycaster.wallet.approval_hint">
+            <source>Confirm in your wallet. Your keys stay there.</source>
+            <translation>अपने वॉलेट में पुष्टि करें। आपकी निजी कुंजियाँ वहीं सुरक्षित रहती हैं।</translation>
+        </message>
+        <message id="genycaster.wallet.cancel">
+            <source>Cancel</source>
+            <translation>रद्द करें</translation>
+        </message>
+        <message id="genycaster.wallet.browser_open_failed">
+            <source>Could not open this browser. Choose another.</source>
+            <translation>यह ब्राउज़र नहीं खुल सका। दूसरा ब्राउज़र चुनें।</translation>
+        </message>
     </context>
 </TS>

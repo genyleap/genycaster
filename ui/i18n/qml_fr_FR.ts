@@ -6793,5 +6793,33 @@ Entreprise | https://company.com</translation>
             <source>This user blocked you.</source>
             <translation>Cet utilisateur vous a bloqué.</translation>
         </message>
+        <message id="genycaster.wallet.browser_title">
+            <source>Choose a browser</source>
+            <translation>Choisir un navigateur de portefeuille</translation>
+        </message>
+        <message id="genycaster.wallet.default_browser">
+            <source>Default browser</source>
+            <translation>Navigateur par défaut</translation>
+        </message>
+        <message id="genycaster.wallet.previous_browser">
+            <source>Previously used</source>
+            <translation>Utilisé précédemment</translation>
+        </message>
+        <message id="genycaster.wallet.last_used">
+            <source>Last used</source>
+            <translation>Dernière utilisation</translation>
+        </message>
+        <message id="genycaster.wallet.approval_hint">
+            <source>Confirm in your wallet. Your keys stay there.</source>
+            <translation>Confirmez dans votre portefeuille. Vos clés privées y restent.</translation>
+        </message>
+        <message id="genycaster.wallet.cancel">
+            <source>Cancel</source>
+            <translation>Annuler</translation>
+        </message>
+        <message id="genycaster.wallet.browser_open_failed">
+            <source>Could not open this browser. Choose another.</source>
+            <translation>Impossible d’ouvrir ce navigateur. Choisissez-en un autre.</translation>
+        </message>
     </context>
 </TS>
