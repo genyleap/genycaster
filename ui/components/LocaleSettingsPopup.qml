@@ -85,9 +85,10 @@ GenyDrawer {
     readonly property bool compactLayout: width < 640
     // Narrow inspectors never squeeze two form columns.
     readonly property int contentColumns: width >= 900 ? 2 : 1
+    readonly property var proEntitlements: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool marketProEligible:
-        openProofConnections.proEntitlements.status === "verified"
-        && openProofConnections.proEntitlements.eligible === true
+        proEntitlements.status === "verified" && proEntitlements.eligible === true
     readonly property int marketAssetLimit: marketProEligible ? 16 : 4
     readonly property int enabledMarketCount: (liveInsights.marketCatalog || [])
         .filter(item=>Boolean(item.enabled)).length
@@ -1891,7 +1892,7 @@ GenyDrawer {
                                     text: LocaleFormat.formatInteger(root.enabledMarketCount)
                                         + " / " + LocaleFormat.formatInteger(root.marketAssetLimit)
                                         + " · " + LocaleFormat.formatInteger(Number(
-                                            openProofConnections.proEntitlements.minimum_geny || 16000))
+                                            root.proEntitlements.minimum_geny || 16000))
                                         + " GENY"
                                     font.pixelSize: Theme.typeCaptionSize
                                     color: Theme.textSecondary
@@ -1904,7 +1905,9 @@ GenyDrawer {
                                 quiet: true
                                 iconGlyph: Theme.iconRefresh
                                 text: qsTrId("genycaster.profile.refresh")
-                                onClicked: openProofConnections.fetchProEntitlements(true)
+                                onClicked: {
+                                    if (openProofConnections) openProofConnections.fetchProEntitlements(true)
+                                }
                             }
                         }
                     }
