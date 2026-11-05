@@ -60,6 +60,19 @@ Item {
     property var mutedProfileFids: []
     property bool muteSettingsReady: false
     property bool muteWriteBusy: false
+    // Account-owned data must not be dereferenced after its QML context
+    // service has been destroyed. Empty snapshots are explicitly unknown,
+    // never fabricated verified entitlements or activity.
+    readonly property var proEntitlementsSnapshot: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property var streakSnapshot: openProofConnections
+        ? (openProofConnections.streak || ({})) : ({})
+    readonly property var streakPreferencesSnapshot: openProofConnections
+        ? (openProofConnections.streakPreferences || ({})) : ({})
+    readonly property bool streakLoadingSnapshot: openProofConnections
+        ? Boolean(openProofConnections.streakBusy) : false
+    readonly property string streakErrorSnapshot: openProofConnections
+        ? String(openProofConnections.streakError || "") : ""
     property double accountFid: 0
     property string accountIssuer: ""
     // GENY holder status is *never* derived from a user-editable bio, display
@@ -111,7 +124,7 @@ Item {
         repeat: false
         onTriggered: {
             const fid=Number(root.activeDetail.fid || 0)
-            if(fid>0 && !root.isOwnProfile)
+            if(fid>0 && !root.isOwnProfile && openProofConnections)
                 openProofConnections.fetchPublicActivitySource(fid)
         }
     }
@@ -120,6 +133,7 @@ Item {
         interval: 250
         repeat: false
         onTriggered: {
+            if (!openProofConnections) return
             if (root.isOwnProfile && root.visible &&
                 openProofConnections.cloudAuthorizationReady &&
                 !openProofConnections.streakBusy)
@@ -151,9 +165,10 @@ Item {
         onTriggered: profileStatusFetch.restart()
     }
     Connections {
-        target: openProofConnections
+        target: openProofConnections ? openProofConnections : null
         function onStateChanged() {
-            if(root.isOwnProfile && openProofConnections.cloudAuthorizationReady) {
+            if(root.isOwnProfile && openProofConnections
+                && openProofConnections.cloudAuthorizationReady) {
                 profileStatusFetch.restart()
                 streakFetch.restart()
             }
@@ -2298,7 +2313,7 @@ Item {
                                 id: profileProBadge
                                 objectName: "verifiedGenyProBadge"
                                 compact: root.compact
-                                entitlement: openProofConnections.proEntitlements
+                                entitlement: root.proEntitlementsSnapshot
                                 visible: root.isOwnProfile && eligible
                                 onDetailsRequested: root.proRequested()
                             }
@@ -2361,7 +2376,7 @@ Item {
                                     streakDrawer.open()
                                 }
                                 readonly property bool streakActive: Number(
-                                    openProofConnections.streak.activity?.current || 0) > 0
+                                    root.streakSnapshot.activity?.current || 0) > 0
                                 // Match the ring-and-flame on the desktop account
                                 // card; no second oval outline around the counter.
                                 background: Item {}
@@ -2378,9 +2393,9 @@ Item {
                                         ProgressRing {
                                             anchors.fill: parent
                                             progress: profileStreakBadge.streakActive
-                                                && Number(openProofConnections.streak.activity?.next_milestone || 0)>0
-                                                ? Math.min(1, Number(openProofConnections.streak.activity.current)
-                                                    /Number(openProofConnections.streak.activity.next_milestone)) : 0
+                                                && Number(root.streakSnapshot.activity?.next_milestone || 0)>0
+                                                ? Math.min(1, Number(root.streakSnapshot.activity.current)
+                                                    /Number(root.streakSnapshot.activity.next_milestone)) : 0
                                             strokeWidth: 2.5
                                             inset: 2
                                             trackColor: Theme.borderMuted
@@ -2402,7 +2417,7 @@ Item {
                                         font.pixelSize: Theme.typeCaptionSize
                                         font.weight: Theme.weightDemiBold
                                         text: LocaleFormat.formatInteger(Number(
-                                            openProofConnections.streak.activity?.current || 0))
+                                            root.streakSnapshot.activity?.current || 0))
                                     }
                                 }
                             }
@@ -2528,7 +2543,7 @@ Item {
                     return ""
                 }
                 previewSource: root.isOwnProfile
-                    ? String(openProofConnections.streakPreferences.activity_source || "casts")
+                    ? String(root.streakPreferencesSnapshot.activity_source || "casts")
                     : Number(openProofConnections.publicActivityFid)===Number(root.activeDetail.fid || 0)
                         ? String(openProofConnections.publicActivitySource || "casts") : "casts"
                 onExploreRequested: {
@@ -2890,15 +2905,15 @@ Item {
                     Layout.fillWidth: true
                     distribute: true
                     segmented: true
-                    currentId: String(openProofConnections.streakPreferences.activity_source || "casts")
+                    currentId: String(root.streakPreferencesSnapshot.activity_source || "casts")
                     tabs: [
                         {id:"casts",label:qsTrId("genycaster.activity.casts")},
                         {id:"github",label:"GitHub"}
                     ]
                     onActivated: id => {
-                        if(id === "github" && !root.verifiedGithubActivityAccount.linked)return
-                        openProofConnections.setStreakPreferences(id,
-                            openProofConnections.streakPreferences.leaderboard_visible === true)
+                        if (id === "github" && !root.verifiedGithubActivityAccount.linked) return
+                        if (openProofConnections) openProofConnections.setStreakPreferences(
+                            id, root.streakPreferencesSnapshot.leaderboard_visible === true)
                     }
                 }
                 Label {
@@ -2974,10 +2989,10 @@ Item {
                 + contentPadding * 2 + sheetTopInset + Theme.space5))
             : parent.height) : 600
         onOpened: {
-            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
-                openProofConnections.fetchStreak()
-            if (root.isOwnProfile && openProofConnections.cloudAuthorizationReady)
-                openProofConnections.fetchStreakLeaderboard("activity")
+            if (!openProofConnections || !root.isOwnProfile
+                || !openProofConnections.cloudAuthorizationReady) return
+            openProofConnections.fetchStreak()
+            openProofConnections.fetchStreakLeaderboard("activity")
         }
 
         contentItem: ColumnLayout {
@@ -3013,9 +3028,9 @@ Item {
                     objectName: "ownerProfileStreakDetails"
                     width: parent.width
                     compact: streakDrawer.mobilePresentation
-                    snapshot: openProofConnections.streak
-                    loading: openProofConnections.streakBusy
-                    errorText: openProofConnections.streakError
+                    snapshot: root.streakSnapshot
+                    loading: root.streakLoadingSnapshot
+                    errorText: root.streakErrorSnapshot
                     onProfileRequested: fid => {
                         streakDrawer.close()
                         root.profileRequested(fid)
