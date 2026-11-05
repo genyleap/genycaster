@@ -6781,5 +6781,21 @@ Company | https://company.com</translation>
             <source>More Market Pulse tokens</source>
             <translation>More Market Pulse tokens</translation>
         </message>
+        <message id="genycaster.profile.block_user">
+            <source>Block user</source>
+            <translation>Block user</translation>
+        </message>
+        <message id="genycaster.profile.unblock_user">
+            <source>Unblock user</source>
+            <translation>Unblock user</translation>
+        </message>
+        <message id="genycaster.profile.you_blocked_user">
+            <source>You blocked this user.</source>
+            <translation>You blocked this user.</translation>
+        </message>
+        <message id="genycaster.profile.user_blocked_you">
+            <source>This user blocked you.</source>
+            <translation>This user blocked you.</translation>
+        </message>
     </context>
 </TS>
