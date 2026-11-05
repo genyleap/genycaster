@@ -18,6 +18,11 @@ Item {
         return Number(current.fid || 0) > 0 ? current : retained
     }
     property var rows
+    // Navigation must show the cover, even when this Loader is reused.
+    property int navigationRevision: 0
+    onNavigationRevisionChanged: {
+        if (root.visible) root.scrollToBeginning()
+    }
     property string profileFeed: "user-posts"
     property string profileSortMode: "newest"
     property string popularMetric: "all"
@@ -1142,8 +1147,11 @@ Item {
     }
 
     onVisibleChanged: {
-        if (!root.visible)
+        if (!root.visible) {
             accountConnectionsPopup.close()
+            return
+        }
+        root.scrollToBeginning()
         root.positionNewProfileAtBeginning()
     }
     onDetailChanged: {
@@ -1326,7 +1334,7 @@ Item {
                     compact: true
                     quiet: true
                     iconGlyph: Theme.iconBack
-                    text: qsTrId("genycaster.profile.back_back_to_feed")
+                    text: qsTrId("genycaster.setup.back")
                     onClicked: root.backRequested()
                 }
 
@@ -1335,7 +1343,8 @@ Item {
                 ActionButton {
                     id: profileShareButton
                     objectName: "profileOptionsButton"
-                    visible: !root.compact
+                    // The same profile actions must be discoverable on phones.
+                    visible: true
                     compact: true
                     quiet: true
                     iconGlyph: Theme.iconMore
@@ -1790,7 +1799,10 @@ Item {
                         // Unknown is not a confirmed negative relationship.
                         // Keep the button discoverable without blind protocol writes.
                         visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
-                        enabled: Boolean(root.activeDetail.followingKnown) && !root.busy
+                        // Do not strand Follow in a disabled state when the
+                        // relationship endpoint cannot yet provide evidence.
+                        // The protocol writer still performs signer checks.
+                        enabled: !root.busy
                         busy: !Boolean(root.activeDetail.followingKnown) && root.busy
                         compact: true
                         iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
