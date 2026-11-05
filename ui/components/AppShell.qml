@@ -1013,7 +1013,7 @@ Item {
                 ownAvatarUrl: String(presentationBridge.accountAvatarUrl
                                      || presentationBridge.accountProfile.avatarUrl || "")
                 authenticated: presentationBridge.isAuthenticated
-                interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady && !presentationBridge.writeBusy
+                interactionsAvailable: presentationBridge.isAuthenticated && presentationBridge.writeReady
                 compact: root.compact
                 filterAvailable: presentationBridge.isAuthenticated
                                  && (openProofConnections ? openProofConnections.topicCatalog : []).length > 0
@@ -1299,7 +1299,6 @@ Item {
                                                 authenticated: presentationBridge.isAuthenticated
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
-                                                                       && !presentationBridge.writeBusy
                                                 accountFid: presentationBridge.accountFid
                                                 refreshBusy: openProofConnections.bookmarkRefreshBusy
                                                 accountError: openProofConnections.bookmarkError
@@ -1619,7 +1618,6 @@ Item {
                                                 compact: root.compact
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
-                                                                       && !presentationBridge.writeBusy
                                                 accountFid: presentationBridge.accountFid
                                                 pendingNewPostCount: presentationBridge.activeView === "feed"
                                                                      ? presentationBridge.pendingNewPostCount : 0
@@ -1768,7 +1766,6 @@ Item {
                                                            ? openProofConnections.topicCastsError : presentationBridge.errorText
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
-                                                                       && !presentationBridge.writeBusy
                                                 accountFid: presentationBridge.accountFid
                                                 accountIssuer: presentationBridge.accountIdentityIssuer
                                                 onBackRequested: root.returnFromProfileSurface()
@@ -1844,7 +1841,6 @@ Item {
                                                 busy: presentationBridge.isBusy
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
-                                                                       && !presentationBridge.writeBusy
                                                 accountFid: presentationBridge.accountFid
                                                 confirmedReply: root.confirmedReply
                                                 onBackRequested: root.returnFromCastDetail()
