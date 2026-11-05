@@ -24,6 +24,8 @@ enum class OperationKind : std::uint8_t {
     UndoRecast,
     Follow,
     Unfollow,
+    Block,
+    Unblock,
 };
 
 /** @brief Stable client-owned idempotency key derived from the canonical message hash. */
@@ -48,8 +50,10 @@ struct OperationTarget final {
     case OperationKind::Recast: return Scope::ReactionAdd;
     case OperationKind::Unlike:
     case OperationKind::UndoRecast: return Scope::ReactionRemove;
-    case OperationKind::Follow: return Scope::LinkAdd;
-    case OperationKind::Unfollow: return Scope::LinkRemove;
+    case OperationKind::Follow:
+    case OperationKind::Block: return Scope::LinkAdd;
+    case OperationKind::Unfollow:
+    case OperationKind::Unblock: return Scope::LinkRemove;
     }
     return Scope::CastAdd;
 }
@@ -93,11 +97,15 @@ struct ReactionIntent final {
     foundation::time::Timestamp createdAt{};
 };
 
-/** @brief Canonical intent for adding or removing a follow link. */
+/** @brief Social link kind. Block is portable protocol state, not app-only mute. */
+enum class LinkKind : std::uint8_t { Follow, Block };
+
+/** @brief Canonical intent for adding or removing a follow/block link. */
 struct FollowIntent final {
     domain::identity::Fid author{};
     domain::identity::Fid target{};
     bool isFollowing{true};
+    LinkKind kind{LinkKind::Follow};
     foundation::time::Timestamp createdAt{};
 };
 
