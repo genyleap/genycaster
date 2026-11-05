@@ -92,43 +92,105 @@ export function createDiscoveredBrowserWallet(win) {
   };
 }
 
+
+// The Qt locale is forwarded to the browser host as a preference. Keep this
+// independent from provider names (wallet self-reported branding is not verified).
+export function walletApprovalCopy(language) {
+  const code=String(language||'en').toLowerCase().split(/[-_]/)[0];
+  const messages={
+    en:['Connect wallet','Allow this Mini App to see your wallet address?',
+      'Wallet','Cancel','Continue','No browser wallet found. Enable a wallet extension.',
+      'Connect wallet to Mini App'],
+    fa:['اتصال کیف پول','به این مینی‌اپ اجازه می‌دهید نشانی کیف پولتان را ببیند؟',
+      'کیف پول','انصراف','ادامه','کیف پولی در مرورگر پیدا نشد. افزونه کیف پول را فعال کنید.',
+      'اتصال کیف پول به مینی‌اپ'],
+    ar:['ربط المحفظة','هل تسمح لهذا التطبيق المصغّر بعرض عنوان محفظتك؟',
+      'المحفظة','إلغاء','متابعة','لم يتم العثور على محفظة في المتصفح. فعّل إضافة المحفظة.',
+      'ربط المحفظة بالتطبيق المصغّر'],
+    de:['Wallet verbinden','Darf diese Mini-App Ihre Wallet-Adresse sehen?',
+      'Wallet','Abbrechen','Weiter','Keine Browser-Wallet gefunden. Aktivieren Sie eine Wallet-Erweiterung.',
+      'Wallet mit Mini-App verbinden'],
+    ja:['ウォレットを接続','このミニアプリにウォレットアドレスの表示を許可しますか？',
+      'ウォレット','キャンセル','続行','ブラウザーのウォレットが見つかりません。拡張機能を有効にしてください。',
+      'ミニアプリにウォレットを接続'],
+    ko:['지갑 연결','이 미니앱이 지갑 주소를 볼 수 있도록 허용하시겠습니까?',
+      '지갑','취소','계속','브라우저 지갑을 찾을 수 없습니다. 지갑 확장 기능을 활성화하세요.',
+      '미니앱에 지갑 연결'],
+    zh:['连接钱包','是否允许此迷你应用查看您的钱包地址？',
+      '钱包','取消','继续','未找到浏览器钱包。请启用钱包扩展程序。',
+      '将钱包连接至迷你应用'],
+    hi:['वॉलेट कनेक्ट करें','क्या इस मिनी ऐप को आपका वॉलेट पता देखने दें?',
+      'वॉलेट','रद्द करें','जारी रखें','ब्राउज़र वॉलेट नहीं मिला। वॉलेट एक्सटेंशन सक्रिय करें।',
+      'मिनी ऐप से वॉलेट कनेक्ट करें'],
+    es:['Conectar cartera','¿Permitir que esta Mini App vea la dirección de tu cartera?',
+      'Cartera','Cancelar','Continuar','No se encontró una cartera. Activa una extensión de cartera.',
+      'Conectar cartera a Mini App'],
+    fr:['Connecter un portefeuille','Autoriser cette mini-app à voir votre adresse de portefeuille ?',
+      'Portefeuille','Annuler','Continuer','Aucun portefeuille détecté. Activez une extension de portefeuille.',
+      'Connecter le portefeuille à la mini-app'],
+    pt:['Conectar carteira','Permitir que este Mini App veja o endereço da sua carteira?',
+      'Carteira','Cancelar','Continuar','Nenhuma carteira encontrada. Ative a extensão de carteira.',
+      'Conectar carteira ao Mini App'],
+    ru:['Подключить кошелёк','Разрешить этому мини-приложению видеть адрес кошелька?',
+      'Кошелёк','Отмена','Продолжить','Браузерный кошелёк не найден. Включите расширение кошелька.',
+      'Подключить кошелёк к мини-приложению']
+  };
+  const text=messages[code]||messages.en;
+  return {
+    direction:code==='fa'||code==='ar'?'rtl':'ltr',
+    title:text[0],question:text[1],wallet:text[2],
+    cancel:text[3],continue:text[4],missing:text[5],aria:text[6]
+  };
+}
+
 export function requestMiniAppWalletApproval(origin, signal, injected) {
   if(typeof document === 'undefined' || !document.body)
     return Promise.resolve(false);
   return new Promise(resolve => {
     if(signal?.aborted) { resolve(false); return; }
+    const language=typeof window!=='undefined'
+      ? (window.__genycasterPreferredLanguage || document.documentElement?.lang
+        || (typeof navigator!=='undefined'?navigator.language:'en'))
+      : 'en';
+    const copy=walletApprovalCopy(language);
     const scrim=document.createElement('div');
     Object.assign(scrim.style,{position:'fixed',inset:'0',
       zIndex:'2147483647',background:'rgba(0,0,0,.76)',
       display:'flex',alignItems:'center',justifyContent:'center',
       padding:'24px',boxSizing:'border-box'});
     const panel=document.createElement('section');
-    Object.assign(panel.style,{width:'min(440px,100%)',background:'#202126',
+    Object.assign(panel.style,{width:'min(390px,100%)',background:'#202126',
       color:'#f4f4f5',border:'1px solid #44454d',borderRadius:'18px',
-      padding:'24px',boxSizing:'border-box',fontFamily:'system-ui,sans-serif',
+      padding:'20px',boxSizing:'border-box',fontFamily:'system-ui,sans-serif',
       boxShadow:'0 15px 60px rgba(0,0,0,.45)'});
     panel.setAttribute('role','dialog');
     panel.setAttribute('aria-modal','true');
-    panel.setAttribute('aria-label','Connect wallet to Mini App');
+    panel.setAttribute('dir',copy.direction);
+    panel.setAttribute('aria-label',copy.aria);
     const title=document.createElement('h2');
-    title.textContent='Connect wallet';
+    title.textContent=copy.title;
     Object.assign(title.style,{margin:'0 0 10px',fontSize:'20px'});
     const details=document.createElement('p');
-    details.textContent='Allow '+origin+' to request your wallet account? '+
-      'Your wallet will separately approve any signature or transaction. '+
-      'Your Farcaster FID alone does not grant wallet access.';
+    details.textContent=copy.question;
+    const appOrigin=document.createElement('div');
+    appOrigin.textContent=origin;
+    appOrigin.setAttribute('dir','ltr');
+    Object.assign(appOrigin.style,{fontSize:'12px',color:'#b7b3c3',
+      overflowWrap:'anywhere',padding:'9px 11px',background:'#2b2b34',
+      borderRadius:'9px',marginBottom:'12px',textAlign:'start'});
     Object.assign(details.style,{lineHeight:'1.5',fontSize:'14px',color:'#c2c3cc'});
+    panel.append(title,appOrigin,details);
     const actions=document.createElement('div');
     Object.assign(actions.style,{display:'flex',gap:'10px',justifyContent:'flex-end'});
     const candidates=injected?.choices?.()||[];
     let walletSelection=null;
     if(candidates.length>1) {
       const selectLabel=document.createElement('label');
-      selectLabel.textContent='Wallet to use';
+      selectLabel.textContent=copy.wallet;
       Object.assign(selectLabel.style,{display:'block',fontSize:'13px',
         color:'#c2c3cc',margin:'14px 0 9px'});
       walletSelection=document.createElement('select');
-      walletSelection.setAttribute('aria-label','Choose wallet');
+      walletSelection.setAttribute('aria-label',copy.wallet);
       Object.assign(walletSelection.style,{display:'block',width:'100%',
         padding:'12px',marginTop:'7px',borderRadius:'9px',
         border:'1px solid #52535b',background:'#33343c',color:'#f4f4f5'});
@@ -140,9 +202,9 @@ export function requestMiniAppWalletApproval(origin, signal, injected) {
       selectLabel.append(walletSelection);panel.append(selectLabel);
     }
     const cancel=document.createElement('button');
-    cancel.textContent='Cancel';
+    cancel.textContent=copy.cancel;
     const approve=document.createElement('button');
-    approve.textContent='Continue to wallet';
+    approve.textContent=copy.continue;
     for(const button of [cancel,approve]) {
       Object.assign(button.style,{padding:'11px 14px',font:'inherit',
         borderRadius:'9px',cursor:'pointer',border:'1px solid #52535b',
@@ -152,7 +214,7 @@ export function requestMiniAppWalletApproval(origin, signal, injected) {
     approve.style.borderColor='#7359f5';
     if(injected?.available && !injected.available()) {
       approve.disabled=true;
-      details.textContent='No browser wallet found. Enable a wallet extension or use a compatible wallet browser.';
+      details.textContent=copy.missing;
     }
     let resolved=false;
     const cleanup=()=>{signal?.removeEventListener('abort',abort);
@@ -167,7 +229,7 @@ export function requestMiniAppWalletApproval(origin, signal, injected) {
       finish(true);
     });
     scrim.addEventListener('keydown',onKey);
-    actions.append(cancel,approve);panel.append(title,details,actions);
+    actions.append(cancel,approve);panel.append(actions);
     scrim.append(panel);document.body.append(scrim);
     cancel.focus();
   });
