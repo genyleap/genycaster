@@ -1300,15 +1300,15 @@ Item {
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
-                                                refreshBusy: openProofConnections.bookmarkRefreshBusy
-                                                accountError: openProofConnections.bookmarkError
-                                                pendingCount: openProofConnections.bookmarkPendingCount
-                                                collections: openProofConnections.bookmarkCollections
-                                                collectionItems: openProofConnections.bookmarkCollectionItems
-                                                membershipItems: openProofConnections.bookmarkMembershipItems
-                                                selectedCollection: openProofConnections.activeBookmarkCollection
-                                                collectionsBusy: openProofConnections.bookmarkCollectionsBusy
-                                                collectionsError: openProofConnections.bookmarkCollectionsError
+                                                refreshBusy: openProofConnections ? openProofConnections.bookmarkRefreshBusy : false
+                                                accountError: openProofConnections ? openProofConnections.bookmarkError : ""
+                                                pendingCount: openProofConnections ? openProofConnections.bookmarkPendingCount : 0
+                                                collections: openProofConnections ? openProofConnections.bookmarkCollections : []
+                                                collectionItems: openProofConnections ? openProofConnections.bookmarkCollectionItems : []
+                                                membershipItems: openProofConnections ? openProofConnections.bookmarkMembershipItems : []
+                                                selectedCollection: openProofConnections ? openProofConnections.activeBookmarkCollection : ""
+                                                collectionsBusy: openProofConnections ? openProofConnections.bookmarkCollectionsBusy : false
+                                                collectionsError: openProofConnections ? openProofConnections.bookmarkCollectionsError : ""
                                                 onCollectionSelected: id => openProofConnections.selectBookmarkCollection(id)
                                                 onCollectionCreateRequested: name => openProofConnections.createBookmarkCollection(name)
                                                 onCollectionRenameRequested: (id,name,revision) =>
@@ -1590,7 +1590,7 @@ Item {
                                                 offline: presentationBridge.isOffline
                                                 sourceUnavailable: presentationBridge.sourceUnavailable
                                                 errorText: root.topicBrowseActive && root.topicBrowseScope==="explorer"
-                                                           ? openProofConnections.topicCastsError : presentationBridge.errorText
+                                                           ? (openProofConnections ? openProofConnections.topicCastsError : "") : presentationBridge.errorText
                                                 activeFeed: presentationBridge.activeFeed
                                                 communityFallback: presentationBridge.communityFallback
                                                 localDerivedRecent: presentationBridge.localDerivedRecent
@@ -1680,13 +1680,13 @@ Item {
                                                 scopeName: root.topicBrowseScope==="profile" ? qsTrId("genycaster.side_nav.profile") : qsTrId("genycaster.side_nav.explorer")
                                                 topicSlug: root.topicBrowseSlug
                                                 topics: (openProofConnections ? openProofConnections.topicCatalog : [])
-                                                items: openProofConnections.topicCastItems
+                                                items: openProofConnections ? openProofConnections.topicCastItems : []
                                                 cachedRows: presentationBridge.rows
                                                 hydratedRows: presentationBridge.topicPreviewCasts
                                                 bookmarkedRows: presentationBridge.bookmarkedCasts
                                                 busy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
                                                 hasMore: (openProofConnections ? openProofConnections.topicCastsHasMore : false)
-                                                errorText: openProofConnections.topicCastsError
+                                                errorText: openProofConnections ? openProofConnections.topicCastsError : ""
                                                 compact: root.compact
                                                 accountFid: presentationBridge.accountFid
                                                 onBackRequested: root.closeTopicBrowser()
@@ -1741,8 +1741,10 @@ Item {
                                                 mutedProfileFids: root.mutedActorIds
                                                 muteSettingsReady: openProofConnections ? openProofConnections.mutedProfilesReady : false
                                                 muteWriteBusy: openProofConnections ? openProofConnections.mutedProfilesBusy : false
-                                                onMuteRequested: (fid,muted) =>
-                                                    { if (openProofConnections) openProofConnections.setProfileMuted(Math.floor(fid),muted) }
+                                                onMuteRequested: (fid,muted) => {
+                                                    if (openProofConnections)
+                                                        openProofConnections.setProfileMuted(Math.floor(fid), muted)
+                                                }
                                                 topicFilterActive: root.topicBrowseActive && root.topicBrowseScope==="profile"
                                                 topicFilterSlug: root.topicBrowseSlug
                                                 topicFilterBusy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
@@ -1763,7 +1765,7 @@ Item {
                                                 offline: presentationBridge.isOffline
                                                 sourceUnavailable: presentationBridge.sourceUnavailable
                                                 errorText: root.topicBrowseActive && root.topicBrowseScope==="profile"
-                                                           ? openProofConnections.topicCastsError : presentationBridge.errorText
+                                                           ? (openProofConnections ? openProofConnections.topicCastsError : "") : presentationBridge.errorText
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
