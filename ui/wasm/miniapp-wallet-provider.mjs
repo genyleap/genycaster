@@ -430,6 +430,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
   const callbacks = new Map();
   const controller = new AbortController();
   let granted=false;
+  let grantedAddress='';
   let closed=false;
   let pendingApproval=null;
   const forwards=new Map();
@@ -444,8 +445,14 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
     for(const event of WALLET_EVENTS){
       const forward=(...args)=>{
         if(!granted||closed)return;
-        if(event==='accountsChanged' && Array.isArray(args[0]) && args[0].length===0)
-          granted=false;
+        if(event==='disconnect'){
+          granted=false;grantedAddress='';
+        }else if(event==='accountsChanged' && Array.isArray(args[0])){
+          const account=typeof args[0][0]==='string'?args[0][0].toLowerCase():'';
+          if(!account || account!==grantedAddress){
+            granted=false;grantedAddress='';
+          }
+        }
         for(const callback of callbacks.get(event)||[]){
           try{callback(...args);}catch(error){console.warn('[GenyCaster] Wallet listener failed',error);}
         }
@@ -478,6 +485,8 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         if(!Array.isArray(accounts)||accounts.length===0)
           throw denied('Wallet returned no connected account',4001);
         granted=true;
+        grantedAddress=typeof accounts[0]==='string'
+          ? accounts[0].toLowerCase():'';
         return accounts;
       }
       if(PUBLIC_METHODS.has(method))
@@ -506,7 +515,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
     },
     dispose(){
       if(closed)return;
-      closed=true;granted=false;controller.abort();
+      closed=true;granted=false;grantedAddress='';controller.abort();
       for(const [event,listener] of forwards)
         injected.removeListener?.(event,listener);
       forwards.clear();callbacks.clear();
