@@ -192,8 +192,9 @@ Item {
         target: presentationBridge
         function onAuthenticationStateChanged() {
             if (root.pendingEntitlementLaunch
-                    && Number(presentationBridge.accountFid || 0)
-                       !== root.pendingEntitlementLaunch.fid)
+                    && (!presentationBridge.isAuthenticated
+                        || Number(presentationBridge.accountFid || 0)
+                           !== root.pendingEntitlementLaunch.fid))
                 root.clearPendingEntitlementLaunch()
         }
     }
