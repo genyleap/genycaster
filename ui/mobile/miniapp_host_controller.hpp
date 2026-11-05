@@ -74,6 +74,8 @@ signals:
     void composeCastCompleted(const QString& requestId, const QVariantMap& result);
     void composeCastCancelled(const QString& requestId);
     void stateChanged();
+    /** @brief Public SDK user metadata changed without an account switch. */
+    void userChanged();
     void sessionLimitChanged();
     void presentationModeChanged();
 private:
