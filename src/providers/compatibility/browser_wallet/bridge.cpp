@@ -418,8 +418,10 @@ public:
     }
 
     ~Bridge() override {
-        endSession();
+        // Stop intake first. The nonblocking transport checks this token
+        // every poll, preventing shutdown from waiting on a partial request.
         m_worker.request_stop();
+        endSession();
     }
 
     [[nodiscard]] bool available() const noexcept override {
