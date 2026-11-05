@@ -63,7 +63,11 @@ test('inline emoji reserve ink space and replace Unicode only in their live layo
   assert.match(rich, /clip: false/);
   assert.match(textView, /clip: false/);
   assert.match(rich, /opacity: animationReady \? 1 : 0/);
-  assert.match(rich, /onEmojiGenerationChanged: emojiOverlay\.syncAnimatedState\(\)/);
+  assert.match(rich, /onEmojiGenerationChanged: emojiOverlay\.claimFallbackOwnership\(\)/);
+  assert.match(rich, /objectName: "richInlineEmojiStaticFallback"/);
+  assert.match(rich, /visible: !emojiOverlay\.artworkReady/);
+  assert.match(rich, /renderType: Text\.NativeRendering/);
+  assert.doesNotMatch(rich, /onArtworkReadyChanged: emojiOverlay\.syncAnimatedState\(\)/);
   assert.match(rich, /textLayout\.setEmojiAnimated\(emojiPosition, emojiGeneration/);
   assert.match(header, /setEmojiAnimated\(int position, int generation, bool animated\)/);
   assert.match(cpp, /generation != m_impl->emojiRectGeneration/);
@@ -94,5 +98,30 @@ test('completed feed emoji releases the Unicode glyph without blinking on scroll
   assert.match(sprite, /finishBehavior: AnimatedSprite\.FinishAtFinalFrame/);
   assert.match(sprite, /onFinished:/);
   assert.match(sprite, /opacity: root\.animationReady \? 1 : 0/);
-  assert.match(rich, /onArtworkReadyChanged: emojiOverlay\.syncAnimatedState\(\)/);
+  assert.match(rich, /onEmojiGenerationChanged: emojiOverlay\.claimFallbackOwnership\(\)/);
+  assert.match(rich, /textLayout\.setEmojiAnimated\(emojiPosition, emojiGeneration, true\)/);
+  assert.match(rich, /visible: !emojiOverlay\.artworkReady/);
+  assert.match(rich, /renderType: Text\.NativeRendering/);
+});
+
+
+test('inline emoji remain painted while Lottie starts, finishes, or is recycled', () => {
+  const rich = source('ui/components/RichInlineText.qml');
+  const cpp = source('src/presentation/qt/rich_inline_text_item.cpp');
+  const qmlFallback = rich.slice(rich.indexOf('Label {\n                id: inlineStaticEmoji'),
+                                rich.indexOf('AnimatedEmoji {\n                id: lottieEmoji'));
+  const ownership = rich.slice(rich.indexOf('function claimFallbackOwnership()'),
+                               rich.indexOf('x: Number(emojiRect.x'));
+  assert.match(qmlFallback, /visible: !emojiOverlay\.artworkReady/);
+  assert.match(qmlFallback, /text: String\(emojiOverlay\.emojiRect\.sequence \|\| ""\)/);
+  assert.match(qmlFallback, /textFormat: Text\.PlainText/);
+  assert.match(qmlFallback, /renderType: Text\.NativeRendering/);
+  assert.match(qmlFallback, /clip: false/);
+  // The native text renderer is suppressed only when a QML delegate with its
+  // own guaranteed glyph is alive, never because the animation became ready.
+  assert.match(ownership, /setEmojiAnimated\(emojiPosition, emojiGeneration, true\)/);
+  assert.doesNotMatch(ownership, /artworkReady/);
+  assert.match(rich, /Component\.onDestruction:[\s\S]*?setEmojiAnimated\(emojiPosition, emojiGeneration, false\)/);
+  assert.match(cpp, /generation != m_impl->emojiRectGeneration/);
+  assert.match(rich, /model: root\.usePlatformSelection \? \[\] : textLayout\.emojiRects/);
 });
