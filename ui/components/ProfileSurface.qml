@@ -82,7 +82,7 @@ Item {
     readonly property string publicActivityGithubLogin: root.publicActivityMatchesProfile
         ? String(openProofConnections.publicActivityGithubLogin || "") : ""
     readonly property string publicActivitySource: root.publicActivityMatchesProfile
-        ? root.publicActivitySource : "casts"
+        ? String(openProofConnections.publicActivitySource || "casts") : "casts"
     property double accountFid: 0
     property string accountIssuer: ""
     // GENY holder status is *never* derived from a user-editable bio, display
