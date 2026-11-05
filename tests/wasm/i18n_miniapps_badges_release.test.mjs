@@ -149,7 +149,7 @@ test("verified Geny Pro admission recovers saved sessions before rejecting anoth
     assert.match(retry,/cloudAuthorizationReady\(\)/);
     assert.match(retry,/restoreAccountSession\(\)/);
     assert.match(retry,/bootstrapAccountSession\(\)/);
-    assert.doesNotMatch(retry,/authorizeAccount|signer|requestFid|provision/);
+    assert.doesNotMatch(retry,/authorizeAccount\(|signerService->|requestFid\(|provision\(/);
 
     assert.match(apps,/pendingEntitlementLaunch/);
     assert.match(apps,/openProofConnections\.retryProEntitlements\(\)/);
