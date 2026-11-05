@@ -138,8 +138,8 @@ Item {
         root.launchErrorText = ""
         root.quotaErrorKind = ""
         proLaunchTimeout.restart()
-        if (openProofConnections && openProofConnections.cloudAuthorizationReady)
-            openProofConnections.fetchProEntitlements(true)
+        if (openProofConnections)
+            openProofConnections.retryProEntitlements()
     }
     Timer {
         id: proLaunchTimeout
