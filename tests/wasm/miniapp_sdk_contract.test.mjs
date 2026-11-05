@@ -25,7 +25,12 @@ function hostBrowser(sdkInitially=true) {
   const window={location:{origin:'https://caster.genyleap.com'},innerWidth:1200};
   const sdk={attach(frame,url,user,actions){
     const instance={frame,url,user,actions};attached.push(instance);
-    return ()=>detached.push(instance);
+    const detach=()=>detached.push(instance);
+    detach.updateUser=next=>{
+      if(Number(next.fid)===Number(instance.user?.fid))
+        instance.user=next;
+    };
+    return detach;
   }};
   if(sdkInitially)window.__genycasterMiniAppSdk=sdk;
   vm.runInNewContext(source,{window,document,URL,navigator:{language:'en'},
@@ -141,6 +146,16 @@ test('WASM overlays refresh avatar metadata without remounting the Mini App', ()
   assert.equal(host.open('https://mini.example.com/','Portrait'),true);
   assert.equal(attached.length,1);
   assert.equal(detached.length,0);
+  host.setUser({fid:42,username:'builder',
+    pfpUrl:'https://images.example.com/avatar.png'});
+  assert.equal(attached[0].user.pfpUrl,
+    'https://images.example.com/avatar.png');
+  assert.equal(detached.length,0);
+  host.setUser({fid:43,username:'other',
+    pfpUrl:'https://images.example.com/other.png'});
+  assert.equal(attached[0].user.fid,42);
+  assert.equal(attached[0].user.pfpUrl,
+    'https://images.example.com/avatar.png');
   assert.match(source,/session\.detach\?\.updateUser\?\.\(next\)/);
   assert.match(bridge,/detach\.updateUser = nextValue =>/);
   assert.match(bridge,/next\.fid !== host\.context\.user\.fid/);
