@@ -1,6 +1,6 @@
 // Reown WalletConnect v2 transport. Bundled on the GenyCaster origin and
 // imported only after explicit user action; never injected into Mini App iframes.
-import EthereumProvider from '@walletconnect/ethereum-provider';
+import { EthereumProvider } from '@walletconnect/ethereum-provider';
 import QRCode from 'qrcode';
 
 // Project IDs are public dApp identifiers, not wallet secrets.
