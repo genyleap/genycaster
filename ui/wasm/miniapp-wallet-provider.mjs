@@ -32,7 +32,12 @@ export function createDiscoveredBrowserWallet(win) {
         wallets.some(item=>item.provider===provider)||wallets.length>=12)return;
     const entry={id:'wallet-'+wallets.length,name:String(name||'Browser wallet').slice(0,64),provider};
     wallets.push(entry);
-    if(!active)active=entry;
+    if(!active) {
+      active=entry;
+      // Announcements may arrive after the Mini App facade has subscribed.
+      for(const [event,callbacks] of listeners)for(const callback of callbacks)
+        active.provider.on?.(event,callback);
+    }
   };
   const announce=event=>{
     const detail=event?.detail;
