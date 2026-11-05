@@ -856,11 +856,10 @@ private:
                 return;
             }
             const bool disconnected = *kind == capability::wallet::EthereumWalletEventKind::Disconnect;
-            const bool accountsCleared = *kind == capability::wallet::EthereumWalletEventKind::AccountsChanged
-                && !params->as_array().empty()
-                && params->as_array().front().is_array()
-                && params->as_array().front().as_array().empty();
-            if (disconnected || accountsCleared) {
+            const bool accountChanged = *kind == capability::wallet::EthereumWalletEventKind::AccountsChanged;
+            // Even a non-empty account switch changes the principal. It must
+            // invalidate any consent remembered for the previous account.
+            if (disconnected || accountChanged) {
                 m_accountAccessGrants.erase(m_origin);
             }
             sink = m_eventSink;
