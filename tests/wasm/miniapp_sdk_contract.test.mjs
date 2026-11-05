@@ -82,3 +82,66 @@ test('Cross-origin sessions are isolated and same-origin duplicate frames are no
   host.close();
   assert.equal(detached.length,2);
 });
+
+
+test('SDK user context preserves a safe public avatar and updates it only for the same FID', () => {
+  const captures = [];
+  class HTMLIFrameElement {
+    constructor(src) { this.src = src; }
+  }
+  const window = {location:{origin:'https://caster.genyleap.com'}};
+  // Substitute only the SDK adapter functions; execute the production
+  // identity normalization and same-account refresh flow.
+  const moduleSource = bridge.replace(/^import .*;\s*$/gm, '');
+  const exposeToIframe = args => {
+    captures.push(args.sdk);
+    return {cleanup(){}};
+  };
+  vm.runInNewContext(moduleSource, {
+    window, URL, HTMLIFrameElement,
+    exposeToIframe, createMiniAppEthereumProvider: () => null
+  }, {timeout:1000});
+  const attach = window.__genycasterMiniAppSdk.attach;
+  const frame = new HTMLIFrameElement('https://mini.example.com/');
+  const close = attach(frame, frame.src, {
+    fid:42, username:'builder',
+    pfpUrl:'https://images.example.com/portrait.png'
+  });
+  assert.equal(captures.length, 1);
+  assert.equal(captures[0].context.user.pfpUrl,
+    'https://images.example.com/portrait.png');
+
+  close.updateUser({fid:42, username:'builder',
+    pfpUrl:'https://images.example.com/refreshed.png'});
+  assert.equal(captures[0].context.user.pfpUrl,
+    'https://images.example.com/refreshed.png');
+  close.updateUser({fid:43, pfpUrl:'https://evil.example.com/other.png'});
+  assert.equal(captures[0].context.user.fid,42);
+  assert.equal(captures[0].context.user.pfpUrl,
+    'https://images.example.com/refreshed.png');
+
+  close.updateUser({fid:42,pfpUrl:'http://images.example.com/insecure.png'});
+  assert.equal(captures[0].context.user.pfpUrl, undefined);
+  close.updateUser({fid:42,pfpUrl:'https://private.local/avatar.png'});
+  assert.equal(captures[0].context.user.pfpUrl, undefined);
+  close.updateUser({fid:42,pfpUrl:'https://u:p@images.example.com/a.png'});
+  assert.equal(captures[0].context.user.pfpUrl, undefined);
+  close.updateUser({fid:42,pfpUrl:'https://images.example.com/new.png#fragment'});
+  assert.equal(captures[0].context.user.pfpUrl,
+    'https://images.example.com/new.png');
+  close();
+  close.updateUser({fid:42,pfpUrl:'https://images.example.com/after-close.png'});
+  assert.equal(captures[0].context.user.pfpUrl,
+    'https://images.example.com/new.png');
+});
+
+test('WASM overlays refresh avatar metadata without remounting the Mini App', () => {
+  const {host,attached,detached} = hostBrowser();
+  host.setUser({fid:42,username:'builder'});
+  assert.equal(host.open('https://mini.example.com/','Portrait'),true);
+  assert.equal(attached.length,1);
+  assert.equal(detached.length,0);
+  assert.match(source,/session\.detach\?\.updateUser\?\.\(next\)/);
+  assert.match(bridge,/detach\.updateUser = nextValue =>/);
+  assert.match(bridge,/next\.fid !== host\.context\.user\.fid/);
+});
