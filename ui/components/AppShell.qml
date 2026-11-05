@@ -337,8 +337,10 @@ Item {
     function openTopicBrowser(slug, scope, authorFid) {
         const chosen=String(slug || "")
         if(!chosen.length) {root.closeTopicBrowser();return}
-        if(!presentationBridge.isAuthenticated
-           || !openProofConnections.cloudAuthorizationReady) {
+        // Topic filtering is a read-only operation. An existing Farcaster
+        // session must never be sent to the signing/account drawer just
+        // because the account-scoped read grant is still being restored.
+        if (!presentationBridge.isAuthenticated) {
             root.openAccountPopup()
             return
         }
@@ -348,7 +350,8 @@ Item {
                                  ? String(Math.floor(authorFid)) : ""
         root.topicBrowseActive=true
         root.topicHydrationAttempted=({})
-        openProofConnections.selectCastTopic(chosen,root.topicBrowseAuthorFid)
+        if (openProofConnections)
+            openProofConnections.selectCastTopic(chosen,root.topicBrowseAuthorFid)
     }
     function closeTopicBrowser() {
         root.topicBrowseActive=false
