@@ -1749,6 +1749,7 @@ int main(int argc, char* argv[])
 #else
         , nullptr
 #endif
+        , QString::fromStdString(optimismRpcUrl.value_or("https://mainnet.optimism.io")).toStdString()
     );
 #endif
     const auto updateMiniAppUser = [&presentationBridge, &miniAppHost] {
