@@ -1843,7 +1843,7 @@ private:
             {QStringLiteral("event"), QStringLiteral("eip6963:announceProvider")},
             {QStringLiteral("info"), QJsonObject{
                 {QStringLiteral("uuid"), session.providerUuid},
-                {QStringLiteral("name"), QStringLiteral("Genycaster Wallet Bridge")},
+                {QStringLiteral("name"), QStringLiteral("GenyCaster (External Wallet)")},
                 {QStringLiteral("icon"), icon},
                 {QStringLiteral("rdns"), QStringLiteral("com.genyleap.genycaster")},
             }},
