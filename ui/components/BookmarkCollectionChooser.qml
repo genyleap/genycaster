@@ -14,8 +14,10 @@ Popup {
     y: parent ? Math.max(Theme.space3,(parent.height-height)/2) : 0
     padding: Theme.space3
     property var collections: []
-    readonly property bool proEligible: openProofConnections.proEntitlements.status === "verified"
-        && openProofConnections.proEntitlements.eligible === true
+    readonly property var entitlements: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property bool proEligible: entitlements.status === "verified"
+        && entitlements.eligible === true
     property bool busy: false
     property string errorText: ""
     property string castHash: ""
@@ -118,7 +120,7 @@ Popup {
             visible: !root.proEligible
             text: qsTrId("genycaster.pro.unlock_hint").arg(
                 LocaleFormat.formatInteger(Number(
-                    openProofConnections.proEntitlements.minimum_geny || 16000)))
+                    root.entitlements.minimum_geny || 16000)))
             color: Theme.proAccent
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
