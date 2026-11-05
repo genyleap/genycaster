@@ -40,6 +40,7 @@ PROVIDER_AWARE_PRESENTATION = {
     "ui/mobile/provider_profiles_controller.cpp",
     "ui/mobile/channel_picker_controller.cpp",
     "ui/mobile/genypulse_activity_controller.cpp",
+    "ui/mobile/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
     "ui/tests/provider_profiles_controller_tests.cpp",
 }
 
