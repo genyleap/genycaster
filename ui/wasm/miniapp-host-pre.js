@@ -281,7 +281,17 @@
         app.sessions.forEach(attachSession);
     }
     function setUser(user) {
-        app.user = user && typeof user === "object" ? user : {};
+        const next = user && typeof user === "object" ? user : {};
+        const previousFid = Number(app.user?.fid || 0);
+        const nextFid = Number(next.fid || 0);
+        app.user = next;
+        // ReactNativeWebView/native hosts hydrate the account independently
+        // from Mini App navigation. Keep already-attached, same-FID SDK
+        // contexts current without reloading apps or overwriting identity on
+        // a different FID. Native host closes sessions on an account switch.
+        if (previousFid > 0 && previousFid === nextFid)
+            for (const session of app.sessions)
+                session.detach?.updateUser?.(next);
     }
     function makeFrame(url,title) {
         const frame=document.createElement("iframe");
