@@ -1441,7 +1441,7 @@ Item {
                                                                 : qsTrId("genycaster.profile.mute")
                                         enabled: root.muteSettingsReady && !root.muteWriteBusy
                                         busy: root.muteWriteBusy
-                                        customForegroundColor: Theme.warning
+                                        customForegroundColor: root.profileMuted ? "transparent" : Theme.warning
                                         onClicked: {
                                             if (!root.muteSettingsReady) return
                                             sharePopup.close()
@@ -1456,7 +1456,7 @@ Item {
                                         quiet: true
                                         alignStart: true
                                         iconGlyph: Theme.iconWarning
-                                        destructive: true
+                                        destructive: !Boolean(root.activeDetail.blockedByMe)
                                         text: Boolean(root.activeDetail.blockedByMe)
                                               ? qsTrId("genycaster.profile.unblock_user")
                                               : qsTrId("genycaster.profile.block_user")
