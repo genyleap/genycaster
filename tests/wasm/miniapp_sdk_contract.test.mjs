@@ -160,3 +160,41 @@ test('WASM overlays refresh avatar metadata without remounting the Mini App', ()
   assert.match(bridge,/detach\.updateUser = nextValue =>/);
   assert.match(bridge,/next\.fid !== host\.context\.user\.fid/);
 });
+
+
+test('native SIWF is advertised only when a real wallet and verified account are available', () => {
+  const runtime = read('ui/mobile/miniapp_runtime.cpp');
+  const api = read('ui/mobile/miniapp_runtime.cppm');
+  const composition = read('ui/mobile/main.cpp');
+  const cmake = read('ui/CMakeLists.txt');
+  const auth = read('src/providers/compatibility/farcaster_auth/auth.cpp');
+  const contract = read('src/providers/compatibility/farcaster_auth/auth.cppm');
+  const web = read('ui/wasm/miniapp-host-bridge-entry.mjs');
+
+  assert.match(runtime, /if \(supportsSignIn && wallet != nullptr && wallet->available\(\)\)/);
+  assert.match(runtime, /result\.push_back\(QStringLiteral\("actions\.signIn"\)\)/);
+  assert.match(runtime, /m_controller\.user\(\)\.value\(QStringLiteral\("fid"\)\)/);
+  assert.match(runtime, /capabilities\(m_wallet, signInAvailable\(\)\)/);
+  assert.match(runtime, /beginSignIn\(session, id, argument, document\)/);
+  assert.match(runtime, /"eth_requestAccounts"/);
+  assert.match(runtime, /"personal_sign"/);
+  assert.match(runtime, /QThreadPool::globalInstance\(\)->start/);
+  assert.match(runtime, /verified && proof->authAddress/);
+  assert.match(runtime, /generation != session->documentGeneration|session->documentGeneration != generation/);
+  assert.match(runtime, /"rejected_by_user"/);
+  assert.match(runtime, /"authMethod"/);
+  assert.match(runtime, /"Chain ID: 10/);
+  assert.match(runtime, /farcaster:\/\/fid\//);
+  assert.match(api, /std::string optimismRpcUrl/);
+  assert.match(composition, /optimismRpcUrl\.value_or/);
+  assert.match(cmake, /GENYCASTER_MINIAPP_SIWF=1/);
+  assert.match(cmake, /FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS/);
+  assert.match(contract, /verifyMiniAppSignIn/);
+  assert.match(auth, /validateSiwe\(\*parsed, expectedDomain/);
+  assert.match(auth, /verifier\.verify\(message, signature, parsed->address, fid/);
+  assert.match(auth, /std::chrono::minutes\{10\}/);
+  // A browser iframe must not receive a fabricated SIWF proof in a build
+  // that has no verified signer authorization transport.
+  assert.match(web, /signIn: unsupported/);
+  assert.doesNotMatch(runtime, /snapchain|hypersnap/i);
+});
