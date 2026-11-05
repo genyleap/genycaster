@@ -20,9 +20,10 @@ GenyDrawer {
     property bool catalogFallback: false
     property string approvalUrl: ""
     property string errorText: ""
+    readonly property var proEntitlements: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool proEligible:
-        openProofConnections.proEntitlements.status === "verified"
-        && openProofConnections.proEntitlements.eligible === true
+        proEntitlements.status === "verified" && proEntitlements.eligible === true
 
     signal authorizeRequested()
     signal approvalRequested(string url)
@@ -357,7 +358,9 @@ GenyDrawer {
                 compact: true
                 quiet: true
                 text: qsTrId("genycaster.pro.check_status")
-                onClicked: openProofConnections.fetchProEntitlements(true)
+                onClicked: {
+                    if (openProofConnections) openProofConnections.fetchProEntitlements(true)
+                }
             }
         }
 
