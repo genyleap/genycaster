@@ -51,7 +51,7 @@ test('mobile uses equal-width Share and Edit buttons; desktop uses a real profil
   assert.equal((actions.match(/Layout\.minimumWidth: 0/g)||[]).length,2);
   assert.equal((actions.match(/Layout\.preferredWidth: Math\.max\(0, \(root\.profileContentWidth - Theme\.space2\) \/ 2\)/g)||[]).length,2);
   assert.match(profile,/objectName: "profileOptionsButton"/);
-  assert.match(profile,/visible: !root\.compact[\s\S]*?iconGlyph: Theme\.iconMore/);
+  assert.match(profile,/objectName: "profileOptionsButton"[\s\S]*?visible: true[\s\S]*?iconGlyph: Theme\.iconMore/);
   assert.match(profile,/objectName: "profileOptionsMenu"/);
   assert.match(profile,/visible: root\.isOwnProfile[\s\S]*?text: qsTrId\("genycaster\.profile\.edit_profile"\)/);
   assert.equal((actions.match(/compact: true/g)||[]).length,2);
