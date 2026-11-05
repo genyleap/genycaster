@@ -1069,6 +1069,13 @@ Item {
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
                 background: PopupSurface { curveDepth: Theme.curveContainer }
+                onClosed: castCopyCloseTimer.stop()
+                Timer {
+                    id: castCopyCloseTimer
+                    interval: 1100
+                    repeat: false
+                    onTriggered: castMenu.close()
+                }
 
                 contentItem: ColumnLayout {
                     id: menuContent
@@ -1104,11 +1111,13 @@ Item {
                         Layout.fillWidth: true
                         quiet: true
                         alignStart: true
+                        id: castCopyTextAction
                         iconGlyph: Theme.iconCopy
                         text: qsTrId("genycaster.cast.copy_text")
                         onClicked: {
                             presentationBridge.copyText(String(root.modelData.text || ""))
-                            castMenu.close()
+                            castCopyTextAction.acknowledgeCopy()
+                            castCopyCloseTimer.restart()
                         }
                     }
 
@@ -1117,11 +1126,13 @@ Item {
                         Layout.fillWidth: true
                         quiet: true
                         alignStart: true
+                        id: castCopyLinkAction
                         iconGlyph: Theme.iconLink
                         text: qsTrId("genycaster.cast.copy_link")
                         onClicked: {
                             presentationBridge.copyText(root.castPermalink)
-                            castMenu.close()
+                            castCopyLinkAction.acknowledgeCopy()
+                            castCopyCloseTimer.restart()
                         }
                     }
 
@@ -1130,11 +1141,13 @@ Item {
                         Layout.fillWidth: true
                         quiet: true
                         alignStart: true
+                        id: castCopyIdAction
                         iconGlyph: Theme.iconCopy
                         text: qsTrId("genycaster.cast.copy_cast_id")
                         onClicked: {
                             presentationBridge.copyText(String(root.modelData.castId || ""))
-                            castMenu.close()
+                            castCopyIdAction.acknowledgeCopy()
+                            castCopyCloseTimer.restart()
                         }
                     }
 
