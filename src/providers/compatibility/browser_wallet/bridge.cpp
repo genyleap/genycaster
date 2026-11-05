@@ -191,17 +191,202 @@ constexpr std::chrono::milliseconds PollDelay{20};
     const std::string_view appName,
     const std::string_view origin)
 {
-    std::string page = R"html(<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Genycaster wallet bridge</title><style nonce=")html";
+    std::string page = R"html(<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect wallet · GenyCaster</title><style nonce=")html";
     page += nonce;
-    page += R"html(">:root{color-scheme:light dark;font-family:ui-sans-serif,system-ui,sans-serif}body{max-width:46rem;margin:2.5rem auto;padding:0 1.25rem;line-height:1.45}.card{border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:1.25rem;padding:1.25rem;margin:1rem 0}.muted{opacity:.7}code,pre{font-family:ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;max-height:16rem;overflow:auto;background:color-mix(in srgb,currentColor 6%,transparent);padding:.75rem;border-radius:.75rem}button{font:inherit;padding:.75rem 1rem;border-radius:.75rem;border:1px solid currentColor;cursor:pointer}.danger{font-weight:700}.error{color:#d33}.ok{color:#299b54}#request{display:none}</style></head><body><h1>Genycaster wallet bridge</h1><div class="card"><div><strong>Mini App</strong>: )html";
+    page += R"html(">
+:root{color-scheme:dark;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#131317;color:#f6f5f9;padding:16px}
+main{width:min(100%,510px);padding:28px;background:#1e1e24;border:1px solid #383840;border-radius:21px;box-shadow:0 20px 64px #0005}
+h1{font-size:1.52rem;letter-spacing:-.03em;margin:0 0 4px}h2{font-size:1.12rem;margin:7px 0 12px}
+.subtitle{font-size:.86rem;color:#b4b3bd;margin:0 0 22px;line-height:1.55}
+.label{font-size:.76rem;font-weight:750;color:#b1a0ff;letter-spacing:.035em}
+.card{border:1px solid #393943;background:#26262d;border-radius:14px;padding:14px 16px;margin:14px 0}
+#origin{overflow-wrap:anywhere;font-size:.85rem;line-height:1.5;margin-top:6px}
+#app-name{font-weight:750;margin:4px 0}
+#options{display:grid;gap:7px;margin-top:12px}
+button{font:inherit;color:#f8f7fb;background:#303038;border:1px solid #4c4b58;padding:11px 14px;border-radius:11px;cursor:pointer;text-align:left}
+button:hover:enabled{border-color:#ac94ff}
+button:focus-visible{outline:3px solid #b5a0ff;outline-offset:2px}
+button:disabled{opacity:.55;cursor:not-allowed}
+.wallet-choice[aria-pressed="true"]{border-color:#a68aff;background:#403557}
+#request[hidden],#message[hidden]{display:none}
+#kind{font-size:.74rem;font-weight:750;color:#b1a0ff}
+#message{font:.8rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;white-space:pre-wrap;max-height:200px;overflow:auto}
+details{margin-top:10px;color:#b5b4be;font-size:.8rem}summary{cursor:pointer}
+pre{background:#16161b;border-radius:9px;padding:12px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;max-height:190px;font:.75rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
+.actions{display:flex;gap:10px;margin-top:16px}.actions button{flex:1;text-align:center}
+#approve{background:#825de7;border-color:#825de7;font-weight:750}
+#status,#wallet{font-size:.84rem;line-height:1.5;margin-top:10px;color:#bbbac4}
+#status.error,#wallet.error{color:#ffa0a7}#status.ok,#wallet.ok{color:#8de1aa}
+.help{font-size:.77rem;color:#abaab6;line-height:1.65;margin:20px 0 0}
+@media(max-width:480px){main{padding:20px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background .15s ease,border-color .15s ease}}
+</style></head><body><main><h1>Connect your wallet</h1><p class="subtitle">GenyCaster securely forwards requests to a wallet in your browser.</p>
+<div class="card"><div class="label">MINI APP</div><div id="app-name">)html";
     page += htmlEscape(appName);
-    page += R"html(</div><div><strong>Origin</strong>: <code>)html";
+    page += R"html(</div><div id="origin">)html";
     page += htmlEscape(origin);
-    page += R"html(</code></div><div id="wallet" class="muted">Checking wallet…</div></div><p class="muted">Genycaster never receives your private key. Signing and transaction requests are handed to the EIP-1193 wallet installed in this browser.</p><div id="request" class="card"><div id="kind" class="danger"></div><h2 id="method"></h2><pre id="params"></pre><button id="approve">Continue to wallet</button></div><p id="status" class="muted">Waiting for a Mini App wallet request…</p><script nonce=")html";
+    page += R"html(</div></div>
+<div class="label">CHOOSE A WALLET</div><div id="options" role="group" aria-label="Detected wallet providers"></div><p id="wallet" role="status" aria-live="polite">Checking for browser wallets…</p>
+<section id="request" class="card" hidden><div id="kind">Explicit approval required</div><h2 id="method">Wallet request</h2><pre id="message" hidden></pre><details><summary>View technical request</summary><pre id="params"></pre></details><div class="actions"><button id="reject">Cancel</button><button id="approve">Continue to wallet</button></div></section>
+<p id="status" role="status" aria-live="polite">Waiting for a Mini App request…</p><p class="help">Your private keys never enter GenyCaster. Every signature or transaction requires approval in your real wallet. Your wallet may display the local bridge address as the requesting page; check the Mini App origin and message before signing.</p>
+<script nonce=")html";
     page += nonce;
-    page += R"html(">const base=")html";
+    page += R"html(">
+const base=")html";
     page += basePath;
-    page += R"html(";const status=document.getElementById('status');const wallet=document.getElementById('wallet');const box=document.getElementById('request');const approve=document.getElementById('approve');let current=null;let busy=false;const post=async(path,data)=>{try{await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify(data)});}catch(_ignored){}};const describeWallet=async()=>{if(!window.ethereum){wallet.className='error';wallet.textContent='No EIP-1193 wallet detected. Open this URL in a wallet browser or a browser with a wallet extension.';return;}try{const accounts=await window.ethereum.request({method:'eth_accounts'});const chain=await window.ethereum.request({method:'eth_chainId'});wallet.className='ok';wallet.textContent='Wallet detected · '+chain+(accounts&&accounts[0]?' · '+accounts[0]:' · not connected');}catch(error){wallet.className='error';wallet.textContent=error&&error.message?error.message:String(error);}};const sendEvent=(event,params)=>post('/event',{event,params});if(window.ethereum&&window.ethereum.on){for(const event of ['accountsChanged','chainChanged','connect','disconnect','message'])window.ethereum.on(event,(value)=>{sendEvent(event,[value]);describeWallet();});}const execute=async()=>{if(!current||busy)return;if(!window.ethereum){status.className='error';status.textContent='No EIP-1193 wallet is available.';return;}busy=true;approve.disabled=true;try{status.className='muted';status.textContent='Waiting for wallet…';const result=await window.ethereum.request({method:current.method,params:current.params});await post('/result',{transportId:current.transportId,result:result===undefined?null:result});status.className='ok';status.textContent='Wallet request completed.';}catch(error){const code=error&&Number.isInteger(Number(error.code))?Number(error.code):4001;let details='';try{if(error&&error.data!==undefined)details=typeof error.data==='string'?error.data:JSON.stringify(error.data);}catch(_ignored){}await post('/result',{transportId:current.transportId,error:{code,message:error&&error.message?error.message:String(error),details}});status.className=code===4001?'muted':'error';status.textContent=code===4001?'Wallet request rejected.':'Wallet request failed.';}finally{current=null;busy=false;approve.disabled=false;box.style.display='none';describeWallet();}};approve.addEventListener('click',execute);const poll=async()=>{if(busy||current){setTimeout(poll,500);return;}try{const response=await fetch(base+'/next',{cache:'no-store'});if(response.status===204){setTimeout(poll,650);return;}if(!response.ok)throw new Error(await response.text());current=await response.json();document.getElementById('method').textContent=current.method;const hex=current.method==='personal_sign'&&Array.isArray(current.params)&&typeof current.params[0]==='string'?current.params[0]:'';let printable='';if(/^0x(?:[0-9a-fA-F]{2}){1,4096}$/.test(hex)){try{printable=new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(hex.slice(2).match(/../g),v=>parseInt(v,16)));}catch(_ignored){}}document.getElementById('params').textContent=printable||JSON.stringify(current.params,null,2);const rememberedAccess=current.method==='eth_requestAccounts'&&!current.requiresApproval;document.getElementById('kind').textContent=current.requiresApproval?'Explicit approval required':rememberedAccess?'Previously approved account access':'Read-only wallet request';box.style.display='block';status.className='muted';status.textContent=current.requiresApproval?'Review this request before continuing.':rememberedAccess?'Using the account access you already approved for this Mini App.':'Routing read-only request to the wallet…';if(!current.requiresApproval)execute();}catch(error){status.className='error';status.textContent=error&&error.message?error.message:String(error);}setTimeout(poll,500);};describeWallet();poll();</script></body></html>)html";
+    page += R"html(";
+const status=document.getElementById('status'),wallet=document.getElementById('wallet');
+const box=document.getElementById('request'),approve=document.getElementById('approve');
+const options=document.getElementById('options'),reject=document.getElementById('reject');
+const method=document.getElementById('method'),params=document.getElementById('params');
+const message=document.getElementById('message'),kind=document.getElementById('kind');
+let current=null,busy=false,selected=null,listeners=[];
+const providers=[];
+const events=['accountsChanged','chainChanged','connect','disconnect','message'];
+const show=(msg,level='')=>{status.className=level;status.textContent=msg;};
+const post=async(path,body)=>{
+  const response=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',body:JSON.stringify(body)});
+  if(!response.ok)throw new Error('Could not deliver request result ('+response.status+').');
+};
+const detach=()=>{
+  if(selected&&selected.provider.removeListener)
+    for(const [event,callback] of listeners)selected.provider.removeListener(event,callback);
+  listeners=[];
+};
+const describe=async()=>{
+  if(!selected){wallet.className='error';wallet.textContent='No browser wallet selected.';return;}
+  try{
+    const accounts=await selected.provider.request({method:'eth_accounts'});
+    const chain=await selected.provider.request({method:'eth_chainId'});
+    wallet.className='ok';
+    wallet.textContent=selected.name+' · '+String(chain)+
+      (Array.isArray(accounts)&&accounts[0]?' · '+String(accounts[0]):' · not connected');
+  }catch(error){wallet.className='error';wallet.textContent=String(error?.message||error);}
+};
+const select=index=>{
+  if(busy)return;
+  detach();selected=providers[index];
+  if(!selected)return;
+  options.querySelectorAll('button').forEach((button,i)=>{
+    button.setAttribute('aria-pressed',String(i===index));
+  });
+  if(typeof selected.provider.on==='function')for(const event of events){
+    const callback=value=>{
+      post('/event',{event,params:[value]}).catch(()=>{});
+      describe();
+    };
+    selected.provider.on(event,callback);
+    listeners.push([event,callback]);
+  }
+  describe();
+  if(current&&!current.requiresApproval)execute();
+};
+const add=(name,provider)=>{
+  if(!provider||typeof provider.request!=='function'||providers.some(item=>item.provider===provider)
+      ||providers.length>=12)return;
+  const entry={name:String(name||'Browser wallet').slice(0,64),provider};
+  const index=providers.push(entry)-1;
+  const button=document.createElement('button');
+  button.className='wallet-choice';button.type='button';
+  button.textContent=entry.name;button.setAttribute('aria-pressed','false');
+  button.addEventListener('click',()=>select(index));options.append(button);
+  if(!selected)select(index);
+};
+window.addEventListener('eip6963:announceProvider',event=>{
+  const detail=event.detail;
+  if(detail&&detail.info&&typeof detail.info.name==='string')
+    add(detail.info.name,detail.provider);
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+if(window.ethereum&&typeof window.ethereum.request==='function')
+  add('Browser wallet',window.ethereum);
+setTimeout(()=>{
+  if(!providers.length){wallet.className='error';
+    wallet.textContent='No EIP-1193 wallet detected. Reopen the connection in GenyCaster and choose a browser with a wallet extension.';}
+},800);
+const requestLabel=name=>{
+  if(name==='eth_requestAccounts')return 'Connect wallet';
+  if(name==='personal_sign'||name.startsWith('eth_sign'))return 'Sign message';
+  if(name.startsWith('eth_send')||name==='wallet_sendCalls')return 'Review transaction';
+  if(name==='wallet_switchEthereumChain'||name==='wallet_addEthereumChain')return 'Change network';
+  if(name==='wallet_requestPermissions')return 'Review wallet permissions';
+  return 'Wallet request';
+};
+const readable=rpc=>{
+  if(rpc.method!=='personal_sign'||!Array.isArray(rpc.params))return '';
+  const hex=rpc.params.find(value=>typeof value==='string'&&/^0x(?:[0-9a-fA-F]{2}){1,4096}$/.test(value));
+  if(!hex)return '';
+  try{
+    const text=new TextDecoder('utf-8',{fatal:true}).decode(
+      Uint8Array.from(hex.slice(2).match(/../g),value=>parseInt(value,16)));
+    return /^[\x09\x0a\x0d\x20-\x7e]+$/.test(text)?text:'';
+  }catch{return '';}
+};
+const completed=()=>{current=null;busy=false;approve.disabled=false;reject.disabled=false;box.hidden=true;describe();};
+const execute=async()=>{
+  if(!current||busy)return;
+  if(!selected){show('Choose a wallet before continuing.','error');return;}
+  busy=true;approve.disabled=true;reject.disabled=true;
+  const request=current;
+  show('Waiting for '+selected.name+'…');
+  let response;
+  try{
+    response={transportId:request.transportId,result:
+      await selected.provider.request({method:request.method,params:request.params})};
+    if(response.result===undefined)response.result=null;
+  }catch(error){
+    const code=Number.isInteger(Number(error?.code))?Number(error.code):4900;
+    response={transportId:request.transportId,error:{code,message:String(error?.message||error).slice(0,512)}};
+  }
+  try{
+    await post('/result',response);
+    show(response.error?(response.error.code===4001?'Wallet request declined.':'Wallet request failed.')
+      :'Wallet request completed. Return to GenyCaster.',response.error?'error':'ok');
+    completed();
+  }catch(error){
+    busy=false;approve.disabled=false;reject.disabled=false;
+    show('Could not deliver the wallet response. Please retry.','error');
+  }
+};
+const cancel=async()=>{
+  if(!current||busy)return;
+  busy=true;approve.disabled=true;reject.disabled=true;
+  try{
+    await post('/result',{transportId:current.transportId,
+      error:{code:4001,message:'Cancelled by the user.'}});
+    show('Request cancelled.');completed();
+  }catch{
+    busy=false;approve.disabled=false;reject.disabled=false;
+    show('Could not cancel the wallet request.','error');
+  }
+};
+approve.addEventListener('click',execute);
+reject.addEventListener('click',cancel);
+const poll=async()=>{
+  if(busy||current){setTimeout(poll,500);return;}
+  try{
+    const response=await fetch(base+'/next',{cache:'no-store'});
+    if(response.status===204){setTimeout(poll,650);return;}
+    if(!response.ok)throw new Error('Wallet session unavailable.');
+    const rpc=await response.json();
+    if(!rpc||typeof rpc.method!=='string'||!Array.isArray(rpc.params))
+      throw new Error('Invalid wallet request.');
+    current=rpc;
+    kind.textContent=rpc.requiresApproval?'Explicit approval required':'Read-only request';
+    method.textContent=requestLabel(rpc.method);
+    params.textContent=JSON.stringify({method:rpc.method,params:rpc.params},null,2);
+    const text=readable(rpc);message.hidden=!text;message.textContent=text;
+    box.hidden=false;
+    approve.textContent=rpc.requiresApproval?'Continue to wallet':'Use selected wallet';
+    show(rpc.requiresApproval?'Review this request and approve it in your wallet.'
+      :'Checking the selected wallet…');
+    if(!rpc.requiresApproval&&selected)execute();
+  }catch(error){show(String(error?.message||error),'error');}
+  setTimeout(poll,500);
+};
+poll();
+</script></main></body></html>)html";
     return page;
 }
 
