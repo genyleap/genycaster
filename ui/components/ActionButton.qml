@@ -14,6 +14,20 @@ Button {
     property bool positive: false
     property bool selected: false
     property color customIconColor: "transparent"
+    property color customForegroundColor: "transparent"
+    // A copy action can acknowledge successful clipboard dispatch without
+    // closing its menu before the user sees the result.
+    property bool copyConfirmed: false
+    function acknowledgeCopy() {
+        control.copyConfirmed = true
+        copyConfirmationTimer.restart()
+    }
+    Timer {
+        id: copyConfirmationTimer
+        interval: 1300
+        repeat: false
+        onTriggered: control.copyConfirmed = false
+    }
     property color customSelectedColor: "transparent"
     property color customSelectedSurface: "transparent"
     property string iconGlyph: ""
@@ -142,6 +156,8 @@ Button {
     // operation temporarily disables the action (opacity indicates disabled).
     readonly property color foregroundColor: destructiveFilled ? Theme.dangerInk
                                                : destructive ? Theme.danger
+                                               : copyConfirmed ? Theme.success
+                                               : customForegroundColor.a > 0 ? customForegroundColor
                                                : !enabled && !busy ? Theme.inkDisabled
                                                : positive ? Theme.contrastInk(Theme.success)
                                                : prominent ? Theme.accentInk
@@ -165,8 +181,8 @@ Button {
         Icon {
             id: actionGlyph
             visible: (!control.busy || control.spinIconWhileBusy)
-                     && control.iconGlyph.length > 0
-            text: control.iconGlyph
+                     && (control.iconGlyph.length > 0 || control.copyConfirmed)
+            text: control.copyConfirmed ? Theme.iconCheck : control.iconGlyph
             RotationAnimator on rotation {
                 from: 0
                 to: 360
@@ -177,7 +193,8 @@ Button {
             }
             onVisibleChanged: if (!visible) rotation = 0
             filled: control.selected
-            color: control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
+            color: control.copyConfirmed ? Theme.success
+                   : control.customIconColor.a > 0 ? control.customIconColor : control.foregroundColor
             Behavior on color {
                 ColorAnimation { duration: Theme.reduceMotion ? 0 : 110 }
             }
