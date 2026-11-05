@@ -85,7 +85,9 @@ void MiniAppHostController::setUser(const QVariantMap& user) {
     const auto nextFid = user.value(QStringLiteral("fid")).toULongLong();
     // An anonymous-to-authenticated switch is also an identity change.
     // Do not leak the previous iframe's session/context across accounts.
-    if (previousFid != nextFid && m_active) closeAll();
+    // Background/minimized Mini Apps remain live even when m_active is
+    // false. Revoke every isolated document on an account identity change.
+    if (previousFid != nextFid) closeAll();
     m_user = user;
 #if defined(__EMSCRIPTEN__)
     const auto json = QJsonDocument(QJsonObject::fromVariantMap(user))
