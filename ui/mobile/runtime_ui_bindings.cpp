@@ -1768,6 +1768,68 @@ void refreshProfileFollowsMe(
     runtime->followsMeRequests.insert_or_assign(relationshipKey, std::move(*request));
 }
 
+// A selected node is authoritative for Block state. Never silently fall
+// back to a different network just to decorate the profile.
+void refreshProfileBlocked(
+    PresentationBridge& bridge,
+    const std::shared_ptr<Runtime>& runtime,
+    const domain::identity::Fid viewer,
+    const domain::identity::Fid profile,
+    const bool outgoing)
+{
+    if (viewer.value == 0 || profile.value == 0 || viewer.value == profile.value)
+        return;
+    using Gateway = farcaster::provider::hypersnap::async_gateway::AsyncGateway;
+    Gateway* gateway = runtime->asyncGateway.get();
+    const auto& selected = runtime->requestedReadProviderId;
+    if (selected == "farcaster-snapchain") {
+        gateway = runtime->farcasterReadGateway.get();
+    } else if (!selected.empty() && selected != "hypersnap-v2") {
+        gateway = nullptr;
+        for (std::size_t i = 0; i < runtime->additionalReadProviderIds.size(); ++i) {
+            if (runtime->additionalReadProviderIds[i] == selected) {
+                gateway = runtime->additionalReadGateways[i].get();
+                break;
+            }
+        }
+    }
+    if (!gateway) return; // The selected provider has no compatible link reader.
+
+    const auto source = outgoing ? viewer : profile;
+    const auto target = outgoing ? profile : viewer;
+    const std::string key = std::to_string(viewer.value) + ":"
+        + std::to_string(profile.value) + (outgoing ? ":block-out" : ":block-in");
+    {
+        std::scoped_lock lock{runtime->profileRelationshipMutex};
+        if (!runtime->followsMeInFlight.insert(key).second) return;
+    }
+    const QPointer<PresentationBridge> bridgeGuard{&bridge};
+    auto request = gateway->isBlocked(
+        source, target,
+        [runtime, bridgeGuard, viewer, profile, key, outgoing](
+            foundation::result::Result<bool> relationship) mutable {
+            {
+                std::scoped_lock lock{runtime->profileRelationshipMutex};
+                runtime->followsMeInFlight.erase(key);
+                runtime->followsMeRequests.erase(key);
+            }
+            if (!relationship || !bridgeGuard) return;
+            QMetaObject::invokeMethod(bridgeGuard.data(),
+                [bridgeGuard, viewer, profile, outgoing, blocked = *relationship] {
+                    if (bridgeGuard && bridgeGuard->isAuthenticated()
+                        && bridgeGuard->accountFid() == viewer.value)
+                        bridgeGuard->applyProfileBlockRelation(profile.value, outgoing, blocked);
+                }, Qt::QueuedConnection);
+        });
+    if (!request) {
+        std::scoped_lock lock{runtime->profileRelationshipMutex};
+        runtime->followsMeInFlight.erase(key);
+        return;
+    }
+    std::scoped_lock lock{runtime->profileRelationshipMutex};
+    runtime->followsMeRequests.insert_or_assign(key, std::move(*request));
+}
+
 void refreshViewerReactionSnapshot(
     PresentationBridge&,
     const std::shared_ptr<Runtime>& runtime,
@@ -4350,6 +4412,8 @@ void connectRuntime(
                         refreshProfileFollowsMe(bridge, runtime, *accountFid, state.profile->fid);
                         refreshProfileFollowsMe(bridge, runtime, *accountFid, state.profile->fid,
                                                 true);
+                        refreshProfileBlocked(bridge, runtime, *accountFid, state.profile->fid, true);
+                        refreshProfileBlocked(bridge, runtime, *accountFid, state.profile->fid, false);
                     }
 #endif
                     QMetaObject::invokeMethod(&bridge,
