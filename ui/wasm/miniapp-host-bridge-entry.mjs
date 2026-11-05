@@ -21,7 +21,17 @@ function identity(record) {
   if (typeof value.displayName === 'string') user.displayName = value.displayName.slice(0, 140);
   try {
     const url = new URL(value.pfpUrl);
-    if (url.protocol === 'https:') user.pfpUrl = url.href;
+    const host = url.hostname.toLowerCase();
+    // Never bridge local, credentialed, or non-HTTPS account images into
+    // an untrusted Mini App iframe.
+    if (url.protocol === 'https:' && !url.username && !url.password &&
+        (!url.port || url.port === '443') && host.includes('.') &&
+        !['localhost', '127.0.0.1', '0.0.0.0'].includes(host) &&
+        !/\\.(?:localhost|local|internal|test|invalid)$/.test(host) &&
+        value.pfpUrl.length <= 4096) {
+      url.hash = '';
+      user.pfpUrl = url.href;
+    }
   } catch {}
   return user;
 }
@@ -93,11 +103,21 @@ function attach(frame, address, verifiedUser, callbacks = {}) {
     iframe:frame, sdk:host, ethProvider:wallet?.provider,
     miniAppOrigin:url.origin, debug:false
   });
-  return () => {
+  const detach = () => {
     active = false;
     exposed.cleanup();
     wallet?.dispose();
   };
+  // The host's public metadata may finish hydrating after the iframe was
+  // mounted. Update the same-FID context in place for later SDK context reads
+  // without reloading the Mini App or replacing its wallet authority.
+  detach.updateUser = nextValue => {
+    if (!active) return;
+    const next = identity(nextValue);
+    if (!next.fid || next.fid !== host.context.user.fid) return;
+    host.context.user = next;
+  };
+  return detach;
 }
 window.__genycasterMiniAppSdk = Object.freeze({attach});
 window.__genycasterMiniAppOverlay?.enableSdk?.();
