@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet,walletApprovalCopy} from '../../ui/wasm/miniapp-wallet-provider.mjs';
+import {createMiniAppEthereumProvider,createDiscoveredBrowserWallet,walletApprovalCopy,mobileWalletBrowserLinks} from '../../ui/wasm/miniapp-wallet-provider.mjs';
 import {readFileSync} from 'node:fs';
 
 function fakeWallet(){
@@ -93,7 +93,7 @@ test('Invalid methods and unsupported wallets fail closed without fabricated sig
 test('official SDK host exposes injected wallet only by explicit per-origin grant',()=>{
   const bridge=readFileSync(new URL('../../ui/wasm/miniapp-host-bridge-entry.mjs',import.meta.url),'utf8');
   assert.match(bridge,/createDiscoveredBrowserWallet\(window\)/);
-  assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, injected\)/);
+  assert.match(bridge,/createMiniAppEthereumProvider\(url\.origin, injected, undefined, url\.href\)/);
   assert.match(bridge,/ethProvider:wallet\?\.provider/);
   assert.match(bridge,/wallet\?\.dispose\(\)/);
   assert.match(bridge,/wallet\.getEthereumProvider/);
@@ -173,4 +173,35 @@ test('wallet chooser uses translated IDs in all locales and direction-aware cont
   assert.match(source,/layoutDirection: Theme\.uiDirection/);
   assert.match(source,/Theme\.rtl \? Theme\.iconArrowLeft : Theme\.iconArrowRight/);
   assert.match(source,/forceLeftToRight: true/);
+});
+
+
+test('mobile wallet-browser links use original HTTPS Mini App URL, never localhost',()=>{
+ const source='https://universal-caster-income.vercel.app/claim?ref=GenyCaster';
+ assert.deepEqual(mobileWalletBrowserLinks(source,'Mozilla/5.0 Desktop'),[]);
+ const links=mobileWalletBrowserLinks(source,'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)');
+ assert.equal(links.length,2);
+ const meta=links.find(link=>link.id==='metamask');
+ const coinbase=links.find(link=>link.id==='coinbase');
+ assert.equal(new URL(meta.href).hostname,'link.metamask.io');
+ assert.equal(new URL(coinbase.href).hostname,'go.cb-w.com');
+ assert.equal(new URL(coinbase.href).searchParams.get('cb_url'),source);
+ for(const bad of ['http://127.0.0.1:64141/session/test',
+    'https://localhost/session/test','https://192.168.1.10',
+    'javascript:alert(1)','https://example.com:8443/x',
+    'https://username:pass@example.com','not-an-url']){
+   assert.deepEqual(mobileWalletBrowserLinks(bad,'iPhone'),[]);
+ }
+ const copy=walletApprovalCopy('fa-IR');
+ assert.equal(copy.direction,'rtl');
+ assert.match(copy.externalExplanation,/جنی‌کستر/);
+});
+
+test('a missing injected provider does not claim a WalletConnect session',()=>{
+ const source=readFileSync(new URL('../../ui/wasm/miniapp-wallet-provider.mjs',import.meta.url),'utf8');
+ assert.match(source,/if\(injected\?\.available && !injected\.available\(\)\)/);
+ assert.match(source,/approve\.disabled=true/);
+ assert.match(source,/target='_blank'/);
+ assert.match(source,/separate session/);
+ assert.doesNotMatch(source,/new WalletConnect\(/);
 });
