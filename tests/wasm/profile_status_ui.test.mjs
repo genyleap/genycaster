@@ -9,7 +9,7 @@ const controller=readFileSync(root+'/ui/mobile/openproof_connections_controller.
 const header=readFileSync(root+'/ui/mobile/openproof_connections_controller.hpp','utf8');
 test('own mobile profile alone omits redundant back-to-feed toolbar',()=>{
   assert.match(qml,/visible: !\(root\.compact && root\.isOwnProfile\)/);
-  assert.match(qml,/text: qsTrId\("genycaster\.profile\.back_back_to_feed"\)/);
+  assert.match(qml,/text: qsTrId\("genycaster\.setup\.back"\)/);
 });
 test('professional label matches compact business identity style',()=>{
   assert.match(qml,/objectName: "profileProfessionalCategory"/);
