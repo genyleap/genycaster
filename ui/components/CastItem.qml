@@ -1069,7 +1069,12 @@ Item {
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
                 background: PopupSurface { curveDepth: Theme.curveContainer }
-                onClosed: castCopyCloseTimer.stop()
+                onClosed: {
+                    castCopyCloseTimer.stop()
+                    castCopyTextAction.clearCopyFeedback()
+                    castCopyLinkAction.clearCopyFeedback()
+                    castCopyIdAction.clearCopyFeedback()
+                }
                 Timer {
                     id: castCopyCloseTimer
                     interval: 1100
