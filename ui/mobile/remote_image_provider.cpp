@@ -693,6 +693,7 @@ private:
         QSize decodeRequest,
         QString cacheKey,
         bool compatibilityAttempt = false,
+        bool gatewayFallbackAttempt = false,
         unsigned int admissionRetryAttempt = 0U);
 
     void decodeNetworkResponse(
@@ -705,6 +706,7 @@ private:
         QString cacheKey,
         farcaster::transport::http::HttpResponse response,
         bool compatibilityAttempt,
+        bool gatewayFallbackAttempt,
         unsigned int queueRetryAttempt = 0U);
 
     std::shared_ptr<storage_policy::RuntimeState> m_storageState{};
@@ -904,6 +906,7 @@ void RemoteImageProvider::Impl::startNetwork(
     const QSize decodeRequest,
     QString cacheKey,
     const bool compatibilityAttempt,
+    const bool gatewayFallbackAttempt,
     const unsigned int admissionRetryAttempt)
 {
     if (control->cancelled.load(std::memory_order_acquire)) {
@@ -929,25 +932,31 @@ void RemoteImageProvider::Impl::startNetwork(
 
     farcaster::transport::async_http::Request request{};
     request.method = farcaster::transport::async_http::Method::Get;
+// Native profile covers from a few CDNs cannot be fetched/decoded
+    // directly. After a terminal direct failure, retry Photos only through
+    // the existing public-raster-only Genycaster gateway used by WASM.
+    // The same download policy, byte budget, timeout and cache key apply.
 #if defined(__EMSCRIPTEN__)
-    // Browser fetch cannot read many Farcaster image CDNs directly (CORS)
-    // and forbids setting the native User-Agent header. Use the bounded,
-    // public-raster-only Genycaster gateway, which returns ACAO: *.
-    QUrl browserImageGateway{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
-    QUrlQuery browserImageQuery{};
-    browserImageQuery.addQueryItem(QStringLiteral("url"), urlText);
-    browserImageGateway.setQuery(browserImageQuery);
-    request.url = browserImageGateway.toString(QUrl::FullyEncoded).toStdString();
-    request.headers = {
-        compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
-    };
+    const bool routeThroughGateway = true;
 #else
-    request.url = urlText.toStdString();
-    request.headers = {
-        compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
-        mediaUserAgentHeader(),
-    };
+    const bool routeThroughGateway = gatewayFallbackAttempt;
 #endif
+    if (routeThroughGateway) {
+        QUrl imageGateway{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+        QUrlQuery imageQuery{};
+        imageQuery.addQueryItem(QStringLiteral("url"), urlText);
+        imageGateway.setQuery(imageQuery);
+        request.url = imageGateway.toString(QUrl::FullyEncoded).toStdString();
+        request.headers = {
+            compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
+        };
+    } else {
+        request.url = urlText.toStdString();
+        request.headers = {
+            compatibilityAttempt ? mediaCompatibilityAcceptHeader() : mediaAcceptHeader(),
+            mediaUserAgentHeader(),
+        };
+    }
     request.timeout = std::chrono::milliseconds{10'000};
     request.maxBodyBytes = static_cast<std::size_t>(std::min<std::uint64_t>(
         manual ? maximumNetworkImageBytes : rule.maximumBytes, maximumNetworkImageBytes));
@@ -958,7 +967,8 @@ void RemoteImageProvider::Impl::startNetwork(
     const auto self = shared_from_this();
     auto operation = m_transport->start(
         std::move(request),
-        [self, control, urlText, category, manual, networkAtStart, decodeRequest, cacheKey, compatibilityAttempt](
+        [self, control, urlText, category, manual, networkAtStart, decodeRequest, cacheKey,
+         compatibilityAttempt, gatewayFallbackAttempt](
             farcaster::foundation::result::Result<farcaster::transport::http::HttpResponse> result) mutable {
             // QQuick delegate recycling routinely cancels image requests while
             // scrolling. The transport completes cancellation as an error, but
@@ -977,6 +987,15 @@ void RemoteImageProvider::Impl::startNetwork(
                            << QUrl{urlText}.host()
                            << (result ? static_cast<int>(result->statusCode) : 0);
 #endif
+
+#if !defined(__EMSCRIPTEN__)
+                if (!gatewayFallbackAttempt
+                    && category == storage_policy::MediaCategory::Photos) {
+                    self->startNetwork(std::move(control), std::move(urlText), category, manual,
+                                       decodeRequest, std::move(cacheKey), false, true);
+                    return;
+                }
+#endif
                 if (!control->commitFailure()) {
                     deliverResponse(control, QImage{});
                     return;
@@ -990,6 +1009,14 @@ void RemoteImageProvider::Impl::startNetwork(
                     category, networkAtStart, static_cast<std::uint64_t>(result->body.size()));
             }
             if (!responseMayContainImage(*result)) {
+#if !defined(__EMSCRIPTEN__)
+                if (!gatewayFallbackAttempt
+                    && category == storage_policy::MediaCategory::Photos) {
+                    self->startNetwork(std::move(control), std::move(urlText), category, manual,
+                                       decodeRequest, std::move(cacheKey), false, true);
+                    return;
+                }
+#endif
                 if (!control->commitFailure()) {
                     deliverResponse(control, QImage{});
                     return;
@@ -1000,7 +1027,8 @@ void RemoteImageProvider::Impl::startNetwork(
             }
             self->decodeNetworkResponse(
                 std::move(control), std::move(urlText), category, manual, networkAtStart, decodeRequest,
-                std::move(cacheKey), std::move(*result), compatibilityAttempt, 0U);
+                std::move(cacheKey), std::move(*result), compatibilityAttempt,
+                gatewayFallbackAttempt, 0U);
         });
     if (!operation) {
         // Synchronous start() failure is transport admission/backpressure, not
@@ -1013,7 +1041,7 @@ void RemoteImageProvider::Impl::startNetwork(
                 delayMs,
                 QCoreApplication::instance(),
                 [self, control, urlText = std::move(urlText), category, manual, decodeRequest,
-                 cacheKey = std::move(cacheKey), compatibilityAttempt,
+                 cacheKey = std::move(cacheKey), compatibilityAttempt, gatewayFallbackAttempt,
                  admissionRetryAttempt]() mutable {
                     if (control->cancelled.load(std::memory_order_acquire)) {
                         deliverResponse(control, QImage{});
@@ -1021,7 +1049,7 @@ void RemoteImageProvider::Impl::startNetwork(
                     }
                     self->startNetwork(
                         std::move(control), std::move(urlText), category, manual, decodeRequest,
-                        std::move(cacheKey), compatibilityAttempt,
+                        std::move(cacheKey), compatibilityAttempt, gatewayFallbackAttempt,
                         admissionRetryAttempt + 1U);
                 });
             return;
@@ -1042,6 +1070,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
     QString cacheKey,
     farcaster::transport::http::HttpResponse response,
     const bool compatibilityAttempt,
+    const bool gatewayFallbackAttempt,
     const unsigned int queueRetryAttempt)
 {
     if (control->cancelled.load(std::memory_order_acquire)) {
@@ -1055,7 +1084,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
     auto queued = m_decodeExecutor.post(
         retainedBytes,
         [self, control, urlText, category, manual, decodeRequest, cacheKey, responseHolder,
-         compatibilityAttempt]() mutable {
+         compatibilityAttempt, gatewayFallbackAttempt]() mutable {
             if (control->cancelled.load(std::memory_order_acquire)) {
                 deliverResponse(control, QImage{});
                 return;
@@ -1072,9 +1101,17 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
                 if (!compatibilityAttempt) {
                     self->startNetwork(
                         std::move(control), std::move(urlText), category, manual, decodeRequest,
-                        std::move(cacheKey), true);
+                        std::move(cacheKey), true, gatewayFallbackAttempt);
                     return;
                 }
+#if !defined(__EMSCRIPTEN__)
+                if (!gatewayFallbackAttempt
+                    && category == storage_policy::MediaCategory::Photos) {
+                    self->startNetwork(std::move(control), std::move(urlText), category, manual,
+                                       decodeRequest, std::move(cacheKey), false, true);
+                    return;
+                }
+#endif
                 if (!control->commitFailure()) {
                     deliverResponse(control, QImage{});
                     return;
@@ -1105,7 +1142,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
                 QCoreApplication::instance(),
                 [self, control, urlText = std::move(urlText), category, manual, networkAtStart, decodeRequest,
                  cacheKey = std::move(cacheKey), responseHolder, compatibilityAttempt,
-                 queueRetryAttempt]() mutable {
+                 gatewayFallbackAttempt, queueRetryAttempt]() mutable {
                     if (control->cancelled.load(std::memory_order_acquire)) {
                         deliverResponse(control, QImage{});
                         return;
@@ -1113,7 +1150,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
                     self->decodeNetworkResponse(
                         std::move(control), std::move(urlText), category, manual, networkAtStart, decodeRequest,
                         std::move(cacheKey), std::move(*responseHolder),
-                        compatibilityAttempt, queueRetryAttempt + 1U);
+                        compatibilityAttempt, gatewayFallbackAttempt, queueRetryAttempt + 1U);
                 });
             return;
         }
