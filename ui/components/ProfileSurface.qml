@@ -646,6 +646,7 @@ Item {
     signal quoteRequested(var cast)
     signal reactionRequested(string kind, var cast, bool active)
     signal followingMutationRequested(double targetFid, bool following)
+    signal blockingMutationRequested(double targetFid, bool blocked)
     signal muteRequested(double targetFid, bool muted)
     signal removeCastRequested(var cast)
     signal externalRequested(string url)
@@ -1436,6 +1437,29 @@ Item {
                                         }
                                     }
                                     ActionButton {
+                                        visible: !root.isOwnProfile
+                                                 && Number(root.activeDetail.fid || 0) > 0
+                                        Layout.fillWidth: true
+                                        quiet: true
+                                        alignStart: true
+                                        iconGlyph: Theme.iconWarning
+                                        text: Boolean(root.activeDetail.blockedByMe)
+                                              ? qsTrId("genycaster.profile.unblock_user")
+                                              : qsTrId("genycaster.profile.block_user")
+                                        enabled: !presentationBridge.writeBusy
+                                                 && !presentationBridge.signerBusy
+                                        onClicked: {
+                                            sharePopup.close()
+                                            if (!root.interactionsAvailable) {
+                                                root.authenticationRequested()
+                                                return
+                                            }
+                                            root.blockingMutationRequested(
+                                                Number(root.activeDetail.fid),
+                                                !Boolean(root.activeDetail.blockedByMe))
+                                        }
+                                    }
+                                    ActionButton {
                                         visible: presentationBridge.farcasterWebProfileUrl(
                                             String(root.activeDetail.username || "")).length > 0
                                         Layout.fillWidth: true
@@ -1799,10 +1823,11 @@ Item {
                         // Unknown is not a confirmed negative relationship.
                         // Keep the button discoverable without blind protocol writes.
                         visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                                 && !Boolean(root.activeDetail.blockedByMe)
                         // Do not strand Follow in a disabled state when the
                         // relationship endpoint cannot yet provide evidence.
                         // The protocol writer still performs signer checks.
-                        enabled: !root.busy
+                        enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
                         busy: !Boolean(root.activeDetail.followingKnown) && root.busy
                         compact: true
                         iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
@@ -2078,6 +2103,27 @@ Item {
                               : qsTrId("genycaster.profile.saving_details")
                         wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
+                    }
+
+                    DirectionAwareLabel {
+                        objectName: "profileBlockedByMeStatus"
+                        visible: root.activeDetail.blockedByMeKnown === true
+                                 && Boolean(root.activeDetail.blockedByMe)
+                        Layout.fillWidth: true
+                        color: Theme.negative
+                        text: qsTrId("genycaster.profile.you_blocked_user")
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        objectName: "profileBlockedMeStatus"
+                        visible: root.activeDetail.blocksMeKnown === true
+                                 && Boolean(root.activeDetail.blocksMe)
+                        Layout.fillWidth: true
+                        color: Theme.negative
+                        text: qsTrId("genycaster.profile.user_blocked_you")
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
                     }
 
                     RichText {
