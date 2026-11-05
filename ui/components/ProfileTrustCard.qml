@@ -14,6 +14,9 @@ Superellipse {
     property string bio: ""
     property string location: ""
     property bool verified: false
+    // The compact PRO label denotes a verified membership, not merely
+    // a shortcut into the Pro explainer.
+    property bool proEligible: false
     property int following: -1
     property int followers: -1
     property var streakSnapshot: ({})
@@ -330,8 +333,9 @@ Superellipse {
                     quiet: true
                     iconGlyph: Theme.iconSpark
                     balancedIcon: true
-                    text: root.compact ? qsTrId("genycaster.pro.short")
-                                       : qsTrId("genycaster.pro.title")
+                    text: root.compact && root.proEligible
+                          ? qsTrId("genycaster.pro.short")
+                          : qsTrId("genycaster.pro.title")
                     onClicked: root.proRequested()
                 }
                 ActionButton {
