@@ -27,7 +27,7 @@ function identity(record) {
     if (url.protocol === 'https:' && !url.username && !url.password &&
         (!url.port || url.port === '443') && host.includes('.') &&
         !['localhost', '127.0.0.1', '0.0.0.0'].includes(host) &&
-        !/\\.(?:localhost|local|internal|test|invalid)$/.test(host) &&
+        !/\.(?:localhost|local|internal|test|invalid)$/.test(host) &&
         value.pfpUrl.length <= 4096) {
       url.hash = '';
       user.pfpUrl = url.href;
