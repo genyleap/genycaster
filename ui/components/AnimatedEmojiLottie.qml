@@ -6,6 +6,13 @@ VectorImage {
     property bool animationActive: false
     property int playCount: 1
     property var playbackAnimations: []
+    property var observedAnimations: []
+    property int playbackEpoch: 0
+    property bool playbackStarted: false
+    // A Lottie can end with all artwork fully transparent. Tell its inline
+    // owner to display the Unicode glyph after a completed one-shot instead
+    // of retaining an empty vector scene over the text indefinitely.
+    property bool playbackCompleted: false
     readonly property bool renderReady: root.children.length > 0 && root.implicitWidth > 0
     assumeTrustedSource: true
     fillMode: VectorImage.PreserveAspectFit
@@ -41,12 +48,37 @@ VectorImage {
             }
         }
         root.playbackAnimations = animations
+        const epoch = root.playbackEpoch
+        for (const animation of animations) {
+            if (root.observedAnimations.indexOf(animation) !== -1)
+                continue
+            root.observedAnimations.push(animation)
+            // Generated Lottie animations may belong to nested groups, for
+            // which Animation.finished() is not emitted. runningChanged is
+            // observable even for those children and avoids guessed durations.
+            animation.runningChanged.connect(function() {
+                if (epoch !== root.playbackEpoch) return
+                if (animation.running) {
+                    root.playbackStarted = true
+                    oneShotCompletion.stop()
+                } else if (root.playbackStarted && root.playCount === 1) {
+                    oneShotCompletion.restart()
+                }
+            })
+            if (animation.running)
+                root.playbackStarted = true
+        }
         root.synchronizePlayback()
     }
 
     onAnimationActiveChanged: root.synchronizePlayback()
     onPlayCountChanged: playbackSync.restart()
     onSourceChanged: {
+        ++root.playbackEpoch
+        oneShotCompletion.stop()
+        root.playbackCompleted = false
+        root.playbackStarted = false
+        root.observedAnimations = []
         root.playbackAnimations = []
         playbackSync.restart()
     }
@@ -62,6 +94,24 @@ VectorImage {
         repeat: false
         onTriggered: root.discoverPlaybackAnimations()
     }
+    Timer {
+        id: oneShotCompletion
+        interval: 100
+        repeat: false
+        onTriggered: {
+            if (root.playCount !== 1 || !root.playbackStarted
+                    || root.playbackCompleted)
+                return
+            for (const animation of root.playbackAnimations) {
+                if (animation !== null && animation.running)
+                    return
+            }
+            root.playbackCompleted = true
+        }
+    }
     Component.onCompleted: playbackSync.restart()
-    Component.onDestruction: playbackSync.stop()
+    Component.onDestruction: {
+        playbackSync.stop()
+        oneShotCompletion.stop()
+    }
 }
