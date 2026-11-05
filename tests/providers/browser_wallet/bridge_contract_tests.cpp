@@ -47,13 +47,20 @@ struct ParsedUrl final {
     const ParsedUrl& url,
     const http::verb method,
     std::string target,
-    std::string body = {})
+    std::string body = {},
+    std::string originOverride = {},
+    std::string hostOverride = {})
 {
     asio::io_context context{};
     beast::tcp_stream stream{context};
     stream.connect(tcp::resolver{context}.resolve(url.host, std::to_string(url.port)));
     http::request<http::string_body> message{method, std::move(target), 11};
-    message.set(http::field::host, url.host);
+    const std::string authority = url.host + ":" + std::to_string(url.port);
+    message.set(http::field::host, hostOverride.empty() ? authority : hostOverride);
+    if (method == http::verb::post) {
+        message.set(http::field::origin,
+            originOverride.empty() ? "http://" + authority : originOverride);
+    }
     if (!body.empty()) message.set(http::field::content_type, "application/json");
     message.body() = std::move(body);
     message.prepare_payload();
@@ -109,6 +116,11 @@ void testBridgeRoutesWalletRequestsAndEvents()
     assert(page.body().find("https://mini.example") != std::string::npos);
     assert(page.body().find("Explicit approval required") != std::string::npos);
     assert(page.body().find("window.ethereum.request") != std::string::npos);
+    const auto wrongHost = request(url, http::verb::get, url.target, {}, {}, "attacker.example");
+    assert(wrongHost.result() == http::status::forbidden);
+    const auto wrongOrigin = request(url, http::verb::post, url.target + "/result",
+        R"({"transportId":1,"result":"bogus"})", "https://attacker.example");
+    assert(wrongOrigin.result() == http::status::forbidden);
 
     const auto next = request(url, http::verb::get, url.target + "/next");
     assert(next.result() == http::status::ok);

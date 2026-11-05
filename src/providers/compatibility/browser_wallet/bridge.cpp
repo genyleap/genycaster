@@ -450,6 +450,25 @@ private:
         http::read(socket, buffer, parser, error);
         if (error) return;
         const auto request = parser.release();
+        // URL capabilities alone do not protect a loopback listener from DNS
+        // rebinding or cross-site requests. Only the browser document served
+        // by this exact loopback authority may submit wallet responses.
+        const std::string authority = "127.0.0.1:" + std::to_string(m_port);
+        if (request[http::field::host] != authority) {
+            writeText(socket, http::status::forbidden, "Invalid wallet bridge Host.");
+            return;
+        }
+        if (request.method() == http::verb::post) {
+            if (request[http::field::origin] != "http://" + authority) {
+                writeText(socket, http::status::forbidden, "Invalid wallet bridge Origin.");
+                return;
+            }
+            const auto site = request["Sec-Fetch-Site"];
+            if (!site.empty() && site != "same-origin") {
+                writeText(socket, http::status::forbidden, "Cross-site wallet request.");
+                return;
+            }
+        }
         const std::string target{request.target()};
         std::string suffix{};
         if (!authorizedTarget(target, suffix)) {
