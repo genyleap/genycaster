@@ -136,6 +136,9 @@ public:
         return m_proEntitlementsRead != nullptr;
     }
     Q_INVOKABLE void fetchProEntitlements(bool force = false);
+    /** @brief Recover the existing account session, then refresh server Pro.
+     * Never provisions a signer, prompts custody, or grants a local Pro tier. */
+    Q_INVOKABLE void retryProEntitlements();
     [[nodiscard]] QVariantMap genyAssets() const {
         return m_genyAssetsFid == m_viewerFid && m_viewerFid != 0
             ? m_genyAssets : QVariantMap{};
