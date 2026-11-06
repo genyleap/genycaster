@@ -103,10 +103,17 @@ class PipelineTests(unittest.TestCase):
         channel = composer.split('id: channelPicker', 1)[1].split('id: topicPicker', 1)[0]
         topics = composer.split('id: topicPicker', 1)[1].split('id: mediaFileDialog', 1)[0]
         for popup in (channel, topics):
-            self.assertIn("parent: Overlay.overlay", popup)
+            # The popup must share its coordinate space with its trigger
+            # on desktop, but attach to the composer viewport on mobile.
+            # Anchoring to Overlay.overlay previously broke positioning
+            # as the enclosing Drawer moved.
+            self.assertIn("parent: root.compact ? root.contentItem : triggerItem", popup)
+            self.assertIn("popupType: Popup.Item", popup)
+            self.assertIn("triggerItem.mapToItem(root.contentItem, 0, 0)", popup)
+            self.assertIn("root.contentItem.height - boundaryInset - triggerOrigin.y - y", popup)
             self.assertIn("closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside", popup)
-            self.assertIn("triggerItem.mapToItem(parent, 0, 0)", popup)
-            self.assertIn("parent.height - height - Theme.space2", popup)
+            self.assertIn("boundsBehavior: Flickable.StopAtBounds", popup)
+            self.assertNotIn("parent: Overlay.overlay", popup)
             self.assertNotIn("bottomSheet: true", popup)
             self.assertNotIn("dimBackground: true", popup)
         self.assertIn('objectName: "composerChannelDropdown"', channel)
