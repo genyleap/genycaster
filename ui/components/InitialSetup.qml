@@ -3,6 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
+import QtQuick.Shapes
 import Farcaster.Client
 
 // Eight-stage onboarding. Every stage is a single task on one quiet canvas.
@@ -417,8 +419,8 @@ Item {
             width: Math.min(parent.width * 0.29, 430)
             border.width: brandInteraction.activeFocus ? 2 : 0
             border.color: Theme.accent
-            // Pointer-driven volumetric G and arrow. The shader only
-            // repaints when its theme, pointer or interaction changes.
+            // One local studio scene: the existing logo shader, a restrained
+            // contrast pass, and light arcs sharing the same bounded clock.
             property real pointerX: 0.5
             property real pointerY: 0.5
             property bool pointerInside: false
@@ -427,7 +429,7 @@ Item {
             // pointer/touch drag. Rotation stops during manual interaction and
             // resumes gently; reduced-motion disables continuous animation.
             property real orbitYaw: 0
-            property real dragYaw: 0
+            property real dragYaw: -18
             property real dragPitch: -5
             property real viewZoom: 1.0
             property bool autoOrbitEnabled: true
@@ -435,7 +437,7 @@ Item {
             function resetView() {
                 rotationCooldown.restart()
                 orbitYaw = 0
-                dragYaw = 0
+                dragYaw = -18
                 dragPitch = -5
                 viewZoom = 1.0
                 pointerX = 0.5
@@ -451,10 +453,27 @@ Item {
                 enabled: !Theme.reduceMotion
                 NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
             }
+            Behavior on pointerX {
+                enabled: desktopBrandPane.motionAllowed && !desktopBrandPane.dragging
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
+            Behavior on pointerY {
+                enabled: desktopBrandPane.motionAllowed && !desktopBrandPane.dragging
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
             property real pressX: 0
             property real pressY: 0
             property bool movedByDrag: false
             readonly property bool motionAllowed: root.visible && visible && !Theme.reduceMotion
+                && !Theme.powerSave && Qt.application.state === Qt.ApplicationActive
+            onMotionAllowedChanged: {
+                if (!motionAllowed) {
+                    brandAccentTap.stop()
+                    tapImpulse = 0
+                    pointerX = 0.5
+                    pointerY = 0.5
+                }
+            }
             Timer {
                 id: rotationCooldown
                 interval: 1600
@@ -480,9 +499,7 @@ Item {
                 GradientStop { position: 0.56; color: Theme.dark ? "#1A2232" : "#EDF1F8" }
                 GradientStop { position: 1.0; color: Theme.dark ? "#111824" : "#E6ECF6" }
             }
-            // The canonical SVG becomes an oversized, angled brand canvas.
-            // Roughly 40% extends beyond the left edge; the rest is softly
-            // cropped by the pane, never scaled as a small standalone icon.
+            // Keep the sculpture and its optical framing within the rail.
             clip: true
             // Keep this pane and its metadata above the full-screen
             // transparent Flickable, which is created later in setupCanvas.
@@ -523,6 +540,74 @@ Item {
                 }
                 fragmentShader: "qrc:/qt/qml/Farcaster/Client/shaders/setup_glass_g.frag.qsb"
                 blending: false
+                // Use Qt's shipped effect shaders; the canonical raymarcher
+                // and its portable QSB stay paired without regeneration.
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    contrast: 0.18
+                    brightness: 0.015
+                    saturation: -0.12
+                }
+            }
+
+            // Wide, broken arcs frame the sculpture without touching its
+            // silhouette. No particles or additional animation timers.
+            Shape {
+                id: brandOrbit
+                objectName: "setupBrandOrbit"
+                z: 1
+                anchors.centerIn: parent
+                width: parent.width * 1.18
+                height: width
+                preferredRendererType: Shape.CurveRenderer
+                opacity: 0.46 + desktopBrandPane.tapImpulse * 0.22
+                rotation: -18
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: "#5385A5"
+                    strokeWidth: 0.75
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: brandOrbit.width / 2
+                        centerY: brandOrbit.height / 2
+                        radiusX: brandOrbit.width * 0.48
+                        radiusY: brandOrbit.height * 0.48
+                        startAngle: 18
+                        sweepAngle: 118
+                    }
+                }
+                ShapePath {
+                    fillColor: "transparent"
+                    strokeColor: "#83B7D0"
+                    strokeWidth: 0.75
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc {
+                        centerX: brandOrbit.width / 2
+                        centerY: brandOrbit.height / 2
+                        radiusX: brandOrbit.width * 0.48
+                        radiusY: brandOrbit.height * 0.48
+                        startAngle: 188
+                        sweepAngle: 106
+                    }
+                }
+                Rectangle {
+                    readonly property real phase: desktopBrandPane.orbitYaw * Math.PI / 180
+                    x: brandOrbit.width * (0.5 + 0.48 * Math.cos(phase)) - width / 2
+                    y: brandOrbit.height * (0.5 + 0.48 * Math.sin(phase)) - height / 2
+                    width: 5
+                    height: 5
+                    radius: 2.5
+                    color: "#C5E9FA"
+                    antialiasing: true
+                }
+            }
+
+            // A short glint acknowledges actual progress, never delays a step.
+            Connections {
+                target: root
+                function onCurrentStepChanged() {
+                    if (desktopBrandPane.motionAllowed) brandAccentTap.restart()
+                }
             }
 
             // Edge progression is connected to the actual Setup stage.
@@ -625,7 +710,7 @@ Item {
                             Math.min(65, desktopBrandPane.dragPitch + dy * 0.40))
                         desktopBrandPane.pressX = mouse.x
                         desktopBrandPane.pressY = mouse.y
-                    } else {
+                    } else if (desktopBrandPane.motionAllowed) {
                         desktopBrandPane.pointerX =
                             Math.max(0, Math.min(1, mouse.x / width))
                         desktopBrandPane.pointerY =

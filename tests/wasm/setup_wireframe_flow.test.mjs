@@ -329,7 +329,10 @@ test('completion badge is a flat accent check without glow or shadow', () => {
   assert.match(complete,/id: completionBadge/);
   assert.match(complete,/fillColor: Theme\.accent/);
   assert.doesNotMatch(complete,/layer\.effect:|shadowEnabled:|shadowColor:|shadowBlur:|MultiEffect/);
-  assert.doesNotMatch(s,/import QtQuick\.Effects/);
+  // The studio rail owns one color-only pass; the completion badge stays flat.
+  const studio=s.slice(s.indexOf('id: desktopBrandPane'),s.indexOf('id: setupProgress'));
+  assert.equal((studio.match(/layer\.effect: MultiEffect/g) || []).length, 1);
+  assert.doesNotMatch(studio,/blurEnabled: true|shadowEnabled: true/);
 });
 
 test('recovery appears before Genyleap and Farcaster, stays usable in review mode', () => {
