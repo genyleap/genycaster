@@ -90,7 +90,6 @@
 #include "node_selection_controller.hpp"
 #include "provider_profiles_controller.hpp"
 #include "update_controller.hpp"
-#include "desktop_single_instance.hpp"
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -122,6 +121,9 @@ import farcaster.transport.qtnetwork;
 import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.web.wheel;
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+import genycaster.ui.desktop.instance;
+#endif
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.config;
 #endif
