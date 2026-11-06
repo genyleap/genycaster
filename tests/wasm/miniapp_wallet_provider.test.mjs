@@ -503,3 +503,30 @@ test('web Mini App loading protects iframe from the blank white first paint',()=
  assert.match(source,/session\.frame\.addEventListener\('load'/);
  assert.match(source,/previousFid>0 && previousFid!==nextFid/);
 });
+
+
+test('silent account rotation is rejected even without an accountsChanged event',async()=>{
+ let active='0x000000000000000000000000000000000000000a';
+ let signCalls=0;
+ const provider={
+   async request({method}){
+     if(method==='eth_requestAccounts'||method==='eth_accounts')return [active];
+     if(method==='personal_sign'){signCalls++;return '0xsigned';}
+     return '0xa';
+   },
+   on(){},removeListener(){}
+ };
+ const app=createMiniAppEthereumProvider('https://mini.example',provider,()=>true,
+   undefined,()=>true);
+ await app.provider.request({method:'eth_requestAccounts'});
+ active='0x000000000000000000000000000000000000000b';
+ assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+ await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+   e=>e.code===4100);
+ assert.equal(signCalls,0);
+ await app.provider.request({method:'eth_requestAccounts'});
+ assert.equal(await app.provider.request({method:'personal_sign',params:['0x12']}),
+   '0xsigned');
+ assert.equal(signCalls,1);
+ app.dispose();
+});
