@@ -272,20 +272,20 @@ set_tests_properties(ui.channel_picker_controller PROPERTIES TIMEOUT 12
 add_executable(farcaster_update_controller_tests
     update_controller_tests.cpp
     "${genycasterUiSourceDir}/app/update_controller.cpp"
-    "${genycasterUiSourceDir}/app/update_controller.hpp"
-    "${genycasterUiSourceDir}/app/update/install.cpp"
-    "${genycasterUiSourceDir}/app/update/install.hpp")
+    "${genycasterUiSourceDir}/app/update_controller.hpp")
 target_include_directories(farcaster_update_controller_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_update_controller_tests PRIVATE
-    genycaster_release_identity
+    genycaster_release_identity genycaster_update_install
     Qt6::Core Qt6::Network Qt6::Gui)
 add_test(NAME ui.update_controller COMMAND farcaster_update_controller_tests)
 set_tests_properties(ui.update_controller PROPERTIES TIMEOUT 8 LABELS "ui;update;security")
 
 add_executable(farcaster_browser_wheel_fallback_tests
     browser_wheel_fallback_tests.cpp)
+target_compile_features(farcaster_browser_wheel_fallback_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_browser_wheel_fallback_tests PRIVATE
+    genycaster_web_wheel
     Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 add_test(NAME ui.browser_wheel_fallback COMMAND farcaster_browser_wheel_fallback_tests)
 set_tests_properties(ui.browser_wheel_fallback PROPERTIES TIMEOUT 15
