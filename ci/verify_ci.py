@@ -81,6 +81,8 @@ def main() -> None:
         assert token in instance, token
     assert "desktopInstance.acquire()" in entry
     assert "desktopInstance.setWindow(mainWindow)" in entry
+    assert 'CPACK_NSIS_EXECUTABLES_DIRECTORY "."' in windows
+    assert 'CPACK_NSIS_INSTALLED_ICON_NAME "Genycaster.exe"' in windows
     assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in windows
     assert "CPACK_NSIS_DELETE_ICONS_EXTRA" in windows
     assert "GenyCaster.lnk" in windows
@@ -91,6 +93,10 @@ def main() -> None:
     assert 'VALUE "LegalCopyright"' in rc
     assert 'VALUE "LegalTrademarks"' in rc
     assert "python ci/audit_windows_stage.py dist/app" in workflow
+    updates = Path("ui/app/update_controller.cpp").read_text(encoding="utf-8")
+    assert "checksum.addData(&installer)" in updates
+    assert "Cached update failed SHA-256 verification" in updates
+    assert "QCoreApplication::quit();" in updates
     assert "token: ${{ github.token }}" in workflow
     assert "prerelease: ${{ contains(github.ref_name, '-') }}" in workflow
     assert "windows-11-arm" in workflow
