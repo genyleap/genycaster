@@ -253,7 +253,7 @@ test('WalletConnect is offered without injected extensions and returns real sign
    '0xsigned-from-wallet');
  assert.deepEqual(origins,['https://mini.example']);
  assert.equal(connected,1);
- assert.deepEqual(seen,['eth_requestAccounts','personal_sign']);
+ assert.deepEqual(seen,['eth_requestAccounts','eth_accounts','personal_sign']);
  wallet.dispose();
  registry.dispose();
  assert.ok([...handlers.values()].every(set=>set.size===0));
@@ -447,7 +447,8 @@ test('every sensitive request receives a separate host confirmation and can be d
  assert.deepEqual(requests.map(r=>r.method),
    ['personal_sign','personal_sign','personal_sign']);
  assert.ok(requests.every(r=>r.origin==='https://one.example'));
- assert.deepEqual(calls,['eth_requestAccounts','personal_sign','personal_sign']);
+ assert.deepEqual(calls,['eth_requestAccounts','eth_accounts','personal_sign',
+   'eth_accounts','personal_sign']);
  for(const method of ['eth_sign','eth_sendRawTransaction','wallet_unknownAction']){
    await assert.rejects(app.provider.request({method,params:[]}),e=>e.code===4200);
  }
