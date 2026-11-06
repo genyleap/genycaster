@@ -727,7 +727,8 @@ int main(int argc, char* argv[])
     // intentionally retain independent instances and isolated fixtures.
     genycaster::ui::DesktopSingleInstance desktopInstance{};
     if (!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest) {
-        const auto result = desktopInstance.acquire();
+        const auto result = desktopInstance.acquire(
+            optionValue(arguments, QStringLiteral("--open-url=")));
         if (result == genycaster::ui::DesktopSingleInstance::Result::ActivatedExisting)
             return 0;
         if (result == genycaster::ui::DesktopSingleInstance::Result::Error) {
@@ -2210,7 +2211,7 @@ int main(int argc, char* argv[])
     // cast/profile navigation. Browser history changes are accepted without
     // reloading WASM; desktop installers may forward --open-url=<https URL>.
     QString lastIncomingLink{};
-    const QString nativeIncomingLink = optionValue(arguments, QStringLiteral("--open-url="));
+    QString nativeIncomingLink = optionValue(arguments, QStringLiteral("--open-url="));
     auto dispatchIncomingLink = [&presentationBridge, &lastIncomingLink, &nativeIncomingLink] {
         if (!presentationBridge.runtimeReady()
             || presentationBridge.initialSetupRequired()) return;
@@ -2223,6 +2224,18 @@ int main(int argc, char* argv[])
         lastIncomingLink = incoming;
         static_cast<void>(presentationBridge.openSharedLink(incoming));
     };
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+    // Reuse the existing deep-link route after a second desktop launch.
+    // If the primary is still bootstrapping, dispatchIncomingLink defers
+    // navigation until the runtime/setup state allows opening the URL.
+    desktopInstance.setOpenUrlHandler(
+        [&nativeIncomingLink, &lastIncomingLink, &dispatchIncomingLink](
+            const QString& forwardedUrl) {
+            nativeIncomingLink = forwardedUrl;
+            lastIncomingLink.clear();
+            dispatchIncomingLink();
+        });
+#endif
     QObject::connect(&presentationBridge, &PresentationBridge::runtimeStateChanged,
                      &application, dispatchIncomingLink);
     QObject::connect(&presentationBridge, &PresentationBridge::setupStateChanged,
