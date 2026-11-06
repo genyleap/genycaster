@@ -277,6 +277,18 @@ target_link_libraries(genycaster_update_install PUBLIC Qt6::Core Qt6::Gui)
 target_compile_features(genycaster_update_install PUBLIC cxx_std_26)
 set_property(TARGET genycaster_update_install PROPERTY CXX_SCAN_FOR_MODULES ON)
 
+# Native-only Qt IPC broker. Mobile/WASM paths must not build or import it.
+if(NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
+    add_library(genycaster_desktop_instance STATIC)
+    target_sources(genycaster_desktop_instance
+        PUBLIC FILE_SET CXX_MODULES FILES app/desktop/instance.cppm
+        PRIVATE app/desktop/instance.cpp)
+    target_link_libraries(genycaster_desktop_instance PUBLIC
+        Qt6::Core Qt6::Network Qt6::Quick)
+    target_compile_features(genycaster_desktop_instance PUBLIC cxx_std_26)
+    set_property(TARGET genycaster_desktop_instance PROPERTY CXX_SCAN_FOR_MODULES ON)
+endif()
+
 qt_add_executable(genycaster
     app/main.cpp
     app/runtime_ui_bindings.cpp
@@ -328,6 +340,9 @@ target_link_libraries(genycaster PRIVATE
     genycaster_ui_bootstrap
     genycaster_web_wheel
     genycaster_update_install)
+if(TARGET genycaster_desktop_instance)
+    target_link_libraries(genycaster PRIVATE genycaster_desktop_instance)
+endif()
 
 target_sources(genycaster
     PRIVATE
