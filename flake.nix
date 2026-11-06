@@ -1,4 +1,6 @@
 {
+  # Keep this flake at the repository root: Nix and the NixOS CI job resolve
+  # packages through the project's ".#packages.<system>.default" reference.
   description = "GenyCaster native Modern C++/Qt package for NixOS";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   outputs = { self, nixpkgs }:
@@ -38,7 +40,7 @@
             runHook postInstall
           '';
           meta = with pkgs.lib; {
-            description = "Native local-first Farcaster client";
+            description = "Native local-first decentralized social client";
             platforms = platforms.linux;
             mainProgram = "Genycaster";
           };

@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QEvent>
 #include <QPointer>
 #include <QDir>
 #include <QDebug>
@@ -16,7 +17,6 @@
 #include <QJsonObject>
 #include <QNetworkInformation>
 #include <QObject>
-#include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -2527,12 +2527,15 @@ int main(int argc, char* argv[])
     });
 #endif
     const int exitCode = application.exec();
-#if defined(Q_OS_ANDROID)
-    // Android HWUI may still have an active rendering thread when Qt's Java
-    // bridge returns from main(). Tear down the scene graph and the native
-    // QQuickWindow while QGuiApplication and its platform resources remain
-    // alive, rather than leaving window cleanup to the C++ object unwind.
-    // The bootstrap worker may refer to UI controllers; join it first.
+#if !defined(__EMSCRIPTEN__)
+    // Qt's event dispatchers and QPA/scene-graph resources still exist here.
+    // If we leave QML root destruction to QQmlApplicationEngine's destructor,
+    // it runs during stack unwinding after the shared runtime has been
+    // released, while async Loaders may still be incubating. The controller
+    // owners outlive the engine, but their runtime dependencies need not.
+    // Stop producers, finish bootstrap, and dismantle the QML object tree
+    // before either the runtime or the QGuiApplication can disappear.
+    shutdownScope.stop();
     if (bootstrap.worker.joinable()) {
         bootstrap.worker.join();
     }
@@ -2541,8 +2544,17 @@ int main(int argc, char* argv[])
         mainWindow->setPersistentSceneGraph(false);
         mainWindow->hide();
         mainWindow->releaseResources();
-        delete mainWindow;
     }
+    // QQmlApplicationEngine tracks root deletion via QObject::destroyed.
+    // Do not use deleteLater(): the main event loop has already stopped.
+    for (QObject* const rootObject : engine.rootObjects()) {
+        delete rootObject;
+    }
+    // Drain QML/Qt deferred child cleanup while a GUI dispatcher remains
+    // installed; do not spin another event loop or restart network work.
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    engine.collectGarbage();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 #endif
     return exitCode;
 }

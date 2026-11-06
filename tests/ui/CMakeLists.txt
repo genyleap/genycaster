@@ -29,6 +29,20 @@ if(NOT EMSCRIPTEN)
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FATAL_WARNINGS=1")
     endforeach()
 endif()
+
+# Exercise QQmlApplicationEngine cleanup with an asynchronous Loader and
+# fatal Qt warnings. The native root must be destroyed before its dispatcher.
+qt_add_executable(farcaster_qml_engine_shutdown_tests
+    qml_engine_shutdown_tests.cpp)
+target_compile_features(farcaster_qml_engine_shutdown_tests PRIVATE cxx_std_26)
+target_link_libraries(farcaster_qml_engine_shutdown_tests PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+farcaster_enable_warnings(farcaster_qml_engine_shutdown_tests)
+add_test(NAME ui.qml_engine_shutdown COMMAND farcaster_qml_engine_shutdown_tests)
+set_tests_properties(ui.qml_engine_shutdown PROPERTIES
+    TIMEOUT 15 LABELS "ui;qml;shutdown"
+    ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_FATAL_WARNINGS=1")
+
 # Deterministic C++ geometry tests. QML only retains Shape and color bindings;
 # time-series sampling and coordinate generation are native and bounded.
 qt_add_executable(farcaster_token_sparkline_tests

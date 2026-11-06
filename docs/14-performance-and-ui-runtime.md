@@ -115,6 +115,24 @@ response, exercise GET/POST, queued/follow-up requests, normal quit and scope
 destruction, and enforce a process timeout. Smoke modes disable live insights
 and therefore cannot alone prove shutdown with active market requests.
 
+For native UI shutdown, the composition root also has an explicit QML
+teardown phase **after** `QGuiApplication::exec()` returns and **before**
+the runtime/controller owners are destroyed. It stops admitting new
+background requests, joins the bootstrap worker, releases the scene graph,
+synchronously destroys QML root objects while the GUI dispatcher is still
+installed, drains `DeferredDelete` events, and collects JS garbage.
+This addresses the lifetime gap behind warnings about incomplete QML object
+creation and attempts to start timers after an event dispatcher has gone.
+The same sequence applies to macOS, Windows, Linux, Android and iOS;
+WebAssembly retains its browser event-loop lifetime.
+
+Qt Creator's `QML debugging is enabled` is a **Debug-build** diagnostic.
+It is not a production logging feature. The macOS Text Services
+`TSM AdjustCapsLockLEDForKeyTransitionHandling` line originates outside
+GenyCaster and is not a QML teardown error. Qt engine/timer warnings are
+not hidden through message handlers or logging flags: the native shutdown
+sequence must be verified by a real close-after-use test on each platform.
+
 ## Hard UI-thread prohibitions
 
 Never perform on the UI thread:

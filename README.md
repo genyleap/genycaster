@@ -11,9 +11,10 @@
     <a href="CONTRIBUTING.md">Contribute</a>
   </p>
   <p>
-    <img alt="Beta" src="https://img.shields.io/badge/status-Beta-555555" />
-    <img alt="Qt 6.12" src="https://img.shields.io/badge/Qt-6.12-555555" />
-    <img alt="GPL 3.0 only" src="https://img.shields.io/badge/license-GPL--3.0--only-555555" />
+    <img alt="Beta" src="https://img.shields.io/badge/status-Beta-blue.svg" />
+    <img alt="C++ version 26" src="https://img.shields.io/badge/C%2B%2B%20Version-26-blue.svg" />
+    <img alt="Qt 6.12" src="https://img.shields.io/badge/Qt-6.12-brightgreen.svg" />
+    <img alt="GPL 3.0 only" src="https://img.shields.io/badge/License-GPLv3-blue.svg" />
   </p>
 </div>
 
@@ -157,6 +158,8 @@ ctest --preset ui-debug --output-on-failure
 ```
 
 See [Build Profiles](docs/10-build-deployment-profiles.md), [Platform properties](properties/README.md), [CI](ci/README.md) and [WebAssembly](docs/webassembly.md) for target toolchains and limitations. A successful build is not by itself a platform release acceptance.
+
+The root `flake.nix` is the NixOS package entrypoint (used by `nix build .#...` in CI), not a shared CMake configuration. The `ci/` directory holds source validation, asset generation, packaging, release-gate and deployment scripts used by `.github/workflows/ci.yml` and local development; it is not a separate app implementation.
 
 ## Project structure
 
