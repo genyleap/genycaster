@@ -28,6 +28,8 @@
  * has its own request lifecycle, bounded pagination and explicit coverage.
  * Network failure cannot erase a previously confirmed snapshot of that identity.
  */
+class OpenProofConnectionsController;
+
 class GenyPulseActivityController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantMap farcaster READ farcaster NOTIFY farcasterChanged)
@@ -36,6 +38,7 @@ class GenyPulseActivityController final : public QObject {
     Q_PROPERTY(QVariantMap onchain READ onchain NOTIFY onchainChanged)
 public:
     explicit GenyPulseActivityController(QObject* parent = nullptr);
+    void setAccountConnections(OpenProofConnectionsController* connections);
     [[nodiscard]] QVariantMap farcaster() const { return m_farcaster; }
     [[nodiscard]] QVariantMap github() const { return m_github; }
     [[nodiscard]] QVariantMap githubContributions() const { return m_githubContributions; }
@@ -62,6 +65,9 @@ private:
     void publishFarcaster(bool complete);
     void publishGitHub(bool complete);
     QNetworkAccessManager m_http{this};
+    QPointer<OpenProofConnectionsController> m_accountConnections;
+    bool m_accountReadAuthorized{};
+    qulonglong m_accountViewerFid{};
     QVariantMap m_farcaster{{QStringLiteral("status"), QStringLiteral("idle")}};
     QVariantMap m_github{{QStringLiteral("status"), QStringLiteral("unlinked")}};
     QVariantMap m_onchain{{QStringLiteral("status"), QStringLiteral("unlinked")}};

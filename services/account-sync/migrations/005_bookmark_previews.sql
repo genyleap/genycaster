@@ -1,6 +1,6 @@
 -- Genycaster account-owned bookmark preview + explicit priority.
 -- Public Farcaster content here is a bounded display snapshot, never proof.
--- Run as postgres in genycaster_db, after schema v4.
+-- Apply inside the dedicated application PostgreSQL database, after schema v4.
 BEGIN;
 ALTER TABLE bookmarks
   ADD COLUMN IF NOT EXISTS preview jsonb,

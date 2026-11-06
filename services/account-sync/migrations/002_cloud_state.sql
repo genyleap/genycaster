@@ -1,5 +1,5 @@
 -- Application-owned data only. OpenProof remains the identity authority.
--- Apply after 001_bookmarks.sql in PostgreSQL database genycaster_db.
+-- Apply after 001_bookmarks.sql in the dedicated application PostgreSQL database.
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS connections (

@@ -267,6 +267,36 @@ void OpenProofConnectionsController::authorizeCloudRequest(
         request.setRawHeader("Authorization", "Bearer " + m_accountBearer);
 }
 
+QNetworkReply* OpenProofConnectionsController::requestVerifiedGitHubCalendar(
+    const QString& login, const int year)
+{
+    // Reuse this controller's cookie jar and verified OpenProof bearer.
+    // A separate QNetworkAccessManager would silently omit the account
+    // session, producing an unrelated "sign in" error in the activity view.
+    static const QRegularExpression githubLogin{
+        QStringLiteral("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")};
+    const auto username = login.trimmed();
+    if (!m_viewerFid || !cloudAuthorizationReady() || m_sessionRevoking
+        || !trustedHttpsEndpoint(m_cloudUrl)
+        || !githubLogin.match(username).hasMatch()
+        || year < 2014 || year > QDateTime::currentDateTimeUtc().date().year()) {
+        return nullptr;
+    }
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/github_contributions"));
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("username"), username);
+    query.addQueryItem(QStringLiteral("year"), QString::number(year));
+    url.setQuery(query);
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(10'000);
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    return m_network.get(request);
+}
+
 void OpenProofConnectionsController::restoreAccountSession()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)

@@ -1,4 +1,4 @@
-// The database role for this pool is restricted to genycaster_db.
+// The database role for this pool is restricted to the application datastore.
 // No JOIN to OpenProof tables, provider credentials, or protocol signer keys.
 import {randomUUID} from 'node:crypto';
 import {STREAK_START_DAY,eligibleStreakDay} from './streaks.mjs';

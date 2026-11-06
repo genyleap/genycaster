@@ -782,13 +782,13 @@ private:
             if (iterator == m_contexts.end()) {
                 return;
             }
-            const auto context = iterator->second;
-            context->isRetryWaiting = false;
-            if (context->isCancelled) {
-                finishCancelled(context);
+            const auto retryContext = iterator->second;
+            retryContext->isRetryWaiting = false;
+            if (retryContext->isCancelled) {
+                finishCancelled(retryContext);
                 return;
             }
-            context->isQueued = true;
+            retryContext->isQueued = true;
             m_queue.push_back(id);
             pump();
         });
@@ -1018,19 +1018,19 @@ public:
             if (!shared) {
                 return;
             }
-            QPointer<ReactorWorker> worker{};
+            QPointer<ReactorWorker> cancellationWorker{};
             {
                 std::scoped_lock lock{shared->mutex};
                 if (!shared->isAccepting || !shared->worker) {
                     return;
                 }
-                worker = shared->worker;
+                cancellationWorker = shared->worker;
             }
             QMetaObject::invokeMethod(
-                worker,
-                [worker, id] {
-                    if (worker) {
-                        worker->cancel(id);
+                cancellationWorker,
+                [cancellationWorker, id] {
+                    if (cancellationWorker) {
+                        cancellationWorker->cancel(id);
                     }
                 },
                 Qt::QueuedConnection);

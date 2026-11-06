@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 
 project(Genycaster
     VERSION 1.0.0
-    DESCRIPTION "Genycaster is a native, high-performance Farcaster client built from the ground up with Modern C++ and Qt."
+    DESCRIPTION "GenyCaster is a native, high-performance decentralized social client with Modern C++ and Qt."
     LANGUAGES CXX
 )
 
@@ -29,44 +29,14 @@ if(NOT EXISTS "${GENYCASTER_RELEASE_NOTES_FILE}"
     message(FATAL_ERROR "Missing release notes JSON or generated GitHub Markdown for ${GENYCASTER_RELEASE_TAG}")
 endif()
 
-# Windows vcpkg's shared Boost package defines BOOST_ALL_DYN_LINK. Our
-# provider adapters instead compile one Boost.JSON implementation from
-# boost/json/src.hpp into their own library targets. Do not mark the JSON
-# functions as dllimport, or lld-link looks for a separately linked Boost.JSON
-# DLL and fails when building the Snapchain adapters. Other Boost components
-# retain their normal dynamic-link behavior.
+# Platform-specific compiler, SDK and sandbox setup lives with that platform.
+# Shared product configuration remains independent of the deployment target.
 if(WIN32)
-    add_compile_definitions(BOOST_JSON_STATIC_LINK)
-endif()
-
-if(ANDROID)
-    # The bundled SQLite amalgamation is C and must use the Android NDK toolchain.
-    # Native desktop builds continue to use their existing SQLite integration.
-    enable_language(C)
-endif()
-
-if(EMSCRIPTEN)
-    # SQLite's WASM amalgamation is C, whereas the native product is C++26
-    # modules. Never discover/link host macOS SQLite in a cross build.
-    enable_language(C)
-    message(STATUS "Genycaster WebAssembly: browser sandbox composition")
-    # No OS keychain or localhost EIP-1193 server exists in a browser.
-    # Fail closed for signing rather than silently keeping keys in JS storage.
-    set(FARCASTER_ENABLE_PROTOCOL_SIGNING OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_SNAPCHAIN_SIGNER_PROVIDER OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_SNAPCHAIN_WRITE_PROVIDER OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_SIGNER_ATTESTATION_PROVIDER OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_BROWSER_WALLET_AUTHORIZER OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_MINIAPPS OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_ENABLE_MEDIA_UPLOAD OFF CACHE BOOL "" FORCE)
-    set(GENYCASTER_ENABLE_PUBLIC_DATA_PROVIDER OFF CACHE BOOL "" FORCE)
-    # Native SIWF and OpenProof adapters use blocking / OS browser transport;
-    # they require a dedicated asynchronous web identity adapter.
-    set(FARCASTER_ENABLE_COMPATIBILITY_PROVIDERS OFF CACHE BOOL "" FORCE)
-    set(GENYCASTER_ENABLE_OPENPROOF_AUTH OFF CACHE BOOL "" FORCE)
-    set(FARCASTER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Windows/Configure.cmake")
+elseif(ANDROID)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/Configure.cmake")
+elseif(EMSCRIPTEN)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/WebAssembly/Configure.cmake")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -87,28 +57,15 @@ option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture
 unset(_farcasterBuildTestsDefault)
 
 if(ANDROID)
-    # Old Qt Creator build directories can retain FARCASTER_BUILD_TESTS=ON
-    # from desktop profiles. Building the APK must not inherit those tests.
-    # Dedicated Android test configurations can explicitly opt back in.
-    option(GENYCASTER_ANDROID_ENABLE_TESTS
-        "Explicitly allow unit/contract test targets in Android cross-builds" OFF)
-    if(NOT GENYCASTER_ANDROID_ENABLE_TESTS AND FARCASTER_BUILD_TESTS)
-        message(STATUS
-            "Genycaster Android: disabling cached FARCASTER_BUILD_TESTS=ON "
-            "for the app build; opt in with GENYCASTER_ANDROID_ENABLE_TESTS=ON.")
-        set(FARCASTER_BUILD_TESTS OFF CACHE BOOL
-            "Build unit, contract, integration and architecture tests" FORCE)
-    endif()
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/TestPolicy.cmake")
 endif()
 
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 
-# Linux UI includes shared Qt/provider adapters that link core static module
-# libraries. Every dependency must be built with PIC before its own target is
-# created, or the ELF linker rejects relocations from module object files.
-# Core-only command-line/test profiles keep their existing code-generation mode.
+# Linux-specific relocation and packaging policies belong to the Linux
+# build configuration, not to the shared project defaults.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FARCASTER_BUILD_UI)
-    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Linux/Configure.cmake")
 endif()
 
 set(_genycasterPublicDataDefault OFF)
@@ -398,21 +355,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(ANDROID)
-    # Qt for Android compiles its consumers with -pthread. Clang named-module
-    # BMIs/PCMs must use the same POSIX threading mode as their importers;
-    # otherwise imports of Qt-free modules (for example storage_policy) fail
-    # with a PCH configuration mismatch. Apply the mode before any targets
-    # are created so all C++ module producers and consumers agree.
-    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-pthread>)
-
-    # NDK r27 retains a 4 KiB ELF page-alignment default for some shared
-    # module targets. Android 15+ devices can run with 16 KiB kernel pages:
-    # every first-party .so must be loadable there, not only the Qt libraries.
-    # The flags are additive on existing 4 KiB devices and apply before the
-    # provider and QtKeychain targets are created.
-    add_link_options(
-        "-Wl,-z,max-page-size=16384"
-        "-Wl,-z,common-page-size=16384")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/ToolchainOptions.cmake")
 endif()
 
 include(CTest)
@@ -423,7 +366,7 @@ if(FARCASTER_BUILD_UI)
         # The app can compile while Qt for Android was built with SSL disabled,
         # but every HTTPS provider will then fail at runtime. Reject that SDK
         # before building an APK that deceptively appears ready to connect.
-        include(AndroidQtNetworkTls)
+        include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/QtNetworkTls.cmake")
         genycaster_require_android_qt_tls("${Qt6Network_INCLUDE_DIRS}")
     endif()
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
@@ -442,8 +385,8 @@ endif()
 # Prepare Android-only target dependencies before provider subdirectories.
 # Neither Boost nor OpenSSL may link host (macOS/Homebrew) binaries into APKs.
 if(ANDROID AND FARCASTER_BUILD_UI)
-    include(AndroidOpenSSL)
-    include(AndroidBoostHeaders)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/OpenSSL.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/BoostHeaders.cmake")
 endif()
 
 add_subdirectory(src/foundation)

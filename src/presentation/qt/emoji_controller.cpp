@@ -39,8 +39,8 @@ constexpr auto RecentsKey = "emoji/recentsV1";
 
 class EmojiController::Impl final {
 public:
-    Impl(QSettings& settings, EmojiController& owner)
-        : settings(settings), owner(owner)
+    Impl(QSettings& settingsRef, EmojiController& ownerRef)
+        : settings(settingsRef), owner(ownerRef)
     {
         restoreRecents();
         buildGroups();

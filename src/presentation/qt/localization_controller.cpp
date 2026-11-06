@@ -427,7 +427,7 @@ LocalizationController::LocalizationController(
     : QObject{parent}, m_impl{std::make_unique<Impl>(engine, settings)}
 {
     const QString storedLanguage = settings.value(
-        QString::fromLatin1(kLanguageSetting), QStringLiteral("system")).toString();
+        QString::fromLatin1(kLanguageSetting), QStringLiteral("en")).toString();
     const QString storedRegionalLocale = settings.value(
         QString::fromLatin1(kRegionalLocaleSetting), QStringLiteral("system")).toString();
     const QString storedCalendar = settings.value(
@@ -890,7 +890,9 @@ void LocalizationController::resetToSystemDefaults()
     m_impl->settings.remove(QString::fromLatin1(kCurrencySetting));
     m_impl->settings.remove(QString::fromLatin1(kAdditionalCurrenciesSetting));
     m_impl->settings.remove(QString::fromLatin1(kLanguageSetting));
-    setLanguageTag(QStringLiteral("system"));
+    // A reset returns to the product default. Selecting "system" is an
+    // explicit language preference rather than a first-run side effect.
+    setLanguageTag(QStringLiteral("en"));
 }
 
 bool LocalizationController::isRightToLeftText(const QString& text) const noexcept

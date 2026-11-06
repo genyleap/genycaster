@@ -35,10 +35,8 @@ OpenProof being available.
 
 ## GenyCaster-owned account data and PostgreSQL
 
-`services/account-sync/` implements the GenyCaster account API. Its
-PostgreSQL database, `genycaster_db`, is logically and operationally
-**independent of OpenProof's database**. Production uses a restricted
-`genycaster_api` role and a server-only `GENYCASTER_DATABASE_URL`;
+`services/account-sync/` implements the GenyCaster account API. Its PostgreSQL datastore is logically and operationally
+**independent of OpenProof's database**. Production uses a restricted application database role and a server-only `GENYCASTER_DATABASE_URL`;
 credentials never belong in client files, QML, WASM or source control.
 
 The application database persists features Farcaster does not canonically
@@ -72,7 +70,7 @@ flowchart TB
     UI["GenyCaster client<br/>Qt native or WebAssembly"]
     AUTH["OpenProof / opp<br/>Authentication and linked FID"]
     ACCT["GenyCaster account API<br/>services/account-sync"]
-    PG[("genycaster_db<br/>Product-owned PostgreSQL")]
+    PG[("Independent PostgreSQL<br/>Application-owned data")]
     GATE["Media / browser gateway"]
     ROUTE{"Protocol capability routing"}
     H["HyperSnap (default)"]

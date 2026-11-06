@@ -45,7 +45,7 @@ Hypersnap may be the preferred default provider for many protocol-native operati
 `opp` identity service at the configured `https://openproof.genyleap.com`
 issuer, handles GenyCaster account authentication and linked Farcaster FID
 verification. The GenyCaster account API under `services/account-sync/` owns
-its independent `genycaster_db` PostgreSQL storage for private product data.
+its own PostgreSQL storage for private product data.
 These are separate runtime services and databases, not dependencies of the
 canonical domain model or a substitute for HyperSnap/Snapchain protocol
 routes. See [OpenProof and Server Services](OPENPROOF_AND_SERVICES.md).

@@ -29,7 +29,7 @@ Other vendored or copied third-party content and transitive package dependencies
 
 Qt, OpenSSL, Boost, SQLite, Emscripten, QtKeychain, platform SDKs and dependencies installed through package managers retain their respective licenses, including any distribution obligations triggered by the way a release binary is linked or packaged.
 
-**Connected identity service, not a vendored library:** [OpenProof](https://github.com/genyleap/openproof) (`opp`, configured at `https://openproof.genyleap.com`) is an independently deployed identity server used by GenyCaster's account-authentication routes. Its source and third-party licensing are governed by that separate repository. GenyCaster's own `services/account-sync/` stores product state in its separate PostgreSQL `genycaster_db`; it must not be confused with OpenProof's credential store. See [Server Service Architecture](docs/OPENPROOF_AND_SERVICES.md).
+**Connected identity service, not a vendored library:** [OpenProof](https://github.com/genyleap/openproof) (`opp`, configured at `https://openproof.genyleap.com`) is an independently deployed identity server used by GenyCaster's account-authentication routes. Its source and third-party licensing are governed by that separate repository. GenyCaster's own `services/account-sync/` stores product state in its independent PostgreSQL storage; it must not be confused with OpenProof's credential store. See [Server Service Architecture](docs/OPENPROOF_AND_SERVICES.md).
 
 ### Release due diligence
 

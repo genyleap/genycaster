@@ -10,31 +10,39 @@
 #include <initializer_list>
 #include <utility>
 
-// AppKit includes legacy ColorSync constants that add distinct enum types.
-// Clang 22 diagnoses these SDK declarations as errors in C++26. Keep the
-// exception at the external-header boundary; project code below remains strict.
-#if defined(__clang__)
-#pragma clang diagnostic push
-// Apple's umbrella headers transitively declare removed/legacy Carbon,
-// ColorSync, AppKit Speech and WebKitLegacy APIs. We do not use those APIs;
-// suppress their declaration warnings only while parsing the SDK headers.
-// Deprecation warnings in GenyCaster's own code remain fully enabled.
-#if __has_warning("-Wdeprecated-declarations")
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if __cplusplus > 202302L && __has_warning("-Wenum-enum-conversion")
-#pragma clang diagnostic ignored "-Wenum-enum-conversion"
-#endif
-#if __has_warning("-Wnullability-completeness")
-#pragma clang diagnostic ignored "-Wnullability-completeness"
-#endif
-#endif
-#import <AppKit/AppKit.h>
-#import <WebKit/WebKit.h>
-#import <QuartzCore/QuartzCore.h>
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+// Import only the API owners used by this adapter. AppKit's umbrella
+// header transitively pulls legacy OpenGL/ColorSync declarations into a
+// modern WKWebView build and can trigger unrelated SDK availability warnings.
+// Warnings remain enabled: no diagnostic flags are suppressed.
+#import <Foundation/Foundation.h>
+#import <AppKit/NSAnimationContext.h>
+#import <AppKit/NSApplication.h>
+#import <AppKit/NSButton.h>
+#import <AppKit/NSColor.h>
+#import <AppKit/NSControl.h>
+#import <AppKit/NSEvent.h>
+#import <AppKit/NSFont.h>
+#import <AppKit/NSImage.h>
+#import <AppKit/NSLayoutConstraint.h>
+#import <AppKit/NSProgressIndicator.h>
+#import <AppKit/NSScreen.h>
+#import <AppKit/NSStackView.h>
+#import <AppKit/NSTextField.h>
+#import <AppKit/NSView.h>
+#import <AppKit/NSWindow.h>
+#import <AppKit/NSWorkspace.h>
+#import <WebKit/WKFrameInfo.h>
+#import <WebKit/WKNavigationDelegate.h>
+#import <WebKit/WKScriptMessage.h>
+#import <WebKit/WKScriptMessageHandler.h>
+#import <WebKit/WKSecurityOrigin.h>
+#import <WebKit/WKUIDelegate.h>
+#import <WebKit/WKUserContentController.h>
+#import <WebKit/WKUserScript.h>
+#import <WebKit/WKWebView.h>
+#import <WebKit/WKWebViewConfiguration.h>
+#import <WebKit/WKWebsiteDataStore.h>
+#import <QuartzCore/CAMediaTimingFunction.h>
 
 namespace {
 NSString* nativeText(const QString& value) { return value.toNSString(); }

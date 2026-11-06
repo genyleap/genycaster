@@ -38,7 +38,7 @@ Item {
     property real stageOpacity: 1.0
     property real stageOffset: 0.0
     property int pendingStep: -1
-    readonly property bool showsPrimaryCta: [0,1,2,6,7].indexOf(currentStep) >= 0
+    readonly property bool showsPrimaryCta: [0,1,2,6,7].includes(currentStep)
     readonly property int progressCount: wizardSteps.length
     Timer {
         id: stageTransitionTimer

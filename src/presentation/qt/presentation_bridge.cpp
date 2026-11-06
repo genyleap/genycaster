@@ -1743,7 +1743,9 @@ void PresentationBridge::openCast(const QString& castId)
 
 bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
 {
-    if (!m_isAuthenticated || m_accountFid == 0 || !m_writeReady || m_writeBusy
+    // A concurrent write is not missing signer authorization.
+    if (m_writeBusy) return false;
+    if (!m_isAuthenticated || m_accountFid == 0 || !m_writeReady
         || fields.isEmpty() || fields.size() > 5) {
         applyWriteState(QStringLiteral("blocked"), false, {},
             qtTrId("genycaster.profile.protocol_signer_required"));
@@ -3259,7 +3261,15 @@ void PresentationBridge::setReaction(
 {
     const QString canonicalKind = kind.trimmed().toLower();
     const QString canonicalCastId = targetCastId.trimmed();
-    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+    // A concurrent write or a startup transition is not a missing signer.
+    // Do not open another authorization prompt for either state.
+    if (m_writeBusy) return;
+    if (!m_runtimeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated || !m_writeReady) {
         m_writeErrorText = !m_isAuthenticated
             ? qtTrId("genycaster.bridge.sign_in_before_interacting_with_a_cast")
             : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_interacting");
@@ -3284,7 +3294,15 @@ void PresentationBridge::setReaction(
 
 void PresentationBridge::setFollowing(const qulonglong targetFid, const bool following)
 {
-    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+    // A concurrent write or a startup transition is not a missing signer.
+    // Do not open another authorization prompt for either state.
+    if (m_writeBusy) return;
+    if (!m_runtimeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated || !m_writeReady) {
         m_writeErrorText = !m_isAuthenticated
             ? qtTrId("genycaster.bridge.sign_in_before_changing_follows")
             : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_changing_follows");
@@ -3308,7 +3326,15 @@ void PresentationBridge::setFollowing(const qulonglong targetFid, const bool fol
 
 void PresentationBridge::setBlocked(const qulonglong targetFid, const bool blocked)
 {
-    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+    // A concurrent write or a startup transition is not a missing signer.
+    // Do not open another authorization prompt for either state.
+    if (m_writeBusy) return;
+    if (!m_runtimeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated || !m_writeReady) {
         m_writeErrorText = !m_isAuthenticated
             ? QStringLiteral("Sign in before blocking a user.")
             : QStringLiteral("A verified signer is required to update a protocol block.");
@@ -3333,7 +3359,15 @@ void PresentationBridge::setBlocked(const qulonglong targetFid, const bool block
 void PresentationBridge::removeCast(const qulonglong authorFid, const QString& castId)
 {
     const QString canonicalCastId = castId.trimmed();
-    if (!m_runtimeReady || !m_isAuthenticated || !m_writeReady || m_writeBusy) {
+    // A concurrent write or a startup transition is not a missing signer.
+    // Do not open another authorization prompt for either state.
+    if (m_writeBusy) return;
+    if (!m_runtimeReady) {
+        m_writeErrorText = qtTrId("genycaster.bridge.the_local_runtime_is_still_starting");
+        emit stateChanged();
+        return;
+    }
+    if (!m_isAuthenticated || !m_writeReady) {
         m_writeErrorText = !m_isAuthenticated
             ? qtTrId("genycaster.bridge.sign_in_before_deleting_a_cast")
             : qtTrId("genycaster.bridge.enable_a_verified_farcaster_signer_before_deleting_a_cast");

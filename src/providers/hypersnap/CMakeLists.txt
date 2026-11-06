@@ -3,7 +3,7 @@ if(EMSCRIPTEN)
     # Its headers are portable, but BoostConfig for the wasm sysroot is absent.
     # Avoid find_package(Boost): Qt Creator's package provider intercepts it
     # and may attempt to use native macOS binaries during a cross-build.
-    include(WasmBoostHeaders)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/WebAssembly/BoostHeaders.cmake")
 elseif(NOT TARGET Boost::headers)
     # Android supplies the same header-only contract at the composition root.
     find_package(Boost 1.75 REQUIRED)

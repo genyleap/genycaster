@@ -176,7 +176,12 @@ test('GitHub numeric-id fallback stays provider-verified and bounded',()=>{
 test('GitHub calendar is source-specific, real contributions, selectable by year/range',()=>{
   assert.match(header,/Q_PROPERTY\(QVariantMap githubContributions/);
   assert.match(source,/requestGitHubContributions/);
-  assert.match(source,/api\/v1\/cloud\/github_contributions/);
+  const account=readFileSync(resolve(root,"ui/app/openproof_connections_controller.cpp"),"utf8");
+  assert.match(account,/api\/v1\/cloud\/github_contributions/);
+  assert.match(source,/requestVerifiedGitHubCalendar/);
+  assert.match(account,/authorizeCloudRequest\(request\)/);
+  assert.match(account,/return m_network\.get\(request\)/);
+  assert.doesNotMatch(source,/m_http\.get\(req\)[\s\S]{0,180}m_githubContributionsReply/);
   assert.match(qml,/githubContributionData: \(genyPulseActivity \? genyPulseActivity.githubContributions/);
   assert.match(qml,/model: \["1m", "3m", "1y"\]/);
   assert.match(qml,/githubYear--/);

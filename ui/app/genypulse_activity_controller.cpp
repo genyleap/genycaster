@@ -1,4 +1,5 @@
 #include "genypulse_activity_controller.hpp"
+#include "openproof_connections_controller.hpp"
 
 #include <algorithm>
 #include <QJsonArray>
@@ -70,6 +71,36 @@ QVariantList toDays(const QVariantMap& buckets) {
 
 GenyPulseActivityController::GenyPulseActivityController(QObject* parent)
     : QObject(parent) {}
+
+void GenyPulseActivityController::setAccountConnections(
+    OpenProofConnectionsController* connections)
+{
+    if (m_accountConnections == connections) return;
+    m_accountConnections = connections;
+    if (!connections) return;
+    connect(connections, &OpenProofConnectionsController::stateChanged,
+            this, [this] {
+        if (!m_accountConnections) return;
+        const bool ready = m_accountConnections->cloudAuthorizationReady();
+        const qulonglong fid = m_accountConnections->activeAccountFid();
+        if (ready == m_accountReadAuthorized && fid == m_accountViewerFid)
+            return;
+        m_accountReadAuthorized = ready;
+        m_accountViewerFid = fid;
+        ++m_githubCalendarGeneration;
+        cancelReply(m_githubContributionsReply, this);
+        m_githubCalendarFetchedAt = 0;
+        if (!ready) {
+            m_githubContributions = statusMap(
+                QStringLiteral("authorization-required"),
+                QStringLiteral("github-public-contributions"));
+            emit githubContributionsChanged();
+            return;
+        }
+        if (!m_githubCalendarLogin.isEmpty())
+            requestGitHubContributions(m_githubCalendarLogin, m_githubCalendarYear);
+    });
+}
 
 void GenyPulseActivityController::requestFarcaster(const qulonglong fid) {
     // The profile preview and the hidden Explore drawer use one controller.
@@ -360,21 +391,27 @@ void GenyPulseActivityController::requestGitHubContributions(const QString& user
         emit githubContributionsChanged();
         return;
     }
+    // This is a private, owner-verified account endpoint, not a public
+    // GitHub API. The owning connections controller supplies the established
+    // HttpOnly session cookie or an eligible verified bearer in C++ only.
+    // Never copy credentials into QML or infer a grant from recovery words.
+    auto* reply = m_accountConnections
+        ? m_accountConnections->requestVerifiedGitHubCalendar(login, year)
+        : nullptr;
+    if (!reply) {
+        m_githubContributions = statusMap(
+            QStringLiteral("authorization-required"),
+            QStringLiteral("github-public-contributions"));
+        m_githubContributions.insert(QStringLiteral("username"), login);
+        m_githubContributions.insert(QStringLiteral("year"), year);
+        emit githubContributionsChanged();
+        return;
+    }
     m_githubContributions=statusMap(QStringLiteral("loading"),
                                     QStringLiteral("github-public-contributions"));
     m_githubContributions.insert(QStringLiteral("username"),login);
     m_githubContributions.insert(QStringLiteral("year"),year);
     emit githubContributionsChanged();
-
-    // Same-origin, account-bound GenyCaster service parses GitHub's public
-    // calendar. Neither GitHub credentials nor page HTML go into QML.
-    QUrl url{QStringLiteral("https://caster.genyleap.com/api/v1/cloud/github_contributions")};
-    QUrlQuery query;
-    query.addQueryItem(QStringLiteral("username"),login);
-    query.addQueryItem(QStringLiteral("year"),QString::number(year));
-    url.setQuery(query);
-    auto req=publicRead(url);
-    auto* reply=m_http.get(req);
     m_githubContributionsReply=reply;
     const quint64 generation=m_githubCalendarGeneration;
     connect(reply,&QNetworkReply::finished,this,

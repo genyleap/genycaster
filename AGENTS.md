@@ -84,10 +84,14 @@ Platform package resources and their CMake configuration live under
 `properties/ConfigureTarget.cmake`. The shared runtime remains under `ui/`
 and `src/`; do not add another device-specific application implementation
 or reintroduce embedded per-OS packaging blocks into `ui/CMakeLists.txt`.
+Platform-specific SDK, compiler and linker decisions belong in
+`cmake/platform/{Android,WebAssembly,macOS,Windows,Linux}/`. Keep the
+project's shared CMake configuration generic and update only the relevant
+platform module when a device-specific build issue arises.
 
 The configured account authority is the independent [OpenProof `opp`](https://github.com/genyleap/openproof/tree/main/apps/opp)
 identity server; GenyCaster owns a separate `services/account-sync/`
-API and PostgreSQL `genycaster_db`. Neither service is the canonical Farcaster
+API and an independent PostgreSQL database. Neither service is the canonical Farcaster
 protocol, and login must never imply protocol signing authority. See
 [OpenProof and Services](docs/OPENPROOF_AND_SERVICES.md).
 

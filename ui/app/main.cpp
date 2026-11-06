@@ -1962,6 +1962,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(
         QStringLiteral("genyPulseActivity"), &genyPulseActivity);
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
+    genyPulseActivity.setAccountConnections(&openProofConnections);
     engine.rootContext()->setContextProperty(
         QStringLiteral("openProofConnections"), &openProofConnections);
     // The market cap follows a server-verified GENY balance, never the

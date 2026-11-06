@@ -27,7 +27,7 @@ endif()
 # turns that relative CACHE PATH into e.g. <source>/Users/... and persists it
 # in the Release kit. Recover only when the absolute candidate actually has
 # the required target-ABI artifacts; do not guess or fall back to host OpenSSL.
-include(AndroidOpenSSLRoot)
+include("${CMAKE_CURRENT_LIST_DIR}/OpenSSLRoot.cmake")
 genycaster_resolve_android_openssl_root(_genycasterAndroidSslRoot
     "${GENYCASTER_ANDROID_OPENSSL_ROOT}" "${CMAKE_SOURCE_DIR}")
 set(_genycasterAndroidSslHeader

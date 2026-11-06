@@ -712,8 +712,10 @@ Item {
                         id: tokenRow
                         required property var modelData
                         readonly property bool expanded: root.expandedMarketKey === String(modelData.key || "")
+                        readonly property bool compactMarketRow: width < 330
                         Layout.fillWidth: true
-                        implicitHeight: tokenRow.expanded ? 188 : 62
+                        implicitHeight: tokenRow.expanded ? (compactMarketRow ? 225 : 188)
+                                                          : (compactMarketRow ? 89 : 62)
                         fillColor: tokenTap.hovered || tokenRow.expanded ? Theme.surfaceRaised : Theme.surfaceMuted
                         borderWidth: Theme.strokeHairline
                         borderColor: tokenRow.expanded ? Theme.borderStrong : Theme.borderSubtle
@@ -728,41 +730,55 @@ Item {
 
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: Theme.space2
+                                spacing: tokenRow.compactMarketRow ? Theme.space1 : Theme.space2
                                 layoutDirection: Theme.uiDirection
 
                                 MarketAssetIcon {
-                                    Layout.preferredWidth: 38
-                                    Layout.preferredHeight: 38
+                                    Layout.preferredWidth: tokenRow.compactMarketRow ? 32 : 38
+                                    Layout.preferredHeight: tokenRow.compactMarketRow ? 32 : 38
                                     asset: modelData
                                 }
 
                                 ColumnLayout {
-                                    Layout.fillWidth: true; spacing: 0
+                                    Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 0
                                     DirectionAwareLabel { Layout.fillWidth: true; text: String(modelData.name || modelData.symbol || "Token"); color: Theme.textPrimary; font.pixelSize: Theme.typeMetaSize; font.weight: Theme.weightDemiBold; elide: Text.ElideRight }
-                                    Label { LayoutMirroring.enabled: false; text: String(modelData.symbol || "") + (Boolean(modelData.stale) ? " · stale" : ""); color: Boolean(modelData.stale) ? Theme.warning : Theme.textTertiary; font.family: Theme.latinFontFamily; font.pixelSize: Theme.typeCaptionSize }
+                                    Label { Layout.fillWidth: true; LayoutMirroring.enabled: false; text: String(modelData.symbol || "") + (Boolean(modelData.stale) ? " · stale" : ""); color: Boolean(modelData.stale) ? Theme.warning : Theme.textTertiary; font.family: Theme.latinFontFamily; font.pixelSize: Theme.typeCaptionSize; elide: Text.ElideRight }
                                 }
 
                                 TokenSparkline {
-                                    Layout.preferredWidth: 82; Layout.preferredHeight: 30
+                                    visible: !tokenRow.compactMarketRow
+                                    Layout.preferredWidth: visible ? 82 : 0; Layout.preferredHeight: 30
                                     samples: modelData.sparkline || []
                                     strokeColor: Number(modelData.change24h || 0) >= 0 ? Theme.positive : Theme.negative
                                 }
 
                                 ColumnLayout {
+                                    Layout.preferredWidth: tokenRow.compactMarketRow ? 78 : 92
+                                    Layout.minimumWidth: 0
                                     spacing: 0
-                                    Label { LayoutMirroring.enabled: false; text: root.marketPrice(modelData.priceUsd); color: Theme.textPrimary; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeMetaSize; font.weight: Theme.weightDemiBold; horizontalAlignment: Text.AlignRight }
-                                    Label { LayoutMirroring.enabled: false; text: Boolean(modelData.available) ? root.marketChange(modelData.change24h) : qsTrId("genycaster.context.market_waiting"); color: !Boolean(modelData.available) ? Theme.textTertiary : Number(modelData.change24h || 0) >= 0 ? Theme.positive : Theme.negative; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightMedium; horizontalAlignment: Text.AlignRight }
+                                    Label { Layout.fillWidth: true; LayoutMirroring.enabled: false; text: root.marketPrice(modelData.priceUsd); color: Theme.textPrimary; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeMetaSize; font.weight: Theme.weightDemiBold; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
+                                    Label { Layout.fillWidth: true; LayoutMirroring.enabled: false; text: Boolean(modelData.available) ? root.marketChange(modelData.change24h) : qsTrId("genycaster.context.market_waiting"); color: !Boolean(modelData.available) ? Theme.textTertiary : Number(modelData.change24h || 0) >= 0 ? Theme.positive : Theme.negative; font.family: Theme.fontFamilyForText(text); font.pixelSize: Theme.typeCaptionSize; font.weight: Theme.weightMedium; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight }
                                 }
 
                                 Icon { text: tokenRow.expanded ? Theme.iconChevronUp : Theme.iconChevronDown; color: Theme.textTertiary; preferredSize: Theme.iconSizeSmall }
+                            }
+
+                            // In the compact rail, place the chart on its own
+                            // line instead of squeezing names and prices.
+                            TokenSparkline {
+                                visible: tokenRow.compactMarketRow
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 22
+                                samples: modelData.sparkline || []
+                                strokeColor: Number(modelData.change24h || 0) >= 0
+                                    ? Theme.positive : Theme.negative
                             }
 
                             GridLayout {
                                 visible: tokenRow.expanded
                                 layoutDirection: Theme.uiDirection
                                 Layout.fillWidth: true
-                                columns: 3
+                                columns: tokenRow.compactMarketRow ? 2 : 3
                                 uniformCellWidths: true
                                 rowSpacing: Theme.space2
                                 columnSpacing: Theme.space2

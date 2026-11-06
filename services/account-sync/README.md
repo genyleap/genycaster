@@ -1,7 +1,7 @@
 # Genycaster application-owned account state
 
 Genycaster stores the user features **not provided by Farcaster** in its own
-PostgreSQL database `genycaster_db`. The account user interface must **not**
+PostgreSQL database. The account user interface must **not**
 show any "Cloud Sync", "Enable Sync", "Upload" or "Restore" controls.
 Bookmarking, editing profile links, writing Cast drafts and changing account URLs
 are ordinary product actions. The Genycaster database is canonical for account
@@ -11,7 +11,7 @@ state; local device data serves only as a responsive and offline cache.
 managed identity and connection authority; its server process is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp)
 and the configured first-party issuer is `https://openproof.genyleap.com`.
 GenyCaster does **not** share OpenProof's PostgreSQL database or copy its
-provider credentials. The GenyCaster-owned `genycaster_db` stores only
+provider credentials. The GenyCaster application database stores only
 application-specific account state. See [identity and service architecture](../../docs/OPENPROOF_AND_SERVICES.md).
 A user-entered
 LinkedIn URL is *self-asserted*; it does not become OpenProof-verified.
@@ -20,7 +20,7 @@ Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 ## Schema
 
 Apply migrations `001_bookmarks.sql` through `007_bookmark_collections.sql` in
-version order inside `genycaster_db` with an authorized database-admin
+version order inside the GenyCaster PostgreSQL database with an authorized database-admin
 role. Migration 006 creates app-owned topics and their Cast associations.
 Migration 007 introduces private per-account bookmark collections, memberships,
 and a tombstone trigger that removes memberships when a bookmark is unsaved.
@@ -44,13 +44,13 @@ runtime role.
 | `bookmark_collections` | Private user-created, account-owned named reading-list collections |
 | `bookmark_collection_items` | Private many-to-many links to existing, saved bookmarks |
 
-The API runtime must connect with a restricted `genycaster_api` role; no
+The API runtime must connect with a restricted application role; no
 connection to or grants on OpenProof's PostgreSQL database are required.
 
 ## Production infrastructure
 
-As of October 26, 2026, the operator has provisioned the independent
-`genycaster_db`, applied migrations 1–3, configured `GENYCASTER_DATABASE_URL`
+As of October 26, 2026, the operator has provisioned its independent
+PostgreSQL datastore, applied migrations 1–3, configured `GENYCASTER_DATABASE_URL`
 outside Git, and enabled HTTPS `/api/v1/cloud/` through Nginx. Live probes
 confirmed `200 {"items":[]}` for `app_updates` and `401
 {"error":"authentication_required"}` for unauthenticated private reads.

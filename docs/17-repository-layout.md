@@ -14,6 +14,7 @@ remaining acceptance gates and prior root report findings are maintained in
 - CMakeLists.txt, CMakePresets.json, flake.nix — root build integration
 - src/, ui/, tests/, cmake/, ci/ — actual implementation and verification
 - properties/ — per-platform package and launcher metadata (Android, iOS, macOS, Windows, Linux and WebAssembly)
+- cmake/platform/ — per-target compiler, SDK, linker and native bundle support, isolated from common build helpers
 - services/, docs/, release-notes/ and .github/ — optional services, technical guidance and release governance
 
 Prototyping experiments are intentionally not tracked: tests must exercise the

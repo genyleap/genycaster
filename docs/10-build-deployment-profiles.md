@@ -4,6 +4,15 @@
 
 Provider and feature independence must be executable policy rather than documentation-only intent.
 
+## Platform CMake ownership
+
+Shared CMake checks remain at `cmake/` while target-specific toolchain,
+transport dependency and bundle helpers live in `cmake/platform/{Android,macOS,WebAssembly,Windows}/`.
+Android Boost/OpenSSL/TLS logic belongs to Android alone; browser-specific
+portable Boost logic belongs to WebAssembly; macOS bundle-case normalization
+belongs to macOS. Platform-specific changes should go to their own files,
+with shared CMake keeping only explicit platform dispatch and common rules.
+
 ## Platform property ownership
 
 Platform-specific packaging assets live under [`properties/`](../properties/README.md)

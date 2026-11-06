@@ -56,7 +56,10 @@ test('Cloud schema isolates all intended owner features, not speculative leaderb
   const first=source('services/account-sync/migrations/001_bookmarks.sql');
   const second=source('services/account-sync/migrations/002_cloud_state.sql');
   const create=source('services/account-sync/migrations/000_create_database.sql');
-  assert.match(create,/CREATE DATABASE genycaster_db/);
+  assert.match(create, /CREATE DATABASE %I/);
+  assert.match(create, /:'target_database'/);
+  assert.match(create, /\\gexec/);
+  assert.doesNotMatch(create, /CREATE DATABASE [a-z][a-z0-9_]* WITH/);
   assert.match(first,/CREATE TABLE IF NOT EXISTS bookmarks/);
   for(const table of ['connections','notifications','app_updates','tasks','drafts'])
     assert.match(second,new RegExp('CREATE TABLE IF NOT EXISTS '+table));

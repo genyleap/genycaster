@@ -23,7 +23,7 @@ The RC suffix labels the packaging channel; Beta describes user-facing readiness
 - Qt Quick desktop/mobile interfaces, WebAssembly runtime support and C++ presentation integration.
 - Social timelines, discovery, profiles, channels, reactions, casts, replies, quotes and media/preview components.
 - Account/session and protocol-signer boundaries with OS-specific native secure-vault integrations and distinct browser flows.
-- OpenProof (`opp`) as an independently deployed authentication and linked-identity authority, with a separate GenyCaster PostgreSQL `genycaster_db` for account-specific product data.
+- OpenProof (`opp`) as an independently deployed authentication and linked-identity authority, with independently managed PostgreSQL storage for account-specific product data.
 - Mini App surfaces, optional product-specific account metadata, bookmarks, profile extensions and media gateway capabilities.
 - Twelve translation catalogs and RTL-aware UI/content handling.
 

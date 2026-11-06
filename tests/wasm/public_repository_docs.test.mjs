@@ -169,7 +169,8 @@ test("OpenProof identity, opp runtime and independent product database are docum
         assert.match(doc, /OpenProof/i);
     for (const doc of [readme, guide, arch, account]) {
         assert.match(doc, /github\.com\/genyleap\/openproof/);
-        assert.match(doc, /genycaster_db/);
+        assert.match(doc, /PostgreSQL/);
+        assert.doesNotMatch(doc, /CREATE DATABASE [a-z][a-z0-9_]* WITH/);
     }
     assert.match(guide, /apps\/opp/);
     assert.match(guide, /openproof\.genyleap\.com/);

@@ -15,5 +15,5 @@ unset(_genycasterMacIcon)
 add_custom_command(TARGET genycaster POST_BUILD
     COMMAND "${CMAKE_COMMAND}"
         "-DGENYCASTER_BUNDLE_PATH=$<TARGET_BUNDLE_DIR:genycaster>"
-        -P "${CMAKE_SOURCE_DIR}/cmake/FixMacOSBundleCase.cmake"
+        -P "${CMAKE_SOURCE_DIR}/cmake/platform/macOS/FixBundleCase.cmake"
     VERBATIM)

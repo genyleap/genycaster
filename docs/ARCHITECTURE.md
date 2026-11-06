@@ -17,7 +17,7 @@ flowchart TB
     O["Compatible nodes"]
     IDENTITY["OpenProof / opp<br/>Account authentication · Linked Farcaster FID"]
     PRODUCT["GenyCaster account API<br/>Private product state · GENY"]
-    PG[("genycaster_db<br/>Independent PostgreSQL")]
+    PG[("PostgreSQL database<br/>Independent PostgreSQL")]
 
     UI <--> CORE
     CORE <--> STORE
@@ -118,7 +118,7 @@ The distinction between protocol operations and derived services is documented i
 
 [OpenProof](https://github.com/genyleap/openproof) is a separate self-hostable identity system; its server executable is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp). GenyCaster currently composes account login against the configured [openproof.genyleap.com](https://openproof.genyleap.com) issuer. The C++ authentication integration lives in `src/providers/openproof_auth/`; direct Farcaster sign-in is also bound to a verified OpenProof-backed account/FID. Login and linked-account verification are distinct from custody authorization and Farcaster protocol signing.
 
-The GenyCaster-owned `services/account-sync/` service is a different server with its **own** PostgreSQL database (`genycaster_db`), schema/migrations and restricted API role. It persists bookmarks, profile extras, drafts, topics, notification state and account-related product data; OpenProof remains the identity authority and **does not share its PostgreSQL database** with this application service. `services/media-gateway/` handles bounded media delivery and some browser-bound identity flows. Other optional services, including protocol Quick Auth and Snapchain gateway, do not replace the OpenProof account authority. Canonical Farcaster content is still read/written through the selected protocol route (HyperSnap preferred, Snapchain optional).
+The GenyCaster-owned `services/account-sync/` service is a different server with its **own** PostgreSQL database, schema/migrations and restricted API role. It persists bookmarks, profile extras, drafts, topics, notification state and account-related product data; OpenProof remains the identity authority and **does not share its PostgreSQL database** with this application service. `services/media-gateway/` handles bounded media delivery and some browser-bound identity flows. Other optional services, including protocol Quick Auth and Snapchain gateway, do not replace the OpenProof account authority. Canonical Farcaster content is still read/written through the selected protocol route (HyperSnap preferred, Snapchain optional).
 
 See [OpenProof & Server Services](OPENPROOF_AND_SERVICES.md) for a diagram, code paths, dependency types and security contracts, including what continues to work without the identity/product service.
 

@@ -1,7 +1,7 @@
 <div align="center">
   <img src="ui/assets/branding/genycaster-mark.svg" alt="GenyCaster logo" width="100" height="100" />
   <h1>GenyCaster</h1>
-  <p><strong>A native, local-first Farcaster experience.</strong></p>
+  <p><strong>A native, local-first decentralized social experience.</strong></p>
   <p>One shared Modern C++ core. Multiple protocol routes. A consistent experience across devices.</p>
   <p>
     <a href="docs/FEATURES.md">Features</a> ·
@@ -21,7 +21,7 @@
 
 **GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces. **Internationalization and localization (i18n/l10n)** let people independently choose their interface language, regional conventions, calendar and time zone rather than tying every preference to one country.
 
-**Identity and account ownership:** GenyCaster uses [OpenProof](https://github.com/genyleap/openproof) (the independent `opp` identity service, configured at `https://openproof.genyleap.com`) for account authentication and verified Farcaster connections. GenyCaster's own authenticated service stores product data in the separate PostgreSQL `genycaster_db`; neither database nor login service replaces canonical Farcaster messages or signer authorization. [Architecture and service dependencies](docs/OPENPROOF_AND_SERVICES.md).
+**Identity and account ownership:** GenyCaster uses [OpenProof](https://github.com/genyleap/openproof) (the independent `opp` identity service, configured at `https://openproof.genyleap.com`) for account authentication and verified Farcaster connections. GenyCaster's own authenticated service stores product data in its independently managed PostgreSQL database; neither database nor login service replaces canonical Farcaster messages or signer authorization. [Architecture and service dependencies](docs/OPENPROOF_AND_SERVICES.md).
 
 The product follows four principles:
 
@@ -46,7 +46,7 @@ flowchart TB
     OTHER["Compatible routes<br/>When supported"]
     IDENTITY["OpenProof / opp<br/>Account identity · Linked FID"]
     EXTRA["GenyCaster account service<br/>Bookmarks · Profile extras · GENY Pro"]
-    ACCOUNTDB[("GenyCaster PostgreSQL<br/>genycaster_db")]
+    ACCOUNTDB[("Independent PostgreSQL")]
 
     PEOPLE <--> CORE
     CORE <--> CACHE
@@ -103,7 +103,7 @@ See [Features](docs/FEATURES.md) for what is implemented, in development or conc
 
 ## Identity and server services
 
-The [OpenProof project](https://github.com/genyleap/openproof) supplies the independently deployed **`opp`** identity server. The configured first-party identity origin is [openproof.genyleap.com](https://openproof.genyleap.com). It handles OAuth/device authentication and linked Farcaster identities; the C++ client integrates through `src/providers/openproof_auth/`. Separately, `services/account-sync/` exposes authenticated product data backed by its own `genycaster_db` PostgreSQL database; `services/media-gateway/` supports uploads and bounded browser-specific OpenProof flows. `services/quick-auth/` and `services/snapchain-gateway/` have narrower, optional responsibilities.
+The [OpenProof project](https://github.com/genyleap/openproof) supplies the independently deployed **`opp`** identity server. The configured first-party identity origin is [openproof.genyleap.com](https://openproof.genyleap.com). It handles OAuth/device authentication and linked Farcaster identities; the C++ client integrates through `src/providers/openproof_auth/`. Separately, `services/account-sync/` exposes authenticated product data backed by its own PostgreSQL database; `services/media-gateway/` supports uploads and bounded browser-specific OpenProof flows. `services/quick-auth/` and `services/snapchain-gateway/` have narrower, optional responsibilities.
 
 See [OpenProof & Server Services](docs/OPENPROOF_AND_SERVICES.md) for a service-by-service dependency map, authorization boundaries and source locations. OpenProof is a runtime service dependency for the configured account login, **not a linked dependency of the canonical Farcaster domain core**.
 
@@ -116,7 +116,7 @@ See [OpenProof & Server Services](docs/OPENPROOF_AND_SERVICES.md) for a service-
 | Local state | SQLite, incremental snapshots and a durable signed-write outbox |
 | Protocol | Canonical Farcaster data with HyperSnap-first, configurable multi-node routing |
 | Account identity | OpenProof (`opp`, OAuth/device authorization and linked Farcaster FID) |
-| Server-side product data | GenyCaster account API and its separate PostgreSQL `genycaster_db`; media gateway integrations |
+| Server-side product data | GenyCaster account API and its independent PostgreSQL storage; media gateway integrations |
 | Targets | macOS, Windows, Linux, Android, iOS and **WebAssembly** build targets |
 | Optional extensions | Mini Apps, context widgets, GENY product services, account-backed extras |
 
@@ -167,7 +167,7 @@ properties/ Platform packaging metadata, manifests, native icons and PWA manifes
 services/  Authenticated product state and gateway services (separate OpenProof identity)
 tests/     Unit, contract, UI and regression tests
 ci/        Toolchains, source checks, build and packaging verification
-cmake/     Build helpers and platform configuration
+cmake/     Shared build helpers and isolated platform-specific configuration
 docs/      Architecture, features, roadmap, reference guides and decisions
 ```
 

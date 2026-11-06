@@ -59,8 +59,8 @@ class NativeSyntaxDocumentHighlighter final : public QSyntaxHighlighter {
 public:
     NativeSyntaxDocumentHighlighter(
         QTextDocument* document,
-        farcaster::application::syntax::SyntaxHighlighter& engine)
-        : QSyntaxHighlighter(static_cast<QObject*>(nullptr)), engine(engine)
+        farcaster::application::syntax::SyntaxHighlighter& syntaxEngine)
+        : QSyntaxHighlighter(static_cast<QObject*>(nullptr)), engine(syntaxEngine)
     {
         setDocument(document);
     }
@@ -619,12 +619,12 @@ void queueCleanupToken(QSettings& settings, const QString& token)
 
 class RichComposerController::Impl final {
 public:
-    explicit Impl(QSettings& settings, RichComposerController& owner)
-        : settings(settings), owner(owner)
+    explicit Impl(QSettings& settingsRef, RichComposerController& ownerRef)
+        : settings(settingsRef), owner(ownerRef)
     {
         autosave.setSingleShot(true);
         autosave.setInterval(700);
-        QObject::connect(&autosave, &QTimer::timeout, &owner, [&] { saveDraft(false); });
+        QObject::connect(&autosave, &QTimer::timeout, &ownerRef, [&] { saveDraft(false); });
         newEmpty(false);
     }
 

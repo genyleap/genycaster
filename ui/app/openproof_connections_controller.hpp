@@ -125,6 +125,13 @@ public:
         return (m_verified && !m_accountBearer.isEmpty()) || m_cloudSessionVerified;
     }
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
+    [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }
+
+    /** Account-owned GitHub activity is fetched through the existing verified
+     * account network session; public unauthenticated requests cannot satisfy
+     * the server's linked-identity check. No bearer is exposed to QML. */
+    [[nodiscard]] QNetworkReply* requestVerifiedGitHubCalendar(
+        const QString& login, int year);
     Q_INVOKABLE void checkCloudService();
     [[nodiscard]] QString cloudError() const { return m_cloudError; }
     [[nodiscard]] int cloudRevision() const noexcept { return m_cloudRevision; }

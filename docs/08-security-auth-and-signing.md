@@ -24,7 +24,7 @@ For shipping Genycaster, [OpenProof](https://github.com/genyleap/openproof)
 (its separately deployed `opp` service at the configured
 `https://openproof.genyleap.com` origin) is the canonical account authority.
 See [Identity and Server Services](OPENPROOF_AND_SERVICES.md) for how its
-account proofs relate to GenyCaster's separate `genycaster_db` PostgreSQL
+account proofs relate to GenyCaster's independent PostgreSQL
 storage, gateway verification and Farcaster provider routes. A local
 client session may therefore carry an OpenProof issuer/subject pair together
 with the required linked Farcaster FID. Farcaster remains the protocol identity

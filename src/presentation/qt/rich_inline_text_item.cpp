@@ -83,8 +83,8 @@ public:
 
 class RichInlineTextItem::Impl final {
 public:
-    explicit Impl(RichInlineTextItem& owner)
-        : owner(owner)
+    explicit Impl(RichInlineTextItem& ownerRef)
+        : owner(ownerRef)
     {
         document.setDefaultFont(QFont{});
         document.documentLayout()->registerHandler(EmojiObjectType, &handler);

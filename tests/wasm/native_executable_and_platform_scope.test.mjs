@@ -20,7 +20,7 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     assert.match(cmake, /properties\/ConfigureTarget\.cmake/);
     assert.match(macPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
     assert.match(iosPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
-    assert.match(macPackage, /FixMacOSBundleCase\.cmake/);
+    assert.match(macPackage, /FixBundleCase\.cmake/);
 
     const workflow = source(".github/workflows/ci.yml");
     assert.match(workflow, /build\/native\/bin\/Genycaster\b/);
@@ -82,7 +82,7 @@ test("legacy macOS bundle directory is normalized without losing executable data
         const runMigration = () => spawnSync(
             "cmake", [
                 "-DGENYCASTER_BUNDLE_PATH=" + newBundle,
-                "-P", path.join(root, "cmake/FixMacOSBundleCase.cmake")
+                "-P", path.join(root, "cmake/platform/macOS/FixBundleCase.cmake")
             ],
             {encoding: "utf8"}
         );
@@ -104,8 +104,10 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
     assert.match(objc, /GenyMiniAppLoadingSurface : NSView/);
     assert.match(objc, /viewDidChangeEffectiveAppearance/);
     assert.doesNotMatch(objc, /borderType\s*=/);
-    assert.match(objc, /#pragma clang diagnostic pop/);
-    assert.match(objc, /#pragma clang diagnostic ignored "-Wdeprecated-declarations"/);
+    assert.doesNotMatch(objc, /#pragma clang diagnostic ignored/);
+    assert.doesNotMatch(objc, /<AppKit\/AppKit\.h>|<WebKit\/WebKit\.h>/);
+    assert.match(objc, /<AppKit\/NSView\.h>/);
+    assert.match(objc, /<WebKit\/WKWebView\.h>/);
     assert.doesNotMatch(source("ui/CMakeLists.txt"), /-Wno-deprecated-declarations/);
 });
 
