@@ -10,7 +10,8 @@
         holder: null, tabs: null, titleEl: null, warning: null,
         activeIndex: -1, activeUrl: "", mode: "window",
         fullscreen: false, backdrop: null, warning: null,
-        observer: null, screenButton: null, dismissButton: null, header: null, user: {}
+        observer: null, screenButton: null, dismissButton: null, header: null, user: {},
+        loadingOverlay: null
     };
 
     function approvedUrl(value) {
@@ -41,6 +42,9 @@
         if (typeof document !== "undefined" && document.fullscreenElement === element)
             document.exitFullscreen?.().catch?.(() => {});
         for (const session of app.sessions) {
+            session.disposed=true;
+            clearTimeout(session.revealTimer);
+            clearTimeout(session.failureTimer);
             session.detach?.();
             session.frame.remove();
         }
@@ -55,6 +59,7 @@
         app.screenButton = null;
         app.dismissButton = null;
         app.header = null;
+        app.loadingOverlay = null;
         if (element) element.remove();
     }
 
@@ -96,6 +101,9 @@
         if(app.warning)Object.assign(app.warning.style,{
             background:colors.chrome,color:colors.warn,
             borderTop:"1px solid "+colors.border
+        });
+        if(app.loadingOverlay)Object.assign(app.loadingOverlay.style,{
+            background:colors.bg,color:colors.subtle
         });
         renderTabs();
     }
@@ -219,6 +227,76 @@
             app.tabs.append(group);
         }
     }
+    function loadingText() {
+        const lang=String(window.__genycasterPreferredLanguage ||
+            document.documentElement?.lang || navigator.language || 'en').toLowerCase();
+        if(lang.startsWith('fa'))return 'در حال بارگذاری مینی‌اپ…';
+        if(lang.startsWith('ar'))return 'جارٍ تحميل التطبيق المصغر…';
+        return 'Opening Mini App…';
+    }
+    function makeLoadingOverlay() {
+        const layer=document.createElement('div');
+        layer.setAttribute('role','status');
+        layer.setAttribute('aria-live','polite');
+        Object.assign(layer.style,{position:'absolute',inset:'0',zIndex:'4',
+            display:'flex',alignItems:'center',justifyContent:'center',
+            flexDirection:'column',gap:'20px',pointerEvents:'none'});
+        const icon=document.createElement('div');
+        icon.setAttribute('aria-hidden','true');
+        Object.assign(icon.style,{height:'33px',width:'33px',borderRadius:'50%',
+            border:'3px solid currentColor',borderTopColor:'transparent',
+            opacity:'.8',animation:'genycasterMiniAppSpin .85s linear infinite'});
+        const label=document.createElement('span');
+        label.textContent=loadingText();
+        Object.assign(label.style,{fontSize:'13px',fontWeight:'500',
+            letterSpacing:'.01em'});
+        layer.append(icon,label);
+        if(!document.getElementById('genycaster-miniapp-loading-style')){
+            const stylesheet=document.createElement('style');
+            stylesheet.id='genycaster-miniapp-loading-style';
+            stylesheet.textContent='@keyframes genycasterMiniAppSpin { to { transform: rotate(360deg); } }'
+                +'@media (prefers-reduced-motion: reduce) {'
+                +'#genycaster-wasm-miniapp-host [role=status] div { animation: none!important; } }';
+            document.head.append(stylesheet);
+        }
+        return layer;
+    }
+    function updateLoadingOverlay(){
+        if(!app.loadingOverlay)return;
+        const session=app.sessions[app.activeIndex];
+        const busy=!!session&&!session.displayReady;
+        app.loadingOverlay.style.display=busy?'flex':'none';
+        if(session)session.frame.style.visibility=session.displayReady?'visible':'hidden';
+        const label=app.loadingOverlay.children[1];
+        if(label)label.textContent=loadingText();
+    }
+    function revealSession(session){
+        if(session.disposed||session.displayReady)return;
+        session.displayReady=true;
+        clearTimeout(session.revealTimer);
+        clearTimeout(session.failureTimer);
+        if(app.frame===session.frame)updateLoadingOverlay();
+    }
+    function registerFrameLoad(session){
+        session.displayReady=false;
+        session.loaded=false;
+        session.disposed=false;
+        session.revealTimer=null;
+        session.failureTimer=setTimeout(()=>{
+            if(session.disposed||session.displayReady)return;
+            // An unresponsive third-party iframe must not render a perpetual
+            // spinner. Reveal the actual browser outcome and show the warning.
+            revealSession(session);
+            if(app.frame===session.frame&&app.warning)
+                app.warning.style.display='block';
+        },20000);
+        session.frame.addEventListener('load',()=>{
+            if(session.disposed)return;
+            session.loaded=true;
+            if(session.ready)revealSession(session);
+            else session.revealTimer=setTimeout(()=>revealSession(session),1200);
+        });
+    }
     function select(index) {
         if(index < 0 || index >= app.sessions.length)return;
         app.activeIndex = index;
@@ -229,11 +307,15 @@
             app.sessions[n].frame.style.display=n===index?"block":"none";
         if(app.titleEl)app.titleEl.textContent=session.title;
         if(app.warning)app.warning.style.display="none";
+        updateLoadingOverlay();
         renderTabs();
     }
     function closeTab(index) {
         if(index < 0 || index >= app.sessions.length)return;
         const previousActive=app.activeIndex;
+        app.sessions[index].disposed=true;
+        clearTimeout(app.sessions[index].revealTimer);
+        clearTimeout(app.sessions[index].failureTimer);
         app.sessions[index].detach?.();
         app.sessions[index].frame.remove();
         app.sessions.splice(index,1);
@@ -259,6 +341,7 @@
             session.detach = sdk.attach(session.frame, session.url, app.user, {
                 ready: () => {
                     session.ready = true;
+                    revealSession(session);
                     if (app.frame === session.frame && app.warning)
                         app.warning.style.display = "none";
                 },
@@ -285,6 +368,12 @@
         const previousFid = Number(app.user?.fid || 0);
         const nextFid = Number(next.fid || 0);
         app.user = next;
+        // A real FID change/sign-out terminates the iframe and its scoped
+        // wallet facade. Never carry session grants into another account.
+        if(previousFid>0 && previousFid!==nextFid){
+            close();
+            return;
+        }
         // ReactNativeWebView/native hosts hydrate the account independently
         // from Mini App navigation. Keep already-attached, same-FID SDK
         // contexts current without reloading apps or overwriting identity on
@@ -301,7 +390,8 @@
         frame.setAttribute("loading","eager");
         frame.setAttribute("allow","fullscreen");
         Object.assign(frame.style,{display:"block",width:"100%",flex:"1",
-            minHeight:"0",background:"#fff",border:"0"});
+            minHeight:"0",background:surfaceColors().bg,border:"0",
+            visibility:"hidden"});
         frame.addEventListener("error",()=>{
             if(app.frame===frame && app.warning)app.warning.style.display="block";
         });
@@ -326,6 +416,7 @@
                 const frame=makeFrame(url,appTitle);
                 app.holder.append(frame);
                 const session = {url:url.href,title:appTitle,frame,detach:null,ready:false};
+                registerFrameLoad(session);
                 app.sessions.push(session);
                 attachSession(session);
                 select(app.sessions.length-1);
@@ -392,9 +483,11 @@
             boxSizing:"border-box",padding:"7px 12px",
             borderBottom:"1px solid #35383f"});
         const holder=document.createElement("div");
-        Object.assign(holder.style,{display:"flex",flex:"1",minHeight:"0"});
+        Object.assign(holder.style,{display:"flex",flex:"1",minHeight:"0",
+            position:"relative",background:surfaceColors().bg});
         const frame = makeFrame(url,appTitle);
-        holder.append(frame);
+        const loadingOverlay=makeLoadingOverlay();
+        holder.append(frame,loadingOverlay);
         const warning=document.createElement('div');
         warning.setAttribute('role','status');
         warning.textContent = isPersian
@@ -409,7 +502,8 @@
         Object.assign(backdrop.style,{
             position:"fixed",inset:"0",zIndex:"2147482999"
         });
-        backdrop.addEventListener("click",close);
+        // A click outside the Mini App is not an explicit close action.
+        // Closing must be deliberate, particularly while signing.
         document.body.append(backdrop);
         document.body.append(sheet);
         app.backdrop=backdrop;
@@ -418,10 +512,12 @@
         app.tabs = tabs;
         app.titleEl = name;
         app.header=top;
+        app.loadingOverlay=loadingOverlay;
         app.warning = warning;
         app.screenButton = fullscreenButton;
         app.dismissButton = dismiss;
         const session = {url:url.href,title:appTitle,frame,detach:null,ready:false};
+        registerFrameLoad(session);
         app.sessions = [session];
         attachSession(session);
         app.fullscreen=false;
