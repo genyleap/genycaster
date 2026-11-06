@@ -1,5 +1,4 @@
 #include "Wheel.hpp"
-#include "../browser_wheel_fallback.hpp"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -11,6 +10,7 @@
 #include <cmath>
 
 #if defined(__EMSCRIPTEN__)
+#include "../browser_wheel_fallback.hpp"
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
