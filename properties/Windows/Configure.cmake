@@ -64,6 +64,16 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
         DESTINATION "." RENAME "LICENSE.txt" COMPONENT Runtime)
     install(FILES "${CMAKE_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
         DESTINATION "." COMPONENT Runtime)
+    # Include actual redistribution notices, not only hyperlinks to source
+    # paths that do not exist in an installed Windows application.
+    install(FILES
+        "${CMAKE_SOURCE_DIR}/ui/assets/emoji/LICENSE.NotoAnimatedEmoji.txt"
+        "${CMAKE_SOURCE_DIR}/ui/assets/fonts/OFL-NotoEmoji.txt"
+        "${CMAKE_SOURCE_DIR}/ui/assets/fonts/OFL-Vazirmatn.txt"
+        "${CMAKE_SOURCE_DIR}/ui/assets/icons/LICENSE.Font-Awesome.txt"
+        "${CMAKE_SOURCE_DIR}/ui/assets/icons/genyleap/SOLAR_ICON_SET.md"
+        "${CMAKE_SOURCE_DIR}/ui/assets/icons/genyleap/TRADEMARKS.md"
+        DESTINATION "licenses" COMPONENT Runtime)
     unset(_genycasterGplText)
     unset(_genycasterLicensePage)
     set(CPACK_MONOLITHIC_INSTALL ON)
