@@ -34,8 +34,9 @@ while kill -0 "$pid" 2>/dev/null; do
     sleep 0.25
 done
 
-stage="$parent/.GenyCaster-update-$$.AppImage"
-backup="$parent/.GenyCaster-backup-$$.AppImage"
+stage="$parent/.GenyCaster-update-$.AppImage"
+backup="$parent/.GenyCaster-backup-$.AppImage"
+statusFile="$(dirname "$package")/genycaster-native-update.status"
 installed=0
 cleanup() {
     [ -f "$stage" ] && rm -f -- "$stage"
@@ -44,7 +45,19 @@ cleanup() {
         mv -- "$backup" "$target" || true
     fi
 }
-trap cleanup EXIT HUP INT TERM
+finish() {
+    result=$?
+    trap - EXIT HUP INT TERM
+    cleanup
+    if [ "$result" -eq 0 ]; then
+        printf 'success\n' > "$statusFile"
+    else
+        printf 'failed:%s\n' "$result" > "$statusFile"
+    fi
+    exit "$result"
+}
+trap finish EXIT
+trap 'exit 130' HUP INT TERM
 
 cp -- "$package" "$stage"
 chmod 755 "$stage"
@@ -62,5 +75,4 @@ if ! kill -0 "$newpid" 2>/dev/null; then
 fi
 installed=1
 rm -f -- "$backup"
-trap - EXIT HUP INT TERM
 exit 0
