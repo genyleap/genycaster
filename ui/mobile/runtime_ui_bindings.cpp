@@ -3745,6 +3745,12 @@ void connectRuntime(
     QMetaObject::invokeMethod(&bridge, [browserSigner] {
         browserSigner->restoreRememberedAccount();
     }, Qt::QueuedConnection);
+    // Storage can be unavailable in private browsing. Never keep the splash
+    // indefinitely if the browser drops an IndexedDB/WebCrypto callback.
+    // The fallback only reveals the actual signed-out Setup; it grants no auth.
+    QTimer::singleShot(25000, &bridge, [&bridge] {
+        bridge.finishBrowserAccountRestore();
+    });
 #endif
 
     QObject::connect(&bridge, &PresentationBridge::searchSuggestionsCancelled, &bridge,
