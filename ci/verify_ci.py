@@ -34,6 +34,15 @@ def main() -> None:
     assert "linux_gcc_arm64" in workflow
     assert "macos-26-intel" in workflow
     assert "runner: macos-26" in workflow
+    # A job-level if is evaluated *before* matrix expansion. When the
+    # platform is skipped, matrix expressions in its job name are displayed
+    # literally in GitHub's UI. Leave matrix values to the job instances and
+    # artifact names, and keep job-level display names stable.
+    for name in ("Linux AppImage and DEB", "macOS DMG",
+                 "Windows NSIS installer", "Android APK",
+                 "NixOS native package"):
+        assert f"    name: {name}" in workflow
+    assert not re.search(r"^    name: .*\\$\\{\\{.*matrix\\.", workflow, re.M)
     # A completed macOS ARM64 link was previously rejected by a malformed
     # lipo invocation. Keep the executable before -verify_arch.
     assert '/usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"' in workflow
