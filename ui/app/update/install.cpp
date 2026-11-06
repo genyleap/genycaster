@@ -10,6 +10,8 @@ module;
 #include <QStandardPaths>
 #include <QUrl>
 
+#include <utility>
+
 module genycaster.ui.update.install;
 
 namespace genycaster::ui::update {
@@ -77,7 +79,7 @@ InstallMode launchVerifiedUpdate(
     }
     return launchSystemInstaller(verifiedPackage)
         ? InstallMode::SystemInstaller
-        : fail(QStringLiteral("Could not launch Windows installer")};
+        : fail(QStringLiteral("Could not launch Windows installer"));
 #elif defined(Q_OS_MACOS)
     if (!package.fileName().endsWith(QStringLiteral(".dmg"), Qt::CaseInsensitive)) {
         return fail(QStringLiteral("macOS requires a DMG package"));
@@ -101,7 +103,7 @@ InstallMode launchVerifiedUpdate(
     }
     return launchSystemInstaller(verifiedPackage)
         ? InstallMode::SystemInstaller
-        : fail(QStringLiteral("Could not open macOS DMG")};
+        : fail(QStringLiteral("Could not open macOS DMG"));
 #elif defined(Q_OS_LINUX) && !defined(__EMSCRIPTEN__)
     const QString appImage = qEnvironmentVariable("APPIMAGE");
     const QFileInfo current{appImage};
@@ -118,7 +120,7 @@ InstallMode launchVerifiedUpdate(
     // manager. Never overwrite files under /usr or mutate the Nix store.
     return launchSystemInstaller(verifiedPackage)
         ? InstallMode::SystemInstaller
-        : fail(QStringLiteral("No compatible Linux package installer")};
+        : fail(QStringLiteral("No compatible Linux package installer"));
 #elif defined(Q_OS_ANDROID)
     // Qt 6.12 uses Android FileProvider for local file URLs. Android's
     // Package Installer enforces certificate matching and user consent.
@@ -127,7 +129,7 @@ InstallMode launchVerifiedUpdate(
     }
     return launchSystemInstaller(verifiedPackage)
         ? InstallMode::SystemInstaller
-        : fail(QStringLiteral("Could not invoke Android Package Installer")};
+        : fail(QStringLiteral("Could not invoke Android Package Installer"));
 #else
     Q_UNUSED(expectedSha256);
     return fail(QStringLiteral("Use the system's approved update channel"));
