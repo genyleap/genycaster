@@ -26,7 +26,13 @@ window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 applyBrowserChromeTheme(
     document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
 let finished=false, failed=false;
-let qtRuntimeLoaded=false, qmlRootReady=false;
+let qtRuntimeLoaded=false, qmlRootReady=false, accountRestoreSettled=false;
+// A provisional browser Guest state must not expose Setup before the
+// remembered-account WebCrypto challenge has returned its terminal result.
+window.__genycasterBrowserAuthBootstrap=()=>{
+    accountRestoreSettled=true;
+    revealReady();
+};
 const studioIntro=$("genycaster-studio-intro");
 let studioComplete=true;
 let splashMinimumReached=true;
@@ -670,7 +676,8 @@ function fail(error) {
 // constructed Main. Requiring an explicit C++ acknowledgement prevents the
 // silent black screen seen when a type in the AppShell dependency tree fails.
 function revealReady() {
-    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!studioComplete||!splashMinimumReached)return;
+    if(failed||finished||!qtRuntimeLoaded||!qmlRootReady||!accountRestoreSettled
+       ||!studioComplete||!splashMinimumReached)return;
     if(startupWatchdog!==undefined)window.clearInterval?.(startupWatchdog);
     wasmResourceObserver?.disconnect();
     try{progressReader?.cancel();}catch{}
