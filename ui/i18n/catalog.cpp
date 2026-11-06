@@ -363,6 +363,7 @@ void registerTranslationSourceMetadata()
     //% "%1 embeds"
     (void)qtTrId("genycaster.cast.value_embeds");
     //% "View conversation"
+    (void)qtTrId("genycaster.cast.more_options");
     (void)qtTrId("genycaster.cast.view_conversation");
     //% "Waiting for write authority · saved locally"
     (void)qtTrId("genycaster.cast.waiting_for_write_authority_saved_locally");

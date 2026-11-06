@@ -2076,6 +2076,10 @@ Company | https://company.com</source>
             <source>%1 embeds</source>
             <translation>Вложений: %1</translation>
         </message>
+        <message id="genycaster.cast.more_options">
+            <source>More options</source>
+            <translation>Другие действия</translation>
+        </message>
         <message id="genycaster.cast.view_conversation">
             <source>View conversation</source>
             <translation>Открыть беседу</translation>

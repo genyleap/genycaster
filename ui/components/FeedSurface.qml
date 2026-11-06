@@ -42,6 +42,62 @@ Item {
     // reader remained mounted behind an intermediate profile or cast.
     property int scrollRequestRevision: 0
     property int appliedScrollRequestRevision: 0
+    // One-shot return coordinate belongs to the tapped Cast, not a guessed
+    // scroll offset. It survives the hidden detail route and row revisions.
+    property string returnCastKey: ""
+    property string returnCastScope: ""
+    property real returnCastOffset: 0
+    property real returnCastY: 0
+    property bool returnCastPending: false
+    property int returnCastAttempts: 0
+    function rememberCastForReturn(castId) {
+        const hash = String(castId || "").trim().toLowerCase()
+        if (!hash) return
+        root.returnCastKey = "cast:" + hash
+        root.returnCastScope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
+        root.returnCastY = readList.contentY
+        root.returnCastOffset = 0
+        root.returnCastAttempts = 0
+        root.returnCastPending = true
+        for (let index = 0; index < stableRows.count; ++index) {
+            if (String(stableRows.get(index).stableKey).toLowerCase() !== root.returnCastKey)
+                continue
+            const item = readList.itemAtIndex(index)
+            if (item) root.returnCastOffset = item.y - readList.contentY
+            break
+        }
+    }
+    function restoreCastOnReturn() {
+        if (!root.returnCastPending || !root.presentationActive) return
+        const scope = root.activeFeed + ":" + root.presentationMode + ":" + root.socialMode
+        if (root.returnCastScope !== scope) {
+            root.returnCastPending = false
+            return
+        }
+        let index = -1
+        for (let i = 0; i < stableRows.count; ++i) {
+            if (String(stableRows.get(i).stableKey).toLowerCase() === root.returnCastKey) {
+                index = i
+                break
+            }
+        }
+        root.applyingViewportRestore = true
+        if (index < 0) {
+            readList.contentY = root.returnCastY
+        } else {
+            readList.forceLayout()
+            const item = readList.itemAtIndex(index)
+            if (!item && root.returnCastAttempts++ < 2) {
+                readList.positionViewAtIndex(index, ListView.Beginning)
+                root.applyingViewportRestore = false
+                castReturnRestoreTimer.restart()
+                return
+            }
+            readList.contentY = item ? item.y - root.returnCastOffset : root.returnCastY
+        }
+        root.applyingViewportRestore = false
+        root.returnCastPending = false
+    }
     function honorPrimaryScrollRequest() {
         if (!root.presentationActive || root.scrollRequestRevision === 0
                 || root.appliedScrollRequestRevision === root.scrollRequestRevision)
@@ -898,6 +954,8 @@ Item {
     // Explicit primary navigation only. Detail -> Back never calls this,
     // so reading position remains continuous during conversations.
     function scrollToBeginning() {
+        root.returnCastPending = false
+        castReturnRestoreTimer.stop()
         geometryAnchorDebounce.stop()
         geometryRestoreTimer.stop()
         root.geometryAnchorKey = ""
@@ -1189,6 +1247,8 @@ Item {
                 root.primeArtPreviews()
             if (synchronize)
                 root.requestStableModelSync()
+            if (root.returnCastPending)
+                castReturnRestoreTimer.restart()
             if (check)
                 root.scheduleLoadMore()
         }
@@ -1213,6 +1273,12 @@ Item {
         interval: 0
         repeat: false
         onTriggered: root.restoreViewportAfterRebuild()
+    }
+    Timer {
+        id: castReturnRestoreTimer
+        interval: 0
+        repeat: false
+        onTriggered: root.restoreCastOnReturn()
     }
 
     // Object-owned, zero-delay timers replace orphan Qt.callLater callbacks.
@@ -1745,7 +1811,10 @@ Item {
                         && rowDelegate.y + rowDelegate.height >= readList.contentY - 320
                         && rowDelegate.y <= readList.contentY + readList.height + 320
                     accountFid: root.accountFid
-                    onOpenRequested: castId => root.castRequested(castId)
+                    onOpenRequested: castId => {
+                        root.rememberCastForReturn(castId)
+                        root.castRequested(castId)
+                    }
                     onProfileRequested: fid => root.profileRequested(fid)
                     onReplyRequested: cast => root.replyRequested(cast)
                     onQuoteRequested: cast => root.quoteRequested(cast)

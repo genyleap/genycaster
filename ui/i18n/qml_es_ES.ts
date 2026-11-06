@@ -2077,6 +2077,10 @@ Empresa | https://company.com</translation>
             <source>%1 embeds</source>
             <translation>%1 elementos incrustados</translation>
         </message>
+        <message id="genycaster.cast.more_options">
+            <source>More options</source>
+            <translation>Más opciones</translation>
+        </message>
         <message id="genycaster.cast.view_conversation">
             <source>View conversation</source>
             <translation>Ver conversación</translation>

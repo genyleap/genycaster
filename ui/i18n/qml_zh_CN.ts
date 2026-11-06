@@ -2076,6 +2076,10 @@ Company | https://company.com</source>
             <source>%1 embeds</source>
             <translation>%1 个嵌入内容</translation>
         </message>
+        <message id="genycaster.cast.more_options">
+            <source>More options</source>
+            <translation>更多选项</translation>
+        </message>
         <message id="genycaster.cast.view_conversation">
             <source>View conversation</source>
             <translation>查看对话</translation>

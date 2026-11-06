@@ -1587,7 +1587,10 @@ Item {
                                                 supplementalRows: []
                                                 supplementalBusy: false
                                                 runtimeReady: presentationBridge.runtimeReady
-                                                socialMode: presentationBridge.activeView !== "feed"
+                                                // A hidden Explorer stays a cast feed while the detail is open.
+                                                // Switching to socialMode here cleared stable rows on every Back.
+                                                socialMode: presentationBridge.activeView === "followers"
+                                                            || presentationBridge.activeView === "following"
                                                 busy: root.topicBrowseActive && root.topicBrowseScope==="explorer"
                                                       ? (openProofConnections ? openProofConnections.topicCastsBusy : false) : presentationBridge.isBusy
                                                 hasMore: root.topicBrowseActive && root.topicBrowseScope==="explorer"
@@ -1612,7 +1615,10 @@ Item {
                                                               ? "all"
                                                               : root.primaryDestination === "explorer"
                                                                 ? root.explorerVisualFilter : root.homeVisualFilter
-                                                headerContent: presentationBridge.activeView !== "feed" ? null
+                                                // Keep the offscreen Explorer header mounted across
+                                                // Cast -> Back: removing it changes ListView origin/geometry.
+                                                headerContent: presentationBridge.activeView === "followers"
+                                                               || presentationBridge.activeView === "following" ? null
                                                                : presentationBridge.activeFeed === "channel"
                                                                  ? channelFeedHeaderComponent
                                                                  : root.primaryDestination === "explorer"

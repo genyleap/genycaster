@@ -356,14 +356,8 @@ Item {
 
     function openMoreMenu() {
         castMenuLoader.active = true
-        const menu = castMenuLoader.item
-        if (!menu)
-            return
-        const point = moreButton.mapToItem(Overlay.overlay, 0, moreButton.height + Theme.space1)
-        const preferredX = root.contentRtl ? point.x : point.x + moreButton.width - menu.width
-        menu.x = Math.max(Theme.space2, Math.min(Overlay.overlay.width - menu.width - Theme.space2, preferredX))
-        menu.y = Math.max(Theme.space2, Math.min(Overlay.overlay.height - menu.height - Theme.space2, point.y))
-        menu.open()
+        if (castMenuLoader.item)
+            castMenuLoader.item.openAt(moreButton, root.contentRtl)
     }
 
     readonly property string menuCastId: String(root.modelData.castId || "")
@@ -614,7 +608,7 @@ Item {
                         quiet: true
                         iconOnly: true
                         iconGlyph: Theme.iconMore
-                        text: qsTrId("genycaster.cast.view_conversation")
+                        text: qsTrId("genycaster.cast.more_options")
                         onClicked: root.openMoreMenu()
                     }
                 }
@@ -1030,137 +1024,20 @@ Item {
 
     // Cards own their outlines; double timeline dividers only add clutter.
 
-    // These controls are unrelated to rendering a feed row. Construct them only
-    // on explicit interaction, and release them when that row is recycled.
+    // Keep contextual actions uninstantiated until requested by the user.
     Loader {
         id: castMenuLoader
         active: false
         sourceComponent: Component {
-            Popup {
-                id: castMenu
-                objectName: "castMenu"
-                parent: Overlay.overlay
-                width: 224
-                implicitHeight: menuContent.implicitHeight + Theme.space2
-                padding: Theme.space1
-                // A contextual menu is an input boundary. Modeless popups let
-                // touch events reach the Cast below the menu on mobile WASM.
-                modal: true
-                dim: false
-                focus: true
-                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-                background: PopupSurface { curveDepth: Theme.curveContainer }
-                onClosed: {
-                    castCopyCloseTimer.stop()
-                    castCopyTextAction.clearCopyFeedback()
-                    castCopyLinkAction.clearCopyFeedback()
-                    castCopyIdAction.clearCopyFeedback()
-                }
-                Timer {
-                    id: castCopyCloseTimer
-                    interval: 1100
-                    repeat: false
-                    onTriggered: castMenu.close()
-                }
-
-                contentItem: ColumnLayout {
-                    id: menuContent
-                    spacing: 0
-
-                    ActionButton {
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconComment
-                        text: qsTrId("genycaster.cast.view_conversation")
-                        onClicked: {
-                            castMenu.close()
-                            root.openRequested(String(root.modelData.castId || ""))
-                        }
-                    }
-
-                    ActionButton {
-                        visible: Number(root.modelData.authorFid || 0) > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        iconGlyph: Theme.iconUser
-                        text: qsTrId("genycaster.cast.open_author_profile")
-                        onClicked: {
-                            castMenu.close()
-                            root.profileRequested(Number(root.modelData.authorFid))
-                        }
-                    }
-
-                    ActionButton {
-                        visible: String(root.modelData.text || "").length > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        id: castCopyTextAction
-                        iconGlyph: Theme.iconCopy
-                        text: qsTrId("genycaster.cast.copy_text")
-                        onClicked: {
-                            const copied = presentationBridge.copyText(String(root.modelData.text || ""))
-                            castCopyTextAction.acknowledgeCopy(copied)
-                            castCopyCloseTimer.restart()
-                        }
-                    }
-
-                    ActionButton {
-                        visible: root.castPermalink.length > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        id: castCopyLinkAction
-                        iconGlyph: Theme.iconLink
-                        text: qsTrId("genycaster.cast.copy_link")
-                        onClicked: {
-                            const copied = presentationBridge.copyText(root.castPermalink)
-                            castCopyLinkAction.acknowledgeCopy(copied)
-                            castCopyCloseTimer.restart()
-                        }
-                    }
-
-                    ActionButton {
-                        visible: String(root.modelData.castId || "").length > 0
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        id: castCopyIdAction
-                        iconGlyph: Theme.iconCopy
-                        text: qsTrId("genycaster.cast.copy_cast_id")
-                        onClicked: {
-                            const copied = presentationBridge.copyText(String(root.modelData.castId || ""))
-                            castCopyIdAction.acknowledgeCopy(copied)
-                            castCopyCloseTimer.restart()
-                        }
-                    }
-
-                    Rectangle {
-                        visible: root.canDelete
-                        Layout.fillWidth: true
-                        height: 1
-                        color: Theme.divider
-                    }
-
-                    ActionButton {
-                        visible: root.canDelete
-                        enabled: root.canDeleteNow
-                        Layout.fillWidth: true
-                        quiet: true
-                        alignStart: true
-                        destructive: true
-                        iconGlyph: Theme.iconClose
-                        text: qsTrId("genycaster.cast.delete")
-                        onClicked: {
-                            castMenu.close()
-                            root.removeRequested(root.modelData)
-                        }
-                    }
-                }
+            CastActionsMenu {
+                castData: root.modelData
+                accountFid: root.accountFid
+                interactionsAvailable: root.interactionsAvailable
+                onOpenRequested: castId => root.openRequested(castId)
+                onProfileRequested: fid => root.profileRequested(fid)
+                onRemoveRequested: cast => root.removeRequested(cast)
             }
         }
     }
+
 }

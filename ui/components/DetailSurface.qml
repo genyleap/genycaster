@@ -13,6 +13,13 @@ ListView {
     property bool interactionsAvailable: false
     property double accountFid: 0
     property var confirmedReply: ({})
+    readonly property string menuCastId: String(root.detail && root.detail.castId || "")
+    onMenuCastIdChanged: if (detailCastMenuLoader) detailCastMenuLoader.active = false
+    function openDetailMoreMenu(anchor) {
+        detailCastMenuLoader.active = true
+        if (detailCastMenuLoader.item)
+            detailCastMenuLoader.item.openAt(anchor, root.contentRtl)
+    }
     function normalizedCastHash(value) {
         const hash = String(value || "").trim().toLowerCase()
         return hash.startsWith("0x") ? hash.slice(2) : hash
@@ -778,6 +785,19 @@ ListView {
                             }
                         }
                     }
+
+                    ActionButton {
+                        id: detailMoreButton
+                        objectName: "detailCastMoreButton"
+                        visible: root.activeView === "cast" && root.menuCastId.length > 0
+                        Layout.alignment: Qt.AlignTop
+                        compact: true
+                        quiet: true
+                        iconOnly: true
+                        iconGlyph: Theme.iconMore
+                        text: qsTrId("genycaster.cast.more_options")
+                        onClicked: root.openDetailMoreMenu(detailMoreButton)
+                    }
                 }
 
                 Superellipse {
@@ -1151,4 +1171,20 @@ ListView {
         active: root.busy && root.activeView === "cast"
     }
 
+    // The conversation's primary cast has the same contextual actions as
+    // feed cards. Its menu is constructed only when the three-dot button opens.
+    Loader {
+        id: detailCastMenuLoader
+        active: false
+        sourceComponent: Component {
+            CastActionsMenu {
+                castData: root.detail || ({})
+                accountFid: root.accountFid
+                interactionsAvailable: root.interactionsAvailable
+                showConversationAction: false
+                onProfileRequested: fid => root.profileRequested(fid)
+                onRemoveRequested: cast => root.removeCastRequested(cast)
+            }
+        }
+    }
 }

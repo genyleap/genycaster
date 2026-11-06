@@ -2076,6 +2076,10 @@ Company | https://company.com</source>
             <source>%1 embeds</source>
             <translation>임베드 %1개</translation>
         </message>
+        <message id="genycaster.cast.more_options">
+            <source>More options</source>
+            <translation>더 많은 옵션</translation>
+        </message>
         <message id="genycaster.cast.view_conversation">
             <source>View conversation</source>
             <translation>대화 보기</translation>

@@ -33,6 +33,7 @@ set(farcasterQmlFiles
     components/CastEmbedsPanel.qml
     components/ComposerToolbar.qml
     components/CastItem.qml
+    components/CastActionsMenu.qml
     components/SourceClientBadge.qml
     components/CastSkeleton.qml
     components/CastViews.qml

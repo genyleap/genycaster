@@ -2077,6 +2077,10 @@ Company | https://company.com</translation>
             <source>%1 embeds</source>
             <translation>%1 embeds</translation>
         </message>
+        <message id="genycaster.cast.more_options">
+            <source>More options</source>
+            <translation>More options</translation>
+        </message>
         <message id="genycaster.cast.view_conversation">
             <source>View conversation</source>
             <translation>View conversation</translation>
