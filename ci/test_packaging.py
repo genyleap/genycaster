@@ -11,12 +11,44 @@ from tempfile import TemporaryDirectory
 import unittest
 import zipfile
 
+from ci.audit_windows_stage import audit, pe_machine
 from ci.package_linux_deb import build
 from ci.package_selfupdate import create_snapshot
 from ci.verify_platform_package import verify
 
 
 class PackagingTests(unittest.TestCase):
+    @staticmethod
+    def fake_pe(machine: int) -> bytes:
+        data = bytearray(128)
+        data[0:2] = b"MZ"
+        data[0x3C:0x40] = (64).to_bytes(4, "little")
+        data[64:68] = b"PE\\x00\\x00".replace(b"\\\\x00", b"\\x00")
+        data[68:70] = machine.to_bytes(2, "little")
+        return bytes(data)
+
+    def test_windows_arm64_stage_strips_sdk_and_rejects_x64_dlls(self) -> None:
+        with TemporaryDirectory() as tmp:
+            stage = Path(tmp)
+            for name in ("Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
+                         "qt6keychain.dll", "platforms/qwindows.dll",
+                         "qml/Farcaster/Client/plugin.dll"):
+                file = stage / name
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_bytes(self.fake_pe(0xAA64))
+            for directory in ("bin", "include", "lib", "mkspecs", "qmltooling"):
+                (stage / directory).mkdir()
+                (stage / directory / "unused.txt").write_text("sdk")
+            self.assertEqual(audit(stage, "arm64"), 6)
+            self.assertEqual(pe_machine(stage / "Genycaster.exe"), 0xAA64)
+            self.assertTrue((stage / "qml/Farcaster/Client/plugin.dll").exists())
+            self.assertFalse((stage / "include").exists())
+            self.assertFalse((stage / "bin").exists())
+            self.assertEqual(audit(stage, "arm64", clean=False), 6)
+            (stage / "Qt6Network.dll").write_bytes(self.fake_pe(0x8664))
+            with self.assertRaisesRegex(ValueError, "Wrong Windows PE architecture"):
+                audit(stage, "arm64", clean=False)
+
     def test_windows_snapshot_contains_verifiable_runtime_files(self) -> None:
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
