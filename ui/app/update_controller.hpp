@@ -59,6 +59,7 @@ class UpdateController final : public QObject {
     Q_PROPERTY(QString releasePublishedAt READ releasePublishedAt NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QString lastInstallError READ lastInstallError NOTIFY changed)
     Q_PROPERTY(double downloadProgress READ downloadProgress NOTIFY changed)
     Q_PROPERTY(QString downloadedFilePath READ downloadedFilePath NOTIFY changed)
     Q_PROPERTY(QString releaseUrl READ releaseUrl CONSTANT)
@@ -90,6 +91,7 @@ public:
     [[nodiscard]] QString releasePublishedAt() const;
     [[nodiscard]] QString status() const;
     [[nodiscard]] QString error() const;
+    [[nodiscard]] QString lastInstallError() const;
     [[nodiscard]] double downloadProgress() const;
     [[nodiscard]] QString downloadedFilePath() const;
     [[nodiscard]] QString releaseUrl() const;
@@ -140,6 +142,7 @@ private:
     QString m_releasePublishedAt;
     QString m_status;
     QString m_error;
+    QString m_lastInstallError;
     QString m_assetUrl;
     QString m_assetName;
     QString m_assetDigest;
