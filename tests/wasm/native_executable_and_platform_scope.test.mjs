@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,11 +15,15 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     assert.match(cmake,
         /if\(NOT ANDROID AND NOT EMSCRIPTEN\)\s+set_target_properties\(genycaster PROPERTIES OUTPUT_NAME "Genycaster"\)\s+endif\(\)/);
     assert.match(cmake, /qt_add_resources\(genycaster genycaster_app_icon/);
+    assert.match(cmake, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
+    assert.match(cmake, /FixMacOSBundleCase\.cmake/);
 
     const workflow = source(".github/workflows/ci.yml");
     assert.match(workflow, /build\/native\/bin\/Genycaster\b/);
     assert.match(workflow, /bin\/Genycaster\.app/);
     assert.match(workflow, /Contents\/MacOS\/Genycaster/);
+    assert.match(workflow, /Print :CFBundleName/);
+    assert.match(workflow, /Print :CFBundleExecutable/);
     assert.match(workflow, /bin\/Genycaster\.dmg/);
     assert.match(workflow, /bin\/Genycaster\.exe/);
     assert.match(workflow, /dist\/app\/Genycaster\.exe/);
@@ -53,4 +59,60 @@ test("WebAssembly text selection is described as a browser canvas boundary, not 
     const emoji = source("ui/app/browser_emoji_recovery.hpp");
     assert.match(emoji, /A Qt WebAssembly input adapter/);
     assert.doesNotMatch(emoji, /iOS Safari \/ Qt WebAssembly/);
+});
+
+test("legacy macOS bundle directory is normalized without losing executable data", (t) => {
+    const cmake = spawnSync("cmake", ["--version"], {encoding: "utf8"});
+    if (cmake.error || cmake.status !== 0) {
+        t.skip("CMake is unavailable in this test environment");
+        return;
+    }
+    const temporary = mkdtempSync(path.join(tmpdir(), "genycaster-bundle-case-"));
+    try {
+        const rootDir = path.join(temporary, "bin");
+        const oldBundle = path.join(rootDir, "genycaster.app");
+        const newBundle = path.join(rootDir, "Genycaster.app");
+        const sourceBinary = path.join(oldBundle, "Contents", "MacOS", "Genycaster");
+        mkdirSync(path.dirname(sourceBinary), {recursive: true});
+        writeFileSync(sourceBinary, "application-binary-content");
+        const runMigration = () => spawnSync(
+            "cmake", [
+                "-DGENYCASTER_BUNDLE_PATH=" + newBundle,
+                "-P", path.join(root, "cmake/FixMacOSBundleCase.cmake")
+            ],
+            {encoding: "utf8"}
+        );
+        const first = runMigration();
+        assert.equal(first.status, 0, first.stderr || first.stdout);
+        assert.deepEqual(readdirSync(rootDir), ["Genycaster.app"]);
+        assert.equal(readFileSync(path.join(newBundle, "Contents", "MacOS", "Genycaster"), "utf8"),
+                     "application-binary-content");
+        const second = runMigration();
+        assert.equal(second.status, 0, second.stderr || second.stdout);
+        assert.deepEqual(readdirSync(rootDir), ["Genycaster.app"]);
+    } finally {
+        rmSync(temporary, {recursive: true, force: true});
+    }
+});
+
+test("our Apple Mini App code avoids deprecated NSBox border types and keeps warnings enabled", () => {
+    const objc = source("ui/app/miniapp_browser_macos.mm");
+    assert.match(objc, /GenyMiniAppLoadingSurface : NSView/);
+    assert.match(objc, /viewDidChangeEffectiveAppearance/);
+    assert.doesNotMatch(objc, /borderType\s*=/);
+    assert.match(objc, /#pragma clang diagnostic pop/);
+    assert.match(objc, /#pragma clang diagnostic ignored "-Wdeprecated-declarations"/);
+    assert.doesNotMatch(source("ui/CMakeLists.txt"), /-Wno-deprecated-declarations/);
+});
+
+test("Mini App FID comparison uses exact integers rather than lossy doubles", () => {
+    const runtime = source("ui/app/miniapp_runtime.cpp");
+    assert.match(runtime, /contextFid\s*=\s*session->context\.value/);
+    assert.match(runtime, /toInteger\(-1\)/);
+    assert.match(runtime, /contextFid < 0/);
+    assert.match(runtime, /static_cast<qulonglong>\(contextFid\)/);
+    const recovery = source("src/platform/custody_recovery.cpp");
+    assert.match(recovery, /static_cast<unsigned char>\(character\)/);
+    const controller = source("ui/app/openproof_connections_controller.cpp");
+    assert.doesNotMatch(controller, /\[this,reply,requestGeneration,viewer,currentTopic,offset,pageSize\]/);
 });

@@ -772,7 +772,8 @@ makeOneShotRecoveryAuthorizer(const std::string_view phrase,
     if (verifiedFid == 0) return std::unexpected(Error::SigningFailed);
     std::size_t wordCount{};
     bool inWord{false};
-    for (const unsigned char ch : phrase) {
+    for (const char character : phrase) {
+        const auto ch = static_cast<unsigned char>(character);
         if (std::isspace(ch)) {
             inWord = false;
         } else if (!inWord) {

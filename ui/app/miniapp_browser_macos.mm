@@ -15,6 +15,13 @@
 // exception at the external-header boundary; project code below remains strict.
 #if defined(__clang__)
 #pragma clang diagnostic push
+// Apple's umbrella headers transitively declare removed/legacy Carbon,
+// ColorSync, AppKit Speech and WebKitLegacy APIs. We do not use those APIs;
+// suppress their declaration warnings only while parsing the SDK headers.
+// Deprecation warnings in GenyCaster's own code remain fully enabled.
+#if __has_warning("-Wdeprecated-declarations")
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #if __cplusplus > 202302L && __has_warning("-Wenum-enum-conversion")
 #pragma clang diagnostic ignored "-Wenum-enum-conversion"
 #endif
@@ -103,6 +110,24 @@ NSString* bridgeScript() {
     })();)JS"];
 }
 }
+
+// A normal view keeps the Mini App loading surface opaque without relying
+// on deprecated NSBox border styles. Repaint on appearance changes so the
+// overlay follows the user's light/dark system theme.
+@interface GenyMiniAppLoadingSurface : NSView
+@end
+
+@implementation GenyMiniAppLoadingSurface
+- (BOOL)isOpaque { return YES; }
+- (void)drawRect:(NSRect)dirtyRect {
+    [NSColor.windowBackgroundColor setFill];
+    NSRectFill(dirtyRect);
+}
+- (void)viewDidChangeEffectiveAppearance {
+    [super viewDidChangeEffectiveAppearance];
+    [self setNeedsDisplay:YES];
+}
+@end
 
 // Native input/shaping boundary above the Qt surface. It resizes with the
 // parent's content view, clips offscreen animation, and eats backdrop events.
@@ -379,11 +404,7 @@ static NSWindow* genycasterHostWindow()
     m_web.hidden = NO;
     [content addSubview:m_web];
 
-    NSBox* loadingSurface = [[NSBox alloc] init];
-    loadingSurface.boxType = NSBoxCustom;
-    loadingSurface.titlePosition = NSNoTitle;
-    loadingSurface.borderType = NSNoBorder;
-    loadingSurface.fillColor = NSColor.windowBackgroundColor;
+    NSView* loadingSurface = [[GenyMiniAppLoadingSurface alloc] initWithFrame:NSZeroRect];
     m_overlay = loadingSurface;
     m_overlay.translatesAutoresizingMaskIntoConstraints = NO;
     [content addSubview:m_overlay];

@@ -1640,10 +1640,14 @@ private:
             || session->documentGeneration != generation
             || session->documentToken != document || !session->browser) return;
         session->pendingSignIn = false;
+        // A signed-in FID must match exactly. Comparing a uint64 to a JSON
+        // double could round large identifiers and accept the wrong account.
+        const qint64 contextFid = session->context.value(QStringLiteral("user"))
+            .toObject().value(QStringLiteral("fid")).toInteger(-1);
         if (!session->foreground || m_foregroundTaskId != taskId
+            || contextFid < 0
             || m_controller.user().value(QStringLiteral("fid")).toULongLong()
-                != session->context.value(QStringLiteral("user")).toObject()
-                   .value(QStringLiteral("fid")).toDouble()) {
+                != static_cast<qulonglong>(contextFid)) {
             session->browser->reply(errorResponse(
                 id, QStringLiteral("Mini App authentication was cancelled.")), document);
             return;

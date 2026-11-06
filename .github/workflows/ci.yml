@@ -242,6 +242,9 @@ jobs:
           cmake --build build/native --target genycaster --parallel 3
           APP=build/native/bin/Genycaster.app
           test -d "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$APP/Contents/Info.plist")" = Genycaster
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" = Genycaster
+          test -n "$(find build/native/bin -maxdepth 1 -type d -name 'Genycaster.app' -print -quit)"
           # Fail if a cross-architecture Qt library or toolchain leaked in.
           /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/Genycaster"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1

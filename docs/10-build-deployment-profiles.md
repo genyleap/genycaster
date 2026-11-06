@@ -12,7 +12,12 @@ named `Genycaster`: `Genycaster.app` (Apple platforms), `Genycaster.exe`
 `Exec=Genycaster`, with the original lowercase icon and desktop-file IDs.
 This is a **case-sensitive file name** change, not a new application identity:
 existing bundle/package identifiers, user data directories and translation IDs
-remain unchanged.
+remain unchanged. On macOS, CMake also sets `MACOSX_BUNDLE_BUNDLE_NAME=Genycaster`
+(`CFBundleName` in `Info.plist`). An Apple-only post-build step repairs the
+*physical* capitalization of a legacy `genycaster.app` directory left by
+case-insensitive volumes after the executable was renamed. It uses a safe
+two-stage rename, never deletes app contents, and does nothing on fresh builds.
+The macOS release gate checks both `CFBundleName` and `CFBundleExecutable`.
 
 The Android Qt native-library target and browser WebAssembly deployment
 continue to use their existing lowercase resource names. In particular,

@@ -312,7 +312,19 @@ endif()
 if(APPLE)
     # Keep a real Apple app bundle on both macOS and iOS. Qt generates
     # the correct platform Info.plist for qt_add_executable.
-    set_target_properties(genycaster PROPERTIES MACOSX_BUNDLE TRUE)
+    set_target_properties(genycaster PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_BUNDLE_NAME "Genycaster")
+    if(NOT IOS)
+        # Case-insensitive APFS can preserve a legacy lowercase directory
+        # even though Ninja links into Genycaster.app/Contents/MacOS.
+        # Normalize the physical directory casing after the native link.
+        add_custom_command(TARGET genycaster POST_BUILD
+            COMMAND "${CMAKE_COMMAND}"
+                "-DGENYCASTER_BUNDLE_PATH=$<TARGET_BUNDLE_DIR:genycaster>"
+                -P "${CMAKE_SOURCE_DIR}/cmake/FixMacOSBundleCase.cmake"
+            VERBATIM)
+    endif()
     if(IOS)
         set_target_properties(genycaster PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.genyleap.genycaster"

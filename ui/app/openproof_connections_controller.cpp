@@ -2702,7 +2702,7 @@ void OpenProofConnectionsController::fetchTopicCastPage()
     m_topicCastsError.clear();
     emit topicCastsChanged();
     connect(reply,&QNetworkReply::finished,this,
-            [this,reply,requestGeneration,viewer,currentTopic,offset,pageSize] {
+            [this,reply,requestGeneration,viewer,currentTopic,offset] {
         if(m_topicCastsRequest==reply)m_topicCastsRequest=nullptr;
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         if(requestGeneration!=m_topicCastsGeneration

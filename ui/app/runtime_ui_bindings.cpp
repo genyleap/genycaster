@@ -2795,7 +2795,6 @@ void connectRuntime(
     // Native recovery remains off the GUI thread. This composition layer is
     // the only place that may briefly hold the phrase, and the provider sees
     // public custody identity plus a one-time signature only.
-    using RecoveryIdentity = farcaster::provider::compatibility::auth::RecoveryIdentity;
     struct RecoveryBundle final {
         domain::identity::Fid fid{};
         std::string issuer{};
