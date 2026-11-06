@@ -28,6 +28,11 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "GenyCaster")
     set(CPACK_NSIS_DISPLAY_NAME "GenyCaster")
     set(CPACK_NSIS_PACKAGE_NAME "GenyCaster")
+    # The staged application executable is at $INSTDIR, not $INSTDIR/bin.
+    # CPack otherwise builds an invalid Start Menu shortcut by default.
+    set(CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "Genycaster.exe")
+    set(CPACK_NSIS_URL_INFO_ABOUT "https://genycaster.xyz")
     set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
     set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
     set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/properties/Windows/genycaster.ico")
