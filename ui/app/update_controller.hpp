@@ -105,7 +105,10 @@ public:
     /** @brief Cancels a browser refresh if its durable local-state flush fails. */
     void browserRefreshPersistenceFailed();
     Q_INVOKABLE void downloadUpdate();
-    Q_INVOKABLE bool openDownloadedUpdate();
+    // Install is initiated inside the app, then explicitly handed off to
+    // the OS package installer or a supervised post-exit updater.
+    Q_INVOKABLE bool installDownloadedUpdate();
+    Q_INVOKABLE bool openDownloadedUpdate(); // compatibility with older QML
     Q_INVOKABLE bool openReleasePage();
 
 signals:
