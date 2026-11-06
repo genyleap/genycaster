@@ -65,7 +65,14 @@ are checked for the selected Windows PE architecture (`x86_64` or `arm64`).
 Windows executable properties include publisher/copyright/trademark data;
 the NSIS agreement contains the Genyleap publisher notice followed by the
 **complete, unchanged GPLv3 license**, with third-party notices installed
-alongside the app. Linux AppImage and DEB use the same `linuxdeploy` AppDir.
+alongside the app. The architecture-matched Microsoft Visual C++ Redistributable
+(`vc_redist.x64.exe` or `vc_redist.arm64.exe`) is required in the staged
+package and its Microsoft Authenticode signature is checked before packaging.
+NSIS runs that prerequisite with Microsoft-recommended quiet/no-restart flags
+on a clean installation, handles an existing/newer runtime and a restart
+requirement, and refuses to pretend a failed prerequisite was installed.
+This is essential: `windeployqt` merely copies the redistributable and does
+not execute it. Linux AppImage and DEB use the same `linuxdeploy` AppDir.
 OS-provided system libraries are intentionally managed by the OS rather than
 replacing critical system libraries in the package.
 
