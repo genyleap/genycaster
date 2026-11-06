@@ -906,7 +906,25 @@ bool PresentationBridge::authenticationBusy() const noexcept
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
 bool PresentationBridge::authenticationStateObserved() const noexcept
 {
+#if defined(__EMSCRIPTEN__)
+    // The first queued Guest event is provisional until the asynchronous
+    // WebCrypto-backed device identity restore has actually settled.
+    return m_authenticationStateObserved && !m_browserAccountRestorePending;
+#else
     return m_authenticationStateObserved;
+#endif
+}
+
+void PresentationBridge::finishBrowserAccountRestore() noexcept
+{
+#if defined(__EMSCRIPTEN__)
+    if (!m_browserAccountRestorePending) return;
+    m_browserAccountRestorePending=false;
+    emit authenticationStateChanged();
+    // The browser splash must not disappear before this authoritative
+    // result. No account, key, or credential crosses this callback.
+    EM_ASM({ window.__genycasterBrowserAuthBootstrap?.(); });
+#endif
 }
 QString PresentationBridge::authenticationRoute() const { return m_authenticationRoute; }
 QString PresentationBridge::preferredNetwork() const { return m_preferredNetwork; }
