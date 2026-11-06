@@ -101,7 +101,6 @@
 #include "openproof_connections_controller.hpp"
 #include "genypulse_activity_controller.hpp"
 #if defined(__EMSCRIPTEN__)
-#include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
 #include "browser_emoji_recovery.hpp"
@@ -121,6 +120,8 @@ import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.transport.qtnetwork;
 import genycaster.ui.shutdown;
+import genycaster.ui.bootstrap;
+import genycaster.ui.web.wheel;
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.config;
 #endif
@@ -130,8 +131,6 @@ import farcaster.provider.compatibility.browser_wallet.bridge;
 #endif
 
 #include "runtime_ui_bindings.hpp"
-#include "web/Wheel.hpp"
-#include "bootstrap/Options.hpp"
 
 
 namespace {
