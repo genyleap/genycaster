@@ -659,8 +659,17 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(typeof method!=='string'||method.length>80||
           !/^[A-Za-z][A-Za-z0-9_]*$/.test(method))
         throw denied('Invalid wallet RPC method',4200);
-      if(method==='eth_accounts')
-        return granted ? injected.request(payload) : [];
+      if(method==='eth_accounts'){
+        if(!granted)return [];
+        const accounts=await injected.request(payload);
+        guard();
+        if(!Array.isArray(accounts)||typeof accounts[0]!=='string'
+            ||accounts[0].toLowerCase()!==grantedAddress){
+          granted=false;grantedAddress='';
+          return [];
+        }
+        return accounts;
+      }
       if(method==='eth_requestAccounts'){
         if(!granted){
           if(!pendingApproval)pendingApproval=Promise.resolve()
@@ -671,11 +680,16 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         }
         const accounts=await injected.request(payload);
         guard();
-        if(!Array.isArray(accounts)||accounts.length===0)
-          throw denied('Wallet returned no connected account',4001);
+        if(!Array.isArray(accounts)||typeof accounts[0]!=='string'
+          ||!/^0x[0-9a-f]{40}$/i.test(accounts[0]))
+          throw denied('Wallet returned an invalid connected account',4001);
+        const currentAddress=accounts[0].toLowerCase();
+        if(granted && currentAddress!==grantedAddress){
+          granted=false;grantedAddress='';
+          throw denied('Wallet account changed. Approve the new account separately.',4100);
+        }
         granted=true;
-        grantedAddress=typeof accounts[0]==='string'
-          ? accounts[0].toLowerCase():'';
+        grantedAddress=currentAddress;
         return accounts;
       }
       if(PUBLIC_METHODS.has(method))
@@ -691,6 +705,15 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(size>65_536)
         throw denied('Wallet RPC parameters exceed the safe limit',4200);
       if(SIGNING_METHODS.has(method)){
+        // Some providers do not emit accountsChanged reliably after a wallet
+        // switch. Revalidate the approved principal before *every* write.
+        const accounts=await injected.request({method:'eth_accounts'});
+        guard();
+        if(!Array.isArray(accounts)||typeof accounts[0]!=='string'
+            ||accounts[0].toLowerCase()!==grantedAddress){
+          granted=false;grantedAddress='';
+          throw denied('Wallet account changed. Connect this Mini App again.',4100);
+        }
         // One visibly separate host prompt for EVERY sensitive operation.
         // Bound the queue so an untrusted iframe cannot flood pending dialogs.
         if(pendingSensitiveCount>=2)
