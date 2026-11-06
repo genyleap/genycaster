@@ -145,7 +145,12 @@ private:
             return;
         }
         m_pendingActivation = false;
-        m_window->showNormal();
+        // Keep a maximized window maximized. Only restore from minimized;
+        // unconditional showNormal() unexpectedly changes the user's layout.
+        if (m_window->visibility() == QWindow::Minimized)
+            m_window->showNormal();
+        else if (!m_window->isVisible())
+            m_window->show();
         m_window->raise();
         m_window->requestActivate();
     }
