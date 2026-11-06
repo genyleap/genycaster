@@ -1,5 +1,3 @@
-#include "../../ui/app/browser_wheel_fallback.hpp"
-
 #include <QGuiApplication>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -12,6 +10,8 @@
 
 #include <cmath>
 #include <print>
+
+import genycaster.ui.web.wheel;
 
 namespace {
 int failures{};
