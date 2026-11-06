@@ -1,4 +1,4 @@
-#include "../render/token_sparkline_geometry.hpp"
+#include "../../ui/render/token_sparkline_geometry.hpp"
 
 #include <QPointF>
 #include <QVariant>

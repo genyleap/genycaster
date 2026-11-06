@@ -145,7 +145,7 @@ Background executors      network · cache I/O · normalization · reconciliatio
 OS secure storage         signer material; isolated behind a native adapter
 ```
 
-Qt Quick's graphics API is selected for the platform and driver (Metal, Direct3D, OpenGL, and WebGL-backed browser contexts as applicable). `QT_QUICK_BACKEND=software` appears in specific headless test environment settings in `ui/CMakeLists.txt`; this is not a production-wide renderer assignment. Do not claim hardware acceleration solely because the build has WebGL support: inspect runtime `QQuickWindow::rendererInterface()->graphicsApi()` and collect frame-time measurements.
+Qt Quick's graphics API is selected for the platform and driver (Metal, Direct3D, OpenGL, and WebGL-backed browser contexts as applicable). `QT_QUICK_BACKEND=software` appears in specific headless test environment settings in `tests/ui/CMakeLists.txt`; this is not a production-wide renderer assignment. Do not claim hardware acceleration solely because the build has WebGL support: inspect runtime `QQuickWindow::rendererInterface()->graphicsApi()` and collect frame-time measurements.
 
 **UI invariants:** QML does not perform database I/O, cryptographic signing, provider HTTP/JSON parsing or large model rebuilds on the presentation hot path. Expensive media admission and cached timeline reconciliation are asynchronous. [UI performance contract](14-performance-and-ui-runtime.md).
 

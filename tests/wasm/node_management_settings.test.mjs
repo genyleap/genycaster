@@ -50,7 +50,7 @@ test('read health checks validate real typed API results with timeout and no red
   assert.match(manager, /root\.readContract = providerProfiles\.probeSuggestedContract/);
   assert.match(manager, /probeReadProvider/);
   assert.match(manager, /probeDraftNode/);
-  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'),
+  assert.match(read('tests/ui/provider_profiles_controller_tests.cpp'),
                /testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200/);
 });
 
@@ -123,10 +123,10 @@ test('probing a real raw node requires both Cast and profile endpoints, not just
   assert.match(controller, /runProbeStep\(id, contract, origin, draftApiKey, 1\)/);
   assert.match(controller, /m_probeTimer\.start\(\)/);
   assert.doesNotMatch(controller, /QStringLiteral\("\/v1\/info"\)/);
-  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /assert\(castRequests == 2 && profileRequests == 2\)/);
-  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'),
+  assert.match(read('tests/ui/provider_profiles_controller_tests.cpp'), /assert\(castRequests == 2 && profileRequests == 2\)/);
+  assert.match(read('tests/ui/provider_profiles_controller_tests.cpp'),
                /probeSuggestedContract\(\) == QStringLiteral\("snapchain-v1"\)/);
-  assert.match(read('ui/tests/provider_profiles_controller_tests.cpp'), /probeHttpStatus\(\) == 402/);
+  assert.match(read('tests/ui/provider_profiles_controller_tests.cpp'), /probeHttpStatus\(\) == 402/);
 });
 
 test('raw node limitations are explicit, and saving does not automatically switch provider', () => {

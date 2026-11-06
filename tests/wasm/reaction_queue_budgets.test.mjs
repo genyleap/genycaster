@@ -7,7 +7,7 @@ const qml=read('ui/components/CastReactions.qml');
 const adapter=read('ui/app/browser_reaction_controller.cpp');
 const header=read('ui/app/browser_reaction_controller.hpp');
 const bar=read('ui/components/EngagementBar.qml');
-const cmake=read('ui/CMakeLists.txt');
+const cmake=read('tests/ui/CMakeLists.txt');
 
 test('WASM reaction admission is C++ owned and bounded rather than QML network state',()=>{
   assert.doesNotMatch(qml,/XMLHttpRequest|\.open\(|\.send\(|fetch\(|JSON\.parse/);
@@ -37,6 +37,6 @@ test('verified positive and local optimistic reactions remain independently owne
   assert.doesNotMatch(qml,/positive:|pending:|retryAfter:|busy:/);
   // The actual queue, identity, pooling and HTTP behavior is asserted by the
   // compiled Qt local-socket fixture ui.browser_reactions_contract.
-  assert.match(read('ui/tests/browser_reaction_controller_tests.cpp'),
+  assert.match(read('tests/ui/browser_reaction_controller_tests.cpp'),
     /Unexpected unbounded reaction request/);
 });

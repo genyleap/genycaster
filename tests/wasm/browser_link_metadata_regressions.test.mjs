@@ -8,7 +8,7 @@ test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
   const embed=read('ui/components/EmbedPreview.qml');
   const cpp=read('ui/app/browser_link_metadata_controller.cpp');
   const main=read('ui/app/main.cpp');
-  const cmake=read('ui/CMakeLists.txt');
+  const cmake=read('tests/ui/CMakeLists.txt');
   for(const qml of [link,embed]){
     assert.doesNotMatch(qml,/XMLHttpRequest|JSON\.parse\(|\.send\(/);
     assert.match(qml,/browserLinkMetadataController\.requestPreview\(target, "link"\)/);

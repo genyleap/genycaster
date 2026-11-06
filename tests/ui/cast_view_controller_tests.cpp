@@ -1,4 +1,4 @@
-#include "../app/cast_view_controller.hpp"
+#include "../../ui/app/cast_view_controller.hpp"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

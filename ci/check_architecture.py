@@ -42,7 +42,7 @@ PROVIDER_AWARE_PRESENTATION = {
     "ui/app/channel_picker_controller.cpp",
     "ui/app/genypulse_activity_controller.cpp",
     "ui/app/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
-    "ui/tests/provider_profiles_controller_tests.cpp",
+    "tests/ui/provider_profiles_controller_tests.cpp",
 }
 
 # Textual project headers are exceptional boundaries, never the default architecture.

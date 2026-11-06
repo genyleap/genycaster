@@ -262,8 +262,9 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("if(NOT ANDROID AND NOT EMSCRIPTEN)", cmake)
         self.assertIn("add_library(genycaster_release_identity INTERFACE)", cmake)
         self.assertIn("target_link_libraries(genycaster PRIVATE genycaster_release_identity)", cmake)
-        self.assertIn("target_link_libraries(farcaster_update_controller_tests PRIVATE", cmake)
-        self.assertIn("        genycaster_release_identity", cmake)
+        test_cmake = Path("tests/ui/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("target_link_libraries(farcaster_update_controller_tests PRIVATE", test_cmake)
+        self.assertIn("    genycaster_release_identity", test_cmake)
         for name in ("GENYCASTER_APP_VERSION", "GENYCASTER_PRODUCT_NAME",
                      "GENYCASTER_VERSION_NUMBER", "GENYCASTER_RELEASE_CHANNEL",
                      "GENYCASTER_RELEASE_CHANNEL_NUMBER"):

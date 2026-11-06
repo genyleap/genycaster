@@ -31,7 +31,10 @@ shipping UI, resource and application contracts, not demo-specific artifacts.
 - `ui/platform/`: only genuinely platform-specific assets or integrations.
 - `ui/wasm/`: browser-only bootstrap and compatibility assets, not the
   complete application implementation.
-- `ui/tests/` and `tests/wasm/`: native Qt and source/runtime regressions.
+- `tests/ui/`: native Qt test sources, target definitions and CTest registration.
+  `ui/CMakeLists.txt` owns production targets and resources only; UI tests reuse
+  those resources without moving generated translations or duplicating manifests.
+- `tests/wasm/`: browser source/runtime regressions.
 
 There is no `ui/mobile/` or `ui/demo/` in the active tree. The QML module
 still registers its root window under the stable `Farcaster.Client/Main.qml`

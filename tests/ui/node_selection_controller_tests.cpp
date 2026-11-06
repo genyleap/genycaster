@@ -1,4 +1,4 @@
-#include "../app/node_selection_controller.hpp"
+#include "../../ui/app/node_selection_controller.hpp"
 #include <QCoreApplication>
 #include <QSettings>
 #include <QTemporaryDir>
