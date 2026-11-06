@@ -119,20 +119,28 @@
             return;
         }
         if (action === "resume-account") {
-            if(signedOutLocally())return;
             const {requestId}=JSON.parse(payloadString);
             if(!/^[0-9a-f-]{36}$/i.test(requestId||""))return;
             const thisEpoch=++epoch;
+            // The boot screen must wait for a *terminal* restore result.
+            // A missing local identity is expected, not an auth failure.
+            // Never show Setup based on the earlier provisional Guest state.
+            if(signedOutLocally()){
+                report({kind:'setup-account',phase:'cancelled',fid:'',
+                    requestId,localDevice:true});
+                return;
+            }
             void (async()=>{
                 try{
                     await rememberedWrite.catch(()=>{});
                     const account=await (await deviceSession()).restore();
-                    if(epoch===thisEpoch && account && !owner)
-                        report({kind:'setup-account',phase:'ready',fid:account,
-                            requestId,localDevice:true});
+                    if(epoch!==thisEpoch)return;
+                    report({kind:'setup-account',phase:account&&!owner?'ready':'cancelled',
+                        fid:account&&!owner?account:'',requestId,localDevice:true});
                 }catch(error){
                     if(epoch===thisEpoch)
-                        report({kind:'device-session',phase:'unavailable',
+                        report({kind:'setup-account',phase:'failed',fid:'',
+                            requestId,localDevice:true,
                             error:String(error?.message||error).slice(0,200)});
                 }
             })();
