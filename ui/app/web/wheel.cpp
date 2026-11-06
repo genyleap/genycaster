@@ -1,4 +1,4 @@
-// C++26 named-module implementation; platform headers are private to this TU.
+// Named-module implementation; platform headers are private to this unit.
 module;
 
 #include <QCoreApplication>
@@ -165,7 +165,7 @@ QPointer<QQuickWindow> browserWheelWindow{};
 }
 
 // Emscripten routes DOM wheel input directly into C++. Do not depend on
-// Module exports, which are not guaranteed with Qt 6.12's JS loader.
+// Module exports, which are not guaranteed by the browser loader.
 namespace {
 double normalizedCanvasCoordinate(int clientX, int clientY, int axis)
 {
