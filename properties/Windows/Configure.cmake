@@ -52,7 +52,7 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
     else()
         set(_genycasterVCRedistSuffix "x64")
     endif()
-    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+    string(CONCAT CPACK_NSIS_EXTRA_INSTALL_COMMANDS
         "IfFileExists \"$INSTDIR\\vc_redist.${_genycasterVCRedistSuffix}.exe\" +2 0\n"
         "Abort \"Microsoft Visual C++ runtime installer is missing\"\n"
         "DetailPrint \"Installing Microsoft Visual C++ runtime\"\n"
