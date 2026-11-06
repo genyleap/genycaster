@@ -97,6 +97,14 @@ def main() -> None:
         assert not (Path("ui/app") / (relative + ".hpp")).exists()
         assert interface.name == interface.name.lower()
         assert implementation.name == implementation.name.lower()
+        assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
+        assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
+        assert '#include <QString>' not in interface.read_text(encoding="utf-8")
+    assert 'import genycaster.ui.bootstrap;' in entry
+    assert 'import genycaster.ui.web.wheel;' in entry
+    assert 'import genycaster.ui.update.install;' in Path(
+        "ui/app/update_controller.cpp").read_text(encoding="utf-8")
+    assert Path("ui/app/modules/qt_fwd.hpp").is_file()
     assert not Path("ui/app/web/Wheel.hpp").exists()
     assert not Path("ui/app/bootstrap/Options.hpp").exists()
     assert not Path("ui/app/browser_wheel_fallback.hpp").exists()
