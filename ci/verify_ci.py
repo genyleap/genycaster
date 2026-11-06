@@ -88,6 +88,10 @@ def main() -> None:
     assert 'QStringLiteral("https")' in instance
     assert 'CPACK_NSIS_EXECUTABLES_DIRECTORY "."' in windows
     assert 'CPACK_NSIS_INSTALLED_ICON_NAME "Genycaster.exe"' in windows
+    assert "string(CONCAT CPACK_NSIS_EXTRA_INSTALL_COMMANDS" in windows
+    assert "vc_redist.${_genycasterVCRedistSuffix}.exe" in windows
+    assert "ExecWait" in windows and "SetRebootFlag true" in windows
+    assert "Get-AuthenticodeSignature -FilePath" in workflow
     assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in windows
     assert "CPACK_NSIS_DELETE_ICONS_EXTRA" in windows
     assert "GenyCaster.lnk" in windows
