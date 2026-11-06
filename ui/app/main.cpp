@@ -90,6 +90,7 @@
 #include "node_selection_controller.hpp"
 #include "provider_profiles_controller.hpp"
 #include "update_controller.hpp"
+#include "desktop_single_instance.hpp"
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -721,6 +722,20 @@ int main(int argc, char* argv[])
     const bool isSmokeTest = arguments.contains(QStringLiteral("--smoke-test"));
     const bool isVisualTest = arguments.contains(QStringLiteral("--visual-test"));
     const bool isRuntimeSmokeTest = arguments.contains(QStringLiteral("--runtime-smoke-test"));
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+    // The real desktop client is one process per OS user. Test runners
+    // intentionally retain independent instances and isolated fixtures.
+    genycaster::ui::DesktopSingleInstance desktopInstance{};
+    if (!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest) {
+        const auto result = desktopInstance.acquire();
+        if (result == genycaster::ui::DesktopSingleInstance::Result::ActivatedExisting)
+            return 0;
+        if (result == genycaster::ui::DesktopSingleInstance::Result::Error) {
+            qCritical().noquote() << "GenyCaster startup:" << desktopInstance.errorString();
+            return 4; // Never start a second copy with shared writable state.
+        }
+    }
+#endif
     const bool openExploreForTest = arguments.contains(QStringLiteral("--open-explore"));
     const qsizetype snapshotIndex = arguments.indexOf(QStringLiteral("--snapshot"));
     const QString snapshotPath = snapshotIndex >= 0 && snapshotIndex + 1 < arguments.size()
@@ -2179,6 +2194,9 @@ int main(int argc, char* argv[])
 #endif
         return 1;
     }
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+    desktopInstance.setWindow(mainWindow);
+#endif
     renderingController.attachWindow(mainWindow);
 #if defined(__EMSCRIPTEN__)
     installBrowserWheelBridge(mainWindow);
