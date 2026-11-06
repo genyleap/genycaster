@@ -18,7 +18,7 @@ test("public app identity stays independent from the injected release label",()=
     assert.match(cmake,/VERSION 1\.0\.0/);
     assert.equal(manifest.name,"Genycaster");
     assert.match(html,/<title>@@GENYCASTER_PRODUCT_NAME@@<\/title>/);
-    assert.match(html,/class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@/);
+    assert.match(html,/class="boot-beta">BETA<\/span>/);
     assert.match(pack, /product_placeholder = "@@GENYCASTER_PRODUCT_NAME@@"/);
     assert.match(pack, /release_placeholder = "@@GENYCASTER_RELEASE_VERSION@@"/);
 });
@@ -52,7 +52,7 @@ test("phone Home is focused on three active actions and a locked Wallet",()=>{
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const loader=read("ui/wasm/genycaster-loader.js");
-    assert.match(html,/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
+    assert.match(html,/<span class="boot-beta">BETA<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.doesNotMatch(html,/id="boot-version"/);
     assert.match(html,/class="boot-credit"><div>Powered by <strong>Genyleap<\/strong> · WASM Engine<\/div><div class="boot-build" id="boot-build-credit"/);

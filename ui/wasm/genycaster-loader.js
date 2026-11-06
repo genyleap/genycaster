@@ -52,6 +52,10 @@ function announce(title,detail,phase) {
     status.textContent=detail;
     stage.textContent=phase;
 }
+function downloadProgressText(received,total,pct){
+    if(total<1048576)return pct+"%";
+    return pct+"% · "+(received/1048576).toFixed(1)+" / "+(total/1048576).toFixed(1)+" MiB";
+}
 function preparing() {
     fill.classList.remove("measured");
     fill.style.width="";
@@ -199,9 +203,8 @@ function measureFirstDownload(response,url){
     // from our own release packager, so we can measure the native stream even
     // behind Cloudflare or a Service Worker without guessing.
     const manifestBytes=Number(releaseInfo.wasmBytes);
-    // A second ReadableStream consumer for a large WASM can retain tens of
-    // megabytes while Safari is already compiling the original stream. Use
-    // native Resource Timing for large engines; never tee an ~80 MiB body.
+    // Never tee a large WASM stream: the original stream must remain available
+    // for progressive compilation without buffering a second 80+ MiB copy.
     if(Number.isFinite(manifestBytes) && manifestBytes>16*1024*1024)return;
     const trusted=verifiedAsset && url===verifiedAsset.href
         && Number.isSafeInteger(manifestBytes) && manifestBytes>0;
@@ -245,7 +248,7 @@ function measureFirstDownload(response,url){
                     const pct=Math.min(99,Math.floor(received*100/total));
                     fill.classList.add("measured");
                     fill.style.width=pct+"%";
-                    percent.textContent=pct+"%";
+                    percent.textContent=downloadProgressText(received,total,pct);
                     track?.setAttribute?.("aria-valuenow",String(pct));
                     track?.setAttribute?.("aria-valuetext",
                         "Downloading engine "+pct+" percent");
@@ -310,8 +313,10 @@ async function compressedWebKitEngine(url,options) {
     let received=0, lastPaint=0;
     const wireBytes=source.headers.get("content-encoding")?0
         : Number(source.headers.get("content-length"));
-    const measure=installing && Number.isSafeInteger(wireBytes)
-        && wireBytes===gzipBytes;
+    // The release packager knows the exact compressed byte count. CDNs
+    // commonly omit Content-Length for streamed or encoded responses.
+    const measure=installing && (!wireBytes || wireBytes===gzipBytes);
+    const progressTotal=gzipBytes;
     const compressed=source.body.pipeThrough(new TransformStream({
         transform(chunk,controller){
             received+=chunk.byteLength;
@@ -319,10 +324,10 @@ async function compressedWebKitEngine(url,options) {
                 const now=performance.now();
                 if(now-lastPaint>120 || received>=wireBytes){
                     lastPaint=now;
-                    const pct=Math.min(99,Math.floor(received*100/wireBytes));
+                    const pct=Math.min(99,Math.floor(received*100/progressTotal));
                     fill.classList.add("measured");
                     fill.style.width=pct+"%";
-                    percent.textContent=pct+"%";
+                    percent.textContent=downloadProgressText(received,progressTotal,pct);
                     track?.setAttribute?.("aria-valuenow",String(pct));
                 }
             }
@@ -373,10 +378,12 @@ window.fetch=async function(input,options) {
         "Retrieving the WebAssembly engine from cache or network…",
         "Preparing runtime");
     let response;
+    let compressedPath=false;
     try {
         const zipped=await compressedWebKitEngine(url,nativeOptions);
         if(zipped){
             response=zipped.response;
+            compressedPath=true;
             wasmResourceUrl=zipped.resourceUrl;
         }else{
             response=await originalFetch(nativeRequest,nativeOptions);
@@ -416,6 +423,45 @@ window.fetch=async function(input,options) {
         "WebAssembly engine available. Preparing the Qt interface…",
         "Initializing runtime");
     preparing();
+    // Observe a large native WASM download on the SAME stream consumed by Qt.
+    // No clone/tee or extra request: progressive WebAssembly compilation stays
+    // possible and the browser owns the network cache as before.
+    const totalBytes=Number(releaseInfo.wasmBytes);
+    const directEngine=verifiedAsset && url.href===verifiedAsset.href;
+    if(installing && !compressedPath && directEngine && response.body
+        && typeof TransformStream==="function"
+        && Number.isSafeInteger(totalBytes) && totalBytes>16*1024*1024){
+        let received=0,lastPaint=0;
+        const measured=response.body.pipeThrough(new TransformStream({
+            transform(chunk,controller){
+                received+=chunk.byteLength;
+                if(!finished && !failed && bootPhase==="download"){
+                    const now=performance.now();
+                    if(now-lastPaint>=90 || received>=totalBytes){
+                        lastPaint=now;
+                        const pct=Math.min(99,Math.floor(received*100/totalBytes));
+                        fill.classList.add("measured");
+                        fill.style.width=pct+"%";
+                        percent.textContent=downloadProgressText(received,totalBytes,pct);
+                        track?.setAttribute?.("aria-valuenow",String(pct));
+                    }
+                }
+                controller.enqueue(chunk);
+            },
+            flush(){
+                if(!finished && !failed && bootPhase==="download"
+                    && received===totalBytes){
+                    showPhase("install","Verifying WebAssembly resources",
+                        "Application resources downloaded; preparing runtime…",
+                        "Preparing runtime");
+                }
+            }
+        }));
+        return new Response(measured,{
+            status:response.status,statusText:response.statusText,
+            headers:response.headers
+        });
+    }
     measureFirstDownload(response,wasmResourceUrl);
     return response;
 };
