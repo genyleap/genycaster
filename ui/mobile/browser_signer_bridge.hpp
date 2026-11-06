@@ -8,6 +8,7 @@
 #include <QByteArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMetaObject>
 #include <QObject>
 #include <QPointer>
 #include <QString>
