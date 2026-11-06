@@ -251,6 +251,8 @@ qt_add_executable(genycaster
     app/main.cpp
     app/web/Wheel.cpp
     app/web/Wheel.hpp
+    app/bootstrap/Options.cpp
+    app/bootstrap/Options.hpp
     app/runtime_ui_bindings.cpp
     app/data_storage_controller.cpp
     app/data_storage_controller.hpp
