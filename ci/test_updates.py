@@ -29,6 +29,15 @@ class UpdateInstallTests(unittest.TestCase):
             self.assertIn(name, qt)
             self.assertTrue((ROOT / "ui/app/update/scripts" / name).is_file())
         self.assertIn("updateController.installDownloadedUpdate()", qml)
+        manifest = (ROOT / "properties/Android/AndroidManifest.xml").read_text(
+            encoding="utf-8")
+        provider = (ROOT / "properties/Android/res/xml/qtprovider_paths.xml").read_text(
+            encoding="utf-8")
+        self.assertIn("android.permission.REQUEST_INSTALL_PACKAGES", manifest)
+        self.assertIn('android:authorities="${applicationId}.qtprovider"', manifest)
+        self.assertIn('android:resource="@xml/qtprovider_paths"', manifest)
+        self.assertIn('<files-path name="files" path="."', provider)
+
 
     @unittest.skipUnless(shutil.which("sh"), "Shell unavailable")
     def test_posix_install_scripts_parse(self) -> None:
