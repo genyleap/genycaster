@@ -1,0 +1,44 @@
+name: Feature proposal
+description: Suggest an enhancement while keeping GenyCaster's provider-neutral architecture.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user benefit and affected capability. For implementation guidance, read [ARCHITECTURE.md](https://github.com/genyleap/genycaster/blob/main/docs/ARCHITECTURE.md) and [CONTRIBUTING.md](https://github.com/genyleap/genycaster/blob/main/CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What cannot users do today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Include how it would work on desktop, mobile or WebAssembly.
+    validations:
+      required: true
+  - type: dropdown
+    id: capability
+    attributes:
+      label: Capability class
+      options:
+        - Protocol
+        - Derived
+        - Compatibility
+        - Extension
+        - Local
+        - Not sure
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Architectural and security considerations
+      description: Provider independence, local state, platform availability, wallet permissions and privacy implications.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How can the behavior be tested?

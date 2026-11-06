@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/genyleap/genycaster/security
+    about: Do not disclose exploit details in a public issue. See the security policy for private reporting.
+  - name: Architecture and build documentation
+    url: https://github.com/genyleap/genycaster/blob/main/docs/README.md
+    about: Review the architecture, build prerequisites and benchmark policy before opening an issue.

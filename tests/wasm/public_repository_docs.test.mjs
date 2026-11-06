@@ -1,0 +1,98 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const read = (name) => readFileSync(path.join(root, name), "utf8");
+const required = [
+    "README.md", "STATUS.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
+    "docs/ARCHITECTURE.md", "docs/PERFORMANCE.md", "docs/README.md", "SECURITY.md",
+    "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    "ui/assets/branding/genycaster-mark.svg"
+];
+
+test("public repository entry points and existing GenyCaster branding are available", () => {
+    for (const file of required)
+        assert.ok(existsSync(path.join(root, file)), file);
+    assert.equal(
+        read("ui/assets/branding/genycaster-mark.svg"),
+        read("prototypes/setup-brand-3d/assets/genycaster-icon.svg"),
+        "brand asset must retain the existing product logo geometry"
+    );
+});
+
+test("public landing page shows provider-neutral architecture without claiming benchmark wins", () => {
+    const readme = read("README.md");
+    const cmake = read("CMakeLists.txt");
+    assert.match(readme, /<h1>GenyCaster<\/h1>/);
+    assert.match(readme, /ui\/assets\/branding\/genycaster-mark\.svg/);
+    assert.match(readme, /```mermaid[\s\S]*?flowchart/);
+    assert.match(readme, /HyperSnap preferred/);
+    assert.match(readme, /Snapchain/);
+    assert.match(readme, /Local-first/);
+    assert.match(readme, /Beta software/);
+    assert.match(readme, /Not yet published/);
+    assert.match(readme, /Not yet measured/);
+    assert.match(readme, /docs\/PERFORMANCE\.md/);
+    assert.match(readme, /CONTRIBUTING\.md/);
+    assert.match(readme, /SECURITY\.md/);
+    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL "rc"\)/);
+    assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL_NUMBER "1"\)/);
+    assert.match(readme, /1\.0\.0--rc1/);
+});
+
+test("architecture, benchmarking and vulnerability disclosure remain explicit", () => {
+    const architecture = read("docs/ARCHITECTURE.md");
+    assert.ok((architecture.match(/```mermaid/g) || []).length >= 3);
+    assert.match(architecture, /per capability/);
+    assert.match(architecture, /Separate trust/);
+    const performance = read("docs/PERFORMANCE.md");
+    assert.match(performance, /raw per-run records/);
+    assert.match(performance, /p50/);
+    assert.match(performance, /p95/);
+    assert.match(performance, /p99/);
+    assert.match(performance, /Not yet established/);
+    const security = read("SECURITY.md");
+    assert.match(security, /privately report a vulnerability/i);
+    assert.match(security, /Do not.*public pull request/i);
+    assert.match(security, /CORS is not access control/);
+});
+
+test("all local links in the new public entry documents resolve", () => {
+    const names = [
+        "README.md", "STATUS.md", "docs/README.md", "docs/ARCHITECTURE.md",
+        "docs/PERFORMANCE.md", "CONTRIBUTING.md",
+        "SECURITY.md", "CODE_OF_CONDUCT.md",
+        "THIRD_PARTY_NOTICES.md", "CHANGELOG.md"
+    ];
+    const broken = [];
+    for (const file of names) {
+        const content = read(file);
+        const links = [];
+        for (const match of content.matchAll(/!?\[[^\]]+\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g))
+            links.push(match[1]);
+        for (const match of content.matchAll(/(?:src|href)="([^"]+)"/g))
+            links.push(match[1]);
+        for (const href of links) {
+            if (/^(?:https?:|mailto:|#|data:)/i.test(href)) continue;
+            const pathname = decodeURIComponent(href.split("#")[0].split("?")[0]);
+            if (!pathname) continue;
+            if (!existsSync(path.resolve(root, path.dirname(file), pathname)))
+                broken.push(file + " -> " + href);
+        }
+    }
+    assert.deepEqual(broken, []);
+});
+
+test("the public status reflects the current Qt 6.12 release channel", () => {
+    const status = read("STATUS.md");
+    assert.match(status, /v1\.0\.0-rc1/);
+    assert.match(status, /Qt 6\.12/);
+    assert.match(status, /Beta/);
+    assert.doesNotMatch(status, /Qt 6\.11|0\.4\.0|tools\/check_/);
+});

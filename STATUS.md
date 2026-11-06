@@ -1,73 +1,60 @@
-# Genycaster — Current Engineering Status
+# GenyCaster — engineering status
 
-_Last updated: 2026-09-24. This file is the canonical snapshot of what is in the tree now. Phase review files are historical evidence, not the source of truth for current scope._
+_Last reviewed: 2026-11-06. This is a source-tree status overview, **not** a certification that every release artifact and platform passes live acceptance._
 
-## Product state
+## Public-facing release identity
 
-Genycaster is an **advanced alpha / pre-beta engineering build**. The provider-neutral/local-first core, durable write pipeline, signer boundary, routing, storage, and protocol abstractions are substantially implemented. The Qt presentation is functional and feature-rich, but presentation decomposition, platform acceptance, and security hardening still gate a production release.
+| Attribute | Current source configuration |
+|---|---|
+| Product | GenyCaster |
+| Release version | **v1.0.0-rc1** (from top-level `CMakeLists.txt`) |
+| Product stage | **Beta**, under active development |
+| Primary implementation | **C++26** named modules and Qt Quick |
+| Reference UI generation | **Qt 6.12** |
+| CMake baseline | **3.30+** |
+| Licensing | **GPL-3.0-only** for original source; third-party assets retain their own terms |
 
-Current source includes more than the Phase 5F/5G baseline described by older continuation notes: public-data adapters, rich media/upload lifecycle, Mini App hosting, data-storage controls, localization across 12 locales, visual-system iterations, feed/search previews, and current social/write flows.
+The RC suffix labels the packaging channel; Beta describes user-facing readiness. Neither label asserts a third-party security audit, full cross-platform certification or equivalent feature support on every runtime.
 
-## Architectural invariants
+## What is present in source
 
-- C++26 named modules are the reference language path; module namespaces mirror module names.
-- Domain/Application do not depend on concrete provider identities.
-- UI/QML does not own network or database I/O.
-- Local state is authoritative for rendering; network work reconciles into local state.
-- Protocol writes use canonical signing, durable exact-envelope outbox storage, idempotency/reconciliation, and account-scoped optimistic state.
-- Session, custody wallet, local protocol signer, and App-FID attestation are distinct authorities.
-- Optional product/provider features remain compile-time composition choices.
+- Provider-neutral Farcaster domain and capability-driven routing with a HyperSnap-preferred policy and configurable Snapchain/compatible routes where supported.
+- Cache-first social reads and incremental reconciliation, SQLite persistence and durable write/outbox mechanisms.
+- Qt Quick desktop/mobile interfaces, WebAssembly runtime support and C++ presentation integration.
+- Social timelines, discovery, profiles, channels, reactions, casts, replies, quotes and media/preview components.
+- Account/session and protocol-signer boundaries with OS-specific native secure-vault integrations and distinct browser flows.
+- Mini App surfaces, optional product-specific account metadata, bookmarks, profile extensions and media gateway capabilities.
+- Twelve translation catalogs and RTL-aware UI/content handling.
 
-See `AGENTS.md`, `DESIGN.md`, and `docs/` for the detailed contracts.
+These are **source capabilities**, not an unconditional runtime feature matrix. Some are optional by build or provider; some require operator-side services and user-approved signer/wallet permissions.
 
-## Build and toolchain
+## What remains gated
 
-- Project version: `0.4.0`.
-- CMake baseline: `3.30+`.
-- Shipping/reference desktop toolchain: **Clang 22 + Qt 6.11.x**.
-- GCC 14 can configure core profiles but is not a release compiler for this snapshot because its C++ module serialization can hit a known internal compiler error.
-- Core presets: `core-debug`, `core-release`, `strict-self-hosted`, `minimal-core`, `provider-hypersnap`, `provider-auth`, `secure-signer`.
-- UI preset: `ui-debug`.
-- Diagnostic presets: `core-asan`, `core-ubsan`, `core-tsan`.
+- Independent clean build and runtime acceptance on every target architecture and supported operating-system version.
+- Browser Mini App and wallet origin isolation, signer consent/revocation and protocol-specific security tests.
+- Provider failover / ambiguous-write reconciliation under network fault injection.
+- Memory, frame-time, startup and battery benchmarks with raw reproducible evidence; no competitive performance claim is established.
+- License/notices review for all redistributed third-party assets and dependencies.
+- Current localization, QML, media and architecture regression test suites; individual successful commands are not proof of complete CI green.
 
-## Storage and runtime boundaries
+The source alone cannot establish these release gates. See [Performance](docs/PERFORMANCE.md), [Security](SECURITY.md), [CI](ci/README.md) and the [Build profiles](docs/10-build-deployment-profiles.md).
 
-- SQLite schema migrations are implemented through **migration 23**.
-- Snapchain and media gateway boundaries are separate from client credentials/provider semantics.
-- `ui/mobile/runtime_composition.cppm` owns outer runtime composition/lifecycle; `main.cpp` remains the Qt composition/startup root.
-- Translation catalogs are ID-based and synchronized across **12 locales**; `tools/check_localization_catalog.py` scans the full UI C++/QML translation surface.
+## Architecture
 
-## Verification gates
+- **Local-first:** the UI consumes cached canonical state before background read refresh.
+- **Provider-neutral:** capability choice is per operation, not one global provider.
+- **Separate trust:** session identity, custody authorization, Ed25519 protocol signing and submission transport are distinct.
+- **Optional features:** gateway/extension surfaces do not redefine the Farcaster domain.
+- **Platform honest:** native secure storage and browser wallet APIs have distinct guarantees and constraints.
 
-A change is not release-ready until the relevant gates are green:
+See [Architecture at a glance](README.md#architecture-at-a-glance), [Architecture detail](docs/ARCHITECTURE.md), [ADRs](docs/adr/) and [AGENTS.md](AGENTS.md).
 
-1. Source contract guards in `tools/check_*.py`.
-2. Gateway contract tests (`services/snapchain-gateway`, `services/media-gateway`).
-3. Clean configure/build/test on the reference Clang/Qt toolchain.
-4. Warning-fatal QML lint/smoke tests for GUI changes.
-5. Platform-specific secure-store, signer, write-recovery and live-network acceptance for every shipping OS.
-6. Sanitizer lanes for touched concurrent/resource-owning C++ code where supported.
+## Verification
 
-GitHub Actions runs deterministic source guards and gateway contract tests. The authoritative C++/Qt shipping build remains a pinned Clang 22 + Qt 6.11.x environment until equivalent hosted runners are established.
+Use `ci/verify_ci.py` and `ci/check_architecture.py` for the documented source checks, plus the applicable native build, Qt tests and regression suites. Some target-specific or historical tests may require tools unavailable on another developer machine. Every status report should record exact commands, commits and target-specific passes/failures rather than silently generalize.
 
-### 2026-09-24 Linux verification evidence
+GitHub Actions is **manually driven** for ordinary development and runs a controlled release matrix for validated tags; a push to `main` is not an app release. Full instructions: [CI README](ci/README.md).
 
-- Architecture/source contract guards: **PASS**.
-- Localization catalog guard: **PASS** with 817 referenced IDs, 817 catalog IDs and 12 locales.
-- Snapchain gateway contract tests: **4/4 PASS**.
-- Media gateway contract tests: **16/16 PASS**.
-- Clean Linux configure with Clang 23.1.2, CMake 4.4.3 and Qt 6.11.2: **PASS**.
-- The UI build compiled through the presentation layer, including `PresentationBridge`, then the Clang 23 frontend crashed internally while generating code for `ui/mobile/emoji_runtime.cpp`. This is recorded as a toolchain crash, not as a source-build pass or a semantic source failure.
-- Qt6Keychain >= 0.17 is not installed on that Linux verifier, so the secure signer vault correctly remains fail-closed there.
+## Historical records
 
-## Known release blockers / consolidation work
-
-- `PresentationBridge` is still a large presentation facade and should continue moving feature state toward scoped models/signals rather than one broad invalidation surface.
-- Large QML stateful components, especially `GenyVideoPlayer`, should continue moving non-visual state-machine behavior into C++ controllers.
-- Mini App hosting still requires full untrusted-content hardening (including private-network/DNS-rebinding controls, complete request isolation, and manifest-authorship verification) before arbitrary untrusted apps are treated as production-safe.
-- macOS, Windows, and Linux require independent current release acceptance; one platform run is not portability evidence.
-- Historical phase/review documents need not be deleted, but new work should update this file rather than creating another competing “current state” document.
-
-## Change discipline
-
-Do not redesign the provider-neutral core to solve presentation debt. Prefer small, behavior-preserving decomposition at composition/presentation boundaries, keep ownership explicit (RAII/`std::unique_ptr`), use `std::expected`/project `Result` for recoverable failures, and follow the C++ Core Guidelines plus the stricter project rules in `AGENTS.md`.
+Older `PHASE_*` / `V*_REVIEW.md` files and numbered `docs/` references are preserved as implementation evidence. They may mention previous toolchains, versions or unshipped milestones. Use the current CMake/version, this status file and active source contracts for present-day facts, rather than treating a historical snapshot as an authoritative build manifest.

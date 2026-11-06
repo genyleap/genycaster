@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible GenyCaster bug (not a security vulnerability).
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For vulnerabilities, wallet-key leaks, auth bypasses or private data exposure, please follow [SECURITY.md](https://github.com/genyleap/genycaster/blob/main/SECURITY.md) instead of opening a public issue.
+        Remove tokens, addresses you wish to keep private, wallet seeds and personal data from screenshots and logs.
+  - type: input
+    id: version
+    attributes:
+      label: App version or commit
+      placeholder: v1.0.0-rc1 / commit hash
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Android
+        - iOS
+        - WebAssembly / Browser
+        - Build or CI
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include the active provider/route if relevant, and a minimal reproducible sequence.
+      placeholder: "1. Open ...\n2. Tap ...\n3. Observe ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Redacted logs or screenshots
+      description: Add sanitized material, runtime renderer and browser version when relevant.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked for existing reports.
+          required: true
+        - label: I removed sensitive data and this is not a vulnerability disclosure.
+          required: true
