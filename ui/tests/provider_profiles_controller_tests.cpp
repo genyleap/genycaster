@@ -1,4 +1,4 @@
-#include "../mobile/provider_profiles_controller.hpp"
+#include "../app/provider_profiles_controller.hpp"
 
 #include <QCoreApplication>
 #include <QJsonArray>

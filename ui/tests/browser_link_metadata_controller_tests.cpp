@@ -1,4 +1,4 @@
-#include "../mobile/browser_link_metadata_controller.hpp"
+#include "../app/browser_link_metadata_controller.hpp"
 
 #include <QCoreApplication>
 #include <QEventLoop>
@@ -38,7 +38,8 @@ int main(int argc, char** argv)
                     peakUpstream = std::max(peakUpstream, activeUpstream);
                     QByteArray body{};
                     if (url.path() == QStringLiteral("/v1/browser/miniapp-preview")) {
-                        assert(page == QStringLiteral("https://example.com/"));
+                        // Preserve the full cast URL for per-post Mini App metadata.
+                        assert(page == QStringLiteral("https://example.com/cast"));
                         // First response attempts to redirect the domain; this
                         // must not be accepted as a verified Mini App preview.
                         body = R"({"resolved":true,"providerKind":"miniapp","domain":"evil.example","title":"Mismatched"})";

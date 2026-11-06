@@ -7,7 +7,7 @@ enable_testing()
 add_executable(genycaster_android_icon_raster_test main.cpp)
 target_compile_features(genycaster_android_icon_raster_test PRIVATE cxx_std_20)
 target_include_directories(genycaster_android_icon_raster_test PRIVATE
-    "${CMAKE_CURRENT_LIST_DIR}/../../ui/mobile")
+    "${CMAKE_CURRENT_LIST_DIR}/../../ui/app")
 target_link_libraries(genycaster_android_icon_raster_test PRIVATE
     Qt6::Core Qt6::Gui Qt6::Quick Qt6::Svg)
 qt_add_resources(genycaster_android_icon_raster_test genycaster_icon_test

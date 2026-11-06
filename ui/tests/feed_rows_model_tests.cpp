@@ -1,4 +1,4 @@
-#include "../mobile/feed_rows_model.hpp"
+#include "../app/feed_rows_model.hpp"
 
 #include <QCoreApplication>
 #include <QSignalSpy>

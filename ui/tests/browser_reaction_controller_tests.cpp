@@ -1,4 +1,4 @@
-#include "../mobile/browser_reaction_controller.hpp"
+#include "../app/browser_reaction_controller.hpp"
 
 #include <QCoreApplication>
 #include <QEventLoop>

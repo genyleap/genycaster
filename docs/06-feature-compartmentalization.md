@@ -80,7 +80,7 @@ transport deadline. Mobile and WASM builds instead use a 48-target queue and
 batching/data semantics. The gateway independently imposes a six-second logical
 work budget and global upstream concurrency of three.
 
-The controller is a Qt MOC compatibility boundary under `ui/mobile`, not
+The controller is a Qt MOC compatibility boundary under `ui/app`, not
 a new stable core service or generic helper library. Every QML consumer
 only observes an individual count and explicitly retains/releases interest.
 
