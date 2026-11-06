@@ -1,6 +1,6 @@
-// Qt itself remains in the global module. No Qt definitions are exported.
+// Qt's ABI remains globally attached; full Qt headers are private to implementations.
 module;
-class QString;
+#include "qt_fwd.hpp"
 
 export module genycaster.ui.update.install;
 
