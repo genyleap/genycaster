@@ -119,6 +119,7 @@ import farcaster.presentation.media;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.transport.qtnetwork;
+import genycaster.ui.shutdown;
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
 import farcaster.provider.hypersnap.config;
 #endif
@@ -460,11 +461,11 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
                 "Wallet approval launcher produced an invalid or unsafe URL."));
         }
 
-        bool opened{false};
         const bool preferInstalledWalletBrowser = preferCustodyWalletBrowser && launchTemplate.isEmpty()
             && parsed.scheme() == QStringLiteral("http")
             && parsed.host() == QStringLiteral("127.0.0.1");
-        const auto open = [&opened, parsed, preferInstalledWalletBrowser] {
+        const auto open = [parsed, preferInstalledWalletBrowser] {
+            bool opened{false};
 #if defined(Q_OS_MACOS)
             if (preferInstalledWalletBrowser) {
                 // Safari has no injected EIP-1193 wallet by default. An
@@ -488,17 +489,13 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
             Q_UNUSED(preferInstalledWalletBrowser);
 #endif
             if (!opened) opened = QDesktopServices::openUrl(parsed);
+            return opened;
         };
-        if (auto* app = QCoreApplication::instance(); app != nullptr &&
-            QThread::currentThread() != app->thread()) {
-            if (!QMetaObject::invokeMethod(app, open, Qt::BlockingQueuedConnection)) {
-                return std::unexpected(foundation::error::Error::make(
-                    foundation::error::ErrorCode::Unavailable,
-                    "Could not dispatch wallet approval URL opening to the Qt application thread."));
-            }
-        } else {
-            open();
-        }
+#if defined(__EMSCRIPTEN__)
+        const bool opened = open();
+#else
+        const bool opened = genycaster::ui::shutdown::invokeOnApplication(open);
+#endif
         if (!opened) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unavailable,
@@ -1474,6 +1471,11 @@ int main(int argc, char* argv[])
         "Farcaster.Client", 1, 0, "RichInlineTextItem");
 
     QQmlApplicationEngine engine{};
+#if !defined(__EMSCRIPTEN__)
+    // Declared after the engine and controller owners so early-return cleanup
+    // joins global workers before their borrowed presentation objects disappear.
+    genycaster::ui::shutdown::ShutdownScope shutdownScope{};
+#endif
 
     appearanceControllerOwner = std::make_unique<AppearanceController>(
         settings, std::move(appearanceOverrides));

@@ -30,12 +30,15 @@ module;
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 module farcaster.transport.qtnetwork;
@@ -48,6 +51,51 @@ namespace farcaster::transport::qtnetwork {
 namespace {
 
 std::once_flag systemProxyConfigurationFlag{};
+
+struct RequestShutdownState final {
+    std::mutex mutex{};
+    bool isStopping{};
+    std::unordered_map<QObject*, std::function<void()>> requests{};
+};
+
+// This registry only binds factories to the composition-owned application scope.
+// Transports retain shared state, never a borrowed pointer to the scope itself.
+std::mutex shutdownScopeMutex{};
+std::weak_ptr<RequestShutdownState> activeShutdownScope{};
+
+class RequestRegistration final {
+public:
+    RequestRegistration(std::shared_ptr<RequestShutdownState> state,
+                        QObject& context, std::function<void()> cancel)
+        : m_state(std::move(state)), m_context(context)
+    {
+        if (m_state) {
+            std::scoped_lock lock{m_state->mutex};
+            m_isAccepted = !m_state->isStopping;
+            if (m_isAccepted) {
+                m_state->requests.emplace(&m_context, std::move(cancel));
+            }
+        }
+    }
+
+    ~RequestRegistration()
+    {
+        if (m_state && m_isAccepted) {
+            std::scoped_lock lock{m_state->mutex};
+            m_state->requests.erase(&m_context);
+        }
+    }
+
+    RequestRegistration(const RequestRegistration&) = delete;
+    auto operator=(const RequestRegistration&) -> RequestRegistration& = delete;
+
+    [[nodiscard]] bool isAccepted() const noexcept { return m_isAccepted; }
+
+private:
+    std::shared_ptr<RequestShutdownState> m_state;
+    QObject& m_context;
+    bool m_isAccepted{true};
+};
 
 struct ThreadNetworkManagers final {
     std::unique_ptr<QNetworkAccessManager> system{};
@@ -199,9 +247,11 @@ class QtHttpTransport final : public farcaster::transport::http::IHttpTransport 
 public:
     QtHttpTransport(
         const ProxyPolicy proxyPolicy,
-        const ProtocolPolicy protocolPolicy) noexcept
+        const ProtocolPolicy protocolPolicy,
+        std::shared_ptr<RequestShutdownState> shutdownState) noexcept
         : proxyPolicy_{proxyPolicy},
-          protocolPolicy_{protocolPolicy}
+          protocolPolicy_{protocolPolicy},
+          m_shutdownState(std::move(shutdownState))
     {
     }
 
@@ -308,9 +358,30 @@ private:
             return std::unexpected(std::move(headerStatus.error()));
         }
 
+        std::unique_ptr<QNetworkReply> reply{};
+        QEventLoop loop{};
+        bool cancelled{false};
+        // Registration is destroyed before the loop/reply. Holding its registry
+        // lock while queuing cancellation makes completion versus stop safe;
+        // deleting the loop also removes any still-queued cancellation callback.
+        RequestRegistration registration{m_shutdownState, loop, [&] {
+            cancelled = true;
+            if (reply && reply->isRunning()) {
+                // As with the deadline path, let finished() close the loop so
+                // the network backend can complete abort on its owning thread.
+                reply->abort();
+            } else {
+                loop.quit();
+            }
+        }};
+        if (!registration.isAccepted()) {
+            return std::unexpected(transportError(
+                foundation::error::ErrorCode::Unavailable,
+                "HTTP request stopped during application shutdown."));
+        }
+
         const std::string configuredProxyPolicy{proxyPolicySummary(proxyPolicy_)};
         QNetworkAccessManager& manager = networkManagerFor(proxyPolicy_);
-        std::unique_ptr<QNetworkReply> reply{};
         if (requestBody == nullptr) {
             reply.reset(manager.get(networkRequest));
         } else {
@@ -324,7 +395,6 @@ private:
                 "Qt Network could not create an HTTP reply."));
         }
 
-        QEventLoop loop{};
         QTimer timeoutTimer{};
         timeoutTimer.setSingleShot(true);
 
@@ -345,7 +415,7 @@ private:
             // drain after cancellation: calling readAll() in that narrow window
             // makes Qt ask a closed QSslSocket to read and emits
             // "QIODevice::read (QSslSocket): device not open".
-            if (timedOut || !reply->isReadable() || reply->bytesAvailable() <= 0) {
+            if (cancelled || timedOut || !reply->isReadable() || reply->bytesAvailable() <= 0) {
                 return;
             }
             const QByteArray chunk = reply->readAll();
@@ -418,6 +488,11 @@ private:
         loop.exec(QEventLoop::ExcludeUserInputEvents);
         timeoutTimer.stop();
 
+        if (cancelled) {
+            return std::unexpected(transportError(
+                foundation::error::ErrorCode::Unavailable,
+                "HTTP request stopped during application shutdown; remote completion is unknown."));
+        }
         if (bodyLimitExceeded) {
             return std::unexpected(transportError(
                 foundation::error::ErrorCode::TransportFailure,
@@ -485,7 +560,41 @@ private:
 
     ProxyPolicy proxyPolicy_{ProxyPolicy::System};
     ProtocolPolicy protocolPolicy_{ProtocolPolicy::Automatic};
+    std::shared_ptr<RequestShutdownState> m_shutdownState;
 };
+}
+
+class RequestShutdownScope::Impl final {
+public:
+    std::shared_ptr<RequestShutdownState> state{std::make_shared<RequestShutdownState>()};
+};
+
+RequestShutdownScope::RequestShutdownScope() : m_impl(std::make_unique<Impl>())
+{
+    std::scoped_lock lock{shutdownScopeMutex};
+    if (!activeShutdownScope.expired()) {
+        throw std::logic_error{"A Qt HTTP shutdown scope is already active."};
+    }
+    activeShutdownScope = m_impl->state;
+}
+
+RequestShutdownScope::~RequestShutdownScope()
+{
+    stop();
+    std::scoped_lock lock{shutdownScopeMutex};
+    activeShutdownScope.reset();
+}
+
+void RequestShutdownScope::stop()
+{
+    std::scoped_lock lock{m_impl->state->mutex};
+    if (m_impl->state->isStopping) {
+        return;
+    }
+    m_impl->state->isStopping = true;
+    for (const auto& [context, cancel] : m_impl->state->requests) {
+        QMetaObject::invokeMethod(context, cancel, Qt::QueuedConnection);
+    }
 }
 
 foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
@@ -520,8 +629,13 @@ foundation::result::Result<std::unique_ptr<http::IHttpTransport>> makeTransport(
         "Qt Network SDK; HTTPS requests are unavailable."));
 #endif
 
+    std::shared_ptr<RequestShutdownState> shutdownState{};
+    {
+        std::scoped_lock lock{shutdownScopeMutex};
+        shutdownState = activeShutdownScope.lock();
+    }
     std::unique_ptr<http::IHttpTransport> transport =
-        std::make_unique<QtHttpTransport>(proxyPolicy, protocolPolicy);
+        std::make_unique<QtHttpTransport>(proxyPolicy, protocolPolicy, std::move(shutdownState));
     return transport;
 }
 

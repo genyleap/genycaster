@@ -82,6 +82,39 @@ Crypto worker
 
 Exact executor topology may evolve, but expensive work must not drift onto the UI thread.
 
+### Shutdown ownership
+
+Responsibility: the native composition root stops network admission and drains
+background work before Qt application destruction disables event delivery.
+Capability origin: Local. Mandatory for the native UI; absent from the
+provider-free core. Public contract: an application-scoped shutdown owner and a
+Qt transport request scope, both idempotently stoppable. Dependencies: Qt Core
+and the Qt HTTP adapter only. No new persisted or local domain state is created;
+offline/cache behavior is unchanged. Shutdown reports `Unavailable` for stopped
+HTTP work, does not retry or fail over, and never treats an interrupted write as
+proof that the server rejected it.
+
+Every background job must either own its inputs or have an owner that joins it
+before releasing borrowed dependencies. A `QPointer` or cancelled observer alone
+does not cancel network work. Blocking Qt HTTP requests must register with the
+application request scope: stopping it rejects subsequent requests and queues
+abort on each reply's owning thread. The global Qt pool is drained while
+`QCoreApplication` is still alive, including early-return cleanup. Do not rely
+on the Qt application destructor to drain event-driven workers, detach them, or
+force-terminate them to hide a lifecycle defect. Dedicated executors/reactors
+remain RAII-owned and must finish before application destruction.
+
+Workers must not use `BlockingQueuedConnection` to wait on the GUI during
+shutdown. Platform launch requests use a shutdown-aware dispatch gate: pending
+calls are rejected and their waiters wake without another GUI event. Dispatch
+also has a deadline while the application is running; timed-out callbacks must
+not launch a browser later or capture references to expired caller stack data.
+
+Tests proving this boundary use a local server that deliberately withholds a
+response, exercise GET/POST, queued/follow-up requests, normal quit and scope
+destruction, and enforce a process timeout. Smoke modes disable live insights
+and therefore cannot alone prove shutdown with active market requests.
+
 ## Hard UI-thread prohibitions
 
 Never perform on the UI thread:

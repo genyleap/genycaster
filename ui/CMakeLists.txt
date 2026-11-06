@@ -420,6 +420,16 @@ else()
     target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=0)
 endif()
 
+add_library(genycaster_shutdown STATIC)
+target_sources(genycaster_shutdown
+    PUBLIC FILE_SET CXX_MODULES FILES app/shutdown_scope.cppm
+    PRIVATE app/shutdown_scope.cpp)
+target_link_libraries(genycaster_shutdown PRIVATE Qt6::Core farcaster::transport_qt_network)
+set_property(TARGET genycaster_shutdown PROPERTY CXX_SCAN_FOR_MODULES ON)
+target_compile_features(genycaster_shutdown PUBLIC cxx_std_26)
+farcaster_enable_warnings(genycaster_shutdown)
+target_link_libraries(genycaster PRIVATE genycaster_shutdown)
+
 add_library(farcaster_emoji_runtime STATIC)
 target_sources(farcaster_emoji_runtime
     PUBLIC FILE_SET CXX_MODULES FILES app/emoji_runtime.cppm
@@ -1393,6 +1403,23 @@ add_custom_target(genycaster_qmllint_strict
 )
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
+    if(NOT EMSCRIPTEN)
+        add_executable(genycaster_background_shutdown_tests
+            ../tests/ui/background_shutdown_tests.cpp)
+        target_link_libraries(genycaster_background_shutdown_tests PRIVATE
+            genycaster_shutdown farcaster::transport_qt_network
+            Qt6::Core Qt6::Gui Qt6::Network Qt6::Concurrent)
+        target_compile_features(genycaster_background_shutdown_tests PRIVATE cxx_std_26)
+        set_property(TARGET genycaster_background_shutdown_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+        foreach(shutdownMode IN ITEMS quit close-window early-return success timeout
+                gui-stop gui-success scope-reuse)
+            add_test(NAME ui.background_shutdown.${shutdownMode}
+                COMMAND genycaster_background_shutdown_tests ${shutdownMode})
+            set_tests_properties(ui.background_shutdown.${shutdownMode} PROPERTIES
+                TIMEOUT 8 LABELS "ui;network;shutdown"
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FATAL_WARNINGS=1")
+        endforeach()
+    endif()
     # Deterministic C++ geometry tests. QML only retains Shape and color bindings;
     # time-series sampling and coordinate generation are native and bounded.
     qt_add_executable(farcaster_token_sparkline_tests

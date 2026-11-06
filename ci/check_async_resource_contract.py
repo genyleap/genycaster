@@ -22,6 +22,32 @@ superellipse_image = read("ui/components/SuperellipseImage.qml")
 runtime = read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") + read("ui/app/runtime_composition.cpp")
 storage = read("src/storage/read_store.cpp") + read("src/storage/sqlite_boundary.cpp")
 
+# Blocking dispatch is only allowed toward a live, explicitly owned network
+# thread. GUI dispatch must remain interruptible when the application stops.
+blocking_dispatch_boundaries = {
+    "src/transport/qt_network/async_http.cpp",
+    "ui/app/link_preview_resolver.cpp",
+}
+global_pool_owners = {
+    "ui/app/live_insights_controller.cpp",  # Scope-bound HTTP, guarded delivery.
+    "ui/app/miniapp_runtime.cpp",  # Scope-bound HTTP, CallbackGate delivery.
+    "ui/app/runtime_ui_bindings.cpp",  # Owned recovery/runtime state.
+    "ui/app/data_storage_controller.cpp",  # Owned storage snapshot, no Qt I/O loop.
+}
+for directory in (root / "src", root / "ui"):
+    for path in directory.rglob("*.cpp"):
+        rel = path.relative_to(root).as_posix()
+        source = path.read_text(encoding="utf-8")
+        if "Qt::BlockingQueuedConnection" in source and rel not in blocking_dispatch_boundaries:
+            errors.append(f"{rel}: blocking dispatch requires an audited worker-thread lifetime; never wait unconditionally for the GUI.")
+        if ("QtConcurrent::run" in source or "QThreadPool::globalInstance()->start" in source) and rel not in global_pool_owners:
+            errors.append(f"{rel}: new global-pool owner requires a shutdown/lifetime audit and regression coverage.")
+main = read("ui/app/main.cpp")
+shutdown_scope = main.find("genycaster::ui::shutdown::ShutdownScope shutdownScope")
+first_insights = main.find("std::make_unique<LiveInsightsController>")
+if shutdown_scope < 0 or first_insights < shutdown_scope:
+    errors.append("Native composition must install its shutdown scope before starting background controllers.")
+
 for forbidden in ("QEventLoop", "waitForFinished", "std::this_thread::sleep_for"):
     if forbidden in async_http:
         errors.append(f"Async HTTP reactor must not contain {forbidden}.")
