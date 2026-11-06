@@ -1,7 +1,6 @@
+// Qt's ABI remains globally attached; full Qt headers are private to implementations.
 module;
-
-class QString;
-class QQuickWindow;
+#include "qt_fwd.hpp"
 #include <functional>
 #include <memory>
 
