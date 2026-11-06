@@ -365,9 +365,11 @@ target_sources(genycaster
     PRIVATE
         app/runtime_composition.cpp
         app/diagnostics/snapshots.cpp
+        app/diagnostics/smoke.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         app/runtime_composition.cppm
         app/diagnostics/snapshots.cppm
+        app/diagnostics/smoke.cppm
 )
 target_include_directories(genycaster PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
