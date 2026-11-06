@@ -79,7 +79,7 @@ def main() -> None:
     for token in ("QLockFile", "QLocalServer", "QLocalSocket",
                   "UserAccessOption", "requestActivate()", "showNormal()"):
         assert token in instance, token
-    assert "desktopInstance.acquire()" in entry
+    assert "desktopInstance.acquire(" in entry
     assert "desktopInstance.setWindow(mainWindow)" in entry
     assert "desktopInstance.setOpenUrlHandler(" in entry
     assert 'optionValue(arguments, QStringLiteral("--open-url="))' in entry
