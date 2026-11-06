@@ -236,6 +236,14 @@ def validate_windows(path: Path) -> None:
                 f"Windows installer missing {required}")
     require(any(name.endswith("platforms/qwindows.dll") for name in names),
             "Windows installer missing Qt platform plugin")
+    # CPack must install both publisher/license notices, and SDK-only Qt
+    # directories must not inflate the user's application installation.
+    for required in ("license.txt", "third_party_notices.md"):
+        require(any(PurePosixPath(name).name == required for name in names),
+                f"Windows installer missing {required}")
+    for sdk in ("include", "lib", "mkspecs", "qmltooling", "bin"):
+        require(not any(sdk in PurePosixPath(name).parts for name in names),
+                f"Windows installer includes SDK-only directory: {sdk}")
     for needle in ("crypto", "ssl", "curl", "sqlite"):
         require(any(needle in PurePosixPath(name).name and name.endswith(".dll")
                     for name in names),
