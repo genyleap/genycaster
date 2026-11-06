@@ -69,6 +69,30 @@ def main() -> None:
     assert linux.index("Check Qt Multimedia deployment dependencies") < linux.index("Build Qt client")
     assert 'ldd "$GST_QT_PLUGIN"' in linux
     assert "libgstplay-1.0.so.0" in linux
+    # A desktop install must not be a portable bundle masquerading as setup.
+    # Verify per-user activation, desktop shortcuts, publisher metadata, and
+    # architecture hygiene independently from the cross-platform build.
+    instance = Path("ui/app/desktop_single_instance.hpp").read_text(encoding="utf-8")
+    entry = Path("ui/app/main.cpp").read_text(encoding="utf-8")
+    windows = Path("properties/Windows/Configure.cmake").read_text(encoding="utf-8")
+    rc = Path("properties/Windows/Genycaster.rc.in").read_text(encoding="utf-8")
+    for token in ("QLockFile", "QLocalServer", "QLocalSocket",
+                  "UserAccessOption", "requestActivate()", "showNormal()"):
+        assert token in instance, token
+    assert "desktopInstance.acquire()" in entry
+    assert "desktopInstance.setWindow(mainWindow)" in entry
+    assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in windows
+    assert "CPACK_NSIS_DELETE_ICONS_EXTRA" in windows
+    assert "GenyCaster.lnk" in windows
+    assert "GenyCaster-Installer-License.txt" in windows
+    assert "CPACK_RESOURCE_FILE_LICENSE" in windows
+    assert 'RENAME "LICENSE.txt"' in windows
+    assert "THIRD_PARTY_NOTICES.md" in windows
+    assert 'VALUE "LegalCopyright"' in rc
+    assert 'VALUE "LegalTrademarks"' in rc
+    assert "python ci/audit_windows_stage.py dist/app" in workflow
+    assert "token: ${{ github.token }}" in workflow
+    assert "prerelease: ${{ contains(github.ref_name, '-') }}" in workflow
     assert "windows-11-arm" in workflow
     assert "android_armv7" in workflow
     assert "name: iOS arm64 unsigned device app" in workflow
