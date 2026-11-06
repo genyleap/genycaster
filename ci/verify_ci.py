@@ -72,13 +72,34 @@ def main() -> None:
     # A desktop install must not be a portable bundle masquerading as setup.
     # Verify per-user activation, desktop shortcuts, publisher metadata, and
     # architecture hygiene independently from the cross-platform build.
-    instance = Path("ui/app/desktop_single_instance.hpp").read_text(encoding="utf-8")
+    instance = Path("ui/app/desktop/instance.cpp").read_text(encoding="utf-8")
+    desktop_module = Path("ui/app/desktop/instance.cppm").read_text(encoding="utf-8")
+    assert "export module genycaster.ui.desktop.instance;" in desktop_module
+    assert "import genycaster.ui.desktop.instance;" in Path("ui/app/main.cpp").read_text(encoding="utf-8")
     entry = Path("ui/app/main.cpp").read_text(encoding="utf-8")
     windows = Path("properties/Windows/Configure.cmake").read_text(encoding="utf-8")
     rc = Path("properties/Windows/Genycaster.rc.in").read_text(encoding="utf-8")
     for token in ("QLockFile", "QLocalServer", "QLocalSocket",
                   "UserAccessOption", "requestActivate()", "showNormal()"):
         assert token in instance, token
+    # Non-QObject helpers are named modules with consistent lowercase names.
+    for relative, name in (
+        ("bootstrap/options", "genycaster.ui.bootstrap"),
+        ("web/wheel", "genycaster.ui.web.wheel"),
+        ("update/install", "genycaster.ui.update.install"),
+        ("desktop/instance", "genycaster.ui.desktop.instance"),
+    ):
+        interface = Path("ui/app") / (relative + ".cppm")
+        implementation = Path("ui/app") / (relative + ".cpp")
+        assert interface.is_file() and implementation.is_file(), relative
+        assert f"export module {name};" in interface.read_text(encoding="utf-8")
+        assert f"module {name};" in implementation.read_text(encoding="utf-8")
+        assert not (Path("ui/app") / (relative + ".hpp")).exists()
+        assert interface.name == interface.name.lower()
+        assert implementation.name == implementation.name.lower()
+    assert not Path("ui/app/web/Wheel.hpp").exists()
+    assert not Path("ui/app/bootstrap/Options.hpp").exists()
+    assert not Path("ui/app/browser_wheel_fallback.hpp").exists()
     assert "desktopInstance.acquire(" in entry
     assert "desktopInstance.setWindow(mainWindow)" in entry
     assert "desktopInstance.setOpenUrlHandler(" in entry
