@@ -263,6 +263,32 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
     // and mobile. Future update notes still come from their published release.
     m_releaseData = loadBundledReleaseNotes(m_appVersion);
     applyReleaseTranslation();
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
+    // The supervised post-exit helper cannot report to a dead QObject.
+    // Read its bounded, untrusted status text once on the next app launch.
+    const QString lastStatus = QStandardPaths::writableLocation(
+        QStandardPaths::AppLocalDataLocation)
+        + QStringLiteral("/updates/genycaster-native-update.status");
+    QFile priorInstall{lastStatus};
+    if (priorInstall.open(QIODevice::ReadOnly)) {
+        const QByteArray result = priorInstall.read(80).trimmed();
+        priorInstall.close();
+        QFile::remove(lastStatus);
+        if (result.startsWith("failed:") && result.size() <= 16) {
+            bool validCode = false;
+            const int code = result.mid(7).toInt(&validCode);
+            if (validCode && code > 0) {
+                m_lastInstallError = QStringLiteral(
+                    "The previous update could not be applied (step %1). "
+                    "The previous installation is still available.").arg(code);
+                m_error = m_lastInstallError;
+                m_status = QStringLiteral("Previous update failed; retry available");
+            }
+        } else if (result == "success") {
+            m_status = QStringLiteral("Update installed successfully");
+        }
+    }
+#endif
     m_autoCheckEnabled = m_settings.value(QStringLiteral("updates/autoCheck"), true).toBool();
     m_periodic = new QTimer(this);
     m_periodic->setInterval(24 * 60 * 60 * 1000);
@@ -370,6 +396,7 @@ QString UpdateController::webCurrentBuild() const { return m_webCurrentBuild.lef
 QString UpdateController::releasePublishedAt() const { return m_releasePublishedAt; }
 QString UpdateController::status() const { return m_status; }
 QString UpdateController::error() const { return m_error; }
+QString UpdateController::lastInstallError() const { return m_lastInstallError; }
 QString UpdateController::downloadedFilePath() const { return m_downloadedFilePath; }
 QString UpdateController::releaseUrl() const { return kReleasePage.toString(); }
 bool UpdateController::webRefreshing() const { return m_webRefreshing; }
