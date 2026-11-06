@@ -236,6 +236,9 @@ def validate_windows(path: Path) -> None:
                 f"Windows installer missing {required}")
     require(any(name.endswith("platforms/qwindows.dll") for name in names),
             "Windows installer missing Qt platform plugin")
+    redist = "vc_redist.arm64.exe" if "windows-arm64" in path.name.lower() else "vc_redist.x64.exe"
+    require(any(PurePosixPath(name).name == redist for name in names),
+            f"Windows installer missing Microsoft compiler runtime: {redist}")
     # CPack must install both publisher/license notices, and SDK-only Qt
     # directories must not inflate the user's application installation.
     for required in ("license.txt", "third_party_notices.md"):
