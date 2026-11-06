@@ -390,6 +390,7 @@ class PipelineTests(unittest.TestCase):
                 "qt6keychain.dll", "platforms/qwindows.dll",
                 "libcrypto-3-x64.dll", "libssl-3-x64.dll",
                 "libcurl.dll", "sqlite3.dll",
+                "LICENSE.txt", "THIRD_PARTY_NOTICES.md",
             }
             with patch("ci.verify_platform_package.windows_installer_entries",
                        return_value=required):
