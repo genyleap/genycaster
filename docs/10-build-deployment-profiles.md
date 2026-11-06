@@ -45,6 +45,43 @@ continue to use their existing lowercase resource names. In particular,
 `genycaster.html`, `genycaster.js`, and `genycaster.wasm` are public web asset
 paths and must not be renamed as part of native packaging changes.
 
+## Installable desktop packages and update transports
+
+Release jobs package each desktop target for its **native CPU architecture**
+(`x86_64` and `arm64`), using the exact runtime that was compiled:
+
+| Platform | Primary installation | Additional distribution |
+| --- | --- | --- |
+| macOS | `GenyCaster-v...-macos-<arch>.dmg` | `GenyCaster-selfupdate-v...-macos-<arch>.tar.gz` |
+| Windows | `GenyCaster-v...-windows-<arch>.exe` (CPack/NSIS) | `GenyCaster-selfupdate-v...-windows-<arch>.zip` |
+| Linux | `GenyCaster-v...-linux-<arch>.AppImage` | `GenyCaster-v...-linux-<arch>.deb`, AppImage `.zsync` |
+
+The macOS DMG is assembled with `macdeployqt`; the Windows installer
+includes the full `windeployqt`/QtKeychain/vcpkg payload and supplies an
+uninstaller; Linux AppImage and DEB use the same `linuxdeploy` AppDir.
+OS-provided system libraries are intentionally managed by the OS rather than
+replacing critical system libraries in the package.
+
+**Update transport vs. update installation:** GenyConnect's existing desktop
+self-update files are copies of the native executable/DMG, not differential
+binary patches. GenyCaster's `ci/package_selfupdate.py` outputs independent
+runtime archives with a per-file SHA-256 manifest and a full-artifact
+checksum. These snapshots are **not installable update patches**: their
+manifest explicitly declares `installAction: unsupported`. The current
+`UpdateController` only downloads official architecture-compatible
+GitHub Release installer artifacts with SHA-256 verification and asks the
+user to open the OS installer. It **does not** apply a Windows/macOS archive
+in-place or replace running executables. A separate privileged/elevated
+updater, signature and rollback checks are required before advertising
+automatic patch installation. Linux also publishes `.zsync` metadata,
+which enables block-level delta transfers when used by a compatible
+zsync client; the built-in Qt updater does not yet consume it.
+
+Unsigned CI test installers are not notarized/signed retail releases:
+Windows SmartScreen and macOS Gatekeeper can require a trusted publisher
+certificate and platform signing/notarization before general distribution.
+Successful CI packaging alone does not establish retail release readiness.
+
 ## Current verification presets
 
 ### `core-debug`

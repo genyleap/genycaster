@@ -32,7 +32,8 @@ def main() -> None:
     assert "needs: [gate, linux, macos, windows, android, web]" in workflow
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
-    assert "macos-15-intel" in workflow
+    assert "macos-26-intel" in workflow
+    assert "runner: macos-26" in workflow
     assert "windows-11-arm" in workflow
     assert "android_armv7" in workflow
     assert "name: iOS arm64 unsigned device app" in workflow

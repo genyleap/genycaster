@@ -170,6 +170,11 @@ QJsonObject parsePublishedNotes(const QString& body)
 bool matchingAsset(const QString& name)
 {
     const QString n = name.toLower();
+    // Runtime snapshots and .zsync metadata are *transport ingredients*
+    // for a future out-of-process updater, not OS-installable packages.
+    // Never offer them as if QDesktopServices could safely apply a patch.
+    if (n.contains(QStringLiteral("-selfupdate-")) ||
+        n.endsWith(QStringLiteral(".zsync"))) return false;
     const QString arch = QSysInfo::currentCpuArchitecture().toLower();
     const bool arm = arch.contains(QStringLiteral("arm")) || arch.contains(QStringLiteral("aarch64"));
     const bool x64 = arch.contains(QStringLiteral("x86_64")) || arch.contains(QStringLiteral("amd64"));

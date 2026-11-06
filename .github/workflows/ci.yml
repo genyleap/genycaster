@@ -109,7 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y ninja-build curl file patchelf libfuse2 \
+          sudo apt-get install -y ninja-build curl file patchelf libfuse2 zsync \
             libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-render-util0 libxcb-xinerama0 \
@@ -178,7 +178,19 @@ jobs:
           test -s "$OUTPUT"
           mv "$OUTPUT" dist/
           python3 ci/verify_platform_package.py linux "dist/$OUTPUT"
-          (cd dist && sha256sum *.AppImage > SHA256SUMS)
+          # zsync uses checksums of existing AppImage blocks to fetch only
+          # changed blocks. It is a real delta transport for Linux, not a
+          # duplicate full-application update file.
+          zsyncmake -u "https://github.com/genyleap/genycaster/releases/download/v${VERSION}/$OUTPUT" \
+            -o "dist/$OUTPUT.zsync" "dist/$OUTPUT"
+          test -s "dist/$OUTPUT.zsync"
+          # Native Debian installation alongside the no-install AppImage.
+          # Both contain the same linuxdeploy Qt/QML and C++ runtime tree.
+          python3 ci/package_linux_deb.py --appdir AppDir --output dist \
+            --version "$VERSION" --arch "${{ matrix.arch }}"
+          python3 ci/verify_platform_package.py linux-deb \
+            "dist/GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.deb"
+          (cd dist && sha256sum *.AppImage *.deb > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
           name: GenyCaster-linux-${{ matrix.arch }}
@@ -194,9 +206,9 @@ jobs:
       matrix:
         include:
           - arch: arm64
-            runner: macos-15
+            runner: macos-26
           - arch: x86_64
-            runner: macos-15-intel
+            runner: macos-26-intel
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'macos'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
@@ -212,6 +224,8 @@ jobs:
         run: |
           set -euo pipefail
           brew install ninja llvm boost openssl@3 sqlite
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-path
           echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
       - uses: jurplel/install-qt-action@v4
         with:
@@ -236,7 +250,13 @@ jobs:
             -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)" \
             -DOPENSSL_USE_STATIC_LIBS=TRUE \
             -DFARCASTER_BUILD_TESTS=OFF \
-            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
+            -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON || {
+              echo "::error::macOS CMake configuration failed; SDK probe details:"
+              if [[ -f build/native/CMakeFiles/CMakeConfigureLog.yaml ]]; then
+                tail -n 220 build/native/CMakeFiles/CMakeConfigureLog.yaml
+              fi
+              exit 1
+            }
           cmake --build build/native --target genycaster --parallel 3
           APP=build/native/bin/Genycaster.app
           test -d "$APP"
@@ -249,8 +269,14 @@ jobs:
           mkdir -p dist
           DMG=build/native/bin/Genycaster.dmg
           test -s "$DMG"
+          hdiutil verify "$DMG"
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
+          # Independent runtime snapshot for an eventual supervised updater.
+          # Not advertised to the current UpdateController as an installer.
+          python3 ci/package_selfupdate.py --platform macos \
+            --arch "${{ matrix.arch }}" --version "$VERSION" \
+            --source "$APP" --output dist/selfupdate
           (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
@@ -260,7 +286,7 @@ jobs:
           retention-days: 14
 
   windows:
-    name: Windows ${{ matrix.arch }} portable ZIP
+    name: Windows ${{ matrix.arch }} NSIS installer
     needs: gate
     strategy:
       fail-fast: false
@@ -293,7 +319,7 @@ jobs:
       - name: Install official Qt 6.12 MSVC archives
         shell: pwsh
         run: |
-          choco install 7zip --no-progress -y
+          choco install 7zip nsis --no-progress -y
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python ci/install_qt_windows.py --destination Qt --architecture ${{ matrix.arch }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -365,6 +391,7 @@ jobs:
             "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             "-DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}" `
             "-DVCPKG_APPLOCAL_DEPS=OFF" `
+            "-DGENYCASTER_WINDOWS_PACKAGE_ARCH=${{ matrix.arch }}" `
             "-DFARCASTER_BUILD_TESTS=OFF" `
             "-DGENYCASTER_FETCH_QTKEYCHAIN=ON" `
             "-DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON"
@@ -405,19 +432,31 @@ jobs:
             Select-Object -First 1
           if (-not $keychain) { throw 'Missing QtKeychain runtime DLL' }
           Copy-Item $keychain.FullName dist/app/
-          $zip = "dist/GenyCaster-v$env:VERSION-windows-${{ matrix.arch }}.zip"
-          Compress-Archive -Path dist/app/* -DestinationPath $zip
-          if (-not (Test-Path $zip)) { throw "Windows ZIP missing" }
-          python ci/verify_platform_package.py windows $zip
+          # NSIS packages the already deployed Qt/QML/keychain/vcpkg DLL
+          # tree. Do not substitute a ZIP of uninstalled files for setup.
+          cpack --config build/native/CPackConfig.cmake -G NSIS -B dist
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
-          "$hash  $(Split-Path $zip -Leaf)" |
+          $installer = "dist/GenyCaster-v$env:VERSION-windows-${{ matrix.arch }}.exe"
+          if (-not (Test-Path $installer)) { throw "Windows NSIS installer missing" }
+          python ci/verify_platform_package.py windows $installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hash = (Get-FileHash -Algorithm SHA256 $installer).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path $installer -Leaf)" |
             Set-Content -Encoding ascii dist/SHA256SUMS
+          # The update transport snapshot excludes the NSIS bootstrap but
+          # retains every deployed runtime dependency and per-file SHA-256.
+          # Installation still uses the verified installer; no unsafe in-place
+          # patching of a running process is attempted.
+          python ci/package_selfupdate.py --platform windows `
+            --arch "${{ matrix.arch }}" --version "$env:VERSION" `
+            --source dist/app --output dist/selfupdate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
           name: GenyCaster-windows-${{ matrix.arch }}
           path: |
-            dist/*.zip
+            dist/*.exe
+            dist/selfupdate/*
             dist/SHA256SUMS
           if-no-files-found: error
           retention-days: 14

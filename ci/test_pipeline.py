@@ -14,7 +14,7 @@ from ci.verify_platform_package import (
 )
 from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
-from ci.release_artifacts import EXPECTED, main as assemble_release
+from ci.release_artifacts import EXPECTED, EXTRA_REQUIRED, main as assemble_release
 from ci.release_gate import project_version, release_designation, release_version
 
 
@@ -374,38 +374,40 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("Join-Path $qtBin 'qt6keychain.dll'", workflow)
         self.assertIn("Copy-Item $dll.FullName dist/app/", workflow)
 
-    def test_windows_portable_zip_structure(self) -> None:
+    def test_windows_nsis_installer_payload(self) -> None:
         with TemporaryDirectory() as folder:
-            archive = Path(folder) / "genycaster-windows.zip"
-            required = (
+            installer = Path(folder) / "GenyCaster-windows-x86_64.exe"
+            installer.write_bytes(b"MZ" + bytes(8192))
+            required = {
                 "Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
-                "qt6keychain.dll", "platforms/qwindows.dll", "libcrypto-3-x64.dll",
-                "libssl-3-x64.dll", "libcurl.dll", "sqlite3.dll",
-            )
-            with zipfile.ZipFile(archive, "w") as package:
-                for name in required:
-                    package.writestr(name, b"test")
-            verify("windows", archive)
-            with zipfile.ZipFile(archive, "w") as broken:
-                for name in required:
-                    if name != "Qt6Network.dll":
-                        broken.writestr(name, b"test")
-            with self.assertRaisesRegex(ValueError, "qt6network"):
-                verify("windows", archive)
-            # Preserve exact product-case on case-sensitive artifact consumers.
-            with zipfile.ZipFile(archive, "w") as broken_case:
-                for name in required:
-                    broken_case.writestr(
-                        "genycaster.exe" if name == "Genycaster.exe" else name,
-                        b"test",
-                    )
-            with self.assertRaisesRegex(ValueError, "correctly cased executable"):
-                verify("windows", archive)
+                "qt6keychain.dll", "platforms/qwindows.dll",
+                "libcrypto-3-x64.dll", "libssl-3-x64.dll",
+                "libcurl.dll", "sqlite3.dll",
+            }
+            with patch("ci.verify_platform_package.windows_installer_entries",
+                       return_value=required):
+                verify("windows", installer)
+            with patch("ci.verify_platform_package.windows_installer_entries",
+                       return_value=required - {"Qt6Network.dll"}):
+                with self.assertRaisesRegex(ValueError, "qt6network"):
+                    verify("windows", installer)
+            with patch("ci.verify_platform_package.windows_installer_entries",
+                       return_value=(required - {"Genycaster.exe"}) | {"genycaster.exe"}):
+                with self.assertRaisesRegex(ValueError, "correctly cased executable"):
+                    verify("windows", installer)
+            with patch("ci.verify_platform_package.windows_installer_entries",
+                       return_value=required):
+                installer.with_suffix(".zip").write_bytes(b"MZ" + bytes(8192))
+                with self.assertRaisesRegex(ValueError, "installable EXE"):
+                    verify("windows", installer.with_suffix(".zip"))
+            installer.write_bytes(b"PK" + bytes(8192))
+            with self.assertRaisesRegex(ValueError, "PE header"):
+                verify("windows", installer)
 
     def test_release_package_contract(self) -> None:
         self.assertEqual(len(EXPECTED), 9)
         self.assertEqual(EXPECTED["GenyCaster-linux-arm64"], ".AppImage")
-        self.assertEqual(EXPECTED["GenyCaster-windows-arm64"], ".zip")
+        self.assertEqual(EXPECTED["GenyCaster-windows-arm64"], ".exe")
         self.assertEqual(EXPECTED["GenyCaster-android-armeabi-v7a"], ".apk")
         self.assertEqual(EXPECTED["GenyCaster-macos-x86_64"], ".dmg")
         self.assertEqual(EXPECTED["GenyCaster-android-arm64-v8a"], ".apk")
@@ -418,10 +420,17 @@ class PipelineTests(unittest.TestCase):
                 directory = artifacts / platform
                 directory.mkdir(parents=True)
                 (directory / f"{platform}{extension}").write_bytes(platform.encode())
+                for index, extra_suffix in enumerate(EXTRA_REQUIRED.get(platform, ())):
+                    extra_folder = directory / "selfupdate"
+                    extra_folder.mkdir(exist_ok=True)
+                    (extra_folder / f"GenyCaster-secondary-{platform}-{index}{extra_suffix}").write_bytes(
+                        (platform + extra_suffix).encode()
+                    )
             with patch.object(sys, "argv", ["release_artifacts.py", str(artifacts), str(release)]):
                 assemble_release()
-            self.assertEqual(len(list(release.iterdir())), len(EXPECTED) + 1)
-            self.assertEqual(len((release / "SHA256SUMS").read_text().splitlines()), len(EXPECTED))
+            expected_count = len(EXPECTED) + sum(map(len, EXTRA_REQUIRED.values()))
+            self.assertEqual(len(list(release.iterdir())), expected_count + 1)
+            self.assertEqual(len((release / "SHA256SUMS").read_text().splitlines()), expected_count)
 
 
 if __name__ == "__main__":

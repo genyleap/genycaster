@@ -49,7 +49,7 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     const verifier = source("ci/verify_platform_package.py");
     assert.match(verifier, /root = "Genycaster\.app"/);
     assert.match(verifier, /root \+ "\/Genycaster" in names/);
-    assert.match(verifier, /"Genycaster\.exe" in exact_names/);
+    assert.match(verifier, /name == "Genycaster\.exe"/);
     assert.match(verifier, /"genycaster\.wasm"/);
     assert.match(verifier, /"genycaster\.js"/);
 });

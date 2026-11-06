@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path, PurePosixPath
 import struct
+import subprocess
 import tarfile
 import zipfile
 
@@ -24,6 +25,26 @@ def validate_linux(path: Path) -> None:
         header = data.read(12)
     require(header[:4] == b"\x7fELF", "AppImage ELF header missing")
     require(header[8:11] == b"AI\x02", "AppImage type-2 marker missing")
+
+
+def validate_linux_deb(path: Path) -> None:
+    require(path.suffix == ".deb", "Linux installer must be a .deb package")
+    try:
+        result = subprocess.run(
+            ["dpkg-deb", "--contents", str(path)],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError("dpkg-deb is required to validate Linux installers") from exc
+    require(result.returncode == 0, "Invalid Linux Debian installer")
+    listing = result.stdout
+    for required in (
+        "./opt/genycaster/AppRun",
+        "./opt/genycaster/usr/bin/Genycaster",
+        "./usr/share/applications/genycaster.desktop",
+        "./usr/share/icons/hicolor/512x512/apps/genycaster.png",
+    ):
+        require(required in listing, f"Linux DEB missing {required}")
 
 
 def validate_macos(path: Path) -> None:
@@ -181,28 +202,51 @@ def validate_ios(path: Path) -> None:
                     for name in names), "Unsafe iOS bundle path")
 
 
+def windows_installer_entries(path: Path) -> set[str]:
+    """Inspect actual NSIS contents with 7-Zip; MZ alone is not an installer."""
+    try:
+        listing = subprocess.run(
+            ["7z", "l", "-slt", str(path)],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError("7-Zip is required to inspect the NSIS installer") from exc
+    require(listing.returncode == 0, "Invalid or unreadable Windows NSIS installer")
+    require("Type = Nsis" in listing.stdout or "Type = NSIS" in listing.stdout,
+            "Windows EXE is not an NSIS installer")
+    entries = set()
+    for line in listing.stdout.splitlines():
+        if line.startswith("Path = "):
+            item = line.removeprefix("Path = ").replace("\\", "/")
+            entries.add(item)
+    return entries
+
+
 def validate_windows(path: Path) -> None:
-    require(path.suffix == ".zip", "Windows package must be a ZIP")
-    with zipfile.ZipFile(path) as archive:
-        exact_names = {name.replace("\\", "/") for name in archive.namelist()}
-        names = {name.lower() for name in exact_names}
-    require("Genycaster.exe" in exact_names,
-            "Windows ZIP missing correctly cased executable")
-    for required in (
-        "qt6core.dll", "qt6network.dll",
-        "qt6keychain.dll", "platforms/qwindows.dll",
-    ):
-        require(required in names, f"Windows ZIP missing {required}")
+    require(path.suffix.lower() == ".exe", "Windows package must be an installable EXE")
+    require(path.stat().st_size >= 4096, "Windows installer too small")
+    with path.open("rb") as installer:
+        require(installer.read(2) == b"MZ", "Windows installer lacks PE header")
+    exact_names = windows_installer_entries(path)
+    names = {name.lower() for name in exact_names}
+    require(any(PurePosixPath(name).name == "Genycaster.exe" for name in exact_names),
+            "Windows installer missing correctly cased executable")
+    for required in ("qt6core.dll", "qt6network.dll", "qt6keychain.dll"):
+        require(any(PurePosixPath(name).name == required for name in names),
+                f"Windows installer missing {required}")
+    require(any(name.endswith("platforms/qwindows.dll") for name in names),
+            "Windows installer missing Qt platform plugin")
     for needle in ("crypto", "ssl", "curl", "sqlite"):
         require(any(needle in PurePosixPath(name).name and name.endswith(".dll")
                     for name in names),
-                f"Windows ZIP missing {needle} runtime DLL")
+                f"Windows installer missing {needle} runtime DLL")
 
 
 def verify(platform: str, path: Path) -> None:
     require(path.is_file() and path.stat().st_size > 0, "Package missing or empty")
     validators = {
         "linux": validate_linux,
+        "linux-deb": validate_linux_deb,
         "ios": validate_ios,
         "macos": validate_macos,
         "windows": validate_windows,
