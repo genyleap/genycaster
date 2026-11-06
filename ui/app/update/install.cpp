@@ -122,7 +122,7 @@ InstallMode launchVerifiedUpdate(
         ? InstallMode::SystemInstaller
         : fail(QStringLiteral("No compatible Linux package installer"));
 #elif defined(Q_OS_ANDROID)
-    // Qt 6.12 uses Android FileProvider for local file URLs. Android's
+    // Qt uses Android FileProvider for local file URLs. Android's
     // Package Installer enforces certificate matching and user consent.
     if (!package.fileName().endsWith(QStringLiteral(".apk"), Qt::CaseInsensitive)) {
         return fail(QStringLiteral("Android requires an APK"));
