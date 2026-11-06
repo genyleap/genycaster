@@ -1690,7 +1690,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("mediaUpload"), &mediaUploadController);
     engine.rootContext()->setContextProperty(QStringLiteral("mediaClassifier"), &mediaClassifier);
     engine.rootContext()->setContextProperty(QStringLiteral("mediaPlayback"), &mediaPlayback);
-    // Qt 6.12 QAudioOutput unconditionally probes host audio devices. The
+    // QAudioOutput probes host audio devices. The
     // offscreen/minimal QPA backends do not have a device service, and some
     // Linux PipeWire builds crash during that probe. Headless smoke and
     // automation must never activate a platform audio device.
