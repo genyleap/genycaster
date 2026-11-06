@@ -947,18 +947,19 @@ bool UpdateController::installDownloadedUpdate()
     // A tiny first-party post-exit helper handles writable macOS app bundles
     // and portable Linux AppImages. Other platforms hand off to the system
     // installer, which owns the user consent / elevation boundary.
-    const auto launched = genycaster::ui::update::launchVerifiedUpdate(
-        m_downloadedFilePath, m_assetDigest);
-    if (launched.mode == genycaster::ui::update::InstallMode::Unsupported) {
-        fail(launched.detail.isEmpty() ? QStringLiteral("Update installer unavailable")
-                                      : launched.detail);
+    QString installationError;
+    const auto installMode = genycaster::ui::update::launchVerifiedUpdate(
+        m_downloadedFilePath, m_assetDigest, &installationError);
+    if (installMode == genycaster::ui::update::InstallMode::Unsupported) {
+        fail(installationError.isEmpty() ? QStringLiteral("Update installer unavailable")
+                                          : installationError);
         return false;
     }
 
     const bool quitForUpdate =
-        launched.mode == genycaster::ui::update::InstallMode::Supervised
+        installMode == genycaster::ui::update::InstallMode::Supervised
 #if defined(Q_OS_WIN)
-        || launched.mode == genycaster::ui::update::InstallMode::SystemInstaller
+        || installMode == genycaster::ui::update::InstallMode::SystemInstaller
 #endif
         ;
     m_status = quitForUpdate
