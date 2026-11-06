@@ -325,7 +325,7 @@ Drawer {
                         updateController.refreshWebApp()
                     else if (updateController.canDownload) {
                         if (updateController.downloadedFilePath.length > 0)
-                            updateController.openDownloadedUpdate()
+                            updateController.installDownloadedUpdate()
                         else
                             updateController.downloadUpdate()
                     } else
