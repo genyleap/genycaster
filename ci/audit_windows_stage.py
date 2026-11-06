@@ -44,6 +44,16 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
             if directory.is_symlink():
                 raise ValueError(f"Unexpected SDK directory symlink: {directory}")
             if directory.is_dir():
+                # Never silently discard a runtime DLL merely because the
+                # deployment tool unexpectedly nested it in an SDK folder.
+                # A matching runtime DLL must already be deployed at the
+                # application root before this subtree can be discarded.
+                for candidate in directory.rglob("*"):
+                    if (candidate.is_file()
+                            and candidate.suffix.lower() == ".dll"
+                            and not (stage / candidate.name).is_file()):
+                        raise ValueError(
+                            f"Unstaged runtime DLL in SDK directory: {candidate}")
                 shutil.rmtree(directory)
 
     for name in ("Genycaster.exe", *RUNTIME_DLLS, "platforms/qwindows.dll"):
