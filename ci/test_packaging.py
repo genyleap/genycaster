@@ -36,6 +36,7 @@ class PackagingTests(unittest.TestCase):
                 file = stage / name
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_bytes(self.fake_pe(0xAA64))
+            (stage / "vc_redist.arm64.exe").write_bytes(self.fake_pe(0xAA64))
             for directory in ("bin", "include", "lib", "mkspecs", "qmltooling"):
                 (stage / directory).mkdir()
                 (stage / directory / "unused.txt").write_text("sdk")
