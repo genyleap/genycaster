@@ -107,8 +107,10 @@ zsync client; the built-in Qt updater does not yet consume it.
 
 **Single desktop instance:** Windows, macOS and Linux use an OS-user-specific
 `QLockFile` and a local `QLocalServer`. Launching a second copy activates the
-first window rather than opening a second database/signer runtime. Test modes
-remain independent. This behavior still requires a native two-launch smoke
+first window rather than opening a second database/signer runtime. A bounded
+HTTPS `--open-url` payload is passed over the same user-only IPC channel and
+dispatched through the primary window's existing navigation after setup is
+ready. Test modes remain independent. This behavior still requires a native two-launch smoke
 test on each host OS; the Linux build server cannot prove Windows foreground
 activation behavior.
 
