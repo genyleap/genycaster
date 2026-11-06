@@ -364,9 +364,13 @@ endif()
 target_sources(genycaster
     PRIVATE
         app/runtime_composition.cpp
+        app/diagnostics/snapshots.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
         app/runtime_composition.cppm
+        app/diagnostics/snapshots.cppm
 )
+target_include_directories(genycaster PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
 # Preserve the CMake target and WebAssembly/Android artifact identities.
 # Native executable and Apple bundle filenames use the product casing.
