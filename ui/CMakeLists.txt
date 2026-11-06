@@ -289,6 +289,19 @@ if(NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
     set_property(TARGET genycaster_desktop_instance PROPERTY CXX_SCAN_FOR_MODULES ON)
 endif()
 
+# This directory contains only non-exported Qt ABI forward declarations.
+# Keep the include path explicit and independent of source-file nesting.
+foreach(_genycasterModuleTarget IN ITEMS
+    genycaster_ui_bootstrap genycaster_web_wheel genycaster_update_install)
+    target_include_directories(${_genycasterModuleTarget} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+endforeach()
+if(TARGET genycaster_desktop_instance)
+    target_include_directories(genycaster_desktop_instance PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+endif()
+unset(_genycasterModuleTarget)
+
 qt_add_executable(genycaster
     app/main.cpp
     app/runtime_ui_bindings.cpp
