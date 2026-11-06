@@ -1,3 +1,17 @@
+/*!
+ * @file        src/local_state/entity.cppm
+ * @brief       Canonical local entity persistence port.
+ *
+ * @details
+ * Separates application-facing entity storage semantics from the concrete
+ * SQLite implementation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

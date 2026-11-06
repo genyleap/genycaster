@@ -1,3 +1,17 @@
+/*!
+ * @file        src/provider/provider.cppm
+ * @brief       Provider instance identity and metadata.
+ *
+ * @details
+ * Represents configured adapter identity, deployment topology and privacy
+ * characteristics independently from capability semantics.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/media_playback_coordinator.hpp
+ * @brief       Centralized media playback coordination.
+ *
+ * @details
+ * Owns Qt-facing playback focus and activation policy so concurrent media
+ * delegates respect application visibility and user intent.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

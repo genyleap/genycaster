@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/rich_inline_text_item.hpp
+ * @brief       Qt inline-rich-text rendering item.
+ *
+ * @details
+ * Uses QTextDocument layout geometry for mixed-direction text and inline
+ * emoji while allowing animation to align with canonical glyph rects.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in
 // a .hpp file. The renderer owns a QTextDocument whose layout engine positions
 // emoji as real inline objects (wrapping, BiDi, alignment); animation frames

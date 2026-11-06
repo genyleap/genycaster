@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/signer_attestation.cppm
+ * @brief       App-FID signer attestation contract.
+ *
+ * @details
+ * Models verifiable SignedKeyRequest attribution and the attestation
+ * boundary without making a UI label proof of authorship.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

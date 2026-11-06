@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/miniapp_task_manager_controller.hpp
+ * @brief       Mini App session task manager.
+ *
+ * @details
+ * Presents live app sessions and user lifecycle intents without taking
+ * ownership of browser processes or wallet grants.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires a QObject declaration.
 #pragma once
 

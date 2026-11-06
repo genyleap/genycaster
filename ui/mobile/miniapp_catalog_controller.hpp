@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/miniapp_catalog_controller.hpp
+ * @brief       Mini App catalog and discovery controller.
+ *
+ * @details
+ * Exposes app metadata and saved catalog state to Qt while keeping remote
+ * catalog parsing and permission policies outside QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires a QObject declaration.
 #pragma once
 

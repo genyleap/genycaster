@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/timeline_store.cppm
+ * @brief       SQLite timeline persistence adapter.
+ *
+ * @details
+ * Implements stable ordered local timeline windows for incremental
+ * rendering and offline access.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

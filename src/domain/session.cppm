@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/session.cppm
+ * @brief       Verified Farcaster client session identity.
+ *
+ * @details
+ * Models authenticated identity and proof method independently from
+ * signer registration and wallet account access.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

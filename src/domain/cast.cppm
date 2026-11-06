@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/cast.cppm
+ * @brief       Canonical Farcaster cast and embed entities.
+ *
+ * @details
+ * Models cast identity, authors, relationships, embedded references and
+ * engagement independent from provider DTOs.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

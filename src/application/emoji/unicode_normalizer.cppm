@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/emoji/unicode_normalizer.cppm
+ * @brief       Emoji sequence detection and normalization.
+ *
+ * @details
+ * Parses UTF-8 emoji clusters and converts sequences to stable lookup
+ * keys for asset and presentation decisions.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

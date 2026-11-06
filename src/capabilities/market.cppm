@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/market.cppm
+ * @brief       Market and token snapshot read capability.
+ *
+ * @details
+ * Declares the independent data source used for market widgets without
+ * making pricing part of Farcaster state.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <vector>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/transport/async_http.cppm
+ * @brief       Asynchronous HTTP transport capability.
+ *
+ * @details
+ * Defines request ownership, priorities, retries and cancellation for
+ * nonblocking provider network operations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

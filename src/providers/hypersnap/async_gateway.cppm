@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/async_gateway.cppm
+ * @brief       Asynchronous HyperSnap read adapter.
+ *
+ * @details
+ * Maps capability reads to cancellable HyperSnap operations with bounded
+ * decoding and normalized application results.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/write_submit.cppm
+ * @brief       Signed message submission and confirmation port.
+ *
+ * @details
+ * Separates transport submission from authoritative reconciliation for
+ * ambiguous protocol write outcomes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 export module farcaster.capability.write_submit;

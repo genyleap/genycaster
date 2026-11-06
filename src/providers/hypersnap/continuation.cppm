@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/continuation.cppm
+ * @brief       HyperSnap continuation token isolation.
+ *
+ * @details
+ * Binds provider-private pagination state to exact instance and query
+ * scope to avoid cursor reuse across routes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

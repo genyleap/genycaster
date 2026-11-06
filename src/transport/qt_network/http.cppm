@@ -1,3 +1,17 @@
+/*!
+ * @file        src/transport/qt_network/http.cppm
+ * @brief       Qt Network HTTP transport factory.
+ *
+ * @details
+ * Defines Qt-specific proxy and protocol policy when composing the
+ * provider-neutral HTTP interface.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

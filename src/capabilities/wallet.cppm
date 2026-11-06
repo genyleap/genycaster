@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/wallet.cppm
+ * @brief       Embedded Mini App Ethereum wallet capability.
+ *
+ * @details
+ * Defines EIP-1193 requests, provider responses and event semantics
+ * without granting implicit origin or signature authority.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

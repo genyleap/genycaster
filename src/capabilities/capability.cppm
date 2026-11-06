@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/capability.cppm
+ * @brief       Operation-level capability metadata.
+ *
+ * @details
+ * Names, versions and classifies protocol, derived and extension
+ * capabilities independently from provider instances.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <compare>

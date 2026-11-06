@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/write.cppm
+ * @brief       SQLite durable write outbox adapter.
+ *
+ * @details
+ * Persists exact signed envelopes, chosen route binding and local write
+ * projections for restart-safe reconciliation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

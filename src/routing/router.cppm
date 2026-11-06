@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/router.cppm
+ * @brief       Per-operation capability router.
+ *
+ * @details
+ * Chooses eligible providers using capability support, configured
+ * preference and health/selection policy.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/channel_picker_controller.hpp
+ * @brief       Channel selection and discovery controller.
+ *
+ * @details
+ * Provides Qt-facing channel options and membership-aware discovery
+ * without forcing provider-specific search behavior into QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       22 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QAbstractListModel>

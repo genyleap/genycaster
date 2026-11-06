@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/media.cppm
+ * @brief       Managed media gateway capability contracts.
+ *
+ * @details
+ * Models bounded multipart uploads, cancellation, verified assets and
+ * progress observations at the application boundary.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

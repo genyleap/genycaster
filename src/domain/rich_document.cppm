@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/rich_document.cppm
+ * @brief       Semantic rich-document content model.
+ *
+ * @details
+ * Describes inline spans, blocks and text direction independently of QML
+ * markup or a specific editor widget.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

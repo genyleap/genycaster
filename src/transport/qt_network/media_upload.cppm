@@ -1,3 +1,17 @@
+/*!
+ * @file        src/transport/qt_network/media_upload.cppm
+ * @brief       Qt Network managed media upload adapter.
+ *
+ * @details
+ * Implements authenticated multipart media-gateway operations behind the
+ * application capability contract.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

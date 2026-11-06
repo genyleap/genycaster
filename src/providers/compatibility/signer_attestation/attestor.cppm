@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/compatibility/signer_attestation/attestor.cppm
+ * @brief       Signer registration attestation adapter.
+ *
+ * @details
+ * Submits and verifies scoped App-FID SignedKeyRequest evidence through
+ * an authenticated gateway.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

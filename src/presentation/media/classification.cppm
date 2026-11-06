@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/media/classification.cppm
+ * @brief       Media classification for presentation.
+ *
+ * @details
+ * Classifies embeds and playback requirements without making QML depend
+ * on media service or provider formats.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Canonical embed-media classification for Genycaster presentation surfaces.
 //
 // This module is the single source of truth for deciding whether an embed URL

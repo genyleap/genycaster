@@ -1,3 +1,17 @@
+/*!
+ * @file        tests/providers/hypersnap/fixtures.cppm
+ * @brief       Provider test fixture and temporary storage.
+ *
+ * @details
+ * Owns disposable SQLite paths used to exercise provider contracts
+ * without touching user data.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/rendering_controller.hpp
+ * @brief       Qt renderer diagnostics and preferences.
+ *
+ * @details
+ * Tracks real scene-graph backend capabilities, frame timing and
+ * user-facing graphics settings through a MOC-compatible boundary.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a
 // .hpp file.
 #pragma once

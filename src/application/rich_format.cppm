@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/rich_format.cppm
+ * @brief       Safe rich-text and protocol mention formatting.
+ *
+ * @details
+ * Converts rich document intent to bounded Farcaster-safe layouts while
+ * preserving mention offsets and reporting compatibility limitations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

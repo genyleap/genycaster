@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/catalog.cppm
+ * @brief       Canonical capability identifiers and catalog.
+ *
+ * @details
+ * Enumerates operation contracts used by routing and feature composition
+ * without depending on a particular network API.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.capability.catalog;
 
 import farcaster.capability.model;

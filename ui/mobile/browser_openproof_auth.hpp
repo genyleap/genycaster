@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_openproof_auth.hpp
+ * @brief       Browser identity authorization controller.
+ *
+ * @details
+ * Handles browser account verification and transient grants while
+ * isolating identity tokens from QML and protocol signing privileges.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       16 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/snapchain/write.cppm
+ * @brief       Snapchain signed message submitter.
+ *
+ * @details
+ * Submits exact canonical envelopes and confirms outcomes without blindly
+ * repeating ambiguous writes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/emoji/asset_repository.cppm
+ * @brief       Emoji asset orchestration and cache selection.
+ *
+ * @details
+ * Coordinates validated provider assets, disk lookup and memory state
+ * without placing fetching or decoding in presentation code.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

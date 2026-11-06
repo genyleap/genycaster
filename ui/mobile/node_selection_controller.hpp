@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/node_selection_controller.hpp
+ * @brief       Farcaster node selection controller.
+ *
+ * @details
+ * Manages user-selected node profiles and connectivity diagnostics with
+ * operation-aware route eligibility and explicit fallback state.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

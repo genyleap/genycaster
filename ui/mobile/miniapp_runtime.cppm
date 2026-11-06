@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/miniapp_runtime.cppm
+ * @brief       Executable Mini App runtime ownership.
+ *
+ * @details
+ * Composes isolated app sessions, manifests, host SDK routing and
+ * platform-specific permission boundaries.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include "miniapp_catalog_controller.hpp"

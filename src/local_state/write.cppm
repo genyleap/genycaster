@@ -1,3 +1,17 @@
+/*!
+ * @file        src/local_state/write.cppm
+ * @brief       Durable write, routing and projection ports.
+ *
+ * @details
+ * Defines account-scoped signed-message outbox state and the bound
+ * transport identity needed for safe reconciliation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

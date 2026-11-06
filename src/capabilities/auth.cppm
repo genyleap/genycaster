@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/auth.cppm
+ * @brief       Identity authentication capability contracts.
+ *
+ * @details
+ * Defines sign-in challenges, verified account grants and routing between
+ * supported authentication methods.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

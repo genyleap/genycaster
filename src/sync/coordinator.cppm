@@ -1,3 +1,17 @@
+/*!
+ * @file        src/sync/coordinator.cppm
+ * @brief       Serialized sync operation coordinator.
+ *
+ * @details
+ * Maintains generation, in-progress and cancellation state for a single
+ * authoritative synchronization cycle.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

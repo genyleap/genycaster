@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/appearance_controller.hpp
+ * @brief       Qt appearance preferences controller.
+ *
+ * @details
+ * Presents locally persisted theme and appearance choices through a
+ * MOC-compatible QObject rather than coupling them to the domain.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       29 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a
 // .hpp file.
 #pragma once

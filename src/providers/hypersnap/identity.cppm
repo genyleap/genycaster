@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/identity.cppm
+ * @brief       HyperSnap identity resolver.
+ *
+ * @details
+ * Resolves usernames and FIDs through a provider adapter while returning
+ * canonical identities.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string_view>

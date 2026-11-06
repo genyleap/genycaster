@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/miniapp_host_controller.hpp
+ * @brief       Mini App host presentation controller.
+ *
+ * @details
+ * Coordinates launch, navigation and host state for one embedded app
+ * while leaving browser session authority to runtime ownership.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires a QObject declaration.
 #pragma once
 

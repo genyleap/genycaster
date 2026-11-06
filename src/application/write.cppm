@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/write.cppm
+ * @brief       Application protocol mutation and outbox lifecycle.
+ *
+ * @details
+ * Models signed cast and social actions, write phases and recovery
+ * through a provider-neutral durable submission pipeline.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/openproof_auth/auth.cppm
+ * @brief       External identity provider adapter.
+ *
+ * @details
+ * Composes verified identity-provider sessions into the client
+ * authentication capability without taking custody of its credentials.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       29 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

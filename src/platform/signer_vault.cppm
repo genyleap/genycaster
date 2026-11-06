@@ -1,3 +1,17 @@
+/*!
+ * @file        src/platform/signer_vault.cppm
+ * @brief       Native secure signer vault factory.
+ *
+ * @details
+ * Opens a platform-backed Ed25519 vault and fails with structured errors
+ * when a secure backend is unavailable.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <memory>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/emoji/emoji_cache.cppm
+ * @brief       Bounded animated emoji disk cache.
+ *
+ * @details
+ * Stores validated source assets separately from rasterized display
+ * frames and enforces cache size limits.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

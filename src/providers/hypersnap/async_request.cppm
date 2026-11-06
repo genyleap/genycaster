@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/async_request.cppm
+ * @brief       Asynchronous HyperSnap HTTP request client.
+ *
+ * @details
+ * Coordinates network completion, cancellation and byte-weighted decode
+ * scheduling off the transport reactor.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/protocol/key_authorization.cppm
+ * @brief       Custody approval for signer key registration.
+ *
+ * @details
+ * Constructs canonical EIP-712 KEY_ADD authorization inputs and documents
+ * for a custody wallet.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

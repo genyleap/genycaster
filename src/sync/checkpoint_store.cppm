@@ -1,3 +1,17 @@
+/*!
+ * @file        src/sync/checkpoint_store.cppm
+ * @brief       Semantic synchronization checkpoint port.
+ *
+ * @details
+ * Defines durable sync progress independently of provider cursor encoding
+ * or transport identity.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

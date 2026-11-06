@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/cast.cppm
+ * @brief       HyperSnap canonical cast source.
+ *
+ * @details
+ * Adapts cast retrieval from HyperSnap into provider-neutral domain
+ * snapshots.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.provider.hypersnap.cast;
 
 import farcaster.capability.cast;

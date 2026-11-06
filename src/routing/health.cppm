@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/health.cppm
+ * @brief       Per-capability provider health tracking.
+ *
+ * @details
+ * Models circuit admission, failure observations and cooldown timing for
+ * eligible operation routes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/platform/signer_keychain_boundary.hpp
+ * @brief       Platform Keychain signing compatibility boundary.
+ *
+ * @details
+ * Isolates Apple Security and CoreFoundation data types from C++ named
+ * modules while supporting secure Ed25519 signer storage.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: isolates Apple Security/CoreFoundation C APIs
 // from the C++26 named-module implementation unit.
 #pragma once

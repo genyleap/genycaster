@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/configuration.cppm
+ * @brief       Application composition and deployment configuration.
+ *
+ * @details
+ * Defines feature availability, privacy profiles and endpoint identity as
+ * application-level configuration independent of any provider adapter.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

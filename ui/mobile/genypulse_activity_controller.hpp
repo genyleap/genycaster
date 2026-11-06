@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/genypulse_activity_controller.hpp
+ * @brief       GenyPulse activity aggregation controller.
+ *
+ * @details
+ * Presents independently sampled public activity signals and bounded
+ * refresh state without promoting derived insights to protocol authority.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

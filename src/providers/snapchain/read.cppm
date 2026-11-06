@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/snapchain/read.cppm
+ * @brief       Direct Snapchain protocol read adapter.
+ *
+ * @details
+ * Defines raw-node read endpoints and bounded derived Following support
+ * without assuming a hosted indexed feed.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

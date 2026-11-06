@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/registry.cppm
+ * @brief       Registered provider capability inventory.
+ *
+ * @details
+ * Tracks provider instances and their operation support without imposing
+ * one global default backend.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

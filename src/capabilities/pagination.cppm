@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/pagination.cppm
+ * @brief       Provider-neutral pagination primitives.
+ *
+ * @details
+ * Represents opaque application continuation handles without exposing
+ * provider-specific cursor representations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

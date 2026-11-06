@@ -1,3 +1,17 @@
+/*!
+ * @file        src/execution/serial.cppm
+ * @brief       Bounded serial task executor.
+ *
+ * @details
+ * Provides ordered execution with RAII worker ownership and queue limits
+ * for operations requiring serialization.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

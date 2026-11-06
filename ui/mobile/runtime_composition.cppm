@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/runtime_composition.cppm
+ * @brief       GenyCaster cross-platform runtime composition.
+ *
+ * @details
+ * Connects the shared application core, provider routes, local state and
+ * UI-facing services under the selected build policy.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

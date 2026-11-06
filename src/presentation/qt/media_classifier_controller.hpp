@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/media_classifier_controller.hpp
+ * @brief       Qt media classification adapter.
+ *
+ * @details
+ * Converts canonical cast embeds into presentation-friendly media
+ * categories while leaving provider decoding outside QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

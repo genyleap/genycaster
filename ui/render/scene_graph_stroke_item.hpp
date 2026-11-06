@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/render/scene_graph_stroke_item.hpp
+ * @brief       GPU scene-graph stroke component.
+ *
+ * @details
+ * Defines a Qt Quick geometry node for smooth, theme-aware strokes
+ * without relying on CPU-painted overlays.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC/QML registration requires this declaration in a .hpp file.
 #pragma once
 

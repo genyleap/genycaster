@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/animated_emoji.cppm
+ * @brief       Animated emoji provider and cache contracts.
+ *
+ * @details
+ * Defines request, availability and validated asset interfaces for emoji
+ * presentation without coupling it to any artwork source.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <array>

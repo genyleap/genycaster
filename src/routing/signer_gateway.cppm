@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/signer_gateway.cppm
+ * @brief       Routed signer registry operations.
+ *
+ * @details
+ * Selects the configured signer-management adapter while preserving
+ * authority and endpoint semantics.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <memory>

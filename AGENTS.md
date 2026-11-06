@@ -65,6 +65,7 @@ Build a high-performance native Farcaster client in Modern C++ and Qt Quick/QML 
 - Module identities are dotted lowercase.
 - Export namespaces mirror module identities exactly.
 - `.cppm` contains exported declarations, concepts, lightweight templates, and small compile-time values only.
+- Every `.cppm` and `.hpp` begins with a Doxygen `/*!` file header **before** `module;`, `export module`, any existing comments or `#pragma once`. Include `@file` (unique repository-relative path), specific `@brief` and `@details`, credited `@author`, and `@since` (original Git introduction date, `DD Mon YYYY`), `@copyright`, and `@license`. Project-owned code references the root GPL-3.0-only license; generated third-party data retains its own author attribution and license. Keep generators consistent with their generated headers.
 - `.cpp` implementation units contain non-trivial algorithms, mutation, I/O, persistence, network, platform behavior, and private implementation.
 - `.hpp` is allowed only at documented Qt MOC, C/ABI, third-party, or similar textual compatibility boundaries.
 - `.h` is forbidden unless an external ecosystem requires it.

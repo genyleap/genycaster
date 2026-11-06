@@ -57,7 +57,7 @@ The full WASM regression collection may require a compatible Node runtime and ma
 - **Compartmentalization.** Optional wallet, messaging, Mini App, discovery or product-extension features do not become required by the core.
 - **Native and web parity without fake equivalence.** Each target keeps its actual security/runtime limits. A browser cannot be treated as a native Keychain host.
 
-Use RAII and explicit ownership in C++; prefer `std::expected` for recoverable errors, named modules for project-owned interfaces and the repository's established Qt/QML conventions. Add or update an ADR when changing an architectural invariant. Do not bypass source guards or weaken tests simply to make CI green.
+Use RAII and explicit ownership in C++; prefer `std::expected` for recoverable errors, named modules for project-owned interfaces and the repository's established Qt/QML conventions. Each `.cppm` and `.hpp` starts with a Doxygen file header identifying its repository-relative `@file`, specific `@brief` and `@details`, credited `@author`, original Git introduction date (`@since`), copyright and the applicable license. Generated third-party assets must preserve upstream attribution and license; update their generator as well. The architecture guard validates both file extensions. Add or update an ADR when changing an architectural invariant. Do not bypass source guards or weaken tests simply to make CI green.
 
 ## Pull request checklist
 

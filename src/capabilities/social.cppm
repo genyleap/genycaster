@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/social.cppm
+ * @brief       Provider-neutral social graph reads.
+ *
+ * @details
+ * Represents follows and related relationship pages as canonical graph
+ * state with scoped pagination.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

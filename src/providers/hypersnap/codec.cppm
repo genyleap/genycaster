@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/codec.cppm
+ * @brief       HyperSnap response decoding and normalization.
+ *
+ * @details
+ * Converts provider JSON into canonical casts, feeds, reactions and
+ * scoped cursor metadata.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

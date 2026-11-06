@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/read_gateway.cppm
+ * @brief       Synchronous provider-neutral read gateway.
+ *
+ * @details
+ * Defines the blocking read interface used from controlled I/O executors
+ * rather than the presentation thread.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <expected>

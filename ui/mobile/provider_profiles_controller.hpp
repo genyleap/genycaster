@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/provider_profiles_controller.hpp
+ * @brief       Protocol provider profile settings controller.
+ *
+ * @details
+ * Maintains configured node profiles, capability probes and selection
+ * preferences while protecting canonical provider independence.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QElapsedTimer>

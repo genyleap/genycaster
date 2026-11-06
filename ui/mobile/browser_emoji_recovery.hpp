@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_emoji_recovery.hpp
+ * @brief       Browser emoji text-input recovery adapter.
+ *
+ * @details
+ * Reconciles committed emoji input across WebAssembly and mobile Safari
+ * event differences without duplicating text entered by Qt Quick.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       26 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 // A narrow iOS Safari / Qt WebAssembly input adapter. Emoji keys are often

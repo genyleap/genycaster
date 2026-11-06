@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/social.cppm
+ * @brief       HyperSnap social graph source.
+ *
+ * @details
+ * Reads follow relationships with provider-owned pagination and canonical
+ * graph conversion.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.provider.hypersnap.social;
 
 import farcaster.capability.pagination;

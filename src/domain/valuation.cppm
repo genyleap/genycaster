@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/valuation.cppm
+ * @brief       Currency and asset valuation values.
+ *
+ * @details
+ * Represents normalized symbols, fiat currencies and decimal quotes for
+ * optional product insights.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       29 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string>

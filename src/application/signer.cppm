@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/signer.cppm
+ * @brief       Protocol signer readiness coordination.
+ *
+ * @details
+ * Tracks signer scopes, registration state and write eligibility without
+ * revealing secret signer material to UI consumers.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

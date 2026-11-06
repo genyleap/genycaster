@@ -1,3 +1,17 @@
+/*!
+ * @file        tests/providers/hypersnap/fake_transport.cppm
+ * @brief       Deterministic HTTP fake for provider tests.
+ *
+ * @details
+ * Queues controlled responses and records transport operations without
+ * accessing external network services.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

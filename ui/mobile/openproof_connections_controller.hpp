@@ -1,3 +1,18 @@
+/*!
+ * @file        ui/mobile/openproof_connections_controller.hpp
+ * @brief       Linked account connections controller.
+ *
+ * @details
+ * Displays server-verified linked identity records without storing
+ * provider credentials or treating a catalog entry as proof of a
+ * connection.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       21 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>

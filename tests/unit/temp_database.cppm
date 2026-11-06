@@ -1,3 +1,17 @@
+/*!
+ * @file        tests/unit/temp_database.cppm
+ * @brief       RAII temporary SQLite test database.
+ *
+ * @details
+ * Creates uniquely owned disposable database files and removes journal
+ * sidecars on destruction.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string>

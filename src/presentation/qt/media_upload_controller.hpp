@@ -1,3 +1,18 @@
+/*!
+ * @file        src/presentation/qt/media_upload_controller.hpp
+ * @brief       Qt media upload presentation adapter.
+ *
+ * @details
+ * Reports asynchronous upload progress and failures to QML without
+ * exposing transport credentials or performing upload I/O on the GUI
+ * thread.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

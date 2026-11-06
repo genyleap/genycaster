@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_token_preview_controller.hpp
+ * @brief       Browser token and asset preview controller.
+ *
+ * @details
+ * Supplies bounded token metadata reads to presentation widgets without
+ * taking custody of wallets or allowing the UI to grant permissions.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QElapsedTimer>

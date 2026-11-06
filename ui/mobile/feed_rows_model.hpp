@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/feed_rows_model.hpp
+ * @brief       Stable Qt feed row model.
+ *
+ * @details
+ * Adapts canonical feed snapshots to a QAbstractListModel, preserving
+ * stable row identity and incremental updates across Qt views.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Qt MOC/QML textual compatibility boundary: QAbstractListModel is a Qt-owned
 // presentation interface, not a C++ domain/application named-module contract.
 #pragma once

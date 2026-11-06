@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/read_async_service.cppm
+ * @brief       Asynchronous local-first read orchestration.
+ *
+ * @details
+ * Combines local snapshots, cancellable provider refreshes and
+ * reconciliation without blocking the UI event loop.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

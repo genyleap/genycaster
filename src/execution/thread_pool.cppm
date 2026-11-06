@@ -1,3 +1,17 @@
+/*!
+ * @file        src/execution/thread_pool.cppm
+ * @brief       Bounded general-purpose thread pool.
+ *
+ * @details
+ * Schedules independent CPU or compatibility work with explicit worker
+ * and pending-queue ownership.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

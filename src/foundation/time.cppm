@@ -1,3 +1,17 @@
+/*!
+ * @file        src/foundation/time.cppm
+ * @brief       Application time and timestamp primitives.
+ *
+ * @details
+ * Declares wall-clock values and clock access used by persisted state and
+ * protocol operations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

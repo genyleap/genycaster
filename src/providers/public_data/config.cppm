@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/public_data/config.cppm
+ * @brief       Optional public data provider configuration.
+ *
+ * @details
+ * Defines independent market and profile-insight endpoints for derived
+ * product data.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/miniapp_browser.hpp
+ * @brief       Platform Mini App browser abstraction.
+ *
+ * @details
+ * Defines isolated native browser lifecycle, origin-aware host messaging
+ * and Mini App presentation operations without exporting WebKit types.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Objective-C++/WebKit adapter is deliberately
 // outside C++ named modules and Qt MOC. No platform types escape this boundary.
 #pragma once

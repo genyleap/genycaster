@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/runtime_ui_bindings.hpp
+ * @brief       Qt runtime-to-interface composition bindings.
+ *
+ * @details
+ * Owns GUI-facing controller connections for a composed runtime while
+ * preserving MOC compatibility and core module isolation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <memory>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/feed.cppm
+ * @brief       HyperSnap feed source adapter.
+ *
+ * @details
+ * Reads and normalizes paginated feeds with provider-affine continuation
+ * handling.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

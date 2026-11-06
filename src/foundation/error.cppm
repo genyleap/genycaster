@@ -1,3 +1,17 @@
+/*!
+ * @file        src/foundation/error.cppm
+ * @brief       Structured recoverable error model.
+ *
+ * @details
+ * Defines stable error categories shared across application, capability
+ * and infrastructure boundaries.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string>

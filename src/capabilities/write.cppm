@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/write.cppm
+ * @brief       Canonical Farcaster write encoding contract.
+ *
+ * @details
+ * Defines the provider-independent codec responsible for constructing and
+ * validating signed protocol envelopes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <memory>

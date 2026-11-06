@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/text_selection_settings.hpp
+ * @brief       Cross-platform text selection preferences.
+ *
+ * @details
+ * Stores user-facing selection behavior choices for native and browser Qt
+ * views without changing canonical content.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       22 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 #include <QObject>
 #include <QString>

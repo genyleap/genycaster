@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/snapchain/signer.cppm
+ * @brief       Snapchain signer registry adapter.
+ *
+ * @details
+ * Reads and reconciles signer registration and revocation state through a
+ * chosen protocol endpoint.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

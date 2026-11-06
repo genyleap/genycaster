@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/market.cppm
+ * @brief       Provider-neutral market and token entities.
+ *
+ * @details
+ * Represents network-qualified token addresses, tracked assets and market
+ * snapshots without adding them to protocol messages.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

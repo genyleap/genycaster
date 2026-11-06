@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/checkpoint_store.cppm
+ * @brief       SQLite synchronization checkpoint adapter.
+ *
+ * @details
+ * Opens durable semantic checkpoint storage independent from
+ * provider-internal continuation tokens.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

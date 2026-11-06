@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/presentation_bridge.hpp
+ * @brief       Qt application presentation facade.
+ *
+ * @details
+ * Connects verified session state, feed operations and social actions to
+ * QML without making the interface own protocol adapters.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

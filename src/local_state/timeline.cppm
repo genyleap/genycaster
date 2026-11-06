@@ -1,3 +1,17 @@
+/*!
+ * @file        src/local_state/timeline.cppm
+ * @brief       Application-owned timeline persistence contract.
+ *
+ * @details
+ * Exposes stable timeline slices and identifiers independent of remote
+ * feed cursor formats.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

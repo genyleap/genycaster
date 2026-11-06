@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/search.cppm
+ * @brief       Provider-neutral interactive search capability.
+ *
+ * @details
+ * Defines channel suggestions and search result pages independent of a
+ * specific discovery index.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       03 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

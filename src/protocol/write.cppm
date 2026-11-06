@@ -1,3 +1,17 @@
+/*!
+ * @file        src/protocol/write.cppm
+ * @brief       Protocol write codec creation.
+ *
+ * @details
+ * Creates the mainnet canonical message encoder behind the
+ * provider-neutral write capability.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <memory>

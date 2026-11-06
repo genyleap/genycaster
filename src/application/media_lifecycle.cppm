@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/media_lifecycle.cppm
+ * @brief       Managed media deletion lifecycle.
+ *
+ * @details
+ * Reports asynchronous, owner-scoped cleanup progress after protocol
+ * writes and supports durable failure and retry states.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

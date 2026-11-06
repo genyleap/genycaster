@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/public_data/score.cppm
+ * @brief       Derived profile score data adapter.
+ *
+ * @details
+ * Adapts optional external profile-quality observations into normalized
+ * non-canonical scores.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.provider.public_data.score;
 
 import farcaster.capability.profile_quality;

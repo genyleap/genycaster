@@ -1,3 +1,17 @@
+/*!
+ * @file        src/local_state/signer.cppm
+ * @brief       Non-secret signer metadata storage contract.
+ *
+ * @details
+ * Persists signer readiness and registration metadata separately from
+ * platform-protected private key material.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

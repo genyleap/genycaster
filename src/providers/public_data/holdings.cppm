@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/public_data/holdings.cppm
+ * @brief       Read-only token holdings adapter.
+ *
+ * @details
+ * Reads verified wallet ERC-20 balances for context widgets without
+ * authorizing wallet transactions.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

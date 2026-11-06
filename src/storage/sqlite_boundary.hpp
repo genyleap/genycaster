@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/sqlite_boundary.hpp
+ * @brief       SQLite C API compatibility boundary.
+ *
+ * @details
+ * Contains private SQLite-facing declarations and error translation
+ * needed by storage implementations outside C++ named module interfaces.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: SQLite C API types require a private .hpp bridge.
 #pragma once
 

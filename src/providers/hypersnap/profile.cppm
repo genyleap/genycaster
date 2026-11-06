@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/profile.cppm
+ * @brief       HyperSnap profile source.
+ *
+ * @details
+ * Normalizes profile lookups and enrichments behind the profile
+ * capability interface.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.provider.hypersnap.profile;
 
 import farcaster.capability.profile;

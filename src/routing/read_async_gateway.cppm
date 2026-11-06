@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/read_async_gateway.cppm
+ * @brief       Capability-routed asynchronous reads.
+ *
+ * @details
+ * Selects an eligible async provider and observes health while preserving
+ * cancellation and normalized results.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string_view>

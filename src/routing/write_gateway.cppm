@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/write_gateway.cppm
+ * @brief       Routed signed-message submission.
+ *
+ * @details
+ * Preserves the selected writer and durable route identity for safe
+ * reconciliation and idempotent writes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include <vector>
 #include <string>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/write_authority.cppm
+ * @brief       Verified protocol write authority contract.
+ *
+ * @details
+ * Exposes current signer identity and scope verification required by
+ * durable writes without sharing private keys.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string>

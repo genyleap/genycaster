@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/compatibility/browser_wallet/authorizer.cppm
+ * @brief       Browser custody approval compatibility adapter.
+ *
+ * @details
+ * Launches a short-lived external wallet authorization ceremony through
+ * an isolated localhost session.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

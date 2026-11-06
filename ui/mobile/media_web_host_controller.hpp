@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/media_web_host_controller.hpp
+ * @brief       Isolated in-app media browser host.
+ *
+ * @details
+ * Provides a dedicated media web surface using platform WebKit isolation
+ * without enabling Mini App wallet or host capabilities.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include "miniapp_browser.hpp"

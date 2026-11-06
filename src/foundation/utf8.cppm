@@ -1,3 +1,17 @@
+/*!
+ * @file        src/foundation/utf8.cppm
+ * @brief       UTF-8 validation and scalar operations.
+ *
+ * @details
+ * Provides bounded Unicode scalar checks without introducing presentation
+ * or locale dependencies into the core.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

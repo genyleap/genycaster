@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/cast_view_controller.hpp
+ * @brief       Qt cast-detail view state controller.
+ *
+ * @details
+ * Maintains per-cast reactive state and bounded update requests so
+ * conversation detail presentation remains consistent during navigation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QElapsedTimer>

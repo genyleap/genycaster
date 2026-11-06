@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/link_preview_resolver.hpp
+ * @brief       External link preview resolver.
+ *
+ * @details
+ * Fetches bounded public URL metadata asynchronously and exposes cached
+ * display details to Qt Quick without network calls in QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

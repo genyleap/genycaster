@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/request.cppm
+ * @brief       Blocking HyperSnap request helper.
+ *
+ * @details
+ * Applies request budgets and HTTP response handling through a borrowed
+ * provider-neutral transport.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

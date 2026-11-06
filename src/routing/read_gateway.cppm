@@ -1,3 +1,17 @@
+/*!
+ * @file        src/routing/read_gateway.cppm
+ * @brief       Capability-routed blocking reads.
+ *
+ * @details
+ * Binds eligible providers to canonical read operations under the active
+ * routing and health policy.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string_view>

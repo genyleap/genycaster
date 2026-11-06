@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_link_metadata_controller.hpp
+ * @brief       Browser link preview metadata controller.
+ *
+ * @details
+ * Performs bounded asynchronous link metadata retrieval for QML-facing
+ * previews without granting web content arbitrary network authority.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>

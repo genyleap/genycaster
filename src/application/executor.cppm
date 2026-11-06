@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/executor.cppm
+ * @brief       Application scheduling abstraction.
+ *
+ * @details
+ * Defines ownership of scheduled jobs and the execution boundary used to
+ * keep blocking work away from presentation threads.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <functional>

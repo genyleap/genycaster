@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/signer.cppm
+ * @brief       Secure protocol signer and custody authorization ports.
+ *
+ * @details
+ * Separates Ed25519 signing, platform-vault ownership and custody
+ * approval into explicit, independently authorized interfaces.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

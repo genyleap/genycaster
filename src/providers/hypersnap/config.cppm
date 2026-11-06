@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/config.cppm
+ * @brief       HyperSnap provider configuration.
+ *
+ * @details
+ * Owns endpoint settings and adapter-instance identity at composition
+ * time rather than in domain models.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string>

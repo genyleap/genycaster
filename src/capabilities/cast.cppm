@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/cast.cppm
+ * @brief       Provider-neutral cast read interface.
+ *
+ * @details
+ * Exposes canonical cast retrieval behind a blocking capability port for
+ * provider adapters.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.capability.cast;
 
 import farcaster.domain.cast;

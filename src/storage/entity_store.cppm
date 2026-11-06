@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/entity_store.cppm
+ * @brief       SQLite canonical entity storage adapter.
+ *
+ * @details
+ * Opens the persistence implementation for normalized domain entities and
+ * identity state.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

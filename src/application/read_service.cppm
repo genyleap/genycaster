@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/read_service.cppm
+ * @brief       Local-first read service and request lifetime.
+ *
+ * @details
+ * Serves cached state, schedules remote refreshes and suppresses observer
+ * callbacks after request cancellation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

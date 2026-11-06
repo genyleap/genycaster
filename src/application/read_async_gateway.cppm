@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/read_async_gateway.cppm
+ * @brief       Asynchronous read gateway contract.
+ *
+ * @details
+ * Provides cancellable completion-based reads between application use
+ * cases and eligible remote capability implementations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <functional>

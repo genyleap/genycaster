@@ -1,3 +1,17 @@
+/*!
+ * @file        src/transport/curl.cppm
+ * @brief       libcurl HTTP transport factory.
+ *
+ * @details
+ * Provides a blocking C++ HTTP adapter for provider code running on
+ * controlled I/O executors.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <memory>

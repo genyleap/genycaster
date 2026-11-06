@@ -1,3 +1,17 @@
+/*!
+ * @file        src/execution/weighted_thread_pool.cppm
+ * @brief       Byte-budgeted CPU task execution.
+ *
+ * @details
+ * Uses both job-count and retained-memory limits to prevent concurrent
+ * decode and transformation work from overrunning resources.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

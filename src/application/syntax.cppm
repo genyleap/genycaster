@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/syntax.cppm
+ * @brief       Syntax language registry and highlighting contracts.
+ *
+ * @details
+ * Describes bounded native tokenization and incremental syntax
+ * highlighting for rich composer and viewer content.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/public_data/market.cppm
+ * @brief       Public market data source adapter.
+ *
+ * @details
+ * Normalizes market pricing and token snapshots for optional product
+ * widgets.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <vector>

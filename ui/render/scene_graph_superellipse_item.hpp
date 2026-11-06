@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/render/scene_graph_superellipse_item.hpp
+ * @brief       GPU scene-graph continuous-corner surface.
+ *
+ * @details
+ * Defines the native Qt Quick superellipse component for reusable,
+ * responsive and consistently shaped application surfaces.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC/QML registration requires this declaration in a .hpp file.
 #pragma once
 

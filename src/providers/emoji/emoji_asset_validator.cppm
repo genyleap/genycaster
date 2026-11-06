@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/emoji/emoji_asset_validator.cppm
+ * @brief       Animated emoji asset validation.
+ *
+ * @details
+ * Enforces bounds and cryptographic checksums before downloaded animation
+ * assets enter trusted caches.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <array>

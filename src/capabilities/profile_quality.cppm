@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/profile_quality.cppm
+ * @brief       Derived profile-quality scoring capability.
+ *
+ * @details
+ * Exposes optional normalized profile score observations without treating
+ * derived scores as protocol authority.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       02 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

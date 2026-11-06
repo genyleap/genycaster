@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/session.cppm
+ * @brief       Client authentication session lifecycle.
+ *
+ * @details
+ * Exposes verified session phases and account state separately from
+ * custody approval and protocol signing authority.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <functional>

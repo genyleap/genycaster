@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/media/storage_policy.cppm
+ * @brief       Media download and cache policy.
+ *
+ * @details
+ * Applies per-media and network-class rules for automatic downloads,
+ * cache budgets and usage reporting.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       11 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <array>

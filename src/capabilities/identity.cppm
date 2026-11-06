@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/identity.cppm
+ * @brief       Farcaster identity resolution contract.
+ *
+ * @details
+ * Maps user identity queries to canonical protocol identifiers through a
+ * replaceable provider interface.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <string_view>

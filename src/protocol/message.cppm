@@ -1,3 +1,17 @@
+/*!
+ * @file        src/protocol/message.cppm
+ * @brief       Canonical Farcaster message construction.
+ *
+ * @details
+ * Defines protocol message variants, network fields and serialization
+ * inputs for signed cast and social operations.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

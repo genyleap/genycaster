@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/signer.cppm
+ * @brief       Signer identity, scope and registration values.
+ *
+ * @details
+ * Defines canonical public signing metadata, signatures and authorization
+ * state without exposing secret key material.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

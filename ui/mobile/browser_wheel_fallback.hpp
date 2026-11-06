@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_wheel_fallback.hpp
+ * @brief       WebAssembly wheel gesture compatibility.
+ *
+ * @details
+ * Normalizes browser wheel and pointer events when the Qt WebAssembly
+ * canvas does not receive native scrolling gestures reliably.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       17 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QPoint>

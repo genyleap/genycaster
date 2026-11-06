@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/compatibility/farcaster_auth/auth.cppm
+ * @brief       Farcaster sign-in compatibility adapter.
+ *
+ * @details
+ * Adapts verified SIWF and recovery authorization flows to the
+ * provider-neutral authentication contract.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

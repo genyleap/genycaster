@@ -1,3 +1,17 @@
+/*!
+ * @file        src/local_state/session.cppm
+ * @brief       Normalized client session persistence interface.
+ *
+ * @details
+ * Defines storage of non-secret session state without making local
+ * snapshots independent authentication proof.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

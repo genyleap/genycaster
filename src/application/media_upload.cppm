@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/media_upload.cppm
+ * @brief       Media upload application service.
+ *
+ * @details
+ * Models bounded upload progress and delegates authenticated media
+ * transport through a provider-neutral capability port.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <atomic>

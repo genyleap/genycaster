@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/social.cppm
+ * @brief       Canonical social relationship entities.
+ *
+ * @details
+ * Defines directed social graph edges and their protocol meaning
+ * independently from feed providers.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

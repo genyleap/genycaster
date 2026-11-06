@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/signer_store.cppm
+ * @brief       SQLite signer metadata storage adapter.
+ *
+ * @details
+ * Stores non-secret signer registration and readiness state separate from
+ * secure-vault key material.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

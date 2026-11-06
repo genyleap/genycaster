@@ -1,3 +1,17 @@
+/*!
+ * @file        src/platform/custody_recovery.cppm
+ * @brief       Platform custody recovery and proof contract.
+ *
+ * @details
+ * Defines authenticated recovery results and proof failures without
+ * allowing seed material into application-facing storage.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

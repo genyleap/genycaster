@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import pathlib
 import re
 import sys
@@ -102,6 +103,89 @@ def relative(path: pathlib.Path) -> str:
 
 def add(path: pathlib.Path, message: str) -> None:
     violations.append(f"{relative(path)}: {message}")
+
+
+# Module interfaces and MOC / C-ABI textual compatibility headers have a
+# consistent project-owned Doxygen banner. Use root-relative paths so files
+# with shared basenames stay unambiguous in generated documentation.
+SOURCE_FILE_HEADER = re.compile(r"\A/\*!\n(?P<body>.*?)\n \*/\n", re.DOTALL)
+SOURCE_HEADER_FIELDS = (
+    "@file", "@brief", "@details", "@author", "@since",
+    "@copyright", "@license",
+)
+THIRD_PARTY_WORDLIST = "src/platform/custody_bip39_english.hpp"
+
+
+def check_source_file_header(path: pathlib.Path) -> None:
+    contents = path.read_text(encoding="utf-8", errors="replace")
+    match = SOURCE_FILE_HEADER.match(contents)
+    if match is None:
+        add(path, "source interface requires a leading /*! Doxygen file header")
+        return
+    body = match.group("body")
+    for field in SOURCE_HEADER_FIELDS:
+        if len(re.findall(rf"^ \* {re.escape(field)}(?:\s|$)", body, re.MULTILINE)) != 1:
+            add(path, f"file header must contain exactly one {field}")
+    if not re.search(
+        rf"^ \* @file\s+{re.escape(relative(path))}\s*$",
+        body, re.MULTILINE,
+    ):
+        add(path, "@file must use the unique repository-relative path")
+    if not re.search(r"^ \* @brief\s+.{12,}\.$", body, re.MULTILINE):
+        add(path, "@brief must describe the purpose in a complete sentence")
+    if not re.search(
+        r"^ \* @details\n(?: \* [^@\n]+\n)+", body, re.MULTILINE,
+    ):
+        add(path, "@details must explain file-specific responsibilities")
+    if not re.search(r"^ \* @author\s+\S.+$", body, re.MULTILINE):
+        add(path, "@author must identify the credited source contributor")
+    since = re.search(
+        r"^ \* @since\s+(\d{2} [A-Z][a-z]{2} \d{4})\s*$",
+        body, re.MULTILINE,
+    )
+    if since is None:
+        add(path, "@since must use DD Mon YYYY")
+    else:
+        try:
+            datetime.datetime.strptime(since.group(1), "%d %b %Y")
+        except ValueError:
+            add(path, "@since must be a valid calendar date")
+
+    if relative(path) == THIRD_PARTY_WORDLIST:
+        if not re.search(
+            r"^ \* @copyright\s+Copyright \(c\) 2026 Genyleap "
+            r"\(generated binding only\)\.$", body, re.MULTILINE,
+        ):
+            add(path, "generated wordlist must limit copyright to the binding")
+        if not re.search(
+            r"^ \* @author\s+.*scure-bip39 contributors", body, re.MULTILINE,
+        ):
+            add(path, "generated wordlist must credit its upstream authors")
+        if not re.search(
+            r"^ \* @license\s+Wordlist: MIT "
+            r"\(ui/wasm/vendor/scure-bip39\.LICENSE\); "
+            r"binding: see LICENSE\.$", body, re.MULTILINE,
+        ):
+            add(path, "generated wordlist must retain MIT license attribution")
+    else:
+        if not re.search(
+            r"^ \* @copyright\s+Copyright \(c\) \d{4} Genyleap\.$",
+            body, re.MULTILINE,
+        ):
+            add(path, "@copyright must identify Genyleap")
+        if not re.search(
+            r"^ \* @license\s+See LICENSE in repository root "
+            r"\(GPL-3\.0-only\)\.$", body, re.MULTILINE,
+        ):
+            add(path, "@license must name the repository's GPL-3.0-only license")
+
+
+for source_root in (SRC, ROOT / "ui", ROOT / "tests"):
+    if not source_root.is_dir():
+        continue
+    for extension in ("*.cppm", "*.hpp"):
+        for path in source_root.rglob(extension):
+            check_source_file_header(path)
 
 
 if MISPLACED_QT_TRANSPORT.exists():

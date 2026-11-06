@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/write.cppm
+ * @brief       Canonical protocol mutation and write identity.
+ *
+ * @details
+ * Defines protocol write intents, targets and idempotency keys used by
+ * the durable submission pipeline.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

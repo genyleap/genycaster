@@ -1,3 +1,17 @@
+/*!
+ * @file        src/sync/model.cppm
+ * @brief       Provider-neutral sync checkpoint state.
+ *
+ * @details
+ * Defines stable sync keys and phases used to track incremental,
+ * restart-safe materialization.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

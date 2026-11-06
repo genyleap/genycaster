@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/valuation.cppm
+ * @brief       Fiat and token valuation capability.
+ *
+ * @details
+ * Declares price and currency conversion lookup as derived data
+ * independent from canonical social messages.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       29 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <vector>

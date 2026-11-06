@@ -1,3 +1,18 @@
+/*!
+ * @file        ui/mobile/update_controller.hpp
+ * @brief       Application update status controller.
+ *
+ * @details
+ * Checks signed or authenticated release metadata and presents bounded
+ * update state without silently installing or trusting arbitrary
+ * artifacts.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       16 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

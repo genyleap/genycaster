@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/emoji/emoji_catalog.cppm
+ * @brief       Unicode emoji catalog and user selection state.
+ *
+ * @details
+ * Exposes generated emoji metadata, categories and recents for a
+ * localized picker without binding UI implementation details.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

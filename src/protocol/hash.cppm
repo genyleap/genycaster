@@ -1,3 +1,17 @@
+/*!
+ * @file        src/protocol/hash.cppm
+ * @brief       Farcaster canonical message hashing.
+ *
+ * @details
+ * Defines the 20-byte BLAKE3-based protocol message hash used for signed
+ * message identity.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <array>

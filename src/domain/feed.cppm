@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/feed.cppm
+ * @brief       Canonical feed entries and viewer reaction state.
+ *
+ * @details
+ * Defines stable feed references and account-scoped interaction overlays
+ * separate from remote ranking cursors.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <vector>

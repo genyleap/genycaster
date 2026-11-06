@@ -1,3 +1,18 @@
+/*!
+ * @file        src/presentation/qt/rich_composer_controller.hpp
+ * @brief       Qt rich-text composer controller.
+ *
+ * @details
+ * Maps editor content, mentions and draft state to safe application
+ * formatting and publishing operations without placing protocol logic in
+ * QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       30 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

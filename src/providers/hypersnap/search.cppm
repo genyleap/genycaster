@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/search.cppm
+ * @brief       HyperSnap derived search source.
+ *
+ * @details
+ * Normalizes interactive search, people and channel suggestions from the
+ * configured search provider.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       03 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/session_store.cppm
+ * @brief       SQLite client-session persistence adapter.
+ *
+ * @details
+ * Stores normalized session metadata without persisting protocol-signing
+ * secrets.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

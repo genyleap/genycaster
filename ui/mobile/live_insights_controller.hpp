@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/live_insights_controller.hpp
+ * @brief       Live market and token insights controller.
+ *
+ * @details
+ * Connects optional market snapshots, token holdings and profile signals
+ * to localized Qt widgets without affecting Farcaster writes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

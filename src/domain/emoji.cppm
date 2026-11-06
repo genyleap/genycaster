@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/emoji.cppm
+ * @brief       Emoji domain identifiers and presentation states.
+ *
+ * @details
+ * Models emoji references, animation availability and safe fallback
+ * metadata without coupling to a particular renderer.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

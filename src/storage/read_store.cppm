@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/read_store.cppm
+ * @brief       SQLite local-first read cache adapter.
+ *
+ * @details
+ * Stores canonical read snapshots and viewer-scoped feed/social
+ * projections for offline continuity.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

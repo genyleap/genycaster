@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/compatibility/browser_wallet/bridge.cppm
+ * @brief       External browser Mini App wallet bridge.
+ *
+ * @details
+ * Mediates origin-scoped EIP-1193 wallet sessions without exposing the
+ * host's signing keys or UI internals.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <chrono>

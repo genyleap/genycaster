@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/geo_location_resolver.hpp
+ * @brief       Profile geography label resolver.
+ *
+ * @details
+ * Formats public coarse geo profile values for display without altering
+ * canonical Farcaster location data.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_signer_bridge.hpp
+ * @brief       WebAssembly protocol signer event bridge.
+ *
+ * @details
+ * Bridges bounded asynchronous browser messages to Qt and separates
+ * sign-in state from explicit authorization to sign a protocol message.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       17 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 // Qt/Emscripten asynchronous bridge. It never blocks on a browser Promise,

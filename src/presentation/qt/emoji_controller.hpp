@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/emoji_controller.hpp
+ * @brief       Qt emoji presentation controller.
+ *
+ * @details
+ * Exposes emoji assets, playback state and settings to QML while keeping
+ * validation and cache orchestration in native service modules.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in
 // a .hpp file. All emoji logic lives in native C++ modules; this adapter only
 // owns Qt-facing state, borrowed asset callbacks and QSettings persistence.

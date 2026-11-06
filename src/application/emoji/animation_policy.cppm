@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/emoji/animation_policy.cppm
+ * @brief       Animated emoji playback policy.
+ *
+ * @details
+ * Decides whether and how emoji animation runs for a given surface while
+ * honoring playback and reduced-motion rules.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

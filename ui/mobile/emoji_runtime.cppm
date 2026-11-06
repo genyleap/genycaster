@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/emoji_runtime.cppm
+ * @brief       Executable emoji runtime composition.
+ *
+ * @details
+ * Owns asset provider, cache and playback components outside the public
+ * Qt presentation surface.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include "emoji_controller_fwd.hpp"

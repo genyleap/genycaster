@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/hypersnap/notification.cppm
+ * @brief       HyperSnap notification source.
+ *
+ * @details
+ * Adapts notification pages and cursors into canonical in-app
+ * notification state.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       03 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 export module farcaster.provider.hypersnap.notification;

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/data_storage_controller.hpp
+ * @brief       Local media storage settings controller.
+ *
+ * @details
+ * Exposes cache retention, download policy and usage snapshots while
+ * leaving filesystem management to owned infrastructure components.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual Qt boundary for QObject/Q_PROPERTY exposure to QML.
 #pragma once
 

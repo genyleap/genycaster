@@ -1,3 +1,17 @@
+/*!
+ * @file        src/domain/media.cppm
+ * @brief       Canonical media asset representation.
+ *
+ * @details
+ * Separates cast media kinds and uploaded asset identity from any storage
+ * provider's internal object paths.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       31 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>

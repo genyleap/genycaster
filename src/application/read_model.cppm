@@ -1,3 +1,17 @@
+/*!
+ * @file        src/application/read_model.cppm
+ * @brief       Normalized application read state.
+ *
+ * @details
+ * Defines read phases, request intent and immutable feed, profile, search
+ * and notification snapshots for presentation adapters.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

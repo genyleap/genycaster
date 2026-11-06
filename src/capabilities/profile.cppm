@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/profile.cppm
+ * @brief       Canonical Farcaster profile read interface.
+ *
+ * @details
+ * Defines the replaceable data-source boundary for profile lookup and
+ * hydration.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 export module farcaster.capability.profile;
 
 import farcaster.domain.identity;

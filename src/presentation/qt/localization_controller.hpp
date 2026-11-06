@@ -1,3 +1,17 @@
+/*!
+ * @file        src/presentation/qt/localization_controller.hpp
+ * @brief       Qt locale and translation controller.
+ *
+ * @details
+ * Exposes language, direction and regional formatting settings across the
+ * Qt presentation boundary without changing protocol text.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       29 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual compatibility boundary: Qt MOC requires this QObject declaration in a .hpp file.
 #pragma once
 

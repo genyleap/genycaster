@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/browser_reaction_controller.hpp
+ * @brief       Browser reaction state reconciliation.
+ *
+ * @details
+ * Keeps cast reaction changes and pending UI operations aligned with
+ * provider responses without assuming each browser request succeeds.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       20 Oct 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>

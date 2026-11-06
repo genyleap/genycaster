@@ -1,3 +1,17 @@
+/*!
+ * @file        src/transport/qt_network/async_http.cppm
+ * @brief       Qt Network asynchronous HTTP reactor.
+ *
+ * @details
+ * Creates a bounded nonblocking Qt transport that admits requests and
+ * completes callbacks without blocking GUI work.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       04 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

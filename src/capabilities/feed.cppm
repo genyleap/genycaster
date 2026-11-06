@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/feed.cppm
+ * @brief       Paginated feed read contract.
+ *
+ * @details
+ * Exposes canonical feed pages and continuation semantics through
+ * provider-neutral read sources.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <optional>

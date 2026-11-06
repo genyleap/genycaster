@@ -1,3 +1,17 @@
+/*!
+ * @file        src/capabilities/notification.cppm
+ * @brief       Canonical notification read capability.
+ *
+ * @details
+ * Defines notification kinds, pages and provider-neutral event snapshots
+ * for the client's notification surface.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       03 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstddef>

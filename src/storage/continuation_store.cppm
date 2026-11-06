@@ -1,3 +1,17 @@
+/*!
+ * @file        src/storage/continuation_store.cppm
+ * @brief       SQLite provider continuation mapping.
+ *
+ * @details
+ * Persists opaque provider-affine cursors while keeping their
+ * implementation details outside local application ports.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       28 Aug 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <filesystem>

@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/mobile/remote_image_provider.hpp
+ * @brief       Asynchronous remote image provider.
+ *
+ * @details
+ * Delivers bounded decoded image data to Qt Quick with controlled HTTP
+ * fetching and caching outside QML delegates.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       24 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 // Textual Qt boundary: QQuickAsyncImageProvider is supplied by Qt rather than a project module.
 #pragma once
 

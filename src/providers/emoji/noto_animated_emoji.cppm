@@ -1,3 +1,17 @@
+/*!
+ * @file        src/providers/emoji/noto_animated_emoji.cppm
+ * @brief       Noto Animated Emoji provider adapter.
+ *
+ * @details
+ * Resolves Unicode emoji to optional validated artwork without making
+ * Noto an application-domain dependency.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       05 Sep 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 
 #include <cstdint>
