@@ -34,6 +34,32 @@ def main() -> None:
     assert "linux_gcc_arm64" in workflow
     assert "macos-26-intel" in workflow
     assert "runner: macos-26" in workflow
+    # A completed macOS ARM64 link was previously rejected by a malformed
+    # lipo invocation. Keep the executable before -verify_arch.
+    assert '/usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"' in workflow
+    assert '/usr/bin/lipo -verify_arch' not in workflow
+    assert '/usr/bin/lipo "$APP/Genycaster" -verify_arch arm64' in workflow
+    # Homebrew macOS-26 OpenSSL static objects cannot safely target macOS 15.
+    # Match both release architectures to source-built, SHA-verified static
+    # libraries with the same minimum deployment target as the application.
+    assert "Build OpenSSL 3.5.9 for macOS 15 deployment" in workflow
+    assert "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a" in workflow
+    assert "MACOSX_DEPLOYMENT_TARGET=15.0" in workflow
+    assert 'export CFLAGS="-O2 -mmacosx-version-min=15.0"' in workflow
+    assert 'darwin64-${{ matrix.arch }}-cc' in workflow
+    assert '-DOPENSSL_ROOT_DIR="$GITHUB_WORKSPACE/build/ci-openssl/install"' in workflow
+    assert '-DOPENSSL_INCLUDE_DIR="$GITHUB_WORKSPACE/build/ci-openssl/install/include"' in workflow
+    assert '-DOPENSSL_CRYPTO_LIBRARY="$GITHUB_WORKSPACE/build/ci-openssl/install/lib/libcrypto.a"' in workflow
+    assert '-DOPENSSL_SSL_LIBRARY="$GITHUB_WORKSPACE/build/ci-openssl/install/lib/libssl.a"' in workflow
+    assert "OPENSSL_CRYPTO_LIBRARY:[^=]*=" in workflow
+    assert "OPENSSL_SSL_LIBRARY:[^=]*=" in workflow
+    # Qt Multimedia's GStreamer backend must resolve native runtime
+    # dependencies before compiling and packaging costly Linux artifacts.
+    assert "libgstreamer-plugins-bad1.0-0" in workflow
+    linux = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
+    assert linux.index("Check Qt Multimedia deployment dependencies") < linux.index("Build Qt client")
+    assert 'ldd "$GST_QT_PLUGIN"' in linux
+    assert "libgstplay-1.0.so.0" in linux
     assert "windows-11-arm" in workflow
     assert "android_armv7" in workflow
     assert "name: iOS arm64 unsigned device app" in workflow

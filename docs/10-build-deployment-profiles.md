@@ -62,6 +62,24 @@ uninstaller; Linux AppImage and DEB use the same `linuxdeploy` AppDir.
 OS-provided system libraries are intentionally managed by the OS rather than
 replacing critical system libraries in the package.
 
+**macOS CI compatibility:** The application targets macOS 15+ while building
+with C++26 and Xcode 26. GitHub's macOS 26 Homebrew OpenSSL bottles may have
+a minimum deployment version of macOS 26 and must not be statically linked
+into an app claiming macOS 15 support. The macOS CI job instead downloads the
+SHA-256-pinned OpenSSL 3.5.9 source release, compiles a static per-architecture
+OpenSSL with `MACOSX_DEPLOYMENT_TARGET=15.0`, and asserts CMake resolves its
+`libssl.a` and `libcrypto.a` from that isolated prefix. The built app's
+architecture is validated using `lipo <executable> -verify_arch <architecture>`
+before packaging the DMG. No warning or minimum deployment version is
+silently changed to make the linker pass.
+
+**Linux deployment dependencies:** The Qt Multimedia GStreamer backend
+requires `libgstplay-1.0.so.0`, provided by Ubuntu's
+`libgstreamer-plugins-bad1.0-0`. Both native Linux architectures install
+this dependency before packaging; CI checks `ldd` on Qt's GStreamer plugin
+**before** compiling the large C++26 application to avoid wasting build
+minutes on an incomplete packaging environment.
+
 **Update transport vs. update installation:** GenyConnect's existing desktop
 self-update files are copies of the native executable/DMG, not differential
 binary patches. GenyCaster's `ci/package_selfupdate.py` outputs independent
