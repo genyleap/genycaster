@@ -247,12 +247,38 @@ aimcpp_reject_final_qml_creatable_types(
         "${CMAKE_CURRENT_SOURCE_DIR}/render/scene_graph_superellipse_item.hpp"
 )
 
+# Qt QObject/QML adapters remain MOC-readable; the non-QObject
+# platform and startup logic uses independent C++26 named modules.
+# PUBLIC module file sets propagate BMI dependencies to the application and
+# their focused native UI tests without any relative source includes.
+add_library(genycaster_ui_bootstrap STATIC)
+target_sources(genycaster_ui_bootstrap
+    PUBLIC FILE_SET CXX_MODULES FILES app/bootstrap/options.cppm
+    PRIVATE app/bootstrap/options.cpp)
+target_include_directories(genycaster_ui_bootstrap PRIVATE
+    "${CMAKE_SOURCE_DIR}/src/presentation/qt")
+target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui)
+target_compile_features(genycaster_ui_bootstrap PUBLIC cxx_std_26)
+set_property(TARGET genycaster_ui_bootstrap PROPERTY CXX_SCAN_FOR_MODULES ON)
+
+add_library(genycaster_web_wheel STATIC)
+target_sources(genycaster_web_wheel
+    PUBLIC FILE_SET CXX_MODULES FILES app/web/wheel.cppm
+    PRIVATE app/web/wheel.cpp)
+target_link_libraries(genycaster_web_wheel PUBLIC Qt6::Quick)
+target_compile_features(genycaster_web_wheel PUBLIC cxx_std_26)
+set_property(TARGET genycaster_web_wheel PROPERTY CXX_SCAN_FOR_MODULES ON)
+
+add_library(genycaster_update_install STATIC)
+target_sources(genycaster_update_install
+    PUBLIC FILE_SET CXX_MODULES FILES app/update/install.cppm
+    PRIVATE app/update/install.cpp)
+target_link_libraries(genycaster_update_install PUBLIC Qt6::Core Qt6::Gui)
+target_compile_features(genycaster_update_install PUBLIC cxx_std_26)
+set_property(TARGET genycaster_update_install PROPERTY CXX_SCAN_FOR_MODULES ON)
+
 qt_add_executable(genycaster
     app/main.cpp
-    app/web/Wheel.cpp
-    app/web/Wheel.hpp
-    app/bootstrap/Options.cpp
-    app/bootstrap/Options.hpp
     app/runtime_ui_bindings.cpp
     app/data_storage_controller.cpp
     app/data_storage_controller.hpp
@@ -288,8 +314,6 @@ qt_add_executable(genycaster
     app/provider_profiles_controller.hpp
     app/update_controller.cpp
     app/update_controller.hpp
-    app/update/install.cpp
-    app/update/install.hpp
     app/remote_image_provider.cpp
     app/remote_image_provider.hpp
     app/browser_openproof_auth.cpp
@@ -299,6 +323,11 @@ qt_add_executable(genycaster
     app/genypulse_activity_controller.cpp
     app/genypulse_activity_controller.hpp
 )
+
+target_link_libraries(genycaster PRIVATE
+    genycaster_ui_bootstrap
+    genycaster_web_wheel
+    genycaster_update_install)
 
 target_sources(genycaster
     PRIVATE
