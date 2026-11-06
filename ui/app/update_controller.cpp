@@ -1,4 +1,5 @@
 #include "update_controller.hpp"
+#include "update/install.hpp"
 
 #include <QCoreApplication>
 #include <QDesktopServices>
@@ -751,9 +752,13 @@ void UpdateController::finishDownload(QNetworkReply* reply)
 
 bool UpdateController::openDownloadedUpdate()
 {
-    // Never trust a cache file merely because it passed verification when it
-    // was downloaded. Recheck after possible replacement/tampering and before
-    // asking the OS to execute a native installer.
+    return installDownloadedUpdate();
+}
+
+bool UpdateController::installDownloadedUpdate()
+{
+    // Keep release selection and installation independent of the current
+    // filesystem cache. A local package can be altered after download.
     const QFileInfo info{m_downloadedFilePath};
     if (!downloadSupported() || !m_updateAvailable ||
         m_downloadedFilePath.isEmpty() || !info.isFile() || info.isSymLink() ||
@@ -762,7 +767,6 @@ bool UpdateController::openDownloadedUpdate()
         fail(QStringLiteral("No verified installer is ready"));
         return false;
     }
-
     QFile installer{m_downloadedFilePath};
     QCryptographicHash checksum{QCryptographicHash::Sha256};
     if (!installer.open(QIODevice::ReadOnly) || !checksum.addData(&installer) ||
@@ -772,22 +776,36 @@ bool UpdateController::openDownloadedUpdate()
         return false;
     }
     installer.close();
-    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(m_downloadedFilePath))) {
-        fail(QStringLiteral("Could not launch the verified OS installer"));
+
+    // A tiny first-party post-exit helper handles writable macOS app bundles
+    // and portable Linux AppImages. Other platforms hand off to the system
+    // installer, which owns the user consent / elevation boundary.
+    const auto launched = genycaster::ui::update::launchVerifiedUpdate(
+        m_downloadedFilePath, m_assetDigest);
+    if (launched.mode == genycaster::ui::update::InstallMode::Unsupported) {
+        fail(launched.detail.isEmpty() ? QStringLiteral("Update installer unavailable")
+                                      : launched.detail);
         return false;
     }
 
+    const bool quitForUpdate =
+        launched.mode == genycaster::ui::update::InstallMode::Supervised
 #if defined(Q_OS_WIN)
-    // NSIS cannot replace an executable still running from the same install
-    // location. Release the primary instance lock, vault handles and Qt
-    // resources through the normal shutdown path before the wizard installs.
-    m_status = QStringLiteral("Closing GenyCaster for the Windows installer…");
+        || launched.mode == genycaster::ui::update::InstallMode::SystemInstaller
+#endif
+        ;
+    m_status = quitForUpdate
+        ? QStringLiteral("Closing GenyCaster to complete the verified update…")
+        : QStringLiteral("Update transferred to the system installer");
     m_error.clear();
     emit changed();
-    QTimer::singleShot(150, QCoreApplication::instance(), [] {
-        QCoreApplication::quit();
-    });
-#endif
+    if (quitForUpdate) {
+        // Allow vault/session controllers to shut down on the existing
+        // application exit path. Never delete files from a running process.
+        QTimer::singleShot(150, QCoreApplication::instance(), [] {
+            QCoreApplication::quit();
+        });
+    }
     return true;
 }
 
