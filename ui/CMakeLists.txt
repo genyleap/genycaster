@@ -284,6 +284,8 @@ qt_add_executable(genycaster
     app/provider_profiles_controller.hpp
     app/update_controller.cpp
     app/update_controller.hpp
+    app/update/install.cpp
+    app/update/install.hpp
     app/remote_image_provider.cpp
     app/remote_image_provider.hpp
     app/browser_openproof_auth.cpp
@@ -313,6 +315,17 @@ endif()
 set(_gcIcon "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-512.png")
 set_source_files_properties("${_gcIcon}" PROPERTIES QT_RESOURCE_ALIAS "app-icon.png")
 qt_add_resources(genycaster genycaster_app_icon PREFIX "/genycaster" FILES "${_gcIcon}")
+
+# Bundled, immutable OS install scripts. They are copied from the compiled
+# resource at installation time; no script is fetched from a release asset.
+set_source_files_properties(
+    app/update/scripts/appimage.sh PROPERTIES QT_RESOURCE_ALIAS "appimage.sh")
+set_source_files_properties(
+    app/update/scripts/macos.sh PROPERTIES QT_RESOURCE_ALIAS "macos.sh")
+qt_add_resources(genycaster genycaster_update_scripts
+    PREFIX "/genycaster/update"
+    FILES app/update/scripts/appimage.sh app/update/scripts/macos.sh)
+
 
 # Keep platform package configuration in properties/ rather than
 # duplicating it in the shared Qt application target composition.
