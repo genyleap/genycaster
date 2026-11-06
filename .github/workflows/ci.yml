@@ -486,6 +486,11 @@ jobs:
             Select-Object -First 1
           if (-not $keychain) { throw 'Missing QtKeychain runtime DLL' }
           Copy-Item $keychain.FullName dist/app/
+          # Remove Qt SDK-only directories (headers, import libraries,
+          # build tools), preserve QML/plugins, and refuse mixed x64/ARM64 DLLs.
+          # Run before CPack and before generating runtime update snapshots.
+          python ci/audit_windows_stage.py dist/app ${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # NSIS packages the already deployed Qt/QML/keychain/vcpkg DLL
           # tree. Do not substitute a ZIP of uninstalled files for setup.
           cpack --config build/native/CPackConfig.cmake -G NSIS -B dist
@@ -1007,12 +1012,15 @@ jobs:
             test -n "$(find "artifacts/$name" -type f -print -quit)"
           done
           python3 ci/release_artifacts.py artifacts release
-      - name: Publish as prerelease until device/signing verification
+      - name: Publish versioned Release as GitHub Actions bot
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ github.token }}
           tag_name: ${{ github.ref_name }}
           name: GenyCaster ${{ github.ref_name }}
           body_path: release-notes/${{ github.ref_name }}.md
-          prerelease: true
+          # RC/beta/alpha tags remain prereleases. A stable tag is a normal
+          # Release only after every mandatory platform job passes.
+          prerelease: ${{ contains(github.ref_name, '-') }}
           files: release/*
           fail_on_unmatched_files: true
