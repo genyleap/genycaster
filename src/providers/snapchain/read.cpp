@@ -315,7 +315,6 @@ struct InFlight final {
 
 using BodyCompletion = std::function<void(foundation::result::Result<std::string>)>;
 
-
 /** One bounded, fully checked raw Following snapshot. The native projection
  * refuses oversized graphs or insufficient per-author scanning rather than
  * displaying a silently truncated "complete" live feed.

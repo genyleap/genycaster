@@ -32,7 +32,6 @@ import farcaster.transport.http;
 
 export namespace farcaster::provider::hypersnap::feed {
 
-
 /** @brief Blocking Hypersnap v2 feed adapter with provider-private cursor isolation. */
 class FeedSource final : public capability::feed::IFeedSource {
 public:

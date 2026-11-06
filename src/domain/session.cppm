@@ -51,6 +51,7 @@ struct ClientSession final {
     std::optional<std::string> username{};
     std::optional<std::string> displayName{};
     std::optional<std::string> avatarUrl{};
+
     /** @brief Current authoritative Farcaster custody address as normalized 0x-prefixed hex. */
     std::optional<std::string> custodyAddress{};
     AuthenticationMethod method{AuthenticationMethod::Custody};

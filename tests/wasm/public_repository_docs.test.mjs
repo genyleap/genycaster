@@ -68,6 +68,16 @@ test("public landing page shows provider-neutral architecture without claiming b
     assert.match(read("docs/12-roadmap.md"), /v1\.0\.0-rc1/);
 });
 
+test("public introduction keeps language versions in build requirements, not the product tagline", () => {
+    const readme = read("README.md");
+    const hero = readme.split("</div>")[0];
+    assert.match(hero, /One shared Modern C\+\+ core/);
+    assert.doesNotMatch(hero, /C\+\+2[036]|C%2B%2B-2[036]/);
+    assert.match(readme, /C\+\+23 and newer/);
+    assert.match(readme, /C\+\+26-capable compiler/);
+    assert.match(read("CMakeLists.txt"), /set\(CMAKE_CXX_STANDARD 26\)/);
+});
+
 test("architecture, benchmarking and vulnerability disclosure remain explicit", () => {
     const architecture = read("docs/ARCHITECTURE.md");
     assert.ok((architecture.match(/```mermaid/g) || []).length >= 3);

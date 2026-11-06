@@ -115,14 +115,17 @@ public:
 
     /** @brief Emoji boxes in item coordinates, including a layout generation. */
     [[nodiscard]] QVariantList emojiRects() const;
+
     /** @brief Suppresses one inline glyph only while its animation replaces it; layout is unchanged. */
     Q_INVOKABLE void setEmojiAnimated(int position, int generation, bool animated);
     [[nodiscard]] QString selectedText() const;
     [[nodiscard]] QPointF selectionMenuPosition() const noexcept;
     [[nodiscard]] QRectF selectionStartRect() const;
     [[nodiscard]] QRectF selectionEndRect() const;
+
     /** Move either boundary using QTextDocument hit-testing, including mixed bidi text. */
     Q_INVOKABLE void dragSelectionBoundary(bool leading, qreal x, qreal y);
+
     /** Native QTextDocument hit-testing; works for bidi runs, emoji and links. */
     Q_INVOKABLE void selectWordAt(qreal x, qreal y);
     Q_INVOKABLE void selectAllText();
@@ -143,8 +146,10 @@ signals:
     void emojiBoxScaleChanged();
     void contentHeightChanged();
     void emojiRectsChanged();
+
     /** @brief Emitted when a link target inside the text is activated. */
     void linkActivated(const QString& url);
+
     /** @brief A short left-click on ordinary text (never a hyperlink). */
     void plainTextActivated();
     void selectionChanged();

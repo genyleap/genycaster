@@ -2,7 +2,7 @@
   <img src="ui/assets/branding/genycaster-mark.svg" alt="GenyCaster logo" width="100" height="100" />
   <h1>GenyCaster</h1>
   <p><strong>A native, local-first Farcaster experience.</strong></p>
-  <p>One shared C++26 core. Multiple protocol routes. A consistent experience across devices.</p>
+  <p>One shared Modern C++ core. Multiple protocol routes. A consistent experience across devices.</p>
   <p>
     <a href="docs/FEATURES.md">Features</a> ·
     <a href="docs/ARCHITECTURE.md">Architecture</a> ·
@@ -12,7 +12,6 @@
   </p>
   <p>
     <img alt="Beta" src="https://img.shields.io/badge/status-Beta-555555" />
-    <img alt="C++26" src="https://img.shields.io/badge/C%2B%2B-26-555555" />
     <img alt="Qt 6.12" src="https://img.shields.io/badge/Qt-6.12-555555" />
     <img alt="GPL 3.0 only" src="https://img.shields.io/badge/license-GPL--3.0--only-555555" />
   </p>
@@ -92,7 +91,7 @@ See [Features](docs/FEATURES.md) for what is implemented, in development or conc
 
 | Component | Approach |
 |---|---|
-| Core | Modern **C++26**, named modules, domain and capability contracts |
+| Core | **Modern C++**, named modules, domain and capability contracts |
 | Presentation | **Qt 6.12 / Qt Quick**, platform-adaptive QML |
 | Local state | SQLite, incremental snapshots and a durable signed-write outbox |
 | Protocol | Canonical Farcaster data with HyperSnap-first, configurable multi-node routing |
@@ -117,7 +116,7 @@ The [Performance Guide](docs/PERFORMANCE.md) defines reproducible workloads, mea
 
 ## Build
 
-GenyCaster uses **CMake 3.30+** and **Ninja**, with a C++26-capable toolchain. The graphical client requires **Qt 6.12** and matching target-specific dependencies.
+GenyCaster uses **CMake 3.30+**, **Ninja** and modern C++ features (C++23 and newer). The current CMake configuration explicitly selects **C++26**, so building this revision requires a **C++26-capable compiler**. The graphical client requires **Qt 6.12** and matching target-specific dependencies.
 
 For core development:
 

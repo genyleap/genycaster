@@ -37,6 +37,7 @@ struct BrowserCallbacks final {
     std::function<void()> closed;
     std::function<void()> retry;
     std::function<void()> minimize;
+
     /** @brief Reports native window activation without changing document lifetime. */
     std::function<void()> activated;
     std::function<void()> share;
@@ -54,6 +55,7 @@ struct BrowserCallbacks final {
 class Browser {
 public:
     virtual ~Browser() = default;
+
     /**
      * @brief Loads one document, optionally identifying the embedding client.
      *
@@ -68,10 +70,13 @@ public:
     virtual void reply(const QJsonObject& value, const QString& document) = 0;
     virtual void ethereumProviderEvent(
         const QString& event, const QJsonArray& params, const QString& document) = 0;
+
     /** @brief Emits a Farcaster Mini App client event into the matching document. */
     virtual void miniAppEvent(const QJsonObject& event, const QString& document) = 0;
+
     /** @brief Shows or hides the native host without destroying the WebView document. */
     virtual void setVisible(bool visible) = 0;
+
     /**
      * @brief Returns a renderer process identifier only when a public platform API exposes one.
      *

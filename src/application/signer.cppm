@@ -64,8 +64,10 @@ struct SignerPolicy final {
     std::vector<domain::signer::Scope> scopes{domain::signer::standardSocialScopes()};
     std::uint32_t ttlSeconds{domain::signer::DefaultGaslessTtlSeconds};
     std::chrono::minutes authorizationLifetime{60};
+
     /** @brief Canonical app FID for SignedKeyRequest attribution. Empty explicitly permits self-client attribution. */
     std::optional<domain::identity::Fid> requestFid{};
+
     /** @brief Rejects missing or viewer-owned request FIDs when product attribution must identify an external client. */
     bool requireExternalAppAttribution{false};
 };
@@ -109,6 +111,7 @@ public:
         capability::signer::ICustodyAuthorizer* authorizer,
         capability::signer_attestation::ISignedKeyRequestAttestor* attestor,
         SignerPolicy policy = {});
+
     /** @brief Destroys the service after executor-owned work has drained. */
     ~SignerService();
 
@@ -133,15 +136,15 @@ public:
         std::optional<domain::session::ClientSession> session,
         Observer observer);
 
-    /**
-     * @brief Signs canonical protocol bytes only when the current signer is ready for the scope.
-     * @return Signature or a structured authorization/signer failure.
-     */
     /** @brief Returns the current network-verified signer key for an exact FID/scope. */
     [[nodiscard]] foundation::result::Result<domain::signer::PublicKey> requireSigner(
         domain::identity::Fid fid,
         domain::signer::Scope requiredScope) const override;
 
+    /**
+     * @brief Signs canonical protocol bytes only when the current signer is ready for the scope.
+     * @return Signature or a structured authorization/signer failure.
+     */
     [[nodiscard]] foundation::result::Result<domain::signer::Signature> sign(
         domain::signer::Scope requiredScope,
         const std::string& bytes) override;

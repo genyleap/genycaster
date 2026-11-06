@@ -38,7 +38,6 @@ import farcaster.capability.write;
 
 export namespace farcaster::application::write {
 
-
 /** @brief Application-facing classification of one protocol mutation. */
 enum class OperationKind : std::uint8_t {
     PublishCast,

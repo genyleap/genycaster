@@ -48,8 +48,10 @@ struct NotificationItem final {
     NotificationKind kind{NotificationKind::Unknown};
     foundation::time::Timestamp observedAt{};
     std::optional<domain::cast::Cast> cast{};
+
     /** @brief Cast this notification answers (the parent of a reply/mention), when the provider supplied it. */
     std::optional<domain::cast::Cast> parentCast{};
+
     /** @brief Author profile of the parent cast, when the provider supplied it. */
     std::optional<domain::profile::Profile> parentAuthor{};
     std::vector<domain::profile::Profile> actors{};

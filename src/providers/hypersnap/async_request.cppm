@@ -40,8 +40,10 @@ using JsonCompletion = std::function<void(foundation::result::Result<std::string
 class Operation final {
 public:
     Operation() = default;
+
     /** @brief Requests cancellation and suppresses future completion delivery. */
     void cancel() const noexcept;
+
     /** @brief Returns whether this handle represents an operation. */
     [[nodiscard]] bool isActive() const noexcept;
 

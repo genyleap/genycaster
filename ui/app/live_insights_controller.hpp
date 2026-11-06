@@ -48,6 +48,7 @@ public:
     [[nodiscard]] QVariantList marketCatalog() const;
     [[nodiscard]] bool marketRefreshing() const;
     [[nodiscard]] QString marketStatus() const;
+
     /** @brief Returns the maximum decimal precision used for sub-dollar market prices. */
     [[nodiscard]] int marketPriceDecimals() const;
     [[nodiscard]] bool providerAvailable() const;
@@ -55,8 +56,10 @@ public:
     [[nodiscard]] QStringList contextWidgetOrder() const;
 
     Q_INVOKABLE void refreshMarket();
+
     /** @brief Formats a USD market price without collapsing positive micro-prices to zero. */
     Q_INVOKABLE QString formatMarketPrice(double value) const;
+
     /**
      * @brief Sets and persists the maximum decimal precision for sub-dollar market prices.
      * @param decimals Requested precision; values are clamped to the supported range [2, 12].

@@ -38,7 +38,6 @@ export namespace farcaster::provider::hypersnap::continuation {
 [[nodiscard]] std::string selectorScope(
     const std::vector<std::pair<std::string, std::string>>& selectors);
 
-
 /**
  * @brief Provider-private continuation service over a borrowed SQLite mapping store.
  *

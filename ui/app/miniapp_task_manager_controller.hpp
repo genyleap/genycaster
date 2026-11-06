@@ -62,17 +62,22 @@ public:
                     const QString& state,
                     bool foreground,
                     qlonglong processId);
+
     /** @brief Changes lifecycle state for an existing task. */
     void setTaskState(const QString& taskId, const QString& state, bool foreground);
+
     /** @brief Updates the WebContent PID after WebKit creates or replaces its renderer. */
     void setProcessId(const QString& taskId, qlonglong processId);
+
     /** @brief Records one SDK/RPC operation for the per-second activity meter. */
     void recordRpc(const QString& taskId);
+
     /** @brief Removes a task after deterministic runtime teardown. */
     void removeTask(const QString& taskId);
 
     /** @brief Returns true while a matching URL is still resolving/loading. */
     Q_INVOKABLE bool isLaunchingUrl(const QString& url) const;
+
     /** @brief Returns the current lifecycle state for a matching requested/canonical URL. */
     Q_INVOKABLE QString stateForUrl(const QString& url) const;
 

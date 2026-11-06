@@ -42,10 +42,13 @@ class ReadRequest final {
 public:
     /** @brief Creates an inactive request handle. */
     ReadRequest() = default;
+
     /** @brief Creates a handle sharing an internal cancellation flag. */
     explicit ReadRequest(std::shared_ptr<std::atomic_bool> cancelled) noexcept;
+
     /** @brief Cancels observer delivery for this request. */
     void cancel() noexcept;
+
     /** @brief Returns whether cancellation has been requested. */
     [[nodiscard]] bool isCancelled() const noexcept;
 
@@ -65,16 +68,22 @@ class ReadService final {
 public:
     /** @brief Observer receiving immutable owned identity snapshots. */
     using IdentityObserver = std::function<void(model::IdentityState)>;
+
     /** @brief Observer receiving immutable owned profile snapshots. */
     using ProfileObserver = std::function<void(model::ProfileState)>;
+
     /** @brief Observer receiving immutable owned cast snapshots. */
     using CastObserver = std::function<void(model::CastState)>;
+
     /** @brief Observer receiving immutable owned feed snapshots. */
     using FeedObserver = std::function<void(model::FeedState)>;
+
     /** @brief Observer receiving immutable owned interactive-search snapshots. */
     using SearchObserver = std::function<void(model::SearchState)>;
+
     /** @brief Observer receiving immutable owned notification snapshots. */
     using NotificationObserver = std::function<void(model::NotificationState)>;
+
     /** @brief Observer receiving immutable owned social snapshots. */
     using SocialObserver = std::function<void(model::SocialState)>;
 
@@ -104,36 +113,42 @@ public:
         std::string username,
         IdentityObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Opens a profile, publishing cache before refresh. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openProfile(
         domain::identity::Fid fid,
         ProfileObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Opens a cast and its cached/refreshed author profile. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openCast(
         domain::cast::CastId castId,
         CastObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Opens or paginates a feed while retaining the materialized cache. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openFeed(
         model::FeedQuery query,
         FeedObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Executes one derived search outside the UI thread without persistent caching. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openSearch(
         model::SearchQuery query,
         SearchObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Executes one in-app notification read outside the UI thread. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openNotifications(
         model::NotificationQuery query,
         NotificationObserver observer,
         model::ReadOptions options = {});
+
     /** @brief Opens or paginates a social graph list cache-first. */
     [[nodiscard]] foundation::result::Result<ReadRequest>
     openSocial(

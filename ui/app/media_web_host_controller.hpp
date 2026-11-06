@@ -39,12 +39,14 @@ public:
 
     /** @brief Updates the host animation preference without recreating active media. */
     void setReduceMotion(bool reduceMotion) noexcept;
+
     /**
      * @brief Opens a supported YouTube destination in the isolated native host.
      * @return true when the request was accepted; false when no native host is available
      * or the URL cannot be canonicalized to an approved YouTube embed.
      */
     [[nodiscard]] bool open(const QString& rawUrl, const QString& title = {});
+
     /** @brief Closes the active media host, if any. */
     void close();
 

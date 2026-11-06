@@ -218,6 +218,7 @@ private:
     [[nodiscard]] foundation::result::Result<bool>
     canDeriveFollowing(domain::identity::Fid viewer);
     [[nodiscard]] foundation::result::Result<bool> hasMaterializedRecentSnapshot();
+
     /** Best-effort local channel discovery from already persisted canonical casts. */
     void rememberChannelsFromCasts(std::span<const domain::cast::Cast> casts);
     [[nodiscard]] foundation::result::Result<std::optional<capability::pagination::ContinuationToken>>

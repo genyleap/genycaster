@@ -9,7 +9,7 @@ _Last reviewed: 2026-11-06. This is a source-tree status overview, **not** a cer
 | Product | GenyCaster |
 | Release version | **v1.0.0-rc1** (from top-level `CMakeLists.txt`) |
 | Product stage | **Beta**, under active development |
-| Primary implementation | **C++26** named modules and Qt Quick |
+| Primary implementation | **Modern C++** named modules and Qt Quick |
 | Reference UI generation | **Qt 6.12** |
 | CMake baseline | **3.30+** |
 | Licensing | **GPL-3.0-only** for original source; third-party assets retain their own terms |

@@ -42,6 +42,7 @@ public:
      * @param parent Optional QObject owner.
      */
     explicit GeoLocationResolver(bool useDirectProxy, QObject* parent = nullptr);
+
     /** @brief Cancels outstanding network work and releases resolver resources. */
     ~GeoLocationResolver() override;
 

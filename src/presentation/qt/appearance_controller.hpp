@@ -67,41 +67,54 @@ public:
   [[nodiscard]] QString customAccentColor() const;
   [[nodiscard]] bool effectiveDark() const noexcept;
   [[nodiscard]] bool reduceMotion() const noexcept;
+
   /** @brief Returns the persisted text scale in the supported 0.85-1.30 range. */
   [[nodiscard]] qreal fontScale() const noexcept;
+
   /** @brief Returns the persisted control/spacing scale in the supported 0.90-1.20 range. */
   [[nodiscard]] qreal interfaceScale() const noexcept;
+
   /** @brief Returns the persisted desktop navigation rail width in logical pixels. */
   [[nodiscard]] qreal socialNavigationWidth() const noexcept;
+
   /** @brief Returns the persisted desktop social-context rail width in logical pixels. */
   [[nodiscard]] qreal socialContextWidth() const noexcept;
 
   /** @brief Selects system, dark, or light mode. Returns false for an unknown
    * value. */
   Q_INVOKABLE bool setThemeMode(const QString &mode);
+
   /**
    * @brief Selects a built-in color preset or the custom accent slot.
    * @return false when themeId is not a supported preset identifier.
    */
   Q_INVOKABLE bool setColorThemeId(const QString &themeId);
+
   /**
    * @brief Stores an opaque custom accent color and activates the custom preset.
    * @param color CSS/Qt color text such as #FF4FA3.
    * @return false when color cannot be parsed as a valid color.
    */
   Q_INVOKABLE bool setCustomAccentColor(const QString &color);
+
   /** @brief Enables or disables reduced presentation motion. */
   Q_INVOKABLE void setReduceMotion(bool enabled);
+
   /** @brief Persists a text scale, clamped and quantized to the supported range. */
   Q_INVOKABLE bool setFontScale(qreal scale);
+
   /** @brief Persists a control/spacing scale, clamped and quantized to the supported range. */
   Q_INVOKABLE bool setInterfaceScale(qreal scale);
+
   /** @brief Persists the desktop navigation rail width, clamped to a usable range. */
   Q_INVOKABLE bool setSocialNavigationWidth(qreal width);
+
   /** @brief Persists the desktop context rail width, clamped to a usable range. */
   Q_INVOKABLE bool setSocialContextWidth(qreal width);
+
   /** @brief Restores the social column widths without changing other appearance preferences. */
   Q_INVOKABLE void resetSocialLayout();
+
   /** @brief Restores the Geny preset with System mode and normal motion. */
   Q_INVOKABLE void resetAppearance();
 

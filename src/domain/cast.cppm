@@ -81,33 +81,41 @@ struct Cast final {
     CastId id{};
     identity::Fid author{};
     std::string text{};
+
     /** @brief Provider-resolved mention display; raw protocol text remains immutable. */
     std::optional<std::string> displayText{};
+
     /** @brief Optional explicitly supplied signing-client label; never inferred from author. */
     std::optional<std::string> sourceClient{};
+
     /** Protocol signer public key as lowercase 0x-prefixed Ed25519 hex.
      * Present only when supplied by the selected canonical raw node.
      * A signer key alone is NOT evidence of an app FID/name or a locally
      * verified signature; missing provenance must remain unknown.
      */
     std::optional<std::string> signerPublicKeyHex{};
+
     /** App FID asserted by the selected protocol-validating node's active
      * registration for this exact signer key and author; absent for legacy,
      * expired, inaccessible, or ambiguous registrations. Not an app name.
      */
     std::optional<identity::Fid> sourceAppFid{};
     std::optional<CastId> parent{};
+
     /** @brief Protocol-native parent URL used by channel/root casts when no parent cast is present. */
     std::optional<std::string> parentUrl{};
+
     /** @brief Provider-resolved channel metadata; no fixed host inference. */
     std::optional<std::string> channelId{};
     std::optional<std::string> channelName{};
     std::optional<std::string> channelImageUrl{};
     std::vector<Embed> embeds{};
+
     /** @brief Direct conversation replies when a thread-aware read supplied them. */
     std::vector<Cast> directReplies{};
     Engagement engagement{};
     foundation::time::Timestamp createdAt{};
+
     /**
      * @brief Author profile snapshot carried beside a cast when the read supplied it.
      *

@@ -36,6 +36,7 @@ class SerialExecutor final : public application::executor::IExecutor {
 public:
     /** @brief Starts the worker with a bounded pending queue. */
     explicit SerialExecutor(std::size_t maximumPendingJobs = 128U);
+
     /** @brief Drains accepted work and joins the worker thread. */
     ~SerialExecutor() override;
     SerialExecutor(const SerialExecutor&) = delete;

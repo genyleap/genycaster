@@ -73,31 +73,37 @@ public:
     resolveIdentity(
         std::string_view username,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<domain::profile::Profile>
     profile(
         domain::identity::Fid fid,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<domain::cast::Cast>
     cast(
         const domain::cast::CastId& castId,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<capability::feed::FeedPage>
     feed(
         const application::read::model::FeedQuery& query,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<capability::search::SearchPage>
     search(
         const application::read::model::SearchQuery& query,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<capability::notification::NotificationPage>
     notifications(
         const application::read::model::NotificationQuery& query,
         application::read::model::ReadOptions options = {}) override;
+
     /** @inheritdoc */
     [[nodiscard]] foundation::result::Result<capability::social::SocialGraphPage>
     social(

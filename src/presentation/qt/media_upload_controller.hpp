@@ -54,8 +54,10 @@ public:
     [[nodiscard]] QString errorText() const;
     [[nodiscard]] QString fileName() const;
     [[nodiscard]] QUrl localPreviewUrl() const;
+
     /** @brief Returns image, video, or empty for the current local selection. */
     [[nodiscard]] QString previewKind() const;
+
     /** @brief Returns the canonical MIME type expected by the media gateway. */
     [[nodiscard]] QString selectedContentType() const;
     [[nodiscard]] qulonglong transferredBytes() const noexcept;
@@ -68,37 +70,50 @@ public:
      * @return false when upload is unavailable, already busy, invalid, unreadable, or unsupported.
      */
     Q_INVOKABLE bool beginUpload(const QUrl& localFile, int afterIndex = -1);
+
     /** @brief Open the browser's native image picker without requiring QFile URLs. */
     Q_INVOKABLE bool browseBrowserImage(int afterIndex = -1);
+
     /** @brief Apply an explicitly selected browser file without exposing it to QML. */
     void applyBrowserSelection(QString fileName, QString contentType, qulonglong sizeBytes, int afterIndex);
+
     /** @brief Apply a bounded, locally generated browser preview thumbnail. */
     void applyBrowserPreview(const QString& dataUrl);
+
     /** @brief Requests cooperative cancellation of the current upload. */
     Q_INVOKABLE void cancel();
+
     /** @brief Retries the last failed/cancelled local selection. */
     Q_INVOKABLE bool retry();
+
     /** @brief Clears completed/failed transient presentation state. */
     Q_INVOKABLE void clear();
 
     /** @brief Updates whether a native upload runtime is composed and usable. */
     void setAvailable(bool available, QString unavailableReason = {});
+
     /** @brief Applies native lifecycle progress on the Qt main thread. */
     void applyProgress(QString phase, qulonglong transferred, qulonglong total);
+
     /** @brief Completes the upload and emits the stable public asset URL for the rich composer. */
     void applyCompleted(QString assetUrl, QString contentType, QString fileName, QString managementToken, qulonglong sizeBytes);
+
     /** @brief Applies a localized user-visible upload failure. */
     void applyFailed(QString message);
+
     /** @brief Applies cooperative cancellation completion. */
     void applyCancelled();
 
 signals:
     void stateChanged();
+
     /** @brief Requests native upload orchestration for the local filesystem path. */
     void uploadRequested(QString localPath, int afterIndex);
+
     /** @brief Requests cancellation of the native in-flight upload. */
     void cancelRequested();
     void browserImagePickRequested(int afterIndex);
+
     /** @brief Delivers a verified stable media URL to the rich composer. */
     void assetReady(QString url, QString mediaType, QString managementToken, int afterIndex);
 

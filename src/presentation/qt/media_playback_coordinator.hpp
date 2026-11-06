@@ -54,17 +54,22 @@ public:
 
     /** @brief Creates an idle coordinator (no active session). */
     explicit MediaPlaybackCoordinator(QObject* parent = nullptr);
+
     /** @brief Creates a coordinator whose playback preferences persist in QSettings. */
     explicit MediaPlaybackCoordinator(QSettings& settings, QObject* parent = nullptr);
 
     /** @brief Whether new playback sessions start muted (session preference). */
     [[nodiscard]] bool muted() const noexcept;
+
     /** @brief Sets the session-wide muted preference. */
     void setMuted(bool muted);
+
     /** @brief Preferred video quality: auto, original, or a canonical height such as 720p. */
     [[nodiscard]] QString preferredQuality() const;
+
     /** @brief Sets and persists the session-wide video quality preference. */
     void setPreferredQuality(const QString& preferredQuality);
+
     /** @brief Current primary player, or null when nothing is playing. */
     [[nodiscard]] QObject* activePlayer() const noexcept;
 
@@ -133,10 +138,13 @@ public:
 signals:
     /** @brief Emitted when a session-wide playback preference changes. */
     void sessionChanged();
+
     /** @brief Emitted when the primary player changes. */
     void activePlayerChanged();
+
     /** @brief Emitted after a source is safe to assign to QMediaPlayer. */
     void sourcePrepared(qulonglong requestId, const QString& source);
+
     /** @brief Emitted when remote preparation failed before decoder startup. */
     void sourcePreparationFailed(
         qulonglong requestId,

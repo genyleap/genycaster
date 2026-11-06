@@ -45,6 +45,7 @@ public:
     [[nodiscard]] bool available() const noexcept;
     [[nodiscard]] bool active() const noexcept;
     [[nodiscard]] int sessionLimit() const noexcept;
+
     /** Updated only from the server-authenticated Geny Pro entitlement. */
     void setSessionLimit(int limit);
     [[nodiscard]] QString errorText() const;
@@ -56,48 +57,67 @@ public:
     [[nodiscard]] QString walletBrowserSelectedName() const;
     [[nodiscard]] QVariantList walletBrowserOptions() const;
     [[nodiscard]] QString walletBrowserError() const;
+
     /** Trusted runtime supplies the visible Mini App identity for wallet consent. */
     void setWalletBrowserContext(const QString& appName, const QString& origin);
+
     /** GUI-thread request from the EVM transport, never from Mini App JS. */
     void requestWalletBrowser(const QString& localSessionUrl);
+
     /** Clear a stale chooser when runtime focus/document authority changes. */
     void walletBrowserSessionEnded();
+
     /** A wallet RPC settled; dismiss waiting and remember only a successful choice. */
     void walletBrowserRequestFinished(bool successful);
     Q_INVOKABLE void chooseWalletBrowser(const QString& browserId);
     Q_INVOKABLE void cancelWalletBrowser();
+
     /** @brief Returns window/bottom/left/right; physical directions are locale-independent. */
     [[nodiscard]] QString presentationMode() const;
+
     /** @brief Persists a valid mode for the next launch without restarting a running app. */
     Q_INVOKABLE void setPresentationMode(const QString& mode);
+
     /** @brief Composition supplies the user's motion preference for subsequent launches. */
     void setReduceMotion(bool reduceMotion) noexcept;
     [[nodiscard]] bool reduceMotion() const noexcept;
+
     /** @brief Opens untrusted launch metadata; validation belongs to the runtime. No external fallback. */
     Q_INVOKABLE void open(const QString& url, const QString& title);
+
     /** @brief Opens with presentation metadata used for immediate loading/task feedback. */
     Q_INVOKABLE void openWithMetadata(const QString& url, const QString& title, const QString& iconSource);
+
     /** @brief Requests teardown of the foreground app, if any. */
     Q_INVOKABLE void close();
+
     /** @brief Requests deterministic teardown of every live Mini App session. */
     Q_INVOKABLE void closeAll();
+
     /** @brief Completes a Mini App composeCast request after a visible user publish. */
     Q_INVOKABLE void completeComposeCast(const QString& requestId,
                                          const QString& castId,
                                          const QString& text,
                                          const QVariantList& embeds);
+
     /** @brief Completes a Mini App composeCast request without publishing. */
     Q_INVOKABLE void cancelComposeCast(const QString& requestId);
+
     /** @brief Runtime asks the shell to open Genycaster's visible composer. */
     void requestComposeCast(const QString& requestId, const QVariantMap& options);
+
     /** @brief QML/application surfaces ask the shell to prepare a visible share draft. */
     Q_INVOKABLE void requestShare(const QString& url, const QString& title);
+
     /** @brief Runtime asks the shell to share from a minimized session that should be restored afterward. */
     void requestSessionShare(const QString& url, const QString& title, const QString& taskId);
+
     /** @brief Updates public context from trusted composition, closing any app on account change. */
     void setUser(const QVariantMap& user);
+
     /** @brief Returns an owned copy of public account metadata, never credentials. */
     [[nodiscard]] QVariantMap user() const;
+
     /** @brief Runtime status sink. Errors are user-visible; no success is fabricated on failure. */
     Q_INVOKABLE void setState(bool active, const QString& error = {});
 signals:
@@ -113,10 +133,12 @@ signals:
     void composeCastCompleted(const QString& requestId, const QVariantMap& result);
     void composeCastCancelled(const QString& requestId);
     void stateChanged();
+
     /** @brief Public SDK user metadata changed without an account switch. */
     void userChanged();
     void sessionLimitChanged();
     void walletBrowserPickerChanged();
+
     /** Cancel the wallet RPC only; do not terminate the Mini App host. */
     void walletBrowserCancelRequested();
     void presentationModeChanged();

@@ -29,6 +29,7 @@ export namespace farcaster::capability::signer_attestation {
 struct SignedKeyRequestAttestation final {
     /** @brief Raw 20-byte Ethereum custody address of the app/request FID. */
     std::string requestSignerAddress{};
+
     /** @brief Raw 65-byte EIP-712 SignedKeyRequest signature by that custody address. */
     std::string signature{};
 };

@@ -62,8 +62,10 @@ using Observer = std::function<void(UploadState)>;
 class UploadHandle final {
 public:
     UploadHandle() = default;
+
     /** @brief Requests cooperative cancellation; safe to call repeatedly. */
     void cancel() const noexcept;
+
     /** @brief Returns true when this handle still refers to an upload. */
     [[nodiscard]] bool valid() const noexcept;
 

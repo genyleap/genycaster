@@ -44,6 +44,7 @@ export namespace farcaster::routing::read::async_gateway {
 struct SourceBinding final {
     provider::model::ProviderId providerId{};
     application::read::async_gateway::IAsyncReadGateway* gateway{};
+
     /** Adapter contract supplies verified aggregate profile social counts. */
     bool providesProfileCounts{false};
 };

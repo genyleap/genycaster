@@ -87,8 +87,10 @@ struct KeyAddRequest final {
     std::uint32_t ttlSeconds{};
     std::uint32_t nonce{};
     foundation::time::Timestamp deadline{};
+
     /** @brief App FID bound into SignedKeyRequest metadata. Defaults by policy outside the port. */
     domain::identity::Fid requestFid{};
+
     /** @brief Current user-FID custody address as normalized 20-byte 0x-prefixed Ethereum hex. */
     std::string custodyAddress{};
 };

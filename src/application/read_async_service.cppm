@@ -40,8 +40,10 @@ export namespace farcaster::application::read::async_service {
 class ReadRequest final {
 public:
     ReadRequest() = default;
+
     /** @brief Cancels network work and future observer delivery. */
     void cancel() noexcept;
+
     /** @brief Returns whether cancellation has been requested. */
     [[nodiscard]] bool isCancelled() const noexcept;
 

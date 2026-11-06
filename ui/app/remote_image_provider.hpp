@@ -35,6 +35,7 @@
 class RemoteImageProvider final : public QQuickAsyncImageProvider {
 public:
     class Impl;
+
     /**
      * @brief Creates the provider using either direct or system proxy routing.
      * @param useDirectProxy true to bypass the system proxy.

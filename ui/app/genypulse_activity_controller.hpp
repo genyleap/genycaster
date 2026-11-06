@@ -41,11 +41,14 @@ public:
     [[nodiscard]] QVariantMap githubContributions() const { return m_githubContributions; }
     [[nodiscard]] QVariantMap onchain() const { return m_onchain; }
     Q_INVOKABLE void requestFarcaster(qulonglong fid);
+
     /** Only pass an OpenProof-confirmed GitHub account identifier, never a bio URL. */
     Q_INVOKABLE void requestGitHub(const QString& username);
+
     /** Resolve a numeric provider subject only after OpenProof confirmed the link. */
     Q_INVOKABLE void requestGitHubId(const QString& accountId);
     Q_INVOKABLE void requestGitHubContributions(const QString& username, int year);
+
     /** No chain-agnostic activity is inferred from a wallet verification. */
     Q_INVOKABLE void setVerifiedWallet(const QString& address);
 signals:

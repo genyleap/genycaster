@@ -73,7 +73,6 @@ struct NotificationPayload final {
     std::optional<std::string> providerCursor{};
 };
 
-
 /** @brief One canonical UserData value returned by the protocol-wide FID lookup. */
 struct UserDataEntry final {
     std::string type{};

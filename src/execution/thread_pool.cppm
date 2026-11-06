@@ -36,6 +36,7 @@ public:
     explicit ThreadPoolExecutor(
         std::size_t workerCount = 4U,
         std::size_t maximumPendingJobs = 96U);
+
     /** @brief Drains accepted work and joins all worker threads. */
     ~ThreadPoolExecutor() override;
     ThreadPoolExecutor(const ThreadPoolExecutor&) = delete;

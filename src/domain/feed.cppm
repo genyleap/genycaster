@@ -40,10 +40,12 @@ struct FeedEntry final {
 struct ViewerReactionSnapshot final {
     std::vector<cast::CastId> liked{};
     std::vector<cast::CastId> recasted{};
+
     /** @brief Target-specific evidence. A partial account page can establish
      * presence without establishing absence; like/recast coverage differs. */
     std::vector<cast::CastId> likeExamined{};
     std::vector<cast::CastId> recastExamined{};
+
     /** @brief Backward-compatible intersection of complete type coverage. */
     std::vector<cast::CastId> examined{};
 };

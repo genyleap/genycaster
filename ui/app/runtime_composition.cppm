@@ -187,6 +187,7 @@ struct Runtime final {
     std::string independentReadProviderId{};
     std::string hostedReadProviderId{};
     std::string requestedReadProviderId{};
+
     /** @brief Explicit consent for cross-provider Read fallback, never Write. */
     bool allowCompatibleReadFallback{false};
     std::optional<farcaster::storage::continuation::ContinuationStore> continuations{};
@@ -237,6 +238,7 @@ struct Runtime final {
     [[nodiscard]] bool isCurrentPrimaryRequestGeneration(std::uint64_t generation) const noexcept;
     [[nodiscard]] std::uint64_t beginFeedRequestGeneration() noexcept;
     [[nodiscard]] bool isCurrentFeedRequestGeneration(std::uint64_t generation) const noexcept;
+
     /** @brief Switches feed identity, optionally retaining independent profile-header work.
      * @param preserveProfileRequest True for tabs within the same profile navigation.
      *        The owning profile request remains live; feed/preview/reaction work is replaced.

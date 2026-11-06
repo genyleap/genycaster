@@ -76,17 +76,20 @@ public:
 
   /** @brief Selects efficiency, adaptive, or fidelity. Returns false for an unknown value. */
   Q_INVOKABLE bool setProfile(const QString &profile);
+
   /**
    * @brief Queues one decoded media surface for admission after a rendered frame.
    * @param requester Borrowed QML media object; destroyed objects are skipped.
    * @param generation Caller-owned identity used to reject stale source requests.
    */
   Q_INVOKABLE void requestMediaPresentation(QObject *requester, quint64 generation);
+
   /** @brief Attaches the application window used for render telemetry. */
   void attachWindow(QQuickWindow *window);
 
   /** @brief Returns the startup MSAA request for one canonical profile. */
   [[nodiscard]] static int sampleCountForProfile(const QString &profile) noexcept;
+
   /** @brief Canonicalizes a persisted/user profile, defaulting empty input to adaptive. */
   [[nodiscard]] static QString canonicalProfile(QString profile);
 
@@ -94,6 +97,7 @@ signals:
   void renderingChanged();
   void adaptiveQualityChanged();
   void telemetryChanged();
+
   /** @brief Grants at most one live decoded media surface per rendered frame. */
   void mediaPresentationGranted(QObject *requester, quint64 generation, quint64 presentationSequence);
 

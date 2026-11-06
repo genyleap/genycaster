@@ -44,6 +44,7 @@ public:
 
     /** @brief Enqueue link or miniapp metadata, with bounded admission. */
     Q_INVOKABLE void requestPreview(const QString& pageUrl, const QString& kind);
+
     /** @brief Read fresh verified metadata for the exact URL and kind. */
     Q_INVOKABLE [[nodiscard]] QVariantMap previewFor(
         const QString& pageUrl, const QString& kind) const;

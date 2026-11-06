@@ -53,6 +53,7 @@ using MonotonicTimePoint = std::chrono::steady_clock::time_point;
 class IMonotonicClock {
 public:
     virtual ~IMonotonicClock() = default;
+
     /** @brief Returns the current monotonic time. */
     [[nodiscard]] virtual MonotonicTimePoint now() const noexcept = 0;
 };

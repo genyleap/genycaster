@@ -50,16 +50,22 @@ public:
 
     /** @brief Returns one shallow primitive row, or an empty map for an invalid index. */
     Q_INVOKABLE [[nodiscard]] QVariantMap get(int index) const;
+
     /** @brief Clears all visible rows; only broad source replacement should use this. */
     Q_INVOKABLE void clear();
+
     /** @brief Appends a primitive role map and emits a single-row insert signal. */
     Q_INVOKABLE void append(const QVariantMap& row);
+
     /** @brief Inserts a primitive role map; invalid positions have no effect. */
     Q_INVOKABLE void insert(int index, const QVariantMap& row);
+
     /** @brief Removes one existing visible row; invalid positions have no effect. */
     Q_INVOKABLE void remove(int index);
+
     /** @brief Moves count rows to final index to, preserving stable delegate identity. */
     Q_INVOKABLE void move(int from, int to, int count);
+
     /** @brief Updates one mutable role only if its primitive value changes. */
     Q_INVOKABLE void setProperty(int index, const QString& role, const QVariant& value);
 

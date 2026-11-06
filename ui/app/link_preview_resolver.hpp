@@ -39,6 +39,7 @@ public:
      * @param parent Optional QObject owner.
      */
     explicit LinkPreviewResolver(bool useDirectProxy, QObject* parent = nullptr);
+
     /** @brief Cancels outstanding link-preview work and releases network resources. */
     ~LinkPreviewResolver() override;
 
@@ -73,6 +74,7 @@ public:
 signals:
     /** @brief Emitted whenever one URL gains richer cached metadata. */
     void previewReady(const QString& url, const QVariantMap& preview);
+
     /** @brief Emitted after the process-local metadata cache changes. */
     void revisionChanged();
 

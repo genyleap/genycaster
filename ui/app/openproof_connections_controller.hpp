@@ -108,6 +108,7 @@ public:
     [[nodiscard]] bool catalogFallback() const noexcept;
     [[nodiscard]] QString error() const;
     [[nodiscard]] QString identityIssuer() const;
+
     /** @brief Configured browser gateway origin for a one-shot recovery proof.
      * Returns empty on invalid/non-HTTPS configuration. No bearer is exposed. */
     [[nodiscard]] QString recoveryGatewayOrigin() const;
@@ -133,8 +134,10 @@ public:
     [[nodiscard]] QString feedbackError() const { return m_feedbackError; }
     [[nodiscard]] bool feedbackBusy() const noexcept { return m_feedbackRead || m_feedbackWrite; }
     [[nodiscard]] bool feedbackSubmitted() const noexcept { return m_feedbackSubmitted; }
+
     /** Fetch account-owned review status and points from Genycaster. */
     Q_INVOKABLE void fetchFeedback();
+
     /** Submit a bounded report for the verified account, never caller-supplied FID. */
     Q_INVOKABLE void submitFeedback(const QString& category, int sentiment,
                                    const QString& message, const QString& route);
@@ -151,6 +154,7 @@ public:
         return m_proEntitlementsRead != nullptr;
     }
     Q_INVOKABLE void fetchProEntitlements(bool force = false);
+
     /** @brief Recover the existing account session, then refresh server Pro.
      * Never provisions a signer, prompts custody, or grants a local Pro tier. */
     Q_INVOKABLE void retryProEntitlements();
@@ -224,31 +228,42 @@ public:
     Q_INVOKABLE void deleteBookmarkCollection(const QString& id, const QString& revision);
     Q_INVOKABLE void setBookmarkCollectionMembership(const QString& castHash,
                                                       const QString& collectionId, bool remove);
+
     /** Automatic account-owned profile storage; bearer never leaves native Qt. */
     Q_INVOKABLE void fetchCloudProfileExtras();
     Q_INVOKABLE void fetchProfileStatus(qulonglong profileFid);
     Q_INVOKABLE void saveProfileStatus(const QString& mood,const QString& note,bool visible);
+
     /** Read the last server-confirmed OpenProof link display snapshot. */
     Q_INVOKABLE void refreshAccountConnectionsSnapshot();
+
     /** Re-read the bookmark change history on demand, without local data loss. */
     Q_INVOKABLE void refreshAccountBookmarks();
     Q_INVOKABLE void pushCloudProfileExtras(const QVariantMap& fields);
+
     /** Manual vanity URLs are self-asserted; OpenProof remains link authority. */
     Q_INVOKABLE void uploadManualLinkedInCloud();
     Q_INVOKABLE void restoreManualLinkedInCloud();
+
     /** Automatically record a durable local reading-list mutation for replay. */
     void recordBookmarkMutation(const QString& castId, bool deleted,
                                 const QVariantMap& snapshot = {});
+
     /** Migrate existing local bookmarks once per verified account. */
     void migrateLocalBookmarks(const QStringList& ids);
+
     /** Persist the per-account notification seen watermark automatically. */
     void recordNotificationSeenAt(qulonglong fid, qlonglong observedAtMs);
+
     /** @brief Queue local composer edits and deletions for the verified FID. */
     void recordDraftMutation(qulonglong fid, bool deleted);
+
     /** @brief Acknowledge a server snapshot only after the editor applied it. */
     void confirmDraftSnapshot(qulonglong fid, int revision);
+
     /** Refresh the current account draft immediately on normal composer entry. */
     Q_INVOKABLE void refreshAccountDraft();
+
     /** Store a user-asserted public vanity URL in device-local state only.
      * Does not upgrade OpenProof verification or silently enable cloud sync. */
     Q_INVOKABLE void setManualLinkedInUrl(const QString& url);
@@ -256,6 +271,7 @@ public:
     /** @brief Changes viewer identity, invalidating any delegated account
      * token and pending link work when FID changes or session signs out. */
     Q_INVOKABLE void setViewerFid(qulonglong fid);
+
     /** @brief Starts a short-lived OpenProof device approval scoped to a
      * verified matching Farcaster FID, even for local Farcaster sign-ins. */
     Q_INVOKABLE void authorizeAccount();
@@ -263,15 +279,18 @@ public:
     Q_INVOKABLE void connectProvider(const QString& provider);
     Q_INVOKABLE void disconnectProvider(const QString& provider, const QString& subject);
     Q_INVOKABLE void stopAuthorization();
+
     /** @brief Accepts the transient account grant from a *verified* OpenProof
      * login, never from QML. The same Farcaster FID must already own the GUI
      * account; other subjects/tokens are erased without affecting the session. */
     void acceptAuthenticatedGrant(QByteArray bearer, QString subject,
                                   std::uint64_t fid, int expiresSeconds);
+
     /** @brief Adopts the bounded, server-held OpenProof session issued by an
      * independently verified Farcaster custody recovery; never persists it. */
     void acceptRecoveryGrant(QByteArray ticket, QString subject,
                              std::uint64_t fid, int expiresSeconds);
+
     /** An already registered Farcaster signer proved ownership to the
      * same-origin Genycaster API. Accept only the active account's CSRF
      * capability; the HttpOnly cookie itself never crosses into Qt. */
@@ -280,6 +299,7 @@ public:
     /** @brief Refreshes public provider capabilities over bounded HTTPS.
      * Network or CORS errors preserve the last known display-only list. */
     Q_INVOKABLE void refresh();
+
     /** @brief Decodes a public provider catalog, excluding local login factors.
      * Invalid, oversized and incomplete payloads yield an empty list. */
     [[nodiscard]] static QStringList parseProviderCatalog(const QByteArray& json);
@@ -293,6 +313,7 @@ signals:
     void feedbackChanged();
     void profileStatusChanged();
     void streakChanged();
+
     /** Emitted exactly once for each status save attempt (including rejected requests). */
     void profileStatusSaveFinished(bool saved, const QString& message);
     void topicsChanged();

@@ -58,8 +58,10 @@ struct SocialKey final {
 struct FeedWindow final {
     capability::feed::FeedPage page{};
     bool hasMore{false};
+
     /** @brief True only for locally observed Recent posts, never network-wide indexing. */
     bool isDerivedRecent{false};
+
     /** Partial posts from locally observed authors in a saved Following graph. */
     bool isDerivedFollowing{false};
 };
@@ -69,9 +71,11 @@ class IReadStore {
 public:
     /** @brief Destroys the persistence port. */
     virtual ~IReadStore() = default;
+
     /** @brief Finds a cached profile using a canonical username comparison. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfileByUsername(std::string_view username) = 0;
+
     /**
      * @brief Searches only previously persisted profiles without provider I/O.
      *
@@ -83,6 +87,7 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<std::vector<domain::profile::Profile>>
     searchCachedProfiles(std::string_view query, std::size_t limit) = 0;
+
     /**
      * @brief Reads previously discovered channel suggestions, never network-wide.
      * Literal ID/name prefix search, ranked by exact ID, prefix and follower
@@ -91,6 +96,7 @@ public:
     [[nodiscard]] virtual foundation::result::Result<
         std::vector<capability::search::ChannelSuggestion>>
     searchCachedChannels(std::string_view query, std::size_t limit) = 0;
+
     /**
      * @brief Atomically caches sparse derived channel suggestions.
      * Existing non-empty URL/description fields are retained if omitted.
@@ -98,12 +104,15 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Status putChannelSuggestions(
         const std::vector<capability::search::ChannelSuggestion>& channels) = 0;
+
     /** @brief Finds a cached profile by FID. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::profile::Profile>>
     findProfile(domain::identity::Fid fid) = 0;
+
     /** @brief Finds a cached cast by canonical identifier. */
     [[nodiscard]] virtual foundation::result::Result<std::optional<domain::cast::Cast>>
     findCast(const domain::cast::CastId& castId) = 0;
+
     /**
      * @brief Caches a derived search/feed profile summary non-destructively.
      *
@@ -112,15 +121,19 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Status
     putProfileSummary(const domain::profile::Profile& summary) = 0;
+
     /** @brief Atomically upserts one canonical profile. */
     [[nodiscard]] virtual foundation::result::Status
     putProfile(const domain::profile::Profile& profile) = 0;
+
     /** @brief Atomically upserts one canonical cast. */
     [[nodiscard]] virtual foundation::result::Status
     putCast(const domain::cast::Cast& cast) = 0;
+
     /** @brief Materializes the complete cached feed accumulated for a query. */
     [[nodiscard]] virtual foundation::result::Result<capability::feed::FeedPage>
     readFeed(const FeedKey& key) = 0;
+
     /**
      * @brief Hydrates a bounded local feed window without a full timeline scan.
      * @param key Canonical materialized local feed selector.
@@ -131,14 +144,17 @@ public:
      */
     [[nodiscard]] virtual foundation::result::Result<FeedWindow>
     readFeedWindow(const FeedKey& key, std::size_t offset, std::size_t limit) = 0;
+
     /** @brief Upserts entities, then atomically commits feed ordering and continuation. */
     [[nodiscard]] virtual foundation::result::Status writeFeed(
         const FeedKey& key,
         const capability::feed::FeedPage& page,
         bool append) = 0;
+
     /** @brief Materializes the complete cached social graph list accumulated for a query. */
     [[nodiscard]] virtual foundation::result::Result<capability::social::SocialGraphPage>
     readSocial(const SocialKey& key) = 0;
+
     /** @brief Upserts profiles, then atomically commits social ordering and continuation. */
     [[nodiscard]] virtual foundation::result::Status writeSocial(
         const SocialKey& key,

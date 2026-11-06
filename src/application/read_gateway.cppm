@@ -43,21 +43,27 @@ class IReadGateway {
 public:
     /** @brief Destroys the gateway boundary. */
     virtual ~IReadGateway() = default;
+
     /** @brief Resolves a username to a canonical FID. */
     [[nodiscard]] virtual foundation::result::Result<domain::identity::Fid>
     resolveIdentity(std::string_view username, model::ReadOptions options = {}) = 0;
+
     /** @brief Reads a canonical profile. */
     [[nodiscard]] virtual foundation::result::Result<domain::profile::Profile>
     profile(domain::identity::Fid fid, model::ReadOptions options = {}) = 0;
+
     /** @brief Reads a canonical cast. */
     [[nodiscard]] virtual foundation::result::Result<domain::cast::Cast>
     cast(const domain::cast::CastId& castId, model::ReadOptions options = {}) = 0;
+
     /** @brief Reads one canonical feed page for the requested operation. */
     [[nodiscard]] virtual foundation::result::Result<capability::feed::FeedPage>
     feed(const model::FeedQuery& query, model::ReadOptions options = {}) = 0;
+
     /** @brief Reads one provider-neutral interactive search snapshot. */
     [[nodiscard]] virtual foundation::result::Result<capability::search::SearchPage>
     search(const model::SearchQuery& query, model::ReadOptions options = {}) = 0;
+
     /** @brief Reads one canonical notification page. */
     [[nodiscard]] virtual foundation::result::Result<capability::notification::NotificationPage>
     notifications(const model::NotificationQuery& query, model::ReadOptions options = {})
@@ -68,6 +74,7 @@ public:
             foundation::error::ErrorCode::Unsupported,
             "Notification reads are not implemented by this gateway."));
     }
+
     /** @brief Reads one canonical social graph page. */
     [[nodiscard]] virtual foundation::result::Result<capability::social::SocialGraphPage>
     social(const model::SocialQuery& query, model::ReadOptions options = {}) = 0;

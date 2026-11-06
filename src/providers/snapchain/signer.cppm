@@ -46,8 +46,10 @@ struct Config final {
     std::string authorizationHeaderValue{};
     std::chrono::milliseconds timeout{15'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
+
     /** @brief Maximum time spent waiting for submitted signer state to become authoritative. */
     std::chrono::milliseconds confirmationTimeout{60'000};
+
     /** @brief Delay between signer-registry reads during bounded confirmation. */
     std::chrono::milliseconds confirmationPollInterval{500};
 };

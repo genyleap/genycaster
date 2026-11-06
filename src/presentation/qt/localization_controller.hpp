@@ -126,49 +126,67 @@ public:
 
     /** @brief Selects an embedded UI language pack or the system language. Returns false if invalid. */
     Q_INVOKABLE bool setLanguageTag(const QString& languageTag);
+
     /** @brief Selects system or a valid regional locale used for number/date/currency presentation. */
     Q_INVOKABLE bool setRegionalLocaleTag(const QString& regionalLocaleTag);
+
     /** @brief Selects Gregorian/Jalali/Shahanshahi/other supported calendar policy. */
     Q_INVOKABLE bool setCalendarId(const QString& calendarId);
+
     /** @brief Selects smart, relative or calendar-first timestamp presentation. */
     Q_INVOKABLE bool setTimestampDisplayMode(const QString& mode);
+
     /** @brief Selects system/UTC or a valid IANA time-zone identifier. */
     Q_INVOKABLE bool setTimeZoneId(const QString& timeZoneId);
+
     /** @brief Selects the primary automatic/ISO-4217 monetary display unit. */
     Q_INVOKABLE bool setCurrencyCode(const QString& currencyCode);
+
     /** @brief Replaces the optional secondary display currencies/denominations. */
     Q_INVOKABLE bool setAdditionalCurrencyCodes(const QStringList& currencyCodes);
+
     /** @brief Adds/removes one optional secondary display currency/denomination. */
     Q_INVOKABLE bool toggleAdditionalCurrencyCode(const QString& currencyCode);
+
     /** @brief Returns whether a secondary display unit is currently enabled. */
     Q_INVOKABLE bool additionalCurrencyEnabled(const QString& currencyCode) const;
+
     /** @brief Restores all localization preferences to system-aware defaults. */
     Q_INVOKABLE void resetToSystemDefaults();
 
     /** @brief Returns true when the first strong character in text is right-to-left. */
     Q_INVOKABLE bool isRightToLeftText(const QString& text) const noexcept;
+
     /** @brief Returns a protocol/identifier-safe ASCII decimal representation. */
     Q_INVOKABLE QString formatIdentifier(qulonglong value) const;
+
     /** @brief Formats a numeric value using the active regional locale and requested precision. */
     Q_INVOKABLE QString formatNumber(double value, int precision = -1) const;
+
     /** @brief Formats an integer using the active regional numbering system and grouping rules. */
     Q_INVOKABLE QString formatInteger(qint64 value) const;
+
     /** @brief Formats a large count using translated compact units and regional digits. */
     Q_INVOKABLE QString formatCompactNumber(double value) const;
+
     /**
      * @brief Builds a locale/calendar-aware six-week month model for QML calendars.
      * @param monthOffset Relative month offset from the current date in the selected calendar.
      * @return Title, weekday labels and canonical day cells for the active calendar system.
      */
     Q_INVOKABLE QVariantMap calendarMonthModel(int monthOffset = 0) const;
+
     /** @brief Formats an epoch-millisecond timestamp according to the selected display policy. */
     Q_INVOKABLE QString formatTimestamp(
         qint64 epochMilliseconds, const QString& style = QStringLiteral("short")) const;
+
     /** @brief Formats an epoch-millisecond timestamp as a localized relative interval. */
     Q_INVOKABLE QString formatRelativeTime(qint64 epochMilliseconds) const;
+
     /** @brief Formats an epoch-millisecond timestamp using active locale/calendar/time zone. */
     Q_INVOKABLE QString formatDateTime(
         qint64 epochMilliseconds, const QString& style = QStringLiteral("medium")) const;
+
     /**
      * @brief Formats an already-valued ISO fiat amount; it never performs FX/token conversion.
      * @param value Amount in the supplied ISO currency.
@@ -177,18 +195,21 @@ public:
      */
     Q_INVOKABLE QString formatCurrency(
         double value, const QString& isoCurrency = {}, int precision = -1) const;
+
     /**
      * @brief Formats an already-valued display unit, including the non-ISO IRT (toman) denomination.
      * @note IRT is a presentation denomination only. Market/ledger identity remains explicit IRR.
      */
     Q_INVOKABLE QString formatMonetaryUnit(
         double value, const QString& displayUnit, int precision = -1) const;
+
     /** @brief Formats one already-valued asset quote such as "1 GENY = $0.00060". */
     Q_INVOKABLE QString formatAssetQuote(
         const QString& assetSymbol,
         double value,
         const QString& displayUnit,
         int precision = -1) const;
+
     /**
      * @brief Converts only exact display denominations, not FX. Currently supports IRR <-> IRT.
      * @return NaN for unsupported cross-currency conversion.

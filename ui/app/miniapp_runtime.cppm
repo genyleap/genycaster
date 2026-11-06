@@ -48,6 +48,7 @@ public:
         capability::wallet::IEthereumWalletBridge* walletBridge = nullptr,
         std::string optimismRpcUrl = "https://mainnet.optimism.io");
     ~MiniAppRuntime();
+
     /** Bounded by the verified account's Geny Pro entitlement (1 or 4). */
     void setSessionLimit(int limit);
     MiniAppRuntime(const MiniAppRuntime&) = delete;

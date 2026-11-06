@@ -106,18 +106,25 @@ public:
 
     /** @brief Refreshes the protocol catalogue using the configured provider chain. */
     Q_INVOKABLE void refresh();
+
     /** @brief Loads the next bounded provider catalogue page, preserving prior results. */
     Q_INVOKABLE void loadMore();
+
     /** @brief Searches remotely when supported, otherwise filters the cached catalogue locally. */
     Q_INVOKABLE void search(const QString& query);
+
     /** @brief Fetches Mini Apps personalized for a Farcaster viewer FID when the provider supports it. */
     Q_INVOKABLE void refreshRelevant(qulonglong viewerFid);
+
     /** @brief Filters the current catalogue to apps authored by the supplied FID. */
     Q_INVOKABLE void searchByFid(qulonglong authorFid);
+
     /** @brief Saves a normalized app row into Genycaster's local Mini App collection. */
     Q_INVOKABLE void addToMyMiniApps(const QVariantMap& app);
+
     /** @brief Removes a saved app by its stable home URL. */
     Q_INVOKABLE void removeFromMyMiniApps(const QString& homeUrl);
+
     /** @brief Records only an actual user-triggered local Mini App launch. */
     Q_INVOKABLE void recordRecentUse(const QVariantMap& app);
 

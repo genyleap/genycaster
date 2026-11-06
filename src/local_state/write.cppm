@@ -58,7 +58,6 @@ public:
         const domain::write::IdempotencyKey& key, WriteRouteBinding binding) = 0;
 };
 
-
 /**
  * @brief Durable account-scoped local desired state for one cast reaction.
  *

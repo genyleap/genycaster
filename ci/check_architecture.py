@@ -180,12 +180,40 @@ def check_source_file_header(path: pathlib.Path) -> None:
             add(path, "@license must name the repository's GPL-3.0-only license")
 
 
+def check_member_documentation_spacing(path: pathlib.Path) -> None:
+    """Keep independently documented declarations separated without bloating enums.
+
+    Member documentation begins after one blank separator when it follows a
+    completed declaration or definition. It still touches its own declaration.
+    Access labels and compact comma-terminated enumerators stay adjacent.
+    """
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    for i, line in enumerate(lines):
+        if i == 0 or not line.lstrip().startswith(("/**", "/*!")):
+            continue
+        previous = lines[i - 1].strip()
+        if previous.endswith(";") or previous == "*/" or previous.endswith("}"):
+            add(path, f"line {i + 1}: insert a blank line before Doxygen documentation")
+        if not previous and i > 1 and not lines[i - 2].strip():
+            add(path, f"line {i + 1}: use exactly one blank line before documentation")
+
+
 for source_root in (SRC, ROOT / "ui", ROOT / "tests"):
     if not source_root.is_dir():
         continue
     for extension in ("*.cppm", "*.hpp"):
         for path in source_root.rglob(extension):
             check_source_file_header(path)
+    for extension in ("*.cppm", "*.hpp", "*.cpp", "*.mm"):
+        for path in source_root.rglob(extension):
+            check_member_documentation_spacing(path)
+
+# Only GenyCaster's own native service adapters are subject to the same style.
+# Third-party sources downloaded under services/*/build/_deps are not ours.
+service_native = ROOT / "services" / "media-gateway" / "native"
+if service_native.is_dir():
+    for path in service_native.rglob("*.cpp"):
+        check_member_documentation_spacing(path)
 
 
 if MISPLACED_QT_TRANSPORT.exists():

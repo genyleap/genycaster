@@ -120,6 +120,7 @@ public:
 
 private:
     struct RecentWindowCache;
+
     /** @brief Loads confirmed network casts, keeping blocking work off Qt. */
     [[nodiscard]] foundation::result::Result<application::read::async_gateway::Request>
     recentFeed(

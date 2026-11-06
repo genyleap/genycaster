@@ -123,18 +123,24 @@ public:
     Q_INVOKABLE bool addReadProfile(const QString& id, const QString& label,
                                     const QString& contract, const QString& endpoint,
                                     bool selfHosted);
+
     /** @brief Registers a validator with an optional distinct read/reconciliation endpoint. */
     Q_INVOKABLE bool addWriteProfile(const QString& id, const QString& label,
                                      const QString& contract, const QString& endpoint,
                                      const QString& readEndpoint, bool selfHosted);
+
     /** @brief Removes one read node, also clearing its persisted preference if selected. */
     Q_INVOKABLE bool removeReadProfile(const QString& id);
+
     /** @brief Removes one write node, without modifying queued write route bindings. */
     Q_INVOKABLE bool removeWriteProfile(const QString& id);
+
     /** @brief Selects a registered or built-in compatible reader; empty means automatic. */
     Q_INVOKABLE bool selectReadProvider(const QString& id);
+
     /** @brief Explicit consent for compatible read fallbacks after restart. */
     Q_INVOKABLE bool setCompatibleReadFallback(bool enabled);
+
     /** @brief Selects a registered or built-in compatible writer; empty means default. */
     Q_INVOKABLE bool selectWriteProvider(const QString& id);
 

@@ -14,7 +14,7 @@ Read the [README](README.md), [Architecture](docs/ARCHITECTURE.md), and [Securit
 
 ## Toolchains and configuration
 
-- CMake **3.30+**, Ninja and a compiler/toolchain supporting the project's Modern **C++26 named modules**.
+- CMake **3.30+**, Ninja and a Modern C++ toolchain. The codebase uses **C++23 and newer features**, while the current named-module reference build explicitly requires a **C++26-capable compiler**.
 - Qt **6.12** and matching host tools for the graphical UI.
 - Target-specific dependencies (Boost, OpenSSL, QtKeychain and others) as required by the selected CMake profile.
 - Qt WebAssembly requires a **matching** Qt 6.12 + Emscripten kit; Android and iOS use their respective SDK/NDK environments.
@@ -57,7 +57,7 @@ The full WASM regression collection may require a compatible Node runtime and ma
 - **Compartmentalization.** Optional wallet, messaging, Mini App, discovery or product-extension features do not become required by the core.
 - **Native and web parity without fake equivalence.** Each target keeps its actual security/runtime limits. A browser cannot be treated as a native Keychain host.
 
-Use RAII and explicit ownership in C++; prefer `std::expected` for recoverable errors, named modules for project-owned interfaces and the repository's established Qt/QML conventions. Each `.cppm` and `.hpp` starts with a Doxygen file header identifying its repository-relative `@file`, specific `@brief` and `@details`, credited `@author`, original Git introduction date (`@since`), copyright and the applicable license. Generated third-party assets must preserve upstream attribution and license; update their generator as well. The architecture guard validates both file extensions. Add or update an ADR when changing an architectural invariant. Do not bypass source guards or weaken tests simply to make CI green.
+Use RAII and explicit ownership in C++; prefer `std::expected` for recoverable errors, named modules for project-owned interfaces and the repository's established Qt/QML conventions. Separate independently documented declarations with exactly one blank line; never put a blank line between an API's Doxygen block and the declaration itself. Keep enum lists and access labels compact. Each `.cppm` and `.hpp` starts with a Doxygen file header identifying its repository-relative `@file`, specific `@brief` and `@details`, credited `@author`, original Git introduction date (`@since`), copyright and the applicable license. Generated third-party assets must preserve upstream attribution and license; update their generator as well. The architecture guard validates both file extensions. Add or update an ADR when changing an architectural invariant. Do not bypass source guards or weaken tests simply to make CI green.
 
 ## Pull request checklist
 
