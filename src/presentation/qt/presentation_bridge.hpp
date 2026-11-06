@@ -115,6 +115,8 @@ public:
     [[nodiscard]] bool authenticationBusy() const noexcept;
     [[nodiscard]] QString authenticationPhase() const;
     [[nodiscard]] bool authenticationStateObserved() const noexcept;
+    /** Resolve initial browser identity restoration before exposing onboarding. */
+    void finishBrowserAccountRestore() noexcept;
     [[nodiscard]] QString authenticationRoute() const;
     /** @brief Preferred connection route, independent of account identity and signing authority. */
     [[nodiscard]] QString preferredNetwork() const;
@@ -538,6 +540,9 @@ private:
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};
     bool m_authenticationStateObserved{false};
+#if defined(__EMSCRIPTEN__)
+    bool m_browserAccountRestorePending{true};
+#endif
     QString m_authenticationRoute{QStringLiteral("openproof")};
     QString m_independentNetworkKey{QStringLiteral("independent")};
     QString m_hostedNetworkKey{QStringLiteral("hosted")};
