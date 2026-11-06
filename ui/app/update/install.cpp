@@ -58,24 +58,29 @@ namespace {
 
 } // namespace
 
-InstallResult launchVerifiedUpdate(
-    const QString& verifiedPackage, const QString& expectedSha256)
+InstallMode launchVerifiedUpdate(
+    const QString& verifiedPackage, const QString& expectedSha256,
+    QString* errorDetail)
 {
+    const auto fail = [errorDetail](QString error) {
+        if (errorDetail) *errorDetail = std::move(error);
+        return InstallMode::Unsupported;
+    };
     const QFileInfo package{verifiedPackage};
     if (!package.isAbsolute() || !package.isFile() || package.isSymLink()) {
-        return {InstallMode::Unsupported, QStringLiteral("Invalid update package path")};
+        return fail(QStringLiteral("Invalid update package path"));
     }
 
 #if defined(Q_OS_WIN)
     if (!package.fileName().endsWith(QStringLiteral(".exe"), Qt::CaseInsensitive)) {
-        return {InstallMode::Unsupported, QStringLiteral("Windows requires the NSIS installer")};
+        return fail(QStringLiteral("Windows requires the NSIS installer"));
     }
     return launchSystemInstaller(verifiedPackage)
-        ? InstallResult{InstallMode::SystemInstaller, {}}
-        : InstallResult{InstallMode::Unsupported, QStringLiteral("Could not launch Windows installer")};
+        ? InstallMode::SystemInstaller
+        : fail(QStringLiteral("Could not launch Windows installer")};
 #elif defined(Q_OS_MACOS)
     if (!package.fileName().endsWith(QStringLiteral(".dmg"), Qt::CaseInsensitive)) {
-        return {InstallMode::Unsupported, QStringLiteral("macOS requires a DMG package")};
+        return fail(QStringLiteral("macOS requires a DMG package"));
     }
     const QString target = QDir::cleanPath(
         QCoreApplication::applicationDirPath() + QStringLiteral("/../.."));
@@ -92,11 +97,11 @@ InstallResult launchVerifiedUpdate(
     if (replaceable && launchSupervisedScript(
         QStringLiteral(":/genycaster/update/macos.sh"),
         verifiedPackage, target, expectedSha256)) {
-        return {InstallMode::Supervised, {}};
+        return InstallMode::Supervised;
     }
     return launchSystemInstaller(verifiedPackage)
-        ? InstallResult{InstallMode::SystemInstaller, {}}
-        : InstallResult{InstallMode::Unsupported, QStringLiteral("Could not open macOS DMG")};
+        ? InstallMode::SystemInstaller
+        : fail(QStringLiteral("Could not open macOS DMG")};
 #elif defined(Q_OS_LINUX) && !defined(__EMSCRIPTEN__)
     const QString appImage = qEnvironmentVariable("APPIMAGE");
     const QFileInfo current{appImage};
@@ -107,25 +112,25 @@ InstallResult launchVerifiedUpdate(
         && launchSupervisedScript(
             QStringLiteral(":/genycaster/update/appimage.sh"),
             verifiedPackage, current.absoluteFilePath(), expectedSha256)) {
-        return {InstallMode::Supervised, {}};
+        return InstallMode::Supervised;
     }
     // DEB/NixOS/system-managed applications must be updated by their package
     // manager. Never overwrite files under /usr or mutate the Nix store.
     return launchSystemInstaller(verifiedPackage)
-        ? InstallResult{InstallMode::SystemInstaller, {}}
-        : InstallResult{InstallMode::Unsupported, QStringLiteral("No compatible Linux package installer")};
+        ? InstallMode::SystemInstaller
+        : fail(QStringLiteral("No compatible Linux package installer")};
 #elif defined(Q_OS_ANDROID)
     // Qt 6.12 uses Android FileProvider for local file URLs. Android's
     // Package Installer enforces certificate matching and user consent.
     if (!package.fileName().endsWith(QStringLiteral(".apk"), Qt::CaseInsensitive)) {
-        return {InstallMode::Unsupported, QStringLiteral("Android requires an APK")};
+        return fail(QStringLiteral("Android requires an APK"));
     }
     return launchSystemInstaller(verifiedPackage)
-        ? InstallResult{InstallMode::SystemInstaller, {}}
-        : InstallResult{InstallMode::Unsupported, QStringLiteral("Could not invoke Android Package Installer")};
+        ? InstallMode::SystemInstaller
+        : fail(QStringLiteral("Could not invoke Android Package Installer")};
 #else
     Q_UNUSED(expectedSha256);
-    return {InstallMode::Unsupported, QStringLiteral("Use the system's approved update channel")};
+    return fail(QStringLiteral("Use the system's approved update channel"));
 #endif
 }
 } // namespace genycaster::ui::update
