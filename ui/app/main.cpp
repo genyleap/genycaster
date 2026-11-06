@@ -8,7 +8,6 @@
 #include <QFont>
 #include <QGuiApplication>
 #include <QIcon>
-#include <QFontDatabase>
 #include <QFile>
 #include <QFileInfo>
 #include <QMetaObject>
@@ -25,7 +24,6 @@
 #include "android_tinted_icon_provider.hpp"
 #include <QtWebView/QtWebView>
 #endif
-#include <QWheelEvent>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
