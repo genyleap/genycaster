@@ -182,8 +182,12 @@ QtObject {
     readonly property color surfaceMuted: dark ? nightSurfaceMuted : daySurfaceMuted
     readonly property color surfaceRaised: dark ? nightSurfaceRaised : daySurfaceRaised
     readonly property color surfaceElevated: dark ? nightSurfaceElevated : daySurfaceElevated
-    // Tint overlays an opaque, blurred page texture; it is not the blur itself.
-    readonly property color navigationGlassTint: dark ? "#4C3A4151" : "#66FFFFFF"
+    // Pair material and foreground: a page can contain black media in Light
+    // mode or white media in Dark mode. Keep readable ink at both extremes
+    // while retaining the blurred backdrop's color and movement.
+    readonly property color navigationGlassTint: dark ? "#C21B1D23" : "#B8FFFFFF"
+    readonly property color navigationGlassInk: dark ? "#F7F7F8" : "#17181B"
+    readonly property color navigationGlassInkMuted: dark ? "#C7CBD3" : "#424750"
     readonly property color surfaceHover: dark ? nightSurfaceHover : daySurfaceHover
     readonly property color surfacePressed: dark ? nightSurfacePressed : daySurfacePressed
     readonly property color contextRailCanvas: dark ? "#0F1014" : "#E7E8EF"

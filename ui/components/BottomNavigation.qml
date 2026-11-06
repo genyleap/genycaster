@@ -83,6 +83,7 @@ Item {
         background: Superellipse {
             curveDepth: height / 2
             exponent: 2.0
+            highQualityEdges: true
             // The selected destination is a subtle wash, not an opaque button
             // floating inside the glass navigation capsule.
             fillColor: destination.active
@@ -110,7 +111,7 @@ Item {
                     text: destination.iconGlyph
                     filled: destination.active
                     preferredSize: Theme.iconSizeNavigation
-                    color: destination.active ? Theme.ink : Theme.inkMuted
+                    color: destination.active ? Theme.navigationGlassInk : Theme.navigationGlassInkMuted
                     Behavior on color {
                         enabled: root.animateDock
                         ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
@@ -126,7 +127,7 @@ Item {
                     selectableText: false
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightDemiBold
-                    color: Theme.ink
+                    color: Theme.navigationGlassInk
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.NoWrap
                 }
@@ -285,7 +286,9 @@ Item {
                     maskEnabled: true
                     maskSource: capsuleMaskTexture
                     maskThresholdMin: 0.5
-                    maskSpreadAtMin: 0.0
+                    // Preserve fractional edge coverage instead of converting
+                    // the antialiased pill mask into a hard binary cutout.
+                    maskSpreadAtMin: 1.0
                     autoPaddingEnabled: false
                     antialiasing: true
                 }
@@ -297,6 +300,7 @@ Item {
                 z: 1
                 curveDepth: height / 2
                 exponent: 2.0
+                highQualityEdges: true
                 fillColor: root.useBackdropBlur
                     ? Theme.navigationGlassTint : Theme.surfaceElevated
                 borderWidth: 0
