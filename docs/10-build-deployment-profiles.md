@@ -7,11 +7,13 @@ Provider and feature independence must be executable policy rather than document
 ## Platform CMake ownership
 
 Shared CMake checks remain at `cmake/` while target-specific toolchain,
-transport dependency and bundle helpers live in `cmake/platform/{Android,macOS,WebAssembly,Windows}/`.
+transport dependency and bundle helpers live in each platform's single `cmake/platform/<target>/configure.cmake`.
 Android Boost/OpenSSL/TLS logic belongs to Android alone; browser-specific
 portable Boost logic belongs to WebAssembly; macOS bundle-case normalization
-and the C++26 Apple SDK Mini App Objective-C++ compiler probe belong to macOS. Platform-specific changes should go to their own files,
-with shared CMake keeping only explicit platform dispatch and common rules.
+and the C++26 Apple SDK Objective-C++ compiler probe belong to macOS.
+Changes specific to a target must stay inside that target's single
+`configure.cmake`; the shared CMake composition retains only lifecycle
+calls and common rules.
 
 ## Platform property ownership
 
@@ -115,7 +117,7 @@ module compile commands; the affected modules are then rebuilt automatically.
 ### Android Boost.JSON headers
 
 Android compiles Boost.JSON directly from `boost/json/src.hpp` and only needs
-portable Boost headers. `cmake/AndroidBoostHeaders.cmake` creates the
+portable Boost headers. `cmake/platform/Android/configure.cmake` creates the
 `Boost::headers` interface target before providers are configured, avoiding
 Qt Creator's host-only `find_package(Boost)` package-manager interception.
 If suitable Boost 1.75+ headers are available via Homebrew, only their

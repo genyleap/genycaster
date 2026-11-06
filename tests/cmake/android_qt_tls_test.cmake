@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../cmake")
-include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/platform/Android/QtNetworkTls.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/platform/Android/configure.cmake")
 set(_root "${CMAKE_CURRENT_LIST_DIR}/../../build/android-qt-tls-test")
 get_filename_component(_root "${_root}" ABSOLUTE)
 file(MAKE_DIRECTORY "${_root}/enabled/QtNetwork" "${_root}/disabled/QtNetwork")

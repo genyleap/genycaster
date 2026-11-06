@@ -1,24 +1,25 @@
-# Cross-platform CMake ownership
+# Platform-specific CMake configuration
 
-Platform-neutral configuration remains in the repository root
-`CMakeLists.txt` and the shared helpers directly under `cmake/`.
-Platform-specific compiler, SDK, linker and packaging-related helpers live
-here and are only included for their corresponding target system.
+The shared build is composed in the root CMakeLists.txt. Every deployment
+target has exactly one platform configuration file named configure.cmake:
 
-| Platform | Folder | Responsibilities |
-|---|---|---|
-| Android | `Android/` | NDK C compilation, ABI-compatible OpenSSL, Boost headers, Qt TLS, tests and 16 KiB page alignment |
-| WebAssembly | `WebAssembly/` | Browser-safe feature composition and portable Boost headers |
-| macOS | `macOS/` | Native .app filesystem-case normalization |
-| Windows | `Windows/` | Target-specific Boost.JSON linking declarations |
-| Linux | `Linux/` | ELF PIC requirements for the Qt presentation build |
+| Target | Responsibilities |
+| --- | --- |
+| Android | NDK compilation, test policy, target OpenSSL, portable Boost, Qt TLS, ELF alignment |
+| iOS | iOS SDK boundary; package metadata is in properties/iOS |
+| macOS | Objective-C++26 compiler and SDK verification, WebKit integration, .app casing migration |
+| Windows | Boost.JSON linkage policy |
+| Linux | Position-independent code for Qt presentation libraries |
+| WebAssembly | Browser sandbox policy and portable Boost headers |
 
-Deployment properties such as icons, manifests and installer metadata are
-stored separately under [`properties/`](../../properties/README.md);
-the shared UI remains in `ui/`.
+These files group platform behaviors by concern and expose named procedures
+that the shared CMake composition calls at the correct lifecycle stage.
+Do not create extra named .cmake files for individual bugs or dependencies
+within platform directories.
 
-**Invariants:** never link host macOS/Windows dependencies into an Android
-or WASM target; never weaken signer authorization as a packaging workaround;
-do not suppress compiler warnings globally or selectively to hide
-deprecated SDK usage. A new platform-specific build fix belongs in its
-own directory, and every changed target needs its relevant CI coverage.
+Packaging (icons, manifests, identity, entitlements) is separately owned by
+properties/<platform>/Configure.cmake and must not be confused with compiler
+and linker configuration.
+
+No build path reduces C++26, disables diagnostic categories or downgrades
+native SDK security requirements to make a build appear green.

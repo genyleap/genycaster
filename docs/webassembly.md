@@ -10,7 +10,7 @@ Qt kit, so a successful native test does NOT prove WASM execution.
 The live Hypersnap reader parses JSON with **Boost.JSON**, compiled via
 `boost/json/src.hpp` (header-only). Qt Creator's cross-build may reject
 `find_package(Boost)` because BoostConfig is absent from the WASM sysroot.
-`cmake/WasmBoostHeaders.cmake` supplies only an INTERFACE `Boost::headers`
+`cmake/platform/WebAssembly/configure.cmake` supplies only an INTERFACE `Boost::headers`
 target: it first tries native **headers** from the host (not macOS binary
 libraries), then falls back to the official, SHA256-pinned Boost 1.89.0
 source archive (about 155 MB, cached per build directory). Optional

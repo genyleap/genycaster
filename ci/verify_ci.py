@@ -89,10 +89,10 @@ def main() -> None:
     assert "validate_android_elf_alignment" in Path(
         "ci/verify_platform_package.py"
     ).read_text(encoding="utf-8")
-    android_options = Path("cmake/platform/Android/ToolchainOptions.cmake").read_text(encoding="utf-8")
+    android_options = Path("cmake/platform/Android/configure.cmake").read_text(encoding="utf-8")
     assert "add_link_options(" in android_options
     assert "max-page-size=16384" in android_options
-    assert "cmake/platform/Android/ToolchainOptions.cmake" in Path("CMakeLists.txt").read_text(encoding="utf-8")
+    assert "genycaster_android_apply_toolchain_options()" in Path("CMakeLists.txt").read_text(encoding="utf-8")
     assert "$ANDROID_HOME/build-tools/35.0.0/apksigner" in workflow
     assert "genycaster-ci-test-signed.apk" in workflow
     assert '"$signer" verify --verbose --print-certs "$selected"' in workflow

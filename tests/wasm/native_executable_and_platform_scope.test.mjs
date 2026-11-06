@@ -20,7 +20,7 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     assert.match(cmake, /properties\/ConfigureTarget\.cmake/);
     assert.match(macPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
     assert.match(iosPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
-    assert.match(macPackage, /FixBundleCase\.cmake/);
+    assert.match(macPackage, /configure\.cmake/);
 
     const workflow = source(".github/workflows/ci.yml");
     assert.match(workflow, /build\/native\/bin\/Genycaster\b/);
@@ -82,7 +82,7 @@ test("legacy macOS bundle directory is normalized without losing executable data
         const runMigration = () => spawnSync(
             "cmake", [
                 "-DGENYCASTER_BUNDLE_PATH=" + newBundle,
-                "-P", path.join(root, "cmake/platform/macOS/FixBundleCase.cmake")
+                "-P", path.join(root, "cmake/platform/macOS/configure.cmake")
             ],
             {encoding: "utf8"}
         );
@@ -109,15 +109,20 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
     assert.match(objc, /<AppKit\/NSView\.h>/);
     assert.match(objc, /<WebKit\/WKWebView\.h>/);
     assert.doesNotMatch(source("ui/CMakeLists.txt"), /-Wno-deprecated-declarations/);
-    const sdkBridge = source("cmake/platform/macOS/MiniAppBrowser.cmake");
+    const sdkBridge = source("cmake/platform/macOS/configure.cmake");
     assert.match(source("ui/CMakeLists.txt"),
-        /include\("\$\{CMAKE_SOURCE_DIR\}\/cmake\/platform\/macOS\/MiniAppBrowser\.cmake"\)/);
+        /include\("\$\{CMAKE_SOURCE_DIR\}\/cmake\/platform\/macOS\/configure\.cmake"\)/);
     assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
     assert.match(sdkBridge, /OBJCXX_STANDARD_REQUIRED ON/);
     assert.match(sdkBridge, /OBJCXX_EXTENSIONS OFF/);
     assert.match(sdkBridge, /xcrun --sdk macosx --find clang\+\+/);
     assert.match(sdkBridge, /check_objcxx_source_compiles/);
     assert.match(sdkBridge, /GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE/);
+    assert.match(sdkBridge, /CMAKE_OBJCXX_COMPILER_LOADED/);
+    assert.match(sdkBridge, /set\(CMAKE_OBJCXX_COMPILER.*?CACHE FILEPATH/s);
+    assert.match(sdkBridge, /FORCE\)/);
+    assert.match(sdkBridge, /get_filename_component\(_genycasterExpectedObjcxx/);
+    assert.match(sdkBridge, /Clear CMake Configuration/);
     assert.match(sdkBridge, /-fobjc-arc/);
     assert.match(source("ui/CMakeLists.txt"),
         /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);

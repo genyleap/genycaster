@@ -32,11 +32,13 @@ endif()
 # Platform-specific compiler, SDK and sandbox setup lives with that platform.
 # Shared product configuration remains independent of the deployment target.
 if(WIN32)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Windows/Configure.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Windows/configure.cmake")
+elseif(IOS)
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/iOS/configure.cmake")
 elseif(ANDROID)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/Configure.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/configure.cmake")
 elseif(EMSCRIPTEN)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/WebAssembly/Configure.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/WebAssembly/configure.cmake")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -57,7 +59,7 @@ option(FARCASTER_BUILD_TESTS "Build unit, contract, integration and architecture
 unset(_farcasterBuildTestsDefault)
 
 if(ANDROID)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/TestPolicy.cmake")
+    genycaster_android_apply_test_policy()
 endif()
 
 option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
@@ -65,7 +67,7 @@ option(FARCASTER_BUILD_UI "Build the Qt Quick presentation shell" ON)
 # Linux-specific relocation and packaging policies belong to the Linux
 # build configuration, not to the shared project defaults.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FARCASTER_BUILD_UI)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Linux/Configure.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/Linux/configure.cmake")
 endif()
 
 set(_genycasterPublicDataDefault OFF)
@@ -355,7 +357,7 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(ANDROID)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/ToolchainOptions.cmake")
+    genycaster_android_apply_toolchain_options()
 endif()
 
 include(CTest)
@@ -366,7 +368,7 @@ if(FARCASTER_BUILD_UI)
         # The app can compile while Qt for Android was built with SSL disabled,
         # but every HTTPS provider will then fail at runtime. Reject that SDK
         # before building an APK that deceptively appears ready to connect.
-        include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/QtNetworkTls.cmake")
+        # Defined by the Android platform configure.cmake
         genycaster_require_android_qt_tls("${Qt6Network_INCLUDE_DIRS}")
     endif()
     set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/qml")
@@ -385,8 +387,8 @@ endif()
 # Prepare Android-only target dependencies before provider subdirectories.
 # Neither Boost nor OpenSSL may link host (macOS/Homebrew) binaries into APKs.
 if(ANDROID AND FARCASTER_BUILD_UI)
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/OpenSSL.cmake")
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/Android/BoostHeaders.cmake")
+    genycaster_android_setup_openssl()
+    genycaster_android_setup_boost_headers()
 endif()
 
 add_subdirectory(src/foundation)

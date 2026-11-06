@@ -1,6 +1,6 @@
 if(EMSCRIPTEN)
     # Browser builds have portable Boost headers but no native BoostConfig package.
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/WebAssembly/BoostHeaders.cmake")
+    genycaster_wasm_setup_boost_headers()
 elseif(NOT TARGET Boost::headers)
     # Android defines Boost::headers at the composition root. Native hosts
     # continue to discover their installed Boost package normally.

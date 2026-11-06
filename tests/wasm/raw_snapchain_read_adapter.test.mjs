@@ -47,5 +47,5 @@ test('raw-node continuation stays provider, capability, endpoint and FID scoped 
 
 test('WASM portable Boost dependency avoids native Boost package lookup', () => {
     const cmake = read('src/providers/snapchain/CMakeLists.txt');
-    assert.match(cmake, /if\(EMSCRIPTEN\)\s+[^]*?include\("\$\{CMAKE_SOURCE_DIR\}\/cmake\/platform\/WebAssembly\/BoostHeaders\.cmake"\)/);
+    assert.match(cmake, /if\(EMSCRIPTEN\)\s+[^]*?genycaster_wasm_setup_boost_headers\(\)/);
 });

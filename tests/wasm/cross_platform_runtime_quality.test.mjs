@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -78,7 +78,7 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
     assert.match(native, /#import <AppKit\/NSView\.h>/);
     assert.match(native, /#import <WebKit\/WKWebView\.h>/);
     assert.match(native, /GenyMiniAppLoadingSurface : NSView/);
-    const sdkBridge = read("cmake/platform/macOS/MiniAppBrowser.cmake");
+    const sdkBridge = read("cmake/platform/macOS/configure.cmake");
     assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
     assert.match(sdkBridge, /check_objcxx_source_compiles/);
     assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|diagnostic ignored/);
@@ -90,14 +90,22 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
 test("platform-specific CMake and packaging stay isolated from the shared Qt product", () => {
     const cmake = read("CMakeLists.txt");
     const ui = read("ui/CMakeLists.txt");
-    for (const platform of ["Android", "WebAssembly", "Windows", "Linux"]) {
-        assert.match(cmake, new RegExp("cmake/platform/" + platform + "/"));
+    // A platform must have exactly one CMake entrypoint; adding one file per
+    // incident/dependency is an architecture regression, not a fix.
+    for (const platform of ["Android", "iOS", "macOS", "WebAssembly", "Windows", "Linux"]) {
+        const platformDir = resolve(root, "cmake/platform", platform);
+        assert.deepEqual(readdirSync(platformDir), ["configure.cmake"], platform);
     }
-    assert.ok(existsSync(resolve(root, "cmake/platform/macOS/FixBundleCase.cmake")));
+    for (const platform of ["Android", "iOS", "WebAssembly", "Windows", "Linux"]) {
+        assert.match(cmake, new RegExp("cmake/platform/" + platform + "/configure\\.cmake"));
+    }
+    assert.match(ui, /cmake\/platform\/macOS\/configure\.cmake/);
+    assert.match(ui, /genycaster_macos_setup_browser\(\)/);
     assert.match(ui, /properties\/ConfigureTarget\.cmake/);
-    assert.ok(existsSync(resolve(root, "cmake/platform/Android/OpenSSL.cmake")));
-    assert.ok(existsSync(resolve(root, "cmake/platform/Android/QtNetworkTls.cmake")));
-    assert.ok(existsSync(resolve(root, "cmake/platform/WebAssembly/BoostHeaders.cmake")));
+    assert.match(cmake, /genycaster_android_setup_openssl\(\)/);
+    assert.match(cmake, /genycaster_android_setup_boost_headers\(\)/);
+    assert.match(read("cmake/platform/Android/configure.cmake"), /genycaster_require_android_qt_tls/);
+    assert.match(read("cmake/platform/WebAssembly/configure.cmake"), /genycaster_wasm_setup_boost_headers/);
 });
 
 test("public documentation explains PostgreSQL without disclosing the deployment database name", () => {

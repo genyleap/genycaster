@@ -343,7 +343,8 @@ endif()
 if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # Keep the platform SDK bridge and its ObjC++ dialect separate from
     # the shared Qt/C++26 Mini App runtime composition below.
-    include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/MiniAppBrowser.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/configure.cmake")
+    genycaster_macos_setup_browser()
 
     add_library(farcaster_miniapp_runtime STATIC)
     target_sources(farcaster_miniapp_runtime

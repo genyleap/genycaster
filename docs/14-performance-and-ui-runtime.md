@@ -219,10 +219,13 @@ running in C++26 mode, diagnosed mixed-enum operations in Apple
 a missing cast in GenyCaster's Mini App logic.
 
 The macOS-specific SDK adapter now keeps `OBJCXX_STANDARD 26` (with the
-requirement enabled), but selects the matching **Apple Clang from Xcode**
-for the Objective-C++ compilation boundary when no custom compiler was
-explicitly selected. The shared project C++26 compiler, named modules
-and C++26 Mini App runtime remain unchanged. CMake verifies a small
+requirement enabled) and selects **Apple Clang from the active Xcode SDK**
+for this Objective-C++ compilation boundary, including when Qt Creator
+prepopulated an LLVM compiler before the language was enabled. A previously
+enabled, incompatible compiler in an existing CMake cache is rejected with
+an explicit cache-reset instruction rather than silently reused.
+The shared project C++26 compiler, named modules and Mini App runtime
+remain unchanged. CMake verifies a small
 Objective-C++26 AppKit/WebKit header compilation at configuration time
 and fails with an explicit toolchain/SDK message if unsupported rather
 than starting a long, doomed build. This is an SDK/compiler compatibility
