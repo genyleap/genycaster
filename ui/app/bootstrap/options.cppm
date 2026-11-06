@@ -1,8 +1,10 @@
+// Qt declarations are globally attached forward declarations. Importers that
+// use them include the corresponding Qt headers in their own translation unit.
 module;
-
-#include <QString>
-#include <QStringList>
-#include <QStringView>
+class QString;
+template<class T> class QList;
+using QStringList = QList<QString>;
+class QStringView;
 
 export module genycaster.ui.bootstrap;
 
