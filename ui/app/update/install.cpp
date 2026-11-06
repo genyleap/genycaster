@@ -1,4 +1,4 @@
-#include "install.hpp"
+module;
 
 #include <QCoreApplication>
 #include <QDesktopServices>
@@ -9,6 +9,8 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QUrl>
+
+module genycaster.ui.update.install;
 
 namespace genycaster::ui::update {
 namespace {
