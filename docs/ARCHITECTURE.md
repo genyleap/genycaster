@@ -1,58 +1,59 @@
-# GenyCaster architecture
+# Architecture — how GenyCaster works
 
-> **Read this after the [README](../README.md).** This document describes architectural boundaries and the implemented composition model. Some optional integrations and target-specific capabilities remain in beta; a diagram is not a claim that every adapter is available on every platform.
+GenyCaster combines three responsibilities: **the interface**, a **shared application core**, and **protocol/data providers**. Native and browser builds share the application core, while platform integrations adapt to their security capabilities.
 
-## 1. System map
+## Architecture at a glance
+
+When a feed opens, the application reads a local snapshot first, then refreshes through an eligible protocol provider. When a person interacts with a Cast, the application verifies the appropriate signer authority before submitting a canonical protocol message.
+
+```mermaid
+flowchart TB
+    UI["Experience<br/>Social · Mini Apps · Widgets"]
+    CORE["Shared C++ application<br/>State · Commands · Sync"]
+    STORE[("On-device storage<br/>Cached content · Pending writes")]
+    ROUTER{"Eligible protocol route"}
+    H["HyperSnap<br/>Preferred"]
+    S["Snapchain<br/>Selectable"]
+    O["Compatible nodes"]
+    PRODUCT["Optional product services<br/>Account extras · GENY"]
+
+    UI <--> CORE
+    CORE <--> STORE
+    CORE <--> ROUTER
+    ROUTER --> H
+    ROUTER --> S
+    ROUTER --> O
+    CORE -. "Optional" .-> PRODUCT
+```
+
+| Boundary | Responsibility |
+|---|---|
+| **Interface** | Feeds, conversations, profiles, Mini Apps and widgets |
+| **Application and domain** | Canonical Farcaster operations, routing contracts and reconciliation |
+| **On-device state** | Cached snapshots, preferences and durable write queue |
+| **Capability router** | Select an eligible provider for each read or write |
+| **Optional services** | Account extras, media gateways and verified GENY-related benefits |
+
+**Capability routing** means profile reads, feed reads and signed message submissions may use different supported adapters. HyperSnap is the default preference, not a dependency of the domain.
+
+## Contributor module view
 
 ```mermaid
 flowchart TD
-    subgraph Experience["Presentation boundary"]
-        QML["Qt Quick / QML<br/>surfaces, input, layout"]
-        P["C++ presentation adapters<br/>view models and signals"]
-        QML <--> P
-    end
-
-    subgraph Core["Shared C++ application core"]
-        A["Application<br/>use cases · queries · commands"]
-        D["Domain<br/>canonical Farcaster entities"]
-        C["Capabilities<br/>operation-level contracts"]
-        R["Routing & policy<br/>eligible provider + health"]
-        A --> D
-        A --> C
-        C --> R
-    end
-
-    subgraph State["Local durable state"]
-        S[("SQLite<br/>cache · continuity · outbox")]
-        E["Background executors<br/>sync · reconciliation"]
-        S <--> E
-    end
-
-    subgraph Adapters["Infrastructure and protocol adapters"]
-        H["HyperSnap<br/>default preference"]
-        N["Snapchain / nodes<br/>explicit selection"]
-        X["Derived / compatibility<br/>optional"]
-        R --> H
-        R --> N
-        R --> X
-    end
-
+    Q["Qt Quick / Web host"]
+    P["Presentation models"]
+    A["Application use cases"]
+    D["Canonical domain and capability contracts"]
+    I["Adapters<br/>Storage · Nodes · Wallets · Network"]
+    Q <--> P
     P <--> A
-    A <--> S
-    E <--> R
-    E --> A
-
-    classDef core fill:#232323,color:#fff,stroke:#666;
-    classDef storage fill:#eeeeee,color:#1a1a1a,stroke:#888;
-    class A,D,C,R core;
-    class S,E storage;
+    A --> D
+    A <--> I
 ```
 
-The primary dependency direction is **Presentation → Application → Domain/capability contracts**. Provider implementations, SQLite, transport libraries, browser APIs and Qt belong at outer boundaries. They do not become domain types.
+The dependency direction is presentation → application → canonical domain/capability contracts. Qt, database details, raw network DTOs and provider-specific implementations remain in their owning adapters. See [Architecture Overview](00-architecture-overview.md), [Module Rules](03-dependency-and-module-rules.md), [Provider Routing](04-provider-boundary-and-routing.md) and [ADRs](adr/).
 
-Relevant source locations: `src/domain/`, `src/application/`, `src/capabilities/`, `src/providers/`, `src/presentation/`, `src/storage/`, and `ui/`. For the normative contracts, read [Architecture Overview](00-architecture-overview.md), [Dependency Rules](03-dependency-and-module-rules.md), and [ADR index](adr/).
-
-## 2. The local-first read path
+## Local-first read path
 
 ```mermaid
 sequenceDiagram
@@ -81,7 +82,7 @@ This is the *responsibility flow*, not a guarantee that every empty first-run sc
 
 **Performance consequences:** native Qt UI input does not wait for a network round trip before rendering an existing local snapshot; expensive read and synchronization work is scheduled away from the GUI thread. See [Performance](PERFORMANCE.md).
 
-## 3. A capability is not a provider
+## Capability-based routing
 
 GenyCaster is **Farcaster-protocol-aware**, not locked to the protocol node selected today.
 
@@ -107,7 +108,7 @@ flowchart LR
 
 The distinction between protocol operations and derived services is documented in [Capability Taxonomy](02-capability-taxonomy.md), [Routing](04-provider-boundary-and-routing.md), and [Provider Affinity ADR](adr/0007-provider-affine-continuations.md). A self-hosted deployment can compose a different set of eligible adapters; support is not assumed for features whose adapters are missing.
 
-## 4. Signed writes and trust boundaries
+## Signing and trust boundaries
 
 ```mermaid
 flowchart TD
@@ -135,7 +136,7 @@ Native signer material belongs in an OS-backed secure vault. Private key bytes m
 
 Related references: [Security and Signing](08-security-auth-and-signing.md), [Outbox ADR](adr/0010-durable-local-outbox.md), [Write Idempotency ADR](adr/0011-write-idempotency-strategy.md), [SECURITY.md](../SECURITY.md).
 
-## 5. Rendering and threading
+## Rendering and threading
 
 ```text
 Qt GUI thread             input · layout · small presentation updates
@@ -148,13 +149,13 @@ Qt Quick's graphics API is selected for the platform and driver (Metal, Direct3D
 
 **UI invariants:** QML does not perform database I/O, cryptographic signing, provider HTTP/JSON parsing or large model rebuilds on the presentation hot path. Expensive media admission and cached timeline reconciliation are asynchronous. [UI performance contract](14-performance-and-ui-runtime.md).
 
-## 6. Optional deployment-side services
+## Optional product services
 
 The `services/` tree contains independent account/product and gateway boundaries: account synchronization for GenyCaster-specific metadata, media handling, authentication integrations, and a Snapchain gateway. These services are **not** the canonical Farcaster protocol itself and must not be represented as required for ordinary provider-independent domain logic.
 
 A source-code build is not equivalent to an authorized production deployment. Credentials, App-FID attestation keys, database access and service-side controls remain operator-managed. Review individual service READMEs and [SECURITY.md](../SECURITY.md) before exposing endpoints.
 
-## 7. Repository guide
+## Repository guide
 
 | Area | Start with |
 |---|---|
@@ -167,7 +168,7 @@ A source-code build is not equivalent to an authorized production deployment. Cr
 | Build configurations | `CMakePresets.json`, [Build profiles](10-build-deployment-profiles.md) |
 | Tests and verification | `tests/`, [CI](../ci/README.md) |
 
-## 8. Non-negotiable principles
+## Engineering principles
 
 1. A provider can be replaced without redesigning the domain/application/UI contract.
 2. Canonical protocol state and derived product state are separate.

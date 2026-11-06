@@ -1,168 +1,160 @@
 <div align="center">
-  <img src="ui/assets/branding/genycaster-mark.svg" alt="GenyCaster" width="104" height="104"/>
+  <img src="ui/assets/branding/genycaster-mark.svg" alt="GenyCaster logo" width="100" height="100" />
   <h1>GenyCaster</h1>
-  <p><strong>Native by design. Local-first by default. Farcaster without provider lock-in.</strong></p>
-  <p>A cross-platform, protocol-aware social client built with Modern C++ and Qt Quick.</p>
+  <p><strong>A native, local-first Farcaster experience.</strong></p>
+  <p>One shared C++26 core. Multiple protocol routes. A consistent experience across devices.</p>
   <p>
-    <a href="https://genycaster.xyz">Website</a> ·
+    <a href="docs/FEATURES.md">Features</a> ·
     <a href="docs/ARCHITECTURE.md">Architecture</a> ·
+    <a href="docs/12-roadmap.md">Roadmap</a> ·
     <a href="docs/PERFORMANCE.md">Performance</a> ·
-    <a href="CONTRIBUTING.md">Contributing</a> ·
-    <a href="SECURITY.md">Security</a>
+    <a href="CONTRIBUTING.md">Contribute</a>
   </p>
   <p>
-    <img alt="Beta" src="https://img.shields.io/badge/status-public%20beta-555555"/>
-    <img alt="Version" src="https://img.shields.io/badge/version-1.0.0--rc1-777777"/>
-    <img alt="C++26" src="https://img.shields.io/badge/C%2B%2B-26-444444"/>
-    <img alt="Qt" src="https://img.shields.io/badge/Qt-6.12-444444"/>
-    <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--only-444444"/>
+    <img alt="Beta" src="https://img.shields.io/badge/status-Beta-555555" />
+    <img alt="C++26" src="https://img.shields.io/badge/C%2B%2B-26-555555" />
+    <img alt="Qt 6.12" src="https://img.shields.io/badge/Qt-6.12-555555" />
+    <img alt="GPL 3.0 only" src="https://img.shields.io/badge/license-GPL--3.0--only-555555" />
   </p>
 </div>
 
-> **Beta software.** GenyCaster is under active development. Support and completeness differ across platforms and selected network capabilities; it is not a security-audited, production-certified wallet. The release identifier `rc1` describes packaging, not a claim of stable readiness.
+## Overview
 
-## The idea
+**GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces.
 
-**One client. Multiple protocol routes. One coherent user experience.**
+The product follows four principles:
 
-GenyCaster is not a website wrapped in a desktop window. Its domain model, protocol operations, routing, persistence and application logic are implemented in a shared C++ core. Qt Quick presents that state across desktop, mobile and WebAssembly targets.
+| Native rendering | Local-first continuity | Protocol choice | Scoped authorization |
+|---|---|---|---|
+| Native Qt Quick scene graph and shared C++ core | Cached social data can appear before a network refresh | HyperSnap preferred; configurable Snapchain and compatible routes | Authentication, protocol signing and Mini App wallet access stay distinct |
 
-Its defining choices are architectural rather than cosmetic:
+GenyCaster is in **Beta**. Some capabilities depend on the target platform, selected node, a verified account or an optional product service.
 
-| Native-first | Local-first | Capability-routed | Secure boundaries |
-|:--|:--|:--|:--|
-| Shared C++26 application core, adaptive Qt Quick UI | Cached state renders immediately; network work reconciles in the background | **HyperSnap preferred**; Snapchain and compatible nodes selectable where supported | Authentication, custody, protocol signing and transport are separate authorities |
+## Architecture in one view
 
-## Architecture at a glance
+The simplest way to understand GenyCaster is to follow a read: **the interface asks the application core for a feed; the core shows available local data, then refreshes through an eligible protocol route.**
 
 ```mermaid
 flowchart TB
-    UI["Qt Quick / QML<br/>Desktop · Mobile · WebAssembly"]
-    PRESENT["C++ Presentation<br/>UI-facing models and commands"]
-    APP["Application<br/>Queries · Commands · Sync"]
-    DOMAIN["Canonical Farcaster domain<br/>Provider-neutral types"]
-    LOCAL[("Local-first state<br/>SQLite · durable cache / outbox")]
-    ROUTER["Capability router<br/>Policy · health · eligibility"]
-    HYPER["HyperSnap<br/>Preferred by default"]
-    SNAP["Snapchain / self-hosted<br/>Selectable where supported"]
-    COMPAT["Compatibility / derived<br/>Optional capabilities"]
+    PEOPLE["Your screen<br/>Feeds · Profiles · Apps · Widgets"]
+    CORE["Shared C++ core<br/>Social logic · Commands · Synchronization"]
+    CACHE[("Local data<br/>SQLite snapshots and outbox")]
+    ROUTER{"Protocol capability router"}
+    HYPER["HyperSnap<br/>Preferred default"]
+    SNAP["Snapchain<br/>Selectable"]
+    OTHER["Compatible routes<br/>When supported"]
+    EXTRA["Optional product services<br/>Account extras · GENY Pro"]
 
-    UI --> PRESENT
-    PRESENT --> APP
-    APP --> DOMAIN
-    APP <-->|"Read snapshots / reconcile"| LOCAL
-    APP --> ROUTER
+    PEOPLE <--> CORE
+    CORE <--> CACHE
+    CORE <--> ROUTER
     ROUTER --> HYPER
     ROUTER --> SNAP
-    ROUTER --> COMPAT
+    ROUTER --> OTHER
+    CORE -. "Optional features" .-> EXTRA
 
-    classDef primary fill:#232323,color:#fff,stroke:#777;
-    classDef boundary fill:#efefef,color:#171717,stroke:#999;
-    class UI,PRESENT,APP primary;
-    class DOMAIN,LOCAL,ROUTER boundary;
+    classDef main fill:#242424,color:#fff,stroke:#777;
+    classDef neutral fill:#f1f1f1,color:#171717,stroke:#aaa;
+    class PEOPLE,CORE main;
+    class CACHE,ROUTER neutral;
 ```
 
-**Read path:** cached snapshot → UI immediately → routed background refresh → canonical reconciliation → updated snapshot.
+**Reads:** show a cached snapshot if available → refresh from a supported node → reconcile and update the view.
 
-**Write path (when enabled):** user intent → canonical message → authorized signer → durable outbox → provider transport → confirmation/reconciliation. Sign-in does **not** itself authorize a protocol write.
+**Writes:** user action → check account and signer permission → create a canonical protocol message → persist and submit safely → confirm the result.
 
-For the full module graph, provider selection, trust boundaries and native/browser differences, see **[Architecture](docs/ARCHITECTURE.md)**. For the original architectural invariants, see [docs/00](docs/00-architecture-overview.md) and the [architecture decisions](docs/adr/).
+**Independent responsibilities:** the Farcaster protocol determines canonical social messages; the optional GenyCaster services store product-specific extras such as bookmarks and GENY eligibility. Neither replaces the other.
 
-## What GenyCaster supports
+The [Architecture Guide](docs/ARCHITECTURE.md) explains each layer, provider routing, read/write flow, local storage and security boundaries in more detail.
 
-| Surface | Capabilities |
+## The experience
+
+| Area | Capabilities and current scope |
 |---|---|
-| **Social** | Casts, threads, replies, quotes, recasts, likes, follows, profiles, channels, notifications and search |
-| **Discovery** | Following, Explorer, content topics, channel discovery and provider-backed feeds |
-| **Media** | Image and video embeds, rich link previews, cast references, image galleries and upload flows where available |
-| **Identity & interaction** | Guest reads, Farcaster-linked account authentication, scoped signer authorization, multi-node configuration |
-| **Your workspace** | Bookmarks and collections, profile extras, status, preferences, localized settings and optional account-backed extensions |
-| **Mini Apps** | Embedded Mini App surfaces and permission-mediated wallet interactions where supported by the target runtime |
-| **Experience** | Adaptive desktop/mobile layouts, light/dark appearances, 12 translation catalogs, RTL-aware content and regional formatting |
+| **Social** | Casts, replies, threads, quotes, reactions, follows, profiles, channels and notifications |
+| **Explore** | Feeds, discovery, search, channels and topics, depending on selected provider capabilities |
+| **Media** | Images, galleries, video, rich previews and supported uploads |
+| **Mini Apps** | Discovery, saved apps and embedded sessions; wallet support varies by runtime and requires approval |
+| **Native Apps** | **Concept** — a dedicated Apps category is present, but its runtime/catalog is Coming Soon |
+| **Personal workspace** | Bookmarks, collections, preferences, profile extras and user status where supported |
+| **Widgets** | Reorderable **Assets, GenyPulse, Calendar, Market and Suggestions** widgets in a context rail or mobile drawer |
+| **Languages and themes** | Twelve locale catalogs, RTL-aware presentation, light/dark themes and adaptive layouts |
 
-**Availability is capability- and platform-dependent.** Not every feature is enabled in every build. In particular, native secure storage and browser wallet interactions have distinct implementations and approval boundaries; WebAssembly is not equivalent to a privileged native process. See [Security](SECURITY.md) and [Platform and build notes](ci/README.md).
+### GENY ecosystem
 
-## The technology
+GenyCaster includes optional integration with the **GENY token ecosystem on Base**. Its asset widget displays balances associated with verified Farcaster-linked wallets. **Geny Pro** eligibility is evaluated by the account service using verified wallet addresses and on-chain token holdings, with product capabilities and limits defined by server policy.
 
-| Layer | Implementation |
+These integrations are distinct from Farcaster signing and core social reads. Displaying a balance does not grant Pro, and the application does not infer wallet permissions from token ownership.
+
+See [Features](docs/FEATURES.md) for what is implemented, in development or conceptual, including GenyPulse and the Native Apps roadmap.
+
+## Technology
+
+| Component | Approach |
 |---|---|
-| Core | **Modern C++26**, project-owned named modules, RAII, explicit ownership and typed failures |
-| UI | **Qt 6.12 / Qt Quick**, native graphics integration and platform-adaptive QML |
-| State | **SQLite**, durable local cache, incremental snapshots and restart-safe write outbox |
-| Networking | Qt Network / platform adapters and independent capability routes |
-| Targets | macOS, Windows, Linux, Android, iOS and WebAssembly build configurations |
-| Protocols | Farcaster canonical entities and messages; HyperSnap-first policy; configurable Snapchain/compatible routes |
-| Optional services | Account data and product extensions, authentication and media gateways, kept outside the canonical protocol domain |
+| Core | Modern **C++26**, named modules, domain and capability contracts |
+| Presentation | **Qt 6.12 / Qt Quick**, platform-adaptive QML |
+| Local state | SQLite, incremental snapshots and a durable signed-write outbox |
+| Protocol | Canonical Farcaster data with HyperSnap-first, configurable multi-node routing |
+| Targets | macOS, Windows, Linux, Android, iOS and **WebAssembly** build targets |
+| Optional extensions | Mini Apps, context widgets, GENY product services, account-backed extras |
 
-**Rendering:** production Qt Quick uses the platform's graphics API when available (for example Metal, Direct3D or OpenGL; WebGL on WebAssembly). `QT_QUICK_BACKEND=software` is used in selected **headless test** configurations, not as the shipping renderer policy.
+**Rendering:** Qt Quick selects an available platform graphics backend (for example Metal, Direct3D, OpenGL or browser WebGL). Selected headless tests set `QT_QUICK_BACKEND=software`; this is not a production-wide rendering policy. Actual acceleration depends on the device, driver and runtime.
 
-## Performance: measured, not assumed
+## Performance and evidence
 
-GenyCaster is designed for responsive timelines: UI-independent network/database work, local snapshots, incremental model updates, reuse of rich delegates and controlled media loading. These mechanisms are implemented to *reduce work*, but **C++ or native rendering alone does not prove a speed advantage**.
+GenyCaster is designed around cached-first views, bounded background work, incremental UI updates and controlled media loading. These are implementation choices; **their end-user impact is measured separately**.
 
-| Benchmark | GenyCaster | Other Farcaster clients |
-|---|---|---|
-| Cold-start to usable feed | Not yet published | Not yet measured under matching conditions |
-| Warm-start to cached content | Not yet published | Not yet measured under matching conditions |
-| Scroll frame time (p50 / p95 / p99) | Not yet published | Not yet measured under matching conditions |
-| Peak memory and steady-state cache | Not yet published | Not yet measured under matching conditions |
-| Time to first visible media | Not yet published | Not yet measured under matching conditions |
+| Measurement | Public results |
+|---|---|
+| Cold start to usable feed | Not yet published |
+| Warm start with cached content | Not yet published |
+| Scroll frame time (p50 / p95 / p99) | Not yet published |
+| Memory and first visible media | Not yet published |
+| WebAssembly transfer and startup | Not yet published |
 
-**No fabricated speedup percentages.** A fair comparison requires the same device, workload, account/feed, network, cache state, display refresh rate and sampling method. The published [Performance & benchmark protocol](docs/PERFORMANCE.md) defines the metrics, experiment design, result format and evidence required before numbers appear here.
+The [Performance Guide](docs/PERFORMANCE.md) defines reproducible workloads, measurement tools, and what evidence is required before numerical or comparative claims are made.
 
-## Build from source
+## Build
 
-The project uses **CMake 3.30+** and **Qt 6.12** for the graphical client, with a C++26-capable toolchain and Ninja. CI pins its own compatible toolchains; ordinary development machines must supply their supported Qt/compiler dependencies.
+GenyCaster uses **CMake 3.30+** and **Ninja**, with a C++26-capable toolchain. The graphical client requires **Qt 6.12** and matching target-specific dependencies.
 
-For a provider-free core build:
+For core development:
 
-```bash
+```sh
 cmake --preset core-debug
 cmake --build --preset core-debug
 ctest --preset core-debug --output-on-failure
 ```
 
-For a native Qt UI configuration:
+For a configured native Qt environment:
 
-```bash
+```sh
 cmake --preset ui-debug
 cmake --build --preset ui-debug
 ctest --preset ui-debug --output-on-failure
 ```
 
-A version-pinned `ui-qt612-debug` configuration also exists for the Linux build environment documented in [Build profiles](docs/10-build-deployment-profiles.md). Read [CI and platform prerequisites](ci/README.md) before cross-compiling Android, iOS or WebAssembly; the browser target uses a matching Qt/Emscripten toolchain and has its own deployment process. Compiling does not imply that platform-specific signer, media or network acceptance has passed.
+See [Build Profiles](docs/10-build-deployment-profiles.md), [CI](ci/README.md) and [WebAssembly](docs/webassembly.md) for target toolchains and limitations. A successful build is not by itself a platform release acceptance.
 
-## Repository map
+## Project structure
 
 ```text
-src/         Protocol-independent domain, application, capabilities, routing and adapters
-ui/          Qt Quick shell, native entry points, media and WebAssembly host
-services/    Optional product and gateway services, independently deployed
-tests/       Unit, contract, UI and regression tests
-ci/          Verification, cross-platform packaging and release tooling
-cmake/       Toolchain and build configuration helpers
-docs/        Architecture, security and implementation references
+src/       Canonical domain, application, capability routing, adapters and storage
+ui/        Native and WebAssembly presentation, apps, widgets and visual resources
+services/  Optional authenticated product and gateway services
+tests/     Unit, contract, UI and regression tests
+ci/        Toolchains, source checks, build and packaging verification
+cmake/     Build helpers and platform configuration
+docs/      Architecture, features, roadmap, reference guides and decisions
 ```
 
-## Documentation and community
+## Contribute
 
-| Start here | Purpose |
-|---|---|
-| [Documentation index](docs/README.md) | Curated entry points and historical/reference guide navigation |
-| [Architecture](docs/ARCHITECTURE.md) | System graph, read/write pipelines, routing and trust boundaries |
-| [Performance](docs/PERFORMANCE.md) | Benchmark protocol, measurement criteria and comparison rules |
-| [Engineering rules](AGENTS.md) | Modern C++, module architecture, coding and verification constraints |
-| [Build and delivery](ci/README.md) | Supported build profiles, CI and packaging |
-| [Architecture decisions](docs/adr/) | Design rationale and invariants |
-| [Contributing](CONTRIBUTING.md) | Contribution process, developer setup and test expectations |
-| [Security policy](SECURITY.md) | Private vulnerability reporting and security boundaries |
-| [Changelog](CHANGELOG.md) | Release history entry point |
+Start with [Contributing](CONTRIBUTING.md), the [Development Roadmap](docs/12-roadmap.md) and the [Documentation Index](docs/README.md). Report vulnerabilities privately using [Security](SECURITY.md). Release history and license details are in [Changelog](CHANGELOG.md), [LICENSE](LICENSE) and [Third-party notices](THIRD_PARTY_NOTICES.md).
 
-GenyCaster is **GPL-3.0-only** for its original source code. Third-party assets and dependencies remain under their respective licenses; see [LICENSE](LICENSE) and [Third-party notices](THIRD_PARTY_NOTICES.md). The GenyCaster and Genyleap names and marks are not granted as trademarks by the software license.
-
----
+GenyCaster's original code is **GPL-3.0-only**. Bundled third-party materials retain their own terms. GenyCaster and Genyleap marks remain under their respective trademark ownership.
 
 <div align="center">
-  <strong>GenyCaster</strong> — built for a native, local-first and provider-independent social experience.<br/>
-  <sub>© 2025–2026 Genyleap · Beta</sub>
+  <sub>GenyCaster · Beta · Native and local-first</sub>
 </div>

@@ -125,7 +125,7 @@ changing the website**. Only after the archive passes verification, publish
 to the **actual Nginx static root** (check the live vhost configuration first):
 
 ```bash
-GENYCASTER_SITE_URL=https://genycaster.xyz \
+GENYCASTER_SITE_URL=https://app.example.com \
   bash ci/build_deploy_wasm_server.sh --web-root /ACTUAL/NGINX/STATIC/ROOT
 ```
 

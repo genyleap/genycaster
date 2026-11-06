@@ -53,7 +53,7 @@ Tests proving boundary:  application upload/delete lifecycle tests; gateway auth
 UPLOAD
 
 Genycaster Desktop
-    -> POST https://storage-farcaster.genyleap.com/v1/uploads
+    -> POST https://uploads.example.com/v1/uploads
     -> gateway starts provider multipart upload
     -> PUT /v1/uploads/<signed-ticket>/parts/<part-number>
        (default 8 MiB bounded parts)
@@ -64,7 +64,7 @@ Genycaster Desktop
 DELETE AFTER CONFIRMED CAST REMOVAL
 
 Genycaster Desktop
-    -> DELETE https://storage-farcaster.genyleap.com/v1/assets
+    -> DELETE https://uploads.example.com/v1/assets
        body: opaque managementToken + fresh Farcaster signer proof
     -> gateway verifies token owner FID
     -> normal SigV4 DeleteObject
@@ -72,14 +72,14 @@ Genycaster Desktop
 
 DOWNLOAD / CAST EMBED
 
-https://media-farcaster.genyleap.com/m/<opaque-key>
+https://media.example.com/m/<opaque-key>
     -> short-lived presigned GET/HEAD redirect
     -> private qStorage object today, another object store later
 ```
 
 The public media URL is provider-neutral. The production QStorage bucket must be private; no bucket-wide
 public ACL is required. If QConsole shows **Public Bucket** enabled, disable it after confirming the
-stable `media-farcaster.genyleap.com` read path, because public-bucket access would bypass the gateway.
+stable `media.example.com` read path, because public-bucket access would bypass the gateway.
 
 ## Why uploads are relayed
 

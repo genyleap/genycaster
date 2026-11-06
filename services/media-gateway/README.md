@@ -1,15 +1,17 @@
 # Genycaster Media Gateway
 
-Provider-neutral upload authorization and stable media-delivery boundary for Genycaster.
+Provider-neutral upload authorization and stable media-delivery boundary for GenyCaster.
+
+**Example addresses:** `uploads.example.com` and `media.example.com` are placeholders; configure your own deployment origins.
 
 The desktop client never receives reusable qStorage/S3/R2 credentials and never stores a provider
 URL in a Farcaster cast. It talks only to:
 
-- `https://storage-farcaster.genyleap.com` for authenticated upload control and bounded multipart chunks;
-- `https://media-farcaster.genyleap.com` for stable public asset URLs.
+- `https://uploads.example.com` for authenticated upload control and bounded multipart chunks;
+- `https://media.example.com` for stable public asset URLs.
 
 Production objects are expected to remain private. If QConsole shows **Public Bucket** enabled, disable
-it after confirming the stable `media-farcaster.genyleap.com` read path. Playback/download uses a
+it after confirming the stable `media.example.com` read path. Playback/download uses a
 short-lived QStorage-compatible presigned GET redirect. Upload writes use normal SigV4 `Authorization` headers behind the gateway because live
 QStorage interoperability tests accept header-authenticated writes and hashed-payload presigned GETs but reject `UNSIGNED-PAYLOAD` read presigns and
 presigned PUTs with `403 AccessDenied` (including AWS botocore reference presigning).
@@ -75,7 +77,7 @@ not grant delete permission.
 Published cast embed
         |
         v
-https://media-farcaster.genyleap.com/m/<opaque-key>
+https://media.example.com/m/<opaque-key>
         |
         | 307 short-lived signed redirect
         v
@@ -144,7 +146,7 @@ npm run test:native
 Health check:
 
 ```sh
-curl --fail https://storage-farcaster.genyleap.com/healthz
+curl --fail https://uploads.example.com/healthz
 ```
 
 ## Reverse proxy
@@ -176,7 +178,7 @@ Production acceptance requires one real QStorage multipart smoke test:
 3. upload every part through the gateway and capture provider ETags;
 4. complete the multipart upload;
 5. confirm hashed-payload presigned GET verification matches exact byte size/content type;
-6. open the stable `media-farcaster.genyleap.com/m/...` URL and confirm the signed GET redirect works;
+6. open the stable `media.example.com/m/...` URL and confirm the signed GET redirect works;
 7. delete the diagnostic object through normal SigV4 `DeleteObject` and confirm authenticated GET verification returns 404;
 8. publish/delete a test Cast and confirm only the stable Genyleap URL is public while cleanup uses the local management token.
 

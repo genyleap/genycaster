@@ -8,7 +8,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (name) => readFileSync(path.join(root, name), "utf8");
 const required = [
     "README.md", "STATUS.md", "LICENSE", "THIRD_PARTY_NOTICES.md",
-    "docs/ARCHITECTURE.md", "docs/PERFORMANCE.md", "docs/README.md", "SECURITY.md",
+    "docs/ARCHITECTURE.md", "docs/PERFORMANCE.md", "docs/FEATURES.md",
+    "docs/SELF_HOSTED_NODES.md", "docs/README.md", "SECURITY.md",
     "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "CHANGELOG.md",
     ".github/ISSUE_TEMPLATE/bug_report.yml",
     ".github/ISSUE_TEMPLATE/feature_request.yml",
@@ -35,9 +36,13 @@ test("repository root remains small and prototype-free after cleanup", () => {
     assert.deepEqual(rootMd, allowed.sort());
     assert.equal(existsSync(path.join(root, "prototypes")), false);
     const roadmap = read("docs/12-roadmap.md");
-    assert.match(roadmap, /Development Stages/);
-    assert.match(roadmap, /Stage 3/);
-    assert.match(roadmap, /Stage 6/);
+    assert.match(roadmap, /Development Roadmap/);
+    assert.match(roadmap, /Phase 03/);
+    assert.match(roadmap, /Phase 06/);
+    assert.match(roadmap, /Complete/);
+    assert.match(roadmap, /In progress/);
+    assert.match(roadmap, /Planned/);
+    assert.match(roadmap, /Concept/);
 });
 
 test("public landing page shows provider-neutral architecture without claiming benchmark wins", () => {
@@ -49,15 +54,18 @@ test("public landing page shows provider-neutral architecture without claiming b
     assert.match(readme, /HyperSnap preferred/);
     assert.match(readme, /Snapchain/);
     assert.match(readme, /Local-first/);
-    assert.match(readme, /Beta software/);
+    assert.match(readme, /GenyCaster is in \*\*Beta\*\*/);
     assert.match(readme, /Not yet published/);
-    assert.match(readme, /Not yet measured/);
+    assert.match(readme, /Widgets/);
+    assert.match(readme, /Native Apps/);
+    assert.match(readme, /GENY ecosystem/);
+    assert.doesNotMatch(readme, /not a website wrapped/i);
     assert.match(readme, /docs\/PERFORMANCE\.md/);
     assert.match(readme, /CONTRIBUTING\.md/);
     assert.match(readme, /SECURITY\.md/);
     assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL "rc"\)/);
     assert.match(cmake, /set\(GENYCASTER_RELEASE_CHANNEL_NUMBER "1"\)/);
-    assert.match(readme, /1\.0\.0--rc1/);
+    assert.match(read("docs/12-roadmap.md"), /v1\.0\.0-rc1/);
 });
 
 test("architecture, benchmarking and vulnerability disclosure remain explicit", () => {
@@ -80,7 +88,7 @@ test("architecture, benchmarking and vulnerability disclosure remain explicit", 
 test("all local links in the new public entry documents resolve", () => {
     const names = [
         "README.md", "STATUS.md", "docs/README.md", "docs/ARCHITECTURE.md",
-        "docs/PERFORMANCE.md", "CONTRIBUTING.md",
+        "docs/PERFORMANCE.md", "docs/FEATURES.md", "docs/SELF_HOSTED_NODES.md", "CONTRIBUTING.md",
         "SECURITY.md", "CODE_OF_CONDUCT.md",
         "THIRD_PARTY_NOTICES.md", "CHANGELOG.md"
     ];

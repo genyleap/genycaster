@@ -8,8 +8,8 @@ from threading import Thread
 import unittest
 from urllib.error import HTTPError
 
-SCRIPT = Path(__file__).resolve().parents[2] / "tools" / "check_bounty_read_node.py"
-spec = importlib.util.spec_from_file_location("bounty_probe", SCRIPT)
+SCRIPT = Path(__file__).resolve().parents[2] / "ci" / "check_snapchain_read_node.py"
+spec = importlib.util.spec_from_file_location("snapchain_probe", SCRIPT)
 probe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(probe)
 

@@ -35,6 +35,6 @@ test('native regression proves keyset paging, source affinity, graph breadth and
                        'wrongLimit','wrongNode','pending->cancel\(\)']) {
     assert.match(native, new RegExp(part));
   }
-  assert.match(load('ci/check_bounty_read_node.py'), /"link_type": "follow"/);
-  assert.match(load('ci/check_bounty_read_node.py'), /"target_fid": fid/);
+  assert.match(load('ci/check_snapchain_read_node.py'), /"link_type": "follow"/);
+  assert.match(load('ci/check_snapchain_read_node.py'), /"target_fid": fid/);
 });

@@ -52,7 +52,7 @@ confirmed `200 {"items":[]}` for `app_updates` and `401
 If the DB is unavailable, the client must keep the local edit/outbox rather
 than implying that a remote write succeeded. The API responds with JSON,
 never its browser app shell. Browser clients only contact the same-origin
-`caster.genyleap.com` API; they do not see PostgreSQL credentials.
+`api.example.com` API; they do not see PostgreSQL credentials.
 
 ## Authentication and ownership
 
@@ -67,7 +67,7 @@ client-submitted FID, identity ID, username and issuer when choosing an owner.
   temporary ticket and queries OpenProof with server-held session cookies.
   A client must not provide a bare FID as evidence.
 - Both authenticated routes resolve to the stable owner
-  `(issuer='https://openproof.genyleap.com', subject='farcaster:<verified FID>')`.
+  `(issuer='https://identity.example.com', subject='farcaster:<verified FID>')`.
   This is intentionally consistent across different devices and login paths.
   Never export the temporary bearer to QML, JavaScript or persistent storage.
 
@@ -233,10 +233,12 @@ be claimed.
 
 ## Testing and operational checks
 
+The URLs below are documentation placeholders. Replace `api.example.com` with your own authorized API origin.
+
 ```bash
 node --test services/account-sync/test/*.test.mjs
-curl -i https://caster.genyleap.com/api/v1/cloud/app_updates
-curl -i https://caster.genyleap.com/api/v1/cloud/profile_extras
+curl -i https://api.example.com/api/v1/cloud/app_updates
+curl -i https://api.example.com/api/v1/cloud/profile_extras
 ```
 
 Expected anonymous responses are `200` JSON and `401` JSON respectively.

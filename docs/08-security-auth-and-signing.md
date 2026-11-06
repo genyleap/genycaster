@@ -56,7 +56,7 @@ Browsing or resolving another Farcaster identity must never establish a client s
 
 The normal native sign-in path uses OpenProof OAuth device authorization. Genycaster
 opens the first-party Genyleap account surface with a local `return_to` target;
-an existing `genyleap.com` OpenProof session is reused by that browser flow, so
+an existing identity-provider session is reused by that browser flow, so
 the user is not asked to authenticate again merely because they opened the native
 client. OAuth access/refresh tokens remain transient inside the authentication
 attempt and are not persisted in the domain/session store.

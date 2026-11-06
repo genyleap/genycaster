@@ -1,6 +1,6 @@
 # Genyleap Snapchain Gateway
 
-`https://snapchain.genyleap.com` is the stable Genycaster-facing protocol origin. The desktop client never knows which managed provider or self-hosted Snapchain node sits behind it and never receives the upstream credential.
+A configured HTTPS origin (for example `https://node.example.com`) is the GenyCaster-facing protocol endpoint. The desktop client never knows which managed provider or self-hosted Snapchain node sits behind it and never receives the upstream credential.
 
 ## Responsibility
 
@@ -21,7 +21,7 @@ The gateway never receives a user custody private key or Ed25519 private key. `s
 Copy `.env.example` to `.env` on the server. The upstream is deployment data, not desktop-client code:
 
 ```text
-GENYLEAP_SNAPCHAIN_UPSTREAM_BASE_URL=https://your-current-writable-snapchain-origin
+GENYLEAP_SNAPCHAIN_UPSTREAM_BASE_URL=https://writer.example.com
 GENYLEAP_SNAPCHAIN_UPSTREAM_AUTH_HEADER=<optional HTTP header name>
 GENYLEAP_SNAPCHAIN_UPSTREAM_AUTH_VALUE=<optional secret>
 ```
@@ -37,7 +37,7 @@ docker compose up -d --build
 curl -i http://127.0.0.1:8787/healthz
 ```
 
-The compose file publishes the service only on loopback. Terminate public TLS in the origin reverse proxy. `deploy/nginx.conf.example` shows the expected `snapchain.genyleap.com` vhost.
+The compose file publishes the service only on loopback. Terminate public TLS in the origin reverse proxy. `deploy/nginx.conf.example` shows an example `node.example.com` vhost.
 
 ## Cloudflare
 

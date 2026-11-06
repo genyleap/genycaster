@@ -1,4 +1,4 @@
-# Include under the HTTPS caster.genyleap.com Nginx server block
+# Include under the HTTPS api.example.com Nginx server block
 # once the dedicated account API is deployed. Keep cloud routes separate
 # from the application's static/SPA fallback and never proxy to OpenProof DB.
 #

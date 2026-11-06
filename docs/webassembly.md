@@ -118,10 +118,10 @@ queue (`protocol-signer-pre.js` and `browser_signer_bridge.hpp`), never a
 nested Qt event loop or `std::thread`. The existing QML Composer routes to
 this signed writer; native desktop composition is left unchanged.
 The source Gateway implements a restricted CORS surface for
-`https://genycaster.genyleap.com` and local `127.0.0.1`/`localhost`
+`https://app.example.com` and local `127.0.0.1`/`localhost`
 development origins; `0.0.0.0`, file URLs and untrusted sites are excluded.
-**Deployment is mandatory:** the live `https://snapchain.genyleap.com`
-service must be updated/restarted and its CORS preflight verified before the
+**Deployment is mandatory:** the configured node service (for example `https://node.example.com`)
+must be updated/restarted and its CORS preflight verified before the
 WASM browser can call `/v1/submitMessage`. Merely building the client or
 changing the repository's Gateway source does not configure the live server.
 The Gateway forwards **only already-signed protocol bytes**, not wallet
@@ -163,7 +163,7 @@ remain separate work.
 ## Browser OpenProof sign-in (read-only identity)
 
 The browser uses OpenProof's public `genycaster-native-v1` OAuth device
-grant through `https://openproof.genyleap.com`. The Qt Network adapter
+grant through `https://identity.example.com`. The Qt Network adapter
 starts the device challenge, polls the access token, verifies the canonical
 subject via `/oauth/userinfo`, and requires exactly one server-confirmed
 linked Farcaster FID from `/account/connections`. Since that account API
@@ -292,7 +292,7 @@ further emoji packs.
 ## Browser image delivery
 
 The native image provider retains its direct HTTPS/CDN behavior. WASM uses
-`https://storage-farcaster.genyleap.com/v1/browser/images?url=...` for public
+`https://uploads.example.com/v1/browser/images?url=...` for public
 avatar and post-image bytes because cross-origin CDN XHR generally cannot be
 read by Qt WebAssembly. The first-party Media Gateway returns explicit CORS
 headers and permits only bounded raster responses (JPEG, PNG, GIF and WebP).

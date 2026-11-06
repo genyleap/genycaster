@@ -1,6 +1,6 @@
 server {
     listen 443 ssl http2;
-    server_name storage-farcaster.genyleap.com media-farcaster.genyleap.com;
+    server_name uploads.example.com media.example.com;
 
     # Default multipart chunks are 8 MiB. Keep the proxy limit slightly above
     # the configured chunk size while still rejecting whole-file uploads.

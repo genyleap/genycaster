@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail-closed, API-key-free smoke check for a user-owned Snapchain read node.
 
-This checks one part of the Balaji client tutorial acceptance requirements.
+This checks the compatibility and sync state of a selected independent read node.
 It neither provisions a node nor proves write, seed import, or reward eligibility.
 """
 from __future__ import annotations
