@@ -1,8 +1,6 @@
-// Keep Qt's header-defined templates outside exported interfaces.
+// Qt's ABI remains globally attached; full Qt headers are private to implementations.
 module;
-class QPoint;
-class QPointF;
-class QQuickWindow;
+#include "qt_fwd.hpp"
 
 export module genycaster.ui.web.wheel;
 
