@@ -248,7 +248,7 @@ aimcpp_reject_final_qml_creatable_types(
 )
 
 # Qt QObject/QML adapters remain MOC-readable; the non-QObject
-# platform and startup logic uses independent C++26 named modules.
+# platform and startup logic uses independent named C++ modules.
 # PUBLIC module file sets propagate BMI dependencies to the application and
 # their focused native UI tests without any relative source includes.
 add_library(genycaster_ui_bootstrap STATIC)
