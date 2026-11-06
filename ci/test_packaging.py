@@ -23,7 +23,7 @@ class PackagingTests(unittest.TestCase):
         data = bytearray(128)
         data[0:2] = b"MZ"
         data[0x3C:0x40] = (64).to_bytes(4, "little")
-        data[64:68] = b"PE\\x00\\x00".replace(b"\\\\x00", b"\\x00")
+        data[64:68] = bytes((80, 69, 0, 0))
         data[68:70] = machine.to_bytes(2, "little")
         return bytes(data)
 
