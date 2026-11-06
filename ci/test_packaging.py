@@ -43,9 +43,14 @@ class PackagingTests(unittest.TestCase):
             # permission to delete a dependency and ship a broken installer.
             stray = stage / "bin/unresolved-runtime.dll"
             stray.write_bytes(self.fake_pe(0xAA64))
-            with self.assertRaisesRegex(ValueError, "Unstaged runtime DLL"):
+            with self.assertRaisesRegex(ValueError, "Unstaged runtime executable or DLL"):
                 audit(stage, "arm64")
             stray.unlink()
+            helper = stage / "bin/QtWebEngineProcess.exe"
+            helper.write_bytes(self.fake_pe(0xAA64))
+            with self.assertRaisesRegex(ValueError, "Unstaged runtime executable or DLL"):
+                audit(stage, "arm64")
+            helper.unlink()
             self.assertEqual(audit(stage, "arm64"), 6)
             self.assertEqual(pe_machine(stage / "Genycaster.exe"), 0xAA64)
             self.assertTrue((stage / "qml/Farcaster/Client/plugin.dll").exists())
