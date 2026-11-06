@@ -9,6 +9,8 @@
     <!-- %%INSERT_FEATURES -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- In-app updates open the official, checksum-verified APK through Android Package Installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
 
     <supports-screens android:anyDensity="true" android:largeScreens="true"
         android:normalScreens="true" android:smallScreens="true"/>
@@ -38,5 +40,17 @@
             <meta-data android:name="android.app.arguments"
                 android:value="-- %%INSERT_APP_ARGUMENTS%% --"/>
         </activity>
+
+        <!-- Qt 6.12 QDesktopServices::openUrl(file:) requires a FileProvider
+             for an APK downloaded into the application's private data dir. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.qtprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/qtprovider_paths"/>
+        </provider>
     </application>
 </manifest>
