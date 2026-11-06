@@ -254,12 +254,10 @@ ColumnLayout {
         Layout.fillWidth: true
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
-        // Reserve a stable fallback while loading. For a single image, switch
-        // to its decoded aspect ratio only after scrolling settles. Otherwise
-        // wide screenshots inherit a 4:3 slot, leaving large blank bars above
-        // and below the actual media in both desktop and browser builds.
-        // Multi-image mosaics keep their fixed row reservations.
-        dynamicAspectDiscovery: root.visualCount === 1
+        // A decoded image must not resize a scrolling timeline, even between
+        // gestures: replies and previously visited feed rows share this panel.
+        // The full image still fits inside the metadata/fallback reservation.
+        dynamicAspectDiscovery: root.scrollHost === null && root.visualCount === 1
         onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
     }
 
@@ -291,30 +289,19 @@ ColumnLayout {
                             ? previewLoader.item.implicitHeight : tile.reservedHeight
 
                     function scheduleAdmission() {
-                        if (tile.admitted || root.scrollMoving)
+                        if (tile.admitted || previewAdmission.running)
                             return
                         previewAdmission.restart()
                     }
 
                     Component.onCompleted: tile.scheduleAdmission()
 
-                    Connections {
-                        target: root
-                        function onScrollMovingChanged() {
-                            if (!root.scrollMoving)
-                                tile.scheduleAdmission()
-                            else
-                                previewAdmission.stop()
-                        }
-                    }
-
                     Timer {
                         id: previewAdmission
                         interval: 24 + tile.index * 28
                         repeat: false
                         onTriggered: {
-                            if (!root.scrollMoving)
-                                tile.admitted = true
+                            tile.admitted = true
                         }
                     }
 
@@ -323,9 +310,9 @@ ColumnLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         active: tile.admitted
-                        // Admission is already delayed until scrolling settles.
-                        // A second asynchronous incubation can outlive a
-                        // recycled delegate and log destroyed-context errors.
+                        // Per-tile admission is staggered, including during
+                        // motion. Keep one construction boundary for the preview;
+                        // its media requests and texture admission remain async.
                         asynchronous: false
                         sourceComponent: Component {
                             EmbedPreview {

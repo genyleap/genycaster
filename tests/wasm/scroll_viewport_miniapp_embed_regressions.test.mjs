@@ -20,7 +20,7 @@ test('large feed re-renders preserve a stable viewport anchor instead of resetti
  assert.match(src,/readList\.positionViewAtIndex\(index, ListView\.Beginning\)/);
  assert.match(src,/const snapshot = root\.captureViewportForRebuild\(\)/);
  assert.match(src,/root\.queueViewportRestore\(snapshot\)/);
- assert.match(src,/onMovementStarted: \{/);
+ assert.match(src,/onMovementStarted: root\.cancelViewportCorrections\(\)/);
  assert.match(src,/stableViewportRestoreTimer\.stop\(\)/);
  assert.match(src,/geometryAnchorDebounce/);
  assert.match(src,/function stabilizeGeometryAnchor\(\)/);

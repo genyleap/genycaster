@@ -83,6 +83,7 @@ Item {
     property string geometryAnchorKey: ""
     property real geometryAnchorOffset: 0
     property bool applyingGeometryAnchor: false
+    property bool applyingViewportRestore: false
     property bool previewSyncPending: false
     property string presentationMode: "for-you"
     property bool topicFilterActive: false
@@ -731,17 +732,21 @@ Item {
     }
 
     function rememberVisibleGeometry() {
-        if (readList.moving || readList.count === 0
+        if (readList.moving || !root.presentationActive || readList.count === 0
+                || root.applyingGeometryAnchor || root.applyingViewportRestore
+                || geometryRestoreTimer.running
                 || root.pendingViewportScope.length > 0) return
         const snapshot = root.captureViewportForRebuild()
         if (snapshot && snapshot.key.length > 0) {
             root.geometryAnchorKey = snapshot.key
             root.geometryAnchorOffset = snapshot.offset
+        } else {
+            root.geometryAnchorKey = ""
         }
     }
 
     function stabilizeGeometryAnchor() {
-        if (readList.moving || root.applyingGeometryAnchor
+        if (readList.moving || !root.presentationActive || root.applyingGeometryAnchor
                 || root.pendingViewportScope.length > 0
                 || root.geometryAnchorKey.length === 0) return
         const key = root.geometryAnchorKey
@@ -753,18 +758,21 @@ Item {
             }
         }
         if (anchorIndex < 0) return
-        const item = readList.itemAtIndex(anchorIndex)
-        if (!item) return
-        const shift = item.y - readList.contentY - root.geometryAnchorOffset
-        // A settled image/miniapp preview may increase a preceding delegate
-        // by hundreds of pixels. Keep the visible cast in the same place,
-        // but never treat a real long user gesture as layout correction.
-        if (Math.abs(shift) < 1 || Math.abs(shift) > readList.height * 0.92)
-            return
         root.applyingGeometryAnchor = true
-        readList.contentY = Math.max(readList.originY,
-            Math.min(readList.originY + Math.max(0,readList.contentHeight-readList.height),
-                     readList.contentY + shift))
+        readList.forceLayout()
+        const item = readList.itemAtIndex(anchorIndex)
+        if (!item) {
+            root.applyingGeometryAnchor = false
+            return
+        }
+        const shift = item.y - readList.contentY - root.geometryAnchorOffset
+        if (Math.abs(shift) < 1) {
+            root.applyingGeometryAnchor = false
+            return
+        }
+        // contentHeight is an estimate for uninstantiated variable-height rows.
+        // Clamping to that estimate can move the reader by far more than shift.
+        readList.contentY += shift
         root.applyingGeometryAnchor = false
     }
 
@@ -823,18 +831,20 @@ Item {
                 Math.min(readList.originY + Math.max(0,readList.contentHeight-readList.height),previousY))
             return
         }
-        if (!root.pendingViewportSecondPass) {
+        const item = readList.itemAtIndex(index)
+        root.applyingViewportRestore = true
+        if (item) {
+            // A retained delegate already has exact geometry. Do not first
+            // snap its top to the viewport and undo that snap a frame later.
+            readList.contentY = item.y - offset
+        } else if (!root.pendingViewportSecondPass) {
             root.pendingViewportSecondPass = true
             readList.positionViewAtIndex(index, ListView.Beginning)
+            root.applyingViewportRestore = false
             stableViewportRestoreTimer.restart()
             return
         }
-        const item = readList.itemAtIndex(index)
-        if (item) {
-            readList.contentY = Math.max(readList.originY, Math.min(
-                readList.originY + Math.max(0,readList.contentHeight-readList.height),
-                item.y - offset))
-        }
+        root.applyingViewportRestore = false
         root.pendingViewportKey = ""
         root.pendingViewportScope = ""
         root.pendingViewportSecondPass = false
@@ -844,6 +854,7 @@ Item {
     function rebuildStableModel(source) {
         const snapshot = root.captureViewportForRebuild()
         const payloads = ({})
+        root.applyingViewportRestore = true
         stableRows.clear()
         for (let index = 0; index < source.length; ++index) {
             const entry = source[index] || ({})
@@ -856,6 +867,7 @@ Item {
                                 mediaLayoutKind: root.mediaLayoutKind(payload) })
         }
         root.stablePayloads = payloads
+        root.applyingViewportRestore = false
         root.queueViewportRestore(snapshot)
     }
 
@@ -870,6 +882,17 @@ Item {
         }
         root.stableModelSyncPending = false
         root.synchronizeStableModel()
+    }
+
+    function cancelViewportCorrections() {
+        geometryAnchorDebounce.stop()
+        geometryRestoreTimer.stop()
+        stableViewportRestoreTimer.stop()
+        positionAtTopTimer.stop()
+        root.geometryAnchorKey = ""
+        root.pendingViewportKey = ""
+        root.pendingViewportScope = ""
+        root.pendingViewportSecondPass = false
     }
 
     // Explicit primary navigation only. Detail -> Back never calls this,
@@ -1332,15 +1355,7 @@ Item {
                                   : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
-        onMovementStarted: {
-            geometryAnchorDebounce.stop()
-            geometryRestoreTimer.stop()
-            root.geometryAnchorKey = ""
-            // User input always wins over a queued model-rebuild restore.
-            stableViewportRestoreTimer.stop()
-            root.pendingViewportKey = ""
-            root.pendingViewportScope = ""
-        }
+        onMovementStarted: root.cancelViewportCorrections()
         onMovementEnded: {
             geometryAnchorDebounce.restart()
             // A genuine scroll gesture is explicit user intent, unlike geometry
@@ -1361,20 +1376,16 @@ Item {
         // periodic JavaScript timer from every active flick.
         onContentHeightChanged: {
             if (!readList.moving) {
-                if (root.geometryAnchorKey.length > 0)
-                    geometryRestoreTimer.restart()
                 if (!scrollWorkThrottle.running)
                     scrollWorkThrottle.start()
             }
         }
         onContentYChanged: {
-            // A desktop wheel may change contentY without ListView.moving.
-            // Such user input invalidates any old geometry anchor immediately;
-            // never pull the reader backwards while they continue scrolling.
+            // Wheel/browser fallback/scrollbar input can change contentY without
+            // moving. It must cancel corrections even while their timer is queued.
             if (!readList.moving && !root.applyingGeometryAnchor
-                    && !geometryRestoreTimer.running
-                    && root.pendingViewportScope.length === 0) {
-                root.geometryAnchorKey = ""
+                    && !root.applyingViewportRestore) {
+                root.cancelViewportCorrections()
                 geometryAnchorDebounce.restart()
             }
         }
@@ -1634,15 +1645,19 @@ Item {
             property real committedHeight: reservedHeight
 
             function synchronizeHeight() {
-                // Media loaders can resolve a video aspect/height mid-flick.
-                // Do not resize a live ListView delegate underneath the
-                // finger: Qt can reinterpret the scroll delta as a jump.
-                // Apply measured geometry only after movement ends.
-                if (readList.moving) return
-                if (!rowDelegate.incubating && rowDelegate.resolvedHeight > 0)
-                    rowDelegate.committedHeight = rowDelegate.resolvedHeight
-                else
-                    rowDelegate.committedHeight = rowDelegate.reservedHeight
+                // A reservation belongs only to an incubating row. Once its
+                // content exists, ListView must see its real height even during
+                // motion; freezing estimates creates holes or overlapping casts.
+                // Qt owns continuity while moving; idle changes can be anchored.
+                const nextHeight = !rowDelegate.incubating && rowDelegate.resolvedHeight > 0
+                                   ? rowDelegate.resolvedHeight : rowDelegate.reservedHeight
+                if (Math.abs(rowDelegate.committedHeight - nextHeight) < 1) return
+                // Capture immediately before a real geometry mutation, never
+                // in response to ListView's fluctuating contentHeight estimate.
+                root.rememberVisibleGeometry()
+                rowDelegate.committedHeight = nextHeight
+                if (!readList.moving && root.geometryAnchorKey.length > 0)
+                    geometryRestoreTimer.restart()
             }
 
             width: readList.width
@@ -1650,11 +1665,14 @@ Item {
             // pooled rows so inherited visibility pauses animated emoji, spinners,
             // and other presentation-only work until the row is reused.
             ListView.onPooled: rowDelegate.visible = false
-            ListView.onReused: rowDelegate.visible = true
+            ListView.onReused: {
+                rowDelegate.visible = true
+                rowDelegate.synchronizeHeight()
+            }
             // ListView must never see a zero-height row while Qt spreads the
             // expensive Cast subtree construction across multiple frames.
-            // Commit the measured height only while the viewport is at rest;
-            // completing incubation mid-flick cannot move rows under the pointer.
+            // The placeholder is replaced by measured geometry as soon as the
+            // loaded content is ready, including on reuse during a flick.
             height: Math.max(1, committedHeight)
             // Keep large cast delegates asynchronously incubated: disabling
             // this blocks scrolling during rapid navigation. Qt may emit a
@@ -1664,6 +1682,7 @@ Item {
                            : root.socialMode ? profileRowComponent : castRowComponent
             onReservedHeightChanged: rowDelegate.synchronizeHeight()
             onResolvedHeightChanged: rowDelegate.synchronizeHeight()
+            onLoaded: rowDelegate.synchronizeHeight()
             onStableKeyChanged: rowDelegate.committedHeight = rowDelegate.reservedHeight
 
             // An asynchronous delegate may still be incubating when a fast

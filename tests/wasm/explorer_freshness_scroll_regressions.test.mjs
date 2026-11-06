@@ -130,13 +130,14 @@ test('Explorer uses confirmed Recent; Home restores personalized Following or ra
     assert.match(home, /presentationBridge\.activeFeed !== source/);
 });
 
-test('pending images defer texture admission while already presented frames stay resident', () => {
+test('scrolling preserves in-flight images and only explicit deferral pauses unstarted sources', () => {
     const image = read('ui/components/SuperellipseImage.qml');
     const block = image.split('onScrollMovingChanged: {')[1]
         .split('onDeferNewLoadsWhileScrollingChanged:')[0];
     assert.match(block, /sourceStartTimer\.stop\(\)/);
-    assert.match(block, /if \(!root\.ready && !root\.loadFailed && !root\.retainPreviousWhileLoading/);
-    assert.match(block, /root\.activeSource = ""/);
+    assert.match(block, /root\.activeSource\.toString\(\)\.length === 0/);
+    assert.doesNotMatch(block, /root\.activeSource = ""/);
+    assert.match(image, /property bool deferNewLoadsWhileScrolling: false/);
     assert.match(block, /sourceStartTimer\.restart\(\)/);
 });
 

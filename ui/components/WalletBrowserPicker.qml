@@ -34,7 +34,6 @@ Item {
         parent: picker.parent
         z: 1200
         padding: Theme.space3
-        LayoutMirroring.enabled: false
         width: Math.min(380, parent ? Math.max(280, parent.width - Theme.space4 * 2) : 380)
         height: Math.min(parent ? parent.height - Theme.space4 * 2 : 420,
                          column.implicitHeight + topPadding + bottomPadding)

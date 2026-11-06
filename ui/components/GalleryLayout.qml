@@ -14,10 +14,8 @@ Item {
     property var discoveredAspects: ({})
     property var pendingAspects: ({})
     property var reservedAspects: ({})
-    // Building a GalleryTile allocates image state, vector corner geometry and
-    // optional effect machinery. Do not construct that subtree while the owning
-    // ListView is moving; keep the already-reserved slot as a cheap placeholder
-    // and admit tiles in small batches after the gesture settles.
+    // Stagger asynchronous tile construction, but keep it progressing during
+    // continuous scrolling. Waiting for a full stop starves newly visible media.
     property var scrollHost: null
     property bool scrollHostResolved: false
     readonly property bool scrollMoving: root.scrollHost !== null
@@ -243,7 +241,7 @@ Item {
             property bool admitted: false
 
             function scheduleAdmission() {
-                if (tileSlot.admitted || !root.scrollHostResolved || root.scrollMoving)
+                if (tileSlot.admitted || !root.scrollHostResolved || tileAdmission.running)
                     return
                 tileAdmission.restart()
             }
@@ -252,12 +250,6 @@ Item {
 
             Connections {
                 target: root
-                function onScrollMovingChanged() {
-                    if (!root.scrollMoving)
-                        tileSlot.scheduleAdmission()
-                    else
-                        tileAdmission.stop()
-                }
                 function onScrollHostResolvedChanged() {
                     tileSlot.scheduleAdmission()
                 }
@@ -271,8 +263,6 @@ Item {
                 interval: 16 + tileSlot.index * 32
                 repeat: false
                 onTriggered: {
-                    if (root.scrollMoving)
-                        return
                     tileSlot.admitted = true
                 }
             }

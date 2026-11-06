@@ -39,17 +39,168 @@ ListView {
         if (!found) ordered.unshift(root.confirmedReply)
         return ordered
     }
-    function focusConfirmedReply() {
-        if (!root.hasConfirmedReply) return
-        Qt.callLater(function() {
-            if (!root.hasConfirmedReply || root.prioritizedReplies.length === 0) return
-            // Confirmed local replies are pinned at the beginning of the
-            // flattened virtual list and can be focused without instantiation.
-            root.positionViewAtIndex(0, ListView.Beginning)
-        })
+    // Keep one model object for the lifetime of this surface. Reassigning the
+    // QVariantList on every reaction/thread hydration resets ListView's viewport.
+    property var replyPayloads: ({})
+    property string replyScope: ""
+    property int replyRevision: 0
+    property bool replySyncPending: false
+    property bool componentReady: false
+    property bool applyingViewportChange: false
+    property string geometryAnchorKey: ""
+    property real geometryAnchorOffset: 0
+    property string focusedReplyKey: ""
+    readonly property string detailScope: root.activeView + ":"
+        + root.normalizedCastHash(root.detail.castId || root.detail.fid)
+    readonly property string confirmedReplyKey: root.hasConfirmedReply
+        ? root.detailScope + ":" + root.normalizedCastHash(root.confirmedReply.castId) : ""
+
+    function requestReplySync() {
+        if (!root.componentReady) return
+        root.replySyncPending = true
+        replySyncTimer.restart()
     }
-    onHasConfirmedReplyChanged: if (hasConfirmedReply) focusConfirmedReply()
-    onContentHeightChanged: if (hasConfirmedReply && root.contentY === 0) focusConfirmedReply()
+
+    function synchronizeReplies() {
+        if (root.moving || !root.visible) return
+        const scopeChanged = root.replyScope !== root.detailScope
+        const source = root.activeView === "cast" ? root.prioritizedReplies : []
+        if (!scopeChanged && root.busy && source.length === 0 && replyRows.count > 0) return
+        root.replySyncPending = false
+        if (scopeChanged) {
+            root.cancelViewportCorrections()
+            root.replyScope = root.detailScope
+            root.focusedReplyKey = ""
+            root.replyPayloads = ({})
+            replyRows.clear()
+            root.positionViewAtBeginning()
+        }
+        root.rememberVisibleGeometry()
+        const retained = Object.create(null)
+        const order = []
+        const positions = Object.create(null)
+        for (let index = 0; index < replyRows.count; ++index) {
+            const key = String(replyRows.get(index).stableKey)
+            order.push(key)
+            positions[key] = index
+        }
+        const revision = String(++root.replyRevision)
+        let target = 0
+        for (let index = 0; index < source.length; ++index) {
+            const payload = source[index] || ({})
+            const key = root.normalizedCastHash(payload.castId)
+            if (key.length === 0 || retained[key]) continue
+            retained[key] = true
+            root.replyPayloads[key] = payload
+            const previous = positions[key]
+            if (previous === undefined) {
+                replyRows.insert(target, { stableKey: key, revisionKey: revision })
+                order.splice(target, 0, key)
+            } else {
+                if (previous !== target) {
+                    replyRows.move(previous, target, 1)
+                    order.splice(previous, 1)
+                    order.splice(target, 0, key)
+                }
+                replyRows.setProperty(target, "revisionKey", revision)
+            }
+            if (previous !== target) {
+                for (let shifted = target; shifted < order.length; ++shifted)
+                    positions[order[shifted]] = shifted
+            }
+            ++target
+        }
+        while (replyRows.count > target) replyRows.remove(replyRows.count - 1)
+        for (const key of Object.keys(root.replyPayloads)) {
+            if (!retained[key]) delete root.replyPayloads[key]
+        }
+        if (root.geometryAnchorKey.length > 0) geometryRestoreTimer.restart()
+        root.focusConfirmedReply()
+    }
+
+    function rememberVisibleGeometry() {
+        if (root.moving || root.applyingViewportChange || geometryRestoreTimer.running
+                || root.contentY - root.originY < 48) return
+        const probe = Math.min(116, Math.max(20, root.height * 0.17))
+        const index = root.indexAt(root.width / 2, root.contentY + probe)
+        const item = index >= 0 ? root.itemAtIndex(index) : null
+        root.geometryAnchorKey = item ? String(replyRows.get(index).stableKey) : ""
+        root.geometryAnchorOffset = item ? item.y - root.contentY : 0
+    }
+
+    function restoreVisibleGeometry() {
+        if (root.moving || !root.visible || root.geometryAnchorKey.length === 0) return
+        const key = root.geometryAnchorKey
+        root.applyingViewportChange = true
+        root.forceLayout()
+        for (let index = 0; index < replyRows.count; ++index) {
+            if (String(replyRows.get(index).stableKey) !== key) continue
+            const item = root.itemAtIndex(index)
+            // Never instantiate a distant or removed anchor to move the reader.
+            if (item) root.contentY = item.y - root.geometryAnchorOffset
+            break
+        }
+        root.applyingViewportChange = false
+        root.geometryAnchorKey = ""
+    }
+
+    function cancelViewportCorrections() {
+        geometryRestoreTimer.stop()
+        confirmedReplyFocusTimer.stop()
+        root.geometryAnchorKey = ""
+    }
+
+    function focusConfirmedReply() {
+        if (root.confirmedReplyKey.length === 0
+                || root.focusedReplyKey === root.confirmedReplyKey) return
+        // Consume this intent once. User input cancels pending focus; subsequent
+        // media/reaction updates must never focus the same reply again.
+        root.focusedReplyKey = root.confirmedReplyKey
+        confirmedReplyFocusTimer.restart()
+    }
+
+    onPrioritizedRepliesChanged: root.requestReplySync()
+    onDetailScopeChanged: root.requestReplySync()
+    onConfirmedReplyKeyChanged: root.requestReplySync()
+    onBusyChanged: if (!root.busy) root.requestReplySync()
+    onVisibleChanged: {
+        if (root.visible) root.requestReplySync()
+        else root.cancelViewportCorrections()
+    }
+    Component.onCompleted: {
+        root.componentReady = true
+        root.requestReplySync()
+    }
+    onMovementStarted: root.cancelViewportCorrections()
+    onMovementEnded: {
+        if (root.replySyncPending) replySyncTimer.restart()
+    }
+    onContentYChanged: {
+        if (!root.applyingViewportChange) root.cancelViewportCorrections()
+    }
+
+    FeedRowsModel { id: replyRows }
+    Timer {
+        id: replySyncTimer
+        interval: 0
+        onTriggered: root.synchronizeReplies()
+    }
+    Timer {
+        id: geometryRestoreTimer
+        interval: 0
+        onTriggered: root.restoreVisibleGeometry()
+    }
+    Timer {
+        id: confirmedReplyFocusTimer
+        interval: 0
+        onTriggered: {
+            if (root.moving || !root.visible || !root.hasConfirmedReply
+                    || root.focusedReplyKey !== root.confirmedReplyKey
+                    || replyRows.count === 0) return
+            root.cancelViewportCorrections()
+            root.positionViewAtIndex(0, ListView.Beginning)
+        }
+    }
 
     readonly property string directionSeed: String(root.detail.text || root.detail.bio || root.detail.displayName || root.detail.author || "")
     readonly property bool contentRtl: localizationController.isRightToLeftText(root.directionSeed)
@@ -284,10 +435,28 @@ ListView {
     spacing: Theme.space2
     reuseItems: true
     cacheBuffer: root.compact ? 340 : 650
-    model: root.activeView === "cast" ? root.prioritizedReplies : []
+    model: replyRows
 
     header: ColumnLayout {
         id: detailColumn
+        property real committedHeight: 1
+        height: committedHeight
+        function synchronizeHeight() {
+            if (implicitHeight <= 0
+                    || Math.abs(committedHeight - implicitHeight) < 1) return
+            root.rememberVisibleGeometry()
+            committedHeight = implicitHeight
+            if (!root.moving && root.geometryAnchorKey.length > 0) geometryRestoreTimer.restart()
+        }
+        // Natural content geometry stays authoritative during motion too.
+        onImplicitHeightChanged: synchronizeHeight()
+        Component.onCompleted: synchronizeHeight()
+        Connections {
+            target: root
+            function onMovingChanged() {
+                if (!root.moving) detailColumn.synchronizeHeight()
+            }
+        }
         // Cast threads may spread to the wide detail bound on desktop; only the
         // reading-style profile view keeps the narrower centered column. Compact
         // (mobile) layouts always fill the viewport minus the gutter.
@@ -904,7 +1073,36 @@ ListView {
     }
 
     delegate: ThreadReplyItem {
-        required property var modelData
+        id: replyDelegate
+        required property string stableKey
+        required property string revisionKey
+        readonly property var modelData: {
+            const revision = replyDelegate.revisionKey
+            return root.replyPayloads[replyDelegate.stableKey] || ({})
+        }
+        property real committedHeight: 1
+        height: committedHeight
+        function synchronizeHeight() {
+            if (implicitHeight <= 0
+                    || Math.abs(committedHeight - implicitHeight) < 1) return
+            root.rememberVisibleGeometry()
+            committedHeight = implicitHeight
+            if (!root.moving && root.geometryAnchorKey.length > 0) geometryRestoreTimer.restart()
+        }
+        // Natural content geometry stays authoritative during motion too.
+        onImplicitHeightChanged: synchronizeHeight()
+        Component.onCompleted: synchronizeHeight()
+        ListView.onPooled: visible = false
+        ListView.onReused: {
+            visible = true
+            committedHeight = implicitHeight
+        }
+        Connections {
+            target: root
+            function onMovingChanged() {
+                if (!root.moving) replyDelegate.synchronizeHeight()
+            }
+        }
         width: Math.min(root.width - (root.compact ? Theme.space2 * 2 : Theme.contentGutter * 2),
                         root.compact ? Theme.detailWidth : Theme.detailWidthWide)
         x: Math.max(root.compact ? Theme.space2 : Theme.contentGutter,

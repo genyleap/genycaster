@@ -11,7 +11,6 @@ Item {
     property bool enrichmentActive: true
     property double accountFid: 0
     property var scrollHost: null
-    property bool supportingAdmitted: false
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
 
@@ -42,31 +41,16 @@ Item {
         root.scrollHost = null
     }
 
-    function synchronizeSupportingAdmission() {
-        if (root.supportingEmbeds.length === 0) {
-            root.supportingAdmitted = false
-            return
-        }
-        if (!root.scrollMoving)
-            root.supportingAdmitted = true
-    }
-
     Component.onCompleted: {
         root.resolveScrollHost()
-        root.synchronizeSupportingAdmission()
         if (root.enrichmentActive && root.castChannel.length > 0
                 && root.channelImageUrl.length === 0)
             channelDirectory.ensureChannelImage(root.castChannel)
     }
     onParentChanged: root.resolveScrollHost()
-    onScrollMovingChanged: root.synchronizeSupportingAdmission()
-    onSupportingEmbedsChanged: {
-        // A recycled row must not retain the previous cast's rich/link subtree.
-        // If reuse happens mid-flick, reserve geometry and defer the replacement
-        // until movement ends instead of doing classification/Loader work now.
-        root.supportingAdmitted = false
-        root.synchronizeSupportingAdmission()
-    }
+    // Keep the supporting subtree alive across payload revisions and motion.
+    // URL/identity changes flow into its existing preview; async Loaders still
+    // spread initial construction across frames.
 
     readonly property bool isOwnCast: Number(root.modelData.authorFid || 0) > 0
                                       && Number(root.modelData.authorFid || 0) === Number(root.accountFid)
@@ -957,7 +941,6 @@ Item {
 
                 Loader {
                     active: root.mediaFirst && root.supportingEmbeds.length > 0
-                            && root.supportingAdmitted
                     visible: active
                     asynchronous: true
                     Layout.fillWidth: true
@@ -978,7 +961,6 @@ Item {
 
                 Loader {
                     active: !root.mediaFirst && root.supportingEmbeds.length > 0
-                            && root.supportingAdmitted
                     visible: active
                     asynchronous: true
                     Layout.fillWidth: true

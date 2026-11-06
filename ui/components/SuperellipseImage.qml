@@ -37,10 +37,10 @@ Item {
     // no pixels on some GPU/backend combinations. Keeping this explicit lets
     // cover media prefer a guaranteed plain-image path over a decorative clip.
     property bool clipToSuperellipse: true
-    // Feed/list delegates suspend pending image requests while their Flickable
-    // moves. Already-presented images stay resident; unfinished requests resume
-    // through the provider's cache after settling.
-    property bool deferNewLoadsWhileScrolling: true
+    // Visible media must make progress during continuous scrolling. Network/
+    // decode remain asynchronous and texture admission remains frame-paced.
+    // Specialized surfaces may defer NEW requests, never detach in-flight ones.
+    property bool deferNewLoadsWhileScrolling: false
     // Gallery siblings use a small per-index delay so cache hits and texture
     // creation are admitted over separate frames instead of one render burst.
     property int loadDelayMs: 0
@@ -198,9 +198,8 @@ Item {
             return
         }
 
-        // New/recycled URLs never start while the Flickable is moving.
-        // An unfinished current request is detached by onScrollMovingChanged so
-        // Qt cannot prepare/upload its texture inside the kinetic-scroll frame.
+        // An explicit deferral may postpone a new identity. It must not cancel
+        // an already-running request for the same identity on every gesture.
         if (current !== requested)
             root.activeSource = ""
     }
@@ -210,10 +209,8 @@ Item {
             root.presentationReady = false
             return
         }
-        // Pending requests are detached on motion to prevent texture upload.
-        // Also gate presentation so a late state notification cannot activate
-        // mask layers and dependent shadows during the gesture.
-        // Once admitted, an image stays visible throughout subsequent motion.
+        // Optional presentation deferral never discards decoded bytes. Normal
+        // feeds admit through the shared frame budget while scrolling too.
         if (!root.componentReady || (root.deferNewLoadsWhileScrolling && root.scrollMoving))
             return
         if (root.presentationReady)
@@ -325,16 +322,13 @@ Item {
     }
     onScrollMovingChanged: {
         if (root.scrollMoving && root.deferNewLoadsWhileScrolling) {
-            sourceStartTimer.stop()
-            // Do not decode/upload a response while the flick animation owns
-            // the frame budget. An image already presented on screen stays
-            // resident; only a pending, not-yet-visible request is detached.
-            // Retained previous frames must also remain untouched.
-            if (!root.ready && !root.loadFailed && !root.retainPreviousWhileLoading
-                    && root.activeSource.toString().length > 0)
-                root.activeSource = ""
-        } else if (!root.scrollMoving) {
+            // Pause only an unstarted source. A request already in flight must
+            // survive touchpad/wheel bursts and reach a terminal state.
+            if (root.activeSource.toString().length === 0)
+                sourceStartTimer.stop()
+        } else {
             sourceStartTimer.restart()
+            root.synchronizePresentation()
         }
     }
     onDeferNewLoadsWhileScrollingChanged: {
@@ -464,7 +458,7 @@ Item {
         id: maskShape
         objectName: "mediaMaskLoader"
         // Hidden geometry still costs CPU to instantiate. Build it only when
-        // the image is admitted at rest, not when its placeholder enters view.
+        // the image is admitted, not when its placeholder enters view.
         anchors.fill: parent
         visible: false
         active: root.maskActive
