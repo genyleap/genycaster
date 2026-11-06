@@ -13,13 +13,13 @@ def read(rel: str) -> str:
 
 async_http = read("src/transport/qt_network/async_http.cpp") + read("src/transport/qt_network/async_http.cppm")
 async_contract = read("src/transport/async_http.cppm")
-remote = read("ui/mobile/remote_image_provider.hpp") + read("ui/mobile/remote_image_provider.cpp")
+remote = read("ui/app/remote_image_provider.hpp") + read("ui/app/remote_image_provider.cpp")
 rendering = read("src/presentation/qt/rendering_controller.hpp") + read("src/presentation/qt/rendering_controller.cpp")
 media = read("src/transport/qt_network/media_upload.cpp")
 feed = read("ui/components/FeedSurface.qml")
 profile = read("ui/components/ProfileSurface.qml")
 superellipse_image = read("ui/components/SuperellipseImage.qml")
-runtime = read("ui/mobile/main.cpp") + read("ui/mobile/runtime_composition.cppm") + read("ui/mobile/runtime_composition.cpp")
+runtime = read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") + read("ui/app/runtime_composition.cpp")
 storage = read("src/storage/read_store.cpp") + read("src/storage/sqlite_boundary.cpp")
 
 for forbidden in ("QEventLoop", "waitForFinished", "std::this_thread::sleep_for"):

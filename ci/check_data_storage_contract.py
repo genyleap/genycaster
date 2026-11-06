@@ -21,13 +21,13 @@ def read(rel: str) -> str:
 
 
 policy = read("src/presentation/media/storage_policy.cppm") + read("src/presentation/media/storage_policy.cpp")
-controller = read("ui/mobile/data_storage_controller.hpp") + read("ui/mobile/data_storage_controller.cpp")
-provider = read("ui/mobile/remote_image_provider.hpp") + read("ui/mobile/remote_image_provider.cpp")
+controller = read("ui/app/data_storage_controller.hpp") + read("ui/app/data_storage_controller.cpp")
+provider = read("ui/app/remote_image_provider.hpp") + read("ui/app/remote_image_provider.cpp")
 image_surface = read("ui/components/SuperellipseImage.qml")
 storage_qml = read("ui/components/DataStoragePopup.qml")
 geny_slider = read("ui/components/GenySlider.qml")
 geny_progress = read("ui/components/GenyProgressBar.qml")
-link_preview_resolver = read("ui/mobile/link_preview_resolver.cpp")
+link_preview_resolver = read("ui/app/link_preview_resolver.cpp")
 async_qt_network = read("src/transport/qt_network/async_http.cpp")
 settings_qml = read("ui/components/LocaleSettingsPopup.qml")
 shell_qml = read("ui/components/AppShell.qml")
@@ -99,12 +99,12 @@ for exported_name, qt_wrapper in (
 # Named-module-owned RuntimeState must not leak through Qt textual headers.
 # Clang gives module-attached declarations a distinct ownership identity; forward-declaring the
 # same spelling in a textual header can therefore compile but produce a different linker symbol.
-controller_header = read("ui/mobile/data_storage_controller.hpp")
-provider_header = read("ui/mobile/remote_image_provider.hpp")
-main_cpp = read("ui/mobile/main.cpp")
+controller_header = read("ui/app/data_storage_controller.hpp")
+provider_header = read("ui/app/remote_image_provider.hpp")
+main_cpp = read("ui/app/main.cpp")
 for rel, text in (
-    ("ui/mobile/data_storage_controller.hpp", controller_header),
-    ("ui/mobile/remote_image_provider.hpp", provider_header),
+    ("ui/app/data_storage_controller.hpp", controller_header),
+    ("ui/app/remote_image_provider.hpp", provider_header),
 ):
     if re.search(r"storage_policy\s*\{\s*class\s+RuntimeState", text):
         errors.append(f"{rel}: must not redeclare module-owned storage_policy::RuntimeState")
@@ -197,7 +197,7 @@ if "imageIsPage" not in link_preview_resolver:
     errors.append("Mini App metadata must not route the app page itself into the image provider")
 if "contextIterator->second->isCancelled || active.bodyLimitExceeded" not in async_qt_network:
     errors.append("Qt async cancellation must drain/discard cancelled media response bytes")
-if "mobile/data_storage_controller.cpp" not in ui_cmake:
+if "app/data_storage_controller.cpp" not in ui_cmake:
     errors.append("DataStorageController is not compiled into genycaster")
 if "storage_policy.cppm" not in media_cmake or "storage_policy.cpp" not in media_cmake:
     errors.append("storage_policy module is not registered in presentation media target")

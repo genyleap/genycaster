@@ -26,7 +26,7 @@ test('composer drafts and managed media are stored in the same FID-specific name
 
 test('account switching persists prior pending edits before clearing the editor',()=>{
   const cpp=read('src/presentation/qt/rich_composer_controller.cpp');
-  const main=read('ui/mobile/main.cpp');
+  const main=read('ui/app/main.cpp');
   assert.match(cpp,/void RichComposerController::setViewerFid\(const qulonglong fid\)/);
   assert.match(cpp,/if \(m_impl->dirty && !m_impl->contextDocument\)\s*m_impl->saveDraft\(false\)/);
   assert.match(cpp,/m_impl->viewerFid = fid;\s*m_impl->contextDocument = false;\s*m_impl->newEmpty\(false\);/);

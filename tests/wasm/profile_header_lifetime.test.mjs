@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
-const composition = readFileSync(new URL('../../ui/mobile/runtime_composition.cpp', import.meta.url), 'utf8');
-const bindings = readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+const composition = readFileSync(new URL('../../ui/app/runtime_composition.cpp', import.meta.url), 'utf8');
+const bindings = readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 const bridge = readFileSync(new URL('../../src/presentation/qt/presentation_bridge.cpp', import.meta.url), 'utf8');
 const profileQml = readFileSync(new URL('../../ui/components/ProfileSurface.qml', import.meta.url), 'utf8');
 const returnToTopQml = readFileSync(new URL('../../ui/components/ScrollToTopButton.qml', import.meta.url), 'utf8');

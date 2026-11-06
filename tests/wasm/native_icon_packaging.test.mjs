@@ -17,7 +17,7 @@ function pngSize(blob) {
 
 test('native icons share one canonical master and are explicitly packaged',()=>{
   const cmake=text('ui/CMakeLists.txt');
-  const main=text('ui/mobile/main.cpp');
+  const main=text('ui/app/main.cpp');
   assert.match(cmake,/set\(_gcIcon .*wasm\/genycaster-512\.png/);
   assert.match(cmake,/qt_add_resources\(genycaster genycaster_app_icon/);
   assert.match(cmake,/MACOSX_BUNDLE_ICON_FILE "genycaster\.icns"/);

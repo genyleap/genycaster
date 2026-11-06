@@ -17,7 +17,7 @@ const sourceNotes=JSON.parse(read('release-notes/v'+releaseVersion+'.json'));
 
 test('supplementary totals require consent and cannot replace source identity',()=>{
   const gateway=read('src/routing/read_async_gateway.cpp');
-  const composition=read('ui/mobile/runtime_composition.cpp');
+  const composition=read('ui/app/runtime_composition.cpp');
   assert.match(gateway,/m_allowCompatibleProfileEnrichment && !\(\*binding\)->providesProfileCounts/);
   assert.match(gateway,/candidate\.providerId\.value != route->provider\.id\.value/);
   assert.match(gateway,/indexed->fid\.value == fid\.value/);
@@ -86,7 +86,7 @@ test('no UI hardcodes numeric versions or concatenates product and version',()=>
 test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
   const cmake=read('ui/CMakeLists.txt');
   const rootCmake=read('CMakeLists.txt');
-  const native=read('ui/mobile/update_controller.cpp');
+  const native=read('ui/app/update_controller.cpp');
   const workflow=read('.github/workflows/ci.yml');
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.json/);
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.md/);
@@ -105,7 +105,7 @@ test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
 });
 
 test('wasm update UI uses same-origin manifest and never substitutes GitHub installer notes',()=>{
-  const controller=read('ui/mobile/update_controller.cpp');
+  const controller=read('ui/app/update_controller.cpp');
   const drawer=read('ui/components/UpdateNoticeDrawer.qml');
   const settings=read('ui/components/LocaleSettingsPopup.qml');
   assert.match(controller,/void UpdateController::checkWebManifest/);
@@ -118,7 +118,7 @@ test('wasm update UI uses same-origin manifest and never substitutes GitHub inst
   assert.match(controller,/compareReleaseVersions\(parsed, current\)/);
   assert.match(controller,/loadBundledReleaseNotes\(m_appVersion/);
   assert.match(controller,/setLanguageTag\(QString tag\)/);
-  assert.match(read('ui/mobile/main.cpp'),/updateController\.setLanguageTag/);
+  assert.match(read('ui/app/main.cpp'),/updateController\.setLanguageTag/);
   assert.match(drawer,/genycaster\.update\.type_/);
   assert.match(settings,/updateController\.releaseNotes/);
   const pulse=read('ui/components/FeedPulseCard.qml');

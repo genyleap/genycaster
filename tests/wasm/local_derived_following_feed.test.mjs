@@ -30,7 +30,7 @@ test('Qt bridge and all locales visibly mark incomplete local following', () => 
   const bridge = read('src/presentation/qt/presentation_bridge.hpp');
   const appShell = read('ui/components/AppShell.qml');
   const feed = read('ui/components/FeedSurface.qml');
-  const bindings = read('ui/mobile/runtime_ui_bindings.cpp');
+  const bindings = read('ui/app/runtime_ui_bindings.cpp');
   assert.match(bridge, /Q_PROPERTY\(bool localDerivedFollowing READ localDerivedFollowing/);
   assert.match(bindings, /bridge\.setLocalDerivedFollowing\(state\.localDerivedFollowing\)/);
   assert.match(appShell, /localDerivedFollowing: presentationBridge\.localDerivedFollowing/);

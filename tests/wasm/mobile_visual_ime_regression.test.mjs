@@ -117,8 +117,8 @@ test('website link drawer always paints a domain monogram behind optional favico
 });
 
 test('iOS emoji recovery runs only after Qt misses committed Unicode input', () => {
-  const native = read('ui/mobile/browser_emoji_recovery.hpp');
-  const bootstrap = read('ui/mobile/main.cpp');
+  const native = read('ui/app/browser_emoji_recovery.hpp');
+  const bootstrap = read('ui/app/main.cpp');
   assert.match(native, /genycasterCaptureBrowserEmoji/);
   assert.match(native, /genycasterRecoverBrowserEmoji/);
   assert.match(native, /property\("text"\)\.toString\(\) != bridge::pendingBeforeText/);

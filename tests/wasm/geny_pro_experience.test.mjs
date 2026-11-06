@@ -101,8 +101,8 @@ test('Pro-only actions explain why they are locked, but users may unlink and unf
 
 test('Market Pulse basic cap offers Pro information, without bypassing native cap',()=>{
     const settings=qml('LocaleSettingsPopup.qml');
-    const controller=read('ui/mobile/live_insights_controller.cpp');
-    const wiring=read('ui/mobile/main.cpp');
+    const controller=read('ui/app/live_insights_controller.cpp');
+    const wiring=read('ui/app/main.cpp');
     assert.match(settings,/readonly property int marketAssetLimit: marketProEligible \? 16 : 4/);
     assert.match(settings,/objectName: "genyProMarketQuota"/);
     assert.match(settings,/marketProNotice\.open\(\)/);

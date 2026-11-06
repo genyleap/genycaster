@@ -6,9 +6,9 @@ const root = new URL('../../', import.meta.url);
 const read = file => readFileSync(new URL(file, root), 'utf8');
 
 test('HyperSnap is the default indexed read route, without overriding a user-selected writer', () => {
-    const bootstrap = read('ui/mobile/main.cpp');
-    const composition = read('ui/mobile/runtime_composition.cpp');
-    const profiles = read('ui/mobile/provider_profiles_controller.cpp');
+    const bootstrap = read('ui/app/main.cpp');
+    const composition = read('ui/app/runtime_composition.cpp');
+    const profiles = read('ui/app/provider_profiles_controller.cpp');
 
     assert.match(bootstrap,/preferredReadProviderText\.isEmpty\(\)[\s\S]*?configuredDeploymentProfile\(\)[\s\S]*?StrictSelfHosted[\s\S]*?preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
     assert.match(bootstrap,/network\/preferredReadProviderId/);
@@ -41,7 +41,7 @@ test('signer operations route through capability-neutral access contract', () =>
 });
 
 test('write adapter registrations explicitly declare signer capability', () => {
-    const composition = read('ui/mobile/runtime_composition.cpp');
+    const composition = read('ui/app/runtime_composition.cpp');
     assert.match(composition, /capability::catalog::protocolSignerManage\(\)/);
     assert.match(composition, /runtime->signerRegistrySources\.push_back/);
     assert.match(composition, /runtime->signerRegistry->addSource/);
@@ -55,6 +55,6 @@ test('write adapter registrations explicitly declare signer capability', () => {
 test('signer management remains an injected port in the application', () => {
     const app = read('src/application/signer.cpp');
     assert.doesNotMatch(app, /import farcaster\.provider\./);
-    assert.match(read('ui/mobile/runtime_composition.cppm'), /RoutedSignerRegistry/);
+    assert.match(read('ui/app/runtime_composition.cppm'), /RoutedSignerRegistry/);
     assert.match(read('src/capabilities/signer.cppm'), /class ISignerRegistry/);
 });

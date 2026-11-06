@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 // Runtime binding functions live in a separate Qt composition unit to keep
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 }
 
 const read = relative => readFileSync(new URL('../../' + relative, import.meta.url), 'utf8');
@@ -78,7 +78,7 @@ test('single ordinary link Cast composes author sentence inside the responsive c
 });
 
 test('decoded images remain bounded but warm when recycled feed rows return', () => {
-    const cache = read('ui/mobile/remote_image_provider.cpp');
+    const cache = read('ui/app/remote_image_provider.cpp');
     assert.match(cache, /imageCacheCapacityKiB = 96 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 128 \* 1024/);
     assert.match(cache, /rememberImage\(cacheKey, decoded.image, decoded.originalSize\)/);

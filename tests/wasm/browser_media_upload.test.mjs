@@ -7,8 +7,8 @@ import { uploadBrowserImage } from '../../ui/wasm/browser_media_upload.mjs';
 // Runtime binding functions live in a separate Qt composition unit to keep
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 }
 
 const fid='123456';
@@ -123,7 +123,7 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     const {readFileSync}=await import('node:fs');
     const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
     const main=readGenycasterMain();
-    const signer=read('ui/mobile/browser_signer_bridge.hpp');
+    const signer=read('ui/app/browser_signer_bridge.hpp');
     const pre=read('ui/wasm/protocol-signer-pre.js');
     const panel=read('ui/components/MediaUploadPanel.qml');
     const shell=read('ui/components/AppShell.qml');

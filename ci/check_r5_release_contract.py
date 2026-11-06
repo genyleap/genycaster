@@ -11,7 +11,7 @@ def read(rel: str) -> str:
 
 cmake = read('CMakeLists.txt')
 ui_cmake = read('ui/CMakeLists.txt')
-main = read('ui/mobile/main.cpp') + read('ui/mobile/runtime_composition.cppm') + read('ui/mobile/runtime_composition.cpp')
+main = read('ui/app/main.cpp') + read('ui/app/runtime_composition.cppm') + read('ui/app/runtime_composition.cpp')
 theme = read('ui/theme/Theme.qml')
 side = read('ui/components/SideNavigation.qml')
 bottom = read('ui/components/BottomNavigation.qml')

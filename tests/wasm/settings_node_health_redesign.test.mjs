@@ -19,8 +19,8 @@ test('desktop settings uses vertical categorized destinations instead of two-row
 
 test('node dashboard lists real per-instance API results without claiming continuous ping',()=>{
  const qml=read('ui/components/NodeManagementPanel.qml');
- const cpp=read('ui/mobile/provider_profiles_controller.cpp');
- const hpp=read('ui/mobile/provider_profiles_controller.hpp');
+ const cpp=read('ui/app/provider_profiles_controller.cpp');
+ const hpp=read('ui/app/provider_profiles_controller.hpp');
  for(const pattern of [/providerProfiles\.connectionRows/,/providerProfiles\.probeAllReadProviders\(\)/,
     /genycaster\.nodes\.health_short/,/modelData\.latencyMs/,/modelData\.httpStatus/,
     /checked: providerProfiles\.compatibleReadFallback/,/readProfileCard\.showCredentials/])

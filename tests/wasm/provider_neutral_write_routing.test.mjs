@@ -18,9 +18,9 @@ test('provider-neutral canonical writer routes without vendor names in core', ()
 });
 
 test('multiple writers are explicit compatible adapter instances, pinned per operation', () => {
-    const main = read('ui/mobile/main.cpp');
-    const composition = read('ui/mobile/runtime_composition.cpp');
-    const api = read('ui/mobile/runtime_composition.cppm');
+    const main = read('ui/app/main.cpp');
+    const composition = read('ui/app/runtime_composition.cpp');
+    const api = read('ui/app/runtime_composition.cppm');
     assert.match(main, /GENYCASTER_WRITE_PROVIDER_PROFILES_JSON/);
     assert.match(main, /GENYCASTER_PREFERRED_WRITE_PROVIDER_ID/);
     assert.match(main, /--write-provider-profiles-json=/);

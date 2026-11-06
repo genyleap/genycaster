@@ -15,7 +15,7 @@ test('raw UserData never fabricates graph totals and indexed totals require both
 test('social-count availability remains canonical through local cache and UI projection',()=>{
   const store=read('src/storage/entity_store.cpp');
   const sqlite=read('src/storage/sqlite_boundary.cpp');
-  const projection=read('ui/mobile/runtime_ui_bindings.cpp');
+  const projection=read('ui/app/runtime_ui_bindings.cpp');
   assert.match(store,/social_counts_known/);
   assert.match(store,/sqlite3_bind_int\(statement\.native\(\), 15, profile\.socialCountsKnown/);
   assert.match(store,/profile\.socialCountsKnown = sqlite3_column_int\(statement\.native\(\), 13\)/);

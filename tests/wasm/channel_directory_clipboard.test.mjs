@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('WASM channel imagery uses the existing first-party media gateway rather than a missing SPA proxy',()=>{
-  const main=read('ui/mobile/main.cpp');
-  const backend=read('ui/mobile/channel_picker_controller.cpp');
+  const main=read('ui/app/main.cpp');
+  const backend=read('ui/app/channel_picker_controller.cpp');
   const gateway=read('services/media-gateway/gateway.mjs');
   assert.match(main,/channelDirectoryBaseUrl = mediaGatewayBaseUrlText/);
   assert.match(main,/channelDirectoryBaseUrl \+= QStringLiteral\("\/v1\/browser\/channels"\)/);

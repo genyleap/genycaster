@@ -2,8 +2,7 @@
 find_package(Qt6 QUIET COMPONENTS Lottie)
 
 set(farcasterQmlFiles
-    mobile/Main.qml
-    demo/DemoSocialData.qml
+    app/Main.qml
     components/ActionButton.qml
     components/DisplayScaleControl.qml
     components/PanelWidthControl.qml
@@ -227,7 +226,7 @@ foreach(qmlFile IN LISTS farcasterQmlFiles)
 endforeach()
 
 foreach(qmlFile IN LISTS farcasterQmlFiles)
-    if(qmlFile MATCHES "^mobile/(.+)$")
+    if(qmlFile MATCHES "^app/(.+)$")
         set(qmlResourceAlias "${CMAKE_MATCH_1}")
     else()
         set(qmlResourceAlias "${qmlFile}")
@@ -249,57 +248,57 @@ aimcpp_reject_final_qml_creatable_types(
 )
 
 qt_add_executable(genycaster
-    mobile/main.cpp
-    mobile/runtime_ui_bindings.cpp
-    mobile/data_storage_controller.cpp
-    mobile/data_storage_controller.hpp
-    mobile/geo_location_resolver.cpp
-    mobile/geo_location_resolver.hpp
-    mobile/link_preview_resolver.cpp
-    mobile/link_preview_resolver.hpp
-    mobile/cast_view_controller.cpp
-    mobile/cast_view_controller.hpp
-    mobile/browser_reaction_controller.cpp
-    mobile/browser_reaction_controller.hpp
-    mobile/browser_link_metadata_controller.cpp
-    mobile/browser_link_metadata_controller.hpp
-    mobile/browser_token_preview_controller.cpp
-    mobile/browser_token_preview_controller.hpp
-    mobile/miniapp_host_controller.cpp
-    mobile/miniapp_host_controller.hpp
-    mobile/media_web_host_controller.cpp
-    mobile/media_web_host_controller.hpp
-    mobile/miniapp_catalog_controller.cpp
-    mobile/miniapp_catalog_controller.hpp
-    mobile/channel_picker_controller.cpp
-    mobile/channel_picker_controller.hpp
-    mobile/text_selection_settings.cpp
-    mobile/text_selection_settings.hpp
-    mobile/miniapp_task_manager_controller.cpp
-    mobile/miniapp_task_manager_controller.hpp
-    mobile/live_insights_controller.cpp
-    mobile/live_insights_controller.hpp
+    app/main.cpp
+    app/runtime_ui_bindings.cpp
+    app/data_storage_controller.cpp
+    app/data_storage_controller.hpp
+    app/geo_location_resolver.cpp
+    app/geo_location_resolver.hpp
+    app/link_preview_resolver.cpp
+    app/link_preview_resolver.hpp
+    app/cast_view_controller.cpp
+    app/cast_view_controller.hpp
+    app/browser_reaction_controller.cpp
+    app/browser_reaction_controller.hpp
+    app/browser_link_metadata_controller.cpp
+    app/browser_link_metadata_controller.hpp
+    app/browser_token_preview_controller.cpp
+    app/browser_token_preview_controller.hpp
+    app/miniapp_host_controller.cpp
+    app/miniapp_host_controller.hpp
+    app/media_web_host_controller.cpp
+    app/media_web_host_controller.hpp
+    app/miniapp_catalog_controller.cpp
+    app/miniapp_catalog_controller.hpp
+    app/channel_picker_controller.cpp
+    app/channel_picker_controller.hpp
+    app/text_selection_settings.cpp
+    app/text_selection_settings.hpp
+    app/miniapp_task_manager_controller.cpp
+    app/miniapp_task_manager_controller.hpp
+    app/live_insights_controller.cpp
+    app/live_insights_controller.hpp
     ../src/providers/hypersnap/node_selection_controller.cpp
-    mobile/node_selection_controller.hpp
-    mobile/provider_profiles_controller.cpp
-    mobile/provider_profiles_controller.hpp
-    mobile/update_controller.cpp
-    mobile/update_controller.hpp
-    mobile/remote_image_provider.cpp
-    mobile/remote_image_provider.hpp
-    mobile/browser_openproof_auth.cpp
-    mobile/browser_openproof_auth.hpp
-    mobile/openproof_connections_controller.cpp
-    mobile/openproof_connections_controller.hpp
-    mobile/genypulse_activity_controller.cpp
-    mobile/genypulse_activity_controller.hpp
+    app/node_selection_controller.hpp
+    app/provider_profiles_controller.cpp
+    app/provider_profiles_controller.hpp
+    app/update_controller.cpp
+    app/update_controller.hpp
+    app/remote_image_provider.cpp
+    app/remote_image_provider.hpp
+    app/browser_openproof_auth.cpp
+    app/browser_openproof_auth.hpp
+    app/openproof_connections_controller.cpp
+    app/openproof_connections_controller.hpp
+    app/genypulse_activity_controller.cpp
+    app/genypulse_activity_controller.hpp
 )
 
 target_sources(genycaster
     PRIVATE
-        mobile/runtime_composition.cpp
+        app/runtime_composition.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
-        mobile/runtime_composition.cppm
+        app/runtime_composition.cppm
 )
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
 # macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
@@ -361,10 +360,10 @@ endif()
 # This is a build-memory workaround, not a release optimization.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT EMSCRIPTEN)
     set_source_files_properties(
-        mobile/main.cpp
-        mobile/runtime_ui_bindings.cpp
-        mobile/runtime_composition.cpp
-        mobile/runtime_composition.cppm
+        app/main.cpp
+        app/runtime_ui_bindings.cpp
+        app/runtime_composition.cpp
+        app/runtime_composition.cppm
         PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-g0>"
     )
 endif()
@@ -381,7 +380,7 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     find_library(genycasterWebKitFramework WebKit REQUIRED)
     find_library(genycasterAppKitFramework AppKit REQUIRED)
     find_library(genycasterQuartzCoreFramework QuartzCore REQUIRED)
-    add_library(farcaster_miniapp_browser STATIC mobile/miniapp_browser_macos.mm)
+    add_library(farcaster_miniapp_browser STATIC app/miniapp_browser_macos.mm)
     set_target_properties(farcaster_miniapp_browser PROPERTIES
         OBJCXX_STANDARD 26 OBJCXX_STANDARD_REQUIRED ON OBJCXX_EXTENSIONS OFF
         CXX_SCAN_FOR_MODULES OFF AUTOMOC OFF)
@@ -392,8 +391,8 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     add_library(farcaster_miniapp_runtime STATIC)
     target_sources(farcaster_miniapp_runtime
-        PUBLIC FILE_SET CXX_MODULES FILES mobile/miniapp_runtime.cppm
-        PRIVATE mobile/miniapp_runtime.cpp)
+        PUBLIC FILE_SET CXX_MODULES FILES app/miniapp_runtime.cppm
+        PRIVATE app/miniapp_runtime.cpp)
     set_property(TARGET farcaster_miniapp_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
     target_compile_features(farcaster_miniapp_runtime PUBLIC cxx_std_26)
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
@@ -417,8 +416,8 @@ endif()
 
 add_library(farcaster_emoji_runtime STATIC)
 target_sources(farcaster_emoji_runtime
-    PUBLIC FILE_SET CXX_MODULES FILES mobile/emoji_runtime.cppm
-    PRIVATE mobile/emoji_runtime.cpp
+    PUBLIC FILE_SET CXX_MODULES FILES app/emoji_runtime.cppm
+    PRIVATE app/emoji_runtime.cpp
 )
 target_link_libraries(farcaster_emoji_runtime PUBLIC farcaster::presentation
     PRIVATE farcaster::provider_emoji farcaster::transport_qt_network farcaster::execution Qt6::Gui)
@@ -1240,8 +1239,10 @@ qt_add_qml_module(genycaster
         render/scene_graph_stroke_item.hpp
         render/scene_graph_superellipse_item.cpp
         render/scene_graph_superellipse_item.hpp
-        mobile/feed_rows_model.cpp
-        mobile/feed_rows_model.hpp
+        render/token_sparkline_geometry.cpp
+        render/token_sparkline_geometry.hpp
+        app/feed_rows_model.cpp
+        app/feed_rows_model.hpp
     RESOURCES
         shaders/setup_glass_g.frag.qsb
         shaders/genycaster_logo_sdf.png
@@ -1257,7 +1258,7 @@ target_include_directories(genycaster
         "${CMAKE_CURRENT_SOURCE_DIR}/render"
         # The generated QML type registrar conditionally includes the native
         # item-model header by basename. Expose this Qt/MOC boundary explicitly.
-        "${CMAKE_CURRENT_SOURCE_DIR}/mobile"
+        "${CMAKE_CURRENT_SOURCE_DIR}/app"
 )
 
 # VectorImage track-matte composition needs Qt 6.11+ and the Qt Lottie vector-format plugin.
@@ -1285,15 +1286,15 @@ set(farcasterTranslationFiles
 
 set(farcasterTranslationSources
     ${farcasterQmlFiles}
-    mobile/main.cpp
-    mobile/runtime_ui_bindings.cpp
-    mobile/data_storage_controller.cpp
-    mobile/data_storage_controller.hpp
-    mobile/miniapp_host_controller.cpp
-    mobile/miniapp_catalog_controller.cpp
-    mobile/miniapp_task_manager_controller.cpp
-    mobile/miniapp_runtime.cpp
-    mobile/miniapp_browser_macos.mm
+    app/main.cpp
+    app/runtime_ui_bindings.cpp
+    app/data_storage_controller.cpp
+    app/data_storage_controller.hpp
+    app/miniapp_host_controller.cpp
+    app/miniapp_catalog_controller.cpp
+    app/miniapp_task_manager_controller.cpp
+    app/miniapp_runtime.cpp
+    app/miniapp_browser_macos.mm
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.cpp"
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/localization_controller.cpp"
     i18n/catalog.cpp
@@ -1386,13 +1387,27 @@ add_custom_target(genycaster_qmllint_strict
 )
 
 if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
+    # Deterministic C++ geometry tests. QML only retains Shape and color bindings;
+    # time-series sampling and coordinate generation are native and bounded.
+    qt_add_executable(farcaster_token_sparkline_tests
+        tests/token_sparkline_geometry_tests.cpp
+        render/token_sparkline_geometry.cpp
+        render/token_sparkline_geometry.hpp)
+    target_compile_features(farcaster_token_sparkline_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_token_sparkline_tests PRIVATE
+        Qt6::Core Qt6::Qml Qt6::Test)
+    farcaster_enable_warnings(farcaster_token_sparkline_tests)
+    add_test(NAME ui.token_sparkline_geometry COMMAND farcaster_token_sparkline_tests)
+    set_tests_properties(ui.token_sparkline_geometry PROPERTIES
+        TIMEOUT 15 LABELS "ui;market;qt;rendering")
+
     # A standalone real-Qt network/QObject test, independent of the giant
     # executable and its C++ module graph. The local test server makes request
     # batching, exact cast counts and unknown values deterministic.
     qt_add_executable(farcaster_cast_views_tests
         tests/cast_view_controller_tests.cpp
-        mobile/cast_view_controller.cpp
-        mobile/cast_view_controller.hpp)
+        app/cast_view_controller.cpp
+        app/cast_view_controller.hpp)
     target_compile_features(farcaster_cast_views_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_cast_views_tests PRIVATE Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_cast_views_tests)
@@ -1405,8 +1420,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     # QML no longer owns or parses network replies.
     qt_add_executable(farcaster_browser_reactions_tests
         tests/browser_reaction_controller_tests.cpp
-        mobile/browser_reaction_controller.cpp
-        mobile/browser_reaction_controller.hpp)
+        app/browser_reaction_controller.cpp
+        app/browser_reaction_controller.hpp)
     target_compile_features(farcaster_browser_reactions_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_browser_reactions_tests PRIVATE Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_browser_reactions_tests)
@@ -1418,8 +1433,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     # Browser-safe link/miniapp metadata relay with actual bounded HTTP tests.
     qt_add_executable(farcaster_browser_link_metadata_tests
         tests/browser_link_metadata_controller_tests.cpp
-        mobile/browser_link_metadata_controller.cpp
-        mobile/browser_link_metadata_controller.hpp)
+        app/browser_link_metadata_controller.cpp
+        app/browser_link_metadata_controller.hpp)
     target_compile_features(farcaster_browser_link_metadata_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_browser_link_metadata_tests PRIVATE Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_browser_link_metadata_tests)
@@ -1445,8 +1460,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     qt_add_executable(farcaster_provider_profiles_tests
         tests/provider_profiles_controller_tests.cpp
-        mobile/provider_profiles_controller.cpp
-        mobile/provider_profiles_controller.hpp)
+        app/provider_profiles_controller.cpp
+        app/provider_profiles_controller.hpp)
     target_compile_features(farcaster_provider_profiles_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core Qt6::Network Qt6::Gui)
     target_compile_definitions(farcaster_provider_profiles_tests PRIVATE
@@ -1461,7 +1476,7 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     qt_add_executable(farcaster_node_selection_tests
         tests/node_selection_controller_tests.cpp
         ../src/providers/hypersnap/node_selection_controller.cpp
-        mobile/node_selection_controller.hpp)
+        app/node_selection_controller.hpp)
     target_compile_features(farcaster_node_selection_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_node_selection_tests PRIVATE Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_node_selection_tests)
@@ -1472,8 +1487,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     qt_add_executable(farcaster_browser_token_tests
         tests/browser_token_preview_controller_tests.cpp
-        mobile/browser_token_preview_controller.cpp
-        mobile/browser_token_preview_controller.hpp)
+        app/browser_token_preview_controller.cpp
+        app/browser_token_preview_controller.hpp)
     target_compile_features(farcaster_browser_token_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_browser_token_tests PRIVATE Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_browser_token_tests)
@@ -1571,12 +1586,12 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     add_executable(farcaster_openproof_connections_tests
         ../tests/ui/openproof_connections_tests.cpp
-        mobile/openproof_connections_controller.cpp
-        mobile/openproof_connections_controller.hpp
-        mobile/browser_openproof_auth.cpp
-        mobile/browser_openproof_auth.hpp)
+        app/openproof_connections_controller.cpp
+        app/openproof_connections_controller.hpp
+        app/browser_openproof_auth.cpp
+        app/browser_openproof_auth.hpp)
     target_include_directories(farcaster_openproof_connections_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app")
     target_link_libraries(farcaster_openproof_connections_tests PRIVATE
         Qt6::Core Qt6::Network Qt6::Gui)
     farcaster_enable_warnings(farcaster_openproof_connections_tests)
@@ -1590,10 +1605,10 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable(farcaster_channel_picker_controller_tests
         ../tests/ui/channel_picker_controller_tests.cpp
-        mobile/channel_picker_controller.cpp
-        mobile/channel_picker_controller.hpp)
+        app/channel_picker_controller.cpp
+        app/channel_picker_controller.hpp)
     target_include_directories(farcaster_channel_picker_controller_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app")
     target_link_libraries(farcaster_channel_picker_controller_tests PRIVATE
         Qt6::Core Qt6::Network)
     farcaster_enable_warnings(farcaster_channel_picker_controller_tests)
@@ -1603,10 +1618,10 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable(farcaster_update_controller_tests
         ../tests/ui/update_controller_tests.cpp
-        mobile/update_controller.cpp
-        mobile/update_controller.hpp)
+        app/update_controller.cpp
+        app/update_controller.hpp)
     target_include_directories(farcaster_update_controller_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app")
     target_link_libraries(farcaster_update_controller_tests PRIVATE
         genycaster_release_identity
         Qt6::Core Qt6::Network Qt6::Gui)
@@ -1624,8 +1639,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable(farcaster_feed_rows_model_tests
         tests/feed_rows_model_tests.cpp
-        mobile/feed_rows_model.cpp
-        mobile/feed_rows_model.hpp)
+        app/feed_rows_model.cpp
+        app/feed_rows_model.hpp)
     target_compile_features(farcaster_feed_rows_model_tests PRIVATE cxx_std_26)
     target_link_libraries(farcaster_feed_rows_model_tests PRIVATE
         Qt6::Core Qt6::Qml Qt6::Test)
@@ -1636,8 +1651,8 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
 
     add_executable(farcaster_media_scroll_tests
         ../tests/ui/media_scroll_tests.cpp
-        mobile/feed_rows_model.cpp
-        mobile/feed_rows_model.hpp
+        app/feed_rows_model.cpp
+        app/feed_rows_model.hpp
         render/scene_graph_superellipse_item.cpp)
     target_include_directories(farcaster_media_scroll_tests PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/render")
@@ -1674,9 +1689,9 @@ if(FARCASTER_BUILD_TESTS AND BUILD_TESTING)
     endif()
     add_executable(farcaster_link_preview_shutdown_tests
         ../tests/ui/link_preview_shutdown_tests.cpp
-        mobile/link_preview_resolver.cpp)
+        app/link_preview_resolver.cpp)
     target_include_directories(farcaster_link_preview_shutdown_tests PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/mobile")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app")
     target_link_libraries(farcaster_link_preview_shutdown_tests PRIVATE Qt6::Core Qt6::Network)
     add_test(NAME ui.link_preview_shutdown COMMAND farcaster_link_preview_shutdown_tests)
     set_tests_properties(ui.link_preview_shutdown PROPERTIES TIMEOUT 8

@@ -6,8 +6,8 @@ const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 test('token preview has no QML network or JSON and honors viewport demand',()=>{
   const qml=read('ui/components/TokenAddressPreview.qml');
   const embed=read('ui/components/EmbedPreview.qml');
-  const adapter=read('ui/mobile/browser_token_preview_controller.cpp');
-  const main=read('ui/mobile/main.cpp');
+  const adapter=read('ui/app/browser_token_preview_controller.cpp');
+  const main=read('ui/app/main.cpp');
   assert.doesNotMatch(qml,/XMLHttpRequest|JSON\.parse\(|\.send\(/);
   assert.match(qml,/browserTokenPreviewController\.tokenFor\(locator\)/);
   assert.match(qml,/browserTokenPreviewController\.requestToken\(locator\)/);
@@ -23,8 +23,8 @@ test('token preview has no QML network or JSON and honors viewport demand',()=>{
 });
 
 test('browser token snapshots require exact chain+address and preserve verified local state',()=>{
-  const cpp=read('ui/mobile/browser_token_preview_controller.cpp');
-  const header=read('ui/mobile/browser_token_preview_controller.hpp');
+  const cpp=read('ui/app/browser_token_preview_controller.cpp');
+  const header=read('ui/app/browser_token_preview_controller.hpp');
   const qml=read('ui/components/TokenAddressPreview.qml');
   assert.match(cpp,/base\|eth/);
   assert.match(cpp,/\[0-9a-f\]\{40\}/);

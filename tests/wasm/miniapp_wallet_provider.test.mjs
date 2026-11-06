@@ -151,7 +151,7 @@ test('wallet approval follows the active Persian and Arabic direction without ch
 });
 
 test('native Mini App toolbar titles take the remaining span instead of collapsing to ellipses',()=>{
-  const native=readFileSync(new URL('../../ui/mobile/miniapp_browser_macos.mm',import.meta.url),'utf8');
+  const native=readFileSync(new URL('../../ui/app/miniapp_browser_macos.mm',import.meta.url),'utf8');
   assert.match(native,/\[identity\.leadingAnchor constraintEqualToAnchor:m_back\.trailingAnchor constant:8\]/);
   assert.match(native,/\[identity\.trailingAnchor constraintEqualToAnchor:reload\.leadingAnchor constant:-8\]/);
   assert.doesNotMatch(native,/identity\.centerXAnchor constraintEqualToAnchor:toolbar\.centerXAnchor/);
@@ -486,7 +486,7 @@ test('web startup gate waits for terminal browser account restore, including sig
  const signer=readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
  const boot=readFileSync(new URL('../../ui/wasm/genycaster-loader.js',import.meta.url),'utf8');
  const bridge=readFileSync(new URL('../../src/presentation/qt/presentation_bridge.cpp',import.meta.url),'utf8');
- const native=readFileSync(new URL('../../ui/mobile/browser_signer_bridge.hpp',import.meta.url),'utf8');
+ const native=readFileSync(new URL('../../ui/app/browser_signer_bridge.hpp',import.meta.url),'utf8');
  assert.match(signer,/if\(signedOutLocally\(\)\)\{[\s\S]*?phase:'cancelled'/);
  assert.match(signer,/phase:account&&!owner\?'ready':'cancelled'/);
  assert.match(boot,/!accountRestoreSettled/);

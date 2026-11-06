@@ -52,7 +52,7 @@ test("client attribution is evidence-based, localized and shared by normal/reply
     const badge=read("ui/components/SourceClientBadge.qml");
     const cast=read("ui/components/CastItem.qml");
     const reply=read("ui/components/ThreadReplyItem.qml");
-    const bindings=read("ui/mobile/runtime_ui_bindings.cpp");
+    const bindings=read("ui/app/runtime_ui_bindings.cpp");
     const codec=read("src/providers/hypersnap/codec.cpp");
     assert.ok(badge.includes("visible: sanitizedName.length > 0"));
     assert.ok(badge.includes('qsTrId("genycaster.cast.source_client_accessible")'));
@@ -65,7 +65,7 @@ test("client attribution is evidence-based, localized and shared by normal/reply
 });
 
 test("Qt live language selection updates the release drawer language across WASM",()=>{
-    const main=read("ui/mobile/main.cpp");
+    const main=read("ui/app/main.cpp");
     const loader=read("ui/wasm/genycaster-loader.js");
     const native=read("ui/components/UpdateNoticeDrawer.qml");
     assert.ok(main.includes('window.__genycasterSetUpdateLanguage(tag)'));
@@ -136,9 +136,9 @@ test("foreign Mini App titles and descriptions align to the locale without reord
 test("verified Geny Pro admission recovers saved sessions before rejecting another Mini App", () => {
     const apps=read("ui/components/AppsSurface.qml");
     const shell=read("ui/components/AppShell.qml");
-    const openproof=read("ui/mobile/openproof_connections_controller.cpp");
-    const header=read("ui/mobile/openproof_connections_controller.hpp");
-    const startup=read("ui/mobile/main.cpp");
+    const openproof=read("ui/app/openproof_connections_controller.cpp");
+    const header=read("ui/app/openproof_connections_controller.hpp");
+    const startup=read("ui/app/main.cpp");
     const card=read("ui/components/ProfileTrustCard.qml");
     const sidebar=read("ui/components/SideNavigation.qml");
 

@@ -239,7 +239,7 @@ test("a broken Main.qml reports a recoverable failure instead of hiding the over
     assert.equal(h.nodes.get("genycaster-boot").dataset.phase,"failed");
 });
 test("the application emits the QML startup handshake after root creation",()=>{
-    const cpp=readFileSync(new URL("../../ui/mobile/main.cpp",import.meta.url),"utf8");
+    const cpp=readFileSync(new URL("../../ui/app/main.cpp",import.meta.url),"utf8");
     assert.match(cpp,/if \(engine\.rootObjects\(\)\.isEmpty\(\)\) \{[\s\S]*?__genycasterQmlStartup\?\.\(false/);
     assert.match(cpp,/installBrowserWheelBridge\(mainWindow\);[\s\S]*?__genycasterQmlStartup\?\.\(true/);
 });

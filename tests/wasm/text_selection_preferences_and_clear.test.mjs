@@ -4,9 +4,9 @@ import {readFileSync} from 'node:fs';
 const read = f => readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
 test('selection mode is persisted per device and unavailable on WASM canvas',()=>{
-  const cpp=read('ui/mobile/text_selection_settings.cpp');
-  const header=read('ui/mobile/text_selection_settings.hpp');
-  const main=read('ui/mobile/main.cpp');
+  const cpp=read('ui/app/text_selection_settings.cpp');
+  const header=read('ui/app/text_selection_settings.hpp');
+  const main=read('ui/app/main.cpp');
   const settings=read('ui/components/LocaleSettingsPopup.qml');
   assert.match(header,/Q_PROPERTY\(QString mode READ mode NOTIFY modeChanged/);
   assert.match(header,/Q_PROPERTY\(bool nativeAvailable READ nativeAvailable CONSTANT/);

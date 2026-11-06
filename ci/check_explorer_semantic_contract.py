@@ -21,11 +21,11 @@ def read(rel: str) -> str:
 
 shell = read("ui/components/AppShell.qml")
 feed = read("ui/components/FeedSurface.qml")
-runtime = (read("ui/mobile/main.cpp") + read("ui/mobile/runtime_composition.cppm") +
-           read("ui/mobile/runtime_composition.cpp") +
-           read("ui/mobile/runtime_ui_bindings.cpp"))
+runtime = (read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") +
+           read("ui/app/runtime_composition.cpp") +
+           read("ui/app/runtime_ui_bindings.cpp"))
 link_preview = read("ui/components/LinkPreview.qml")
-preview_resolver = read("ui/mobile/link_preview_resolver.cpp")
+preview_resolver = read("ui/app/link_preview_resolver.cpp")
 profile = read("ui/components/ProfileSurface.qml")
 detail = read("ui/components/DetailSurface.qml")
 superellipse_image = read("ui/components/SuperellipseImage.qml")

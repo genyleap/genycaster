@@ -1,4 +1,4 @@
-#include "../../ui/mobile/browser_wheel_fallback.hpp"
+#include "../../ui/app/browser_wheel_fallback.hpp"
 
 #include <QGuiApplication>
 #include <QQmlComponent>

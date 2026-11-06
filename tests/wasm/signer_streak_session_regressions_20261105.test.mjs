@@ -14,7 +14,7 @@ test('Like/Recast cannot reopen signer approval while signer verification or a s
 });
 
 test('Streak snapshots are stored per FID only after successful authorized server responses',()=>{
-    const controller=read('ui/mobile/openproof_connections_controller.cpp');
+    const controller=read('ui/app/openproof_connections_controller.cpp');
     assert.match(controller,/status==200 && doc\.isObject\(\)\s*&& doc\.object\(\)\.value\(QStringLiteral\("streak"\)\)\.isObject\(\)/);
     assert.match(controller,/setValue\(QStringLiteral\("streak\/snapshot\/%1"\)\.arg\(viewer\), m_streak\)/);
     assert.match(controller,/m_streak = m_settings && fid\s*\? m_settings->value\(QStringLiteral\("streak\/snapshot\/%1"\)\.arg\(fid\)\)\.toMap\(\)/);
@@ -23,7 +23,7 @@ test('Streak snapshots are stored per FID only after successful authorized serve
 });
 
 test('Streak endpoint remains authenticated and never fabricates a local streak write',()=>{
-    const controller=read('ui/mobile/openproof_connections_controller.cpp');
+    const controller=read('ui/app/openproof_connections_controller.cpp');
     assert.match(controller,/authorizeCloudRequest\(request\)/);
     assert.match(controller,/m_streakError=QStringLiteral\("Streak is temporarily unavailable\."\)/);
     assert.doesNotMatch(controller,/m_streak\[.*\]=.*Math\.random/);

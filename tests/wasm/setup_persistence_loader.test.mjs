@@ -6,8 +6,8 @@ import vm from 'node:vm';
 // Runtime binding functions live in a separate Qt composition unit to keep
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 }
 
 const root=new URL('../../',import.meta.url);
@@ -54,7 +54,7 @@ test('serialized IDBFS writes finish before refresh and recover after storage fa
 
 test('WASM refresh flushes selected node to IndexedDB before navigation',()=>{
     const app=readGenycasterMain();
-    const update=read('ui/mobile/update_controller.cpp');
+    const update=read('ui/app/update_controller.cpp');
     const panel=read('ui/components/NodeManagementPanel.qml');
     assert.ok(app.includes('ProviderProfilesController::selectionChanged'));
     assert.ok(app.includes('ProviderProfilesController::profilesChanged'));
@@ -96,7 +96,7 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
 test('Setup owns a borderless full-window stage with CTA in the stage, not a global footer',()=>{
     const setup=read('ui/components/InitialSetup.qml');
     const language=read('ui/components/SetupLanguageSelector.qml');
-    const main=read('ui/mobile/Main.qml');
+    const main=read('ui/app/Main.qml');
     assert.match(setup,/id: stageScroll/);
     assert.match(setup,/id: setupCanvas/);
     assert.match(setup,/id: desktopBrandPane/);

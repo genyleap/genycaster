@@ -44,7 +44,7 @@ test('both search pipelines preserve offline channels and cache network discover
 });
 
 test('UI continues displaying the existing provider-neutral SearchPage channels', () => {
-  const ui = read('ui/mobile/runtime_ui_bindings.cpp');
+  const ui = read('ui/app/runtime_ui_bindings.cpp');
   assert.match(ui, /searchPresentation\(const application::read::model::SearchState& state\)/);
   assert.match(ui, /state\.page\.channels/);
   assert.match(ui, /applySearchSuggestions\(/);

@@ -30,7 +30,7 @@ test('browser reactions fetch positive evidence through bounded account-scoped s
   assert.match(qml,/browserReactionController/);
   assert.match(qml,/function retain\(castId, viewerFid\)/);
   assert.match(qml,/function release\(castId, viewerFid\)/);
-  assert.match(read('ui/mobile/browser_reaction_controller.cpp'),
+  assert.match(read('ui/app/browser_reaction_controller.cpp'),
     /storage-farcaster.genyleap.com\/v1\/browser\/cast-reactions/);
   assert.match(bar,/CastReactions.ensure\(root.reactionCastId, root.viewerFid\)/);
   assert.match(bar,/CastReactions.release\(/);

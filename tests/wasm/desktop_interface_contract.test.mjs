@@ -159,8 +159,8 @@ test('mobile Apps show the same compact store rows as desktop with topic filters
 
 test('native update sheet shows published release metadata with vertical drawer motion', () => {
     const drawer=read('ui/components/UpdateNoticeDrawer.qml');
-    const header=read('ui/mobile/update_controller.hpp');
-    const cpp=read('ui/mobile/update_controller.cpp');
+    const header=read('ui/app/update_controller.hpp');
+    const cpp=read('ui/app/update_controller.cpp');
     assert.match(drawer,/edge: Qt\.TopEdge/);
     assert.match(drawer,/property: "position"/);
     assert.match(drawer,/updateController\.releaseTitle/);

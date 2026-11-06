@@ -80,7 +80,7 @@ test('public Genycaster links use runtime hosting origin or native configuration
 });
 
 test('incoming browser and command-line URLs route after runtime is ready', () => {
-  const main = read('ui/mobile/main.cpp');
+  const main = read('ui/app/main.cpp');
   assert.match(main, /--open-url=/);
   assert.match(main, /window\.location\.href/);
   assert.match(main, /presentationBridge\.openSharedLink\(incoming\)/);
@@ -91,7 +91,7 @@ test('app attribution requires node-returned provenance', () => {
   const codec = read('src/providers/hypersnap/codec.cpp');
   assert.match(codec, /findValue\(castObject, "app"\)/);
   assert.match(codec, /cast\.sourceClient = std::move\(\*name\)/);
-  const feed = read('ui/mobile/runtime_ui_bindings.cpp');
+  const feed = read('ui/app/runtime_ui_bindings.cpp');
   assert.match(feed, /"sourceClient"/);
   assert.match(read('ui/components/CastItem.qml'), /objectName: "castSourceClientBadge"/);
 });

@@ -163,7 +163,7 @@ A source-code build is not equivalent to an authorized production deployment. Cr
 | Commands, read models and sync | `src/application/` |
 | Network routing and adapters | `src/providers/`, `src/transport/` |
 | Persistence and migrations | `src/storage/` |
-| Qt UI / native entry points | `ui/components/`, `ui/mobile/` |
+| Qt UI / native entry points | `ui/components/`, `ui/app/` |
 | WebAssembly runtime | `ui/wasm/`, [WebAssembly](webassembly.md) |
 | Build configurations | `CMakePresets.json`, [Build profiles](10-build-deployment-profiles.md) |
 | Tests and verification | `tests/`, [CI](../ci/README.md) |

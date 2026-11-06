@@ -8,8 +8,8 @@ import {runInNewContext} from 'node:vm';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const qml=readFileSync(resolve(root,'ui/components/GenyPulsePanel.qml'),'utf8');
 const profile=readFileSync(resolve(root,'ui/components/ProfileSurface.qml'),'utf8');
-const source=readFileSync(resolve(root,'ui/mobile/genypulse_activity_controller.cpp'),'utf8');
-const header=readFileSync(resolve(root,'ui/mobile/genypulse_activity_controller.hpp'),'utf8');
+const source=readFileSync(resolve(root,'ui/app/genypulse_activity_controller.cpp'),'utf8');
+const header=readFileSync(resolve(root,'ui/app/genypulse_activity_controller.hpp'),'utf8');
 
 test('activity is read independently from profile timeline and reacts to FID',()=>{
   assert.ok(!qml.includes('root.rows') && !qml.includes('profileFeed'));
@@ -152,7 +152,7 @@ test('normalization and query stay in native adapter, not UI',()=>{
 });
 
 test('GitHub reads canonical OpenProof snapshots even without an active grant',()=>{
-  const openproof=readFileSync(resolve(root,'ui/mobile/openproof_connections_controller.cpp'),'utf8');
+  const openproof=readFileSync(resolve(root,'ui/app/openproof_connections_controller.cpp'),'utf8');
   assert.match(profile,/openProofConnections.connections/);
   const idSection=profile.slice(profile.indexOf('readonly property var verifiedGithubActivityAccount:'),
       profile.indexOf('function socialIcon(provider)'));

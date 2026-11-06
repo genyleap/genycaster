@@ -16,8 +16,8 @@ test('Recovery in Settings is exclusively visible to authenticated accounts', ()
 
 test('WASM Updates refreshes current deployed application instead of a desktop installer', () => {
   const qml = file('ui/components/LocaleSettingsPopup.qml');
-  const header = file('ui/mobile/update_controller.hpp');
-  const source = file('ui/mobile/update_controller.cpp');
+  const header = file('ui/app/update_controller.hpp');
+  const source = file('ui/app/update_controller.cpp');
   assert.match(qml, /readonly property bool webAssembly: Qt\.platform\.os === "wasm"/);
   assert.match(qml, /objectName: "wasmRefreshUpdateButton"/);
   assert.match(qml, /onClicked: updateController\.refreshWebApp\(\)/);

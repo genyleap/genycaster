@@ -20,7 +20,7 @@ test('Explorer audience filter persists and applies to each semantic tab',()=>{
  assert.match(header,/readonly property bool selected: root\.audience === String\(modelData\.id\)/);
  assert.match(header,/Behavior on color/);
  assert.doesNotMatch(header,/audienceMenu\.open\(\)/);
- assert.match(read('ui/mobile/runtime_ui_bindings.cpp'),/feed == QStringLiteral\("following"\)\) query\.kind = Kind::Following/);
+ assert.match(read('ui/app/runtime_ui_bindings.cpp'),/feed == QStringLiteral\("following"\)\) query\.kind = Kind::Following/);
 });
 test('Stories use only verified following graph and never feed author suggestions',()=>{
  const shell=read('ui/components/AppShell.qml');
@@ -48,7 +48,7 @@ test('Feed and detail reveal source channel as metadata without a hardcoded prov
   assert.match(code,/channel\\\/|channel\//);
   assert.doesNotMatch(code,/warpcast\.com\/~/);
  }
- assert.match(read('ui/mobile/runtime_ui_bindings.cpp'),/parentUrl.*QString::fromStdString/);
+ assert.match(read('ui/app/runtime_ui_bindings.cpp'),/parentUrl.*QString::fromStdString/);
 });
 test('Cast surfaces blend into theme, including the detail header',()=>{
  const cast=read('ui/components/CastItem.qml');
@@ -69,7 +69,7 @@ test('Quote produces a visible error when a canonical target is missing and open
 test('Hydrated mention display preserves protocol text and crosses feed, detail and notifications',()=>{
  const cast=read('src/domain/cast.cppm');
  const codec=read('src/providers/hypersnap/codec.cpp');
- const ui=read('ui/mobile/runtime_ui_bindings.cpp');
+ const ui=read('ui/app/runtime_ui_bindings.cpp');
  assert.match(cast,/optional<std::string> displayText/);
  assert.match(codec,/resolvedMentionText\(/);
  assert.match(codec,/mentioned_profiles/);
@@ -90,7 +90,7 @@ test('Quoted cast hashes accept both prefixless provider hashes and 0x hashes',(
 test('Feed and details display actual channel metadata including an image from provider',()=>{
  const codec=read('src/providers/hypersnap/codec.cpp');
  const domain=read('src/domain/cast.cppm');
- const presentation=read('ui/mobile/runtime_ui_bindings.cpp');
+ const presentation=read('ui/app/runtime_ui_bindings.cpp');
  for(const word of ['channelId','channelName','channelImageUrl']){
    assert.match(domain,new RegExp(word));
    assert.match(presentation,new RegExp(word));
@@ -156,8 +156,8 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
 
 
 test('Provider channel imagery is resolved from the configured directory, not synthetic glyphs',()=>{
- const controller=read('ui/mobile/channel_picker_controller.cpp');
- const header=read('ui/mobile/channel_picker_controller.hpp');
+ const controller=read('ui/app/channel_picker_controller.cpp');
+ const header=read('ui/app/channel_picker_controller.hpp');
  const item=read('ui/components/CastItem.qml');
  const detail=read('ui/components/DetailSurface.qml');
  assert.match(header,/Q_INVOKABLE void ensureChannelImage\(const QString& id\)/);

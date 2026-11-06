@@ -5,9 +5,9 @@ import {readFileSync} from 'node:fs';
 // Deterministic fake event loop for the asynchronous native reaction ownership
 // contract. This fixture also pins its decision points to the actual C++ path;
 // it is not a substitute for an instrumented compiled Qt runtime interleaving.
-const binding = readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
-const runtime = readFileSync(new URL('../../ui/mobile/runtime_composition.cpp', import.meta.url), 'utf8');
-const definition = readFileSync(new URL('../../ui/mobile/runtime_composition.cppm', import.meta.url), 'utf8');
+const binding = readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+const runtime = readFileSync(new URL('../../ui/app/runtime_composition.cpp', import.meta.url), 'utf8');
+const definition = readFileSync(new URL('../../ui/app/runtime_composition.cppm', import.meta.url), 'utf8');
 
 class DeliveryFixture {
   constructor() {

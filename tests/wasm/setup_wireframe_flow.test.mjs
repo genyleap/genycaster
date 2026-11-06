@@ -72,7 +72,7 @@ test('new-account registration is muted, clearly unavailable, and never clickabl
 
 test('native recovery authorizes a device signer only with explicit user consent', () => {
   const qml=source('ui/components/InitialSetup.qml');
-  const runtime=source('ui/mobile/runtime_ui_bindings.cpp');
+  const runtime=source('ui/app/runtime_ui_bindings.cpp');
   const platform=source('src/platform/custody_recovery.cpp');
   const app=source('src/application/signer.cpp');
   assert.match(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);

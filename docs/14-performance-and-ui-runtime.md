@@ -170,3 +170,61 @@ Performance testing should eventually cover:
 - Apple Silicon macOS;
 - Windows x64;
 - Linux desktop.
+
+## Qt Quick and C++ ownership — current audit
+
+GenyCaster's UI is **one adaptive Qt Quick application**, not a separate
+mobile application. Its cross-platform executable entry, Qt-facing controllers,
+Mini App adapters, runtime composition and QML application window live in
+`ui/app/`. Operating-system integrations remain isolated in `ui/platform/`,
+and visual resources/components remain in `ui/render/`, `ui/components/`,
+`ui/theme/` and `ui/assets/`. The retired demo data is not part of the QML
+module.
+
+A source inventory in November 2026 found **156 shipped component QML files**
+with roughly **57.9k lines** and around **695 named JavaScript functions**.
+These counts indicate where to inspect responsibilities; they do not measure
+runtime performance, duplicated logic or how many lines should be removed.
+The largest imperative surfaces include FeedSurface, ProfileSurface, AppShell,
+GenyVideoPlayer, NotificationSurface and ComposerDrawer.
+
+| Responsibility | Preferred owner | Why |
+|---|---|---|
+| Page layout, themes, accessibility, animation, declarative bindings | QML | Native reactive UI; translating it into C++ adds boilerplate and can weaken iteration |
+| Canonical content normalization, security checks, token/URL parsers | C++ domain/application or bounded presentation adapter | Shared behavior, typed contracts, fuzzable tests and trusted input boundaries |
+| Network, image/metadata fetching, cancellation, retry and caching | C++ provider/transport workers | No GUI-thread I/O; bounded memory and explicit ownership |
+| Feed models, reconciliation, paging and stable item identity | C++ presentation/application | Incremental model updates avoid large JS list transformations |
+| Playback state, Mini App permissions and signer transitions | C++ lifecycle/authority owners | Centralized state machines, scoped permissions and testable failure cases |
+| Numerical chart sampling, decimation and coordinate generation | C++ rendering helper | Deterministic arithmetic outside reactive JavaScript; QML continues painting |
+
+**First small migration:** `ui/components/TokenSparkline.qml` went from
+**138 to 48 lines** by moving finite-value filtering, bounded decimation,
+smoothing and point generation to `ui/render/token_sparkline_geometry.cpp`.
+The Shape/PathPolyline and color behavior remain declarative. This is not
+evidence of a frame-time improvement; `ui.token_sparkline_geometry` exercises
+the C++ geometry and platform rendering still requires live tests.
+
+### Candidates for incremental migration
+
+1. **FeedSurface, ProfileSurface and AppShell** — inventory each JavaScript
+   function. Move state reconciliation, repeated view-model transformations,
+   navigation state machines and policy checks into existing C++ controllers;
+   keep local UI focus, anchors, transitions and layout bindings in QML.
+2. **ComposerDrawer and rich media surfaces** — move text validation,
+   revision-aware draft persistence, media admission and parser work into C++.
+   Existing C++ models and QML renderers must remain the single authorities;
+   avoid new parallel implementations.
+3. **TokenSemantic and locale helpers** — migrate *canonical* token locator
+   parsing and input normalization to a typed C++ adapter, while preserving
+   `qsTrId` lookups and locale-revision bindings where Qt translation updates
+   need them.
+4. **GenyVideoPlayer / Mini Apps** — review asynchronous state ownership,
+   request lifetime and permission transitions. Keep interaction animations
+   and platform-specific visual composition in QML. Never confuse visual
+   component size with an automatically safe refactor.
+
+**Migration gate:** preserve QML public properties and signals; add behavior
+tests before replacing a JavaScript helper; check desktop/compact/RTL behavior,
+native/WASM runtime and package resource aliases; benchmark hot paths; and
+delete the old JS function only after the C++ implementation has matching
+semantics. No goal of "zero JavaScript" is appropriate for a declarative UI.

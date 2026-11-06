@@ -16,9 +16,9 @@ application = (read("src/application/media_upload.cppm") + read("src/application
                read("src/application/media_lifecycle.cppm") + read("src/application/media_lifecycle.cpp"))
 composer = read("ui/components/ComposerDrawer.qml")
 presentation_bridge = read("src/presentation/qt/presentation_bridge.cpp")
-runtime = (read("ui/mobile/main.cpp") + read("ui/mobile/runtime_composition.cppm") +
-           read("ui/mobile/runtime_composition.cpp") +
-           read("ui/mobile/runtime_ui_bindings.cpp"))
+runtime = (read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") +
+           read("ui/app/runtime_composition.cpp") +
+           read("ui/app/runtime_ui_bindings.cpp"))
 insert_panel = read("ui/components/ComposerInsertPanel.qml")
 gateway = read("services/media-gateway/gateway.mjs")
 storage = read("services/media-gateway/storage/quilibrium_sdk.mjs")

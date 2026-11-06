@@ -24,7 +24,7 @@ test('provider-rendered @mentions survive entity-store upserts and roundtrip thr
  assert.match(contract, /\(\*warmed\)->displayText == cast\.displayText/);
  const readService=read('src/application/read_async_service.cpp');
  assert.match(readService, /auto materialized = readLocalPresentationWindow/);
- const presentation=read('ui/mobile/runtime_ui_bindings.cpp');
+ const presentation=read('ui/app/runtime_ui_bindings.cpp');
  assert.match(presentation, /cast\.displayText\.value_or\(cast\.text\)/);
 });
 test('ENS-like profile handles use exact-match search fallback on the currently configured provider',()=>{

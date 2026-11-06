@@ -83,9 +83,9 @@ test('Setup session adopts only verified OpenProof issuer/subject with the same 
   const {readFileSync}=await import('node:fs');
   const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
   const pre=read('../../ui/wasm/protocol-signer-pre.js');
-  const qt=read('../../ui/mobile/browser_signer_bridge.hpp');
-  const runtime=read('../../ui/mobile/runtime_ui_bindings.cpp');
-  const auth=read('../../ui/mobile/openproof_connections_controller.cpp');
+  const qt=read('../../ui/app/browser_signer_bridge.hpp');
+  const runtime=read('../../ui/app/runtime_ui_bindings.cpp');
+  const auth=read('../../ui/app/openproof_connections_controller.cpp');
   assert.match(pre,/openProofGatewayOrigin/);
   assert.match(pre,/identityIssuer:verifiedOpenProof\?\.issuer/);
   assert.match(pre,/accountTicket:verifiedOpenProof\?\.accountTicket/);

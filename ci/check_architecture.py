@@ -38,10 +38,10 @@ PROVIDER_SELECTION_QML = {
     "ui/components/ProviderProfilesPanel.qml",
 }
 PROVIDER_AWARE_PRESENTATION = {
-    "ui/mobile/provider_profiles_controller.cpp",
-    "ui/mobile/channel_picker_controller.cpp",
-    "ui/mobile/genypulse_activity_controller.cpp",
-    "ui/mobile/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
+    "ui/app/provider_profiles_controller.cpp",
+    "ui/app/channel_picker_controller.cpp",
+    "ui/app/genypulse_activity_controller.cpp",
+    "ui/app/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
     "ui/tests/provider_profiles_controller_tests.cpp",
 }
 
@@ -287,9 +287,9 @@ for path in ROOT.rglob("*"):
             and not rel.startswith("src/providers/")
             and not rel.startswith("tests/providers/")
             and rel not in {
-                "ui/mobile/main.cpp",
-                "ui/mobile/runtime_composition.cpp",
-                "ui/mobile/runtime_composition.cppm",
+                "ui/app/main.cpp",
+                "ui/app/runtime_composition.cpp",
+                "ui/app/runtime_composition.cppm",
             } | PROVIDER_AWARE_PRESENTATION  # Explicit presentation/composition boundaries.
         ):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")

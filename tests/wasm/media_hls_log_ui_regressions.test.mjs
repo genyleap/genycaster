@@ -5,8 +5,8 @@ import test from 'node:test';
 // Runtime binding functions live in a separate Qt composition unit to keep
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 }
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path,root),'utf8');
@@ -83,7 +83,7 @@ test('wallet approval stays steady after consent and stops polling on session en
 });
 
 test('failed private media origins back off and tiny SVGs avoid uninitialized mipmaps',()=>{
- const image=read('ui/mobile/remote_image_provider.cpp');
+ const image=read('ui/app/remote_image_provider.cpp');
  assert.match(image,/originTemporarilyForbidden\(urlText\)/);
  // Force-download artwork shares the 'manual' descriptor, so authorization
  // refusal must be honored regardless of that flag.

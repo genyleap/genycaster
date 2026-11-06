@@ -51,6 +51,10 @@ def main() -> None:
     assert not Path("tools").exists(), "legacy tools/ directory must not return"
     assert not Path("docs-site").exists(), "obsolete docs-site/ directory must not return"
     assert not Path("prototypes").exists(), "experimental prototypes must not return"
+    assert not Path("ui/mobile").exists(), "cross-platform Qt application sources must live in ui/app"
+    assert not Path("ui/demo").exists(), "unused sample QML must not re-enter the shipped module"
+    assert Path("ui/app/Main.qml").is_file(), "unified Qt application entrypoint is required"
+    assert Path("ui/app/main.cpp").is_file(), "unified native application entrypoint is required"
     public_root_docs = {
         "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",
         "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md",

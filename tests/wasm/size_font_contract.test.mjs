@@ -6,7 +6,7 @@ const read=(path)=>readFileSync(new URL("../../"+path,import.meta.url),"utf8");
 test("WASM fonts retain full CJK coverage while removing unneeded TTC faces",()=>{
  const cmake=read("ui/CMakeLists.txt");
  const optimizer=read("ci/optimize_cjk_collection.py");
- const main=read("ui/mobile/main.cpp");
+ const main=read("ui/app/main.cpp");
  assert.match(cmake,/GENYCASTER_OPTIMIZE_CJK_COLLECTION/);
  assert.match(cmake,/GENYCASTER_CJK_FONTTOOLS_PYTHON/);
  assert.match(cmake,/ci\/optimize_cjk_collection.py/);

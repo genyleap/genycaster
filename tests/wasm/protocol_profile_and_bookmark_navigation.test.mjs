@@ -32,7 +32,7 @@ test('Bookmarked cast navigates from whole card, never limited to text label',()
 test('Protocol profile editor sends only changed canonical slots with verified signer',()=>{
   const profile=read('ui/components/ProfileSurface.qml');
   const qt=read('src/presentation/qt/presentation_bridge.cpp');
-  const bindings=read('ui/mobile/runtime_ui_bindings.cpp');
+  const bindings=read('ui/app/runtime_ui_bindings.cpp');
   const js=read('ui/wasm/browser_protocol_signer.mjs');
   const wasm=read('ui/wasm/protocol-signer-pre.js');
   assert.match(profile,/objectName: "profileProtocolSave"/);

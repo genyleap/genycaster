@@ -6,9 +6,9 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const settings = read('ui/components/LocaleSettingsPopup.qml');
 const manager = read('ui/components/NodeManagementPanel.qml');
-const controller = read('ui/mobile/provider_profiles_controller.cpp');
-const header = read('ui/mobile/provider_profiles_controller.hpp');
-const bootstrap = read('ui/mobile/main.cpp');
+const controller = read('ui/app/provider_profiles_controller.cpp');
+const header = read('ui/app/provider_profiles_controller.hpp');
+const bootstrap = read('ui/app/main.cpp');
 
 test('Node Management is its own settings destination on desktop and mobile', () => {
   assert.match(settings, /root\.currentSection = Number\(modelData\.section\)/);
@@ -100,13 +100,13 @@ test('Node Management labels including contract correction are translated in eve
 });
 
 test('a custom raw node can receive only its own explicit HTTPS x-api-key', () => {
-  const composition = read('ui/mobile/runtime_composition.cpp');
+  const composition = read('ui/app/runtime_composition.cpp');
   assert.match(bootstrap, /profile\.adapterContract == "snapchain-v1"/);
   assert.match(composition, /const auto rawCredential = readProviderApiKeys\.find\(profile\.id\)/);
   assert.match(composition, /\.authorizationHeaderName = rawCredential/);
   assert.match(composition, /std::string\{"x-api-key"\}/);
   assert.match(composition, /Authenticated raw read providers require HTTPS/);
-  const controller = read('ui/mobile/provider_profiles_controller.cpp');
+  const controller = read('ui/app/provider_profiles_controller.cpp');
   assert.match(controller, /QStringLiteral\("snapchain-v1"\)\)/);
   assert.match(manager, /readKey\.text\)/);
 });

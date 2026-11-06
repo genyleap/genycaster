@@ -27,7 +27,7 @@ test('network Recent is authoritative; local pagination and UI mark partial cove
   const model = read('src/application/read_model.cppm');
   const asyncService = read('src/application/read_async_service.cpp');
   const presenter = read('src/presentation/qt/presentation_bridge.hpp');
-  const binding = read('ui/mobile/runtime_ui_bindings.cpp');
+  const binding = read('ui/app/runtime_ui_bindings.cpp');
   const shell = read('ui/components/AppShell.qml');
   const feed = read('ui/components/FeedSurface.qml');
   assert.match(storage, /if \(key\.kind == local::read::FeedKey::Kind::Recent && window->entries\.empty\(\)\)/);

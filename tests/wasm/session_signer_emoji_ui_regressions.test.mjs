@@ -26,7 +26,7 @@ test('inactive windows preserve inline emoji frames while motion is paused', () 
 test('saved signer verification never requires a new custody approval', () => {
   const bridgeH = source('src/presentation/qt/presentation_bridge.hpp');
   const bridge = source('src/presentation/qt/presentation_bridge.cpp');
-  const runtime = source('ui/mobile/runtime_ui_bindings.cpp');
+  const runtime = source('ui/app/runtime_ui_bindings.cpp');
   const shell = source('ui/components/AppShell.qml');
   assert.match(bridgeH, /Q_INVOKABLE void refreshSigner\(\)/);
   assert.match(bridgeH, /void signerRefreshRequested\(\)/);

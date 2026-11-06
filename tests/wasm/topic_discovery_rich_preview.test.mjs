@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 const bridgeHeader = read('src/presentation/qt/presentation_bridge.hpp');
 const bridgeSource = read('src/presentation/qt/presentation_bridge.cpp');
-const runtime = read('ui/mobile/runtime_ui_bindings.cpp');
+const runtime = read('ui/app/runtime_ui_bindings.cpp');
 const browse = read('ui/components/TopicBrowseSurface.qml');
 const shell = read('ui/components/AppShell.qml');
 const picker = read('ui/components/TopicFilterPicker.qml');
@@ -55,8 +55,8 @@ test('bookmark collection creation keeps chooser open while the server confirms 
 });
 
 test('topic pagination advances by raw server rows, not deduplicated cast count', () => {
-  const controller = read('ui/mobile/openproof_connections_controller.cpp');
-  const header = read('ui/mobile/openproof_connections_controller.hpp');
+  const controller = read('ui/app/openproof_connections_controller.cpp');
+  const header = read('ui/app/openproof_connections_controller.hpp');
   assert.match(header, /qsizetype m_topicCastOffset/);
   assert.match(controller, /m_topicCastOffset=0;/);
   assert.match(controller, /const auto offset=m_topicCastOffset;/);

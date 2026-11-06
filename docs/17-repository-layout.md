@@ -18,6 +18,26 @@ remaining acceptance gates and prior root report findings are maintained in
 Prototyping experiments are intentionally not tracked: tests must exercise the
 shipping UI, resource and application contracts, not demo-specific artifacts.
 
+## Cross-platform UI ownership
+
+- `ui/app/`: the **shared desktop, mobile and WebAssembly application entrypoint**,
+  runtime composition, Qt-facing controllers and platform host adapters. The
+  directory name describes application ownership, not a device form factor.
+- `ui/components/`: declarative reusable Qt Quick pages, layouts and controls.
+- `ui/render/`: reusable native Qt Quick Scene Graph items and bounded
+  C++ rendering/math helpers (including market sparklines).
+- `ui/theme/`, `ui/assets/` and `ui/i18n/`: design tokens, production assets
+  and localization catalogs.
+- `ui/platform/`: only genuinely platform-specific assets or integrations.
+- `ui/wasm/`: browser-only bootstrap and compatibility assets, not the
+  complete application implementation.
+- `ui/tests/` and `tests/wasm/`: native Qt and source/runtime regressions.
+
+There is no `ui/mobile/` or `ui/demo/` in the active tree. The QML module
+still registers its root window under the stable `Farcaster.Client/Main.qml`
+resource alias; moving its source must never change its runtime URL without
+a separate compatibility decision.
+
 ## Core ownership
 
 ### `src/foundation/`

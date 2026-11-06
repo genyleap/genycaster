@@ -6,9 +6,9 @@ const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 test('the Qt Views controller batches and bounds network work outside QML',()=>{
   const cmake=read('ui/CMakeLists.txt');
   const facade=read('ui/components/CastViews.qml');
-  const controller=read('ui/mobile/cast_view_controller.cpp');
-  const header=read('ui/mobile/cast_view_controller.hpp');
-  assert.match(cmake,/mobile\/cast_view_controller.cpp/);
+  const controller=read('ui/app/cast_view_controller.cpp');
+  const header=read('ui/app/cast_view_controller.hpp');
+  assert.match(cmake,/app\/cast_view_controller.cpp/);
   assert.match(facade,/pragma Singleton/);
   assert.doesNotMatch(facade,/XMLHttpRequest|JSON\.parse|revision/);
   assert.match(controller,/maxBatch = 16/);

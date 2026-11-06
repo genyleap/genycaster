@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('a visited profile requests independently verified incoming and outgoing relationships',()=>{
-  const runtime=source('ui/mobile/runtime_ui_bindings.cpp');
+  const runtime=source('ui/app/runtime_ui_bindings.cpp');
   const begin=runtime.indexOf('PresentationBridge::profileRequested');
   const end=runtime.indexOf('QMetaObject::invokeMethod(&bridge,',begin);
   assert.ok(begin>0 && end>begin);

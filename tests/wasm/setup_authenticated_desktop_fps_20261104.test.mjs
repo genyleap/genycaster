@@ -16,7 +16,7 @@ test('verified sign-in is mandatory on all platforms including WebAssembly', () 
  assert.match(read('ui/components/AppShell.qml'),/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
 });
 test('native desktop starts wide enough for side widgets when display permits', () => {
- const qml=read('ui/mobile/Main.qml');
+ const qml=read('ui/app/Main.qml');
  assert.match(qml,/Math\.min\(1560, Screen\.desktopAvailableWidth/);
  assert.match(qml,/Math\.min\(940, Screen\.desktopAvailableHeight/);
  assert.match(qml,/minimumWidth: Qt\.platform\.os === "wasm" \? 0 : 360/);

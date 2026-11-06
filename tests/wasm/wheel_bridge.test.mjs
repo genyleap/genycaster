@@ -7,8 +7,8 @@ import vm from 'node:vm';
 // Runtime binding functions live in a separate Qt composition unit to keep
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/mobile/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/mobile/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
+    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
 }
 
 const main = readGenycasterMain();

@@ -19,7 +19,7 @@ test('raw-node adapter declares only its directly implemented read capabilities'
 });
 
 test('raw-node reads never guess that indexed-v2 API implements raw protocol', () => {
-    const composition = read('ui/mobile/runtime_composition.cpp');
+    const composition = read('ui/app/runtime_composition.cpp');
     const source = read('src/providers/snapchain/read.cpp');
     assert.match(composition, /profile\.adapterContract == "snapchain-v1"/);
     assert.match(composition, /snapchain::read::capabilities\(\)/);

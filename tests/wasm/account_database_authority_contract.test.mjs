@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
 const qml=readFileSync(new URL('../../ui/components/ProfileSurface.qml',import.meta.url),'utf8');
-const cpp=readFileSync(new URL('../../ui/mobile/openproof_connections_controller.cpp',import.meta.url),'utf8');
+const cpp=readFileSync(new URL('../../ui/app/openproof_connections_controller.cpp',import.meta.url),'utf8');
 function extracted(begin,end) {
   const start=qml.indexOf(begin);
   const finish=qml.indexOf(end,start+begin.length);
@@ -40,7 +40,7 @@ test('category and bookmark account transport are compiled into every Qt client,
   const nativeBoundary=cmake.indexOf('\nif(EMSCRIPTEN)');
   assert.ok(nativeBoundary>0);
   for(const entry of [
-    'mobile/openproof_connections_controller.cpp',
+    'app/openproof_connections_controller.cpp',
     'components/ProfileSurface.qml','components/BookmarksSurface.qml'
   ]) assert.ok(cmake.indexOf(entry)>0 && cmake.indexOf(entry)<nativeBoundary,entry);
   assert.match(cpp,/void OpenProofConnectionsController::recordBookmarkMutation/);

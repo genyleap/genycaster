@@ -5,7 +5,7 @@ import {readFileSync} from "node:fs";
 const read = file => readFileSync(new URL("../../"+file,import.meta.url),"utf8");
 
 test("Neynar manifest cover is parsed separately from square app icon",()=>{
-    const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
+    const cpp=read("ui/app/miniapp_catalog_controller.cpp");
     assert.match(cpp,/miniAppManifestObject\(row\)/);
     assert.match(cpp,/manifest\.value\(QStringLiteral\("frame"\)\)\.toObject\(\), coverKeys/);
     for(const key of ["hero_image_url","og_image_url","splash_image_url"])
@@ -36,8 +36,8 @@ test("Discover cards use true covers without stretching icons as hero art",()=>{
 });
 
 test("recent apps only represent real launch history and remain bounded",()=>{
-    const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
-    const hpp=read("ui/mobile/miniapp_catalog_controller.hpp");
+    const cpp=read("ui/app/miniapp_catalog_controller.cpp");
+    const hpp=read("ui/app/miniapp_catalog_controller.hpp");
     const view=read("ui/components/AppsSurface.qml");
     assert.match(hpp,/Q_PROPERTY\(QVariantList recentApps READ recentApps NOTIFY recentAppsChanged FINAL\)/);
     assert.match(hpp,/Q_INVOKABLE void recordRecentUse\(const QVariantMap& app\)/);
@@ -117,8 +117,8 @@ test("mobile browsing modes are slim text tabs, not two large full-width action 
 });
 
 test('provider-neutral Mini App paging preserves existing results and rich author metadata',()=>{
- const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
- const hpp=read("ui/mobile/miniapp_catalog_controller.hpp");
+ const cpp=read("ui/app/miniapp_catalog_controller.cpp");
+ const hpp=read("ui/app/miniapp_catalog_controller.hpp");
  const view=read("ui/components/AppsSurface.qml");
  for(const part of [
     'Q_PROPERTY(bool hasMore READ hasMore NOTIFY hasMoreChanged FINAL)',
@@ -150,14 +150,14 @@ test('feature carousel counter follows visible position, arrows and touch use on
  assert.doesNotMatch(hero,/positionViewAtIndex\(/);
 });
 test('WASM uses browser-cacheable first-party raster proxy, native still uses image provider',()=>{
- const cpp=read("ui/mobile/miniapp_catalog_controller.cpp");
+ const cpp=read("ui/app/miniapp_catalog_controller.cpp");
  assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\), url\.toString\(QUrl::FullyEncoded\)\)/);
  assert.match(cpp,/#else\s+const QByteArray encoded/);
 });
 
 test('failed pagination keeps the cursor for manual retry and prevents automatic request cascades',()=>{
- const cpp=read('ui/mobile/miniapp_catalog_controller.cpp');
+ const cpp=read('ui/app/miniapp_catalog_controller.cpp');
  const apps=read('ui/components/AppsSurface.qml');
  assert.match(cpp,/pendingPageCursor = cursor/);
  assert.match(cpp,/setNextCursor\(pageToken\)/);
@@ -168,7 +168,7 @@ test('failed pagination keeps the cursor for manual retry and prevents automatic
  assert.match(apps,/miniAppCatalog\.errorText\.length === 0/);
 });
 test('manifest-scoped images work for Mini Apps saved before image-proxy upgrade',()=>{
- const cpp=read('ui/mobile/miniapp_catalog_controller.cpp');
+ const cpp=read('ui/app/miniapp_catalog_controller.cpp');
  assert.match(cpp,/publicMiniAppImageSource\(const QString& imageUrl, const QString& homeUrl\)/);
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("miniapp"\), homeUrl\)/);
  assert.match(cpp,/const auto restoreScope = \[&homeUrl\]/);

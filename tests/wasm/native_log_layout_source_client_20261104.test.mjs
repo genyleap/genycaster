@@ -33,7 +33,7 @@ test('deep cast rich blocks do not retain orphaned pending loaders on a feed swi
 
 
 test('HTML served with a misleading image Content-Type never reaches QImageReader', () => {
- const src=readFileSync(new URL('../../ui/mobile/remote_image_provider.cpp', import.meta.url),'utf8');
+ const src=readFileSync(new URL('../../ui/app/remote_image_provider.cpp', import.meta.url),'utf8');
  const predicate=src.slice(src.indexOf('[[nodiscard]] bool responseMayContainImage('),
    src.indexOf('[[nodiscard]] int quantizedRequestedDimension('));
  assert.ok(predicate.length>0, 'image response gate is present');

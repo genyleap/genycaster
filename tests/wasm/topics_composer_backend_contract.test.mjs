@@ -21,7 +21,7 @@ test('server-backed topics write only after a confirmed Farcaster cast hash',()=
  assert.match(shell,/root.pendingCastTopics = composerDrawer.selectedTopics.slice\(\)/);
  assert.match(shell,/presentationBridge.writePhase === "confirmed"[\s\S]*?openProofConnections.saveCastTopics\(castId,root.pendingCastTopics\)/);
  assert.match(shell,/presentationBridge.writePhase === "failed"/);
- const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+ const cpp=read('ui/app/openproof_connections_controller.cpp');
  assert.match(cpp,/QStringLiteral\("\/api\/v1\/cloud\/topics"\)/);
  assert.match(cpp,/QStringLiteral\("\/api\/v1\/cloud\/cast_topics"\)/);
  assert.match(cpp,/QNetworkRequest::ManualRedirectPolicy/);
@@ -45,7 +45,7 @@ test('topic labels have explicit localized names for Persian and all supported l
 });
 
 test('confirmed topic writes refresh the currently open server-indexed topic filter',()=>{
- const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+ const cpp=read('ui/app/openproof_connections_controller.cpp');
  assert.match(cpp,/if\(code==200\) \{[\s\S]*?slugs\.contains\(topic\)[\s\S]*?selectCastTopic\(topic,author\)/);
  assert.match(cpp,/fetchTopics\(\); \/\/ Refresh counts/);
  assert.match(cpp,/m_topicOutbox\.isEmpty\(\)[\s\S]*?m_topicRetryDelayMs/);

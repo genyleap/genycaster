@@ -21,8 +21,8 @@ test('signed Block and Unblock are canonical LinkAdd/LinkRemove with type block'
 
 test('Block is routed through durable sign-and-submit on the selected writer',()=>{
     const protocol=read('src/providers/snapchain/write.cpp');
-    const native=read('ui/mobile/runtime_ui_bindings.cpp');
-    const main=read('ui/mobile/main.cpp');
+    const native=read('ui/app/runtime_ui_bindings.cpp');
+    const main=read('ui/app/main.cpp');
     assert.match(protocol,/OperationKind::Block: return "MESSAGE_TYPE_LINK_ADD"/);
     assert.match(protocol,/OperationKind::Unblock: return "MESSAGE_TYPE_LINK_REMOVE"/);
     assert.match(protocol,/link_type=.*"block"/s);

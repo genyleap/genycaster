@@ -5,8 +5,8 @@ import vm from 'node:vm';
 const root=process.cwd();
 const qml=readFileSync(root+'/ui/components/ProfileSurface.qml','utf8');
 const activity=readFileSync(root+'/ui/components/GenyPulsePanel.qml','utf8');
-const controller=readFileSync(root+'/ui/mobile/openproof_connections_controller.cpp','utf8');
-const header=readFileSync(root+'/ui/mobile/openproof_connections_controller.hpp','utf8');
+const controller=readFileSync(root+'/ui/app/openproof_connections_controller.cpp','utf8');
+const header=readFileSync(root+'/ui/app/openproof_connections_controller.hpp','utf8');
 test('own mobile profile alone omits redundant back-to-feed toolbar',()=>{
   assert.match(qml,/visible: !\(root\.compact && root\.isOwnProfile\)/);
   assert.match(qml,/text: qsTrId\("genycaster\.setup\.back"\)/);

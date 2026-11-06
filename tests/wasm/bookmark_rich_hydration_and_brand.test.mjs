@@ -19,7 +19,7 @@ test('saved casts render through canonical CastItem with full media, link and pa
 
 test('bookmarks hydrate by cast hash through native provider read without navigating or uploading',()=>{
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
-  const binding=read('ui/mobile/runtime_ui_bindings.cpp');
+  const binding=read('ui/app/runtime_ui_bindings.cpp');
   const surface=read('ui/components/BookmarksSurface.qml');
   const shell=read('ui/components/AppShell.qml');
   assert.match(bridge,/void PresentationBridge::hydrateBookmarkedCasts\(/);

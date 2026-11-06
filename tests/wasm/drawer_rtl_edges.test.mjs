@@ -19,7 +19,7 @@ test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom 
   assert.match(drawer,/edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.match(drawer,/property:\s*"position"/);
   assert.match(drawer,/control\.edge\s*!==\s*Qt\.RightEdge/);
-  const files=[...allQml('components'),...allQml('mobile')];
+  const files=[...allQml('components'),...allQml('app')];
   const owners=files.filter(file=>/\bGenyDrawer\s*\{/.test(qml(file)));
   assert.ok(owners.length>=11,'audit the full drawer family');
   for (const file of owners){

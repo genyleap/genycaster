@@ -44,7 +44,7 @@ GenyCaster includes product-specific integration with the **GENY token ecosystem
 - GENY integration is **an optional product capability**, not the canonical Farcaster protocol, the account identity authority or a requirement for ordinary public reads.
 - This documentation makes **no investment, pricing, staking, reward or guaranteed eligibility claim**.
 
-Implementation references: `ui/components/ContextRail.qml`, `ui/components/GenyProDetailsDrawer.qml`, `ui/components/AppsSurface.qml`, `ui/mobile/live_insights_controller.cpp` and `services/account-sync/pro_entitlements.mjs`.
+Implementation references: `ui/components/ContextRail.qml`, `ui/components/GenyProDetailsDrawer.qml`, `ui/components/AppsSurface.qml`, `ui/app/live_insights_controller.cpp` and `services/account-sync/pro_entitlements.mjs`.
 
 ## Networks and platforms
 

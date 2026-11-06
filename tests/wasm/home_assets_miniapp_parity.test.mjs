@@ -15,9 +15,9 @@ test('Home desktop uses one aligned measured rail; mobile keeps matching side gu
  assert.match(home,/id: mobileComposerSurface[\s\S]*?Layout.leftMargin: Theme.space3[\s\S]*?Layout.rightMargin: Theme.space3/);
 });
 test('My Assets on WASM has public CORS Base RPC and an authenticated account fallback',()=>{
- const native=source('ui/mobile/live_insights_controller.cpp');
+ const native=source('ui/app/live_insights_controller.cpp');
  const rail=source('ui/components/ContextRail.qml');
- const controller=source('ui/mobile/openproof_connections_controller.cpp');
+ const controller=source('ui/app/openproof_connections_controller.cpp');
  const cloud=source('services/account-sync/cloud_state.mjs');
  assert.match(native,/#elif defined\(__EMSCRIPTEN__\)[\s\S]*?https:\/\/mainnet.base.org/);
  assert.match(native,/QStringLiteral\("eth_chainId"\)/);
@@ -32,9 +32,9 @@ test('My Assets on WASM has public CORS Base RPC and an authenticated account fa
 });
 test('Mini App web presents in configured mode with independent fullscreen and no forced external tabs',()=>{
  const web=source('ui/wasm/miniapp-host-pre.js');
- const host=source('ui/mobile/miniapp_host_controller.cpp');
+ const host=source('ui/app/miniapp_host_controller.cpp');
  const android=source('ui/components/AndroidMiniAppWebView.qml');
- const macos=source('ui/mobile/miniapp_browser_macos.mm');
+ const macos=source('ui/app/miniapp_browser_macos.mm');
  for(const mode of ['window','bottom','left','right'])assert.ok(web.includes('"'+mode+'"'));
  assert.match(web,/function applyPresentation\(\)/);
  assert.match(web,/function setMode\(mode\)/);

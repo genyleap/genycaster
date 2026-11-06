@@ -19,10 +19,10 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
   assert.match(link,/metadata\.summary \|\| metadata\.description/);
   assert.match(link,/browserLinkMetadataController\.previewFor\(root\.targetUrl, "link"\)/);
   assert.match(link,/function onPreviewReady\(url, kind, preview\)/);
-  assert.match(read('ui/mobile/link_preview_resolver.cpp'),/#if defined\(__EMSCRIPTEN__\)[\s\S]*?Metadata parsing requires a native worker/);
+  assert.match(read('ui/app/link_preview_resolver.cpp'),/#if defined\(__EMSCRIPTEN__\)[\s\S]*?Metadata parsing requires a native worker/);
   assert.doesNotMatch(link,/\b(?:fetch|XMLHttpRequest|localStorage|document|window)\s*[.(]/);
   assert.match(cmake,/components\/ProfileLinkRow\.qml/);
-  const native=read('ui/mobile/main.cpp');
+  const native=read('ui/app/main.cpp');
   assert.match(native,/LinkPreviewResolver linkPreviewResolver/);
   assert.match(native,/setContextProperty\(QStringLiteral\("linkPreviewResolver"\), &linkPreviewResolver\)/);
 });
@@ -37,7 +37,7 @@ test('bookmark priority action is clear, not a location marker, and missing prev
 
 test('connections distinguish offered networks from confirmed links across devices',()=>{
   const picker=read('ui/components/AccountConnectionsPopup.qml');
-  const controller=read('ui/mobile/openproof_connections_controller.cpp');
+  const controller=read('ui/app/openproof_connections_controller.cpp');
   assert.match(picker,/readonly property var orderedProviders:/);
   assert.match(picker,/readonly property int linkedCount:/);
   assert.match(picker,/model: picker\.orderedProviders/);

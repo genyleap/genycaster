@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const file = path => readFileSync(new URL('../../'+path, import.meta.url),'utf8');
-const browser = file('ui/mobile/browser_openproof_auth.cpp');
-const provider = file('ui/mobile/provider_profiles_controller.cpp');
+const browser = file('ui/app/browser_openproof_auth.cpp');
+const provider = file('ui/app/provider_profiles_controller.cpp');
 
 function functionBody(source, start, end) {
   const begin=source.indexOf(start);
@@ -62,8 +62,8 @@ test('cancelled network replies are never read after QIODevice closes',()=>{
 });
 
 test('channel discovery and updates never drain closed QNetworkReply devices',()=>{
-  const channel=file('ui/mobile/channel_picker_controller.cpp');
-  const updater=file('ui/mobile/update_controller.cpp');
+  const channel=file('ui/app/channel_picker_controller.cpp');
+  const updater=file('ui/app/update_controller.cpp');
   for(const [source,expected] of [[channel,2],[updater,5]]){
     const reads=(source.match(/reply->readAll\(\)/g)||[]).length;
     const readable=(source.match(/reply->isReadable\(\) \? reply->readAll\(\)/g)||[]).length;

@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('existing Farcaster/OpenProof authorization is reused, never exposed to QML',()=>{
-  const header=read('ui/mobile/openproof_connections_controller.hpp');
-  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const header=read('ui/app/openproof_connections_controller.hpp');
+  const code=read('ui/app/openproof_connections_controller.cpp');
   const api=read('services/account-sync/cloud_state.mjs');
   assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady/);
   assert.match(header,/\(m_verified && !m_accountBearer\.isEmpty\(\)\) \|\| m_cloudSessionVerified/);
@@ -25,7 +25,7 @@ test('existing Farcaster/OpenProof authorization is reused, never exposed to QML
 });
 
 test('native Farcaster recovery grant boots a verified account session before loading profile details',()=> {
-  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const code=read('ui/app/openproof_connections_controller.cpp');
   const api=read('services/account-sync/cloud_state.mjs');
   const body=code.slice(code.indexOf('void OpenProofConnectionsController::acceptRecoveryGrant('),
     code.indexOf('void OpenProofConnectionsController::stopAuthorization('));
@@ -44,8 +44,8 @@ test('native Farcaster recovery grant boots a verified account session before lo
 });
 
 test('canceling in-flight native cloud login cannot dereference a reentrantly cleared reply',()=>{
-  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
-  const header=read('ui/mobile/openproof_connections_controller.hpp');
+  const cpp=read('ui/app/openproof_connections_controller.cpp');
+  const header=read('ui/app/openproof_connections_controller.hpp');
   const testSource=read('tests/ui/openproof_connections_tests.cpp');
   const cancel=cpp.slice(cpp.indexOf('void cancelNetworkReply('),
     cpp.indexOf('[[nodiscard]] bool validProviderName('));
@@ -90,7 +90,7 @@ test('native profile extras sequences are normalized before category restore and
   assert.doesNotMatch(profile,/!Array\.isArray\(item\.links\)/);
 });
 test('LinkedIn saves automatically and does not display upload or restore buttons',()=>{
-  const code=read('ui/mobile/openproof_connections_controller.cpp');
+  const code=read('ui/app/openproof_connections_controller.cpp');
   const popup=read('ui/components/AccountConnectionsPopup.qml');
   const profile=read('ui/components/ProfileSurface.qml');
   assert.match(code,/\.cloudDirty/);
@@ -102,10 +102,10 @@ test('LinkedIn saves automatically and does not display upload or restore button
 });
 
 test('bookmark changes are owner-scoped, idempotent, and replayed without user intervention',()=>{
-  const cpp=read('ui/mobile/openproof_connections_controller.cpp');
+  const cpp=read('ui/app/openproof_connections_controller.cpp');
   const header=read('src/presentation/qt/presentation_bridge.hpp');
   const presentation=read('src/presentation/qt/presentation_bridge.cpp');
-  const main=read('ui/mobile/main.cpp');
+  const main=read('ui/app/main.cpp');
   const store=read('services/account-sync/pg_store.mjs');
   assert.match(header,/bookmarkMutated\(const QString& castId, bool isDeleted\)/);
   assert.match(header,/applyCloudBookmarkChanges\(const QVariantList& changes\)/);
@@ -127,9 +127,9 @@ test('bookmark changes are owner-scoped, idempotent, and replayed without user i
 });
 
 test('notification read state is replicated invisibly with a monotonic owner-scoped watermark',()=>{
-  const controller=read('ui/mobile/openproof_connections_controller.cpp');
-  const header=read('ui/mobile/openproof_connections_controller.hpp');
-  const main=read('ui/mobile/main.cpp');
+  const controller=read('ui/app/openproof_connections_controller.cpp');
+  const header=read('ui/app/openproof_connections_controller.hpp');
+  const main=read('ui/app/main.cpp');
   const pg=read('services/account-sync/pg_store.mjs');
   assert.match(header,/cloudNotificationSeenAtReceived\(qulonglong fid, qlonglong observedAtMs\)/);
   assert.match(header,/recordNotificationSeenAt\(qulonglong fid, qlonglong observedAtMs\)/);
