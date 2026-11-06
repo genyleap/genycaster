@@ -491,6 +491,17 @@ jobs:
           # Run before CPack and before generating runtime update snapshots.
           python ci/audit_windows_stage.py dist/app ${{ matrix.arch }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The VC redistributable is executable code installed with elevated
+          # rights. Accept only a Microsoft Authenticode-signed bootstrapper.
+          $vcArch = if ("${{ matrix.arch }}" -eq "arm64") { "arm64" } else { "x64" }
+          $vcRedist = Join-Path (Resolve-Path "dist/app").Path "vc_redist.$vcArch.exe"
+          if (-not (Test-Path $vcRedist)) { throw "Missing Microsoft VC runtime $vcArch" }
+          $vcSig = Get-AuthenticodeSignature -FilePath $vcRedist
+          if ($vcSig.Status -ne "Valid" -or
+              -not $vcSig.SignerCertificate -or
+              $vcSig.SignerCertificate.Subject -notmatch "Microsoft Corporation") {
+            throw "Refusing unsigned or untrusted VC runtime redistributable: $vcRedist"
+          }
           # NSIS packages the already deployed Qt/QML/keychain/vcpkg DLL
           # tree. Do not substitute a ZIP of uninstalled files for setup.
           cpack --config build/native/CPackConfig.cmake -G NSIS -B dist
