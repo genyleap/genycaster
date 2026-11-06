@@ -81,6 +81,11 @@ def main() -> None:
         assert token in instance, token
     assert "desktopInstance.acquire()" in entry
     assert "desktopInstance.setWindow(mainWindow)" in entry
+    assert "desktopInstance.setOpenUrlHandler(" in entry
+    assert 'optionValue(arguments, QStringLiteral("--open-url="))' in entry
+    assert "QJsonDocument" in instance
+    assert "setOpenUrlHandler(" in instance
+    assert 'QStringLiteral("https")' in instance
     assert 'CPACK_NSIS_EXECUTABLES_DIRECTORY "."' in windows
     assert 'CPACK_NSIS_INSTALLED_ICON_NAME "Genycaster.exe"' in windows
     assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in windows
