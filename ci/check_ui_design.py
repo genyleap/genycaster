@@ -171,7 +171,7 @@ if 'latinFontFamily' not in theme_text or 'persianFontFamily' not in theme_text:
 direction_label = (ui/'components'/'DirectionAwareLabel.qml').read_text(encoding='utf-8')
 if 'Theme.fontFamilyForText' not in direction_label:
     errors.append('DirectionAwareLabel must select a script-capable font family from its own content')
-main_cpp = (ui/'mobile'/'main.cpp').read_text(encoding='utf-8')
+main_cpp = (ui/'app'/'main.cpp').read_text(encoding='utf-8')
 if 'application.setFont' in main_cpp and 'IRANSansXFaNum' in main_cpp:
     errors.append('Application-wide FaNum font forces Persian digit glyphs into Latin content')
 
@@ -425,15 +425,15 @@ if ('CastEmbedsPanel {' not in cast_item
         or 'EmbedPreview {' not in cast_embeds_panel):
     errors.append('Cast presentation must route semantic embeds and multi-image composition through CastEmbedsPanel')
 
-remote_provider = ((ui/'mobile'/'remote_image_provider.hpp').read_text(encoding='utf-8') +
-                   (ui/'mobile'/'remote_image_provider.cpp').read_text(encoding='utf-8'))
+remote_provider = ((ui/'app'/'remote_image_provider.hpp').read_text(encoding='utf-8') +
+                   (ui/'app'/'remote_image_provider.cpp').read_text(encoding='utf-8'))
 if ('QQuickAsyncImageProvider' not in remote_provider
         or 'transparentFailureImage' not in remote_provider
         or 'failedRequests' not in remote_provider):
     errors.append('Remote image provider must remain async, back off repeated failures, and return a quiet fallback')
 
 # RTL/bidi contracts: UI geometry is explicit; content direction stays independent.
-main_qml = (ui/'mobile'/'Main.qml').read_text(encoding='utf-8')
+main_qml = (ui/'app'/'Main.qml').read_text(encoding='utf-8')
 if 'LayoutMirroring.enabled: localizationController.rightToLeft' in main_qml:
     errors.append('Main.qml must not globally mirror the QML tree; it double-mirrors explicit UI layouts')
 if 'LayoutMirroring.enabled: false' not in main_qml:
@@ -485,7 +485,8 @@ if cast_item.count('layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftT
 theme = (ui/'theme'/'Theme.qml').read_text(encoding='utf-8')
 if 'bundledPersianFontFamily' not in theme:
     errors.append('R5 must prefer the application-bundled Persian font over system availability')
-if 'QFontDatabase::addApplicationFont' not in main_cpp or 'Vazirmatn-Regular.ttf' not in main_cpp:
+font_module = (ui/'app'/'bootstrap'/'fonts.cpp').read_text(encoding='utf-8')
+if 'QFontDatabase::addApplicationFont' not in font_module or 'Vazirmatn-Regular.ttf' not in font_module:
     errors.append('R5 must load the embedded Persian font family through QFontDatabase')
 if 'GENYCASTER_FETCH_UI_FONT' not in cmake or 'qt_add_resources(genycaster genycaster_ui_fonts' not in cmake:
     errors.append('R5 CMake must acquire and embed the pinned Persian UI font family')
@@ -582,9 +583,9 @@ if 'GenyDrawer {' not in locale_popup or 'bottomSheet:' not in locale_popup:
     errors.append('R6 settings must use the responsive drawer architecture')
 
 # Mini App multi-window lifecycle and media hot-path regression contracts.
-miniapp_runtime = (ui/'mobile'/'miniapp_runtime.cpp').read_text(encoding='utf-8')
-miniapp_browser = (ui/'mobile'/'miniapp_browser.hpp').read_text(encoding='utf-8')
-miniapp_macos = (ui/'mobile'/'miniapp_browser_macos.mm').read_text(encoding='utf-8')
+miniapp_runtime = (ui/'app'/'miniapp_runtime.cpp').read_text(encoding='utf-8')
+miniapp_browser = (ui/'app'/'miniapp_browser.hpp').read_text(encoding='utf-8')
+miniapp_macos = (ui/'app'/'miniapp_browser_macos.mm').read_text(encoding='utf-8')
 if ('supportsParallelWindowVisibility' not in miniapp_runtime
         or 'activate(*target, false)' not in miniapp_runtime
         or 'QStringLiteral("background")' not in miniapp_runtime):
@@ -642,7 +643,7 @@ animated_emoji_lottie = (ui/'components'/'AnimatedEmojiLottie.qml').read_text(en
 if ('animations.paused: !root.animationActive && !root.playbackCompleted' not in animated_emoji_lottie
         or 'animations.restart()' in animated_emoji_lottie):
     errors.append('Animated emoji scrolling must pause/resume the current VectorImage frame instead of restarting animation on every flick')
-link_preview_resolver = (ui/'mobile'/'link_preview_resolver.cpp').read_text(encoding='utf-8')
+link_preview_resolver = (ui/'app'/'link_preview_resolver.cpp').read_text(encoding='utf-8')
 if ('QThreadPool parsePool' not in link_preview_resolver
         or 'parsePool.setThreadPriority(QThread::LowPriority)' not in link_preview_resolver
         or 'parseHtmlAsync' not in link_preview_resolver):
@@ -889,7 +890,7 @@ async_profile_provider = (root/'src'/'providers'/'hypersnap'/'async_gateway.cpp'
 for provider_text in (profile_provider, async_profile_provider):
     if 'bannerUserDataType{"10"}' not in provider_text or 'currentBannerUserDataType{"11"}' in provider_text:
         errors.append('Farcaster banner enrichment must use canonical UserDataType 10 and must not reinterpret type 11 as a banner')
-remote_image_provider = (ui/'mobile'/'remote_image_provider.cpp').read_text(encoding='utf-8')
+remote_image_provider = (ui/'app'/'remote_image_provider.cpp').read_text(encoding='utf-8')
 if 'appendIfSupported("image/avif")' in remote_image_provider or 'appendIfSupported("image/heic")' in remote_image_provider:
     errors.append('Remote social-image negotiation must stay on conservative WebP/PNG/JPEG-class formats instead of optional AVIF/HEIC readers that can fail on CDN variants')
 if ('mediaCompatibilityAcceptHeader' not in remote_image_provider
