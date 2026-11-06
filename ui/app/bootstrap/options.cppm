@@ -1,10 +1,6 @@
-// Qt declarations are globally attached forward declarations. Importers that
-// use them include the corresponding Qt headers in their own translation unit.
+// Qt's ABI remains globally attached; full Qt headers are private to implementations.
 module;
-class QString;
-template<class T> class QList;
-using QStringList = QList<QString>;
-class QStringView;
+#include "qt_fwd.hpp"
 
 export module genycaster.ui.bootstrap;
 
