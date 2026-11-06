@@ -44,6 +44,29 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
         "CreateShortCut \"$DESKTOP\\GenyCaster.lnk\" \"$INSTDIR\\Genycaster.exe\"")
     set(CPACK_NSIS_DELETE_ICONS_EXTRA
         "Delete \"$DESKTOP\\GenyCaster.lnk\"")
+
+    # Qt/MSVC needs the Microsoft Visual C++ runtime. Qt's windeployqt
+    # stages the official redistributable but does not install it.
+    if(GENYCASTER_WINDOWS_PACKAGE_ARCH STREQUAL "arm64")
+        set(_genycasterVCRedistSuffix "arm64")
+    else()
+        set(_genycasterVCRedistSuffix "x64")
+    endif()
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+        "IfFileExists \"$INSTDIR\\vc_redist.${_genycasterVCRedistSuffix}.exe\" +2 0\n"
+        "Abort \"Microsoft Visual C++ runtime installer is missing\"\n"
+        "DetailPrint \"Installing Microsoft Visual C++ runtime\"\n"
+        "ExecWait '\"$INSTDIR\\vc_redist.${_genycasterVCRedistSuffix}.exe\" /install /quiet /norestart' $0\n"
+        "StrCmp $0 0 genycaster_vc_runtime_done\n"
+        "StrCmp $0 1638 genycaster_vc_runtime_done\n"
+        "StrCmp $0 3010 genycaster_vc_runtime_reboot\n"
+        "MessageBox MB_ICONSTOP|MB_OK \"Microsoft Visual C++ runtime installation failed (code $0).\"\n"
+        "Abort\n"
+        "genycaster_vc_runtime_reboot:\n"
+        "SetRebootFlag true\n"
+        "genycaster_vc_runtime_done:\n")
+    unset(_genycasterVCRedistSuffix)
+
     # A visible publisher/copyright preface complements (never replaces)
     # the complete GPLv3 text. Brand identity is not relicensed by the GPL.
     file(READ "${CMAKE_SOURCE_DIR}/LICENSE" _genycasterGplText)
