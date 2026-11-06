@@ -457,9 +457,15 @@ window.fetch=async function(input,options) {
                 }
             }
         }));
+        // Fetch has already decoded Content-Encoding; a rewrapped response
+        // must not claim that its decoded stream is still gzip encoded or
+        // that the original wire Content-Length applies to it.
+        const headers=new Headers(response.headers);
+        headers.delete("content-encoding");
+        headers.delete("content-length");
         return new Response(measured,{
             status:response.status,statusText:response.statusText,
-            headers:response.headers
+            headers
         });
     }
     measureFirstDownload(response,wasmResourceUrl);
