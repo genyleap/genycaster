@@ -77,6 +77,9 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
     assert.doesNotMatch(native, /<AppKit\/AppKit\.h>|<WebKit\/WebKit\.h>|<QuartzCore\/QuartzCore\.h>/);
     assert.match(native, /#import <AppKit\/NSView\.h>/);
     assert.match(native, /#import <WebKit\/WKWebView\.h>/);
+    assert.match(native, /#import <WebKit\/WKPreferences\.h>/);
+    assert.match(native, /#import <WebKit\/WKNavigationAction\.h>/);
+    assert.match(native, /#import <WebKit\/WKNavigationResponse\.h>/);
     assert.match(native, /GenyMiniAppLoadingSurface : NSView/);
     const sdkBridge = read("cmake/platform/macOS/configure.cmake");
     assert.match(sdkBridge, /OBJCXX_STANDARD 26/);

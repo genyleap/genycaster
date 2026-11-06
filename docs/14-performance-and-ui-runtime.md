@@ -211,7 +211,13 @@ The macOS adapter at `ui/app/miniapp_browser_macos.mm` uses Apple's modern
 umbrella imports (`AppKit.h` and `WebKit.h`) pulled unrelated legacy SDK
 symbols, including OpenGL/ColorSync declarations, into the translation unit.
 The adapter now imports only its directly used AppKit, WebKit and
-QuartzCore class headers. The November 2026 macOS clean-build log confirmed
+QuartzCore class headers. Apple Clang's subsequent C++26 build revealed
+that `WKWebViewConfiguration.h` and `WKNavigationDelegate.h` forward-declare
+`WKPreferences`, `WKNavigationAction` and `WKNavigationResponse` rather
+than providing their property definitions. Each class's concrete WebKit
+header is now imported directly, and the CMake SDK probe includes the
+same declarations; restoring umbrella headers is not necessary.
+The November 2026 macOS clean-build log confirmed
 that this did **not** fully resolve the SDK problem: upstream LLVM Clang 23,
 running in C++26 mode, diagnosed mixed-enum operations in Apple
 `CGImage.h` and `ColorSyncDeprecated.h` as hard language errors. C++26

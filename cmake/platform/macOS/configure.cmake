@@ -151,6 +151,9 @@ macro(genycaster_macos_setup_browser)
     #import <Foundation/Foundation.h>
     #import <AppKit/NSApplication.h>
     #import <WebKit/WKWebView.h>
+    #import <WebKit/WKPreferences.h>
+    #import <WebKit/WKNavigationAction.h>
+    #import <WebKit/WKNavigationResponse.h>
     int main() { return 0; }
     ]=] GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
     set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")

@@ -108,6 +108,11 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
     assert.doesNotMatch(objc, /<AppKit\/AppKit\.h>|<WebKit\/WebKit\.h>/);
     assert.match(objc, /<AppKit\/NSView\.h>/);
     assert.match(objc, /<WebKit\/WKWebView\.h>/);
+    // NavigationDelegate and WebViewConfiguration forward-declare these
+    // classes; reading their properties requires the concrete SDK headers.
+    for (const className of ["WKPreferences", "WKNavigationAction", "WKNavigationResponse"]) {
+        assert.match(objc, new RegExp("#import <WebKit/" + className + "\\.h>"));
+    }
     assert.doesNotMatch(source("ui/CMakeLists.txt"), /-Wno-deprecated-declarations/);
     const sdkBridge = source("cmake/platform/macOS/configure.cmake");
     assert.match(source("ui/CMakeLists.txt"),

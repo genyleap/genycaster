@@ -32,7 +32,10 @@
 #import <AppKit/NSWindow.h>
 #import <AppKit/NSWorkspace.h>
 #import <WebKit/WKFrameInfo.h>
+#import <WebKit/WKNavigationAction.h>
 #import <WebKit/WKNavigationDelegate.h>
+#import <WebKit/WKNavigationResponse.h>
+#import <WebKit/WKPreferences.h>
 #import <WebKit/WKScriptMessage.h>
 #import <WebKit/WKScriptMessageHandler.h>
 #import <WebKit/WKSecurityOrigin.h>
