@@ -27,8 +27,9 @@ while kill -0 "$pid" 2>/dev/null; do
 done
 
 mount=$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/genycaster-mount.XXXXXX")
-stage="$parent/.Genycaster-update-$$.app"
-backup="$parent/.Genycaster-backup-$$.app"
+stage="$parent/.Genycaster-update-$.app"
+backup="$parent/.Genycaster-backup-$.app"
+statusFile="$(dirname "$package")/genycaster-native-update.status"
 mounted=0
 installed=0
 cleanup() {
@@ -42,7 +43,19 @@ cleanup() {
     fi
     /bin/rmdir "$mount" 2>/dev/null || true
 }
-trap cleanup EXIT HUP INT TERM
+finish() {
+    result=$?
+    trap - EXIT HUP INT TERM
+    cleanup
+    if [ "$result" -eq 0 ]; then
+        printf 'success\n' > "$statusFile"
+    else
+        printf 'failed:%s\n' "$result" > "$statusFile"
+    fi
+    exit "$result"
+}
+trap finish EXIT
+trap 'exit 130' HUP INT TERM
 
 /usr/bin/hdiutil attach -quiet -readonly -nobrowse -mountpoint "$mount" "$package"
 mounted=1
@@ -68,7 +81,4 @@ newteam=$(/usr/bin/codesign -dv --verbose=4 "$candidate" 2>&1 | /usr/bin/sed -n 
 /usr/bin/open "$target" || exit 14
 installed=1
 /bin/rm -rf "$backup"
-trap - EXIT HUP INT TERM
-/usr/bin/hdiutil detach -quiet "$mount" || true
-/bin/rmdir "$mount" 2>/dev/null || true
 exit 0
