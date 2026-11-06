@@ -80,7 +80,7 @@ jobs:
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
   linux:
-    name: Linux ${{ matrix.arch }} AppImage
+    name: Linux AppImage and DEB
     needs: gate
     strategy:
       fail-fast: false
@@ -213,7 +213,7 @@ jobs:
           retention-days: 14
 
   macos:
-    name: macOS ${{ matrix.arch }} DMG
+    name: macOS DMG
     needs: gate
     strategy:
       fail-fast: false
@@ -340,7 +340,7 @@ jobs:
           retention-days: 14
 
   windows:
-    name: Windows ${{ matrix.arch }} NSIS installer
+    name: Windows NSIS installer
     needs: gate
     strategy:
       fail-fast: false
@@ -516,7 +516,7 @@ jobs:
           retention-days: 14
 
   android:
-    name: Android ${{ matrix.abi }} APK
+    name: Android APK
     needs: gate
     strategy:
       fail-fast: false
@@ -870,7 +870,7 @@ jobs:
 
 
   nixos:
-    name: NixOS ${{ matrix.system }} native package
+    name: NixOS native package
     needs: gate
     if: github.event_name == 'workflow_dispatch' && (inputs.platform == 'all' || inputs.platform == 'nixos')
     strategy:
