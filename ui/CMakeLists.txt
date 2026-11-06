@@ -253,8 +253,12 @@ aimcpp_reject_final_qml_creatable_types(
 # their focused native UI tests without any relative source includes.
 add_library(genycaster_ui_bootstrap STATIC)
 target_sources(genycaster_ui_bootstrap
-    PUBLIC FILE_SET CXX_MODULES FILES app/bootstrap/options.cppm
-    PRIVATE app/bootstrap/options.cpp)
+    PUBLIC FILE_SET CXX_MODULES FILES
+        app/bootstrap/options.cppm
+        app/bootstrap/fonts.cppm
+    PRIVATE
+        app/bootstrap/options.cpp
+        app/bootstrap/fonts.cpp)
 target_include_directories(genycaster_ui_bootstrap PRIVATE
     "${CMAKE_SOURCE_DIR}/src/presentation/qt")
 target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui)
