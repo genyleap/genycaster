@@ -19,7 +19,7 @@
 
 ## Overview
 
-**GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces.
+**GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces. **Internationalization and localization (i18n/l10n)** let people independently choose their interface language, regional conventions, calendar and time zone rather than tying every preference to one country.
 
 The product follows four principles:
 
@@ -77,7 +77,14 @@ The [Architecture Guide](docs/ARCHITECTURE.md) explains each layer, provider rou
 | **Native Apps** | **Concept** — a dedicated Apps category is present, but its runtime/catalog is Coming Soon |
 | **Personal workspace** | Bookmarks, collections, preferences, profile extras and user status where supported |
 | **Widgets** | Reorderable **Assets, GenyPulse, Calendar, Market and Suggestions** widgets in a context rail or mobile drawer |
-| **Languages and themes** | Twelve locale catalogs, RTL-aware presentation, light/dark themes and adaptive layouts |
+| **Internationalization & localization (i18n/l10n)** | Twelve UI languages, automatic RTL/LTR layout, independently selectable region, calendar, time zone, timestamp style, localized numbers and currency presentation |
+| **Appearance** | Light/dark themes and adaptive layouts |
+
+### Your language, your regional conventions
+
+Change the **interface language** without changing your **regional formats**. GenyCaster offers twelve embedded language catalogs and adapts text direction for RTL languages. Regional preferences independently control number and currency formatting, calendar systems (including Gregorian, Jalali and Islamic Civil), time zone, and smart, relative or calendar-based timestamp presentation. These are **display preferences**, not transformations of canonical Farcaster data or currency exchange rates.
+
+See [Internationalization & Localization](docs/FEATURES.md#internationalization--localization-i18nl10n) for the available controls and additional calendar options.
 
 ### GENY ecosystem
 

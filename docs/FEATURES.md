@@ -22,7 +22,36 @@ This guide describes the product as it exists in the current source, in terms us
 | Rich media | Available in source | Image/video viewing, galleries, link previews and media upload where the required adapter and gateway are available. |
 | Bookmarks, lists and preferences | Available in source | User-specific organization and settings, including app-owned data synchronized by the authenticated service when available. |
 | Notifications and user status | Available in source | Notification surfaces and account profile status, subject to runtime/service availability. |
-| Multiple languages and appearance | Available in source | Twelve locale catalogs, RTL-aware layout, light/dark styling and region-aware formatting. |
+| **Internationalization & localization (i18n/l10n)** | **Available in source** | Twelve selectable UI languages, RTL/LTR layout, and independent regional, calendar, time zone, timestamp and monetary display preferences. |
+| Appearance | Available in source | Light/dark styling and adaptive layouts. |
+
+## Internationalization & localization (i18n/l10n)
+
+GenyCaster treats **interface language** and **regional conventions** as separate,
+user-controlled preferences. Someone can read the interface in one language while
+displaying dates, times, numbers and monetary values according to another
+country's conventions. These settings are part of the Qt presentation layer,
+not assumptions imposed by the selected Farcaster node.
+
+| Preference | Source status | Current controls |
+|---|---|---|
+| **Interface language (i18n)** | Available in source | Twelve embedded language catalogs: English, Persian, German, Japanese, Korean, Chinese, Hindi, Arabic, Spanish, French, Portuguese and Russian; system-language option and live retranslation. |
+| **Text direction** | Available in source | RTL/LTR layout follows the chosen language, with direction-aware text presentation for mixed-script content. |
+| **Regional locale (l10n)** | Available in source | System defaults or one of thirteen suggested country/region locales, independently from UI language; governs regional number/date/currency conventions. |
+| **Calendar** | Available in source | Automatic regional selection, Gregorian, Jalali (Solar Hijri), Shahanshahi, Islamic Civil, Julian and Milanković calendar options. |
+| **Time and dates** | Available in source | Smart, relative and calendar-first timestamp modes; system or an available IANA time zone, with locale/calendar-aware date-time formatting. |
+| **Numbers and monetary display** | Available in source | Localized digits, grouping and compact counts; automatic or selected currency display, optional additional display units and support for the toman (IRT) denomination. |
+
+Preferences are applied and persisted **on the device**. Choosing a display
+currency does **not** convert balances, fetch foreign-exchange rates or change
+the underlying denomination. Likewise, localized dates do not modify canonical
+timestamps, and localized numerals do not rewrite Farcaster IDs or hashes.
+
+Implementation references: `src/presentation/qt/localization_controller.hpp`,
+`src/presentation/qt/localization_controller.cpp`,
+`ui/components/LocaleSettingsPopup.qml` and
+`ui/components/LocaleFormat.qml`. Translation resources live in `ui/i18n/`.
+Some platform-specific integrations can have separate localization coverage. The twelve catalogs are present, but translation coverage is not yet complete for every UI string; ongoing localization checks currently identify missing and untranslated entries.
 
 ## Apps and widgets
 

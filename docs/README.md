@@ -6,7 +6,7 @@ The project is organized around a small collection of maintained product and eng
 
 | Guide | Audience | Purpose |
 |---|---|---|
-| [Product features](FEATURES.md) | Everyone | What the client supports, including Mini Apps, Widgets, Native Apps and GENY |
+| [Product features](FEATURES.md) | Everyone | What the client supports, including i18n/l10n regional personalization, Mini Apps, Widgets, Native Apps and GENY |
 | [Architecture](ARCHITECTURE.md) | Everyone / developers | Understand the shared core, local state, routes and signer boundaries |
 | [Development roadmap](12-roadmap.md) | Everyone / contributors | Phase-by-phase status, implementation evidence and acceptance gates |
 | [Performance](PERFORMANCE.md) | Developers | How launch, scrolling, media and resource use will be measured |

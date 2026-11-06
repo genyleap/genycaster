@@ -28,7 +28,7 @@ flowchart TB
 
 | Boundary | Responsibility |
 |---|---|
-| **Interface** | Feeds, conversations, profiles, Mini Apps and widgets |
+| **Interface** | Feeds, conversations, profiles, Mini Apps, widgets and runtime i18n/l10n formatting |
 | **Application and domain** | Canonical Farcaster operations, routing contracts and reconciliation |
 | **On-device state** | Cached snapshots, preferences and durable write queue |
 | **Capability router** | Select an eligible provider for each read or write |

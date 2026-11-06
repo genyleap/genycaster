@@ -68,6 +68,34 @@ test("public landing page shows provider-neutral architecture without claiming b
     assert.match(read("docs/12-roadmap.md"), /v1\.0\.0-rc1/);
 });
 
+test("i18n and l10n are first-class, independently configurable product features", () => {
+    const readme = read("README.md");
+    const features = read("docs/FEATURES.md");
+    const header = read("src/presentation/qt/localization_controller.hpp");
+    const controller = read("src/presentation/qt/localization_controller.cpp");
+    const settings = read("ui/components/LocaleSettingsPopup.qml");
+
+    assert.ok(readme.includes("Internationalization and localization (i18n/l10n)"));
+    assert.ok(readme.includes("Your language, your regional conventions"));
+    assert.ok(readme.includes("Twelve UI languages"));
+    assert.ok(readme.includes("independently selectable region, calendar, time zone"));
+
+    assert.ok(features.includes("## Internationalization & localization (i18n/l10n)"));
+    for (const preference of ["Interface language", "Text direction", "Regional locale",
+                              "Calendar", "Time and dates", "Numbers and monetary display"])
+        assert.ok(features.includes(preference), preference);
+
+    for (const setter of ["setLanguageTag", "setRegionalLocaleTag", "setCalendarId",
+                          "setTimestampDisplayMode", "setTimeZoneId", "setCurrencyCode"])
+        assert.ok(header.includes("Q_INVOKABLE bool " + setter + "("), setter);
+    for (const calendar of ["gregorian", "jalali", "shahanshahi", "islamic-civil",
+                            "julian", "milankovic"])
+        assert.ok(controller.includes('QStringLiteral("' + calendar + '")'), calendar);
+    assert.ok(settings.includes("localizationController.availableRegionalLocales"));
+    assert.ok(settings.includes("localizationController.availableTimeZones"));
+    assert.ok(features.includes("does **not** convert balances"));
+});
+
 test("public introduction keeps language versions in build requirements, not the product tagline", () => {
     const readme = read("README.md");
     const hero = readme.split("</div>")[0];
