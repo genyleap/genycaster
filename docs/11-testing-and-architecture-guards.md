@@ -74,7 +74,7 @@ A core-only build never validates the GUI. A Qt-enabled final gate must include:
 - actual runtime/QML output path inspection;
 - later visual acceptance screenshots for real product screens.
 
-If Qt is unavailable, report UI as **NOT VERIFIED**. Current Phase 2 evidence is recorded in `PHASE_2_VERIFICATION.md`.
+If Qt is unavailable, report UI as **NOT VERIFIED**. The current UI verification and release acceptance gates are maintained in [Development Stages](12-roadmap.md); passing core-only tests is not proof of GUI acceptance.
 
 ## Later provider contract tests
 

@@ -55,6 +55,11 @@ Use `ci/verify_ci.py` and `ci/check_architecture.py` for the documented source c
 
 GitHub Actions is **manually driven** for ordinary development and runs a controlled release matrix for validated tags; a push to `main` is not an app release. Full instructions: [CI README](ci/README.md).
 
-## Historical records
+## Development continuity
 
-Older `PHASE_*` / `V*_REVIEW.md` files and numbered `docs/` references are preserved as implementation evidence. They may mention previous toolchains, versions or unshipped milestones. Use the current CMake/version, this status file and active source contracts for present-day facts, rather than treating a historical snapshot as an authoritative build manifest.
+The old one-off phase/review, handoff and prototype files are no longer part
+of the current tree. Their actionable requirements were consolidated into
+[Development Stages & Acceptance Gates](docs/12-roadmap.md). Numbered
+architectural reference documents and ADRs remain, but historical verification
+statements are **not** current release/build proof. Use live source, CMake,
+the active architecture documents and platform-specific test evidence.

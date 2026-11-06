@@ -26,4 +26,4 @@ Foundation/domain/capability ownership created here remains valid, while several
 - UI remains an adapter over application state;
 - optional product concepts do not become mandatory core dependencies.
 
-For current implementation details continue with `docs/18-phase2-routing-local-state.md` and `PHASE_2_REVIEW.md`.
+For current implementation boundaries continue with [Routing and Local State](18-phase2-routing-local-state.md) and the current [Development Stages](12-roadmap.md).

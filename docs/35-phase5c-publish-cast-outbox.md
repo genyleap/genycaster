@@ -240,4 +240,4 @@ GCC 14.2 crashes while emitting the normal `farcaster.application.write` and
 No compiler workaround is committed. Supported newer Clang/platform runners
 must compile the normal module targets and Qt UI as release acceptance.
 
-See `PHASE_5C_REVIEW.md` and `PHASE_5C_VERIFICATION.md` for exact evidence.
+See [Development Stages](12-roadmap.md) for current write-pipeline acceptance gates. Historical phase reports were removed from the active tree and must not be treated as current release evidence.

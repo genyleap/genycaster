@@ -50,6 +50,15 @@ def main() -> None:
     assert "ci/release_artifacts.py" in workflow
     assert not Path("tools").exists(), "legacy tools/ directory must not return"
     assert not Path("docs-site").exists(), "obsolete docs-site/ directory must not return"
+    assert not Path("prototypes").exists(), "experimental prototypes must not return"
+    public_root_docs = {
+        "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md",
+    }
+    assert {p.name for p in Path(".").glob("*.md")} == public_root_docs, (
+        "Keep root Markdown limited to canonical public and engineering entry points"
+    )
+    assert Path("docs/12-roadmap.md").is_file(), "development stage plan is required"
     assert "tools/linuxdeploy" not in workflow
     assert "build/ci-linuxdeploy/" in workflow
     assert "version=3.5.9" in workflow

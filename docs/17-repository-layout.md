@@ -4,21 +4,19 @@ This document is the practical ownership map for engineers and coding agents.
 
 ## Root
 
-```text
-.
-├── AGENTS.md
-├── CMakeLists.txt
-├── CMakePresets.json
-├── PHASE_0_REVIEW.md
-├── PHASE_1_REVIEW.md
-├── README.md
-├── cmake/
-├── docs/
-├── src/
-├── tests/
-├── ci/
-└── ui/
-```
+The repository root contains canonical entry points only. Development stages,
+remaining acceptance gates and prior root report findings are maintained in
+[Development Stages](12-roadmap.md), not in phase review files or an archive.
+
+- README.md, AGENTS.md, STATUS.md — project introduction, agent guidance and state
+- SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md — community contracts
+- CHANGELOG.md, THIRD_PARTY_NOTICES.md, LICENSE — release/legal references
+- CMakeLists.txt, CMakePresets.json, flake.nix — root build integration
+- src/, ui/, tests/, cmake/, ci/ — actual implementation and verification
+- services/, docs/, release-notes/ and .github/ — optional services, technical guidance and release governance
+
+Prototyping experiments are intentionally not tracked: tests must exercise the
+shipping UI, resource and application contracts, not demo-specific artifacts.
 
 ## Core ownership
 

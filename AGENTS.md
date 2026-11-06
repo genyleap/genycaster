@@ -29,30 +29,20 @@ If those rules conflict with this repository's product architecture, report the 
 
 ## Mandatory local reading order
 
-1. `README.md`
-2. `docs/00-architecture-overview.md`
-3. `docs/01-non-negotiable-invariants.md`
-4. `docs/02-capability-taxonomy.md`
-5. `docs/03-dependency-and-module-rules.md`
-6. `docs/04-provider-boundary-and-routing.md`
-7. `docs/05-local-first-state-and-sync.md`
-8. `docs/06-feature-compartmentalization.md`
-9. `docs/07-domain-model-and-normalization.md`
-10. `docs/08-security-auth-and-signing.md`
-11. `docs/09-derived-infrastructure.md`
-12. `docs/10-build-deployment-profiles.md`
-13. `docs/11-testing-and-architecture-guards.md`
-14. `docs/12-roadmap.md`
-15. `docs/14-performance-and-ui-runtime.md`
-16. `docs/15-initial-capability-inventory.md`
-17. `docs/16-phase1-foundation-scaffold.md`
-18. `docs/17-repository-layout.md`
-19. `docs/18-phase2-routing-local-state.md`
-20. `docs/19-engineering-authority.md`
-21. `docs/20-phase3-hypersnap-read-adapter.md`
-22. `PHASE_3_REVIEW.md`
-23. `PHASE_3_VERIFICATION.md`
-24. all ADRs in `docs/adr/`
+1. README.md — product, support scope, feature and architecture overview.
+2. docs/ARCHITECTURE.md — live system boundaries, read/write pipeline and trust.
+3. docs/01-non-negotiable-invariants.md — hard dependency constraints.
+4. docs/03-dependency-and-module-rules.md — code module ownership.
+5. docs/04-provider-boundary-and-routing.md — per-capability provider policies.
+6. docs/08-security-auth-and-signing.md — session, custody and signer isolation.
+7. docs/12-roadmap.md — current engineering stages and acceptance gates.
+8. docs/14-performance-and-ui-runtime.md — rendering, layout and responsiveness.
+9. docs/README.md — documentation index.
+10. Read the relevant docs/adr/ entries and owning tests for the specific task.
+
+Historical phase, design-prototype and handoff reports were deliberately
+removed. Do not recreate them. Integrate lasting new constraints into the
+canonical roadmap, architecture documents or affected ADR and tests.
 
 ## Project intent
 

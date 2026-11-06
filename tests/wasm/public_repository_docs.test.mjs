@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,11 +19,25 @@ const required = [
 test("public repository entry points and existing GenyCaster branding are available", () => {
     for (const file of required)
         assert.ok(existsSync(path.join(root, file)), file);
-    assert.equal(
-        read("ui/assets/branding/genycaster-mark.svg"),
-        read("prototypes/setup-brand-3d/assets/genycaster-icon.svg"),
-        "brand asset must retain the existing product logo geometry"
-    );
+    const logo = read("ui/assets/branding/genycaster-mark.svg");
+    assert.match(logo, /<svg\b/);
+    assert.match(logo, /viewBox="48 48 416 416"/);
+    assert.match(logo, /<path fill="#FFFFFF"/);
+    assert.match(logo, /GenyCaster icon/);
+});
+
+test("repository root remains small and prototype-free after cleanup", () => {
+    const allowed = [
+        "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md", "SECURITY.md", "STATUS.md", "THIRD_PARTY_NOTICES.md"
+    ];
+    const rootMd = readdirSync(root).filter(name => name.endsWith(".md")).sort();
+    assert.deepEqual(rootMd, allowed.sort());
+    assert.equal(existsSync(path.join(root, "prototypes")), false);
+    const roadmap = read("docs/12-roadmap.md");
+    assert.match(roadmap, /Development Stages/);
+    assert.match(roadmap, /Stage 3/);
+    assert.match(roadmap, /Stage 6/);
 });
 
 test("public landing page shows provider-neutral architecture without claiming benchmark wins", () => {

@@ -1,245 +1,135 @@
-# 12 — Roadmap After Phase 0
+# GenyCaster — Development Stages & Acceptance Gates
 
-This roadmap is architectural sequencing, not a promise that all details are fixed.
+> **Current engineering roadmap · 2026-11-06 · Beta / v1.0.0-rc1 source**
+>
+> This is the **single forward-looking staged development plan**. It retains the actionable technical requirements previously scattered across root-level review, verification, design and delivery reports. It is **not** a substitute for the source code, current [status](../STATUS.md), architectural decision records, or fresh platform test results.
 
-## Phase 0 — Architecture Contract
+## Status vocabulary
 
-Completed.
+- **Implemented in source**: a feature and its ownership boundary exist in the tree. This does not establish live platform acceptance.
+- **Acceptance pending**: real-world tests, hardening or integration evidence remains to be collected.
+- **Proposed**: no blanket claim of shipped functionality; requires a feature contract and acceptance gate.
+- Future engineering notes belong **here or in the owning reference/ADR**, never in new root-level `PHASE_*_REVIEW.md` files.
 
-Deliverables:
+| Stage | Goal | Current state | Required gate |
+|---|---|---|---|
+| 0 | Canonical core, C++ modules and protocol-neutral boundaries | Implemented in source | Architecture, dependency and toolchain guards |
+| 1 | Local-first feeds, capability routing and signed writes | Implemented in source | Real-node, offline, signer/retry and fault-injection acceptance |
+| 2 | Native UX, timeline/media rendering and navigation | Implemented in source | Scroll stability, interaction/accessibility, GPU/runtime checks |
+| 3 | Identity, Mini Apps and scoped wallet permissions | Platform-dependent implementation | Cross-origin security, explicit consent/revocation, platform parity |
+| 4 | Derived discovery, account services and media gateway | Implemented in source, operator-dependent | Authz, owner isolation, data durability and gateway recovery |
+| 5 | Multi-platform, localization and measured performance | Ongoing | Qt 6.12 matrix and reproducible evidence |
+| 6 | Public-source and release readiness | Ongoing | History/license audit, clean docs, full applicable CI/package gate |
+| 7 | Optional protocol/product extensions | Proposed where not already implemented | ADR, threat model, capability contracts and tests |
 
-- invariants;
-- capability taxonomy;
-- dependency rules;
-- provider boundaries;
-- local-first rules;
-- feature compartmentalization;
-- security/signing rules;
-- derived infrastructure policy;
-- build profiles;
-- architecture tests/acceptance criteria.
+## Stage 0 — Architectural foundation
 
-## Phase 1 — Foundation + Canonical Domain
+**Retained requirements**
 
-Completed foundation scaffold.
+- Project-owned **C++26 named modules**, explicit ownership/RAII, and Qt **6.12** for the graphical UI. The release channel is read from the top-level `CMakeLists.txt`, never copied from old phase reports.
+- Dependency direction is Presentation → Application → canonical Domain/Capability contracts. Provider DTOs, SDK types, credentials, Qt, HTTP and SQLite stay outside stable domain interfaces.
+- Default routing policy prefers **HyperSnap**; users may select Snapchain or another compatible node where the requested operation is supported. There must be **no global hard-coded provider** in the domain.
+- Provider-free, strict self-hosted and optional-feature compositions remain valid build policies where their adapters exist.
+- An architectural change requires an ADR; a toolchain workaround must not silently weaken the module/dependency boundary.
 
-Build:
+**Acceptance:** `python3 ci/check_architecture.py`, applicable CMake presets and current module/toolchain compilation. References: [Architecture](ARCHITECTURE.md), [ADRs](adr/), [Build profiles](10-build-deployment-profiles.md), [Engineering authority](../AGENTS.md).
 
-- repository/CMake module graph;
-- foundation primitives;
-- canonical IDs/entities;
-- error/result/task primitives;
-- capability identifiers/descriptors;
-- no provider implementation required to validate core compilation.
+## Stage 1 — Read reliability and durable protocol writes
 
-## Phase 2 — Routing + Local Storage Skeleton
+**Implemented in source; full target-specific acceptance pending.**
 
-**Implemented and core-verified.**
+1. Read a canonical **local SQLite snapshot first**, then refresh over a background capability route. Render a cache hit without waiting for remote I/O.
+2. Per-operation policy considers support, user-selected node, health, budget and valid fallback. Preserve provider-affine pagination and distinguish canonical protocol state from derived rankings.
+3. Incremental reconciliation must preserve visible cast identity, content order and offline usability; a temporary provider error must not erase trusted cached state.
+4. Account login, custody approval, local protocol signer and submission transport are **separate authorities**. Signed writes require explicit valid signer scopes, TTL and account identity.
+5. Build canonical protocol messages and persist the **exact signed envelope** in the account-scoped durable outbox. A timeout, conflict or restart triggers confirmation/reconciliation **before** any resubmission.
+6. Revoked, expired, replaced or mismatched signers cannot authorize old queued writes. Provider switching must not blindly replay a protocol write.
 
-Build:
+**Acceptance:** network loss, slow reads, rate limits, pagination, HyperSnap/Snapchain selection, crash recovery, ambiguous success, duplicate prevention, signer revocation/expiry and app-FID attestation on supported targets. No false success after transport failure.
 
-- capability registry;
-- policy engine;
-- health snapshot model;
-- routing result model;
-- SQLite/WAL storage foundation;
-- entity/timeline store abstractions;
-- architecture tests.
+References: [Capability routing](04-provider-boundary-and-routing.md), [Local state](05-local-first-state-and-sync.md), [Signer design](08-security-auth-and-signing.md), [Write hardening](39-phase5f-write-hardening.md), [Outbox ADR](adr/0010-durable-local-outbox.md).
 
-## Phase 3 — Hypersnap Read Adapter
+## Stage 2 — Visual system, native rendering and navigation
 
-**Implemented and contract-verified on the available Linux/GCC 14 toolchain.**
+**Implemented in source; ongoing UX and frame-time acceptance.**
 
-First real provider behind capability contracts:
+- The living visual authority is `ui/theme/Theme.qml` plus the current components. Branded surfaces use consistent **superellipse** geometry, semantic tokenized colors/type/spacing and restrained interaction accents; do not replace this with generic Qt default controls or a new unreviewed color system.
+- **Chrome direction** follows UI locale; user content direction follows its first strong character. Isolate handles, URLs, FIDs and numeric LTR protocol identifiers correctly.
+- Favor the Qt Quick scene graph and platform RHI. `QT_QUICK_BACKEND=software` in offscreen **tests** must not become a shipping GPU-disable switch. Inspect actual runtime `graphicsApi()` before claiming a hardware backend.
+- Keep feed delegates and media work cheap: reuse row identity, lazy-load rich panels, avoid unbounded blur/layers, debounce geometry shifts, preserve image loading during rapid scroll and reserve the media frame before decoding completes.
+- Opening a cast from Home/Explorer must preserve the source and the **same cast/viewport offset** on Back; do not rebuild the hidden model into an unrelated social mode. Share contextual cast actions across feed and detail.
+- Setup and Mini App navigation need explicit loading states, stable Back behavior, soft hover/focus transitions, scrollable drawers, accessible icon labels and reduced-motion alternatives.
 
-- profiles;
-- casts;
-- social graph;
-- following/trending/channel feed reads as supported;
-- provider DTO → canonical mapper;
-- provider-affine pagination;
-- contract tests.
+**Acceptance:** desktop/mobile breakpoints, light/dark themes, RTL and keyboard, 60/120-Hz targets, continuous media scroll, slow connections, back-to-exact-cast, Mini App loading and real QML runtime tests. Record frame-time percentile and layout stability evidence, not subjective speed claims.
 
-Hypersnap is first implementation, not core architecture. Apple/Clang 22 final-device verification remains an explicit acceptance item after the SDK include-path fix.
+References: [UI/scene-graph contract](14-performance-and-ui-runtime.md), [Current scroll work](scroll-stability-2026-11-06.md), [Benchmark plan](PERFORMANCE.md), `ui/components/` and `ui/theme/Theme.qml`.
 
-## Phase 4 — Read-Only Local-First Vertical Slice
+## Stage 3 — Identity, Mini Apps and wallet isolation
 
-**Implemented and verified on macOS Apple Silicon with Clang 22 + Qt 6.11.1.**
+**Source support exists but is target-dependent; security acceptance is pending.**
 
-User-visible flow:
+- The OpenProof-linked account session, Farcaster identity, custody-wallet signer authorization, locally stored Ed25519 protocol signer and Mini App EVM provider must remain independent privileges.
+- Resolve a Mini App's manifest and validate `requiredCapabilities` / `requiredChains` **before** advertising what the host can do.
+- Wallet grants must be bound to **origin, document/session, account, chain and operation**, not shared by every Mini App or automatically reapproved on restart. Pairing is not signing, and account access is not unconditional transaction/signature permission.
+- Native desktop EIP-1193/EIP-6963 browser wallet relays use short-lived cryptographically random localhost sessions. Never claim to be the original HTTPS Mini App origin or expose keys via the bridge.
+- Web/WASM WalletConnect and injected browser wallet support are **not evidence** of a native Android/iOS WalletConnect adapter; mobile requires authenticated app/universal links, a verified callback and separate acceptance.
+- Denied requests must preserve rejection semantics. Principal change/disconnect/revocation must drop prior grants; provider events must never leak into a newly navigated document.
+- Untrusted Mini Apps require cross-origin, DNS rebinding, private-network access, iframe isolation, redirect, manifest-authorship and hostile-content controls. Platform secure storage must fail closed, never fall back to plaintext.
 
-```text
-Launch
-→ local store
-→ following feed
-→ cast detail
-→ profile
-→ followers/following
-→ channel feed
-→ offline restart
-→ cached instant rendering
-→ reconnect/incremental sync
-```
+**Acceptance:** two Mini Apps cannot share grants; reopening, logout, account switch, disconnect, same-address rediscovery, refused signature, chain switch, session expiration and browser restart cannot silently produce a signature. Verify independently on native and Web/WASM targets.
 
-Phase 4 deliberately began with one serialized I/O executor. ADR 0014 now
-uses a bounded live-read worker pool while cache/session work remains serialized,
-without changing the blocking capability contracts or presentation-facing state.
+References: [Security policy](../SECURITY.md), [Authentication](08-security-auth-and-signing.md), [WebAssembly](webassembly.md), [Architecture](ARCHITECTURE.md) and the Mini App/wallet suites under `tests/wasm/`.
 
-## Phase 4.5 — Read Reliability and Real Home
+## Stage 4 — Account data, derived discovery and media lifecycle
 
-**4.5A and 4.5B are implemented and verified.**
+**Implemented in source, with operator-side acceptance needed.**
 
-- Home is the identity-scoped Following feed; Trending is optional Explore.
-- Opening or restoring identity continues through Profile into Following.
-- Runtime health and circuit state are independent per provider/capability.
-- Repeated transient failures cool down, ordinary reads fail fast or fail over,
-  and explicit Retry performs a bounded recovery probe.
-- Runtime diagnostics compose routing, provider-request, and transport-stage
-  context without leaking provider details into Application or QML.
-- The Qt Network implementation lives under Transport, not Platform.
+- GenyCaster-owned profile metadata, statuses, bookmarks/collections, feedback and categories are distinct from Farcaster protocol messages. Synchronize eligible product data across devices through authorized services **without manual cloud-sync UI**.
+- Discovery, topics, channels, indexing and recommendations are **derived capabilities** with provenance, bounded pagination, fallback and access controls. They must never rewrite canonical protocol truth.
+- The service folders (`services/account-sync/`, `services/quick-auth/`, `services/snapchain-gateway/`, `services/media-gateway/`) are separate deployable trust boundaries: server-side authorization, privacy policy, rate limits and rollback are mandatory. **CORS alone is not security**.
+- For the existing QStorage adapter, the bounded multipart gateway uses SigV4 **Authorization-header signing** for writes; presigned PUT is not an accepted substitute without new interoperability evidence.
+- Keep backend credentials and provider-specific object IDs out of client-facing domain/UI types. Upload tickets, stable URLs, signed owner actions and managed cleanup tokens must remain scoped, validated and durable.
+- On confirmed Cast deletion, cleanup must not delete media referenced by other local Casts; retry offline cleanup without weakening the owner/signer proof.
 
-Phase 4.5C rich-read source is implemented: engagement counts, rich embeds,
-skeletons, pull/refresh semantics, and infinite pagination. Its final macOS
-Clang 22 + Qt 6.11.1 acceptance matrix remains pending and must be completed
-before the read milestone is called release-verified.
+**Acceptance:** authenticated two-device reconciliation, race/conflict handling, owner isolation, upload/abort/complete/delete, bounded memory, service restart, graceful provider outage and recovery/rollback.
 
-## Phase 5 — Authentication, Signing, and Protocol Writes
+References: [Derived infrastructure](09-derived-infrastructure.md), [Media gateway architecture](44-media-upload-gateway.md), [Account service](../services/account-sync/README.md), [Media service](../services/media-gateway/README.md).
 
-Phase 5 is intentionally staged so public reading never depends on account
-state and an authenticated session is never confused with signing authority.
+## Stage 5 — Cross-platform, localization and comparative performance
 
-### Phase 5A — Guest-first authentication and client session
+**Ongoing.**
 
-Source implemented. The client remains fully readable as Guest. Sign In With
-Farcaster establishes a verified account/FID session, but writes remain locked
-until a protocol signer is ready. Viewing another identity is browsing context,
-not authentication. Platform-specific release acceptance is tracked separately.
+- Confirm actual Qt **6.12** C++/QML builds, signer vaults, native network/TLS, media decode and packaging on every targeted OS/architecture separately. An iOS configuration is **not** proof of a signed App Store release.
+- Use Qt scene graph/RHI diagnostics (Metal/D3D/OpenGL/WebGL as applicable); distinguish real GPU performance from headless software test rendering.
+- Validate twelve translation catalogs, screen-reader labels, Persian/RTL mixed text, time zones/calendars, responsiveness and reduced motion.
+- Measure **cold/warm startup**, cached feed availability, return-from-conversation anchor, image first paint, 100-cast scroll, p50/p95/p99 frame time, memory and WASM download/startup under controlled conditions.
+- No published "faster than X" or "uses Y% less memory" without matching versions/hardware/network/cache/feature workloads plus inspectable raw runs.
 
-### Phase 5B — Protocol signer provisioning and write readiness
+**Acceptance:** target/device matrix, test commands, measured distributions and linked evidence as specified by [Performance](PERFORMANCE.md), [Localization](42-phase5g-localization.md) and [CI](../ci/README.md).
 
-**Implementation-final in source; per-platform live release acceptance remains required.**
+## Stage 6 — Public repository and release engineering
 
-The source now has a secure local Ed25519 signer/vault boundary, explicit
-least-privilege Snapchain scope/TTL policy, replay-safe nonce handling,
-non-secret SQLite signer metadata, readiness/revocation orchestration,
-cross-platform secure-store composition (Apple Keychain on macOS/iOS and
-QtKeychain on Windows/Linux/Android), a canonical custody EIP-712 builder, a
-one-shot EIP-1193 compatibility authorizer, a production unified Snapchain
-signer registry, and a reusable canonical protocol codec. The adapter reads
-`/v1/signersByFid`, constructs protobuf `KEY_ADD` / self-revoking `KEY_REMOVE`,
-hashes MessageData with BLAKE3-20, signs the hash through the opaque Ed25519
-signer, submits binary messages to `/v1/submitMessage`, and re-reads network
-state before success.
+**Ongoing.**
 
-SIWF proof is never reused as signer authorization. Missing secure-store,
-wallet, or Snapchain dependencies fail closed for writes while guest/public/
-cached reads remain available. Each shipping OS must still prove its real secure
-store + wallet + current Snapchain flow before interaction support is promoted
-for that release; see `PHASE_5B_VERIFICATION.md`.
+- Keep root limited to canonical build, README, license, status, contribution and security entry points. One-off phase/review/delivery Markdown files should **not return** under root or as a renamed archive.
+- Keep this one roadmap, living architecture/ADR docs and source tests current; correct stale links and CMake/Qt version text.
+- Audit Git **history, branches, tags**, release assets, package dependencies and transitive licenses; deleting an old Markdown file from `main` does **not** erase history.
+- Security-sensitive public API endpoints require independently enforced authentication and authorization; never distribute service secrets, signer/custody private keys or production DB credentials.
+- Review Qt/third-party redistribution, fonts, media icons, npm/vendor dependencies, trademarks and an SBOM before claiming full public-release compliance.
+- Run architecture/CI source checks, affected regression tests, Qt runtime tests, package verification and controlled multi-platform CI. Pushing to `main` is not a release.
 
-### Phase 5C — Publish Cast vertical slice
+**Acceptance:** clean tracked root, no references to removed reports, successful affected tests, documented vulnerability process, complete licensing review and verifiable release artifacts.
 
-**Implementation-final in source; per-platform live release acceptance remains required.**
+References: [Contributing](../CONTRIBUTING.md), [Security](../SECURITY.md), [Third-party notices](../THIRD_PARTY_NOTICES.md) and [CI](../ci/README.md).
 
-Root Cast publication now uses canonical CAST_ADD construction, BLAKE3-20
-protocol identity, the Phase 5B verified signer gate, an atomic SQLite optimistic
-projection + durable signed-message outbox, durable local remove tombstones,
-reconcile-before-retry crash recovery, bounded retry, account isolation,
-Snapchain binary submission, validated submit-response confirmation and
-`castById` retry/restart reconciliation. A minimal Qt root-cast composer is wired
-only as a presentation trigger; QML does not own protocol/signing/persistence.
-See `docs/35-phase5c-publish-cast-outbox.md`, `PHASE_5C_REVIEW.md`, and
-`PHASE_5C_VERIFICATION.md`.
+## Stage 7 — Optional extensions (proposed)
 
-### Phase 5D — Reply and composer expansion
+Future work may include independently owned ranking/recommendation infrastructure, open messaging extensions, realtime content surfaces and new Farcaster capabilities. Existing partial features are not declared complete merely because a QML page or backend stub exists. E2EE must use a reviewed, mature protocol; never invent cryptography.
 
-**Implementation-final in source; per-platform Qt/live release acceptance remains required.**
+Each proposal must define: capability class, domain ownership, dependencies, threat model, offline/retry behavior, authority, platform support, feature gating, test strategy and an ADR if architecture changes.
 
-Reply publication now extends the existing PublishCast path with canonical
-`CastAddBody.parent_cast_id` semantics, a provider-neutral parent
-`CastReference { fid, hash }`, restart-safe optimistic reply persistence and the
-same exact-envelope retry/reconciliation behavior as root casts. Feed/detail
-Reply actions open the same Qt composer; parent FID is resolved in C++
-presentation state and never reconstructed in QML. See
-`docs/36-phase5d-reply-composer.md`, `PHASE_5D_REVIEW.md`, and
-`PHASE_5D_VERIFICATION.md`.
+## Definition of done
 
-### Phase 5E — Reaction, recast, and follow writes
+Mark a stage release-accepted only after: **(1)** implementation matches contract, **(2)** relevant tests and platform builds are green, **(3)** signer/permission boundaries are live-verified, **(4)** restart/offline/ambiguous errors are safe, **(5)** accessibility/localization are checked, **(6)** performance claims have reproducible evidence, and **(7)** deployment/rollback and licensing gates are complete.
 
-**Implementation-final in source; per-platform Qt/live release acceptance remains required.**
-
-Like/Unlike, Recast/Undo Recast and Follow/Unfollow now reuse the same exact
-session + scoped signer + canonical message + durable outbox + desired-state
-reconciliation path as Cast publication. Cast removal is included in the same
-operation model. Production signer provisioning also supports App-FID
-`SignedKeyRequest` attestation so the user custody wallet signs only `KEY_ADD`
-once while the App-FID custody key remains server-side. See
-`docs/37-phase5e-social-writes-app-fid.md`, `PHASE_5E_REVIEW.md`, and
-`PHASE_5E_VERIFICATION.md`.
-
-### Phase 5F — Write hardening
-
-**Source hardening implemented; per-platform/live release acceptance remains required.**
-
-Restart-safe write recovery is now event-driven from network/signer lifecycle
-transitions with a low-frequency fallback timer, concurrent resume wakeups are
-coalesced, and ambiguous writes reconcile before any resubmit. A submit that
-returns Conflict enters durable reconciliation-only mode and is never blindly
-POSTed again. Signer replacement/expiry/revocation fail closed for queued
-envelopes, authoritative signer restore overrides optimistic sliding-TTL
-checkpoints, and migration v15 persists account-scoped Follow/Unfollow desired
-state alongside the existing v13 Cast-removal and v14 Like/Recast projections.
-The production Snapchain deployment boundary remains the provider-neutral
-Genyleap gateway at `snapchain.genyleap.com`; upstream credentials and provider
-selection are server-side deployment data. See
-`docs/39-phase5f-write-hardening.md`, `PHASE_5F_REVIEW.md`, and
-`PHASE_5F_VERIFICATION.md`.
-
-### Phase 5G — Internationalization, Localization, and Locale UX
-
-**Implemented in source; cross-platform Qt/runtime acceptance remains required.**
-
-Before derived product surfaces multiply UI copy, Genycaster now establishes a
-portable localization contract: ID-based English/Persian catalogs, runtime
-language switching, Persian RTL mirroring, mixed-content direction handling,
-independent regional formatting, locale-aware numbers, Gregorian/Jalali/
-Shahanshahi and additional Qt calendars, IANA time zones, configurable
-Smart/Relative/Calendar timestamp presentation, and user-controlled primary plus
-optional secondary monetary display units. A provider-neutral valuation contract
-(`valuation.asset_price.read` / `valuation.fx.read`) now preserves decimal quote
-text, timestamp and provenance without placing market fetching inside QML or
-localization. Live quote adapters remain independently deployable derived
-infrastructure. Localization itself introduces no OS/provider dependency into core.
-See `docs/42-phase5g-localization.md`, `PHASE_5G_REVIEW.md`, and
-`PHASE_5G_VERIFICATION.md`.
-
-## Phase 6 — Derived Infrastructure
-
-Begin independently owned:
-
-- search index;
-- Mini App index;
-- channel discovery;
-- ranking/trending/recommendation services.
-
-## Phase 7 — Messaging
-
-Build on the already battle-tested local store/sync/outbox foundation:
-
-- legacy messaging compatibility lane;
-- native secure messaging extension lane;
-- conversation/message stores;
-- realtime/gap repair;
-- E2EE protocol chosen only after security review;
-- Telegram-class interaction model.
-
-## Phase 8+ — Optional Product Modules
-
-Incrementally add:
-
-- Mini App host/discovery;
-- wallet;
-- notifications;
-- spaces/live;
-- advanced desktop surfaces;
-- open capability extensions.
+**Near-term priorities:** Mini App origin-scoped wallet consent and signer safety; stable feed/media/navigation under scroll; mobile/WASM acceptance; service security; measurable performance; and public-source licensing/CI readiness. These priorities are **not** claims of completion.

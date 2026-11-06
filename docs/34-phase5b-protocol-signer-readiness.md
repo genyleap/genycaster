@@ -296,6 +296,6 @@ fresh install
  -> guest/read remains available throughout failures
 ```
 
-Current source-level and Linux-container evidence is recorded in
-`PHASE_5B_VERIFICATION.md`. Platform-native acceptance must be run on the actual
+Current signer and security acceptance gates are maintained in
+[Development Stages](12-roadmap.md). Platform-native verification must be run on the actual
 macOS/iOS, Windows, Linux and Android release runners that Genycaster ships.

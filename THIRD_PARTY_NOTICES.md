@@ -25,10 +25,6 @@ GenyCaster includes a bootstrap subset of animated Noto Emoji and may download a
 
 Other vendored or copied third-party content and transitive package dependencies must remain covered by their corresponding notices and licenses. Do **not** treat this summary as a complete transitive software bill of materials.
 
-## Design prototypes
-
-The `prototypes/setup-brand-3d/` and `prototypes/setup-reference-page/` experiments bundle three.js-related assets with accompanying [MIT license text](prototypes/setup-brand-3d/THREE_LICENSE.txt). These prototypes are design/verification tools; they are not evidence that every experiment ships in the application.
-
 ## Frameworks and external dependencies
 
 Qt, OpenSSL, Boost, SQLite, Emscripten, QtKeychain, platform SDKs and dependencies installed through package managers retain their respective licenses, including any distribution obligations triggered by the way a release binary is linked or packaged.

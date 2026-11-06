@@ -8,6 +8,7 @@ This is the navigation page for the current public technical documentation. Star
 |---|---|
 | [Architecture](ARCHITECTURE.md) | Canonical system boundaries, routing, trust and signed-write lifecycle |
 | [Performance](PERFORMANCE.md) | Repeatable benchmarking methodology and comparison evidence policy |
+| [Development stages](12-roadmap.md) | Consolidated milestones, priorities and acceptance tests |
 | [Current status](../STATUS.md) | Source-tree capabilities, target acceptance and beta limitations |
 | [Build and CI](../ci/README.md) | Pinned multi-platform build configuration, verification and delivery |
 | [WebAssembly](webassembly.md) | Browser composition, runtime differences and deployment |
@@ -26,11 +27,14 @@ This is the navigation page for the current public technical documentation. Star
 | Build variants | [Build Profiles](10-build-deployment-profiles.md) |
 | Architectural decisions | [ADRs](adr/) |
 
-## Historical implementation documents
+## Development stages and past engineering reports
 
-The numbered phase notes, review and verification reports, and date-stamped fixes document **how the implementation evolved**. They are preserved for engineering traceability but are not always valid for today's Qt version, release channel, deployment routes or platform support.
-
-For current facts, use the top-level `CMakeLists.txt`, current code, [STATUS.md](../STATUS.md) and validated release artifacts. Never use an old phase report as proof that a current target build or security audit passed.
+[Development Stages & Acceptance Gates](12-roadmap.md) is the single active
+roadmap. Engineering constraints and open acceptance gates were consolidated
+from former root-level phase, review, handoff and deployment reports. Those
+one-off files and experimental prototypes were **deleted** from the current
+tree, not relocated to an archive. Git history can retain older snapshots,
+which are not current release evidence.
 
 ## Documentation maintenance
 
