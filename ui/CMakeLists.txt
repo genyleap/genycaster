@@ -341,22 +341,9 @@ endif()
 # import WebKit or the Mini App runtime. Other platforms remain explicitly
 # unavailable rather than silently launching an external browser.
 if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    if(NOT CMAKE_OBJCXX_COMPILER)
-        # Keep the ARC adapter on the selected C++ toolchain/standard library.
-        set(CMAKE_OBJCXX_COMPILER "${CMAKE_CXX_COMPILER}")
-    endif()
-    enable_language(OBJCXX)
-    find_library(genycasterWebKitFramework WebKit REQUIRED)
-    find_library(genycasterAppKitFramework AppKit REQUIRED)
-    find_library(genycasterQuartzCoreFramework QuartzCore REQUIRED)
-    add_library(farcaster_miniapp_browser STATIC app/miniapp_browser_macos.mm)
-    set_target_properties(farcaster_miniapp_browser PROPERTIES
-        OBJCXX_STANDARD 26 OBJCXX_STANDARD_REQUIRED ON OBJCXX_EXTENSIONS OFF
-        CXX_SCAN_FOR_MODULES OFF AUTOMOC OFF)
-    target_compile_options(farcaster_miniapp_browser PRIVATE -fobjc-arc)
-    target_link_libraries(farcaster_miniapp_browser PRIVATE
-        Qt6::Gui Qt6::Network "${genycasterWebKitFramework}" "${genycasterAppKitFramework}"
-        "${genycasterQuartzCoreFramework}")
+    # Keep the platform SDK bridge and its ObjC++ dialect separate from
+    # the shared Qt/C++26 Mini App runtime composition below.
+    include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/MiniAppBrowser.cmake")
 
     add_library(farcaster_miniapp_runtime STATIC)
     target_sources(farcaster_miniapp_runtime

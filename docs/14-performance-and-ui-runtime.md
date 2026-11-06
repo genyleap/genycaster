@@ -211,10 +211,27 @@ The macOS adapter at `ui/app/miniapp_browser_macos.mm` uses Apple's modern
 umbrella imports (`AppKit.h` and `WebKit.h`) pulled unrelated legacy SDK
 symbols, including OpenGL/ColorSync declarations, into the translation unit.
 The adapter now imports only its directly used AppKit, WebKit and
-QuartzCore class headers. Rebuild on macOS to validate that Apple's
-transitive SDK dependency graph no longer includes the conflicting OpenGL
-declarations; Linux compilation alone cannot verify Apple framework headers. **No `#pragma clang diagnostic ignored` or
-`-Wno-deprecated-declarations` workaround is used.** A warning in Apple's
+QuartzCore class headers. The November 2026 macOS clean-build log confirmed
+that this did **not** fully resolve the SDK problem: upstream LLVM Clang 23,
+running in C++26 mode, diagnosed mixed-enum operations in Apple
+`CGImage.h` and `ColorSyncDeprecated.h` as hard language errors. C++26
+(P2864R2) removed these implicit mixed-enum operations, so this is not
+a missing cast in GenyCaster's Mini App logic.
+
+The macOS-specific SDK adapter now keeps `OBJCXX_STANDARD 26` (with the
+requirement enabled), but selects the matching **Apple Clang from Xcode**
+for the Objective-C++ compilation boundary when no custom compiler was
+explicitly selected. The shared project C++26 compiler, named modules
+and C++26 Mini App runtime remain unchanged. CMake verifies a small
+Objective-C++26 AppKit/WebKit header compilation at configuration time
+and fails with an explicit toolchain/SDK message if unsupported rather
+than starting a long, doomed build. This is an SDK/compiler compatibility
+boundary, not a downgrade to C++23. Because two compiler vendors may
+share this C++ ABI boundary, the resulting `Genycaster.app` still requires
+full macOS link and runtime verification. Linux cannot validate it.
+
+**No `#pragma clang diagnostic ignored`, `-Wno-deprecated-declarations`,
+or other diagnostic-suppression workaround is used.** A warning in Apple's
 SDK headers is not evidence that GenyCaster calls the corresponding legacy
 API; do not port absent speech or ColorSync features as a workaround. The only app-owned deprecated
 call reported by the November 2026 build, `NSBox.borderType`, was removed:

@@ -109,6 +109,19 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
     assert.match(objc, /<AppKit\/NSView\.h>/);
     assert.match(objc, /<WebKit\/WKWebView\.h>/);
     assert.doesNotMatch(source("ui/CMakeLists.txt"), /-Wno-deprecated-declarations/);
+    const sdkBridge = source("cmake/platform/macOS/MiniAppBrowser.cmake");
+    assert.match(source("ui/CMakeLists.txt"),
+        /include\("\$\{CMAKE_SOURCE_DIR\}\/cmake\/platform\/macOS\/MiniAppBrowser\.cmake"\)/);
+    assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
+    assert.match(sdkBridge, /OBJCXX_STANDARD_REQUIRED ON/);
+    assert.match(sdkBridge, /OBJCXX_EXTENSIONS OFF/);
+    assert.match(sdkBridge, /xcrun --sdk macosx --find clang\+\+/);
+    assert.match(sdkBridge, /check_objcxx_source_compiles/);
+    assert.match(sdkBridge, /GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE/);
+    assert.match(sdkBridge, /-fobjc-arc/);
+    assert.match(source("ui/CMakeLists.txt"),
+        /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);
+    assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|#pragma clang diagnostic ignored/);
 });
 
 test("Mini App FID comparison uses exact integers rather than lossy doubles", () => {

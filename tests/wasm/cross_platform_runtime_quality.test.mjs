@@ -78,6 +78,11 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
     assert.match(native, /#import <AppKit\/NSView\.h>/);
     assert.match(native, /#import <WebKit\/WKWebView\.h>/);
     assert.match(native, /GenyMiniAppLoadingSurface : NSView/);
+    const sdkBridge = read("cmake/platform/macOS/MiniAppBrowser.cmake");
+    assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
+    assert.match(sdkBridge, /check_objcxx_source_compiles/);
+    assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|diagnostic ignored/);
+    assert.match(read("ui/CMakeLists.txt"), /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);
     const qml = read("ui/components/InitialSetup.qml");
     assert.match(qml, /showsPrimaryCta: .*\.includes\(currentStep\)/);
 });
