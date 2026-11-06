@@ -1,5 +1,5 @@
 // Qt font resource policy belongs to a private implementation unit; the
-// public C++26 module does not export Qt's internal templates or QObject ABI.
+// public module does not export Qt's internal templates or QObject ABI.
 module;
 #include <QDebug>
 #include <QFile>
@@ -92,7 +92,7 @@ bool FontFamilies::load()
         }
 
 #if defined(__EMSCRIPTEN__)
-        // Qt 6.12 supports CBDT/CBLC and emoji sequence segmentation.
+        // The renderer supports CBDT/CBLC and emoji sequence segmentation.
         // System/browser fonts are not available in the WASM sandbox.
         const QStringList colorEmojiFamilies = loadApplicationFont(QStringLiteral(
             ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterColorEmoji.ttf"));
