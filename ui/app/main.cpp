@@ -122,6 +122,7 @@ import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.diagnostics.snapshots;
+import genycaster.ui.diagnostics.smoke;
 import genycaster.ui.web.wheel;
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
 import genycaster.ui.desktop.instance;
@@ -1926,71 +1927,9 @@ int main(int argc, char* argv[])
 #endif
     }
 
-    if (isSmokeTest) {
-        QObject* const rootObject = engine.rootObjects().constFirst();
-        bool ready = rootObject != nullptr
-            && rootObject->objectName() == QStringLiteral("rootWindow")
-            && rootObject->property("isReady").toBool()
-            && rootObject->findChild<QObject*>(QStringLiteral("appShell")) != nullptr
-            // Home is the initial surface; the costly feed ListView is
-            // deliberately Loader-backed and may not exist until Explorer
-            // navigation. Treat either an instantiated feed or Home as a
-            // valid startup surface, not an eager-all-views contract.
-            && (rootObject->findChild<QObject*>(QStringLiteral("readList")) != nullptr
-                || rootObject->findChild<QObject*>(QStringLiteral("homeDashboard")) != nullptr);
-        // Keep the smoke contract aligned with the actual SideNavigation
-        // destinations. Legacy Store/Business/Messages are consolidated into
-        // Apps; testing removed buttons masked real startup regressions.
-        const QStringList sidebarActions{
-            QStringLiteral("trending"),
-            QStringLiteral("following"),
-            QStringLiteral("apps"),
-            QStringLiteral("channels"),
-            QStringLiteral("notifications"),
-            QStringLiteral("bookmarks"),
-            QStringLiteral("profile"),
-            QStringLiteral("settings"),
-        };
-        if (!ready) {
-            qInfo().noquote() << "Smoke: root shell or feed readiness failed:"
-                              << (rootObject == nullptr ? QStringLiteral("<null>")
-                                  : rootObject->objectName());
-        }
-        for (const QString& action : sidebarActions) {
-            QObject* const button = rootObject == nullptr ? nullptr
-                : rootObject->findChild<QObject*>(QStringLiteral("sidebarAction-") + action);
-            const bool actionReady = button != nullptr && button->property("enabled").toBool()
-                && QMetaObject::invokeMethod(button, "clicked", Qt::DirectConnection);
-            if (!actionReady) {
-                qInfo().noquote() << "Smoke: sidebar action unavailable:" << action;
-            }
-            ready = actionReady && ready;
-        }
-        QObject* const emojiPicker = rootObject == nullptr ? nullptr
-            : rootObject->findChild<QObject*>(QStringLiteral("emojiPicker"));
-        if (!emojiPicker) {
-            qInfo() << "Smoke: emoji picker unavailable";
-        }
-        ready = ready && emojiPicker != nullptr;
-        if (!ready) { return 2; }
-        QMetaObject::invokeMethod(&application, [] { QCoreApplication::exit(0); }, Qt::QueuedConnection);
-    }
-    if (isRuntimeSmokeTest) {
-        auto* const poller = new QTimer(&application);
-        poller->setInterval(25);
-        QObject::connect(poller, &QTimer::timeout, &application,
-            [&presentationBridge] {
-                if (!presentationBridge.runtimeReady()) { return; }
-                if (!presentationBridge.errorText().isEmpty()) {
-                    qWarning().noquote() << "Read diagnostic:" << presentationBridge.diagnosticText();
-                    QCoreApplication::exit(5);
-                } else if (!presentationBridge.rows().isEmpty() && !presentationBridge.isBusy()) {
-                    QCoreApplication::exit(0);
-                }
-            });
-        poller->start();
-        QTimer::singleShot(10'000, &application, [] { QCoreApplication::exit(6); });
-    }
+    const int smokeCheck = genycaster::ui::diagnostics::configureSmokeTests(
+        application, engine, presentationBridge, isSmokeTest, isRuntimeSmokeTest);
+    if (smokeCheck != 0) return smokeCheck;
     const int snapshotSetup = genycaster::ui::diagnostics::scheduleSnapshots(
         application, engine, presentationBridge, richComposerController,
         arguments, isVisualTest, openExploreForTest, snapshotPath);
