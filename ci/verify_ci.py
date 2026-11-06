@@ -85,9 +85,12 @@ def main() -> None:
     # Non-QObject helpers are named modules with consistent lowercase names.
     for relative, name in (
         ("bootstrap/options", "genycaster.ui.bootstrap"),
+        ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
         ("web/wheel", "genycaster.ui.web.wheel"),
         ("update/install", "genycaster.ui.update.install"),
         ("desktop/instance", "genycaster.ui.desktop.instance"),
+        ("diagnostics/snapshots", "genycaster.ui.diagnostics.snapshots"),
+        ("diagnostics/smoke", "genycaster.ui.diagnostics.smoke"),
     ):
         interface = Path("ui/app") / (relative + ".cppm")
         implementation = Path("ui/app") / (relative + ".cpp")
@@ -100,6 +103,12 @@ def main() -> None:
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
         assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
+    assert 'import genycaster.ui.bootstrap.fonts;' in entry
+    assert 'import genycaster.ui.diagnostics.snapshots;' in entry
+    assert 'import genycaster.ui.diagnostics.smoke;' in entry
+    assert "fontFamilies.forLanguage(" in entry
+    assert "diagnostics::scheduleSnapshots(" in entry
+    assert "diagnostics::configureSmokeTests(" in entry
     assert 'import genycaster.ui.bootstrap;' in entry
     assert 'import genycaster.ui.web.wheel;' in entry
     assert 'import genycaster.ui.update.install;' in Path(
