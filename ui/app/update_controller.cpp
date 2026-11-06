@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QProcess>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
@@ -322,6 +323,11 @@ UpdateController::~UpdateController()
     if (m_downloadReply) {
         disconnect(m_downloadReply, nullptr, this, nullptr);
         m_downloadReply->abort();
+    }
+    if (m_deltaProcess) {
+        disconnect(m_deltaProcess, nullptr, this, nullptr);
+        m_deltaProcess->kill();
+        m_deltaProcess->waitForFinished(1000);
     }
 #if defined(__EMSCRIPTEN__)
     if (pendingBrowserRefresh == this) pendingBrowserRefresh = nullptr;
@@ -728,19 +734,107 @@ void UpdateController::downloadUpdate()
     }
     m_partialPath = dir + QLatin1Char('/') + QFileInfo(m_assetName).fileName() +
                     QStringLiteral(".partial");
-    m_file = std::make_unique<QFile>(m_partialPath);
-    if (!m_file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        m_file.reset();
-        fail(QStringLiteral("Could not open update destination"));
-        return;
-    }
-    m_hash.reset();
     m_received = 0;
     m_total = 0;
     m_downloading = true;
     m_error.clear();
     m_status = QStringLiteral("Downloading verified package…");
     emit changed();
+
+#if defined(Q_OS_LINUX) && !defined(__EMSCRIPTEN__)
+    // A current AppImage is a valid block seed for zsync. Bundle the native
+    // architecture-matching zsync executable with the AppImage, and never
+    // execute a random PATH-resolved helper from untrusted directories.
+    const QString currentImage = qEnvironmentVariable("APPIMAGE");
+    const QFileInfo original{currentImage};
+    const QString tool = QDir{QCoreApplication::applicationDirPath()}.filePath(
+        QStringLiteral("zsync"));
+    if (m_assetName.endsWith(QStringLiteral(".AppImage"), Qt::CaseSensitive)
+        && original.isAbsolute() && original.isFile() && !original.isSymLink()
+        && QFileInfo{tool}.isExecutable()) {
+        auto* const delta = new QProcess(this);
+        m_deltaProcess = delta;
+        delta->setWorkingDirectory(dir);
+        delta->setProgram(tool);
+        delta->setArguments({
+            QStringLiteral("-i"), original.absoluteFilePath(),
+            QStringLiteral("-o"), m_partialPath,
+            m_assetUrl + QStringLiteral(".zsync")});
+        delta->setProcessChannelMode(QProcess::MergedChannels);
+        m_status = QStringLiteral("Downloading changed AppImage blocks…");
+        emit changed();
+
+        const auto fallBack = [this, delta] {
+            if (m_deltaProcess != delta) return;
+            m_deltaProcess = nullptr;
+            delta->deleteLater();
+            QFile::remove(m_partialPath);
+            QFile::remove(m_partialPath + QStringLiteral(".part"));
+            m_received = 0;
+            m_total = 0;
+            m_status = QStringLiteral("Delta unavailable; downloading full update…");
+            emit changed();
+            startFullDownload();
+        };
+        connect(delta, &QProcess::errorOccurred, this,
+                [fallBack](const QProcess::ProcessError error) {
+            if (error == QProcess::FailedToStart) fallBack();
+        });
+        connect(delta, &QProcess::readyReadStandardOutput, this, [this, delta] {
+            const QByteArray output = delta->readAllStandardOutput().right(4096);
+            const QRegularExpression pattern{QStringLiteral(R"((\d{1,3})%)")};
+            auto matches = pattern.globalMatch(QString::fromUtf8(output));
+            while (matches.hasNext()) {
+                const auto match = matches.next();
+                const int percent = match.captured(1).toInt();
+                if (percent >= 0 && percent <= 100) {
+                    m_received = percent;
+                    m_total = 100;
+                }
+            }
+            emit changed();
+        });
+        connect(delta, &QProcess::finished, this,
+                [this, delta, fallBack](int code, QProcess::ExitStatus status) {
+            if (m_deltaProcess != delta) return;
+            if (code != 0 || status != QProcess::NormalExit) {
+                fallBack();
+                return;
+            }
+            QFile output{m_partialPath};
+            QCryptographicHash digest{QCryptographicHash::Sha256};
+            const bool verified = output.open(QIODevice::ReadOnly)
+                && digest.addData(&output)
+                && QString::fromLatin1(digest.result().toHex()) == m_assetDigest;
+            output.close();
+            if (!verified) {
+                fallBack(); // never trust unverified differential output
+                return;
+            }
+            m_deltaProcess = nullptr;
+            delta->deleteLater();
+            m_downloading = false;
+            finalizeVerifiedPackage();
+        });
+        delta->start();
+        return;
+    }
+#endif
+    startFullDownload();
+}
+
+void UpdateController::startFullDownload()
+{
+    m_file = std::make_unique<QFile>(m_partialPath);
+    if (!m_file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        m_file.reset();
+        m_downloading = false;
+        fail(QStringLiteral("Could not open update destination"));
+        return;
+    }
+    m_hash.reset();
+    m_received = 0;
+    m_total = 0;
     QNetworkRequest req{QUrl{m_assetUrl}};
     req.setRawHeader("User-Agent", "Genycaster-Updater/1.0");
     req.setTransferTimeout(90'000);
@@ -797,19 +891,29 @@ void UpdateController::finishDownload(QNetworkReply* reply)
         fail(QStringLiteral("Download failed or SHA-256 verification failed"));
         return;
     }
+    finalizeVerifiedPackage();
+}
+
+bool UpdateController::finalizeVerifiedPackage()
+{
     const QString finalPath = m_partialPath.left(m_partialPath.size() - 8);
     if (QFile::exists(finalPath) && !QFile::remove(finalPath)) {
+        QFile::remove(m_partialPath);
+        m_partialPath.clear();
         fail(QStringLiteral("Cannot replace previous update package"));
-        return;
+        return false;
     }
     if (!QFile::rename(m_partialPath, finalPath)) {
+        QFile::remove(m_partialPath);
+        m_partialPath.clear();
         fail(QStringLiteral("Cannot finalize verified update"));
-        return;
+        return false;
     }
     m_partialPath.clear();
     m_downloadedFilePath = finalPath;
-    m_status = QStringLiteral("Package verified; open installer to update");
+    m_status = QStringLiteral("Package verified; ready to install update");
     emit changed();
+    return true;
 }
 
 bool UpdateController::openDownloadedUpdate()
