@@ -165,6 +165,12 @@ jobs:
           mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
             AppDir/usr/share/icons/hicolor/512x512/apps build/ci-linuxdeploy
           cp build/native/bin/Genycaster AppDir/usr/bin/
+          # Bundle the native zsync CLI for optional HTTP Range/block-delta
+          # updates. Never depend on its presence in a user's Linux distro.
+          install -m 755 /usr/bin/zsync AppDir/usr/bin/zsync
+          mkdir -p AppDir/usr/share/doc/genycaster
+          cp /usr/share/doc/zsync/copyright AppDir/usr/share/doc/genycaster/zsync-copyright
+          test -x AppDir/usr/bin/zsync
           cp properties/Linux/genycaster.png \
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
           cp properties/Linux/genycaster.desktop \
