@@ -1,5 +1,5 @@
 {
-  description = "GenyCaster native C++26/Qt package for NixOS";
+  description = "GenyCaster native Modern C++/Qt package for NixOS";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   outputs = { self, nixpkgs }:
     let
@@ -34,13 +34,13 @@
           enableParallelBuilding = true;
           installPhase = ''
             runHook preInstall
-            install -Dm755 bin/farcaster_client "$out/bin/genycaster"
+            install -Dm755 bin/Genycaster "$out/bin/Genycaster"
             runHook postInstall
           '';
           meta = with pkgs.lib; {
             description = "Native local-first Farcaster client";
             platforms = platforms.linux;
-            mainProgram = "genycaster";
+            mainProgram = "Genycaster";
           };
         };
     in {

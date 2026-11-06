@@ -301,6 +301,12 @@ target_sources(genycaster
         app/runtime_composition.cppm
 )
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
+# Preserve the CMake target and WebAssembly/Android artifact identities.
+# Native executable and Apple bundle filenames use the product casing.
+if(NOT ANDROID AND NOT EMSCRIPTEN)
+    set_target_properties(genycaster PROPERTIES OUTPUT_NAME "Genycaster")
+endif()
+
 # macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
 # cannot be deployed into a DMG with the Qt plugin and QML payload.
 if(APPLE)

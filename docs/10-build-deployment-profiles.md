@@ -4,6 +4,21 @@
 
 Provider and feature independence must be executable policy rather than documentation-only intent.
 
+## Native executable identity
+
+The CMake target remains `genycaster`, while built native application files are
+named `Genycaster`: `Genycaster.app` (Apple platforms), `Genycaster.exe`
+(Windows), and `Genycaster` (Linux/NixOS). The Linux `.desktop` launcher uses
+`Exec=Genycaster`, with the original lowercase icon and desktop-file IDs.
+This is a **case-sensitive file name** change, not a new application identity:
+existing bundle/package identifiers, user data directories and translation IDs
+remain unchanged.
+
+The Android Qt native-library target and browser WebAssembly deployment
+continue to use their existing lowercase resource names. In particular,
+`genycaster.html`, `genycaster.js`, and `genycaster.wasm` are public web asset
+paths and must not be renamed as part of native packaging changes.
+
 ## Current verification presets
 
 ### `core-debug`

@@ -46,7 +46,7 @@ python3 ci/launch_self_hosted.py \
   --read-url https://node.example.com \
   --write-url https://writer.example.com \
   --fid 123 \
-  --client /path/to/genycaster
+  --client /path/to/Genycaster
 ```
 
 A writer endpoint is mandatory only for write operations. It must be independently verified as a compatible submission transport; do not assume an arbitrary read node supports signing or publishing.

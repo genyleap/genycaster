@@ -2,7 +2,7 @@
 Type=Application
 Name=GenyCaster
 Comment=Native Farcaster client
-Exec=genycaster
+Exec=Genycaster
 Icon=genycaster
 Terminal=false
 Categories=Network;SocialNetwork;

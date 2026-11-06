@@ -141,7 +141,7 @@ jobs:
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           # lld avoids expensive GNU ld final-link memory use for the large Qt/C++26 app.
           cmake --build build/native --target genycaster --parallel 2
-          test -x build/native/bin/genycaster
+          test -x build/native/bin/Genycaster
       - name: Package AppImage
         shell: bash
         env:
@@ -150,11 +150,11 @@ jobs:
           set -euo pipefail
           mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
             AppDir/usr/share/icons/hicolor/512x512/apps build/ci-linuxdeploy
-          cp build/native/bin/genycaster AppDir/usr/bin/
+          cp build/native/bin/Genycaster AppDir/usr/bin/
           cp ui/wasm/genycaster-512.png \
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
           printf '%s\n' '[Desktop Entry]' 'Type=Application' \
-            'Name=GenyCaster' 'Exec=genycaster' \
+            'Name=GenyCaster' 'Exec=Genycaster' \
             'Icon=genycaster' 'Categories=Network;' \
             > AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
@@ -240,13 +240,13 @@ jobs:
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           cmake --build build/native --target genycaster --parallel 3
-          APP=build/native/bin/genycaster.app
+          APP=build/native/bin/Genycaster.app
           test -d "$APP"
           # Fail if a cross-architecture Qt library or toolchain leaked in.
-          /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/genycaster"
+          /usr/bin/lipo -verify_arch "${{ matrix.arch }}" "$APP/Contents/MacOS/Genycaster"
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
           mkdir -p dist
-          DMG=build/native/bin/genycaster.dmg
+          DMG=build/native/bin/Genycaster.dmg
           test -s "$DMG"
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
@@ -383,9 +383,9 @@ jobs:
           cmake --build build/native --target genycaster --parallel 3
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force dist/app | Out-Null
-          Copy-Item build/native/bin/genycaster.exe dist/app/
+          Copy-Item build/native/bin/Genycaster.exe dist/app/
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
-            --qmldir ui --dir dist/app dist/app/genycaster.exe
+            --qmldir ui --dir dist/app dist/app/Genycaster.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.
           # Bundle all DLLs from this build's isolated vcpkg target triplet:
@@ -757,12 +757,12 @@ jobs:
             -DFARCASTER_BUILD_TESTS=OFF \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           cmake --build build/ios --target genycaster --parallel 2
-          count="$(find build/ios -type d -name 'genycaster.app' | wc -l | tr -d ' ')"
+          count="$(find build/ios -type d -name 'Genycaster.app' | wc -l | tr -d ' ')"
           test "$count" = 1
-          APP="$(find build/ios -type d -name 'genycaster.app' -print -quit)"
+          APP="$(find build/ios -type d -name 'Genycaster.app' -print -quit)"
           test -s "$APP/Info.plist"
-          test -s "$APP/genycaster"
-          /usr/bin/lipo -verify_arch arm64 "$APP/genycaster"
+          test -s "$APP/Genycaster"
+          /usr/bin/lipo -verify_arch arm64 "$APP/Genycaster"
           mkdir -p dist
           tar -czf "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz" -C "$(dirname "$APP")" "$(basename "$APP")"
           python3 ci/verify_platform_package.py ios "dist/GenyCaster-v${VERSION}-ios-arm64-unsigned-app.tar.gz"
@@ -798,7 +798,7 @@ jobs:
         run: |
           set -euo pipefail
           nix build ".#packages.${{ matrix.system }}.default" --print-build-logs --out-link result
-          test -x result/bin/genycaster
+          test -x result/bin/Genycaster
       - name: Record Nix store closure for reproducibility
         run: |
           set -euo pipefail

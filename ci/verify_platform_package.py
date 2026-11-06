@@ -173,9 +173,9 @@ def validate_ios(path: Path) -> None:
     with tarfile.open(path, "r:gz") as archive:
         members = archive.getmembers()
         names = {member.name.rstrip("/") for member in members}
-        root = "genycaster.app"
+        root = "Genycaster.app"
         require(root + "/Info.plist" in names, "iOS bundle missing Info.plist")
-        require(root + "/genycaster" in names, "iOS bundle missing executable")
+        require(root + "/Genycaster" in names, "iOS bundle missing executable")
         require(all(not PurePosixPath(name).is_absolute()
                     and ".." not in PurePosixPath(name).parts
                     for name in names), "Unsafe iOS bundle path")
@@ -184,9 +184,12 @@ def validate_ios(path: Path) -> None:
 def validate_windows(path: Path) -> None:
     require(path.suffix == ".zip", "Windows package must be a ZIP")
     with zipfile.ZipFile(path) as archive:
-        names = {name.replace("\\", "/").lower() for name in archive.namelist()}
+        exact_names = {name.replace("\\", "/") for name in archive.namelist()}
+        names = {name.lower() for name in exact_names}
+    require("Genycaster.exe" in exact_names,
+            "Windows ZIP missing correctly cased executable")
     for required in (
-        "genycaster.exe", "qt6core.dll", "qt6network.dll",
+        "qt6core.dll", "qt6network.dll",
         "qt6keychain.dll", "platforms/qwindows.dll",
     ):
         require(required in names, f"Windows ZIP missing {required}")

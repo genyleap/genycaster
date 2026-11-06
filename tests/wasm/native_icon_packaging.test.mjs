@@ -97,7 +97,7 @@ test('Linux exposes correct freedesktop launcher and hicolor icon',()=>{
   const png=pngSize(read('ui/platform/linux/genycaster.png'));
   assert.equal(png.width,512);
   const desktop=text('ui/platform/linux/genycaster.desktop');
-  assert.match(desktop,/^Exec=genycaster$/m);
+  assert.match(desktop,/^Exec=Genycaster$/m);
   assert.match(desktop,/^Icon=genycaster$/m);
   assert.match(desktop,/^Terminal=false$/m);
 });

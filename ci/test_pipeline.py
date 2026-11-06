@@ -258,6 +258,8 @@ class PipelineTests(unittest.TestCase):
         # CMake must provide identical release metadata on every platform.
         cmake = Path("ui/CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn("qt_add_executable(genycaster", cmake)
+        self.assertIn('set_target_properties(genycaster PROPERTIES OUTPUT_NAME "Genycaster")', cmake)
+        self.assertIn("if(NOT ANDROID AND NOT EMSCRIPTEN)", cmake)
         self.assertIn("add_library(genycaster_release_identity INTERFACE)", cmake)
         self.assertIn("target_link_libraries(genycaster PRIVATE genycaster_release_identity)", cmake)
         self.assertIn("target_link_libraries(farcaster_update_controller_tests PRIVATE", cmake)
@@ -375,7 +377,7 @@ class PipelineTests(unittest.TestCase):
         with TemporaryDirectory() as folder:
             archive = Path(folder) / "genycaster-windows.zip"
             required = (
-                "genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
+                "Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
                 "qt6keychain.dll", "platforms/qwindows.dll", "libcrypto-3-x64.dll",
                 "libssl-3-x64.dll", "libcurl.dll", "sqlite3.dll",
             )
@@ -388,6 +390,15 @@ class PipelineTests(unittest.TestCase):
                     if name != "Qt6Network.dll":
                         broken.writestr(name, b"test")
             with self.assertRaisesRegex(ValueError, "qt6network"):
+                verify("windows", archive)
+            # Preserve exact product-case on case-sensitive artifact consumers.
+            with zipfile.ZipFile(archive, "w") as broken_case:
+                for name in required:
+                    broken_case.writestr(
+                        "genycaster.exe" if name == "Genycaster.exe" else name,
+                        b"test",
+                    )
+            with self.assertRaisesRegex(ValueError, "correctly cased executable"):
                 verify("windows", archive)
 
     def test_release_package_contract(self) -> None:
