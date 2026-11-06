@@ -249,6 +249,8 @@ aimcpp_reject_final_qml_creatable_types(
 
 qt_add_executable(genycaster
     app/main.cpp
+    app/web/Wheel.cpp
+    app/web/Wheel.hpp
     app/runtime_ui_bindings.cpp
     app/data_storage_controller.cpp
     app/data_storage_controller.hpp
