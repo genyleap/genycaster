@@ -120,6 +120,7 @@ import farcaster.foundation.result;
 import farcaster.transport.qtnetwork;
 import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
+import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.web.wheel;
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
 import genycaster.ui.desktop.instance;
@@ -293,159 +294,9 @@ int main(int argc, char* argv[])
     QGuiApplication::setWindowIcon(QIcon{QStringLiteral(":/genycaster/app-icon.png")});
 #endif
     QQuickStyle::setStyle(QStringLiteral(FARCASTER_QT_QUICK_CONTROLS_STYLE));
-    QString bundledPersianFontFamily{};
-    QString bundledDevanagariFontFamily{};
-    QString bundledJapaneseFontFamily{};
-    QString bundledKoreanFontFamily{};
-    QString bundledChineseFontFamily{};
-    QString bundledIconFontFamily{};
-    QString bundledIconRegularFontFamily{};
+    genycaster::ui::bootstrap::FontFamilies fontFamilies{};
+    if (!fontFamilies.load()) return 2;
 
-    // The minimal QPA backend used by headless structure tests intentionally has
-    // no application-font backend. Shipping platforms load every bundled family;
-    // a missing resource is a packaging defect rather than a system-font fallback.
-    if (QGuiApplication::platformName() != QStringLiteral("minimal")) {
-        const auto loadApplicationFont = [](const QString& resource) -> QStringList {
-            const int fontId = QFontDatabase::addApplicationFont(resource);
-            if (fontId < 0) {
-                qCritical().noquote() << "Unable to load embedded Genycaster font:" << resource;
-                return {};
-            }
-            return QFontDatabase::applicationFontFamilies(fontId);
-        };
-
-        constexpr std::array bundledPersianFontResources{
-            ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Regular.ttf",
-            ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Medium.ttf",
-            ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-SemiBold.ttf",
-            ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Bold.ttf",
-            ":/qt/qml/Farcaster/Client/assets/fonts/Vazirmatn-Black.ttf",
-        };
-        for (const char* const resource : bundledPersianFontResources) {
-            const QStringList families = loadApplicationFont(QString::fromLatin1(resource));
-            if (families.isEmpty()) {
-                return 2;
-            }
-            if (bundledPersianFontFamily.isEmpty()) {
-                bundledPersianFontFamily = families.front();
-            }
-        }
-
-#if defined(__EMSCRIPTEN__)
-        // Qt 6.12 supports CBDT/CBLC and emoji sequence segmentation.
-        // System/browser fonts are not available in the WASM sandbox.
-        const QStringList colorEmojiFamilies = loadApplicationFont(QStringLiteral(
-            ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterColorEmoji.ttf"));
-        const QStringList monoEmojiFamilies = loadApplicationFont(QStringLiteral(
-            ":/qt/qml/Farcaster/Client/assets/fonts/GenycasterEmojiFallback.ttf"));
-        if (monoEmojiFamilies.isEmpty()) {
-            return 2;
-        }
-        if (!colorEmojiFamilies.isEmpty()) {
-            QFontDatabase::setApplicationEmojiFontFamilies(
-                {colorEmojiFamilies.front(), monoEmojiFamilies.front()});
-        } else {
-            qWarning() << "Bundled color emoji unavailable; using monochrome fallback";
-            QFontDatabase::addApplicationEmojiFontFamily(monoEmojiFamilies.front());
-        }
-#endif
-
-        // Devanagari/CJK resources are optional in source/developer builds.
-        // Production packaging can require them through
-        // GENYCASTER_REQUIRE_SCRIPT_FONTS; when absent, the platform fallback
-        // families selected below provide shaping without making configure depend
-        // on network access.
-        const QString devanagariResource =
-            QStringLiteral(":/qt/qml/Farcaster/Client/assets/fonts/NotoSansDevanagari.ttf");
-        if (QFile::exists(devanagariResource)) {
-            const QStringList devanagariFamilies = loadApplicationFont(devanagariResource);
-            if (!devanagariFamilies.isEmpty()) {
-                bundledDevanagariFontFamily = devanagariFamilies.front();
-            }
-        }
-
-        const QString cjkResource =
-            QStringLiteral(":/qt/qml/Farcaster/Client/assets/fonts/NotoSansCJK-Regular.ttc");
-        if (QFile::exists(cjkResource)) {
-            const QStringList cjkFamilies = loadApplicationFont(cjkResource);
-            if (!cjkFamilies.isEmpty()) {
-                const auto chooseCjkFamily = [&cjkFamilies](const QString& suffix) {
-                    const auto exact = std::ranges::find_if(cjkFamilies, [&](const QString& family) {
-                        return family.contains(suffix, Qt::CaseInsensitive);
-                    });
-                    return exact != cjkFamilies.end() ? *exact : cjkFamilies.front();
-                };
-                bundledJapaneseFontFamily = chooseCjkFamily(QStringLiteral("JP"));
-                bundledKoreanFontFamily = chooseCjkFamily(QStringLiteral("KR"));
-                bundledChineseFontFamily = chooseCjkFamily(QStringLiteral("SC"));
-            }
-        }
-
-        const QStringList iconRegularFamilies = loadApplicationFont(
-            QStringLiteral(":/qt/qml/Farcaster/Client/assets/icons/fa-regular-400.ttf"));
-        const QStringList iconSolidFamilies = loadApplicationFont(
-            QStringLiteral(":/qt/qml/Farcaster/Client/assets/icons/fa-solid-900.ttf"));
-        if (iconRegularFamilies.isEmpty() || iconSolidFamilies.isEmpty()) {
-            return 2;
-        }
-        bundledIconRegularFontFamily = iconRegularFamilies.front();
-        // Keep the legacy property populated for compatibility with older QML;
-        // new Icon.qml selects the regular or solid family explicitly.
-        bundledIconFontFamily = iconSolidFamilies.front();
-    }
-
-    const auto installedFamilies = QFontDatabase::families();
-    const auto preferredFamily = [&installedFamilies](const QStringList& candidates, const QString& fallback) {
-        for (const auto& candidate : candidates) {
-            if (installedFamilies.contains(candidate, Qt::CaseInsensitive)) {
-                return candidate;
-            }
-        }
-        return fallback;
-    };
-    const QString systemFamily = QFontDatabase::systemFont(QFontDatabase::GeneralFont).family();
-#if defined(Q_OS_MACOS)
-    const QString platformTextFontFamily = preferredFamily(
-        {QStringLiteral("SF Pro Text"), QStringLiteral("Helvetica Neue")}, systemFamily);
-    const QString platformRtlFontFamily = preferredFamily(
-        {QStringLiteral("Geeza Pro"), QStringLiteral("Arial Unicode MS"), QStringLiteral("Arial")}, systemFamily);
-    const QString platformDevanagariFontFamily = preferredFamily(
-        {QStringLiteral("Kohinoor Devanagari"), QStringLiteral("Devanagari Sangam MN")}, systemFamily);
-    const QString platformJapaneseFontFamily = preferredFamily(
-        {QStringLiteral("Hiragino Sans"), QStringLiteral("YuGothic")}, systemFamily);
-    const QString platformKoreanFontFamily = preferredFamily(
-        {QStringLiteral("Apple SD Gothic Neo"), QStringLiteral("Arial Unicode MS")}, systemFamily);
-    const QString platformChineseFontFamily = preferredFamily(
-        {QStringLiteral("PingFang SC"), QStringLiteral("Hiragino Sans GB")}, systemFamily);
-#elif defined(Q_OS_WIN)
-    const QString platformTextFontFamily = preferredFamily(
-        {QStringLiteral("Segoe UI Variable Text"), QStringLiteral("Segoe UI")}, systemFamily);
-    const QString platformRtlFontFamily = preferredFamily(
-        {QStringLiteral("Segoe UI"), QStringLiteral("Tahoma"), QStringLiteral("Arial")}, systemFamily);
-    const QString platformDevanagariFontFamily = preferredFamily(
-        {QStringLiteral("Nirmala UI"), QStringLiteral("Mangal")}, systemFamily);
-    const QString platformJapaneseFontFamily = preferredFamily(
-        {QStringLiteral("Yu Gothic UI"), QStringLiteral("Meiryo UI")}, systemFamily);
-    const QString platformKoreanFontFamily = preferredFamily(
-        {QStringLiteral("Malgun Gothic")}, systemFamily);
-    const QString platformChineseFontFamily = preferredFamily(
-        {QStringLiteral("Microsoft YaHei UI"), QStringLiteral("Microsoft JhengHei UI")}, systemFamily);
-#else
-    const QString platformTextFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans"), QStringLiteral("DejaVu Sans")}, systemFamily);
-    const QString platformRtlFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans Arabic"), QStringLiteral("Noto Sans"), QStringLiteral("DejaVu Sans")}, systemFamily);
-    const QString platformDevanagariFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans Devanagari"), QStringLiteral("Noto Sans")}, systemFamily);
-    const QString platformJapaneseFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans CJK JP"), QStringLiteral("Noto Sans")}, systemFamily);
-    const QString platformKoreanFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans CJK KR"), QStringLiteral("Noto Sans")}, systemFamily);
-    const QString platformChineseFontFamily = preferredFamily(
-        {QStringLiteral("Noto Sans CJK SC"), QStringLiteral("Noto Sans")}, systemFamily);
-#endif
-
-    application.setFont(QFont{platformTextFontFamily});
 
     const QStringList arguments = QCoreApplication::arguments();
     const bool isSmokeTest = arguments.contains(QStringLiteral("--smoke-test"));
@@ -1278,28 +1129,9 @@ int main(int argc, char* argv[])
     QObject::connect(&localizationController, &LocalizationController::localeChanged,
                      &application, updateReleaseLocale);
 
-    const auto applicationFontFamilyForLanguage = [&](QString languageTag) -> QString {
-        languageTag = languageTag.trimmed().toLower();
-        if (languageTag == QStringLiteral("fa") || languageTag == QStringLiteral("ar")) {
-            return !bundledPersianFontFamily.isEmpty() ? bundledPersianFontFamily : platformRtlFontFamily;
-        }
-        if (languageTag == QStringLiteral("hi")) {
-            return !bundledDevanagariFontFamily.isEmpty() ? bundledDevanagariFontFamily : platformDevanagariFontFamily;
-        }
-        if (languageTag == QStringLiteral("ja")) {
-            return !bundledJapaneseFontFamily.isEmpty() ? bundledJapaneseFontFamily : platformJapaneseFontFamily;
-        }
-        if (languageTag == QStringLiteral("ko")) {
-            return !bundledKoreanFontFamily.isEmpty() ? bundledKoreanFontFamily : platformKoreanFontFamily;
-        }
-        if (languageTag == QStringLiteral("zh")) {
-            return !bundledChineseFontFamily.isEmpty() ? bundledChineseFontFamily : platformChineseFontFamily;
-        }
-        return platformTextFontFamily;
-    };
     const auto applyApplicationLocaleFont = [&] {
         QFont localeFont = application.font();
-        localeFont.setFamily(applicationFontFamilyForLanguage(localizationController.effectiveLanguageTag()));
+        localeFont.setFamily(fontFamilies.forLanguage(localizationController.effectiveLanguageTag()));
         application.setFont(localeFont);
     };
     applyApplicationLocaleFont();
@@ -1683,26 +1515,26 @@ int main(int argc, char* argv[])
         new RemoteImageProvider{
             networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
             dataStorageController.runtimeStateHandle()});
-    engine.rootContext()->setContextProperty(QStringLiteral("platformTextFontFamily"), platformTextFontFamily);
-    engine.rootContext()->setContextProperty(QStringLiteral("platformRtlFontFamily"), platformRtlFontFamily);
-    engine.rootContext()->setContextProperty(QStringLiteral("platformDevanagariFontFamily"), platformDevanagariFontFamily);
-    engine.rootContext()->setContextProperty(QStringLiteral("platformJapaneseFontFamily"), platformJapaneseFontFamily);
-    engine.rootContext()->setContextProperty(QStringLiteral("platformKoreanFontFamily"), platformKoreanFontFamily);
-    engine.rootContext()->setContextProperty(QStringLiteral("platformChineseFontFamily"), platformChineseFontFamily);
+    engine.rootContext()->setContextProperty(QStringLiteral("platformTextFontFamily"), fontFamilies.systemText());
+    engine.rootContext()->setContextProperty(QStringLiteral("platformRtlFontFamily"), fontFamilies.systemRtl());
+    engine.rootContext()->setContextProperty(QStringLiteral("platformDevanagariFontFamily"), fontFamilies.systemDevanagari());
+    engine.rootContext()->setContextProperty(QStringLiteral("platformJapaneseFontFamily"), fontFamilies.systemJapanese());
+    engine.rootContext()->setContextProperty(QStringLiteral("platformKoreanFontFamily"), fontFamilies.systemKorean());
+    engine.rootContext()->setContextProperty(QStringLiteral("platformChineseFontFamily"), fontFamilies.systemChinese());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledPersianFontFamily"), bundledPersianFontFamily);
+        QStringLiteral("bundledPersianFontFamily"), fontFamilies.persian());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledDevanagariFontFamily"), bundledDevanagariFontFamily);
+        QStringLiteral("bundledDevanagariFontFamily"), fontFamilies.devanagari());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledJapaneseFontFamily"), bundledJapaneseFontFamily);
+        QStringLiteral("bundledJapaneseFontFamily"), fontFamilies.japanese());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledKoreanFontFamily"), bundledKoreanFontFamily);
+        QStringLiteral("bundledKoreanFontFamily"), fontFamilies.korean());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledChineseFontFamily"), bundledChineseFontFamily);
+        QStringLiteral("bundledChineseFontFamily"), fontFamilies.chinese());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledIconFontFamily"), bundledIconFontFamily);
+        QStringLiteral("bundledIconFontFamily"), fontFamilies.iconSolid());
     engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledIconRegularFontFamily"), bundledIconRegularFontFamily);
+        QStringLiteral("bundledIconRegularFontFamily"), fontFamilies.iconRegular());
     GenyPulseActivityController genyPulseActivity;
     engine.rootContext()->setContextProperty(
         QStringLiteral("genyPulseActivity"), &genyPulseActivity);
