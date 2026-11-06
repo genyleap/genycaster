@@ -162,6 +162,14 @@ private:
                         enteredRecovery && verified
                             ? event.value(QStringLiteral("accountExpiresSeconds")).toInt() : 0);
                 }
+                if (restoredDevice) {
+                    // SessionObserver queued its verified state on this same
+                    // GUI receiver. Resolve the splash *after* that commit so
+                    // a provisional Guest never flashes Setup on returning users.
+                    QMetaObject::invokeMethod(presentation,
+                        [presentation] { presentation->finishBrowserAccountRestore(); },
+                        Qt::QueuedConnection);
+                }
                 continue;
             }
             if (!presentation->isAuthenticated()
