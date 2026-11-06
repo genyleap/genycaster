@@ -205,7 +205,7 @@ bool FontFamilies::load()
         {QStringLiteral("Noto Sans CJK SC"), QStringLiteral("Noto Sans")}, systemFamily);
 #endif
 
-    application.setFont(QFont{platformTextFontFamily});
+    QGuiApplication::setFont(QFont{platformTextFontFamily});
     m_impl->systemText = platformTextFontFamily;
     m_impl->systemRtl = platformRtlFontFamily;
     m_impl->systemDevanagari = platformDevanagariFontFamily;
