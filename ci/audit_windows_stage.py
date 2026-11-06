@@ -50,10 +50,10 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
                 # application root before this subtree can be discarded.
                 for candidate in directory.rglob("*"):
                     if (candidate.is_file()
-                            and candidate.suffix.lower() == ".dll"
+                            and candidate.suffix.lower() in {".dll", ".exe"}
                             and not (stage / candidate.name).is_file()):
                         raise ValueError(
-                            f"Unstaged runtime DLL in SDK directory: {candidate}")
+                            f"Unstaged runtime executable or DLL in SDK directory: {candidate}")
                 shutil.rmtree(directory)
 
     for name in ("Genycaster.exe", *RUNTIME_DLLS, "platforms/qwindows.dll"):
