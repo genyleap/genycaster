@@ -231,6 +231,16 @@ Drawer {
             Layout.minimumHeight: 0
             Layout.preferredHeight: 0
 
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: updateController.lastInstallError.length > 0
+                text: updateController.lastInstallError
+                textFormat: Text.PlainText
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+
             RowLayout {
                 Layout.fillWidth: true
                 DirectionAwareLabel {
