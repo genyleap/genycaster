@@ -618,6 +618,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
   let closed=false;
   let pendingApproval=null;
   let sensitiveApprovalTail=Promise.resolve();
+  let pendingSensitiveCount=0;
   const forwards=new Map();
   const guard=()=>{if(closed)throw denied('Mini App session is closed',4900);};
   const listen=(event,callback)=>{
@@ -690,14 +691,20 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(size>65_536)
         throw denied('Wallet RPC parameters exceed the safe limit',4200);
       if(SIGNING_METHODS.has(method)){
-        // One visibly separate host prompt for EVERY sensitive operation,
-        // not a sticky permission shared with the next Mini App or reload.
+        // One visibly separate host prompt for EVERY sensitive operation.
+        // Bound the queue so an untrusted iframe cannot flood pending dialogs.
+        if(pendingSensitiveCount>=2)
+          throw denied('Another wallet operation requires attention',4290);
+        pendingSensitiveCount++;
         const request=sensitiveApprovalTail.then(async()=>{
           guard();
           return approveAction(origin,method,payload.params,controller.signal);
         });
         sensitiveApprovalTail=request.then(()=>{},()=>{});
-        if(!await request)throw denied('Wallet operation rejected by the user',4001);
+        let confirmed=false;
+        try{confirmed=await request;}
+        finally{pendingSensitiveCount--;}
+        if(!confirmed)throw denied('Wallet operation rejected by the user',4001);
         guard();
       }
       // The real wallet owns its own independent signature confirmation.
