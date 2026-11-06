@@ -448,7 +448,7 @@ test('every sensitive request receives a separate host confirmation and can be d
    ['personal_sign','personal_sign','personal_sign']);
  assert.ok(requests.every(r=>r.origin==='https://one.example'));
  assert.deepEqual(calls,['eth_requestAccounts','eth_accounts','personal_sign',
-   'eth_accounts','personal_sign']);
+   'eth_accounts','eth_accounts','personal_sign']);
  for(const method of ['eth_sign','eth_sendRawTransaction','wallet_unknownAction']){
    await assert.rejects(app.provider.request({method,params:[]}),e=>e.code===4200);
  }
