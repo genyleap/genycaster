@@ -259,7 +259,7 @@ deprecated OpenGL APIs. Official references:
 GenyCaster's UI is **one adaptive Qt Quick application**, not a separate
 mobile application. Its cross-platform executable entry, Qt-facing controllers,
 Mini App adapters, runtime composition and QML application window live in
-`ui/app/`. Operating-system integrations remain isolated in `ui/platform/`,
+`ui/app/`. Platform packaging properties are isolated in `properties/`; operating-system code adapters remain in `src/platform/` and narrowly owned `ui/app/` files,
 and visual resources/components remain in `ui/render/`, `ui/components/`,
 `ui/theme/` and `ui/assets/`. The retired demo data is not part of the QML
 module.

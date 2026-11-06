@@ -16,7 +16,7 @@ import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "ui/wasm/genycaster-512.png"
-DEST = ROOT / "ui/platform"
+DEST = ROOT / "properties"
 PNG_HEADER = b"\x89PNG\r\n\x1a\n"
 
 
@@ -179,16 +179,16 @@ def main():
     blobs = {size: encode_png(size, resize_rgba(source, w, h, size))
              for size in sizes}
     outputs = {
-        "macos/genycaster.icns": icns(blobs),
-        "windows/genycaster.ico": ico({size:blobs[size] for size in (16,24,32,48,64,128,256)}),
-        "linux/genycaster.png": blobs[512],
-        "ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png": encode_png(
+        "macOS/genycaster.icns": icns(blobs),
+        "Windows/genycaster.ico": ico({size:blobs[size] for size in (16,24,32,48,64,128,256)}),
+        "Linux/genycaster.png": blobs[512],
+        "iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png": encode_png(
             1024, resize_rgba(source, w, h, 1024), opaque=True),
     }
     for directory, size in [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96),
                             ("xxhdpi", 144), ("xxxhdpi", 192)]:
         for name in ("ic_launcher", "ic_launcher_round"):
-            outputs[f"android/res/mipmap-{directory}/{name}.png"] = blobs[size]
+            outputs[f"Android/res/mipmap-{directory}/{name}.png"] = blobs[size]
     for rel, data in outputs.items():
         path = DEST / rel
         if verify:

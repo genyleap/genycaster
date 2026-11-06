@@ -7,7 +7,13 @@ Bookmarking, editing profile links, writing Cast drafts and changing account URL
 are ordinary product actions. The Genycaster database is canonical for account
 state; local device data serves only as a responsive and offline cache.
 
-OpenProof remains the identity and connection authority. A user-entered
+[OpenProof](https://github.com/genyleap/openproof) is the independently
+managed identity and connection authority; its server process is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp)
+and the configured first-party issuer is `https://openproof.genyleap.com`.
+GenyCaster does **not** share OpenProof's PostgreSQL database or copy its
+provider credentials. The GenyCaster-owned `genycaster_db` stores only
+application-specific account state. See [identity and service architecture](../../docs/OPENPROOF_AND_SERVICES.md).
+A user-entered
 LinkedIn URL is *self-asserted*; it does not become OpenProof-verified.
 Farcaster/Snapchain remain the protocol source for casts, signers and likes.
 

@@ -54,7 +54,7 @@ test("Welcome uses a focused language picker without promotional preview, and lo
 test("Browser tab and installed app icon use actual brand DNA and a clean version title",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const icon=read("ui/wasm/genycaster-icon.svg");
-    const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
+    const manifest=JSON.parse(read("properties/WebAssembly/genycaster.webmanifest"));
     assert.match(html,/<title>Genycaster Beta 1\.0<\/title>/);
     assert.doesNotMatch(html,/Secure social client/);
     assert.equal(manifest.description,"Genycaster Beta 1.0");

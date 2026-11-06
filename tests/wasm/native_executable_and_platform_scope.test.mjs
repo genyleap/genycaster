@@ -15,8 +15,12 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     assert.match(cmake,
         /if\(NOT ANDROID AND NOT EMSCRIPTEN\)\s+set_target_properties\(genycaster PROPERTIES OUTPUT_NAME "Genycaster"\)\s+endif\(\)/);
     assert.match(cmake, /qt_add_resources\(genycaster genycaster_app_icon/);
-    assert.match(cmake, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
-    assert.match(cmake, /FixMacOSBundleCase\.cmake/);
+    const macPackage = source("properties/macOS/Configure.cmake");
+    const iosPackage = source("properties/iOS/Configure.cmake");
+    assert.match(cmake, /properties\/ConfigureTarget\.cmake/);
+    assert.match(macPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
+    assert.match(iosPackage, /MACOSX_BUNDLE_BUNDLE_NAME "Genycaster"/);
+    assert.match(macPackage, /FixMacOSBundleCase\.cmake/);
 
     const workflow = source(".github/workflows/ci.yml");
     assert.match(workflow, /build\/native\/bin\/Genycaster\b/);
@@ -33,7 +37,7 @@ test("native executable output uses Genycaster while Qt targets and web assets k
     assert.doesNotMatch(workflow,
         /build\/native\/bin\/genycaster(?:\.app|\.dmg|\.exe|\b)|result\/bin\/genycaster\b|Contents\/MacOS\/genycaster/);
 
-    const desktop = source("ui/platform/linux/genycaster.desktop");
+    const desktop = source("properties/Linux/genycaster.desktop");
     assert.match(desktop, /^Name=GenyCaster$/m);
     assert.match(desktop, /^Exec=Genycaster$/m);
     assert.match(desktop, /^Icon=genycaster$/m);

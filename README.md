@@ -21,6 +21,8 @@
 
 **GenyCaster** brings Farcaster conversations, discovery, media, apps and personal context into one cross-platform client. Its **shared Modern C++ core** handles protocol operations, state, synchronization and routing. **Qt Quick** provides adaptive desktop, mobile and WebAssembly interfaces. **Internationalization and localization (i18n/l10n)** let people independently choose their interface language, regional conventions, calendar and time zone rather than tying every preference to one country.
 
+**Identity and account ownership:** GenyCaster uses [OpenProof](https://github.com/genyleap/openproof) (the independent `opp` identity service, configured at `https://openproof.genyleap.com`) for account authentication and verified Farcaster connections. GenyCaster's own authenticated service stores product data in the separate PostgreSQL `genycaster_db`; neither database nor login service replaces canonical Farcaster messages or signer authorization. [Architecture and service dependencies](docs/OPENPROOF_AND_SERVICES.md).
+
 The product follows four principles:
 
 | Native rendering | Local-first continuity | Protocol choice | Scoped authorization |
@@ -42,7 +44,9 @@ flowchart TB
     HYPER["HyperSnap<br/>Preferred default"]
     SNAP["Snapchain<br/>Selectable"]
     OTHER["Compatible routes<br/>When supported"]
-    EXTRA["Optional product services<br/>Account extras · GENY Pro"]
+    IDENTITY["OpenProof / opp<br/>Account identity · Linked FID"]
+    EXTRA["GenyCaster account service<br/>Bookmarks · Profile extras · GENY Pro"]
+    ACCOUNTDB[("GenyCaster PostgreSQL<br/>genycaster_db")]
 
     PEOPLE <--> CORE
     CORE <--> CACHE
@@ -50,7 +54,10 @@ flowchart TB
     ROUTER --> HYPER
     ROUTER --> SNAP
     ROUTER --> OTHER
-    CORE -. "Optional features" .-> EXTRA
+    CORE -. "Authenticated identity" .-> IDENTITY
+    CORE -. "Account-backed product features" .-> EXTRA
+    EXTRA <--> ACCOUNTDB
+    EXTRA -. "Validate identity" .-> IDENTITY
 
     classDef main fill:#242424,color:#fff,stroke:#777;
     classDef neutral fill:#f1f1f1,color:#171717,stroke:#aaa;
@@ -62,7 +69,7 @@ flowchart TB
 
 **Writes:** user action → check account and signer permission → create a canonical protocol message → persist and submit safely → confirm the result.
 
-**Independent responsibilities:** the Farcaster protocol determines canonical social messages; the optional GenyCaster services store product-specific extras such as bookmarks and GENY eligibility. Neither replaces the other.
+**Independent responsibilities:** Farcaster protocol nodes determine canonical social messages; OpenProof provides authenticated account identity and verifies linked Farcaster connections; the GenyCaster account service stores product-specific extras in its own PostgreSQL database. An OpenProof login does not itself authorize a protocol signature, and a guest protocol read does not require the account database.
 
 The [Architecture Guide](docs/ARCHITECTURE.md) explains each layer, provider routing, read/write flow, local storage and security boundaries in more detail.
 
@@ -94,6 +101,12 @@ These integrations are distinct from Farcaster signing and core social reads. Di
 
 See [Features](docs/FEATURES.md) for what is implemented, in development or conceptual, including GenyPulse and the Native Apps roadmap.
 
+## Identity and server services
+
+The [OpenProof project](https://github.com/genyleap/openproof) supplies the independently deployed **`opp`** identity server. The configured first-party identity origin is [openproof.genyleap.com](https://openproof.genyleap.com). It handles OAuth/device authentication and linked Farcaster identities; the C++ client integrates through `src/providers/openproof_auth/`. Separately, `services/account-sync/` exposes authenticated product data backed by its own `genycaster_db` PostgreSQL database; `services/media-gateway/` supports uploads and bounded browser-specific OpenProof flows. `services/quick-auth/` and `services/snapchain-gateway/` have narrower, optional responsibilities.
+
+See [OpenProof & Server Services](docs/OPENPROOF_AND_SERVICES.md) for a service-by-service dependency map, authorization boundaries and source locations. OpenProof is a runtime service dependency for the configured account login, **not a linked dependency of the canonical Farcaster domain core**.
+
 ## Technology
 
 | Component | Approach |
@@ -102,6 +115,8 @@ See [Features](docs/FEATURES.md) for what is implemented, in development or conc
 | Presentation | **Qt 6.12 / Qt Quick**, platform-adaptive QML |
 | Local state | SQLite, incremental snapshots and a durable signed-write outbox |
 | Protocol | Canonical Farcaster data with HyperSnap-first, configurable multi-node routing |
+| Account identity | OpenProof (`opp`, OAuth/device authorization and linked Farcaster FID) |
+| Server-side product data | GenyCaster account API and its separate PostgreSQL `genycaster_db`; media gateway integrations |
 | Targets | macOS, Windows, Linux, Android, iOS and **WebAssembly** build targets |
 | Optional extensions | Mini Apps, context widgets, GENY product services, account-backed extras |
 
@@ -141,14 +156,15 @@ cmake --build --preset ui-debug
 ctest --preset ui-debug --output-on-failure
 ```
 
-See [Build Profiles](docs/10-build-deployment-profiles.md), [CI](ci/README.md) and [WebAssembly](docs/webassembly.md) for target toolchains and limitations. A successful build is not by itself a platform release acceptance.
+See [Build Profiles](docs/10-build-deployment-profiles.md), [Platform properties](properties/README.md), [CI](ci/README.md) and [WebAssembly](docs/webassembly.md) for target toolchains and limitations. A successful build is not by itself a platform release acceptance.
 
 ## Project structure
 
 ```text
 src/       Canonical domain, application, capability routing, adapters and storage
 ui/        Native and WebAssembly presentation, apps, widgets and visual resources
-services/  Optional authenticated product and gateway services
+properties/ Platform packaging metadata, manifests, native icons and PWA manifest
+services/  Authenticated product state and gateway services (separate OpenProof identity)
 tests/     Unit, contract, UI and regression tests
 ci/        Toolchains, source checks, build and packaging verification
 cmake/     Build helpers and platform configuration

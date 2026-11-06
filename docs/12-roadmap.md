@@ -2,32 +2,32 @@
 
 **Status snapshot:** November 2026 · **Product:** Beta · **Source channel:** v1.0.0-rc1
 
-This page distinguishes what is implemented, what is being improved, and what is still an idea. A source implementation does not imply a released or fully tested capability on every platform.
+This page tracks **implementation** independently from **qualification and release readiness**. Features that already work are not labeled “In progress” merely because cross-platform hardening or a broader release test matrix remains. A source implementation does not imply a released or fully tested capability on every platform.
 
 ## Status key
 
 | Status | Definition |
 |---|---|
-| **Complete** | The scoped engineering foundation is implemented and has source-level verification. Further maintenance may still be required. |
-| **In progress** | Usable implementation exists; specified behavior, security or platform acceptance is unfinished. |
+| **Complete (source scope)** | The phase's stated baseline is implemented in source with supporting code/tests. This does **not** certify all platforms, live services, signer security or release artifacts. |
+| **In progress** | Part of the phase's core implementation scope is incomplete or still gated, not merely awaiting final release tests. |
 | **Planned** | Requirements and acceptance criteria exist, but the full feature or validation program has not been completed. |
 | **Concept** | An exploration or placeholder only; not advertised as an available capability. |
 
 ## At a glance
 
-| Phase | Scope | Status | Evidence in source | Next acceptance gate |
+| Phase | Scope | Source implementation | Source evidence | Remaining qualification / release work |
 |---|---|---|---|---|
 | **01** | Shared C++ core and architectural boundaries | **Complete** | Named modules, domain/capability ports, build and architecture checks | Preserve dependency and ownership rules |
-| **02** | Local-first reads and multi-node routing | **In progress** | SQLite state, read adapters, HyperSnap-preferred routing, selectable node profiles | Offline, pagination and multi-node integration matrix |
-| **03** | Identity, secure signing and social writes | **In progress** | Account/session boundaries, signer interfaces, canonical writes and durable outbox | Explicit approval, revocation, fault/retry and real-node verification |
-| **04** | Social interface, media and accessibility | **In progress** | Cast feeds, threads, profiles, media, adaptive Qt Quick UI | Scroll, media, navigation, localization and device acceptance |
-| **05** | Mini Apps and wallet integration | **In progress** | Discovery, embedded host, wallet adapters on supported runtimes | Origin-scoped consent, permission expiry and cross-platform security tests |
-| **06** | Widgets, GENY integration and account extras | **In progress** | Reorderable widgets, holdings, GenyPulse, account-service Geny Pro policy | Service authentication, source correctness and data consistency |
-| **07** | Native Apps catalog/runtime | **Concept** | Navigation entry and Coming Soon view | Specify app format, sandbox, permissions, install/update model |
-| **08** | Independent nodes and derived discovery | **In progress** | Raw reads, bounded Following, node profiles and probes | Coverage at scale, self-hosted read/write end-to-end |
-| **09** | Performance and platform qualification | **Planned** | Cross-platform build targets and measurement methodology | Reproducible measurements and device-level release matrix |
-| **10** | Public-source and release readiness | **In progress** | Documentation, community policies, source CI and release tooling | License/SBOM, history/security review, clean target artifacts |
-| **11** | Optional future protocol extensions | **Concept** | Architectural extension points | Capability proposal, ADR, threat model, tests |
+| **02** | Local-first reads and multi-node routing | **Complete** | SQLite state, read adapters, HyperSnap-preferred routing, selectable node profiles | Offline, cursor and multi-node fault-injection acceptance |
+| **03** | Identity, signer and social-write pipeline | **Complete** | OpenProof identity, session/signer boundaries, canonical writes and durable outbox | Authorization/revocation review, real-node retries and vault/device qualification |
+| **04** | Social interface, media and localization | **Complete** | Cast feeds, threads, profiles, rich media, adaptive Qt Quick, i18n/l10n | Navigation/media stability, accessibility, device/browser and GPU frame-time acceptance |
+| **05** | Mini Apps and wallet integration | **In progress** | Discovery, embedded host and runtime-specific wallet adapters | Consent isolation, expiry/revocation and cross-platform security parity |
+| **06** | Widgets, GENY integration and account extras | **Complete** | Reorderable widgets, assets, GenyPulse, Geny Pro service policy and app-owned state | Live service verification, source accuracy and entitlement lifecycle tests |
+| **07** | Native Apps catalog/runtime | **Concept** | Navigation entry and Coming Soon view | Design sandbox, permissions, install/update model |
+| **08** | Independent nodes and derived discovery | **In progress** | Raw reads, bounded Following, node profiles and probes | Self-hosted read/write coverage and provenance at scale |
+| **09** | Performance and platform qualification | **Planned** | Build targets and measurement methodology exist | Publish reproducible performance and device-level release matrix |
+| **10** | Public-source and release readiness | **In progress** | Documentation, community policies, source CI and release tooling | License/SBOM, security review and reproducible target artifacts |
+| **11** | Optional future protocol extensions | **Concept** | Architectural extension points | Capability proposal, ADR, threat model and tests |
 
 ### Phase 01 — Core architecture
 
@@ -37,21 +37,21 @@ This page distinguishes what is implemented, what is being improved, and what is
 
 ### Phase 02 — Local-first data and protocol routes
 
-**In progress.** Cached canonical snapshots are available independently of a fresh network response. Read routes prefer HyperSnap by default while permitting Snapchain/compatible nodes for supported operations; local-derived views explicitly mark incomplete coverage.
+**Complete — source implementation.** Cached canonical snapshots are available independently of a fresh network response. Read routes prefer HyperSnap by default while permitting Snapchain/compatible nodes for supported operations; local-derived views explicitly mark incomplete coverage.
 
-**Remaining:** long-feed performance, source-affine pagination, offline/restart behavior, provider health, account isolation and route switching under failure. **Done when:** changing eligible providers does not mix continuation tokens or corrupt a cached feed, and no partial result is claimed as globally complete.
+**Remaining:** long-feed performance, source-affine pagination, offline/restart behavior, provider health, account isolation and route switching under failure. **Qualification gate:** changing eligible providers does not mix continuation tokens or corrupt a cached feed, and no partial result is claimed as globally complete.
 
 ### Phase 03 — Account identity and signed interaction
 
-**In progress.** Authentication, custody approval, protocol signers and provider submission are separate authorities. Canonical messages and an account-scoped durable outbox support the write pipeline.
+**Complete — baseline source implementation.** Authentication, custody approval, protocol signers and provider submission are separate authorities. Canonical messages and an account-scoped durable outbox support the write pipeline.
 
-**Remaining:** platform vault acceptance, explicit signer scope/expiry/revocation, approval on sensitive operations, restart and ambiguous-outcome reconciliation. **Done when:** no plaintext-key fallback, unauthorized signature or duplicate write on network retries is possible under the verified threat model.
+**Remaining:** platform vault acceptance, explicit signer scope/expiry/revocation, approval on sensitive operations, restart and ambiguous-outcome reconciliation. **Security/qualification gate:** no plaintext-key fallback, unauthorized signature or duplicate write on network retries is possible under the verified threat model.
 
 ### Phase 04 — Native social experience
 
-**In progress.** Qt Quick implements Home, Explorer, casts, conversations, profiles, rich media, notifications, composer, search, appearance and localization.
+**Complete — source feature set.** Qt Quick implements Home, Explorer, casts, conversations, profiles, rich media, notifications, composer, search, appearance and localization.
 
-**Remaining:** reliable navigation back to the exact cast and scroll offset, steady media rendering, touch/keyboard accessibility, RTL support and real GPU frame-time acceptance. **Done when:** representative device/browser tests demonstrate stable UX and measured frame performance.
+**Remaining:** reliable navigation back to the exact cast and scroll offset, steady media rendering, touch/keyboard accessibility, RTL support and real GPU frame-time acceptance. **Qualification gate:** representative device/browser tests demonstrate stable UX and measured frame performance.
 
 ### Phase 05 — Mini Apps and wallet permissions
 
@@ -61,9 +61,9 @@ This page distinguishes what is implemented, what is being improved, and what is
 
 ### Phase 06 — Context widgets and GENY product services
 
-**In progress.** Users can reorder built-in context widgets: assets, GenyPulse activity, calendar, market and suggestions. GENY balances on Base can be displayed for verified Farcaster wallets. The account service evaluates GENY Pro eligibility server-side from verified wallet balances, not from a local UI indicator.
+**Complete — source feature set.** Users can reorder built-in context widgets: assets, GenyPulse activity, calendar, market and suggestions. GENY balances on Base can be displayed for verified Farcaster wallets. The account service evaluates GENY Pro eligibility server-side from verified wallet balances, not from a local UI indicator.
 
-**Remaining:** data-source resilience, cross-device product-state correctness, server authorization and entitlement lifecycle tests. **Done when:** unavailable data is labeled correctly and no unverified balance, badge or client-supplied claim upgrades permissions. GENY functionality is optional and does not change the Farcaster domain.
+**Remaining:** data-source resilience, cross-device product-state correctness, server authorization and entitlement lifecycle tests. **Operational qualification gate:** unavailable data is labeled correctly and no unverified balance, badge or client-supplied claim upgrades permissions. GENY functionality is optional and does not change the Farcaster domain.
 
 ### Phase 07 — Native Apps
 
@@ -97,8 +97,8 @@ This page distinguishes what is implemented, what is being improved, and what is
 
 1. **Concept → Planned:** scope, ownership, user value and testable acceptance criteria are approved.
 2. **Planned → In progress:** owning code and regression tests exist; incomplete paths are visibly gated.
-3. **In progress → Complete:** applicable unit/contract/integration tests pass, security and offline behavior are reviewed, and the stated completion gate has evidence.
-4. **Complete → Released:** separate platform-specific packaging, signing, deployment and operational checks succeed. This is a release decision, not an automatic outcome of merging code.
+3. **In progress → Complete (source scope):** the described baseline implementation and its applicable source tests exist. Open security, operational or platform-qualification work remains explicitly listed rather than silently implying release readiness.
+4. **Complete → Released:** separate platform-specific packaging, signing, deployment, security and operational acceptance checks succeed. This is a release decision, not an automatic outcome of merging code.
 
 No percentages or completion dates are implied without a traceable measurement or delivery plan. Status changes require evidence, not only a UI screenshot.
 

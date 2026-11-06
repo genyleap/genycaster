@@ -156,3 +156,58 @@ test("the public status reflects the current Qt 6.12 release channel", () => {
     assert.match(status, /Beta/);
     assert.doesNotMatch(status, /Qt 6\.11|0\.4\.0|tools\/check_/);
 });
+
+test("OpenProof identity, opp runtime and independent product database are documented accurately", () => {
+    const readme = read("README.md");
+    const guide = read("docs/OPENPROOF_AND_SERVICES.md");
+    const arch = read("docs/ARCHITECTURE.md");
+    const account = read("services/account-sync/README.md");
+    const media = read("services/media-gateway/README.md");
+    const repo = read("docs/README.md");
+    const auth = read("docs/08-security-auth-and-signing.md");
+    for (const doc of [readme, guide, arch, account, media, repo, auth])
+        assert.match(doc, /OpenProof/i);
+    for (const doc of [readme, guide, arch, account]) {
+        assert.match(doc, /github\.com\/genyleap\/openproof/);
+        assert.match(doc, /genycaster_db/);
+    }
+    assert.match(guide, /apps\/opp/);
+    assert.match(guide, /openproof\.genyleap\.com/);
+    assert.match(guide, /PostgreSQL/);
+    assert.match(guide, /not a C\+\+/);
+    assert.match(guide, /HyperSnap/);
+    assert.match(guide, /Snapchain/);
+    assert.match(guide, /Guest\/public protocol reads do not depend/);
+    assert.match(guide, /Mini App wallet permission/);
+    assert.match(readme, /properties\/README\.md/);
+    assert.match(read("services/account-sync/server.mjs"), /GENYCASTER_DATABASE_URL/);
+    assert.match(read("services/account-sync/server.mjs"), /GENYCASTER_OPENPROOF_ISSUER/);
+});
+
+test("roadmap reports implemented foundations without concealing unfinished acceptance", () => {
+    const roadmap = read("docs/12-roadmap.md");
+    for (const phase of ["02", "03", "04", "06"])
+        assert.match(roadmap, new RegExp("\\| \\*\\*" + phase +
+            "\\*\\* \\|[^\\n]*\\| \\*\\*Complete\\*\\* \\|"));
+    for (const phase of ["05", "08", "10"])
+        assert.match(roadmap, new RegExp("\\| \\*\\*" + phase +
+            "\\*\\* \\|[^\\n]*\\| \\*\\*In progress\\*\\* \\|"));
+    assert.match(roadmap, /tracks \*\*implementation\*\* independently/);
+    assert.match(roadmap, /security/i);
+    assert.match(roadmap, /qualification/i);
+    assert.match(roadmap, /Complete → Released/);
+    assert.doesNotMatch(roadmap, /all platforms (are |have been )fully certified/i);
+});
+
+test("platform property and server dependency guides contain resolvable local links", () => {
+    for (const file of ["properties/README.md", "docs/OPENPROOF_AND_SERVICES.md"]) {
+        const dir = path.dirname(path.join(root, file));
+        for (const [, target] of read(file).matchAll(/\]\(([^)]+)\)/g)) {
+            if (/^(?:https?:|#|mailto:)/.test(target)) continue;
+            const relativeTarget = target.split("#")[0];
+            if (!relativeTarget) continue;
+            assert.ok(existsSync(path.resolve(dir, relativeTarget)),
+                      file + " → " + target);
+        }
+    }
+});

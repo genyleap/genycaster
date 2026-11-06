@@ -151,12 +151,10 @@ jobs:
           mkdir -p dist AppDir/usr/bin AppDir/usr/share/applications \
             AppDir/usr/share/icons/hicolor/512x512/apps build/ci-linuxdeploy
           cp build/native/bin/Genycaster AppDir/usr/bin/
-          cp ui/wasm/genycaster-512.png \
+          cp properties/Linux/genycaster.png \
             AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png
-          printf '%s\n' '[Desktop Entry]' 'Type=Application' \
-            'Name=GenyCaster' 'Exec=Genycaster' \
-            'Icon=genycaster' 'Categories=Network;' \
-            > AppDir/usr/share/applications/genycaster.desktop
+          cp properties/Linux/genycaster.desktop \
+            AppDir/usr/share/applications/genycaster.desktop
           curl --fail --location --retry 3 \
             -o build/ci-linuxdeploy/linuxdeploy.AppImage \
             https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage

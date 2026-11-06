@@ -2,6 +2,13 @@
 
 Provider-neutral upload authorization and stable media-delivery boundary for GenyCaster.
 
+This GenyCaster-owned gateway also exposes bounded browser authentication flows
+that verify linked identity via the separate [OpenProof `opp` service](https://github.com/genyleap/openproof/tree/main/apps/opp),
+configured at `https://openproof.genyleap.com`. The gateway does **not** own
+OpenProof accounts or its PostgreSQL database. The GenyCaster account API and
+its independent `genycaster_db` live under `services/account-sync/`.
+See [OpenProof and service boundaries](../../docs/OPENPROOF_AND_SERVICES.md).
+
 **Example addresses:** `uploads.example.com` and `media.example.com` are placeholders; configure your own deployment origins.
 
 The desktop client never receives reusable qStorage/S3/R2 credentials and never stores a provider

@@ -307,30 +307,6 @@ if(NOT ANDROID AND NOT EMSCRIPTEN)
     set_target_properties(genycaster PROPERTIES OUTPUT_NAME "Genycaster")
 endif()
 
-# macdeployqt consumes a real .app bundle; an ordinary Mach-O executable
-# cannot be deployed into a DMG with the Qt plugin and QML payload.
-if(APPLE)
-    # Keep a real Apple app bundle on both macOS and iOS. Qt generates
-    # the correct platform Info.plist for qt_add_executable.
-    set_target_properties(genycaster PROPERTIES
-        MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "Genycaster")
-    if(NOT IOS)
-        # Case-insensitive APFS can preserve a legacy lowercase directory
-        # even though Ninja links into Genycaster.app/Contents/MacOS.
-        # Normalize the physical directory casing after the native link.
-        add_custom_command(TARGET genycaster POST_BUILD
-            COMMAND "${CMAKE_COMMAND}"
-                "-DGENYCASTER_BUNDLE_PATH=$<TARGET_BUNDLE_DIR:genycaster>"
-                -P "${CMAKE_SOURCE_DIR}/cmake/FixMacOSBundleCase.cmake"
-            VERBATIM)
-    endif()
-    if(IOS)
-        set_target_properties(genycaster PROPERTIES
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.genyleap.genycaster"
-            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2")
-    endif()
-endif()
 # All native packages use a single GenyCaster mark. Generate the binary
 # assets with cmake/generate_app_icons.py; ship them so cross-builds do not
 # need image conversion tools.
@@ -338,34 +314,9 @@ set(_gcIcon "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-512.png")
 set_source_files_properties("${_gcIcon}" PROPERTIES QT_RESOURCE_ALIAS "app-icon.png")
 qt_add_resources(genycaster genycaster_app_icon PREFIX "/genycaster" FILES "${_gcIcon}")
 
-if(WIN32)
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/genycaster-app.rc"
-        "IDI_ICON1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/platform/windows/genycaster.ico\"\n")
-    target_sources(genycaster PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/genycaster-app.rc")
-    set_target_properties(genycaster PROPERTIES WIN32_EXECUTABLE TRUE)
-elseif(APPLE)
-    if(IOS)
-        set(_gcCatalog "${CMAKE_CURRENT_SOURCE_DIR}/platform/ios/Assets.xcassets")
-        target_sources(genycaster PRIVATE "${_gcCatalog}")
-        set_source_files_properties("${_gcCatalog}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-        set_target_properties(genycaster PROPERTIES
-            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
-    else()
-        set(_gcMacIcon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/genycaster.icns")
-        set_source_files_properties("${_gcMacIcon}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-        target_sources(genycaster PRIVATE "${_gcMacIcon}")
-        set_target_properties(genycaster PROPERTIES MACOSX_BUNDLE_ICON_FILE "genycaster.icns")
-    endif()
-elseif(ANDROID)
-    set_target_properties(genycaster PROPERTIES
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/platform/android")
-elseif(UNIX AND NOT EMSCRIPTEN)
-    include(GNUInstallDirs)
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/linux/genycaster.png"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps")
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/platform/linux/genycaster.desktop"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
-endif()
+# Keep platform package configuration in properties/ rather than
+# duplicating it in the shared Qt application target composition.
+include("${CMAKE_SOURCE_DIR}/properties/ConfigureTarget.cmake")
 target_compile_features(genycaster PRIVATE cxx_std_26)
 if(TARGET farcaster::platform_custody_recovery)
     target_link_libraries(genycaster PRIVATE farcaster::platform_custody_recovery)
@@ -637,7 +588,7 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-sw.js"
             "$<TARGET_FILE_DIR:genycaster>/genycaster-sw.js"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster.webmanifest"
+            "${CMAKE_SOURCE_DIR}/properties/WebAssembly/genycaster.webmanifest"
             "$<TARGET_FILE_DIR:genycaster>/genycaster.webmanifest"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/genycaster-icon.svg"

@@ -13,6 +13,7 @@ remaining acceptance gates and prior root report findings are maintained in
 - CHANGELOG.md, THIRD_PARTY_NOTICES.md, LICENSE — release/legal references
 - CMakeLists.txt, CMakePresets.json, flake.nix — root build integration
 - src/, ui/, tests/, cmake/, ci/ — actual implementation and verification
+- properties/ — per-platform package and launcher metadata (Android, iOS, macOS, Windows, Linux and WebAssembly)
 - services/, docs/, release-notes/ and .github/ — optional services, technical guidance and release governance
 
 Prototyping experiments are intentionally not tracked: tests must exercise the
@@ -28,7 +29,7 @@ shipping UI, resource and application contracts, not demo-specific artifacts.
   C++ rendering/math helpers (including market sparklines).
 - `ui/theme/`, `ui/assets/` and `ui/i18n/`: design tokens, production assets
   and localization catalogs.
-- `ui/platform/`: only genuinely platform-specific assets or integrations.
+- `properties/`: platform-specific packaging metadata, icons, Android deployment sources and browser PWA manifest. Browser runtime assets stay in `ui/wasm/`.
 - `ui/wasm/`: browser-only bootstrap and compatibility assets, not the
   complete application implementation.
 - `tests/ui/`: native Qt test sources, target definitions and CTest registration.

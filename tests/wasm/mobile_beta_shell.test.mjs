@@ -14,7 +14,7 @@ test("public app identity stays independent from the injected release label",()=
     const cmake=read("CMakeLists.txt");
     const pack=read("ci/package_wasm_assets.py");
     const html=read("ui/wasm/genycaster-shell.html");
-    const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
+    const manifest=JSON.parse(read("properties/WebAssembly/genycaster.webmanifest"));
     assert.match(cmake,/VERSION 1\.0\.0/);
     assert.equal(manifest.name,"Genycaster");
     assert.match(html,/<title>@@GENYCASTER_PRODUCT_NAME@@<\/title>/);
@@ -27,7 +27,7 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     const html=read("ui/wasm/genycaster-shell.html");
     const js=read("ui/wasm/genycaster-loader.js");
     const cpp=readGenycasterMain();
-    const manifest=JSON.parse(read("ui/wasm/genycaster.webmanifest"));
+    const manifest=JSON.parse(read("properties/WebAssembly/genycaster.webmanifest"));
     assert.match(html,/viewport-fit=cover/);
     assert.match(html,/<meta name="theme-color" content="#0b0c0f">/);
     assert.doesNotMatch(html,/<meta name="apple-mobile-web-app-status-bar-style"/);

@@ -77,6 +77,13 @@ Implementation references: `ui/components/ContextRail.qml`, `ui/components/GenyP
 
 ## Networks and platforms
 
+The [OpenProof identity service](https://github.com/genyleap/openproof)
+(`opp`) authenticates GenyCaster accounts and verifies linked Farcaster FIDs.
+App-owned bookmarks, profiles, drafts and other private product features are
+served by GenyCaster's **separate** authenticated account backend and PostgreSQL
+`genycaster_db`. Neither service replaces the selected Farcaster protocol node;
+see [OpenProof & Server Services](OPENPROOF_AND_SERVICES.md).
+
 The default protocol routing preference is **HyperSnap**; selectable Snapchain and compatible read/write routes depend on capability and deployment. Cached content may remain usable during a network outage. Native secure storage and browser wallet providers follow different platform security models.
 
 | Target | Source support |

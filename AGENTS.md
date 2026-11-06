@@ -77,6 +77,20 @@ Build a high-performance native Farcaster client in Modern C++ and Qt Quick/QML 
 - Resource ownership is deterministic RAII.
 - Types/enums use PascalCase; functions/locals use lowerCamelCase; private members use `m_` + lowerCamelCase.
 
+## Platform packaging and external identity ownership
+
+Platform package resources and their CMake configuration live under
+`properties/{Android,iOS,macOS,Windows,Linux,WebAssembly}/`, selected by
+`properties/ConfigureTarget.cmake`. The shared runtime remains under `ui/`
+and `src/`; do not add another device-specific application implementation
+or reintroduce embedded per-OS packaging blocks into `ui/CMakeLists.txt`.
+
+The configured account authority is the independent [OpenProof `opp`](https://github.com/genyleap/openproof/tree/main/apps/opp)
+identity server; GenyCaster owns a separate `services/account-sync/`
+API and PostgreSQL `genycaster_db`. Neither service is the canonical Farcaster
+protocol, and login must never imply protocol signing authority. See
+[OpenProof and Services](docs/OPENPROOF_AND_SERVICES.md).
+
 ## Dependency direction
 
 Stable concepts point inward; volatile mechanisms adapt to them.

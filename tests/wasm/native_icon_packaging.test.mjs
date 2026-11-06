@@ -16,7 +16,9 @@ function pngSize(blob) {
 }
 
 test('native icons share one canonical master and are explicitly packaged',()=>{
-  const cmake=text('ui/CMakeLists.txt');
+  const cmake=text('ui/CMakeLists.txt')+text('properties/ConfigureTarget.cmake')+
+    ['Android','iOS','macOS','Windows','Linux'].map(platform=>
+      text('properties/'+platform+'/Configure.cmake')).join('\n');
   const main=text('ui/app/main.cpp');
   assert.match(cmake,/set\(_gcIcon .*wasm\/genycaster-512\.png/);
   assert.match(cmake,/qt_add_resources\(genycaster genycaster_app_icon/);
@@ -30,7 +32,7 @@ test('native icons share one canonical master and are explicitly packaged',()=>{
   assert.match(text('cmake/generate_app_icons.py'),/requires only Python/i);
 });
 test('Windows PE icon has all normal shell sizes including 256px',()=>{
-  const ico=read('ui/platform/windows/genycaster.ico');
+  const ico=read('properties/Windows/genycaster.ico');
   assert.equal(ico.readUInt16LE(0),0);
   assert.equal(ico.readUInt16LE(2),1);
   const count=ico.readUInt16LE(4);
@@ -48,7 +50,7 @@ test('Windows PE icon has all normal shell sizes including 256px',()=>{
   for(const size of [16,32,48,128,256]) assert.ok(sizes.includes(size));
 });
 test('macOS ICNS has valid chunk boundaries and 512/1024 high resolution icons',()=>{
-  const icns=read('ui/platform/macos/genycaster.icns');
+  const icns=read('properties/macOS/genycaster.icns');
   assert.equal(icns.subarray(0,4).toString(),'icns');
   assert.equal(icns.readUInt32BE(4),icns.length);
   const chunks={};
@@ -65,14 +67,14 @@ test('macOS ICNS has valid chunk boundaries and 512/1024 high resolution icons',
   assert.equal(chunks.ic10.width,1024);
 });
 test('iOS App Store source is opaque 1024px asset-catalog icon',()=>{
-  const icon=pngSize(read('ui/platform/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'));
+  const icon=pngSize(read('properties/iOS/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'));
   assert.deepEqual(icon,{width:1024,height:1024,depth:8,colorType:2});
-  const contents=JSON.parse(text('ui/platform/ios/Assets.xcassets/AppIcon.appiconset/Contents.json'));
+  const contents=JSON.parse(text('properties/iOS/Assets.xcassets/AppIcon.appiconset/Contents.json'));
   assert.equal(contents.images[0].filename,'AppIcon-1024.png');
   assert.equal(contents.images[0].idiom,'universal');
 });
 test('Android supplies actual legacy icons, adaptive foreground and monochrome',()=>{
-  const base='ui/platform/android/';
+  const base='properties/Android/';
   const manifest=text(base+'AndroidManifest.xml');
   assert.match(manifest,/-- %%INSERT_APP_LIB_NAME%% --/);
   assert.match(manifest,/android:icon="@mipmap\/ic_launcher"/);
@@ -94,10 +96,35 @@ test('Android supplies actual legacy icons, adaptive foreground and monochrome',
   assert.match(text(base+'res/drawable/ic_launcher_foreground.xml'),/android:pathData=/);
 });
 test('Linux exposes correct freedesktop launcher and hicolor icon',()=>{
-  const png=pngSize(read('ui/platform/linux/genycaster.png'));
+  const png=pngSize(read('properties/Linux/genycaster.png'));
   assert.equal(png.width,512);
-  const desktop=text('ui/platform/linux/genycaster.desktop');
+  const desktop=text('properties/Linux/genycaster.desktop');
   assert.match(desktop,/^Exec=Genycaster$/m);
   assert.match(desktop,/^Icon=genycaster$/m);
   assert.match(desktop,/^Terminal=false$/m);
+});
+
+test('platform properties own all package artifacts without forking the shared Qt UI',()=>{
+  const cmake=text('ui/CMakeLists.txt')+text('properties/ConfigureTarget.cmake')+
+    ['Android','iOS','macOS','Windows','Linux'].map(platform=>
+      text('properties/'+platform+'/Configure.cmake')).join('\n');
+  const build=text('cmake/generate_app_icons.py');
+  const manifest=JSON.parse(text('properties/WebAssembly/genycaster.webmanifest'));
+  const readme=text('properties/README.md');
+  for(const dir of ['Android','iOS','macOS','Windows','Linux','WebAssembly']){
+    assert.ok(existsSync(resolve(root,'properties',dir)), 'properties/'+dir);
+    assert.match(readme,new RegExp('\\['+dir+'\\]'));
+    assert.ok(cmake.includes('properties/'+dir),dir+' configured from root');
+  }
+  assert.match(cmake,/configure_file\("\$\{CMAKE_SOURCE_DIR\}\/properties\/Windows\/Genycaster\.rc\.in"/);
+  assert.match(cmake,/QT_ANDROID_PACKAGE_SOURCE_DIR "\$\{CMAKE_SOURCE_DIR\}\/properties\/Android"/);
+  assert.match(cmake,/properties\/WebAssembly\/genycaster\.webmanifest/);
+  assert.match(build,/DEST = ROOT \/ "properties"/);
+  assert.match(build,/"Android\/res\//);
+  assert.equal(manifest.start_url,'./genycaster.html');
+  assert.equal(manifest.display,'standalone');
+  const resource=text('properties/Windows/Genycaster.rc.in');
+  assert.match(resource,/OriginalFilename", "Genycaster\.exe/);
+  assert.match(resource,/GENYCASTER_WINDOWS_ICON_PATH/);
+  assert.ok(!existsSync(resolve(root,'ui/platform')),'removed old platform property tree');
 });

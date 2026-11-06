@@ -42,6 +42,9 @@ if args.source:
     ):
         origin=(source/"genycaster-icon.svg"
                 if rel=="genycaster-brand.svg" else
+                (source/rel if (source/rel).is_file()
+                 else source.parent.parent/"properties/WebAssembly/genycaster.webmanifest")
+                if rel=="genycaster.webmanifest" else
                 source.parent/"assets/icons/genyleap/icons/actions/repost.svg"
                 if rel=="genycaster-update-icon.svg" else source/rel)
         dest=directory/("genycaster.html" if rel=="genycaster-shell.html" else rel)

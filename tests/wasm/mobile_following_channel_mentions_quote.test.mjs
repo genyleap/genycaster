@@ -33,7 +33,7 @@ test('Stories use only verified following graph and never feed author suggestion
  assert.match(read('ui/components/HomeFeedHeader.qml'),/root\.authenticated \? root\.recentProfiles : \[\]/);
 });
 test('Portrait policy is present and Web Safari gets a reversible landscape guard',()=>{
- const manifest=JSON.parse(read('ui/wasm/genycaster.webmanifest'));
+ const manifest=JSON.parse(read('properties/WebAssembly/genycaster.webmanifest'));
  assert.equal(manifest.orientation,'portrait');
  const js=read('ui/wasm/portrait-orientation-pre.js');
  assert.match(js,/orientation\.lock|orientation\.lock ===/); // inspected best-effort support

@@ -15,7 +15,9 @@ flowchart TB
     H["HyperSnap<br/>Preferred"]
     S["Snapchain<br/>Selectable"]
     O["Compatible nodes"]
-    PRODUCT["Optional product services<br/>Account extras · GENY"]
+    IDENTITY["OpenProof / opp<br/>Account authentication · Linked Farcaster FID"]
+    PRODUCT["GenyCaster account API<br/>Private product state · GENY"]
+    PG[("genycaster_db<br/>Independent PostgreSQL")]
 
     UI <--> CORE
     CORE <--> STORE
@@ -23,7 +25,10 @@ flowchart TB
     ROUTER --> H
     ROUTER --> S
     ROUTER --> O
-    CORE -. "Optional" .-> PRODUCT
+    CORE -. "Authenticate account" .-> IDENTITY
+    CORE -. "Account-backed extras" .-> PRODUCT
+    PRODUCT <--> PG
+    PRODUCT -. "Validate session / linked FID" .-> IDENTITY
 ```
 
 | Boundary | Responsibility |
@@ -32,7 +37,8 @@ flowchart TB
 | **Application and domain** | Canonical Farcaster operations, routing contracts and reconciliation |
 | **On-device state** | Cached snapshots, preferences and durable write queue |
 | **Capability router** | Select an eligible provider for each read or write |
-| **Optional services** | Account extras, media gateways and verified GENY-related benefits |
+| **OpenProof identity** | Independent `opp` service: account authentication, verified connections and linked Farcaster FID; no permission to sign arbitrary protocol messages |
+| **GenyCaster product service** | Independent account database and API for private extras; media gateways and GENY-related benefits |
 
 **Capability routing** means profile reads, feed reads and signed message submissions may use different supported adapters. HyperSnap is the default preference, not a dependency of the domain.
 
@@ -108,6 +114,14 @@ flowchart LR
 
 The distinction between protocol operations and derived services is documented in [Capability Taxonomy](02-capability-taxonomy.md), [Routing](04-provider-boundary-and-routing.md), and [Provider Affinity ADR](adr/0007-provider-affine-continuations.md). A self-hosted deployment can compose a different set of eligible adapters; support is not assumed for features whose adapters are missing.
 
+## OpenProof identity, server services and storage ownership
+
+[OpenProof](https://github.com/genyleap/openproof) is a separate self-hostable identity system; its server executable is [`opp`](https://github.com/genyleap/openproof/tree/main/apps/opp). GenyCaster currently composes account login against the configured [openproof.genyleap.com](https://openproof.genyleap.com) issuer. The C++ authentication integration lives in `src/providers/openproof_auth/`; direct Farcaster sign-in is also bound to a verified OpenProof-backed account/FID. Login and linked-account verification are distinct from custody authorization and Farcaster protocol signing.
+
+The GenyCaster-owned `services/account-sync/` service is a different server with its **own** PostgreSQL database (`genycaster_db`), schema/migrations and restricted API role. It persists bookmarks, profile extras, drafts, topics, notification state and account-related product data; OpenProof remains the identity authority and **does not share its PostgreSQL database** with this application service. `services/media-gateway/` handles bounded media delivery and some browser-bound identity flows. Other optional services, including protocol Quick Auth and Snapchain gateway, do not replace the OpenProof account authority. Canonical Farcaster content is still read/written through the selected protocol route (HyperSnap preferred, Snapchain optional).
+
+See [OpenProof & Server Services](OPENPROOF_AND_SERVICES.md) for a diagram, code paths, dependency types and security contracts, including what continues to work without the identity/product service.
+
 ## Signing and trust boundaries
 
 ```mermaid
@@ -151,7 +165,7 @@ Qt Quick's graphics API is selected for the platform and driver (Metal, Direct3D
 
 ## Optional product services
 
-The `services/` tree contains independent account/product and gateway boundaries: account synchronization for GenyCaster-specific metadata, media handling, authentication integrations, and a Snapchain gateway. These services are **not** the canonical Farcaster protocol itself and must not be represented as required for ordinary provider-independent domain logic.
+The `services/` tree contains GenyCaster-owned account/product and gateway implementations: private product state, media handling, bounded browser identity integrations and protocol gateways. The independent [OpenProof `opp` server](https://github.com/genyleap/openproof) is maintained in its **own repository**, not copied into `services/`. These services are **not** the canonical Farcaster protocol itself and are not required for ordinary provider-independent guest reads.
 
 A source-code build is not equivalent to an authorized production deployment. Credentials, App-FID attestation keys, database access and service-side controls remain operator-managed. Review individual service READMEs and [SECURITY.md](../SECURITY.md) before exposing endpoints.
 
@@ -165,6 +179,7 @@ A source-code build is not equivalent to an authorized production deployment. Cr
 | Persistence and migrations | `src/storage/` |
 | Qt UI / native entry points | `ui/components/`, `ui/app/` |
 | WebAssembly runtime | `ui/wasm/`, [WebAssembly](webassembly.md) |
+| Platform packaging | `properties/`, [Platform packaging properties](../properties/README.md) |
 | Build configurations | `CMakePresets.json`, [Build profiles](10-build-deployment-profiles.md) |
 | Tests and verification | `tests/`, [CI](../ci/README.md) |
 

@@ -8,6 +8,8 @@ The project is organized around a small collection of maintained product and eng
 |---|---|---|
 | [Product features](FEATURES.md) | Everyone | What the client supports, including i18n/l10n regional personalization, Mini Apps, Widgets, Native Apps and GENY |
 | [Architecture](ARCHITECTURE.md) | Everyone / developers | Understand the shared core, local state, routes and signer boundaries |
+| [OpenProof & server services](OPENPROOF_AND_SERVICES.md) | Developers / operators | Identity `opp`, verified Farcaster connections, GenyCaster PostgreSQL and service trust boundaries |
+| [Platform properties](../properties/README.md) | Developers / release maintainers | Platform-specific deployment metadata and icons without splitting the shared client |
 | [Development roadmap](12-roadmap.md) | Everyone / contributors | Phase-by-phase status, implementation evidence and acceptance gates |
 | [Performance](PERFORMANCE.md) | Developers | How launch, scrolling, media and resource use will be measured |
 | [Build and CI](../ci/README.md) | Contributors | Toolchains, target profiles, verification and packaging |

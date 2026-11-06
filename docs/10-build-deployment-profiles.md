@@ -4,6 +4,16 @@
 
 Provider and feature independence must be executable policy rather than documentation-only intent.
 
+## Platform property ownership
+
+Platform-specific packaging assets live under [`properties/`](../properties/README.md)
+(Windows `.rc.in`, Android manifest and resources, iOS AppIcon, macOS ICNS,
+Linux desktop/icon and WebAssembly PWA manifest). The shared Qt source and
+runtime composition stay in `ui/` and `src/`; packaging metadata must not be
+mistaken for separate platform implementations. CMake consumes these paths
+from the repository root, and the icon generator verifies their deterministic
+contents against the canonical source raster.
+
 ## Native executable identity
 
 The CMake target remains `genycaster`, while built native application files are
