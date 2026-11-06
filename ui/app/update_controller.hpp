@@ -26,6 +26,7 @@
 
 class QFile;
 class QNetworkReply;
+class QProcess;
 class QSettings;
 class QTimer;
 
@@ -121,12 +122,15 @@ private:
     void checkWebManifest(bool manual);
     void handleRelease(QNetworkReply* reply, bool manual);
     void finishDownload(QNetworkReply* reply);
+    void startFullDownload();
+    bool finalizeVerifiedPackage();
     void fail(QString message);
     void applyReleaseTranslation();
     QSettings& m_settings;
     QNetworkAccessManager m_network;
     QPointer<QNetworkReply> m_checkReply;
     QPointer<QNetworkReply> m_downloadReply;
+    QPointer<QProcess> m_deltaProcess;
     std::unique_ptr<QFile> m_file;
     QCryptographicHash m_hash{QCryptographicHash::Sha256};
     QString m_appVersion;
