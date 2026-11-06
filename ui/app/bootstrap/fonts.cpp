@@ -32,6 +32,22 @@ struct FontFamilies::Impl final {
     QString systemChinese{};
 };
 
+QString FontFamilies::forLanguage(QString languageTag) const
+{
+    languageTag = languageTag.trimmed().toLower();
+    if (languageTag == QStringLiteral("fa") || languageTag == QStringLiteral("ar"))
+        return !m_impl->persian.isEmpty() ? m_impl->persian : m_impl->systemRtl;
+    if (languageTag == QStringLiteral("hi"))
+        return !m_impl->devanagari.isEmpty() ? m_impl->devanagari : m_impl->systemDevanagari;
+    if (languageTag == QStringLiteral("ja"))
+        return !m_impl->japanese.isEmpty() ? m_impl->japanese : m_impl->systemJapanese;
+    if (languageTag == QStringLiteral("ko"))
+        return !m_impl->korean.isEmpty() ? m_impl->korean : m_impl->systemKorean;
+    if (languageTag == QStringLiteral("zh"))
+        return !m_impl->chinese.isEmpty() ? m_impl->chinese : m_impl->systemChinese;
+    return m_impl->systemText;
+}
+
 FontFamilies::FontFamilies() : m_impl{std::make_unique<Impl>()} {}
 FontFamilies::~FontFamilies() = default;
 
