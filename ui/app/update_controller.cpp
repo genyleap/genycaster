@@ -1,5 +1,4 @@
 #include "update_controller.hpp"
-#include "update/install.hpp"
 
 #include <QCoreApplication>
 #include <QDesktopServices>
@@ -24,6 +23,8 @@
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 #endif
+
+import genycaster.ui.update.install;
 
 namespace {
 const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases?per_page=20")};
