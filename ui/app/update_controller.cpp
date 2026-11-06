@@ -751,9 +751,44 @@ void UpdateController::finishDownload(QNetworkReply* reply)
 
 bool UpdateController::openDownloadedUpdate()
 {
-    if (!downloadSupported() || m_downloadedFilePath.isEmpty() ||
-        !QFileInfo::exists(m_downloadedFilePath)) return false;
-    return QDesktopServices::openUrl(QUrl::fromLocalFile(m_downloadedFilePath));
+    // Never trust a cache file merely because it passed verification when it
+    // was downloaded. Recheck after possible replacement/tampering and before
+    // asking the OS to execute a native installer.
+    const QFileInfo info{m_downloadedFilePath};
+    if (!downloadSupported() || !m_updateAvailable ||
+        m_downloadedFilePath.isEmpty() || !info.isFile() || info.isSymLink() ||
+        info.fileName() != m_assetName || !safeDigest(m_assetDigest) ||
+        !isOfficialAssetUrl(QUrl{m_assetUrl})) {
+        fail(QStringLiteral("No verified installer is ready"));
+        return false;
+    }
+
+    QFile installer{m_downloadedFilePath};
+    QCryptographicHash checksum{QCryptographicHash::Sha256};
+    if (!installer.open(QIODevice::ReadOnly) || !checksum.addData(&installer) ||
+        QString::fromLatin1(checksum.result().toHex()) != m_assetDigest) {
+        m_downloadedFilePath.clear();
+        fail(QStringLiteral("Cached update failed SHA-256 verification; download again"));
+        return false;
+    }
+    installer.close();
+    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(m_downloadedFilePath))) {
+        fail(QStringLiteral("Could not launch the verified OS installer"));
+        return false;
+    }
+
+#if defined(Q_OS_WIN)
+    // NSIS cannot replace an executable still running from the same install
+    // location. Release the primary instance lock, vault handles and Qt
+    // resources through the normal shutdown path before the wizard installs.
+    m_status = QStringLiteral("Closing GenyCaster for the Windows installer…");
+    m_error.clear();
+    emit changed();
+    QTimer::singleShot(150, QCoreApplication::instance(), [] {
+        QCoreApplication::quit();
+    });
+#endif
+    return true;
 }
 
 bool UpdateController::openReleasePage()
