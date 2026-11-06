@@ -10,8 +10,18 @@ const READ_METHODS = new Set([
   'eth_feeHistory','eth_gasPrice','eth_maxPriorityFeePerGas',
   'eth_getBlockTransactionCountByNumber','eth_getBlockTransactionCountByHash'
 ]);
-const SIGNING_PREFIXES = ['personal_sign','eth_sign','eth_signTypedData',
-    'eth_sendTransaction','eth_sendRawTransaction','wallet_','eth_sendUserOperation'];
+// Only explicitly supported wallet methods cross the host boundary. Blind
+// eth_sign and pre-signed raw transactions are deliberately not forwarded.
+const SIGNING_METHODS = new Set([
+  'personal_sign','eth_signTypedData','eth_signTypedData_v3',
+  'eth_signTypedData_v4','eth_sendTransaction','eth_sendUserOperation',
+  'wallet_switchEthereumChain','wallet_addEthereumChain','wallet_watchAsset',
+  'wallet_requestPermissions','wallet_revokePermissions','wallet_grantPermissions',
+  'wallet_sendCalls'
+]);
+const WALLET_READ_METHODS = new Set([
+  'wallet_getPermissions','wallet_getCapabilities','wallet_getCallsStatus'
+]);
 const WALLET_EVENTS = new Set(['accountsChanged','chainChanged','connect','disconnect','message']);
 
 function denied(message = 'Mini App wallet access was not authorized', code = 4100) {
@@ -484,7 +494,121 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
   });
 }
 
-export function createMiniAppEthereumProvider(origin, injected, authorize=requestMiniAppWalletApproval, launchUrl=origin) {
+
+// This host-level acknowledgement is NOT an EIP-1193 wallet signature and
+// never grants future writes. The wallet must independently confirm each RPC.
+export function requestMiniAppWalletActionApproval(origin,method,params,signal) {
+  if(signal?.aborted||typeof document==='undefined'||!document.body)
+    return Promise.resolve(false);
+  return new Promise(resolve=>{
+    const language=typeof window==='undefined'?'en':
+      (window.__genycasterPreferredLanguage||document.documentElement?.lang||
+      (typeof navigator==='undefined'?'en':navigator.language));
+    const rtl=/^(?:fa|ar)(?:[-_]|$)/i.test(language);
+    const fa=/^fa(?:[-_]|$)/i.test(language);
+    const ar=/^ar(?:[-_]|$)/i.test(language);
+    const wording=fa?{
+      title:'تأیید درخواست کیف پول',message:'امضای پیام',
+      transaction:'ارسال تراکنش',permission:'تغییر دسترسی کیف پول',
+      action:'درخواست حساس کیف پول',review:'جزئیات درخواست را در کیف پول هم بررسی و تأیید کنید.',
+      origin:'درخواست از',method:'روش',destination:'مقصد',value:'مقدار (wei، هگز)',
+      deny:'رد کردن',accept:'ادامه به کیف پول'
+    }:ar?{
+      title:'تأكيد طلب المحفظة',message:'توقيع رسالة',
+      transaction:'إرسال معاملة',permission:'تغيير إذن المحفظة',
+      action:'طلب حساس للمحفظة',review:'تحقق من التفاصيل ووافق في محفظتك بشكل منفصل.',
+      origin:'طلب من',method:'الطريقة',destination:'الوجهة',value:'القيمة (wei، hex)',
+      deny:'رفض',accept:'المتابعة إلى المحفظة'
+    }:{
+      title:'Review wallet request',message:'Sign a message',
+      transaction:'Send a transaction',permission:'Change wallet permissions',
+      action:'Sensitive wallet request',review:'Review the exact request and approve it separately in your wallet.',
+      origin:'Requested by',method:'Method',destination:'To',value:'Value (hex wei)',
+      deny:'Deny',accept:'Continue to wallet'
+    };
+    const type=method.startsWith('eth_sign')||method==='personal_sign'
+      ?wording.message:
+      method==='eth_sendTransaction'||method==='eth_sendUserOperation'
+      ||method==='wallet_sendCalls'?wording.transaction:
+      method.startsWith('wallet_')?wording.permission:wording.action;
+    const scrim=document.createElement('div');
+    Object.assign(scrim.style,{position:'fixed',inset:'0',zIndex:'2147483647',
+      background:'rgba(0,0,0,.77)',display:'grid',placeItems:'center',
+      padding:'16px',boxSizing:'border-box'});
+    const panel=document.createElement('section');
+    Object.assign(panel.style,{width:'min(390px,100%)',maxHeight:'90dvh',
+      overflow:'auto',borderRadius:'18px',background:'#202126',color:'#f4f4f5',
+      border:'1px solid #494650',padding:'20px',fontFamily:'system-ui,sans-serif',
+      boxSizing:'border-box',boxShadow:'0 12px 56px #0008'});
+    panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+    panel.setAttribute('aria-label',wording.title);
+    panel.setAttribute('dir',rtl?'rtl':'ltr');
+    const title=document.createElement('h2');
+    title.textContent=wording.title;
+    Object.assign(title.style,{fontSize:'19px',margin:'0 0 14px'});
+    const kind=document.createElement('p');
+    kind.textContent=type;
+    Object.assign(kind.style,{fontSize:'15px',fontWeight:'650',margin:'0 0 12px'});
+    const addLine=(key,value,ltr=true)=>{
+      const item=document.createElement('div');
+      Object.assign(item.style,{marginBottom:'10px'});
+      const label=document.createElement('div');label.textContent=key;
+      Object.assign(label.style,{fontSize:'12px',opacity:'.65',marginBottom:'3px'});
+      const content=document.createElement('div');content.textContent=value;
+      content.setAttribute('dir',ltr?'ltr':rtl?'rtl':'ltr');
+      Object.assign(content.style,{fontSize:'13px',overflowWrap:'anywhere',
+        padding:'9px',borderRadius:'8px',background:'#303038',
+        textAlign:'start'});
+      item.append(label,content);panel.append(item);
+    };
+    panel.append(title,kind);
+    addLine(wording.origin,String(origin).slice(0,300));
+    addLine(wording.method,method);
+    const transaction=Array.isArray(params)&&params[0]&&
+      typeof params[0]==='object'&&!Array.isArray(params[0])?params[0]:null;
+    if(transaction&&typeof transaction.to==='string')
+      addLine(wording.destination,transaction.to.slice(0,100));
+    if(transaction&&typeof transaction.value==='string')
+      addLine(wording.value,transaction.value.slice(0,100));
+    const note=document.createElement('p');note.textContent=wording.review;
+    Object.assign(note.style,{fontSize:'13px',color:'#bfc0ca',
+      lineHeight:'1.6',margin:'10px 0 16px'});
+    panel.append(note);
+    const buttons=document.createElement('div');
+    Object.assign(buttons.style,{display:'flex',gap:'10px'});
+    const deny=document.createElement('button');
+    deny.type='button';deny.textContent=wording.deny;
+    const approve=document.createElement('button');
+    approve.type='button';approve.textContent=wording.accept;
+    for(const button of [deny,approve])
+      Object.assign(button.style,{flex:'1',padding:'11px 8px',
+        minHeight:'44px',borderRadius:'10px',font:'inherit',cursor:'pointer',
+        background:'#34343c',color:'#f4f4f5',border:'1px solid #5b5963'});
+    approve.style.background='#7359f5';approve.style.borderColor='#7359f5';
+    buttons.append(deny,approve);panel.append(buttons);
+    scrim.append(panel);document.body.append(scrim);
+    let settled=false;
+    const previous=document.activeElement;
+    const finish=granted=>{
+      if(settled)return;
+      settled=true;
+      signal?.removeEventListener('abort',onAbort);
+      scrim.removeEventListener('keydown',onKey);
+      scrim.remove();
+      previous?.focus?.();
+      resolve(granted);
+    };
+    const onAbort=()=>finish(false);
+    const onKey=e=>{if(e.key==='Escape')finish(false);};
+    signal?.addEventListener('abort',onAbort,{once:true});
+    scrim.addEventListener('keydown',onKey);
+    deny.addEventListener('click',()=>finish(false));
+    approve.addEventListener('click',()=>finish(true));
+    deny.focus();
+  });
+}
+
+export function createMiniAppEthereumProvider(origin, injected, authorize=requestMiniAppWalletApproval, launchUrl=origin, approveAction=requestMiniAppWalletActionApproval) {
   if(!injected || typeof injected.request !== 'function')
     return null;
   const callbacks = new Map();
@@ -493,6 +617,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
   let grantedAddress='';
   let closed=false;
   let pendingApproval=null;
+  let sensitiveApprovalTail=Promise.resolve();
   const forwards=new Map();
   const guard=()=>{if(closed)throw denied('Mini App session is closed',4900);};
   const listen=(event,callback)=>{
@@ -505,16 +630,19 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
     for(const event of WALLET_EVENTS){
       const forward=(...args)=>{
         if(!granted||closed)return;
+        let safeArgs=args;
         if(event==='disconnect'){
           granted=false;grantedAddress='';
         }else if(event==='accountsChanged' && Array.isArray(args[0])){
           const account=typeof args[0][0]==='string'?args[0][0].toLowerCase():'';
           if(!account || account!==grantedAddress){
             granted=false;grantedAddress='';
+            // Never expose an unapproved account identity to this Mini App.
+            safeArgs=[[]];
           }
         }
         for(const callback of callbacks.get(event)||[]){
-          try{callback(...args);}catch(error){console.warn('[GenyCaster] Wallet listener failed',error);}
+          try{callback(...safeArgs);}catch(error){console.warn('[GenyCaster] Wallet listener failed',error);}
         }
       };
       injected.on(event,forward);
@@ -552,14 +680,27 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
       if(PUBLIC_METHODS.has(method))
         return injected.request(payload);
       if(!granted)throw denied('Connect your wallet before using this Mini App',4100);
-      if(!READ_METHODS.has(method)
-          && !SIGNING_PREFIXES.some(prefix=>method===prefix||method.startsWith(prefix)))
+      if(!READ_METHODS.has(method)&&!WALLET_READ_METHODS.has(method)
+          && !SIGNING_METHODS.has(method))
         throw denied('Wallet RPC method is not supported by GenyCaster',4200);
       // Bound untrusted RPC payload size before it crosses into the user's wallet.
-      if(JSON.stringify(payload.params??[]).length>65_536)
+      let size;
+      try{size=JSON.stringify(payload.params??[]).length;}
+      catch{throw denied('Invalid wallet RPC parameters',4200);}
+      if(size>65_536)
         throw denied('Wallet RPC parameters exceed the safe limit',4200);
-      // The actual injected wallet owns signature/transaction confirmation.
-      // An already-confirmed Mini App grant is not a signing authorization.
+      if(SIGNING_METHODS.has(method)){
+        // One visibly separate host prompt for EVERY sensitive operation,
+        // not a sticky permission shared with the next Mini App or reload.
+        const request=sensitiveApprovalTail.then(async()=>{
+          guard();
+          return approveAction(origin,method,payload.params,controller.signal);
+        });
+        sensitiveApprovalTail=request.then(()=>{},()=>{});
+        if(!await request)throw denied('Wallet operation rejected by the user',4001);
+        guard();
+      }
+      // The real wallet owns its own independent signature confirmation.
       return injected.request(payload);
     },
   };
