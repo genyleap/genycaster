@@ -20,13 +20,18 @@ function browser(width=1024) {
         }
         setAttribute(key, value) { this.attributes[key] = value; }
         append(...children) { this.children.push(...children); }
+        get firstChild() { return this.children[0] || null; }
+        replaceChildren(...children) { this.children = [...children]; }
         remove() { this.isConnected = false; }
         addEventListener(event, handler) { this.handlers[event] = handler; }
         focus() { this.focused = true; }
     }
     const document = {
         createElement: name => new Element(name),
+        getElementById: id => nodes.find(node => node.id === id) || null,
+        head: { append(node) { node.isConnected = true; } },
         body: { append(node) { node.isConnected = true; } },
+        documentElement: { getAttribute: () => 'dark' }
     };
     const window = { location: { origin: 'https://app.genycaster.example' }, innerWidth: width };
     vm.runInNewContext(hostSource, { window, document, URL,
