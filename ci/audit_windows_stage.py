@@ -61,6 +61,13 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
             raise ValueError(f"Runtime dependency missing: {name}")
     if not (stage / "qml").is_dir():
         raise ValueError("Qt QML modules missing from Windows runtime")
+    # windeployqt puts the official Microsoft redistributable beside the app.
+    # NSIS runs it to satisfy clean OS installations; never rely on the
+    # developer's machine already having the VC runtime installed.
+    redist = stage / ("vc_redist.arm64.exe" if arch == "arm64"
+                      else "vc_redist.x64.exe")
+    if not redist.is_file() or redist.stat().st_size <= 0:
+        raise ValueError(f"Missing Windows {arch} VC runtime redistributable")
     for name in DEVELOPMENT_DIRECTORIES:
         if (stage / name).exists():
             raise ValueError(f"SDK-only directory packaged in installer: {name}")
