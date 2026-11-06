@@ -23,6 +23,10 @@ class UpdateInstallTests(unittest.TestCase):
         self.assertIn("installDownloadedUpdate()", source)
         self.assertIn("checksum.addData(&installer)", source)
         self.assertIn("assetPreference(name)", source)
+        self.assertIn("m_assetUrl + QStringLiteral(\".zsync\")", source)
+        self.assertIn("startFullDownload();", source)
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("install -m 755 /usr/bin/zsync AppDir/usr/bin/zsync", workflow)
         self.assertIn('-android-") + arch + QStringLiteral(".apk")', source)
         self.assertIn("genycaster_update_scripts", qt)
         for name in ("appimage.sh", "macos.sh"):
@@ -68,6 +72,9 @@ class UpdateInstallTests(unittest.TestCase):
             applied = subprocess.run(args, capture_output=True, timeout=12, check=False)
             self.assertEqual(applied.returncode, 0, applied.stderr.decode())
             self.assertEqual(target.read_text(), new)
+            self.assertEqual(
+                (base / "genycaster-native-update.status").read_text().strip(),
+                "success")
 
     @unittest.skipUnless(os.name == "posix" and Path("/usr/bin/sha256sum").exists(),
                          "Linux SHA-256 utilities unavailable")
@@ -88,6 +95,9 @@ class UpdateInstallTests(unittest.TestCase):
                 capture_output=True, timeout=12, check=False)
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(target.read_text(), old)
+            self.assertEqual(
+                (base / "genycaster-native-update.status").read_text().strip(),
+                "failed:10")
 
 
 if __name__ == "__main__":
