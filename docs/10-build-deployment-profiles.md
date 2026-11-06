@@ -57,8 +57,15 @@ Release jobs package each desktop target for its **native CPU architecture**
 | Linux | `GenyCaster-v...-linux-<arch>.AppImage` | `GenyCaster-v...-linux-<arch>.deb`, AppImage `.zsync` |
 
 The macOS DMG is assembled with `macdeployqt`; the Windows installer
-includes the full `windeployqt`/QtKeychain/vcpkg payload and supplies an
-uninstaller; Linux AppImage and DEB use the same `linuxdeploy` AppDir.
+includes the deployed `windeployqt`/QtKeychain/vcpkg runtime, a GenyCaster
+Desktop shortcut, a Start Menu entry, and a matching uninstaller. The Windows
+stage is scanned before packaging: Qt SDK-only `bin/include/lib/mkspecs/qmltooling`
+folders are removed; the executable, every bundled DLL and QML plugin
+are checked for the selected Windows PE architecture (`x86_64` or `arm64`).
+Windows executable properties include publisher/copyright/trademark data;
+the NSIS agreement contains the Genyleap publisher notice followed by the
+**complete, unchanged GPLv3 license**, with third-party notices installed
+alongside the app. Linux AppImage and DEB use the same `linuxdeploy` AppDir.
 OS-provided system libraries are intentionally managed by the OS rather than
 replacing critical system libraries in the package.
 
@@ -88,12 +95,43 @@ checksum. These snapshots are **not installable update patches**: their
 manifest explicitly declares `installAction: unsupported`. The current
 `UpdateController` only downloads official architecture-compatible
 GitHub Release installer artifacts with SHA-256 verification and asks the
-user to open the OS installer. It **does not** apply a Windows/macOS archive
-in-place or replace running executables. A separate privileged/elevated
+user to open the OS installer. It checks the cached file **again** before
+opening it, and on Windows gracefully closes the running GenyCaster process
+after launching the NSIS installer so Windows can replace the application.
+It **does not** apply a Windows/macOS archive in-place or replace running
+executables without an OS installer. A separate privileged/elevated
 updater, signature and rollback checks are required before advertising
 automatic patch installation. Linux also publishes `.zsync` metadata,
 which enables block-level delta transfers when used by a compatible
 zsync client; the built-in Qt updater does not yet consume it.
+
+**Single desktop instance:** Windows, macOS and Linux use an OS-user-specific
+`QLockFile` and a local `QLocalServer`. Launching a second copy activates the
+first window rather than opening a second database/signer runtime. Test modes
+remain independent. This behavior still requires a native two-launch smoke
+test on each host OS; the Linux build server cannot prove Windows foreground
+activation behavior.
+
+**Release ownership and publication:** Version-tag pushes on main trigger the
+mandatory release matrix. Every required package and transport must exist
+before `softprops/action-gh-release` publishes the validated localized
+`release-notes/v<tag>.md` using the ephemeral `github.token` with
+`contents: write`, creating the Release as `github-actions[bot]` rather
+than a developer's personal token. Prerelease tags remain prereleases;
+stable tags create normal Releases after all required jobs pass. Manual
+`workflow_dispatch` builds cannot publish. Unsignable iOS CI archives and
+NixOS build manifests are not misrepresented as production installers.
+
+**Public update-feed prerequisite:** As long as `genyleap/genycaster` remains
+**private**, its GitHub Releases API and assets are not accessible to an
+unauthenticated desktop client. Do not put a GitHub PAT or organization secret
+inside the application. Before claiming end-user automatic updates, either
+publish public releases or mirror signed release artifacts and metadata into a
+publicly accessible, authenticated distribution service. The Windows/macOS
+runtime snapshots currently carry `installAction: unsupported`: they are
+transport snapshots, not installed update patches; no version-delta patch
+applicator is shipped. Linux `.zsync` is produced but is not yet consumed
+by the in-app updater.
 
 Unsigned CI test installers are not notarized/signed retail releases:
 Windows SmartScreen and macOS Gatekeeper can require a trusted publisher
