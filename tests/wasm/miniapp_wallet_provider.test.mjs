@@ -26,7 +26,7 @@ test('FID context is not wallet authorization and connected accounts start priva
   const {provider,calls}=fakeWallet();
   let approvals=0;
   const app=createMiniAppEthereumProvider('https://tasks.miniapps.genyleap.com',
-    provider,()=>{approvals++;return true;});
+    provider,()=>{approvals++;return true;},undefined,()=>true);
   assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
   assert.equal(calls.length,0);
   assert.deepEqual(await app.chains(),['eip155:8453']);
@@ -245,7 +245,7 @@ test('WalletConnect is offered without injected extensions and returns real sign
      assert.equal(injected.select('walletconnect'),true);
      await injected.connectWalletConnect({signal,onUri:()=>{}});
      return true;
-   });
+   },undefined,()=>true);
  assert.deepEqual(await wallet.provider.request({method:'eth_accounts'}),[]);
  assert.deepEqual(await wallet.provider.request({method:'eth_requestAccounts'}),
    ['0x0000000000000000000000000000000000000001']);
@@ -313,7 +313,7 @@ test('account switching or disconnecting revokes a previously granted wallet',as
    removeListener(event,cb){events.get(event)?.delete(cb);},
    fire(event,value){for(const fn of events.get(event)||[])fn(value);}
  };
- const wallet=createMiniAppEthereumProvider('https://mini.example',provider,()=>true);
+ const wallet=createMiniAppEthereumProvider('https://mini.example',provider,()=>true,undefined,()=>true);
  await wallet.provider.request({method:'eth_requestAccounts'});
  provider.fire('accountsChanged',['0x0000000000000000000000000000000000000003']);
  assert.equal(await wallet.provider.request({method:'personal_sign'}),
@@ -428,4 +428,78 @@ test('mobile wallet handoff is not blocked by asynchronous QR creation',()=>{
    'mobile wallet links must be offered before awaiting QR generation');
  assert.ok(handler.includes('qrContainer.hidden=false'));
  assert.ok(source.includes("stage==='creating'?promptText.creating"));
+});
+
+
+test('every sensitive request receives a separate host confirmation and can be denied',async()=>{
+ const {provider,calls}=fakeWallet();
+ const requests=[];
+ const app=createMiniAppEthereumProvider('https://one.example',provider,
+   ()=>true,undefined,async(origin,method)=>{
+     requests.push({origin,method});
+     return requests.length!==2;
+   });
+ await app.provider.request({method:'eth_requestAccounts'});
+ assert.equal(await app.provider.request({method:'personal_sign',params:['0x12']}),'0xsigned');
+ await assert.rejects(app.provider.request({method:'personal_sign',params:['0x13']}),
+   e=>e.code===4001);
+ assert.equal(await app.provider.request({method:'personal_sign',params:['0x14']}),'0xsigned');
+ assert.deepEqual(requests.map(r=>r.method),
+   ['personal_sign','personal_sign','personal_sign']);
+ assert.ok(requests.every(r=>r.origin==='https://one.example'));
+ assert.deepEqual(calls,['eth_requestAccounts','personal_sign','personal_sign']);
+ for(const method of ['eth_sign','eth_sendRawTransaction','wallet_unknownAction']){
+   await assert.rejects(app.provider.request({method,params:[]}),e=>e.code===4200);
+ }
+ app.dispose();
+});
+
+test('changing accounts revokes grant without leaking the new address in events',async()=>{
+ const {provider}=fakeWallet();
+ const notifications=[];
+ const app=createMiniAppEthereumProvider('https://one.example',provider,
+   ()=>true,undefined,()=>true);
+ await app.provider.request({method:'eth_requestAccounts'});
+ app.provider.on('accountsChanged',value=>notifications.push(value));
+ provider.emit('accountsChanged',['0x9999999999999999999999999999999999999999']);
+ assert.deepEqual(notifications,[[]]);
+ assert.deepEqual(await app.provider.request({method:'eth_accounts'}),[]);
+ await assert.rejects(app.provider.request({method:'personal_sign',params:['0x12']}),
+   e=>e.code===4100);
+ app.dispose();
+});
+
+test('reopening a Mini App never inherits its previous iframe grant',async()=>{
+ const {provider}=fakeWallet();
+ const first=createMiniAppEthereumProvider('https://same.example',provider,()=>true);
+ await first.provider.request({method:'eth_requestAccounts'});
+ first.dispose();
+ const second=createMiniAppEthereumProvider('https://same.example',provider,()=>false);
+ assert.deepEqual(await second.provider.request({method:'eth_accounts'}),[]);
+ await assert.rejects(second.provider.request({method:'eth_requestAccounts'}),
+   e=>e.code===4001);
+ second.dispose();
+});
+
+test('web startup gate waits for terminal browser account restore, including signed-out',()=>{
+ const signer=readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
+ const boot=readFileSync(new URL('../../ui/wasm/genycaster-loader.js',import.meta.url),'utf8');
+ const bridge=readFileSync(new URL('../../src/presentation/qt/presentation_bridge.cpp',import.meta.url),'utf8');
+ const native=readFileSync(new URL('../../ui/mobile/browser_signer_bridge.hpp',import.meta.url),'utf8');
+ assert.match(signer,/if\(signedOutLocally\(\)\)\{[\s\S]*?phase:'cancelled'/);
+ assert.match(signer,/phase:account&&!owner\?'ready':'cancelled'/);
+ assert.match(boot,/!accountRestoreSettled/);
+ assert.match(bridge,/m_authenticationStateObserved && !m_browserAccountRestorePending/);
+ assert.match(native,/presentation->finishBrowserAccountRestore\(\)/);
+});
+
+test('web Mini App loading protects iframe from the blank white first paint',()=>{
+ const source=readFileSync(new URL('../../ui/wasm/miniapp-host-pre.js',import.meta.url),'utf8');
+ assert.match(source,/background:surfaceColors\(\)\.bg,border:"0"/);
+ assert.match(source,/visibility:"hidden"/);
+ assert.match(source,/function makeLoadingOverlay\(\)/);
+ assert.match(source,/function registerFrameLoad\(session\)/);
+ assert.match(source,/clearTimeout\(session\.failureTimer\)/);
+ assert.match(source,/session\.frame\.addEventListener\('load'/);
+ assert.match(source,/previousFid>0 && previousFid!==nextFid/);
 });
