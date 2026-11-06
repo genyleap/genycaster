@@ -24,7 +24,6 @@ namespace genycaster::ui {
 
 struct DesktopSingleInstance::Impl {
     using Result = DesktopSingleInstance::Result;
-    enum class Result { Primary, ActivatedExisting, Error };
 
     [[nodiscard]] Result acquire(const QString& requestedUrl = {})
     {
