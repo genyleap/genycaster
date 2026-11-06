@@ -168,37 +168,69 @@ QJsonObject parsePublishedNotes(const QString& body)
         {QStringLiteral("translations"), translations}};
 }
 
+QString releaseArchitecture()
+{
+#if defined(Q_OS_ANDROID)
+    // Process architecture is the APK ABI, not an optional host-emulated ABI.
+#  if defined(__aarch64__)
+    return QStringLiteral("arm64-v8a");
+#  elif defined(__arm__)
+    return QStringLiteral("armeabi-v7a");
+#  else
+    return {};
+#  endif
+#else
+    const QString cpu = QSysInfo::currentCpuArchitecture().toLower();
+    if (cpu == QStringLiteral("arm64") || cpu == QStringLiteral("aarch64"))
+        return QStringLiteral("arm64");
+    if (cpu == QStringLiteral("x86_64") || cpu == QStringLiteral("amd64"))
+        return QStringLiteral("x86_64");
+    return {}; // Release matrix does not ship other desktop architectures.
+#endif
+}
+
 bool matchingAsset(const QString& name)
 {
     const QString n = name.toLower();
-    // Runtime snapshots and .zsync metadata are *transport ingredients*
-    // for a future out-of-process updater, not OS-installable packages.
-    // Never offer them as if QDesktopServices could safely apply a patch.
-    if (n.contains(QStringLiteral("-selfupdate-")) ||
+    const QString arch = releaseArchitecture();
+    // Match exact OS, ABI, extension and official package naming. Never
+    // mistake a development helper, runtime snapshot or adjacent platform
+    // file for an installable update package.
+    if (arch.isEmpty() || !n.startsWith(QStringLiteral("genycaster-v")) ||
+        n.contains(QStringLiteral("-selfupdate-")) ||
+        n.contains(QStringLiteral("-ci-test")) ||
         n.endsWith(QStringLiteral(".zsync"))) return false;
-    const QString arch = QSysInfo::currentCpuArchitecture().toLower();
-    const bool arm = arch.contains(QStringLiteral("arm")) || arch.contains(QStringLiteral("aarch64"));
-    const bool x64 = arch.contains(QStringLiteral("x86_64")) || arch.contains(QStringLiteral("amd64"));
-    // Refuse wrong-architecture packages; prefer explicit architecture labels.
-    const bool wrongArch = (arm && (n.contains(QStringLiteral("x86_64")) ||
-                                    n.contains(QStringLiteral("x64")))) ||
-                           (x64 && (n.contains(QStringLiteral("arm64")) ||
-                                    n.contains(QStringLiteral("aarch64"))));
-    if (wrongArch) return false;
 #if defined(Q_OS_MACOS)
-    return (n.endsWith(QStringLiteral(".dmg")) || n.endsWith(QStringLiteral(".pkg")))
-        && n.contains(QStringLiteral("mac"));
+    return n.endsWith(QStringLiteral("-macos-") + arch + QStringLiteral(".dmg"));
 #elif defined(Q_OS_WIN)
-    return n.endsWith(QStringLiteral(".msi")) || n.endsWith(QStringLiteral(".exe"));
+    return n.endsWith(QStringLiteral("-windows-") + arch + QStringLiteral(".exe"));
 #elif defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
-    return n.endsWith(QStringLiteral(".appimage")) || n.endsWith(QStringLiteral(".deb"))
-        || n.endsWith(QStringLiteral(".rpm"));
+    return n.endsWith(QStringLiteral("-linux-") + arch + QStringLiteral(".appimage"))
+        || n.endsWith(QStringLiteral("-linux-") + arch + QStringLiteral(".deb"));
 #elif defined(Q_OS_ANDROID)
-    return n.endsWith(QStringLiteral(".apk"));
+    return n.endsWith(QStringLiteral("-android-") + arch + QStringLiteral(".apk"));
 #else
     return false;
 #endif
 }
+
+int assetPreference(const QString& name)
+{
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(__EMSCRIPTEN__)
+    const bool runningAppImage = !qEnvironmentVariable("APPIMAGE").isEmpty();
+    const QString distro = QSysInfo::productType().toLower();
+    const bool debian = distro == QStringLiteral("debian")
+        || distro == QStringLiteral("ubuntu")
+        || distro == QStringLiteral("linuxmint");
+    const bool appImage = name.endsWith(QStringLiteral(".AppImage"), Qt::CaseInsensitive);
+    // Use the same install format to retain reliable migration behavior.
+    return appImage == (runningAppImage || !debian) ? 20 : 10;
+#else
+    Q_UNUSED(name);
+    return 10;
+#endif
+}
+
 bool isOfficialAssetUrl(const QUrl& u)
 {
     return u.scheme() == QStringLiteral("https") &&
@@ -624,6 +656,7 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
     m_downloadedFilePath.clear();
     if (m_updateAvailable) {
         const auto assets = obj.value(QStringLiteral("assets")).toArray();
+        int preferredRank = -1;
         for (const auto& value : assets) {
             const auto asset = value.toObject();
             const QString name = asset.value(QStringLiteral("name")).toString();
@@ -632,10 +665,12 @@ void UpdateController::handleRelease(QNetworkReply* reply, const bool manual)
             QString digest = asset.value(QStringLiteral("digest")).toString().toLower();
             if (digest.startsWith(QStringLiteral("sha256:"))) digest.remove(0, 7);
             if (!safeDigest(digest)) continue; // fail closed: no unverified installer
+            const int rank = assetPreference(name);
+            if (rank <= preferredRank) continue;
+            preferredRank = rank;
             m_assetName = name;
             m_assetUrl = url.toString();
             m_assetDigest = digest;
-            break;
         }
         m_status = m_assetUrl.isEmpty()
             ? QStringLiteral("Update available; use release page (no verified compatible package)")
