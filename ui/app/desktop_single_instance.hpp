@@ -7,6 +7,8 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QLockFile>
@@ -14,8 +16,11 @@
 #include <QQuickWindow>
 #include <QStandardPaths>
 #include <QString>
+#include <QUrl>
 
+#include <functional>
 #include <memory>
+#include <utility>
 
 namespace genycaster::ui {
 
@@ -23,7 +28,7 @@ class DesktopSingleInstance final {
 public:
     enum class Result { Primary, ActivatedExisting, Error };
 
-    [[nodiscard]] Result acquire()
+    [[nodiscard]] Result acquire(const QString& requestedUrl = {})
     {
         const QString directory = QStandardPaths::writableLocation(
             QStandardPaths::AppLocalDataLocation);
@@ -50,7 +55,16 @@ public:
             QLocalSocket socket;
             socket.connectToServer(m_serverName, QIODevice::WriteOnly);
             if (socket.waitForConnected(700)) {
-                socket.write("activate\n");
+                QJsonObject message{{QStringLiteral("action"), QStringLiteral("activate")}};
+                const QUrl url{requestedUrl, QUrl::StrictMode};
+                if (requestedUrl.size() <= 2048 && url.isValid() &&
+                    url.scheme() == QStringLiteral("https") && !url.host().isEmpty() &&
+                    url.userInfo().isEmpty()) {
+                    message.insert(QStringLiteral("url"), requestedUrl);
+                }
+                QByteArray bytes = QJsonDocument{message}.toJson(QJsonDocument::Compact);
+                bytes.append('\n');
+                socket.write(bytes);
                 socket.flush();
                 socket.waitForBytesWritten(700);
             }
@@ -70,11 +84,49 @@ public:
         QObject::connect(m_server.get(), &QLocalServer::newConnection,
                          m_server.get(), [this] {
             while (QLocalSocket* connection = m_server->nextPendingConnection()) {
-                connection->deleteLater();
-                activate();
+                auto buffer = std::make_shared<QByteArray>();
+                const auto consume = [this, connection, buffer] {
+                    buffer->append(connection->readAll());
+                    if (buffer->size() > 4096) {
+                        connection->disconnectFromServer();
+                        return;
+                    }
+                    const qsizetype end = buffer->indexOf('\n');
+                    if (end < 0) return;
+                    const auto doc = QJsonDocument::fromJson(buffer->left(end));
+                    const auto data = doc.object();
+                    if (doc.isObject() &&
+                        data.value(QStringLiteral("action")).toString()
+                            == QStringLiteral("activate")) {
+                        activate();
+                        const QString incoming = data.value(QStringLiteral("url")).toString();
+                        const QUrl url{incoming, QUrl::StrictMode};
+                        if (incoming.size() <= 2048 && url.isValid() &&
+                            url.scheme() == QStringLiteral("https") &&
+                            !url.host().isEmpty() && url.userInfo().isEmpty()) {
+                            if (m_openUrlHandler) m_openUrlHandler(incoming);
+                            else m_pendingUrl = incoming;
+                        }
+                    }
+                    connection->disconnectFromServer();
+                };
+                QObject::connect(connection, &QLocalSocket::readyRead,
+                                 connection, consume);
+                QObject::connect(connection, &QLocalSocket::disconnected,
+                                 connection, &QObject::deleteLater);
+                if (connection->bytesAvailable()) consume();
             }
         });
         return Result::Primary;
+    }
+
+    void setOpenUrlHandler(std::function<void(const QString&)> handler)
+    {
+        m_openUrlHandler = std::move(handler);
+        if (m_openUrlHandler && !m_pendingUrl.isEmpty()) {
+            const QString incoming = std::exchange(m_pendingUrl, {});
+            m_openUrlHandler(incoming);
+        }
     }
 
     void setWindow(QQuickWindow* window)
@@ -103,6 +155,8 @@ private:
     QPointer<QQuickWindow> m_window;
     QString m_serverName;
     QString m_error;
+    QString m_pendingUrl;
+    std::function<void(const QString&)> m_openUrlHandler;
     bool m_pendingActivation{false};
 };
 
