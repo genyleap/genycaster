@@ -23,6 +23,7 @@ module genycaster.ui.diagnostics.snapshots;
 import genycaster.ui.bootstrap;
 
 namespace genycaster::ui::diagnostics {
+using genycaster::ui::bootstrap::optionValue;
 
 int scheduleSnapshots(QGuiApplication& application,
                       QQmlApplicationEngine& engine,
