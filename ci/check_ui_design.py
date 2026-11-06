@@ -258,12 +258,15 @@ if (route_label not in app_shell or route_description not in app_shell
         or 'presentationBridge.authenticationRoute === "farcaster"' not in app_shell
         or 'root.authenticationRoute === "farcaster"' not in setup_screen):
     errors.append('Farcaster SIWF route must be distinguishable from OpenProof verification without claiming signer readiness')
-wheel_header = (ui/'mobile'/'browser_wheel_fallback.hpp').read_text(encoding='utf-8')
-wheel_main = (ui/'mobile'/'main.cpp').read_text(encoding='utf-8')
-if ('browser_wheel::scroll(*window, local, pixels)' not in wheel_main
-        or 'scrollBranch' not in wheel_header
-        or 'property("modal")' not in wheel_header):
-    errors.append('WASM wheel must scroll Quick Flickables and respect modal popups, not only send synthetic QWheelEvent')
+wheel_impl = (ui/'app'/'web'/'wheel.cpp').read_text(encoding='utf-8')
+wheel_api = (ui/'app'/'web'/'wheel.cppm').read_text(encoding='utf-8')
+wheel_main = (ui/'app'/'main.cpp').read_text(encoding='utf-8')
+if ('browser_wheel::scroll(*window, local, pixels)' not in wheel_impl
+        or 'scrollBranch' not in wheel_impl
+        or 'property("modal")' not in wheel_impl
+        or 'export module genycaster.ui.web.wheel;' not in wheel_api
+        or 'import genycaster.ui.web.wheel;' not in wheel_main):
+    errors.append('WASM wheel module must scroll Quick Flickables and respect modal popups, not only send synthetic QWheelEvent')
 
 market_icon = (ui/'components'/'MarketAssetIcon.qml').read_text(encoding='utf-8')
 if ('showManualLoadIndicator: false' not in market_icon
