@@ -546,7 +546,7 @@ ListView {
             }
 
             // Compact channel identity belongs on the SAME toolbar line as
-            // Back and Refresh. A separate row wasted vertical space on iOS.
+            // Back and Refresh. A separate row wastes space in compact layouts.
             RowLayout {
                 objectName: "mobileConversationChannelHeader"
                 visible: root.compact && root.activeView === "cast"

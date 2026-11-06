@@ -158,7 +158,7 @@ Item {
                     forceAutomaticDownload: true
                     deferNewLoadsWhileScrolling: false
                     // Keep requests staggered rather than decoding several
-                    // large banner textures on the same Safari render frame.
+                    // large banner textures in the same render frame.
                     loadDelayMs: Math.min(160, featuredCell.index * 35)
                     showLoadingIndicator: false
                     showFailureIndicator: false

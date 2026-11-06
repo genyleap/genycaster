@@ -36,7 +36,7 @@ test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
         assert.match(a.buildId,/^[a-f0-9]{8}$/);
         assert.equal(a.buildId,a.version.slice(0,8));
         assert.ok(existsSync(join(dir,a.wasm)));
-        // Safari uses the immutable .wasm.gz path directly. It must be
+        // Browsers can use the immutable .wasm.gz path directly. It must be
         // included in the release file list and integrity manifest, not
         // merely generated inside the CMake build directory.
         assert.equal(a.wasmGzip,a.wasm+'.gz');

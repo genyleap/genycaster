@@ -91,7 +91,7 @@ Drawer {
     width: parent ? (root.compact ? parent.width
                                   : Math.min(720, Math.max(1, parent.width - root.outerInset * 2))) : 720
     // The mobile panel follows useful content, not a fixed 620px sheet.
-    // With the iOS keyboard open, empty space no longer covers half the feed.
+    // With a virtual keyboard open, empty space must not cover half the feed.
     height: parent ? (root.compact
         ? Math.min(Math.max(180, parent.height - Theme.space4),
                    searchField.text.trim().length >= 2

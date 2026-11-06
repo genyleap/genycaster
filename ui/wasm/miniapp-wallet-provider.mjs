@@ -425,7 +425,7 @@ export function requestMiniAppWalletApproval(origin, signal, injected, launchUrl
         if(typeof uri!=='string'||!/^wc:[a-zA-Z0-9-]+@2\?/.test(uri)
             ||uri.length>4096)return;
         // Show mobile wallet handoff immediately, without waiting for QR
-        // generation. Mobile Safari cannot scan the code on its own screen.
+        // generation. A phone cannot scan a QR code shown on its own screen.
         qrContainer.hidden=false;
         details.textContent=promptText.scan;
         approve.textContent=promptText.approval;

@@ -14,7 +14,7 @@ QString TextSelectionSettings::mode() const { return m_mode; }
 bool TextSelectionSettings::nativeAvailable() const noexcept
 {
 #if defined(Q_OS_WASM) || defined(__EMSCRIPTEN__)
-    // Native iOS Safari selection works on DOM, not a Qt canvas.
+    // Browser-native selection operates on DOM text, not a Qt Quick canvas.
     return false;
 #else
     return true;

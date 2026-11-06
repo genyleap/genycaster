@@ -212,7 +212,7 @@ Popup {
         RowLayout {
             z: 20
             x: Theme.space3
-            // Keep Close above the displayed media, within the iOS safe-top
+            // Keep Close above the displayed media, within the top safe-area
             // region rather than aligned to the painted image.
             y: root.width < 700 ? Math.max(Theme.space3, 48) : Theme.space3
             width: Math.max(0, parent.width - Theme.space3 * 2)

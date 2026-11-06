@@ -1479,9 +1479,9 @@ int main(int argc, char* argv[])
         settings, std::move(appearanceOverrides));
     AppearanceController& appearanceController = *appearanceControllerOwner;
 #if defined(__EMSCRIPTEN__)
-    // Safari/Brave use the HTML document theme for their browser chrome,
-    // independent of Qt Quick's canvas. Keep it in sync with the effective
-    // app appearance (including manual overrides and system changes).
+    // Browser chrome uses the HTML document theme independently of Qt Quick's
+    // canvas. Keep it in sync with the effective app appearance, including
+    // manual overrides and system changes.
     const auto updateBrowserChromeTheme = [&appearanceController] {
         EM_ASM({
             if (typeof window.__genycasterSetBrowserChromeTheme === "function") {

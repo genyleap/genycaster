@@ -421,8 +421,8 @@
             })();
         },{once:true});
         document.body.appendChild(picker);
-        // Must remain synchronous inside the actual Qt button tap: Safari
-        // rejects file picker prompts after an await/dynamic import.
+        // Must remain synchronous inside the actual Qt button tap: browsers
+        // may reject file picker prompts after an await/dynamic import.
         picker.click();
     }
     const pendingRemovals=new Set();

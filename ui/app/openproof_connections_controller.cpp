@@ -85,7 +85,7 @@ namespace {
         && url.fragment().isEmpty() && url.port() == -1;
 }
 
-// QNetworkReply::abort() may emit finished() synchronously on Qt/macOS.
+// QNetworkReply::abort() may emit finished() synchronously on Qt backends.
 // Detach the QPointer and its callbacks before calling abort(), so neither
 // a reentrant completion nor a cancelled request can overwrite another
 // account's session or invalidate the pointer used for deferred deletion.
@@ -292,7 +292,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:
-        // QNetworkReply::abort() can synchronously emit finished() on macOS.
+        // QNetworkReply::abort() can synchronously emit finished() on Qt backends.
         const auto bytes=status==200 && reply->isReadable()
             && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
@@ -356,7 +356,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:
-        // QNetworkReply::abort() can synchronously emit finished() on macOS.
+        // QNetworkReply::abort() can synchronously emit finished() on Qt backends.
         const auto bytes=status==200 && reply->isReadable()
             && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
@@ -3557,7 +3557,7 @@ void OpenProofConnectionsController::fetchFeedback()
         if (m_feedbackRead != reply) { reply->deleteLater(); return; }
         m_feedbackRead.clear();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        // abort() can synchronously finish a closed reply on macOS. Do not
+        // abort() can synchronously finish a closed reply. Do not
         // read an unreadable QIODevice or adopt another account's results.
         const QByteArray bytes = status == 200 && reply->isReadable()
             // Owner-only history now includes full report text and notes.

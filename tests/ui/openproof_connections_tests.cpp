@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     assert(controller.connections().isEmpty());
     // Regression: setViewerFid() starts a GET for an existing cloud session.
     // A successful local recovery grant immediately supersedes it with POST.
-    // Qt/macOS may emit the cancelled GET's finished() synchronously from
+    // Qt can emit the cancelled GET's finished() synchronously from
     // abort(); previously this reset m_sessionRequest and then caused a null
     // dereference at m_sessionRequest->deleteLater().
     controller.acceptRecoveryGrant(

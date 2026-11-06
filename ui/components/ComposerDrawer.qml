@@ -181,14 +181,14 @@ GenyDrawer {
     // Composer content owns vertical scrolling; drawer-swipe gestures would otherwise
     // compete with Flickable/ScrollView input on touch devices.
     // Scrolling belongs to the content; swipe-to-dismiss was stealing
-    // vertical gestures from multi-cast threads on mobile Safari.
+    // vertical gestures from multi-cast threads on touch browsers.
     interactive: false
     property var focusedComposerEditor: null
     property bool pendingEditorReveal: false
 
     // Only reveal the *currently focused* editor. The former keyboard-height
     // listener scrolled to the first cast even while editing cast 2/3, while
-    // Add Cast independently forced contentY to the bottom. On iOS this
+    // Add Cast independently forced contentY to the bottom. This
     // produced the large jumps visible in thread composition recordings.
     function ensureEditorVisible(editor) {
         if (!root.opened || !editor || !editor.activeFocus
@@ -215,7 +215,7 @@ GenyDrawer {
             const margin = Theme.space3
             // Empty/short replies should always start below their parent
             // context. Scrolling to the oversized editor previously hid the
-            // parent beneath the status bar as soon as iOS raised the keyboard.
+            // parent beneath the status bar when the virtual keyboard opened.
             if (root.compact && root.replyMode && !root.threadMode
                     && Number(activeEditor.cursorPosition || 0) <= 1
                     && mapped.y + Math.min(activeEditor.height, 46) < flick.height - margin) {
@@ -346,7 +346,7 @@ GenyDrawer {
         threadTailModel.append({ "text": "" })
         const index = threadTailModel.count - 1
         // A Repeater delegate is usually materialized synchronously. Focus
-        // now, in the originating tap, so iOS WebKit may raise its keyboard.
+        // now, in the originating tap, so the browser may raise its keyboard.
         const row = threadRepeater.itemAt(index)
         if (row) {
             row.focusThreadEditor()
@@ -547,8 +547,8 @@ GenyDrawer {
     // Repeater editors are incubated after the drawer begins opening; a
     // one-shot 120ms focus call often fires before their first delegate.
     function focusVisualEditorNow() {
-        // Called synchronously from the originating tap: iOS WebKit normally
-        // rejects keyboard activation if focus is deferred to a timer.
+        // Called synchronously from the originating tap: browser input activation
+        // may be rejected if focus is deferred to a timer.
         if (root.compact) {
             mobilePlainEditor.forceActiveFocus()
             if (Qt.platform.os === "ios" || Qt.platform.os === "android"
@@ -658,7 +658,7 @@ GenyDrawer {
         if (root.initialAction === "media") {
             root.pendingMediaBlockIndex = visualEditor.activeBlockIndex
             if (Qt.platform.os === "wasm") {
-                // Safari requires a direct user tap to open the file picker.
+                // Browser file pickers may require a direct user gesture to open.
                 // Reveal the upload panel; its Choose button owns that tap.
                 root.insertKind = "media"
                 root.initialAction = ""
@@ -2426,7 +2426,7 @@ GenyDrawer {
             spacing: Theme.space1
             Layout.leftMargin: Theme.mobileGutter
             Layout.rightMargin: Theme.mobileGutter
-            // Keep buttons clear of the iOS home indicator and input accessory.
+            // Keep buttons clear of system gesture areas and keyboard accessories.
             // The parent Qt viewport has already shrunk above the keyboard;
             // never subtract keyboard height twice.
             Layout.bottomMargin: root.keyboardVisible ? Theme.space2
@@ -2474,7 +2474,7 @@ GenyDrawer {
                         compact: true
                         quiet: true
                         // A full-width textual ActionButton crowded the emoji
-                        // glyph on iPhone RTL. This is a compact media tool.
+                        // glyph in narrow RTL layouts. This is a compact media tool.
                         Layout.minimumWidth: Theme.scaleUi(50)
                         Layout.preferredWidth: Theme.scaleUi(50)
                         Layout.maximumWidth: Theme.scaleUi(50)

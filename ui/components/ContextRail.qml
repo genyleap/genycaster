@@ -348,7 +348,7 @@ Item {
                                             ? Math.min(420, 112 + Math.max(1, assetsCard.addressRows.length) * 78)
                                             : Math.max(152, assetFrontContent.implicitHeight + Theme.space3 * 2)
                     // Layout height animation on a scrollable card causes
-                    // repeated reflow while Safari resizes the viewport.
+                    // repeated reflow when the browser resizes the visual viewport.
                     // Keep each face stable; only the face itself animates.
 
                     Superellipse {

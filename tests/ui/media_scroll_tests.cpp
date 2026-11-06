@@ -362,7 +362,7 @@ int main(int argc, char** argv)
     expect(embedDefinition.isReady(), qPrintable(embedDefinition.errorString()));
 
     // Fast, genuine QQmlEngine load test for the entire same dependency
-    // chain that has caused macOS's QQmlApplicationEngine white screen.
+    // chain that can trigger a blank QQmlApplicationEngine startup window.
     // Keep it independent of the long rendering/scroll assertions below:
     // a media geometry regression must not mask an import/attached-property
     // error at application startup.
@@ -595,7 +595,7 @@ int main(int argc, char** argv)
     expect(notificationFixture->findChild<QObject*>(QStringLiteral("notificationList")) != nullptr,
            "empty notifications retain an interactive refresh viewport");
 
-    // The iPhone notification regression was in the reaction summary:
+    // The compact-layout notification regression was in the reaction summary:
     // stacked actor avatars escaped their allocated column, a colored
     // fill-height quote rail crossed the body, and a large link card
     // reflowed the feed. Exercise that QML delegate, not only replies.

@@ -139,7 +139,7 @@ export function promptForFarcasterRecovery(browser=globalThis,signal=null,onAuth
                 for(let i=0;i<words.length&&offset+i<count;i++)
                     inputs[offset+i].value=words[i].replace(/[^a-z]/gu,'');
                 // Pasting a complete phrase should dismiss the software keyboard,
-                // not jump focus through narrow fields (and zoom mobile Safari).
+                // not jump focus through narrow fields (or trigger mobile auto-zoom).
                 if(entirePhrase)submit.focus();
                 else inputs[Math.min(count-1,offset+words.length)]?.focus();
                 clearErrors();

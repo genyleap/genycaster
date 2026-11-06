@@ -329,7 +329,7 @@ void clearForbiddenOrigin(const QString& source)
         // Cloudflare Images performs content negotiation from Accept and may
         // otherwise return AVIF to a build that has no AVIF image plugin.
         // Keep the negotiated set deliberately conservative for social media.
-        // Some macOS Qt installations advertise optional AVIF/HEIC readers that
+        // Some Qt installations advertise optional AVIF/HEIC readers that
         // still fail on CDN-produced variants. Asking a CDN for a stable WebP,
         // PNG or JPEG representation avoids a transparent 1x1 failure sentinel
         // for otherwise valid profile banners.

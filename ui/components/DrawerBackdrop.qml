@@ -29,7 +29,7 @@ Item {
     }
     // WebAssembly's Qt Quick render loop runs on the browser main thread.
     // Sampling a live full-screen feed into a blurred texture every frame
-    // duplicates GPU work and causes scroll hitching on mobile Safari/WebGL.
+    // duplicates GPU work and can cause scroll hitching in browser renderers.
     readonly property bool browserRenderer: Qt.platform.os === "wasm"
     readonly property real captureScale: renderingController.profile === "fidelity"
                                               || renderingController.effectiveQuality === "fidelity" ? 1.0

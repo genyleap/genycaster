@@ -7,7 +7,7 @@ const read = file => readFileSync(new URL('../../'+file, import.meta.url), 'utf8
 const qml=read('ui/components/DirectionAwareTextArea.qml');
 
 // Exercise the actual QML JavaScript handler instead of only checking source
-// strings. Qt's native selection API can update selectedText while Safari
+// strings. Qt's native selection API can update selectedText while a browser
 // forwards release to a different touch grabber.
 function handler(name, after) {
  const start=qml.indexOf(name+': {');
@@ -37,7 +37,7 @@ test('selected text opens the WASM toolbar despite transient IME focus loss',()=
  assert.equal(opens,1,'a closed drawer must not leak its menu onto Home');
 });
 
-test('missing Safari touch release cannot indefinitely suppress Copy',()=>{
+test('missing browser touch release cannot indefinitely suppress Copy',()=>{
  const code=handler('onTriggered','onSelectedTextChanged');
  const root={customCanvasSelection:true,visible:true,selectedText:'Hello',
   selectionPressActive:true,selectionGestureActive:true,
@@ -66,7 +66,7 @@ test('selection change arms toolbar even while the original touch is pressed',()
  assert.equal(closes,0);
 });
 
-test('light iOS PWA chrome has a real fixed top color surface, not a sampled gradient',()=>{
+test('light installed-PWA chrome has a fixed top color surface, not a sampled gradient',()=>{
  const html=read('ui/wasm/genycaster-shell.html');
  assert.match(html,/<body>\s*<div id="ios-status-chrome" aria-hidden="true"><\/div>\s*<div id="qt-screen"/);
  assert.match(html,/#ios-status-chrome\{[^}]*position:fixed;top:0[^}]*background-color:var\(--app-chrome\)/);

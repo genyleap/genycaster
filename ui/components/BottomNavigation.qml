@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 
-// iOS Action Button-inspired mobile dock: five stable destinations in one
+// Compact navigation dock: five stable destinations in one
 // quiet capsule, one independently configurable primary action outside it.
 // Safe-area is still reserved by AppShell; never overlay the device gesture bar.
 Item {
@@ -165,7 +165,7 @@ Item {
             // Blur needs pixels OUTSIDE the visible pill. Cropping the
             // offscreen texture to exactly 56px forces the convolution to
             // repeat its edge pixels, producing the streaks visible over text
-            // and high-contrast images on Safari/WebGL.
+            // and high-contrast images in the browser renderer.
             //
             // Source coordinates refer to the active page in its own local
             // space. Keep overscan inside that page's bounds so a

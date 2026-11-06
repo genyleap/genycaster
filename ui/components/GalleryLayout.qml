@@ -296,7 +296,7 @@ Item {
                         preserveAspect: root.visibleCount === 1
                         // Keep native gallery artwork on the direct QSG image
                         // path, avoiding one offscreen image and mask layer per
-                        // common single-cast photo. Safari/WebGL still needs the
+                        // common single-cast photo. Browser/WebGL rendering still needs the
                         // mask because its vector corner cover can show seams at
                         // fractional DPR. Retain Metal's mask for single photos.
                         useLayeredMask: Qt.platform.os === "wasm"

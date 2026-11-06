@@ -20,8 +20,8 @@ constexpr int kCastPages = 40;
 constexpr int kGithubPages = 3;
 constexpr int kMaxResponseBytes = 1024 * 1024;
 
-// QNetworkReply::abort() is allowed to emit finished() inline (notably on
-// macOS). Detach and disconnect the completion slot BEFORE aborting; otherwise
+// QNetworkReply::abort() can emit finished() inline on Qt network backends.
+// Detach and disconnect the completion slot BEFORE aborting; otherwise
 // the slot may schedule deletion and clear the tracked QPointer, making the
 // subsequent deleteLater() a null dereference on the calling stack.
 void cancelReply(QPointer<QNetworkReply>& tracked, QObject* receiver) {

@@ -20,7 +20,7 @@ class QSettings;
 
 /** Per-device choice between Genycaster selection affordances and Qt's
  * platform text input / selection behavior. Browser WASM paints into a canvas
- * and cannot expose Safari DOM selection as a real platform option. */
+ * and cannot expose browser DOM selection as a native Qt canvas option. */
 class TextSelectionSettings final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged FINAL)

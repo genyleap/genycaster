@@ -25,7 +25,7 @@
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/emscripten.h>
 // A script-opened approval tab can otherwise remain an empty white page
-// after Farcaster verifies the session on iOS Safari. Keep an opener-held
+// after Farcaster verifies a session in the browser. Keep an opener-held
 // handle only for closing that tab; no tokens or session data cross it.
 EM_JS(int, openGenycasterSetupApproval, (const char* destination), {
     try {
@@ -2389,15 +2389,15 @@ bool PresentationBridge::copyText(const QString& text)
     }
 #if defined(__EMSCRIPTEN__)
     // Invoke the browser Clipboard API synchronously inside the user's Copy
-    // click gesture. On iOS WebKit Qt's virtual clipboard can remain local to
-    // the WASM canvas and never reach the OS clipboard. The browser write is
-    // asynchronous but is initiated while user activation is still valid.
+    // click gesture. Qt's virtual clipboard may remain local to the WASM
+    // canvas and never reach the system clipboard. The browser write is
+    // asynchronous but starts while user activation is still valid.
     const QByteArray utf8 = text.toUtf8();
     EM_ASM({
         const payload = UTF8ToString($0);
         // Qt's canvas has no native DOM text selection. Use the browser
-        // Clipboard API in the actual user gesture; on older iOS WebKit
-        // attempt a synchronous DOM copy as a compatibility fallback.
+        // Clipboard API in the actual user gesture; if it is unavailable or
+        // rejects the write, attempt a synchronous DOM copy as a fallback.
         const fallback = () => {
             let field;
             const focused = document.activeElement;
@@ -2907,7 +2907,7 @@ void PresentationBridge::beginRecoverySetup()
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     // Count without allocating another copy of sensitive recovery material.
-    // All native entry points (desktop, Android, iOS) accept 24 words only.
+    // Recovery input must contain exactly 24 words on every supported target.
     const auto exactly24Words = [](const QString& phrase) {
         int count{0};
         bool inWord{false};

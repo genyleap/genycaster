@@ -17,7 +17,7 @@ GenyDrawer {
     dimBackground: true
     contentPadding: Theme.space3
     // The default sheet inset plus a fixed 360px height left empty bands
-    // above Create and below the actions on iPhone. Size to real content.
+    // above Create and below actions in compact layouts. Size to real content.
     topPadding: Theme.space5
     bottomPadding: Theme.space3 + Theme.space3
     width: parent ? parent.width : 420

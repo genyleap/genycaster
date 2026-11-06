@@ -847,7 +847,7 @@ GenyDrawer {
                     }
 
 
-                    // Action Button is a persistent device-local iOS-like shortcut.
+                    // Action Button is a persistent device-local navigation shortcut.
                     // The icon follows its selected safe, built-in action.
                     ColumnLayout {
                         objectName: "mobileActionButtonPreferences"

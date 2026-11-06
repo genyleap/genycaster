@@ -29,7 +29,7 @@ Item {
     property real preKeyboardViewportHeight: 0
     property bool composerKeyboardWasVisible: false
 
-    // The iOS keyboard's Done action can dismiss the DOM keyboard without
+    // A browser keyboard's Done action can dismiss the DOM keyboard without
     // removing QML activeFocus from the TextArea. The WASM loader sizes the
     // Qt canvas from visualViewport.height; a large shrink followed by a
     // return to baseline is a reliable signal to restore the normal Home.
@@ -1175,7 +1175,7 @@ Item {
                 spacing: 0
 
                 AppHeader {
-                    // Breathing room between the iOS status-safe-area, brand
+                    // Breathing room between the device status-safe-area, brand
                     // chrome and the first content card. Safe area itself is
                     // already handled by the WASM viewport, so don't double it.
                     // Android already excludes the OS status bar from the Qt
@@ -1902,7 +1902,7 @@ Item {
                                 id: composerDrawer
                                 // On phones the composer must be positioned against the
                                 // live Qt viewport, not the readingPane whose geometry
-                                // may extend beyond the iOS keyboard.
+                                // may extend beyond the visible keyboard viewport.
                                 // The readingPane changes width and sometimes
                                 // position when desktop side rails reflow. A
                                 // modal hosted there used to switch into phone
@@ -1987,7 +1987,7 @@ Item {
 
                         // Floating dock with no full-width footer paint.
                         // Keep real content clearance for touch targets and
-                        // the iPhone home-indicator safe area.
+                        // the device's bottom gesture-navigation safe area.
                         BottomNavigation {
                             id: mobileBottomNavigation
                             // This stays under readingPane; never reparent a

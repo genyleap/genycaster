@@ -105,7 +105,7 @@ TextArea {
     // the cast composer and its reply/thread editors (not at the screen edge).
     // Keep the existing full context menu for desktop right-click.
     function showSelectionActions() {
-        // On iOS/WASM TextArea may temporarily lose activeFocus while the
+        // On touch and browser Qt runtimes, TextArea can lose activeFocus while the
         // selection/keyboard gesture is being delivered. Selection itself is
         // authoritative; the parent's visibility and composer close lifecycle
         // prevent this window-overlay popup from leaking onto Home.
@@ -146,7 +146,7 @@ TextArea {
             // the TextArea release when the browser's touch grab changes.
             // Retry after the finger lifts without losing the selection.
             if (root.selectionPressActive || root.selectionGestureActive) {
-                // Safari sometimes does not forward the final touch release to
+                // A browser may not forward the final touch release to
                 // TextArea after a selection gesture. Bound the retry loop so
                 // the user still gets Copy and Select All.
                 if (++root.selectionReleaseRetries < 4) {
@@ -168,7 +168,7 @@ TextArea {
             selectionBar.close()
         } else if (!selectionHandleDragging && root.visible) {
             // The selection signal, not onReleased, is the reliable completion
-            // path for iOS Safari's canvas-based touch gestures.
+            // path for canvas-based touch selection in browser runtimes.
             selectionDelay.restart()
         }
     }
@@ -212,7 +212,7 @@ TextArea {
 
     // Paint and hit-test the handles in the window overlay rather than inside
     // TextArea. Otherwise touches at either end are clamped to the text item's
-    // geometry and can be stolen by its Flickable/input method on iOS/WASM.
+    // geometry and can be stolen by its Flickable/input method on touch runtimes.
     Item {
         id: selectionGrips
         objectName: "composerTextSelectionHandles"
@@ -326,7 +326,7 @@ TextArea {
                 focusPolicy: Qt.NoFocus
                 text: qsTrId("genycaster.feedback.copy")
                 onClicked: {
-                    // Use the browser clipboard bridge on WASM/iOS Safari;
+                    // Use the browser clipboard bridge on WebAssembly;
                     // TextArea.copy() alone can stop at Qt's virtual clipboard.
                     presentationBridge.copyText(root.selectedText)
                     selectionBar.close()

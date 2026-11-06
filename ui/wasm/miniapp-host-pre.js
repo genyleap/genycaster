@@ -153,7 +153,7 @@
         for(const key of ["inset","top","right","bottom","left","width",
                           "height","transform","borderRadius"])sheet.style[key]="";
         Object.assign(sheet.style,base);
-        // iOS standalone browser safe-area belongs to the overlay chrome.
+        // Standalone browser safe-area insets belong to the overlay chrome.
         if(app.header) app.header.style.paddingTop = narrow
             ? "calc(8px + env(safe-area-inset-top,0px))" : "8px";
         if(app.holder) app.holder.style.paddingBottom = narrow

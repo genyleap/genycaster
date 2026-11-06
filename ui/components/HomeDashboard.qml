@@ -16,7 +16,7 @@ Item {
     property var rows: []
     property int localHour: new Date().getHours()
     property string draftText: ""
-    // The on-screen keyboard shrinks iOS Safari's visual viewport. Keep the
+    // A browser's on-screen keyboard can shrink the visual viewport. Keep the
     // draft and its actions visible rather than squeezing the full dashboard
     // and floating dock into the remaining height.
     readonly property bool composerFocused: mobileDraftEditor.activeFocus
@@ -42,7 +42,7 @@ Item {
                 root.finishComposerEditing()
         }
     }
-    // iOS can dismiss its software keyboard while Qt's text editor keeps
+    // The platform can dismiss its software keyboard while Qt's editor keeps
     // activeFocus. The shell explicitly ends editing on viewport restoration.
     function finishComposerEditing() {
         if (!root.composerFocused)

@@ -22,7 +22,7 @@ Button {
     // generate state churn while the timeline moves underneath them.
     hoverEnabled: false
     // A shaped containmentMask rejects pointer points near the edge of an
-    // already-small button in Qt WebAssembly mobile Safari. The visible
+    // already-small button in Qt WebAssembly on touch devices. The visible
     // superellipse is decorative; the full 44px target owns the interaction.
     focusPolicy: Qt.StrongFocus
     activeFocusOnTab: true

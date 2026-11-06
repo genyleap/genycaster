@@ -6,7 +6,7 @@ const stage=$("boot-stage"), fill=$("boot-fill"), percent=$("boot-percent"), ret
 const track=$("boot-track");
 // Browser chrome is separate from the Qt canvas. Match the actual Qt theme
 // after initialization; HTML defaults dark until the Qt bridge is ready.
-// The installed PWA status bar follows the same theme when iOS permits it.
+// The installed web app's status bar follows the theme when the host allows it.
 function applyBrowserChromeTheme(dark, remember=true) {
     const color=dark?"#0b0c0f":"#f1f1f3";
     document.documentElement.setAttribute("data-chrome-theme",dark?"dark":"light");
@@ -16,13 +16,13 @@ function applyBrowserChromeTheme(dark, remember=true) {
         try { localStorage.setItem("genycaster.browser.chrome.v1",dark?"dark":"light"); }
         catch (_) { /* optional appearance cache, never block Qt startup */ }
     }
-    // The PWA status-bar style is chosen by WebKit at installation time;
-    // rewriting a meta tag after boot cannot reliably re-style an installed
-    // iOS app. Do not force the legacy black-translucent mode.
+    // Some browser engines choose installed PWA status-bar behavior at install
+    // time. Updating a meta tag after boot may not restyle an installed app;
+    // do not force the legacy black-translucent mode.
 }
 window.__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme;
 // Keep the early, OS- or user-selected appearance until Qt reports its real
-// theme. Forcing dark here painted a black status bar over light iOS pages.
+// theme. Forcing dark here can paint a dark status bar over light pages.
 applyBrowserChromeTheme(
     document.documentElement.getAttribute?.("data-chrome-theme") !== "light", false);
 let finished=false, failed=false;
@@ -293,7 +293,7 @@ async function compressedWebKitEngine(url,options) {
        || !Number.isSafeInteger(gzipBytes) || gzipBytes<=0)return null;
     const gzipUrl=new URL(gzipName,location.href);
     // Older deployments incorrectly answered a missing .wasm.gz with a 200
-    // HTML shell. Safari can keep that response in its cache and force-cache
+    // HTML shell. A browser may retain that response and force-cache
     // would reuse it even after the correct sidecar has been deployed.
     // A release-scoped URL isolates old CDN entries; revalidation prevents
     // a poisoned browser cache from making the runtime permanently fail.
@@ -363,7 +363,7 @@ window.fetch=async function(input,options) {
     // Keep the browser's native streaming Response and the ordinary immutable
     // HTTP cache path. The origin serves a precompressed gzip representation
     // of this URL to compatible clients; this avoids an ~80 MiB uncompressed
-    // full-range download on Safari and preserves WebAssembly code caching.
+    // full-range download in supported browsers and preserves WASM code caching.
     // If native fetch fails, retry once with a full identity Range on WebKit
     // to bypass intermediaries that transform WASM response bodies.
     const nativeOptions={...options};
@@ -473,7 +473,7 @@ window.fetch=async function(input,options) {
 };
 const screen=$("qt-screen");
 function fit() {
-    // iOS can pan the visual viewport to the focused text input without
+    // A browser can pan the visual viewport to the focused text input without
     // scrolling the layout viewport. Keep the Qt canvas within that *visible*
     // rectangle, not at document y=0 behind the keyboard.
     const viewport=window.visualViewport;
@@ -776,7 +776,7 @@ return;
 }
 qmlRootReady=true;
 // QML cannot acknowledge readiness before its WASM engine has downloaded.
-// Resource Timing is advisory and is sometimes missing in Safari or after
+// Resource Timing is advisory and can be missing in browsers or after
 // service-worker/Cloudflare delivery: do not stay stuck at "Downloading".
 if(bootPhase==="download")
     showPhase("interface","Opening Genycaster…","Qt interface is ready.",
@@ -784,7 +784,7 @@ if(bootPhase==="download")
 revealReady();
 };
 // Fail visibly instead of leaving an endless animated "Downloading" state.
- // Count only foreground time: background Safari tabs may suspend downloads.
+ // Count only foreground time: background browser tabs may suspend downloads.
 let visibleBootMs=0, lastBootCheck=performance.now();
 const startupWatchdog=window.setInterval?.(()=>{
     if(finished||failed)return;

@@ -3,8 +3,8 @@
  * @brief       Browser emoji text-input recovery adapter.
  *
  * @details
- * Reconciles committed emoji input across WebAssembly and mobile Safari
- * event differences without duplicating text entered by Qt Quick.
+ * Reconciles browser emoji input events in Qt WebAssembly without
+ * duplicating committed text in Qt Quick.
  *
  * @author      Kambiz Asadzadeh
  * @since       26 Oct 2026
@@ -14,8 +14,8 @@
 
 #pragma once
 
-// A narrow iOS Safari / Qt WebAssembly input adapter. Emoji keys are often
-// delivered as beforeinput text without a corresponding Qt Quick key event.
+// A Qt WebAssembly input adapter. Some browsers deliver committed emoji via
+// beforeinput without a corresponding Qt Quick key event.
 // Only recover a committed emoji if Qt's focused composer still has exactly
 // the text it had before that event; ordinary IME, paste and native Qt clients
 // are completely untouched.

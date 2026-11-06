@@ -509,7 +509,7 @@ public:
             }
             // No completion callback is useful once the owner is tearing down,
             // and a late readAll() after abort is exactly what produces the
-            // QSslSocket "device not open" diagnostics on macOS.
+            // QSslSocket "device not open" diagnostics on affected Qt backends.
             QObject::disconnect(reply, nullptr, this, nullptr);
             if (reply->isRunning()) {
                 reply->abort();

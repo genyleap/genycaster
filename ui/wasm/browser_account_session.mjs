@@ -52,7 +52,7 @@ export async function ensureBrowserAccountSession({
       public_key:proof.publicKeyHex,signature:proof.signature,
     }),
   });
-  // A successful Set-Cookie is not sufficient on Safari: verify that the
+  // A successful Set-Cookie is not sufficient in a browser: verify that the
   // browser accepted the HttpOnly cookie via a fresh same-origin request.
   const restored=await request(fetchImpl,endpoint,{method:'GET',signal});
   if(restored.fid!==fid||!/^[A-Za-z0-9_-]{43}$/.test(restored.csrf_token||''))

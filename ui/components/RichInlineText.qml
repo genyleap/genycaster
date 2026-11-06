@@ -202,8 +202,8 @@ Item {
         }
     }
 
-    // Qt's read-only QTextDocument is a painted item and does not get iOS
-    // UITextView handles. Overlay grips are drawn separately from the clipped
+    // Qt's read-only QTextDocument is a painted item without platform-native
+    // selection handles. Overlay grips are drawn separately from the clipped
     // feed card and can move both endpoints across wrapped lines and bidi runs.
     Loader {
         id: castSelectionGripLoader
@@ -420,7 +420,7 @@ Item {
             // Always keep a native color-emoji fallback within this same
             // scene-graph delegate. Qt's QTextObjectInterface glyph is not
             // reliably repainted during a VectorImage's last transparent
-            // frame or recycled delegate transitions on macOS.
+            // frame or recycled delegate transitions in Qt Quick.
             Label {
                 id: inlineStaticEmoji
                 objectName: "richInlineEmojiStaticFallback"
