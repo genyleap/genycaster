@@ -272,7 +272,9 @@ set_tests_properties(ui.channel_picker_controller PROPERTIES TIMEOUT 12
 add_executable(farcaster_update_controller_tests
     update_controller_tests.cpp
     "${genycasterUiSourceDir}/app/update_controller.cpp"
-    "${genycasterUiSourceDir}/app/update_controller.hpp")
+    "${genycasterUiSourceDir}/app/update_controller.hpp"
+    "${genycasterUiSourceDir}/app/update/install.cpp"
+    "${genycasterUiSourceDir}/app/update/install.hpp")
 target_include_directories(farcaster_update_controller_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_update_controller_tests PRIVATE
