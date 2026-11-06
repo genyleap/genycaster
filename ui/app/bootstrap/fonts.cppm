@@ -14,6 +14,7 @@ public:
 
     // Preserve the exact installed-resource checks from native startup.
     [[nodiscard]] bool load();
+    [[nodiscard]] QString forLanguage(QString languageTag) const;
     [[nodiscard]] const QString& persian() const noexcept;
     [[nodiscard]] const QString& devanagari() const noexcept;
     [[nodiscard]] const QString& japanese() const noexcept;
