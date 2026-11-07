@@ -13,7 +13,7 @@ TextSelectionSettings::TextSelectionSettings(QSettings& settings, QObject* paren
 QString TextSelectionSettings::mode() const { return m_mode; }
 bool TextSelectionSettings::nativeAvailable() const noexcept
 {
-#if defined(Q_OS_WASM) || defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM) || defined(Q_OS_WASM)
     // Browser-native selection operates on DOM text, not a Qt Quick canvas.
     return false;
 #else
