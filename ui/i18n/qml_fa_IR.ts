@@ -6829,5 +6829,13 @@ Company | https://company.com</source>
             <source>Could not open this browser. Choose another.</source>
             <translation>مرورگر باز نشد. مرورگر دیگری انتخاب کنید.</translation>
         </message>
+        <message id="genycaster.editor.copy">
+            <source>Copy</source>
+            <translation>کپی</translation>
+        </message>
+        <message id="genycaster.setup.logo_3d_accessible">
+            <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
+            <translation>لوگوی سه‌بعدی GenyCaster. برای چرخاندن بکشید، برای بزرگ‌نمایی پیمایش کنید و برای بازنشانی کلید R را فشار دهید.</translation>
+        </message>
     </context>
 </TS>
