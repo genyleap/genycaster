@@ -119,6 +119,7 @@ import farcaster.transport.qtnetwork;
 import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
+import genycaster.ui.bootstrap.context;
 import genycaster.ui.bootstrap.providers;
 import genycaster.ui.bootstrap.profiles;
 import genycaster.ui.bootstrap.routes;
@@ -1030,33 +1031,10 @@ int main(int argc, char* argv[])
         new RemoteImageProvider{
             networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
             dataStorageController.runtimeStateHandle()});
-    engine.rootContext()->setContextProperty(QStringLiteral("platformTextFontFamily"), fontFamilies.systemText());
-    engine.rootContext()->setContextProperty(QStringLiteral("platformRtlFontFamily"), fontFamilies.systemRtl());
-    engine.rootContext()->setContextProperty(QStringLiteral("platformDevanagariFontFamily"), fontFamilies.systemDevanagari());
-    engine.rootContext()->setContextProperty(QStringLiteral("platformJapaneseFontFamily"), fontFamilies.systemJapanese());
-    engine.rootContext()->setContextProperty(QStringLiteral("platformKoreanFontFamily"), fontFamilies.systemKorean());
-    engine.rootContext()->setContextProperty(QStringLiteral("platformChineseFontFamily"), fontFamilies.systemChinese());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledPersianFontFamily"), fontFamilies.persian());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledDevanagariFontFamily"), fontFamilies.devanagari());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledJapaneseFontFamily"), fontFamilies.japanese());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledKoreanFontFamily"), fontFamilies.korean());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledChineseFontFamily"), fontFamilies.chinese());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledIconFontFamily"), fontFamilies.iconSolid());
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("bundledIconRegularFontFamily"), fontFamilies.iconRegular());
+    genycaster::ui::bootstrap::exposeFontFamilies(engine, fontFamilies);
     GenyPulseActivityController genyPulseActivity;
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("genyPulseActivity"), &genyPulseActivity);
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
     genyPulseActivity.setAccountConnections(&openProofConnections);
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("openProofConnections"), &openProofConnections);
     // The market cap follows a server-verified GENY balance, never the
     // client's public market-info estimate or a QML-supplied wallet.
     QObject::connect(&openProofConnections,
@@ -1196,47 +1174,47 @@ int main(int argc, char* argv[])
                      &presentationBridge, migrateExistingBookmarks);
     QObject::connect(&openProofConnections, &OpenProofConnectionsController::stateChanged,
                      &presentationBridge, migrateExistingBookmarks);
-    engine.rootContext()->setContextProperty(QStringLiteral("presentationBridge"), &presentationBridge);
-    engine.rootContext()->setContextProperty(QStringLiteral("channelDirectory"), &channelPickerController);
-    engine.rootContext()->setContextProperty(QStringLiteral("dataStorage"), &dataStorageController);
-    engine.rootContext()->setContextProperty(QStringLiteral("richComposer"), &richComposerController);
-    engine.rootContext()->setContextProperty(QStringLiteral("emojiController"), &emojiController);
-    engine.rootContext()->setContextProperty(QStringLiteral("mediaUpload"), &mediaUploadController);
-    engine.rootContext()->setContextProperty(QStringLiteral("mediaClassifier"), &mediaClassifier);
-    engine.rootContext()->setContextProperty(QStringLiteral("mediaPlayback"), &mediaPlayback);
-    // QAudioOutput probes host audio devices. The
-    // offscreen/minimal QPA backends do not have a device service, and some
-    // Linux PipeWire builds crash during that probe. Headless smoke and
-    // automation must never activate a platform audio device.
+    // Borrowed QML controller pointers remain valid until the QML roots
+    // are released; registration transfers no ownership.
+    if (!genycaster::ui::bootstrap::exposeControllers(engine, {
+        {"genyPulseActivity", &genyPulseActivity},
+        {"openProofConnections", &openProofConnections},
+        {"presentationBridge", &presentationBridge},
+        {"channelDirectory", &channelPickerController},
+        {"dataStorage", &dataStorageController},
+        {"richComposer", &richComposerController},
+        {"emojiController", &emojiController},
+        {"mediaUpload", &mediaUploadController},
+        {"mediaClassifier", &mediaClassifier},
+        {"mediaPlayback", &mediaPlayback},
+        {"localizationController", &localizationController},
+        {"geoLocationResolver", &geoLocationResolver},
+        {"linkPreviewResolver", &linkPreviewResolver},
+        {"browserLinkMetadataController", &browserLinkMetadataController},
+        {"browserTokenPreviewController", &browserTokenPreviewController},
+        {"castViewController", &castViewController},
+        {"browserReactionController", &browserReactionController},
+        {"miniAppHost", &miniAppHost},
+        {"miniAppCatalog", &miniAppCatalog},
+        {"miniAppTaskManager", &miniAppTaskManager},
+        {"liveInsights", &liveInsightsController},
+        {"nodeSelectionController", &nodeSelectionController},
+        {"providerProfiles", &providerProfilesController},
+        {"updateController", &updateController},
+        {"appearanceController", &appearanceController},
+        {"renderingController", &renderingController},
+        {"textSelectionSettings", &textSelectionSettings},
+    })) return 2;
+    // Headless QPA backends lack an audio output device.
     const QString qpaBackend = QGuiApplication::platformName();
-    engine.rootContext()->setContextProperty(QStringLiteral("nativeAudioOutputEnabled"),
-        qpaBackend != QStringLiteral("offscreen")
-        && qpaBackend != QStringLiteral("minimal"));
-    engine.rootContext()->setContextProperty(QStringLiteral("localizationController"), &localizationController);
-    engine.rootContext()->setContextProperty(QStringLiteral("geoLocationResolver"), &geoLocationResolver);
-    engine.rootContext()->setContextProperty(QStringLiteral("linkPreviewResolver"), &linkPreviewResolver);
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("browserLinkMetadataController"), &browserLinkMetadataController);
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("browserTokenPreviewController"), &browserTokenPreviewController);
-    engine.rootContext()->setContextProperty(QStringLiteral("castViewController"), &castViewController);
-    engine.rootContext()->setContextProperty(
-        QStringLiteral("browserReactionController"), &browserReactionController);
-    engine.rootContext()->setContextProperty(QStringLiteral("miniAppHost"), &miniAppHost);
-    engine.rootContext()->setContextProperty(QStringLiteral("miniAppCatalog"), &miniAppCatalog);
-    engine.rootContext()->setContextProperty(QStringLiteral("miniAppTaskManager"), &miniAppTaskManager);
-    engine.rootContext()->setContextProperty(QStringLiteral("liveInsights"), &liveInsightsController);
-    engine.rootContext()->setContextProperty(QStringLiteral("nodeSelectionController"), &nodeSelectionController);
-    engine.rootContext()->setContextProperty(QStringLiteral("providerProfiles"), &providerProfilesController);
-    engine.rootContext()->setContextProperty(QStringLiteral("updateController"), &updateController);
 #if defined(Q_OS_WASM)
-    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{true});
+    constexpr bool webReadOnly = true;
 #else
-    engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{false});
+    constexpr bool webReadOnly = false;
 #endif
-    engine.rootContext()->setContextProperty(QStringLiteral("appearanceController"), &appearanceController);
-    engine.rootContext()->setContextProperty(QStringLiteral("renderingController"), &renderingController);
-    engine.rootContext()->setContextProperty(QStringLiteral("textSelectionSettings"), &textSelectionSettings);
+    genycaster::ui::bootstrap::exposePlatformFlags(
+        engine, webReadOnly, qpaBackend != QStringLiteral("offscreen")
+                               && qpaBackend != QStringLiteral("minimal"));
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     engine.rootContext()->setContextProperty(QStringLiteral("nodeProviderLabel"),
         providerProfilesController.activeReadProviderLabel());
