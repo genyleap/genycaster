@@ -88,6 +88,7 @@ def main() -> None:
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
         ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
         ("bootstrap/worker", "genycaster.ui.bootstrap.worker"),
+        ("bootstrap/teardown", "genycaster.ui.bootstrap.teardown"),
         ("web/wheel", "genycaster.ui.web.wheel"),
         ("update/install", "genycaster.ui.update.install"),
         ("desktop/instance", "genycaster.ui.desktop.instance"),
@@ -110,6 +111,12 @@ def main() -> None:
     assert 'import genycaster.ui.bootstrap.worker;' in entry
     assert "bootstrap.start(std::move(bootstrapRuntime));" in entry
     assert "bootstrap.join();" in entry
+    assert 'import genycaster.ui.bootstrap.teardown;' in entry
+    assert "bootstrap::releaseQmlRoots(engine, mainWindow);" in entry
+    assert entry.index("shutdownScope.stop();") < entry.index("bootstrap.join();") < entry.index(
+        "bootstrap::releaseQmlRoots(engine, mainWindow);")
+    assert "QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete)" in Path(
+        "ui/app/bootstrap/teardown.cpp").read_text(encoding="utf-8")
     assert 'std::thread worker' not in entry
     assert 'RenderingController::canonicalProfile' not in Path(
         "ui/app/bootstrap/options.cpp").read_text(encoding="utf-8")
