@@ -28,6 +28,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Previous release regression contract", ("python3", "ci/check_r5_release_contract.py")),
     ("Rich publishing regression contract", ("python3", "ci/check_r7_release_contract.py")),
     ("Release notes/version gate", ("python3", "ci/release_gate.py")),
+    ("Browser/native platform boundary",
+     ("node", "--test", "tests/wasm/native_executable_and_platform_scope.test.mjs")),
     ("Native update integrity and package regression suite",
      ("python3", "-m", "unittest",
       "ci.test_runtime_configuration", "ci.test_updates",
