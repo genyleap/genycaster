@@ -386,6 +386,11 @@ target_sources(genycaster
         app/diagnostics/snapshots.cppm
         app/diagnostics/smoke.cppm
 )
+if(NOT EMSCRIPTEN)
+    target_sources(genycaster
+        PRIVATE app/bootstrap/teardown.cpp
+        PRIVATE FILE_SET CXX_MODULES FILES app/bootstrap/teardown.cppm)
+endif()
 target_include_directories(genycaster PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
