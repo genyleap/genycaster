@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <utility>
 
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
 #include <emscripten.h>
 #include <cstdlib>
 #endif
@@ -364,7 +364,7 @@ bool ProviderProfilesController::removeProfile(
         m_settings.sync();
         return fail(QStringLiteral("storage"));
     }
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     // Removing a profile also clears its per-tab credential so a later
     // profile cannot accidentally inherit an old provider's secret.
     if (!writer) {
@@ -665,7 +665,7 @@ void ProviderProfilesController::runProbeStep(
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(8'000);
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     if (id != QStringLiteral("draft")) {
         const QByteArray idUtf8 = id.toUtf8();
         // Per-tab credential, scoped to this specific HTTPS instance.
@@ -808,7 +808,7 @@ bool ProviderProfilesController::setSessionReadApiKey(
         }
     }
     if (!eligible) return fail(QStringLiteral("unknown_provider"));
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     const QByteArray name = id.toUtf8();
     const bool stored = EM_ASM_INT({
         try {
@@ -839,7 +839,7 @@ void ProviderProfilesController::acceptBrowserPaste(const QString& text)
     emit clipboardChanged();
 }
 
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
 namespace {
 QPointer<ProviderProfilesController> pendingClipboardController{};
 }
@@ -852,7 +852,7 @@ extern "C" EMSCRIPTEN_KEEPALIVE void genycasterNodeClipboardResult(const char* u
 
 void ProviderProfilesController::requestBrowserPaste()
 {
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     pendingClipboardController = this;
     EM_ASM({
         if (!navigator.clipboard || !navigator.clipboard.readText) return;
