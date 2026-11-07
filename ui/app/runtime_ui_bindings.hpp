@@ -56,4 +56,41 @@ void connectBrowserMediaUpload(MediaUploadController& controller,
 void connectMediaPlayback(MediaPlaybackCoordinator& coordinator,
                           const std::shared_ptr<runtime::Runtime>& runtime);
 
+/**
+ * @brief Borrowed Qt controllers and startup identity for one runtime handoff.
+ *
+ * Every controller reference remains owned by the application entry point.
+ * The destination runtime is assigned on the GUI thread only after successful
+ * provider construction. This carries no signer secret and never changes the
+ * user's selected Read or Write provider.
+ */
+struct RuntimeAttachment final {
+    PresentationBridge& presentationBridge;
+    RichComposerController& richComposerController;
+    OpenProofConnectionsController& openProofConnections;
+    MediaUploadController& mediaUploadController;
+    MediaPlaybackCoordinator& mediaPlayback;
+    std::shared_ptr<runtime::Runtime>& runtime;
+    std::string siwfDomain;
+    std::string siwfUri;
+    QString browserSnapchainOrigin;
+    QString startupIdentity;
+    bool authenticationAvailable{false};
+    bool openExploreForTest{false};
+};
+
+/**
+ * @brief Publish a fully constructed runtime to its existing GUI controllers.
+ *
+ * @param attachment Borrowed controller references and session-routing values.
+ * @param readyRuntime Successfully constructed runtime, transferred to the
+ *        application owner before controller connections are established.
+ *
+ * Call only on the GUI thread, from the receiver-bound queued bootstrap
+ * completion; do not invoke after QML roots have been dismantled. Publishing
+ * runtimeReady occurs only after all controller bindings are installed.
+ */
+void attachRuntime(RuntimeAttachment attachment,
+                   std::shared_ptr<runtime::Runtime> readyRuntime);
+
 } // namespace genycaster::ui::bindings
