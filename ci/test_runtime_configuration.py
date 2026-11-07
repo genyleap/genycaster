@@ -103,6 +103,52 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
             self.entry,
         )
 
+    def test_gui_attachment_is_published_after_all_bindings(self) -> None:
+        """All controller connections must be established before ready=true."""
+        bridge = (ROOT / "ui/app/runtime_ui_bindings.cpp").read_text(
+            encoding="utf-8"
+        )
+        header = (ROOT / "ui/app/runtime_ui_bindings.hpp").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("struct RuntimeAttachment final", header)
+        self.assertIn("void attachRuntime(RuntimeAttachment attachment,", header)
+        self.assertEqual(
+            self.entry.count("genycaster::ui::bindings::attachRuntime({"), 1
+        )
+        self.assertNotIn("connectRuntime(", self.entry)
+        self.assertNotIn("connectMediaPlayback(", self.entry)
+        self.assertNotIn("connectMediaUpload(", self.entry)
+        self.assertNotIn("connectBrowserMediaUpload(", self.entry)
+
+        start = bridge.index("void attachRuntime(RuntimeAttachment attachment,")
+        body = bridge[start:].split(
+            "} // namespace genycaster::ui::bindings", 1
+        )[0]
+        source_order = (
+            "attachment.runtime = std::move(readyRuntime);",
+            "    connectRuntime(",
+            "    connectMediaPlayback(",
+            "    connectBrowserMediaUpload(",
+            "    attachment.presentationBridge.applyRuntimeState(true);",
+        )
+        # The browser upload branch is independent from native media upload.
+        offsets = [body.index(item) for item in source_order]
+        self.assertEqual(offsets, sorted(offsets))
+        self.assertIn("    connectMediaUpload(", body)
+        self.assertLess(
+            body.index("    connectMediaUpload("),
+            body.index("applyRuntimeState(true)"),
+        )
+        self.assertGreater(
+            body.index("openIdentity(attachment.startupIdentity)"),
+            body.index("applyRuntimeState(true)"),
+        )
+        self.assertIn(
+            "QThread::currentThread() == attachment.presentationBridge.thread()",
+            body,
+        )
+
     def test_legacy_browser_wheel_header_is_not_imported(self) -> None:
         bindings = (ROOT / "ui/app/runtime_ui_bindings.cpp").read_text(
             encoding="utf-8"
