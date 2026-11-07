@@ -14,7 +14,7 @@
 
 namespace {
 
-#if defined(__EMSCRIPTEN__) || defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#if defined(Q_OS_WASM) || defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 // WASM and backgroundable mobile processes need a smaller retained footprint;
 // the per-cast semantics, network deadline and batch API are identical.
 constexpr int maxEntries = 192;
