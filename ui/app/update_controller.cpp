@@ -11,7 +11,9 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
 #include <QProcess>
+#endif
 #include <QRegularExpression>
 #include <QSettings>
 #include <QStandardPaths>
@@ -325,11 +327,13 @@ UpdateController::~UpdateController()
         disconnect(m_downloadReply, nullptr, this, nullptr);
         m_downloadReply->abort();
     }
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
     if (m_deltaProcess) {
         disconnect(m_deltaProcess, nullptr, this, nullptr);
         m_deltaProcess->kill();
         m_deltaProcess->waitForFinished(1000);
     }
+#endif
 #if defined(Q_OS_WASM)
     if (pendingBrowserRefresh == this) pendingBrowserRefresh = nullptr;
 #endif
