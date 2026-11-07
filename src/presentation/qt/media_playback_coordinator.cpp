@@ -6,7 +6,7 @@
 #include <QSettings>
 #include <QUrl>
 
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
 #include <emscripten.h>
 #endif
 
@@ -180,7 +180,7 @@ bool MediaPlaybackCoordinator::prepareForSource(
 
 bool MediaPlaybackCoordinator::openBrowserHls(const QString& source) const
 {
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     const QUrl url{source};
     if (!url.isValid() || url.scheme() != QLatin1StringView{"https"}
         || url.host().isEmpty() || !url.path().endsWith(QLatin1StringView{".m3u8"})
