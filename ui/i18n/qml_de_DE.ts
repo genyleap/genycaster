@@ -44,7 +44,7 @@
         </message>
         <message id="genycaster.streak.title">
             <source>Streak</source>
-            <translation>Streak</translation>
+            <translation>Serie</translation>
         </message>
         <message id="genycaster.streak.subtitle">
             <source>Your verified activity and milestones</source>
@@ -64,7 +64,7 @@
         </message>
         <message id="genycaster.streak.creator">
             <source>Creator</source>
-            <translation>Creator</translation>
+            <translation>Ersteller</translation>
         </message>
         <message id="genycaster.streak.loading">
             <source>Loading Streak…</source>
@@ -172,7 +172,7 @@
         </message>
         <message id="genycaster.streak.badge_firestorm">
             <source>Champion</source>
-            <translation>Champion</translation>
+            <translation>Meister</translation>
         </message>
         <message id="genycaster.streak.badge_phoenix">
             <source>Legend</source>
