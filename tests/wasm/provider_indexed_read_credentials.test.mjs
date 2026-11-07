@@ -15,7 +15,7 @@ test('credential injection is strictly bound to explicit HTTPS indexed provider 
   assert.match(boot, /profile\.adapterContract == "hypersnap-v2"/);
   assert.match(boot, /\.scheme\(\)\.compare\(QStringLiteral\("https"\)/);
   assert.match(boot, /ascii < 33U \|\| ascii > 126U/);
-  assert.match(boot, /additionalReadProviders, readProviderApiKeys/);
+  assert.match(read('ui/app/main.cpp'), /\.readProviderApiKeys = readProviderApiKeys/);
   assert.match(iface, /const std::unordered_map<std::string, std::string>& readProviderApiKeys/);
   assert.match(runtime, /const auto credential = readProviderApiKeys\.find\(profile\.id\)/);
   assert.match(runtime, /\.apiKey = credential == readProviderApiKeys\.end\(\)/);
