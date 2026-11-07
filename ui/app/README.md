@@ -14,6 +14,8 @@ or signer implementation.
 | `bootstrap/routes` | Selected protocol's signed-message destination and node candidates |
 | `bootstrap/auth` | Relying-party identity, app FID, explicit signer attestation, and login relay/RPC |
 | `bootstrap/fonts` | Bundled typefaces, script-specific fallbacks, and language selection |
+| `bootstrap/context` | Validated non-owning QML controller names, font values, and platform flags |
+| `bootstrap/monitoring` | Per-FID notification cursors and reconnect retry signals scoped to presentation lifetime |
 | `bootstrap/worker` | Joining native initialization thread; does not own GUI controllers |
 | `bootstrap/teardown` | Release QML roots only after producers stop and bootstrap joins |
 | `desktop/instance` | Native per-user single-instance and deep-link activation |
