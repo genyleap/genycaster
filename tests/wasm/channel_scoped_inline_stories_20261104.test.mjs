@@ -28,7 +28,7 @@ test('channel header scrolls with casts and returns to top when a channel is ope
  const shell=read('AppShell');
  const feed=read('FeedSurface');
  assert.doesNotMatch(shell,/FeedHeader \{\s*visible: root\.shellRoute\.length/);
- assert.match(feed,/headerPositioning: root\.compact \|\| root\.activeFeed === "channel"/);
+ assert.match(feed,/headerPositioning: ListView\.InlineHeader/);
  assert.match(feed,/root\.scrollToBeginning\(\)/);
  assert.equal((shell.match(/presentationBridge\.openChannel\(channelId\)\s*\+\+root\.explorerTopRevision/g)||[]).length,2);
  assert.match(shell,/scrollRequestRevision: root\.primaryDestination === "explorer"/);
