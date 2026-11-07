@@ -234,6 +234,9 @@ test('WASM boot shows measured download bytes, then hides only on Qt onLoaded',a
     assert.equal(elements.get('genycaster-boot').hidden,false,
         'Qt runtime readiness must not hide the boot screen before QML exists');
     scope.window.__genycasterQmlStartup(true, '');
+    assert.equal(elements.get('genycaster-boot').hidden,false,
+        'do not reveal account UI before device authentication is settled');
+    scope.window.__genycasterBrowserAuthBootstrap();
     assert.equal(elements.get('genycaster-boot').hidden,true);
     assert.equal(memory.get('genycaster.boot.loaded.v1'),'1');
     assert.equal(elements.get('genycaster-boot').dataset.phase,'ready');
@@ -359,7 +362,7 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(home,/id: mobileDraftEditor/);
     assert.match(app,/id: homeDashboard/);
     assert.match(app,/readonly property bool homeComposerFocused:/);
-    assert.match(app,/visible: root\.mobile && !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
+    assert.match(app,/visible: root\.mobile && presentationBridge\.authenticationStateObserved\s*&& !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
     assert.match(app,/anchors\.bottomMargin: 0/);
     assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
@@ -417,7 +420,7 @@ test('Splash logo, version, loading copy and progress share a centered layout ax
     assert.ok(branding,'brand group must close before the loading heading');
     assert.match(branding[1],/<img class="boot-glyph" src="\.\/genycaster-boot-icon\.svg" alt="" decoding="async">/);
     assert.match(branding[1],/<img class="boot-wordmark" src="\.\/genycaster-wordmark-dark\.svg" alt="GenyCaster"/);
-    assert.match(branding[1],/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
+    assert.match(branding[1],/<span class="boot-beta">BETA<\/span>/);
     assert.doesNotMatch(branding[1],/<span class="boot-glyph"/);
     assert.match(html,/\.boot-content\{[^}]*align-items:center[^}]*text-align:center/);
     assert.match(html,/\.boot-mark\{[^}]*align-items:center[^}]*width:100%/);
@@ -435,7 +438,7 @@ test('WASM splash is single-stage, retains original mark and build footer',()=>{
     assert.match(html,/Powered by <strong>Genyleap<\/strong> · WASM Engine/);
     assert.doesNotMatch(html,/box-shadow:0 0 0 4px/);
     assert.doesNotMatch(html,/id="boot-version"/);
-    assert.match(html,/<span class="boot-beta">@@GENYCASTER_RELEASE_VERSION@@<\/span>/);
+    assert.match(html,/<span class="boot-beta">BETA<\/span>/);
     assert.doesNotMatch(html,/id="boot-note"/);
     assert.match(html,/id="boot-build-credit"/);
     assert.match(cmake,/--app-version "\$\{GENYCASTER_RELEASE_VERSION\}"/);
