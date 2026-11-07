@@ -22,15 +22,15 @@ test('signed Block and Unblock are canonical LinkAdd/LinkRemove with type block'
 test('Block is routed through durable sign-and-submit on the selected writer',()=>{
     const protocol=read('src/providers/snapchain/write.cpp');
     const native=read('ui/app/runtime_ui_bindings.cpp');
-    const main=read('ui/app/main.cpp');
+    const routes=read('ui/app/bootstrap/routes.cpp');
     assert.match(protocol,/OperationKind::Block: return "MESSAGE_TYPE_LINK_ADD"/);
     assert.match(protocol,/OperationKind::Unblock: return "MESSAGE_TYPE_LINK_REMOVE"/);
     assert.match(protocol,/link_type=.*"block"/s);
     assert.match(native,/blockingMutationRequested/);
     assert.match(native,/writeService->setBlocked/);
     assert.match(native,/browserSigner->start\(QStringLiteral\("block"\)/);
-    assert.match(main,/snapchainWriteBaseUrlText = selectedProtocolOrigin/);
-    assert.match(main,/snapchainBaseUrlText = selectedProtocolOrigin/);
+    assert.match(routes,/snapchainWriteBaseUrlText = selectedProtocolOrigin/);
+    assert.match(routes,/snapchainBaseUrlText = selectedProtocolOrigin/);
 });
 
 test('Block UI requires verified directions and includes mobile options and translations',()=>{
