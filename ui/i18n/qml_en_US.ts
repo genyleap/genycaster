@@ -6829,5 +6829,13 @@ Company | https://company.com</translation>
             <source>Could not open this browser. Choose another.</source>
             <translation>Could not open this browser. Choose another.</translation>
         </message>
+        <message id="genycaster.editor.copy">
+            <source>Copy</source>
+            <translation>Copy</translation>
+        </message>
+        <message id="genycaster.setup.logo_3d_accessible">
+            <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
+            <translation>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</translation>
+        </message>
     </context>
 </TS>
