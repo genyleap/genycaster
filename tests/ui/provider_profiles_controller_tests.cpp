@@ -118,6 +118,33 @@ void testTypedReadWriteProfilesAndPersistentPreferences()
     }
 }
 
+void testLegacyAdapterCannotBeReselected()
+{
+    QTemporaryDir temp{};
+    assert(temp.isValid());
+    QSettings settings{temp.filePath(QStringLiteral("legacy-read.ini")),
+                       QSettings::IniFormat};
+    // A stored profile from an older version remains visible for editing.
+    // Its contract must not become an active adapter or message writer.
+    settings.setValue(QStringLiteral("network/readProviderProfilesJson"),
+                      QStringLiteral(R"([
+                        {"id":"legacy-node","contract":"legacy-read-v1",
+                         "label":"Old provider","endpoint":"https://legacy.example",
+                         "selfHosted":true}
+                      ])"));
+    ProviderProfilesController controller{settings, {}, {}, {}, {}};
+    assert(controller.readProfiles().size() == 1);
+    assert(!controller.selectReadProvider(QStringLiteral("legacy-node")));
+    assert(controller.lastError() == QStringLiteral("unsupported_contract"));
+    assert(controller.selectedReadProviderId().isEmpty());
+    assert(!settings.contains(QStringLiteral("network/preferredReadProviderId")));
+    assert(controller.readProfiles().size() == 1);
+    // A supported built-in remains selectable without losing the old profile.
+    assert(controller.selectReadProvider(QStringLiteral("hypersnap-v2")));
+    assert(controller.selectedReadProviderId() == QStringLiteral("hypersnap-v2"));
+    assert(controller.readProfiles().size() == 1);
+}
+
 void testNoCredentialOrProtocolSpoofing()
 {
     QTemporaryDir temp{};
@@ -315,6 +342,7 @@ int main(int argc, char* argv[])
     QCoreApplication app{argc, argv};
     testTypedReadWriteProfilesAndPersistentPreferences();
     testNoCredentialOrProtocolSpoofing();
+    testLegacyAdapterCannotBeReselected();
     testLiveReadProbeDistinguishesValidProtocolFromAnyHttp200();
     testBatchReadNodeChecksKeepPerNodeResults();
     return 0;
