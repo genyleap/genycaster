@@ -12,7 +12,7 @@
 #include <limits>
 
 namespace {
-#if defined(__EMSCRIPTEN__) || defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#if defined(Q_OS_WASM) || defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 constexpr qsizetype maximumEntries = 192;
 #else
 constexpr qsizetype maximumEntries = 256;
