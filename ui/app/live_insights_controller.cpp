@@ -648,7 +648,7 @@ public:
     int marketPriceDecimals{8};
     int marketAssetLimit{4};
     QStringList walletAddresses{};
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Browser-native, public read-only Base RPC. No wallet/signer credentials
     // are used. It is available even before optional cloud authorization.
     QNetworkAccessManager genyBalanceRpc{};
@@ -849,7 +849,7 @@ void LiveInsightsController::setWalletAddresses(const QStringList& addresses)
 
 void LiveInsightsController::refreshGenyHolding()
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (!m_impl->networkEnabled || m_impl->walletAddresses.isEmpty() || m_impl->holdingRefreshing) return;
 #else
     if (!m_impl->networkEnabled || !m_impl->providerAvailable() || m_impl->walletAddresses.isEmpty() || m_impl->holdingRefreshing) return;
@@ -926,7 +926,7 @@ void LiveInsightsController::refreshGenyHolding()
             emit guard->genyHoldingChanged();
         }, Qt::QueuedConnection);
     });
-#elif defined(__EMSCRIPTEN__)
+#elif defined(Q_OS_WASM)
     // QtNetwork uses fetch under Emscripten. Base's public RPC serves CORS
     // requests from the official GenyCaster origin. Every response is checked
     // for chain ID, ERC-20 decimals and account identity before display.
