@@ -23,9 +23,14 @@ match = re.search(r'set\(farcasterQmlFiles\n(.*?)\n\)', cmake, re.S)
 if not match:
     raise SystemExit('farcasterQmlFiles not found')
 registered = sorted(line.strip() for line in match.group(1).splitlines() if line.strip())
-# AnimatedEmojiLottie.qml is conditionally registered only when the Qt Lottie
-# module is available (mirroring ui/CMakeLists.txt); treat it as always known.
-registered = sorted(set(registered) | {'components/AnimatedEmojiLottie.qml'})
+# Platform-only QML types are registered conditionally in ui/CMakeLists.txt:
+# Lottie requires its addon, while Android's system WebView has no desktop
+# equivalent. The *source* manifest checks both without forcing them into
+# the wrong target's deployable resource table.
+registered = sorted(set(registered) | {
+    'components/AnimatedEmojiLottie.qml',
+    'components/AndroidMiniAppWebView.qml',
+})
 discovered = sorted(str(p.relative_to(ui)) for p in ui.rglob('*.qml'))
 errors: list[str] = []
 if registered != discovered:
@@ -518,7 +523,7 @@ for nav_id in ('channels', 'notifications', 'bookmarks'):
     if f'routeRequested("{nav_id}")' not in side_nav:
         errors.append(f'R5 sidebar is missing active destination: {nav_id}')
 bottom_nav = (ui/'components'/'BottomNavigation.qml').read_text(encoding='utf-8')
-for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.title'):
+for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.appearance'):
     if token not in bottom_nav:
         errors.append(f'vNext five-destination mobile navigation is missing {token}')
 icon = (ui/'components'/'Icon.qml').read_text(encoding='utf-8')
@@ -564,8 +569,13 @@ if ('enter: Transition {' not in geny_drawer
         or geny_drawer.count('property: "position"') != 2
         or 'Theme.reduceMotion ? 0 : Theme.motionStandard' not in geny_drawer):
     errors.append('All drawers must share interruptible edge-position enter/exit motion with reduced-motion support')
-if ('presentationBridge.signerPhase !== "unavailable"' not in app_shell):
-    errors.append('Account drawer must disable signer activation when no trusted App-FID attestation service is configured')
+# The verified personal custody signer is intentionally supported even
+# without an app-attribution attestor. The UI may offer retry/approval only
+# for the current authenticated identity, and cannot bypass busy/ready gates.
+if ('visible: presentationBridge.isAuthenticated && !presentationBridge.writeReady' not in app_shell
+        or 'enabled: !presentationBridge.signerBusy' not in app_shell
+        or 'presentationBridge.provisionSigner()' not in app_shell):
+    errors.append('Account drawer signer activation must honor authentication, readiness and busy gates')
 # Read-only code must use TextEdit when mouse selection is enabled. Qt Quick Text
 # does not expose selectByMouse; using it makes the entire QML type chain fail at runtime.
 code_block_view = (ui/'components'/'CodeBlockView.qml').read_text(encoding='utf-8')
