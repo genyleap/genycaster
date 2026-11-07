@@ -16,7 +16,7 @@ test('Home prompt opens a full-page mobile composer without an inline keyboard',
  const composer = qml('ComposerDrawer');
  const shell = qml('AppShell');
  assert.match(home,/objectName: "homeComposerLauncher"/);
- assert.match(home,/Layout\.preferredHeight: 60/);
+ assert.match(home,/Layout\.preferredHeight: root\.androidCompact \? 52 : 60/);
  assert.match(home,/verticalAlignment: Text\.AlignVCenter/);
  assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
  assert.match(composer,/fullScreen: root\.compact/);
