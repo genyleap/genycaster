@@ -51,6 +51,10 @@ def select_files(source: Path) -> list[Path]:
     # content-addressed equivalent.
     selected: set[Path] = set()
     for name in [*entries, "genycaster.wasm", "genycaster-assets.json"]:
+        if (name.startswith("farcaster_client") or
+                (name.endswith((".wasm", ".wasm.gz"))
+                 and name not in {"genycaster.wasm", engine, compressed})):
+            raise ValueError(f"Unexpected obsolete WASM engine asset: {name!r}")
         rel = PurePosixPath(name)
         if (not name or "\\" in name or rel.is_absolute()
                 or any(part in BLOCKED or part.startswith(".") or part == ".."
