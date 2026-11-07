@@ -14,7 +14,7 @@ test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", 
     )?.[1];
     assert.ok(section, "text selection availability implementation must exist");
     assert.match(section, /Q_OS_WASM/);
-    assert.match(section, /__EMSCRIPTEN__/);
+    assert.doesNotMatch(section, /__EMSCRIPTEN__/);
     assert.match(section, /Browser-native selection operates on DOM text/);
     assert.doesNotMatch(section, /\biOS\b|\bmacOS\b|\bSafari\b/);
     assert.match(read("ui/app/text_selection_settings.hpp"), /browser DOM selection/);
@@ -22,7 +22,7 @@ test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", 
 
 test("browser input and async network cancellation comments describe shared behavior", () => {
     const emoji = read("ui/app/browser_emoji_recovery.hpp");
-    const header = emoji.slice(0, emoji.indexOf("#if defined(__EMSCRIPTEN__)"));
+    const header = emoji.slice(0, emoji.indexOf("#if defined(Q_OS_WASM)"));
     assert.match(header, /Qt WebAssembly input adapter/);
     assert.doesNotMatch(header, /\biOS\b|\bmacOS\b|\bSafari\b/);
 
