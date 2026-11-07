@@ -61,6 +61,12 @@ struct ProviderProfileConfiguration final {
     std::optional<std::string> preferredReadProviderId{};
     std::optional<std::string> preferredWriteProviderId{};
     bool allowCompatibleReadFallback{false};
+    // Non-secret source JSON and UI selections remain available to the
+    // existing profiles editor without re-reading changed environment state.
+    std::string readProfilesJson{};
+    std::string writeProfilesJson{};
+    std::string preferredReadProviderText{};
+    std::string preferredWriteProviderText{};
 };
 
 /**
