@@ -156,8 +156,8 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
 
 
 test('Provider channel imagery is resolved from the configured directory, not synthetic glyphs',()=>{
- const controller=read('ui/app/channel_picker_controller.cpp');
- const header=read('ui/app/channel_picker_controller.hpp');
+ const controller=read('ui/app/channels/picker.cpp');
+ const header=read('ui/app/channels/picker.hpp');
  const item=read('ui/components/CastItem.qml');
  const detail=read('ui/components/DetailSurface.qml');
  assert.match(header,/Q_INVOKABLE void ensureChannelImage\(const QString& id\)/);

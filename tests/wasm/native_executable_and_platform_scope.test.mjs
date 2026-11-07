@@ -55,7 +55,7 @@ test("native executable output uses Genycaster while Qt targets and web assets k
 });
 
 test("WebAssembly text selection is described as a browser canvas boundary, not iOS-only", () => {
-    const cpp = source("ui/app/text_selection_settings.cpp");
+    const cpp = source("ui/app/text/selection.cpp");
     assert.match(cpp, /^#if defined\(Q_OS_WASM\)$/m);
     assert.doesNotMatch(cpp, /__EMSCRIPTEN__/);
     assert.match(cpp, /Browser-native selection operates on DOM text/);
@@ -143,7 +143,7 @@ test("Mini App FID comparison uses exact integers rather than lossy doubles", ()
     assert.match(runtime, /static_cast<qulonglong>\(contextFid\)/);
     const recovery = source("src/platform/custody_recovery.cpp");
     assert.match(recovery, /static_cast<unsigned char>\(character\)/);
-    const controller = source("ui/app/openproof_connections_controller.cpp");
+    const controller = source("ui/app/openproof/connections.cpp");
     assert.doesNotMatch(controller, /\[this,reply,requestGeneration,viewer,currentTopic,offset,pageSize\]/);
 });
 

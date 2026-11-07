@@ -7,7 +7,7 @@ const source = path => readFileSync(new URL('../../' + path, import.meta.url), '
 test('private feedback history includes report text and notes from PostgreSQL', () => {
   const store = source('services/account-sync/pg_store.mjs');
   const dialog = source('ui/components/FeedbackDialog.qml');
-  const controller = source('ui/app/openproof_connections_controller.cpp');
+  const controller = source('ui/app/openproof/connections.cpp');
   assert.match(store, /SELECT id,category,message,status,review_note,points_awarded,created_at,updated_at/);
   assert.match(store, /WHERE issuer=\$1 AND subject=\$2/);
   assert.match(dialog, /readonly property var feedbackReports: openProofConnections\s*\? \(openProofConnections\.feedbackReports \|\| \[\]\) : \[\]/);
@@ -20,7 +20,7 @@ test('private feedback history includes report text and notes from PostgreSQL', 
 
 test('submitted text is confirmed by the API before history refresh', () => {
   const store = source('services/account-sync/pg_store.mjs');
-  const controller = source('ui/app/openproof_connections_controller.cpp');
+  const controller = source('ui/app/openproof/connections.cpp');
   const dialog = source('ui/components/FeedbackDialog.qml');
   assert.match(store, /RETURNING id,category,status,points_awarded,created_at,message/);
   assert.match(controller, /const QByteArray confirmationBytes = status == 201/);

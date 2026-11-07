@@ -27,7 +27,7 @@ test("Home greeting displays authenticated account avatar and DNA for guests",()
 });
 
 test("Mini App artwork supports manifest aliases and a visible offline fallback",()=>{
-    const catalog=read("ui/app/miniapp_catalog_controller.cpp");
+    const catalog=read("ui/app/miniapp/catalog.cpp");
     for(const key of ["iconUrl","icon","logoUrl","logo","thumbnailUrl","imageUrl","splashImageUrl"])
         assert.ok(catalog.includes('QStringLiteral("'+key+'")'),key);
     assert.match(catalog,/parsedHome\.resolved\(candidate\)/);

@@ -23,7 +23,7 @@ test('Mini App screenshots preserve aspect and skip broken publisher assets', ()
   assert.match(section,/clipToSuperellipse: true/);
   assert.match(section,/onLoadFailedChanged:/);
   assert.doesNotMatch(section,/visible: screenshotPreview\.loadFailed/);
-  const cpp=read('ui/app/miniapp_catalog_controller.cpp');
+  const cpp=read('ui/app/miniapp/catalog.cpp');
   assert.match(cpp,/screenshotArray = app\.value\(QStringLiteral\("screenshotUrls"\)\)/);
   assert.match(cpp,/screenshotArray = row\.value\(QStringLiteral\("screenshotUrls"\)\)/);
   assert.match(qml,/screenshotSection\.screenshotFailures = 0/);

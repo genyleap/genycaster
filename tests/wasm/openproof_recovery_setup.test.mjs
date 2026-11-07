@@ -85,7 +85,7 @@ test('Setup session adopts only verified OpenProof issuer/subject with the same 
   const pre=read('../../ui/wasm/protocol-signer-pre.js');
   const qt=read('../../ui/app/browser_signer_bridge.hpp');
   const runtime=read('../../ui/app/runtime_ui_bindings.cpp');
-  const auth=read('../../ui/app/openproof_connections_controller.cpp');
+  const auth=read('../../ui/app/openproof/connections.cpp');
   assert.match(pre,/openProofGatewayOrigin/);
   assert.match(pre,/identityIssuer:verifiedOpenProof\?\.issuer/);
   assert.match(pre,/accountTicket:verifiedOpenProof\?\.accountTicket/);

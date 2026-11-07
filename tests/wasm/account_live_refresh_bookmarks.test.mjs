@@ -16,8 +16,8 @@ test('own profile refresh reads both canonical profile fields and account draft'
 });
 test('fresh draft read is performed when the ordinary composer opens',()=>{
   const composer=code('ui/components/ComposerDrawer.qml');
-  const header=code('ui/app/openproof_connections_controller.hpp');
-  const cpp=code('ui/app/openproof_connections_controller.cpp');
+  const header=code('ui/app/openproof/connections.hpp');
+  const cpp=code('ui/app/openproof/connections.cpp');
   assert.match(header,/Q_INVOKABLE void refreshAccountDraft\(\)/);
   assert.match(cpp,/void OpenProofConnectionsController::refreshAccountDraft\(\)[\s\S]*?pumpDraftChanges\(\)/);
   assert.match(composer,/onOpened: \{[\s\S]*?if \(!root\.transientDraft && !root\.parentCast && !root\.quotedCast\)[\s\S]*?refreshAccountDraft\(\)/);

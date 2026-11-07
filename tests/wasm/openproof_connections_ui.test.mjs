@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const qml = read('../../ui/components/ProfileSurface.qml');
 const popup = read('../../ui/components/AccountConnectionsPopup.qml');
 const shell = read('../../ui/components/AppShell.qml');
-const controller = read('../../ui/app/openproof_connections_controller.cpp');
+const controller = read('../../ui/app/openproof/connections.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
 const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 
@@ -84,7 +84,7 @@ test('provider Connect opens secure OAuth from the first user gesture and update
 });
 
 test('canonical Farcaster proof grants transient Connections access without a second OpenProof device approval', () => {
-  const auth = read('../../ui/app/browser_openproof_auth.cpp');
+  const auth = read('../../ui/app/browser/openproof_auth.cpp');
   const runtime = read('../../ui/app/runtime_ui_bindings.cpp');
   const broker = read('../../services/media-gateway/browser_farcaster_auth.mjs');
   assert.ok(broker.includes('issueVerifiedAccountTicket('));
@@ -124,7 +124,7 @@ test('Farcaster ownership unlocks Connections without a Genyleap password and Te
 });
 
 test('OpenProof verification no longer sends the user to the Genyleap account portal', () => {
-  const auth = read('../../ui/app/browser_openproof_auth.cpp');
+  const auth = read('../../ui/app/browser/openproof_auth.cpp');
   assert.ok(auth.includes('verification_uri_complete'));
   assert.ok(auth.includes('approval.host() != canonicalIssuer.host()'));
   assert.ok(auth.includes('approval.path() != QStringLiteral("/oauth/device")'));
@@ -184,7 +184,7 @@ test('origins remain configurable and social data is not copied from OpenProof',
 
 
 test('verified OpenProof session commits before its transient account grant (same Qt event queue)', () => {
-  const auth = read('../../ui/app/browser_openproof_auth.cpp');
+  const auth = read('../../ui/app/browser/openproof_auth.cpp');
   const runtime = read('../../ui/app/runtime_ui_bindings.cpp');
   const connectionEvidence = auth.slice(
     auth.indexOf('BrowserOpenProofState authenticated{}'),

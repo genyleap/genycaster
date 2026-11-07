@@ -1,4 +1,4 @@
-#include "../../ui/app/miniapp_host_controller.hpp"
+#include "../../ui/app/miniapp/host.hpp"
 
 #include <QCoreApplication>
 #include <QByteArray>

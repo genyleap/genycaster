@@ -7,9 +7,9 @@ project(GenyCasterControllerSmoke LANGUAGES CXX)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Network)
 get_filename_component(_project_root "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 add_library(genycaster_controller_smoke OBJECT
-    "${_project_root}/ui/app/browser_openproof_auth.cpp"
-    "${_project_root}/ui/app/provider_profiles_controller.cpp"
-    "${_project_root}/ui/app/channel_picker_controller.cpp"
+    "${_project_root}/ui/app/browser/openproof_auth.cpp"
+    "${_project_root}/ui/app/providers/profiles.cpp"
+    "${_project_root}/ui/app/channels/picker.cpp"
     "${_project_root}/ui/app/update_controller.cpp"
 )
 set_target_properties(genycaster_controller_smoke PROPERTIES

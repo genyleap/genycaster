@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 const bridge=source('src/presentation/qt/presentation_bridge.cpp');
-const controller=source('ui/app/openproof_connections_controller.cpp');
+const controller=source('ui/app/openproof/connections.cpp');
 const surface=source('ui/components/BookmarksSurface.qml');
 const profile=source('ui/components/ProfileSurface.qml');
 const store=source('services/account-sync/pg_store.mjs');
@@ -29,7 +29,7 @@ test('bookmark view supports account refresh, remove, priority and sorting witho
   assert.match(store,/async listBookmarkSnapshot/);
 });
 test('bookmark view accepts native C++ QVariantList and exposes pending/error states',()=>{
-  const header=source('ui/app/openproof_connections_controller.hpp');
+  const header=source('ui/app/openproof/connections.hpp');
   const shell=source('ui/components/AppShell.qml');
   assert.doesNotMatch(surface,/Array\.isArray\(root\.rows\)/);
   assert.match(surface,/Number\(sequence\.length \|\| 0\)/);
@@ -50,7 +50,7 @@ test('bookmarked Cast preview and priority are owner-scoped with explicit v5 sch
 test('profile display prefers server-confirmed same-FID account fields to clean QSettings cache',()=>{
   assert.match(profile,/const server = openProofConnections \? openProofConnections\.cloudProfileExtras : null/);
   assert.match(profile,/!root\.cloudLocalDirty/);
-  assert.match(source('ui/app/openproof_connections_controller.hpp'),/Q_PROPERTY\(QVariantMap cloudProfileExtras/);
+  assert.match(source('ui/app/openproof/connections.hpp'),/Q_PROPERTY\(QVariantMap cloudProfileExtras/);
   assert.match(controller,/m_cloudProfileExtras=confirmedFields/);
 });
 test('connection labels are portable yet separate from upstream verified authority',()=>{

@@ -19,9 +19,9 @@ test('credential injection is strictly bound to explicit HTTPS indexed provider 
   assert.match(iface, /const std::unordered_map<std::string, std::string>& readProviderApiKeys/);
   assert.match(runtime, /const auto credential = readProviderApiKeys\.find\(profile\.id\)/);
   assert.match(runtime, /\.apiKey = credential == readProviderApiKeys\.end\(\)/);
-  assert.doesNotMatch(read('ui/app/provider_profiles_controller.cpp'),
+  assert.doesNotMatch(read('ui/app/providers/profiles.cpp'),
     /GENYCASTER_READ_PROVIDER_API_KEYS_JSON|readProviderApiKeys|\.apiKey/);
-  assert.doesNotMatch(read('ui/app/provider_profiles_controller.hpp'),
+  assert.doesNotMatch(read('ui/app/providers/profiles.hpp'),
     /readProviderApiKeys|\.apiKey/);
 });
 

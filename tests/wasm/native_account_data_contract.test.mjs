@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=(name)=>readFileSync(name,'utf8');
-const controller=read('ui/app/openproof_connections_controller.cpp');
+const controller=read('ui/app/openproof/connections.cpp');
 const qml=read('ui/components/BottomNavigation.qml');
 const gateway=read('ui/app/runtime_ui_bindings.cpp');
 const capability=read('src/capabilities/auth.cppm');
@@ -34,6 +34,6 @@ test('verified native OpenProof login delivers ephemeral grant only through trus
   assert.match(gateway,/bridge\.accountFid\(\) == fid/);
   assert.match(gateway,/connections\.acceptAuthenticatedGrant\(/);
   assert.match(gateway,/std::fill\(grant\.bearer\.begin\(\), grant\.bearer\.end\(\), '\\0'\)/);
-  assert.doesNotMatch(read('ui/app/openproof_connections_controller.hpp'),/Q_PROPERTY\([^\n]*[Bb]earer/);
+  assert.doesNotMatch(read('ui/app/openproof/connections.hpp'),/Q_PROPERTY\([^\n]*[Bb]earer/);
   assert.doesNotMatch(read('src/application/session.cppm'),/class SessionService[^]*persistAccountGrant/);
 });

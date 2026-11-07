@@ -29,10 +29,10 @@ blocking_dispatch_boundaries = {
     "ui/app/link_preview_resolver.cpp",
 }
 global_pool_owners = {
-    "ui/app/live_insights_controller.cpp",  # Scope-bound HTTP, guarded delivery.
+    "ui/app/insights/live.cpp",  # Scope-bound HTTP, guarded delivery.
     "ui/app/miniapp_runtime.cpp",  # Scope-bound HTTP, CallbackGate delivery.
     "ui/app/runtime_ui_bindings.cpp",  # Owned recovery/runtime state.
-    "ui/app/data_storage_controller.cpp",  # Owned storage snapshot, no Qt I/O loop.
+    "ui/app/storage/controller.cpp",  # Owned storage snapshot, no Qt I/O loop.
 }
 for directory in (root / "src", root / "ui"):
     for path in directory.rglob("*.cpp"):

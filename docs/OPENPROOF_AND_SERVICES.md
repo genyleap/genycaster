@@ -18,7 +18,7 @@ OpenProof provides account login and identity proofs, OAuth/OIDC with PKCE
 and device authorization, account connections and verification of linked
 Farcaster identity (FID). The native GenyCaster adapter is implemented in
 `src/providers/openproof_auth/`. Browser and service integration boundaries
-include `ui/app/browser_openproof_auth.cpp` and
+include `ui/app/browser/openproof_auth.cpp` and
 `services/media-gateway/browser_farcaster_auth.mjs`.
 
 The first-party Genyleap/OpenProof account route and the direct

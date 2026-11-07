@@ -6,8 +6,8 @@ enable_testing()
 
 add_executable(miniapp_host_contracts
     test_main.cpp
-    ../../ui/app/miniapp_host_controller.cpp
-    ../../ui/app/miniapp_host_controller.hpp
+    ../../ui/app/miniapp/host.cpp
+    ../../ui/app/miniapp/host.hpp
 )
 target_compile_features(miniapp_host_contracts PRIVATE cxx_std_26)
 target_link_libraries(miniapp_host_contracts PRIVATE Qt6::Core Qt6::Network Qt6::Gui)

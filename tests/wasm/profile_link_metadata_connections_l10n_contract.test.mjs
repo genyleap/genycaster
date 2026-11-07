@@ -37,7 +37,7 @@ test('bookmark priority action is clear, not a location marker, and missing prev
 
 test('connections distinguish offered networks from confirmed links across devices',()=>{
   const picker=read('ui/components/AccountConnectionsPopup.qml');
-  const controller=read('ui/app/openproof_connections_controller.cpp');
+  const controller=read('ui/app/openproof/connections.cpp');
   assert.match(picker,/readonly property var orderedProviders:/);
   assert.match(picker,/readonly property int linkedCount:/);
   assert.match(picker,/model: picker\.orderedProviders/);

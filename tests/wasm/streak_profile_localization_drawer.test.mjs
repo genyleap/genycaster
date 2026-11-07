@@ -69,7 +69,7 @@ test('all 12 shipping locale catalogs contain complete nonempty translated Strea
 
 test('Streak leaderboard renders public social identities and uses only the outer drawer scroll',()=>{
   const card=read('ui/components/StreakCard.qml');
-  const adapter=read('ui/app/openproof_connections_controller.cpp');
+  const adapter=read('ui/app/openproof/connections.cpp');
   const cloud=read('services/account-sync/cloud_state.mjs');
   const notice=read('ui/components/UpdateNoticeDrawer.qml');
   const profile=read('ui/components/ProfileSurface.qml');

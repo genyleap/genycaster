@@ -63,7 +63,7 @@ test('marketplace artwork retries through the CORS-safe browser metadata provide
     const embed = read('ui/components/EmbedPreview.qml');
     const art = read('ui/components/CollectiblePreview.qml');
     assert.match(embed, /function requestBrowserMarketplacePreview\(\)/);
-    const adapter = read('ui/app/browser_link_metadata_controller.cpp');
+    const adapter = read('ui/app/browser/link_metadata.cpp');
     assert.match(embed, /browserLinkMetadataController\.requestPreview\(target, "link"\)/);
     assert.match(adapter, /\/v1\/browser\/link-preview/);
     assert.doesNotMatch(embed, /XMLHttpRequest|JSON\.parse/);

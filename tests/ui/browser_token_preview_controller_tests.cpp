@@ -1,4 +1,4 @@
-#include "../../ui/app/browser_token_preview_controller.hpp"
+#include "../../ui/app/browser/token_preview.hpp"
 
 #include <QCoreApplication>
 #include <QEventLoop>

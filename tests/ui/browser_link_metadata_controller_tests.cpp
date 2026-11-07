@@ -1,4 +1,4 @@
-#include "../../ui/app/browser_link_metadata_controller.hpp"
+#include "../../ui/app/browser/link_metadata.hpp"
 
 #include <QCoreApplication>
 #include <QEventLoop>

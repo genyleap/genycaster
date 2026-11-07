@@ -1,4 +1,4 @@
-#include "channel_picker_controller.hpp"
+#include "channels/picker.hpp"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

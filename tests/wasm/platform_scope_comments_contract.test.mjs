@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (relative) => readFileSync(path.join(root, relative), "utf8");
 
 test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", () => {
-    const implementation = read("ui/app/text_selection_settings.cpp");
+    const implementation = read("ui/app/text/selection.cpp");
     const section = implementation.match(
         /bool TextSelectionSettings::nativeAvailable\(\) const noexcept\s*\{([\s\S]*?)\n\}/,
     )?.[1];
@@ -17,7 +17,7 @@ test("WebAssembly text selection describes the browser DOM/Qt canvas boundary", 
     assert.doesNotMatch(section, /__EMSCRIPTEN__/);
     assert.match(section, /Browser-native selection operates on DOM text/);
     assert.doesNotMatch(section, /\biOS\b|\bmacOS\b|\bSafari\b/);
-    assert.match(read("ui/app/text_selection_settings.hpp"), /browser DOM selection/);
+    assert.match(read("ui/app/text/selection.hpp"), /browser DOM selection/);
 });
 
 test("browser input and async network cancellation comments describe shared behavior", () => {
@@ -26,7 +26,7 @@ test("browser input and async network cancellation comments describe shared beha
     assert.match(header, /Qt WebAssembly input adapter/);
     assert.doesNotMatch(header, /\biOS\b|\bmacOS\b|\bSafari\b/);
 
-    const activity = read("ui/app/genypulse_activity_controller.cpp");
+    const activity = read("ui/app/genypulse/activity.cpp");
     assert.match(activity, /QNetworkReply::abort\(\) can emit finished\(\) inline on Qt network backends/);
     const bridge = read("src/presentation/qt/presentation_bridge.cpp");
     assert.match(bridge, /Qt's virtual clipboard may remain local to the WASM/);
@@ -35,6 +35,6 @@ test("browser input and async network cancellation comments describe shared beha
 
 test("real platform-specific implementation boundaries retain their names", () => {
     assert.match(read("src/platform/signer_keychain_boundary.hpp"), /Apple Security\/CoreFoundation/);
-    assert.match(read("ui/app/miniapp_host_controller.cpp"), /native macOS WKWebView/);
+    assert.match(read("ui/app/miniapp/host.cpp"), /native macOS WKWebView/);
     assert.match(read("src/providers/emoji/emoji_asset_validator.cpp"), /Android NDK 27/);
 });

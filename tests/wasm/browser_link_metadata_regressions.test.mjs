@@ -6,7 +6,7 @@ const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
   const link=read('ui/components/LinkPreview.qml');
   const embed=read('ui/components/EmbedPreview.qml');
-  const cpp=read('ui/app/browser_link_metadata_controller.cpp');
+  const cpp=read('ui/app/browser/link_metadata.cpp');
   const main=read('ui/app/main.cpp');
   const cmake=read('tests/ui/CMakeLists.txt');
   for(const qml of [link,embed]){
@@ -52,7 +52,7 @@ test('Mini App metadata retries are bounded, delayed beyond negative cache and c
 });
 
 test('provisional Mini App cards use short metadata cache and admit bounded retry',()=>{
- const native=read('ui/app/browser_link_metadata_controller.cpp');
+ const native=read('ui/app/browser/link_metadata.cpp');
  const qml=read('ui/components/LinkPreview.qml');
  assert.ok(native.includes('castMetadataPending'));
  assert.ok(qml.includes('metadata.castMetadataPending && root.miniAppRetryCount < 2'));

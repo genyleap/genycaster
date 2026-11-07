@@ -38,9 +38,9 @@ PROVIDER_SELECTION_QML = {
     "ui/components/ProviderProfilesPanel.qml",
 }
 PROVIDER_AWARE_PRESENTATION = {
-    "ui/app/provider_profiles_controller.cpp",
-    "ui/app/channel_picker_controller.cpp",
-    "ui/app/genypulse_activity_controller.cpp",
+    "ui/app/providers/profiles.cpp",
+    "ui/app/channels/picker.cpp",
+    "ui/app/genypulse/activity.cpp",
     "ui/app/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
     "tests/ui/provider_profiles_controller_tests.cpp",
 }

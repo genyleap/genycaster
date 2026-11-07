@@ -17,7 +17,7 @@ test('composer keeps topic selection separate from protocol parent and channel',
 });
 test('client saves topics only after the protocol confirms a cast hash',()=>{
  const shell=read('ui/components/AppShell.qml');
- const controller=read('ui/app/openproof_connections_controller.cpp');
+ const controller=read('ui/app/openproof/connections.cpp');
  assert.match(shell,/presentationBridge\.writePhase === "confirmed"[\s\S]*?openProofConnections\.saveCastTopics\(castId,root.pendingCastTopics\)/);
  assert.match(shell,/root.pendingTopicsOwner === Number\(presentationBridge.accountFid\)/);
  assert.match(controller,/void OpenProofConnectionsController::pumpTopicWrites/);

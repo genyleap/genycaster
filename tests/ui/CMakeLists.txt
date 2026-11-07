@@ -165,8 +165,8 @@ set_tests_properties(ui.cast_views_contract PROPERTIES
 # QML no longer owns or parses network replies.
 qt_add_executable(farcaster_browser_reactions_tests
     browser_reaction_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/browser_reaction_controller.cpp"
-    "${genycasterUiSourceDir}/app/browser_reaction_controller.hpp")
+    "${genycasterUiSourceDir}/app/browser/reactions.cpp"
+    "${genycasterUiSourceDir}/app/browser/reactions.hpp")
 target_compile_features(farcaster_browser_reactions_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_browser_reactions_tests PRIVATE Qt6::Core Qt6::Network)
 farcaster_enable_warnings(farcaster_browser_reactions_tests)
@@ -178,8 +178,8 @@ set_tests_properties(ui.browser_reactions_contract PROPERTIES
 # Browser-safe link/miniapp metadata relay with actual bounded HTTP tests.
 qt_add_executable(farcaster_browser_link_metadata_tests
     browser_link_metadata_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/browser_link_metadata_controller.cpp"
-    "${genycasterUiSourceDir}/app/browser_link_metadata_controller.hpp")
+    "${genycasterUiSourceDir}/app/browser/link_metadata.cpp"
+    "${genycasterUiSourceDir}/app/browser/link_metadata.hpp")
 target_compile_features(farcaster_browser_link_metadata_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_browser_link_metadata_tests PRIVATE Qt6::Core Qt6::Network)
 farcaster_enable_warnings(farcaster_browser_link_metadata_tests)
@@ -205,8 +205,8 @@ set_tests_properties(ui.provider_translation_contract PROPERTIES
 
 qt_add_executable(farcaster_provider_profiles_tests
     provider_profiles_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/provider_profiles_controller.cpp"
-    "${genycasterUiSourceDir}/app/provider_profiles_controller.hpp")
+    "${genycasterUiSourceDir}/app/providers/profiles.cpp"
+    "${genycasterUiSourceDir}/app/providers/profiles.hpp")
 target_compile_features(farcaster_provider_profiles_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core Qt6::Network Qt6::Gui)
 target_compile_definitions(farcaster_provider_profiles_tests PRIVATE
@@ -232,8 +232,8 @@ set_tests_properties(ui.node_selection_contract PROPERTIES
 
 qt_add_executable(farcaster_browser_token_tests
     browser_token_preview_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/browser_token_preview_controller.cpp"
-    "${genycasterUiSourceDir}/app/browser_token_preview_controller.hpp")
+    "${genycasterUiSourceDir}/app/browser/token_preview.cpp"
+    "${genycasterUiSourceDir}/app/browser/token_preview.hpp")
 target_compile_features(farcaster_browser_token_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_browser_token_tests PRIVATE Qt6::Core Qt6::Network)
 farcaster_enable_warnings(farcaster_browser_token_tests)
@@ -328,10 +328,10 @@ endif()
 
 add_executable(farcaster_openproof_connections_tests
     openproof_connections_tests.cpp
-    "${genycasterUiSourceDir}/app/openproof_connections_controller.cpp"
-    "${genycasterUiSourceDir}/app/openproof_connections_controller.hpp"
-    "${genycasterUiSourceDir}/app/browser_openproof_auth.cpp"
-    "${genycasterUiSourceDir}/app/browser_openproof_auth.hpp")
+    "${genycasterUiSourceDir}/app/openproof/connections.cpp"
+    "${genycasterUiSourceDir}/app/openproof/connections.hpp"
+    "${genycasterUiSourceDir}/app/browser/openproof_auth.cpp"
+    "${genycasterUiSourceDir}/app/browser/openproof_auth.hpp")
 target_include_directories(farcaster_openproof_connections_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_openproof_connections_tests PRIVATE
@@ -347,8 +347,8 @@ set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
 
 add_executable(farcaster_channel_picker_controller_tests
     channel_picker_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/channel_picker_controller.cpp"
-    "${genycasterUiSourceDir}/app/channel_picker_controller.hpp")
+    "${genycasterUiSourceDir}/app/channels/picker.cpp"
+    "${genycasterUiSourceDir}/app/channels/picker.hpp")
 target_include_directories(farcaster_channel_picker_controller_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_channel_picker_controller_tests PRIVATE

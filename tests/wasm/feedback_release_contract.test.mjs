@@ -31,8 +31,8 @@ test('mobile feedback action sits by bell and opens real full-screen form', () =
 
 test('feedback form performs authenticated server submission and tracks real status', () => {
   const ui = qml('FeedbackDialog');
-  const controller = read('ui/app/openproof_connections_controller.cpp');
-  const header = read('ui/app/openproof_connections_controller.hpp');
+  const controller = read('ui/app/openproof/connections.cpp');
+  const header = read('ui/app/openproof/connections.hpp');
   assert.match(ui, /openProofConnections\.submitFeedback\(root\.category, root\.sentiment/);
   assert.match(ui, /openProofConnections\.fetchFeedback\(\)/);
   assert.match(ui, /readonly property var feedbackStats: openProofConnections/);

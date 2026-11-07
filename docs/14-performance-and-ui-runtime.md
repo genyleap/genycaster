@@ -31,6 +31,24 @@ Hot timeline rendering
 
 For hot timelines, the architecture must permit migration to custom `QQuickItem` / Qt Quick Scene Graph rendering without changing domain/application/timeline engines.
 
+### UI adapter source ownership
+
+UI-specific C++/Qt adapter implementations live under `ui/app/`, grouped
+by capability instead of repeating long `*_controller` filenames:
+
+- `browser/`: browser-safe network, metadata, reactions and OpenProof auth;
+- `miniapp/`: host, catalog and task coordination;
+- `openproof/`, `providers/`, `channels/`: identity, profile selection and channel picking;
+- `storage/`, `media/`, `insights/`, `genypulse/`, `text/`: their respective presentation adapters.
+
+File basenames describe the responsibility within the owning folder (for
+example, `miniapp/catalog.cpp`). Retain established public Qt class names,
+QML context property names, and MOC-facing contracts when reorganizing
+implementation files. Keep full repository-relative paths synchronized in
+CMake source lists, test targets, static architecture guards and Doxygen
+`@file` headers. Domain/provider-neutral dependencies remain outside
+these UI adapters.
+
 ## Do not prematurely custom-render everything
 
 The first implementation may use optimized Qt Quick delegates where they meet performance targets.

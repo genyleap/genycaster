@@ -72,7 +72,7 @@ test("composer visibly confirms every multi-cast plan before sending",()=>{
  assert.match(bridge,/text\.toUtf8\(\)\.size\(\) > 1024/);
 });
 test("mini app quotas are enforced in native runtime and web/Android host",()=>{
- const host=readFileSync(new URL("../../ui/app/miniapp_host_controller.cpp",import.meta.url),"utf8");
+ const host=readFileSync(new URL("../../ui/app/miniapp/host.cpp",import.meta.url),"utf8");
  const runtime=readFileSync(new URL("../../ui/app/miniapp_runtime.cpp",import.meta.url),"utf8");
  const android=readFileSync(new URL("../../ui/components/AndroidMiniAppWebView.qml",import.meta.url),"utf8");
  const main=readFileSync(new URL("../../ui/app/main.cpp",import.meta.url),"utf8");

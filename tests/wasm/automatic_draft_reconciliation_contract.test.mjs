@@ -23,7 +23,7 @@ test('composer saves or clears only ordinary FID-scoped drafts and never publish
 });
 
 test('account draft replication reuses verified native bearer with durable per-FID queue and revision CAS',()=>{
-  const account=read('ui/app/openproof_connections_controller.cpp');
+  const account=read('ui/app/openproof/connections.cpp');
   const main=read('ui/app/main.cpp');
   assert.match(account,/void OpenProofConnectionsController::recordDraftMutation/);
   assert.match(account,/genycaster\/draft-service\/fid_%1/);
@@ -51,7 +51,7 @@ test('account draft replication reuses verified native bearer with durable per-F
 });
 
 test('draft transport transfers serialized document only, never local managed asset authority',()=>{
-  const account=read('ui/app/openproof_connections_controller.cpp');
+  const account=read('ui/app/openproof/connections.cpp');
   const write=account.slice(account.indexOf('void OpenProofConnectionsController::uploadDraftChange()'),
     account.indexOf('void OpenProofConnectionsController::reconcileLinkedIn()'));
   assert.match(write,/content\.insert\(QStringLiteral\("document"\),doc\.object\(\)\)/);

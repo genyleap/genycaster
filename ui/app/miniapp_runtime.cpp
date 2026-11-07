@@ -1,9 +1,9 @@
 module;
 
-#include "miniapp_catalog_controller.hpp"
-#include "miniapp_host_controller.hpp"
+#include "miniapp/catalog.hpp"
+#include "miniapp/host.hpp"
 #include "miniapp_browser.hpp"
-#include "miniapp_task_manager_controller.hpp"
+#include "miniapp/tasks.hpp"
 
 #include <QByteArray>
 #include <QDateTime>

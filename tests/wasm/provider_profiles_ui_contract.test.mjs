@@ -7,7 +7,7 @@ const languages = ['en_US', 'fa_IR', 'ar_SA', 'de_DE', 'es_ES', 'fr_FR',
                    'hi_IN', 'ja_JP', 'ko_KR', 'pt_BR', 'ru_RU', 'zh_CN'];
 
 test('provider profiles UI is wired to persisted composition settings', () => {
-  const controller = read('ui/app/provider_profiles_controller.cpp');
+  const controller = read('ui/app/providers/profiles.cpp');
   const bootstrap = read('ui/app/main.cpp');
   const layout = read('ui/components/ProviderProfilesPanel.qml');
   assert.match(controller, /network\/readProviderProfilesJson/);
@@ -60,8 +60,8 @@ test('provider operations have complete native localization in all installed lan
 test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaster, and separately pinned signer writer', () => {
   const bootstrap=read('ui/app/bootstrap/profiles.cpp');
   const appEntry=read('ui/app/main.cpp');
-  const cpp=read('ui/app/provider_profiles_controller.cpp');
-  const h=read('ui/app/provider_profiles_controller.hpp');
+  const cpp=read('ui/app/providers/profiles.cpp');
+  const h=read('ui/app/providers/profiles.hpp');
   const qml=read('ui/components/ProviderProfilesPanel.qml');
   const composition=read('ui/app/runtime_composition.cpp');
   assert.match(bootstrap,/preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
@@ -82,7 +82,7 @@ test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaste
 });
 
 test('profile controller accepts known adapters only and refuses credential-bearing URLs', () => {
-  const cpp = read('ui/app/provider_profiles_controller.cpp');
+  const cpp = read('ui/app/providers/profiles.cpp');
   assert.match(cpp, /knownContract\(contractId, writer\)/);
   assert.match(cpp, /QUrl::StrictMode/);
   assert.match(cpp, /!url\.userInfo\(\)\.isEmpty\(\)/);

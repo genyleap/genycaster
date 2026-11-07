@@ -26,7 +26,7 @@ test('large feed re-renders preserve a stable viewport anchor instead of resetti
  assert.match(src,/function stabilizeGeometryAnchor\(\)/);
 });
 test('browser miniapp request is per-cast URL, preserving query ID to fetch signed 3:2 poster',()=>{
- const browser=read('ui/app/browser_link_metadata_controller.cpp');
+ const browser=read('ui/app/browser/link_metadata.cpp');
  assert.match(browser,/query\.addQueryItem\(QStringLiteral\("url"\),request\.url\)/);
  assert.doesNotMatch(browser,/request\.kind == QLatin1String\("miniapp"\)\s*\? origin/);
  const component=read('ui/components/LinkPreview.qml');

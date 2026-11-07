@@ -47,8 +47,8 @@ test('drawer describes backend-verified Pro capabilities without using cast thre
 test('Check status rotates its refresh glyph only while the actual HTTP entitlement request is pending',()=>{
  const drawer=read('ui/components/GenyProDetailsDrawer.qml');
  const button=read('ui/components/ActionButton.qml');
- const header=read('ui/app/openproof_connections_controller.hpp');
- const cpp=read('ui/app/openproof_connections_controller.cpp');
+ const header=read('ui/app/openproof/connections.hpp');
+ const cpp=read('ui/app/openproof/connections.cpp');
  assert.match(header,/Q_PROPERTY\(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged\)/);
  assert.match(header,/proEntitlementsBusy\(\) const noexcept \{/);
  assert.match(header,/return m_proEntitlementsRead != nullptr/);

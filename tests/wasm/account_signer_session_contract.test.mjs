@@ -10,7 +10,7 @@ test('previously registered Farcaster signer automatically starts account owners
   const pre=file('ui/wasm/protocol-signer-pre.js');
   const bridge=file('ui/app/browser_signer_bridge.hpp');
   const runtime=file('ui/app/runtime_ui_bindings.cpp');
-  const controller=file('ui/app/openproof_connections_controller.cpp');
+  const controller=file('ui/app/openproof/connections.cpp');
   assert.match(pre,/status\.phase==="ready" && status\.ready/);
   assert.match(pre,/ensureBrowserAccountSession/);
   assert.match(bridge,/kind\s*==\s*QStringLiteral\("account-session"\)/);

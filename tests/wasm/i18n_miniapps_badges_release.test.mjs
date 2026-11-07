@@ -136,8 +136,8 @@ test("foreign Mini App titles and descriptions align to the locale without reord
 test("verified Geny Pro admission recovers saved sessions before rejecting another Mini App", () => {
     const apps=read("ui/components/AppsSurface.qml");
     const shell=read("ui/components/AppShell.qml");
-    const openproof=read("ui/app/openproof_connections_controller.cpp");
-    const header=read("ui/app/openproof_connections_controller.hpp");
+    const openproof=read("ui/app/openproof/connections.cpp");
+    const header=read("ui/app/openproof/connections.hpp");
     const startup=read("ui/app/main.cpp");
     const card=read("ui/components/ProfileTrustCard.qml");
     const sidebar=read("ui/components/SideNavigation.qml");

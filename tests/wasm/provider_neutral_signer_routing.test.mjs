@@ -8,7 +8,7 @@ const read = file => readFileSync(new URL(file, root), 'utf8');
 test('HyperSnap is the default indexed read route, without overriding a user-selected writer', () => {
     const bootstrap = read('ui/app/bootstrap/profiles.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
-    const profiles = read('ui/app/provider_profiles_controller.cpp');
+    const profiles = read('ui/app/providers/profiles.cpp');
 
     assert.match(bootstrap,/if \(preferredReadProviderText\.isEmpty\(\) && enableHypersnapDefault\) \{\s*preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
     assert.match(bootstrap,/network\/preferredReadProviderId/);

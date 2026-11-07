@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('Muted users are account-scoped, fetched with authorized Qt client and cleared on account switch',()=>{
- const cpp=read('ui/app/openproof_connections_controller.cpp');
- const header=read('ui/app/openproof_connections_controller.hpp');
+ const cpp=read('ui/app/openproof/connections.cpp');
+ const header=read('ui/app/openproof/connections.hpp');
  assert.match(header,/Q_PROPERTY\(QStringList mutedProfileFids READ mutedProfileFids/);
  assert.match(header,/Q_INVOKABLE void setProfileMuted\(qulonglong targetFid, bool muted\)/);
  assert.match(cpp,/url\.setPath\(QStringLiteral\("\/api\/v1\/cloud\/muted_profiles"\)\)/);

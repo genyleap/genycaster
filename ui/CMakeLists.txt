@@ -345,48 +345,48 @@ unset(_genycasterModuleTarget)
 qt_add_executable(genycaster
     app/main.cpp
     app/runtime_ui_bindings.cpp
-    app/data_storage_controller.cpp
-    app/data_storage_controller.hpp
+    app/storage/controller.cpp
+    app/storage/controller.hpp
     app/geo_location_resolver.cpp
     app/geo_location_resolver.hpp
     app/link_preview_resolver.cpp
     app/link_preview_resolver.hpp
     app/cast_view_controller.cpp
     app/cast_view_controller.hpp
-    app/browser_reaction_controller.cpp
-    app/browser_reaction_controller.hpp
-    app/browser_link_metadata_controller.cpp
-    app/browser_link_metadata_controller.hpp
-    app/browser_token_preview_controller.cpp
-    app/browser_token_preview_controller.hpp
-    app/miniapp_host_controller.cpp
-    app/miniapp_host_controller.hpp
-    app/media_web_host_controller.cpp
-    app/media_web_host_controller.hpp
-    app/miniapp_catalog_controller.cpp
-    app/miniapp_catalog_controller.hpp
-    app/channel_picker_controller.cpp
-    app/channel_picker_controller.hpp
-    app/text_selection_settings.cpp
-    app/text_selection_settings.hpp
-    app/miniapp_task_manager_controller.cpp
-    app/miniapp_task_manager_controller.hpp
-    app/live_insights_controller.cpp
-    app/live_insights_controller.hpp
+    app/browser/reactions.cpp
+    app/browser/reactions.hpp
+    app/browser/link_metadata.cpp
+    app/browser/link_metadata.hpp
+    app/browser/token_preview.cpp
+    app/browser/token_preview.hpp
+    app/miniapp/host.cpp
+    app/miniapp/host.hpp
+    app/media/web_host.cpp
+    app/media/web_host.hpp
+    app/miniapp/catalog.cpp
+    app/miniapp/catalog.hpp
+    app/channels/picker.cpp
+    app/channels/picker.hpp
+    app/text/selection.cpp
+    app/text/selection.hpp
+    app/miniapp/tasks.cpp
+    app/miniapp/tasks.hpp
+    app/insights/live.cpp
+    app/insights/live.hpp
     ../src/providers/hypersnap/node_selection_controller.cpp
     app/node_selection_controller.hpp
-    app/provider_profiles_controller.cpp
-    app/provider_profiles_controller.hpp
+    app/providers/profiles.cpp
+    app/providers/profiles.hpp
     app/update_controller.cpp
     app/update_controller.hpp
     app/remote_image_provider.cpp
     app/remote_image_provider.hpp
-    app/browser_openproof_auth.cpp
-    app/browser_openproof_auth.hpp
-    app/openproof_connections_controller.cpp
-    app/openproof_connections_controller.hpp
-    app/genypulse_activity_controller.cpp
-    app/genypulse_activity_controller.hpp
+    app/browser/openproof_auth.cpp
+    app/browser/openproof_auth.hpp
+    app/openproof/connections.cpp
+    app/openproof/connections.hpp
+    app/genypulse/activity.cpp
+    app/genypulse/activity.hpp
 )
 
 target_link_libraries(genycaster PRIVATE
@@ -1381,11 +1381,11 @@ set(farcasterTranslationSources
     ${farcasterQmlFiles}
     app/main.cpp
     app/runtime_ui_bindings.cpp
-    app/data_storage_controller.cpp
-    app/data_storage_controller.hpp
-    app/miniapp_host_controller.cpp
-    app/miniapp_catalog_controller.cpp
-    app/miniapp_task_manager_controller.cpp
+    app/storage/controller.cpp
+    app/storage/controller.hpp
+    app/miniapp/host.cpp
+    app/miniapp/catalog.cpp
+    app/miniapp/tasks.cpp
     app/miniapp_runtime.cpp
     app/miniapp_browser_macos.mm
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.cpp"

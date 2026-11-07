@@ -6,8 +6,8 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const settings = read('ui/components/LocaleSettingsPopup.qml');
 const manager = read('ui/components/NodeManagementPanel.qml');
-const controller = read('ui/app/provider_profiles_controller.cpp');
-const header = read('ui/app/provider_profiles_controller.hpp');
+const controller = read('ui/app/providers/profiles.cpp');
+const header = read('ui/app/providers/profiles.hpp');
 const bootstrap = read('ui/app/bootstrap/profiles.cpp');
 
 test('Node Management is its own settings destination on desktop and mobile', () => {
@@ -106,7 +106,7 @@ test('a custom raw node can receive only its own explicit HTTPS x-api-key', () =
   assert.match(composition, /\.authorizationHeaderName = rawCredential/);
   assert.match(composition, /std::string\{"x-api-key"\}/);
   assert.match(composition, /Authenticated raw read providers require HTTPS/);
-  const controller = read('ui/app/provider_profiles_controller.cpp');
+  const controller = read('ui/app/providers/profiles.cpp');
   assert.match(controller, /QStringLiteral\("snapchain-v1"\)\)/);
   assert.match(manager, /readKey\.text\)/);
 });

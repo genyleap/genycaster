@@ -1,4 +1,4 @@
-#include "openproof_connections_controller.hpp"
+#include "openproof/connections.hpp"
 
 #include <QCoreApplication>
 #include <QJsonArray>

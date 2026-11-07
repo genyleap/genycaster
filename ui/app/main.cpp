@@ -67,8 +67,8 @@
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
-#include "channel_picker_controller.hpp"
-#include "text_selection_settings.hpp"
+#include "channels/picker.hpp"
+#include "text/selection.hpp"
 #include "appearance_controller.hpp"
 #include "localization_controller.hpp"
 #include "media_upload_controller.hpp"
@@ -77,16 +77,16 @@
 #include "geo_location_resolver.hpp"
 #include "link_preview_resolver.hpp"
 #include "cast_view_controller.hpp"
-#include "browser_reaction_controller.hpp"
-#include "browser_link_metadata_controller.hpp"
-#include "browser_token_preview_controller.hpp"
-#include "miniapp_host_controller.hpp"
-#include "media_web_host_controller.hpp"
-#include "miniapp_catalog_controller.hpp"
-#include "miniapp_task_manager_controller.hpp"
-#include "live_insights_controller.hpp"
+#include "browser/reactions.hpp"
+#include "browser/link_metadata.hpp"
+#include "browser/token_preview.hpp"
+#include "miniapp/host.hpp"
+#include "media/web_host.hpp"
+#include "miniapp/catalog.hpp"
+#include "miniapp/tasks.hpp"
+#include "insights/live.hpp"
 #include "node_selection_controller.hpp"
-#include "provider_profiles_controller.hpp"
+#include "providers/profiles.hpp"
 #include "update_controller.hpp"
 
 #if defined(Q_OS_WASM)
@@ -94,15 +94,15 @@
 #include <emscripten/html5.h>
 #endif
 #include "remote_image_provider.hpp"
-#include "browser_openproof_auth.hpp"
-#include "openproof_connections_controller.hpp"
-#include "genypulse_activity_controller.hpp"
+#include "browser/openproof_auth.hpp"
+#include "openproof/connections.hpp"
+#include "genypulse/activity.hpp"
 #if defined(Q_OS_WASM)
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
 #include "browser_emoji_recovery.hpp"
 #endif
-#include "data_storage_controller.hpp"
+#include "storage/controller.hpp"
 
 // Entry-point only: provider/storage modules are owned by the separate
 // runtime UI binding implementation, not imported into the Qt bootstrap.

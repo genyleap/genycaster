@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../../'+path, import.meta.url),'utf8');
 const qml=read('ui/components/CastReactions.qml');
-const adapter=read('ui/app/browser_reaction_controller.cpp');
-const header=read('ui/app/browser_reaction_controller.hpp');
+const adapter=read('ui/app/browser/reactions.cpp');
+const header=read('ui/app/browser/reactions.hpp');
 const bar=read('ui/components/EngagementBar.qml');
 const cmake=read('tests/ui/CMakeLists.txt');
 

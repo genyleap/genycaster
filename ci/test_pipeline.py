@@ -223,7 +223,7 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn(f"add_library({target} STATIC)", source)
 
     def test_miniapp_url_validation_is_shared_before_platform_dispatch(self) -> None:
-        source = Path("ui/app/miniapp_host_controller.cpp").read_text(encoding="utf-8")
+        source = Path("ui/app/miniapp/host.cpp").read_text(encoding="utf-8")
         start = source.index("void MiniAppHostController::openWithMetadata(")
         end = source.index("void MiniAppHostController::close()", start)
         procedure = source[start:end]
@@ -240,8 +240,8 @@ class PipelineTests(unittest.TestCase):
                         procedure.index("m_launchUrl = destination.toString("))
 
     def test_external_miniapp_fallback_is_unprivileged_and_explicit(self) -> None:
-        controller = Path("ui/app/miniapp_host_controller.cpp").read_text(encoding="utf-8")
-        header = Path("ui/app/miniapp_host_controller.hpp").read_text(encoding="utf-8")
+        controller = Path("ui/app/miniapp/host.cpp").read_text(encoding="utf-8")
+        header = Path("ui/app/miniapp/host.hpp").read_text(encoding="utf-8")
         surface = Path("ui/components/AppsSurface.qml").read_text(encoding="utf-8")
         self.assertIn("if (QDesktopServices::openUrl(destination))", controller)
         self.assertIn("emit externalLaunchSucceeded();", controller)

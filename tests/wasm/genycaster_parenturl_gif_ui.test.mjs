@@ -27,8 +27,8 @@ test('reply rail and count use aligned, solid geometry and incoming highlight',(
 });
 test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
- const backend=read('ui/app/channel_picker_controller.cpp');
- const header=read('ui/app/channel_picker_controller.hpp');
+ const backend=read('ui/app/channels/picker.cpp');
+ const header=read('ui/app/channels/picker.hpp');
  const shell=read('ui/components/AppShell.qml');
  const main=read('ui/app/main.cpp');
  assert.match(composer,/id: channelPicker[\s\S]*?objectName: "composerChannelDropdown"/);
@@ -50,8 +50,8 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
 });
 
 test('channel avatars stay mounted while C++ metadata updates and initial records are batched',()=>{
- const backend=read('ui/app/channel_picker_controller.cpp');
- const header=read('ui/app/channel_picker_controller.hpp');
+ const backend=read('ui/app/channels/picker.cpp');
+ const header=read('ui/app/channels/picker.hpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(header,/class ChannelListModel final : public QAbstractListModel/);
  assert.match(header,/Q_PROPERTY\(QAbstractItemModel\* channelModel READ channelModel CONSTANT FINAL\)/);
@@ -84,7 +84,7 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
 });
 test('channel metadata is optional and bound to the current deployment origin, not a hardcoded read node',()=>{
  const cpp=read('ui/app/main.cpp');
- const controller=read('ui/app/channel_picker_controller.cpp');
+ const controller=read('ui/app/channels/picker.cpp');
  const view=read('ui/components/ComposerDrawer.qml');
  assert.match(cpp,/GENYCASTER_CHANNEL_DIRECTORY_BASE_URL/);
  assert.match(cpp,/channelDirectoryBaseUrl = mediaGatewayBaseUrlText/);
@@ -120,7 +120,7 @@ test('ordinary labels and cast bodies expose selectable text with explicit copy'
 });
 test('node switching preserves the source-provider URL and exposes no UI hard-coded node',()=>{
  const main=read('ui/app/main.cpp');
- const picker=read('ui/app/channel_picker_controller.cpp');
+ const picker=read('ui/app/channels/picker.cpp');
  const node=read('src/providers/hypersnap/node_selection_controller.cpp');
  assert.match(main,/farcaster::provider::hypersnap::config::Config\{\}\.baseUrl/);
  assert.match(main,/settings\.value\(\s*QStringLiteral\("network\/channelDirectoryBaseUrl"\)/);
@@ -131,7 +131,7 @@ test('node switching preserves the source-provider URL and exposes no UI hard-co
 });
 test('channel avatars come from HyperSnap, and static image catalogs are removed',()=>{
  const composer=read('ui/components/ComposerDrawer.qml');
- const backend=read('ui/app/channel_picker_controller.cpp');
+ const backend=read('ui/app/channels/picker.cpp');
  const packaging=read('ci/package_wasm_assets.py');
  const sw=read('ui/wasm/genycaster-sw.js');
  const cmake=read('ui/CMakeLists.txt');
@@ -144,7 +144,7 @@ test('channel avatars come from HyperSnap, and static image catalogs are removed
    assert.doesNotMatch(file,/channel-icons\.json/);
 });
 test('membership is verified in C++, Home always appears first, and non-members are disabled',()=>{
- const backend=read('ui/app/channel_picker_controller.cpp');
+ const backend=read('ui/app/channels/picker.cpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(backend,/QVariantList list\{homeRow\(\)\}/);
  assert.match(backend,/m_viewerFid > 0 && m_members.contains\(id\)/);
@@ -157,7 +157,7 @@ test('membership is verified in C++, Home always appears first, and non-members 
  assert.match(composer,/qsTrId\("genycaster.composer.not_joined_channel"\)/);
 });
 test('search prioritizes exact or near matches, and remembers frequent choices per account',()=>{
- const backend=read('ui/app/channel_picker_controller.cpp');
+ const backend=read('ui/app/channels/picker.cpp');
  assert.match(backend,/if \(q == id \|\| q == name\) return 0/);
  assert.match(backend,/if \(id.startsWith\(q\) \|\| name.startsWith\(q\)\) return 1/);
  assert.match(backend,/nearDistance\(q, id\) <= 2/);
@@ -168,7 +168,7 @@ test('search prioritizes exact or near matches, and remembers frequent choices p
  assert.match(backend,/m_searchCache.insert\(/);
 });
 test('channel rows report only verified follower counts, not HyperSnap membership counts',()=>{
- const backend=read('ui/app/channel_picker_controller.cpp');
+ const backend=read('ui/app/channels/picker.cpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(backend,/channel.value\(QStringLiteral\("follower_count"\)\).toInteger\(-1\)/);
  assert.match(composer,/qsTrId\("genycaster.composer.channel_follower_count"\)/);
@@ -179,8 +179,8 @@ test('channel rows report only verified follower counts, not HyperSnap membershi
 });
 
 test('channel selection emits a deferred C++ confirmation instead of invalidating its own delegate',()=>{
- const backend=read('ui/app/channel_picker_controller.cpp');
- const header=read('ui/app/channel_picker_controller.hpp');
+ const backend=read('ui/app/channels/picker.cpp');
+ const header=read('ui/app/channels/picker.hpp');
  const composer=read('ui/components/ComposerDrawer.qml');
  assert.match(header,/void channelChosen\(const QVariantMap& selection\)/);
  assert.match(backend,/QTimer::singleShot\(0, this, \[this, selected, generation\]/);

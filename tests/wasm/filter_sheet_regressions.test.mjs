@@ -12,7 +12,7 @@ test('collection selection displays the server-confirmed collection rather than 
   assert.match(bookmarks,/currentIndex: root\.savedCollectionIndex\(/);
   assert.doesNotMatch(bookmarks,/addToCollectionPicker\.currentIndex=0/);
   assert.match(shell,/membershipItems: openProofConnections \? openProofConnections\.bookmarkMembershipItems : \[\]/);
-  const controller=read('ui/app/openproof_connections_controller.cpp');
+  const controller=read('ui/app/openproof/connections.cpp');
   assert.match(controller,/m_bookmarkMembershipItems=std::move\(items\)/);
   assert.match(controller,/sendBookmarkCollectionRequest\(\s*QStringLiteral\("bookmark_collection_items"\),\{\},false\)/);
 });

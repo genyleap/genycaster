@@ -21,8 +21,8 @@ test("fresh installs start in English without overwriting an explicit language",
 });
 
 test("verified GitHub calendar reuses account credentials, not a public network request", () => {
-    const account = read("ui/app/openproof_connections_controller.cpp");
-    const activity = read("ui/app/genypulse_activity_controller.cpp");
+    const account = read("ui/app/openproof/connections.cpp");
+    const activity = read("ui/app/genypulse/activity.cpp");
     const main = read("ui/app/main.cpp");
     const ownRequest = account.slice(
         account.indexOf("OpenProofConnectionsController::requestVerifiedGitHubCalendar"),

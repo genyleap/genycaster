@@ -62,7 +62,7 @@
 #include <vector>
 
 #include "presentation_bridge.hpp"
-#include "openproof_connections_controller.hpp"
+#include "openproof/connections.hpp"
 #include "rendering_controller.hpp"
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
@@ -75,11 +75,11 @@
 #include "geo_location_resolver.hpp"
 #include "link_preview_resolver.hpp"
 #include "cast_view_controller.hpp"
-#include "miniapp_host_controller.hpp"
-#include "media_web_host_controller.hpp"
-#include "miniapp_catalog_controller.hpp"
-#include "miniapp_task_manager_controller.hpp"
-#include "live_insights_controller.hpp"
+#include "miniapp/host.hpp"
+#include "media/web_host.hpp"
+#include "miniapp/catalog.hpp"
+#include "miniapp/tasks.hpp"
+#include "insights/live.hpp"
 #include "node_selection_controller.hpp"
 #include "update_controller.hpp"
 
@@ -88,12 +88,12 @@
 #include <emscripten/html5.h>
 #endif
 #include "remote_image_provider.hpp"
-#include "browser_openproof_auth.hpp"
+#include "browser/openproof_auth.hpp"
 #if defined(Q_OS_WASM)
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
 #endif
-#include "data_storage_controller.hpp"
+#include "storage/controller.hpp"
 
 // This adapter wires Qt signals to stable domain/application contracts.
 // Concrete provider, storage and signer implementations belong only to
