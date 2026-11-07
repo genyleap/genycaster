@@ -34,10 +34,12 @@ public:
      *  @return False when required font resources cannot be prepared.
      */
     [[nodiscard]] bool load();
+
     /** @brief Select an appropriate UI typeface for a language tag.
      *  @return Bundled script family or the platform fallback.
      */
     [[nodiscard]] QString forLanguage(QString languageTag) const;
+
     /** @brief Stable resolved font families exposed to QML theme properties.
      *  Accessors return module-owned values and never start a font reload.
      */
