@@ -2314,7 +2314,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.context.widgets">
             <source>Widgets</source>
-            <translation>Widgets</translation>
+            <translation>Componentes</translation>
         </message>
         <message id="genycaster.context.activity">
             <source>Activity</source>
