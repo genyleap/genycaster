@@ -5,7 +5,10 @@ const base=new URL('../../', import.meta.url);
 const read=(path)=>readFileSync(new URL(path,base),'utf8');
 
 test('contextual menus exclusively own pointer/touch events',()=>{
-  for (const path of ['ui/components/CastItem.qml','ui/components/ThreadReplyItem.qml',
+  const cast=read('ui/components/CastItem.qml');
+  assert.match(cast,/CastActionsMenu \{/);
+  assert.match(read('ui/components/CastActionsMenu.qml'),/modal: true/);
+  for (const path of ['ui/components/ThreadReplyItem.qml',
       'ui/components/EditorContextMenu.qml','ui/components/GenyVideoPlayer.qml']) {
     const source=read(path);
     assert.match(source,/modal: true/,path);
@@ -70,10 +73,14 @@ test('approved onboarding stays minimal while advanced nodes remain available in
 });
 test('Persian setup translations do not use English brand or setup names',()=>{
   const xml=read('ui/i18n/qml_fa_IR.ts');
-  const entries=[...xml.matchAll(/<message id="genycaster\.setup\.[^"]+">[\s\S]*?<translation(?:[^>]*)>([\s\S]*?)<\/translation>/g)];
+  const entries=[...xml.matchAll(/<message id="(genycaster\.setup\.[^"]+)">[\s\S]*?<translation(?:[^>]*)>([\s\S]*?)<\/translation>/g)];
   assert.ok(entries.length>80);
-  for (const [,translation] of entries) {
-    assert.doesNotMatch(translation,/\b(?:Farcaster|Setup|Hypersnap|HyperSnap|Genycaster|GenyCaster)\b/);
+  for (const [,id,translation] of entries) {
+    // Keep the product brand in Latin script in its logo accessibility label.
+    if (id === 'genycaster.setup.logo_3d_accessible')
+      assert.match(translation,/GenyCaster/);
+    else
+      assert.doesNotMatch(translation,/\b(?:Farcaster|Setup|Hypersnap|HyperSnap|Genycaster|GenyCaster)\b/);
   }
   assert.match(xml,/<message id="genycaster\.setup\.recovery_phrase_unavailable">/);
 });
