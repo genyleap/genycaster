@@ -47,12 +47,12 @@ test('WASM Sign Out unconditionally transitions to Guest even for recovery-only 
 test('Updates labels the beta channel and built-in locales translate it',()=>{
  const settings=read('ui/components/LocaleSettingsPopup.qml');
  assert.match(settings,/objectName: "settingsBetaReleaseLabel"/);
- assert.match(settings,/genycaster\.settings\.beta_release_short/);
- assert.match(settings,/genycaster\.settings\.beta_program_info/);
+ assert.match(settings,/genycaster\.update\.channel_beta/);
+ assert.match(settings,/genycaster\.update\.prerelease_info/);
  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
  for(const locale of locales){
   const ts=read('ui/i18n/qml_'+locale+'.ts');
-  for(const key of ['genycaster.composer.formatting_tools','genycaster.settings.current_beta_release','genycaster.settings.beta_program_info'])
+  for(const key of ['genycaster.composer.formatting_tools','genycaster.update.channel_beta','genycaster.update.prerelease_info'])
    assert.ok(ts.includes('id="'+key+'"'),locale+': missing '+key);
  }
 });
