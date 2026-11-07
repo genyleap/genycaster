@@ -46,7 +46,7 @@ QNetworkRequest publicRead(const QUrl& url) {
     // User-Agent is a forbidden browser request header in WASM. Attempting
     // to set it can make a cross-origin public HyperSnap request fail before
     // its response is parsed. Native Qt may still send an app identifier.
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     request.setRawHeader("User-Agent", "GenyCaster/1.0 (activity read)");
 #endif
     return request;
