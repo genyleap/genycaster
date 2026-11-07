@@ -56,7 +56,8 @@ test("native executable output uses Genycaster while Qt targets and web assets k
 
 test("WebAssembly text selection is described as a browser canvas boundary, not iOS-only", () => {
     const cpp = source("ui/app/text_selection_settings.cpp");
-    assert.match(cpp, /#if defined\(Q_OS_WASM\) \|\| defined\(__EMSCRIPTEN__\)/);
+    assert.match(cpp, /^#if defined\(Q_OS_WASM\)$/m);
+    assert.doesNotMatch(cpp, /__EMSCRIPTEN__/);
     assert.match(cpp, /Browser-native selection operates on DOM text/);
     assert.doesNotMatch(cpp, /Native iOS Safari selection/);
 
