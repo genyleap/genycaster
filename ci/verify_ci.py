@@ -88,6 +88,7 @@ def main() -> None:
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
         ("bootstrap/context", "genycaster.ui.bootstrap.context"),
         ("bootstrap/monitoring", "genycaster.ui.bootstrap.monitoring"),
+        ("bootstrap/wallet", "genycaster.ui.bootstrap.wallet"),
         ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
         ("bootstrap/profiles", "genycaster.ui.bootstrap.profiles"),
         ("bootstrap/routes", "genycaster.ui.bootstrap.routes"),
@@ -122,11 +123,19 @@ def main() -> None:
         assert "@author      Kambiz Asadzadeh" in header, relative
         assert re.search(r"@since\s+[0-9]{2} [A-Za-z]{3} [0-9]{4}", header), relative
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
-        if relative != "bootstrap/worker":  # pure C++ worker has no Qt ABI
+        if relative not in ("bootstrap/worker", "bootstrap/wallet"):
+            # The worker and URL policy interfaces export no Qt types.
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
     assert 'import genycaster.ui.bootstrap.context;' in entry
+    assert 'import genycaster.ui.bootstrap.wallet;' in entry
+    assert 'bootstrap::prepareWalletApproval(' in entry
+    assert 'bootstrap::openWalletApproval(' in entry
+    assert 'bootstrap::miniAppEthereumChains()' in entry
+    assert 'browser_wheel_fallback.hpp' not in Path(
+        "ui/app/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
+    assert Path("tests/ui/wallet_launch_tests.cpp").is_file()
     assert 'import genycaster.ui.bootstrap.monitoring;' in entry
     assert 'bootstrap::exposeControllers(engine, {' in entry
     assert 'bootstrap::exposeFontFamilies(engine, fontFamilies);' in entry
