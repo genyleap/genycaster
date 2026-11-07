@@ -19,7 +19,7 @@ test('My Assets on WASM has public CORS Base RPC and an authenticated account fa
  const rail=source('ui/components/ContextRail.qml');
  const controller=source('ui/app/openproof_connections_controller.cpp');
  const cloud=source('services/account-sync/cloud_state.mjs');
- assert.match(native,/#elif defined\(__EMSCRIPTEN__\)[\s\S]*?https:\/\/mainnet.base.org/);
+ assert.match(native,/#elif defined\(Q_OS_WASM\)[\s\S]*?https:\/\/mainnet.base.org/);
  assert.match(native,/QStringLiteral\("eth_chainId"\)/);
  assert.match(native,/QStringLiteral\("0x313ce567"\)/);
  assert.match(native,/QStringLiteral\("0x70a08231"\)/);
