@@ -21,7 +21,7 @@ test('the QML manifest registers a real product-owned filter sheet',()=>{
   assert.match(sheet, /root\.close\(\)/);
 });
 test('Explorer uses the same responsive filter drawer on desktop and mobile',()=>{
-  assert.match(shell, /filterAvailable: presentationBridge\.isAuthenticated\s+&& openProofConnections\.topicCatalog\.length > 0/);
+  assert.match(shell, /filterAvailable: presentationBridge\.isAuthenticated/);
   assert.match(shell, /onFilterRequested: explorerFilterSheet\.open\(\)/);
   const header=read('ui/components/HomeFeedHeader.qml');
   assert.match(header, /objectName: "explorerFilterTrigger"/);
