@@ -43,6 +43,33 @@ class NativeSnapshotVerificationTest(unittest.TestCase):
         self.assertEqual(result["platform"], "macos")
         self.assertEqual(len(result["files"]), 2)
 
+    def test_macos_framework_symlinks_are_manifest_authenticated(self) -> None:
+        original = self.snapshot("macos")
+        source = self.root / "mac-source"
+        (source / "Contents/MacOS/Current").symlink_to("Genycaster")
+        snapshot = create_snapshot("macos", "arm64", "1.0.0-rc1",
+                                   source, self.root / "dist")
+        checked = verify_snapshot(snapshot)
+        self.assertEqual(checked["symlinks"], [{
+            "path": "Genycaster.app/Contents/MacOS/Current",
+            "target": "Genycaster",
+        }])
+
+        mutated = self.root / "changed-symlink.tar.gz"
+        with tarfile.open(snapshot, "r:gz") as before, tarfile.open(mutated, "w:gz") as after:
+            for entry in before:
+                if entry.issym() and entry.name.endswith("/Current"):
+                    # Still points *inside* the bundle, but no longer to the
+                    # manifest-approved object. Hash checks alone miss this.
+                    entry.linkname = "../Resources/info.dat"
+                if entry.isfile():
+                    with before.extractfile(entry) as input_stream:
+                        after.addfile(entry, io.BytesIO(input_stream.read()))
+                else:
+                    after.addfile(entry)
+        with self.assertRaisesRegex(ValueError, "symlinks differ"):
+            verify_snapshot(mutated)
+
     def test_changed_payload_rejected_even_when_file_size_matches(self) -> None:
         original = self.snapshot()
         corrupted = self.root / "corrupted.zip"
