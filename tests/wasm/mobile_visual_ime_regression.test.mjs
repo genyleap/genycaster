@@ -102,7 +102,7 @@ test('channel and profile option menus retain readable contrast and surfaces', (
   const combo = read('ui/components/GenyComboBox.qml');
   const filter = read('ui/components/FilterDropdown.qml');
   assert.match(combo, /color: Theme\.ink/);
-  assert.match(combo, /fillColor: optionDelegate\.highlighted/);
+  assert.match(combo, /color: optionDelegate\.highlighted \|\| optionDelegate\.hovered[\s\S]*?\? Theme\.surfaceHover/);
   assert.match(combo, /Theme\.surfaceRaised/);
   assert.match(filter, /color: Theme\.textPrimary/);
   assert.match(filter, /fillColor: control\.popup\.visible \? Theme\.surfaceElevated/);
