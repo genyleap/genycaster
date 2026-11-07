@@ -10,7 +10,8 @@ test('private feedback history includes report text and notes from PostgreSQL', 
   const controller = source('ui/app/openproof_connections_controller.cpp');
   assert.match(store, /SELECT id,category,message,status,review_note,points_awarded,created_at,updated_at/);
   assert.match(store, /WHERE issuer=\$1 AND subject=\$2/);
-  assert.match(dialog, /model: openProofConnections\.feedbackReports/);
+  assert.match(dialog, /readonly property var feedbackReports: openProofConnections\s*\? \(openProofConnections\.feedbackReports \|\| \[\]\) : \[\]/);
+  assert.match(dialog, /model: root\.feedbackReports/);
   assert.match(dialog, /String\(reportCard\.modelData\.message \|\| ""\)/);
   assert.match(dialog, /String\(reportCard\.modelData\.review_note \|\| ""\)/);
   assert.match(dialog, /Layout\.preferredHeight: reportBody\.implicitHeight/);
