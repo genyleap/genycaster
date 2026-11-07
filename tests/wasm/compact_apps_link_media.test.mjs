@@ -8,7 +8,7 @@ test('mobile and desktop Explorer use compact store rows and real launch actions
  const apps=read('ui/components/AppsSurface.qml');
  assert.match(apps,/columns: 3[\s\S]*?Layout\.preferredHeight: root\.compact \? 48 : 48/);
  assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
- assert.match(apps,/cellHeight: root\.compact \? 116/);
+ assert.match(apps,/cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)/);
  assert.match(apps,/id: miniAppStoreTile[\s\S]*?visible: root\.compact/);
  assert.match(apps,/objectName: "miniAppMobileOpenButton"/);
  assert.match(apps,/objectName: "miniAppMobileTopicFilter"/);
