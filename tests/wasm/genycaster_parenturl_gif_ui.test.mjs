@@ -41,7 +41,7 @@ test('channel picker relies exclusively on the C++ HyperSnap controller',()=>{
  assert.match(backend,/user\/memberships\/list/);
  assert.match(backend,/channel\/search/);
  assert.match(backend,/channel\/trending/);
- assert.match(main,/setContextProperty\(QStringLiteral\("channelDirectory"\)/);
+ assert.match(main,/\{"channelDirectory", &channelPickerController\}/);
  assert.match(header,/Q_INVOKABLE QVariantMap chooseChannel/);
  assert.match(composer,/root.selectedParentUrl = String\(selection.parentUrl \|\| ""\)/);
  assert.match(composer,/qsTrId\("genycaster.topics.label"\)/);
@@ -79,7 +79,7 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  const detail=read('ui/components/DetailSurface.qml');
  const profile=read('ui/components/ProfileSurface.qml');
  assert.match(detail,/id: repliesContainer[\s\S]*?Item \{ Layout.preferredHeight: Theme.space4 \}/);
- assert.match(detail,/anchors.bottomMargin: root.compact \? Theme.space2 \+ 12 : Theme.space4/);
+ assert.match(detail,/anchors.bottomMargin: root.compact\s*\? root\.bottomOverlayInset \+ Theme\.space3 : Theme\.space4/);
  assert.match(profile,/anchors.bottomMargin: Math\.max\(Theme\.space4, root\.bottomOverlayInset/);
 });
 test('channel metadata is optional and bound to the current deployment origin, not a hardcoded read node',()=>{
