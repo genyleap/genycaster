@@ -107,7 +107,9 @@ test('SDK user context preserves a safe public avatar and updates it only for th
   };
   vm.runInNewContext(moduleSource, {
     window, URL, HTMLIFrameElement,
-    exposeToIframe, createMiniAppEthereumProvider: () => null
+    exposeToIframe, createMiniAppEthereumProvider: () => null,
+    // Keep this identity test wallet-free without bypassing lifecycle cleanup.
+    createDiscoveredBrowserWallet: () => ({available: () => false, dispose() {}})
   }, {timeout:1000});
   const attach = window.__genycasterMiniAppSdk.attach;
   const frame = new HTMLIFrameElement('https://mini.example.com/');
@@ -186,7 +188,7 @@ test('native SIWF is advertised only when a real wallet and verified account are
   assert.match(runtime, /generation != session->documentGeneration|session->documentGeneration != generation/);
   assert.match(runtime, /"rejected_by_user"/);
   assert.match(runtime, /"authMethod"/);
-  assert.match(runtime, /"Chain ID: 10/);
+  assert.match(runtime, /\\nChain ID: 10\\nNonce: /);
   assert.match(runtime, /farcaster:\/\/fid\//);
   assert.match(api, /std::string optimismRpcUrl/);
   assert.match(composition, /optimismRpcUrl\.value_or/);
