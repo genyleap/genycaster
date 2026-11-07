@@ -1,4 +1,16 @@
-// Native QML teardown is kept after background work is stopped and joined.
+/*!
+ * @file        ui/app/bootstrap/teardown.cppm
+ * @brief       Native QML shutdown sequencing.
+ *
+ * @details
+ * Releases QML root objects and scene-graph resources after network producers stop and bootstrap work joins.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include "qt_fwd.hpp"
 
