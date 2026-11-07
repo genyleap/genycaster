@@ -130,7 +130,9 @@ private:
     QNetworkAccessManager m_network;
     QPointer<QNetworkReply> m_checkReply;
     QPointer<QNetworkReply> m_downloadReply;
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
     QPointer<QProcess> m_deltaProcess;
+#endif
     std::unique_ptr<QFile> m_file;
     QCryptographicHash m_hash{QCryptographicHash::Sha256};
     QString m_appVersion;
