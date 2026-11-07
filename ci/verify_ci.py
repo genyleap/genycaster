@@ -88,6 +88,8 @@ def main() -> None:
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
         ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
         ("bootstrap/profiles", "genycaster.ui.bootstrap.profiles"),
+        ("bootstrap/routes", "genycaster.ui.bootstrap.routes"),
+        ("bootstrap/auth", "genycaster.ui.bootstrap.auth"),
         ("bootstrap/worker", "genycaster.ui.bootstrap.worker"),
         ("bootstrap/teardown", "genycaster.ui.bootstrap.teardown"),
         ("web/wheel", "genycaster.ui.web.wheel"),
@@ -124,6 +126,22 @@ def main() -> None:
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
     assert 'import genycaster.ui.bootstrap.providers;' in entry
     assert 'import genycaster.ui.bootstrap.profiles;' in entry
+    assert 'import genycaster.ui.bootstrap.routes;' in entry
+    assert 'import genycaster.ui.bootstrap.auth;' in entry
+    assert 'bootstrap::loadProviderRoutes(' in entry
+    assert 'bootstrap::loadAuthenticationOptions(' in entry
+    routes_source = Path("ui/app/bootstrap/routes.cpp").read_text(encoding="utf-8")
+    auth_source = Path("ui/app/bootstrap/auth.cpp").read_text(encoding="utf-8")
+    assert "Selected protocol has no compatible canonical message writer" in routes_source
+    assert "signerAttestationUrlText" not in entry
+    assert "Signer attestation URL must be a credential-free HTTP(S) service" in auth_source
+    for test_source in ("tests/ui/provider_routes_tests.cpp",
+                        "tests/ui/bootstrap_auth_tests.cpp"):
+        assert Path(test_source).is_file(), test_source
+    # Production secure signer support is not optional in release packaging.
+    signer_cmake = Path("src/platform/CMakeLists.txt").read_text(encoding="utf-8")
+    assert "libsecret-1-dev" in signer_cmake
+    assert "pkg_check_modules(GENYCASTER_QTKEYCHAIN_LIBSECRET QUIET libsecret-1)" in signer_cmake
     for guarded_header in (
         "ui/app/browser_signer_bridge.hpp",
         "ui/app/browser_cast_payload.hpp",
