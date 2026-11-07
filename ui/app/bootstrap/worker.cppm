@@ -18,6 +18,13 @@ module;
 export module genycaster.ui.bootstrap.worker;
 
 export namespace genycaster::ui::bootstrap {
+/**
+ * @brief Single-use, joining owner for native runtime initialization.
+ *
+ * Worker tasks may borrow GUI-owned controllers only while this owner remains
+ * alive. The caller must join before releasing those controllers and must not
+ * start a replacement worker while one is still active.
+ */
 class BootstrapWorker final {
 public:
     BootstrapWorker();
@@ -27,7 +34,11 @@ public:
 
     // Starts one bootstrap task. The owning application must keep borrowed
     // controllers alive until join() completes.
+    /** @brief Start exactly one background task.
+     *  @throws std::logic_error On empty operation or an active worker.
+     */
     void start(std::function<void()> operation);
+    /** @brief Await completion; safe to call more than once. */
     void join() noexcept;
 
 private:
