@@ -6824,5 +6824,17 @@ Company | https://company.com</source>
             <source>Could not open this browser. Choose another.</source>
             <translation>브라우저를 열 수 없습니다. 다른 브라우저를 선택하세요.</translation>
         </message>
+        <message id="genycaster.rendering.frame_target">
+            <source>Target frame rate</source>
+            <translation>목표 프레임 속도</translation>
+        </message>
+        <message id="genycaster.editor.copy">
+            <source>Copy</source>
+            <translation>복사</translation>
+        </message>
+        <message id="genycaster.setup.logo_3d_accessible">
+            <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
+            <translation>GenyCaster 3D 로고. 드래그하여 회전하고 스크롤하여 확대/축소하세요. R을 누르면 초기화됩니다.</translation>
+        </message>
     </context>
 </TS>
