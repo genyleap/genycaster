@@ -16,6 +16,8 @@ from ci.install_qt_windows import STAMP, archives_from_index
 from ci.package_web import select_files
 from ci.release_artifacts import EXPECTED, EXTRA_REQUIRED, main as assemble_release
 from ci.release_gate import project_version, release_designation, release_version
+from ci.verify_ci import (FORBIDDEN_CORE_JOB, MATRIX_JOB_DISPLAY_NAME,
+                          PARENT_DIRECTORY_INCLUDE)
 
 
 class PipelineTests(unittest.TestCase):
@@ -284,6 +286,19 @@ class PipelineTests(unittest.TestCase):
                 self.assertNotIn("farcaster_client", Path(file).read_text(encoding="utf-8"))
         self.assertIn("window.genycaster_entry",
                       Path("ui/wasm/genycaster-loader.js").read_text(encoding="utf-8"))
+
+    def test_ci_workflow_regex_guards(self) -> None:
+        """Catch skipped-job template names and unsafe source includes."""
+        workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIsNone(FORBIDDEN_CORE_JOB.search(workflow))
+        self.assertIsNone(MATRIX_JOB_DISPLAY_NAME.search(workflow))
+        self.assertIsNotNone(FORBIDDEN_CORE_JOB.search("jobs:\n  core:\n    runs-on: ubuntu-latest\n"))
+        self.assertIsNotNone(MATRIX_JOB_DISPLAY_NAME.search(
+            "  android:\n    name: Android ${{ matrix.abi }} APK\n"))
+        self.assertIsNotNone(MATRIX_JOB_DISPLAY_NAME.search(
+            "  macos:\n    name: macOS ${{matrix.arch}} DMG\n"))
+        self.assertIsNotNone(PARENT_DIRECTORY_INCLUDE.search('#include "../unsafe.hpp"\n'))
+        self.assertIsNone(PARENT_DIRECTORY_INCLUDE.search('#include "qt_fwd.hpp"\n'))
 
     def test_windows_qt_archive_manifest(self) -> None:
         html = f'<a href="{STAMP}qtbase-Windows-MSVC2022.7z">Qt Base</a>'
