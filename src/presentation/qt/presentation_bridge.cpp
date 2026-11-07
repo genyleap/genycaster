@@ -22,7 +22,7 @@
 #include <cmath>
 #include <utility>
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten/emscripten.h>
 // A script-opened approval tab can otherwise remain an empty white page
 // after Farcaster verifies a session in the browser. Keep an opener-held
@@ -906,7 +906,7 @@ bool PresentationBridge::authenticationBusy() const noexcept
 QString PresentationBridge::authenticationPhase() const { return m_authenticationPhase; }
 bool PresentationBridge::authenticationStateObserved() const noexcept
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // The first queued Guest event is provisional until the asynchronous
     // WebCrypto-backed device identity restore has actually settled.
     return m_authenticationStateObserved && !m_browserAccountRestorePending;
@@ -917,7 +917,7 @@ bool PresentationBridge::authenticationStateObserved() const noexcept
 
 void PresentationBridge::finishBrowserAccountRestore() noexcept
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (!m_browserAccountRestorePending) return;
     m_browserAccountRestorePending=false;
     emit authenticationStateChanged();
@@ -2389,7 +2389,7 @@ bool PresentationBridge::copyText(const QString& text)
     if (text.isEmpty()) {
         return false;
     }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Invoke the browser Clipboard API synchronously inside the user's Copy
     // click gesture. Qt's virtual clipboard may remain local to the WASM
     // canvas and never reach the system clipboard. The browser write is
@@ -2453,13 +2453,13 @@ bool PresentationBridge::copyText(const QString& text)
 #endif
     if (QClipboard* const clipboard = QGuiApplication::clipboard(); clipboard != nullptr) {
         clipboard->setText(text);
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
         // A visible success check must be based on native clipboard evidence,
         // not only on a button click or a successful method invocation.
         return clipboard->text() == text;
 #endif
     }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Browser Clipboard API is asynchronous. This confirms dispatch only;
     // the Promise above still logs permission/fallback failures.
     return true;
@@ -2491,7 +2491,7 @@ QString PresentationBridge::publicShareBaseUrl() const
 {
     // The current HTTPS browser origin is the permalink authority in WASM.
     QString configured{};
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (const char* const origin = emscripten_run_script_string("window.location.origin");
         origin != nullptr) {
         configured = QString::fromUtf8(origin);
@@ -2574,7 +2574,7 @@ QString PresentationBridge::quorumCastUri(const QString& castId) const
     return QStringLiteral("quorummobile://feed?castHashPrefix=") + hash;
 }
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 // Use a top-level, user-gesture-initiated navigation on mobile browsers:
 // QDesktopServices may use a new tab, which often bypasses mobile Universal
 // Link / Android App Link dispatch. Desktop browsers keep their existing tab.
@@ -2600,7 +2600,7 @@ void PresentationBridge::openFarcasterCast(const QString& castId, const QString&
     // phones and exact-cast browser fallbacks without client-specific schemes.
     const QString url = farcasterWebCastUrl(castId, username);
     if (url.isEmpty()) return;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     openBrowserUniversalClientLink(url);
 #else
     openExternalUrl(url);
@@ -2611,7 +2611,7 @@ void PresentationBridge::openFarcasterProfile(const QString& username)
 {
     const QString url = farcasterWebProfileUrl(username);
     if (url.isEmpty()) return;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     openBrowserUniversalClientLink(url);
 #else
     openExternalUrl(url);
@@ -2626,7 +2626,7 @@ void PresentationBridge::openQuorumCast(const QString& castId)
     // permalink that preserves this cast hash. The fallback is its web app
     // landing page, not a fabricated conversation deep link.
     const QString webUrl = QStringLiteral("https://app.quorummessenger.com/");
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const QByteArray appUtf8 = appUri.toUtf8();
     const QByteArray webUtf8 = webUrl.toUtf8();
     EM_ASM({
@@ -2681,7 +2681,7 @@ void PresentationBridge::shareUrl(const QString& url)
     const QUrl parsed{url, QUrl::StrictMode};
     if (!parsed.isValid() || parsed.scheme() != QStringLiteral("https")
         || parsed.host().isEmpty() || !parsed.userInfo().isEmpty()) return;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const QByteArray utf8 = url.toUtf8();
     EM_ASM({
         const shared = UTF8ToString($0);
@@ -3397,7 +3397,7 @@ void PresentationBridge::openAuthenticationApproval()
         emit stateChanged();
         return;
     }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const QByteArray approvedUrl = parsed.toString(QUrl::FullyEncoded).toUtf8();
     if (openGenycasterSetupApproval(approvedUrl.constData()) != 0)
         return;
@@ -3451,7 +3451,7 @@ void PresentationBridge::applyAuthenticationState(
     // session. Starting a replacement/re-authentication flow must not make a
     // verified current account appear signed out until a new proof succeeds.
     m_isAuthenticated = fid > 0;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (m_isAuthenticated || m_authenticationPhase == QStringLiteral("failed")
         || m_authenticationPhase == QStringLiteral("signed-out")) {
         closeGenycasterSetupApproval();
