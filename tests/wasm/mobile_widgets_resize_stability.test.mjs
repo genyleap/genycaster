@@ -53,7 +53,7 @@ test('resizing profile cover preserves image decode cache and stable account car
  const banner=profile.slice(profile.indexOf('id: bannerImage'),profile.indexOf('id: bannerImage')+2050);
  assert.match(banner,/requestedSourceWidth: 1200/);
  assert.match(banner,/requestedSourceHeight: 480/);
- assert.match(banner,/retainPreviousWhileLoading: true/);
+ assert.match(banner,/retainPreviousWhileLoading: false/);
  assert.match(banner,/framePacedPresentation: false/);
  assert.doesNotMatch(banner,/requestedSourceWidth: Math\.max/);
  const trust=read('ui/components/ProfileTrustCard.qml');
