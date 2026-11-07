@@ -735,7 +735,7 @@ Item {
                         brandAccentTap.restart()
                 }
                 Accessible.role: Accessible.Button
-                Accessible.name: qsTr("3D GenyCaster logo. Drag to orbit, scroll to zoom. Press R to reset.")
+                Accessible.name: qsTrId("genycaster.setup.logo_3d_accessible")
             }
             SequentialAnimation {
                 id: brandAccentTap
