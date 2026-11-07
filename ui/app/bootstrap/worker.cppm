@@ -38,6 +38,7 @@ public:
      *  @throws std::logic_error On empty operation or an active worker.
      */
     void start(std::function<void()> operation);
+
     /** @brief Await completion; safe to call more than once. */
     void join() noexcept;
 
