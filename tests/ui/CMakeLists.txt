@@ -52,6 +52,18 @@ if(TARGET genycaster_bootstrap_worker)
         TIMEOUT 10 LABELS "ui;runtime;shutdown")
 endif()
 
+if(TARGET genycaster_bootstrap_teardown)
+    add_executable(genycaster_bootstrap_teardown_tests bootstrap_teardown_tests.cpp)
+    target_link_libraries(genycaster_bootstrap_teardown_tests PRIVATE
+        genycaster_bootstrap_teardown Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+    target_compile_features(genycaster_bootstrap_teardown_tests PRIVATE cxx_std_26)
+    set_property(TARGET genycaster_bootstrap_teardown_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    add_test(NAME ui.bootstrap_teardown COMMAND genycaster_bootstrap_teardown_tests)
+    set_tests_properties(ui.bootstrap_teardown PROPERTIES
+        TIMEOUT 12 LABELS "ui;qml;shutdown"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
 # Exercise QQmlApplicationEngine cleanup with an asynchronous Loader and
 # fatal Qt warnings. The native root must be destroyed before its dispatcher.
 qt_add_executable(farcaster_qml_engine_shutdown_tests
