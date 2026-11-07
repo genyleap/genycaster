@@ -238,3 +238,46 @@ checkpoint as the live status.
 The release job fails closed rather than silently skipping an unavailable
 required platform. To stop tag-based CI, disable the workflow in GitHub
 Actions. Ordinary commits and pull requests do not run it.
+
+
+## Local/server release acceptance
+
+Use the fail-closed server gate before packaging or requesting hosted
+cross-platform builds:
+
+```bash
+python3 ci/server_acceptance.py
+```
+
+This checks architecture and module headers, the complete 12-locale catalog,
+network/resource ceilings, data/media policies, release metadata, source-layout
+invariants, and adversarial update-archive integrity tests. It invokes no
+GitHub Actions jobs and creates no release.
+
+After the Linux executable actually compiles and links, validate the *real*
+Qt shell and local fake-provider runtime as well:
+
+```bash
+python3 ci/server_acceptance.py --native-executable build/ui-native-validation/bin/Genycaster
+```
+
+The native stage uses disposable settings and database files and Qt's
+offscreen software backend. It checks initial QML construction, local
+provider hydration, sign-in-to-Home behavior, and clean guest restart without
+contacting a public API. Paths and compiler-runtime library discovery must
+match the actual server; do not treat this as a portable binary substitute.
+
+Use `--strict-design` when evaluating the remaining interface style/debt
+gate. **Do not label a release approved if that required gate fails.**
+Cross-platform artifacts, OS signing/notarization, installation, and platform
+device behavior must still be checked on their respective runners.
+
+Windows and macOS `selfupdate` archives contain complete runtime transport
+snapshots and SHA-256 file/symlink manifests. Their archive content and path
+safety are now checked by `ci/verify_selfupdate_snapshot.py` before CI
+uploads them. They are explicitly marked `installAction=unsupported`:
+**a signed post-exit atomic updater and authenticated incremental transport
+are not implemented for these platforms yet**. Linux's zsync AppImage
+metadata permits HTTP Range/block reuse but does not bypass system trust
+or signature checks. No platform is authorized to overwrite a running,
+unverified executable.
