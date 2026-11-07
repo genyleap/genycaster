@@ -4,7 +4,7 @@ import vm from "node:vm";
 import {readFileSync} from "node:fs";
 
 const script=readFileSync(new URL("../../ui/wasm/genycaster-loader.js",import.meta.url),"utf8");
-function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false,studioTimed=false}={}) {
+function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measured=false,withoutLength=false,studioTimed=false,authRestorePending=false}={}) {
     const nodes=new Map();
     for(const id of ["genycaster-boot","boot-heading","boot-status","boot-stage",
         "boot-fill","boot-percent","boot-retry","boot-build-credit","qt-screen",
@@ -83,6 +83,9 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         console,URL,Response,Headers,ReadableStream
     };
     vm.runInNewContext(script,scope);
+    // Simulate the terminal account-restore result: an authenticated UI must
+    // never appear while the browser is still resolving the remembered user.
+    if (!authRestorePending) scope.window.__genycasterBrowserAuthBootstrap();
     return {
         nodes,storage,resources,chrome,
         advance(ms) {
@@ -104,6 +107,7 @@ function host({loaded=false,oldVersion="",version="aaaaaaaaaaaaaaaaaaaa",measure
         get reloadedTo(){return reloadedTo;},
         setBrowserTheme:dark=>scope.window.__genycasterSetBrowserChromeTheme(dark),
         qmlReady:()=>scope.window.__genycasterQmlStartup(true, ""),
+        authSettled:()=>scope.window.__genycasterBrowserAuthBootstrap(),
         qmlFailed:reason=>scope.window.__genycasterQmlStartup(false,reason),
         fetch:()=>scope.window.fetch("https://example.test/genycaster.wasm"),
         pushBytes(bytes){downloadStream.enqueue(new Uint8Array(bytes));},
@@ -224,6 +228,14 @@ test("QML startup acknowledged before Qt onLoaded still completes correctly",()=
     h.config.qt.onLoaded();
     assert.equal(h.phase(),"ready");
 });
+test("browser startup does not reveal account UI until restore settles",()=>{
+    const h=host({loaded:true,oldVersion:"aaaaaaaaaaaaaaaaaaaa",authRestorePending:true});
+    h.config.qt.onLoaded();
+    h.qmlReady();
+    assert.notEqual(h.phase(),"ready","Qt/QML readiness cannot bypass account restore");
+    h.authSettled();
+    assert.equal(h.phase(),"ready","terminal account restore completes an otherwise ready UI");
+});
 test("a broken Main.qml reports a recoverable failure instead of hiding the overlay",()=>{
     const h=host();
     h.config.qt.onLoaded();
@@ -241,7 +253,7 @@ test("a broken Main.qml reports a recoverable failure instead of hiding the over
 test("the application emits the QML startup handshake after root creation",()=>{
     const cpp=readFileSync(new URL("../../ui/app/main.cpp",import.meta.url),"utf8");
     assert.match(cpp,/if \(engine\.rootObjects\(\)\.isEmpty\(\)\) \{[\s\S]*?__genycasterQmlStartup\?\.\(false/);
-    assert.match(cpp,/installBrowserWheelBridge\(mainWindow\);[\s\S]*?__genycasterQmlStartup\?\.\(true/);
+    assert.match(cpp,/genycaster::ui::web::installWheelBridge\(mainWindow\);[\s\S]*?__genycasterQmlStartup\?\.\(true/);
 });
 test("failed boot never marks first-time install as completed",async()=>{
     const h=host();
