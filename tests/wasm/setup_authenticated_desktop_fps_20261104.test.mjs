@@ -13,7 +13,7 @@ test('verified sign-in is mandatory on all platforms including WebAssembly', () 
  assert.doesNotMatch(qml,/guestSelected|continue_as_guest/);
  assert.match(qml,/if \(!reviewMode && !authenticated && target > 5\)/);
  assert.match(qml,/if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted && authenticated\)/);
- assert.match(read('ui/components/AppShell.qml'),/visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
+ assert.match(read('ui/components/AppShell.qml'),/visible: root.setupReviewOpen \|\| \(presentationBridge.authenticationStateObserved\s*&& presentationBridge.initialSetupRequired\)/);
 });
 test('native desktop starts wide enough for side widgets when display permits', () => {
  const qml=read('ui/app/Main.qml');
