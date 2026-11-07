@@ -52,6 +52,17 @@ add_test(NAME ui.provider_profiles_policy COMMAND genycaster_provider_profiles_t
 set_tests_properties(ui.provider_profiles_policy PROPERTIES
     TIMEOUT 10 LABELS "ui;provider;profiles;security")
 
+# Ensure protocol-safe canonical signed-message delivery: explicit writer
+# selection must not inherit an unrelated Read adapter's network origin.
+add_executable(genycaster_provider_routes_tests provider_routes_tests.cpp)
+target_link_libraries(genycaster_provider_routes_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core)
+target_compile_features(genycaster_provider_routes_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_provider_routes_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.provider_routes_policy COMMAND genycaster_provider_routes_tests)
+set_tests_properties(ui.provider_routes_policy PROPERTIES
+    TIMEOUT 10 LABELS "ui;provider;routing;security")
+
 if(TARGET genycaster_bootstrap_worker)
     add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
     target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
