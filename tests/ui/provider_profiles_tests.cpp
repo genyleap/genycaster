@@ -161,8 +161,8 @@ int main(int argc, char** argv)
                         "secret absent from persistent profile JSON");
     }
     settings.setValue(QStringLiteral("network/readProviderProfilesJson"),
-                      readJson.replace(QStringLiteral("https://node.example"),
-                                       QStringLiteral("http://node.example")));
+                      QString{readJson}.replace(QStringLiteral("https://node.example"),
+                                                QStringLiteral("http://node.example")));
     {
         const auto config = loadProviderProfiles(settings, {}, false);
         passed &= check(!config, "credential cannot bind to HTTP-only provider");
