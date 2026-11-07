@@ -7,7 +7,7 @@ const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'ut
 test('Explore active tabs use typography, not a crowded blue background or outline', () => {
   const tabs=read('ui/components/ContentTabs.qml');
   assert.match(tabs,/color: tabButton.selected \? Theme\.accent/);
-  assert.match(tabs,/font\.weight: tabButton.selected \? Theme\.weightBold/);
+  assert.match(tabs,/font\.weight: Theme\.weightDemiBold/);
   assert.match(tabs,/Layout\.preferredWidth: String\(modelData\.id\) === "conversations" \? 1\.65 : 1/);
   assert.match(tabs,/fontSizeMode: Text\.HorizontalFit/);
   assert.doesNotMatch(tabs,/fillColor: tabButton\.selected/);
