@@ -13,7 +13,7 @@ module;
 #include <algorithm>
 #include <cmath>
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
@@ -159,7 +159,7 @@ bool scroll(QQuickWindow& window, const QPointF& position,
 } // namespace genycaster::ui::browser_wheel
 
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 namespace {
 QPointer<QQuickWindow> browserWheelWindow{};
 }
@@ -327,7 +327,7 @@ void installBrowserWheelBridge(QQuickWindow* window)
 namespace genycaster::ui::web {
 void installWheelBridge(QQuickWindow* window)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     installBrowserWheelBridge(window);
 #else
     Q_UNUSED(window);
