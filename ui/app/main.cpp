@@ -120,6 +120,7 @@ import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.context;
+import genycaster.ui.bootstrap.monitoring;
 import genycaster.ui.bootstrap.providers;
 import genycaster.ui.bootstrap.profiles;
 import genycaster.ui.bootstrap.routes;
@@ -887,53 +888,8 @@ int main(int argc, char* argv[])
     QObject::connect(&application, &QCoreApplication::aboutToQuit,
         &mediaWebHost, &MediaWebHostController::close);
 
-    qulonglong notificationSettingsFid = 0;
-    bool notificationBadgeBootstrapped = false;
-    QObject::connect(&presentationBridge, &PresentationBridge::notificationSeenAtChanged,
-        &presentationBridge, [&settings](const qulonglong fid, const qlonglong observedAtMs) {
-            if (fid == 0) {
-                return;
-            }
-            settings.setValue(
-                QStringLiteral("notifications/seen_at/%1").arg(fid),
-                observedAtMs);
-            settings.sync();
-        });
-    QObject::connect(&application, &QGuiApplication::applicationStateChanged,
-        &presentationBridge, [&presentationBridge](const Qt::ApplicationState state) {
-            if (state != Qt::ApplicationActive || !presentationBridge.isAuthenticated()) {
-                return;
-            }
-            // Refresh after focus settles so returning from sleep/background does not
-            // leave a stale navigation badge for another polling interval.
-            QTimer::singleShot(250, &presentationBridge, [&presentationBridge] {
-                presentationBridge.refreshNotificationBadge();
-            });
-        });
-    QObject::connect(&presentationBridge, &PresentationBridge::stateChanged,
-        &presentationBridge,
-        [&presentationBridge, &settings, &notificationSettingsFid, &notificationBadgeBootstrapped] {
-            const qulonglong fid = presentationBridge.isAuthenticated()
-                ? presentationBridge.accountFid() : 0;
-            if (fid != notificationSettingsFid) {
-                notificationSettingsFid = fid;
-                notificationBadgeBootstrapped = false;
-                if (fid != 0) {
-                    presentationBridge.restoreNotificationSeenAt(
-                        fid,
-                        settings.value(
-                            QStringLiteral("notifications/seen_at/%1").arg(fid),
-                            0).toLongLong());
-                }
-            }
-            if (fid != 0 && presentationBridge.runtimeReady() && !notificationBadgeBootstrapped) {
-                notificationBadgeBootstrapped = true;
-                QTimer::singleShot(750, &presentationBridge, [&presentationBridge] {
-                    presentationBridge.refreshNotificationBadge();
-                });
-            }
-        });
-
+    genycaster::ui::bootstrap::connectNotificationBadge(
+        application, settings, presentationBridge);
 
     richComposerControllerOwner = std::make_unique<RichComposerController>(settings);
     RichComposerController& richComposerController = *richComposerControllerOwner;
@@ -953,49 +909,8 @@ int main(int argc, char* argv[])
         &presentationBridge, [&presentationBridge] {
             presentationBridge.retranslateTransientState();
         });
-    if (!isSmokeTest && !isVisualTest) {
-        QNetworkInformation::loadDefaultBackend();
-        if (auto* networkInformation = QNetworkInformation::instance()) {
-            const auto initialReachability = networkInformation->reachability();
-            const auto applyReachability = [&presentationBridge](const QNetworkInformation::Reachability reachability) {
-                const bool known = reachability != QNetworkInformation::Reachability::Unknown;
-                const bool online = reachability != QNetworkInformation::Reachability::Disconnected;
-                presentationBridge.applyNetworkReachability(known, online);
-            };
-            applyReachability(initialReachability);
-            QObject::connect(networkInformation, &QNetworkInformation::reachabilityChanged,
-                &presentationBridge,
-                [&presentationBridge, previousReachability = initialReachability, applyReachability]
-                (const QNetworkInformation::Reachability reachability) mutable {
-                    const bool reconnected = previousReachability == QNetworkInformation::Reachability::Disconnected
-                        && reachability != QNetworkInformation::Reachability::Disconnected
-                        && reachability != QNetworkInformation::Reachability::Unknown;
-                    previousReachability = reachability;
-                    applyReachability(reachability);
-                    if (reconnected && presentationBridge.runtimeReady() && !presentationBridge.isBusy()) {
-                        QTimer::singleShot(350, &presentationBridge, [&presentationBridge] {
-                            if (!presentationBridge.isBusy() && !presentationBridge.isOffline()) {
-                                presentationBridge.retryAutomatically();
-                            }
-                        });
-                    }
-                });
-        } else {
-            presentationBridge.applyNetworkReachability(false, true);
-        }
-
-        auto* const sourceRecoveryTimer = new QTimer(&presentationBridge);
-        sourceRecoveryTimer->setInterval(35'000);
-        QObject::connect(sourceRecoveryTimer, &QTimer::timeout, &presentationBridge,
-            [&presentationBridge] {
-                if (!presentationBridge.runtimeReady() || presentationBridge.isBusy() ||
-                    presentationBridge.isOffline() || !presentationBridge.sourceUnavailable()) {
-                    return;
-                }
-                presentationBridge.retryAutomatically();
-            });
-        sourceRecoveryTimer->start();
-    }
+    genycaster::ui::bootstrap::connectNetworkRecovery(
+        presentationBridge, !isSmokeTest && !isVisualTest);
     if (isSmokeTest || isVisualTest) {
         const bool showInitialSetup =
             isVisualTest && arguments.contains(QStringLiteral("--open-initial-setup"));
