@@ -6824,5 +6824,17 @@ Company | https://company.com</source>
             <source>Could not open this browser. Choose another.</source>
             <translation>Não foi possível abrir este navegador. Escolha outro.</translation>
         </message>
+        <message id="genycaster.rendering.frame_target">
+            <source>Target frame rate</source>
+            <translation>Taxa de quadros desejada</translation>
+        </message>
+        <message id="genycaster.editor.copy">
+            <source>Copy</source>
+            <translation>Copiar</translation>
+        </message>
+        <message id="genycaster.setup.logo_3d_accessible">
+            <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
+            <translation>Logotipo 3D do GenyCaster. Arraste para girar, role para ampliar e pressione R para redefinir.</translation>
+        </message>
     </context>
 </TS>
