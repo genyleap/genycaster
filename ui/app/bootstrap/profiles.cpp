@@ -291,6 +291,10 @@ std::optional<ProviderProfileConfiguration> loadProviderProfiles(
         .preferredReadProviderId = preferredReadProviderId,
         .preferredWriteProviderId = preferredWriteProviderId,
         .allowCompatibleReadFallback = allowCompatibleReadFallback,
+        .readProfilesJson = providerProfilesJson.toStdString(),
+        .writeProfilesJson = writeProfilesJson.toStdString(),
+        .preferredReadProviderText = preferredReadProviderText.toStdString(),
+        .preferredWriteProviderText = preferredWriteProviderText.toStdString(),
     };
 }
 
