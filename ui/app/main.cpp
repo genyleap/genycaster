@@ -1351,7 +1351,7 @@ int main(int argc, char* argv[])
                                   snapchainWriteAuthorizationValue, appFid,
                                   signerAttestationUrl, walletLaunchTemplate,
                                   siwfDomain, siwfUri, startupIdentity,
-                                  openExploreForTest] {
+                                  authenticationAvailable, openExploreForTest] {
             auto made = makeRuntime(
                 databasePath,
                 networkProxyPolicy,
@@ -1389,7 +1389,7 @@ int main(int argc, char* argv[])
                  &mediaUploadController,
                  &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
-                 snapchainBaseUrl, openExploreForTest]() mutable {
+                 snapchainBaseUrl, authenticationAvailable, openExploreForTest]() mutable {
                     runtime = std::move(readyRuntime);
                     connectRuntime(
                         presentationBridge, richComposerController, openProofConnections,
