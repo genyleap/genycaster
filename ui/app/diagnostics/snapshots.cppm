@@ -15,8 +15,22 @@ module;
 #include "qt_fwd.hpp"
 export module genycaster.ui.diagnostics.snapshots;
 export namespace genycaster::ui::diagnostics {
-    // Returns a startup error (3 for a missing QQuickWindow), otherwise
-    // schedules bounded capture timers on the owning GUI application's thread.
+    /**
+     * @brief Arrange requested visual snapshots after QML construction.
+     *
+     * Capture jobs remain on the GUI thread and are scheduled only for
+     * explicit diagnostic command-line options.
+     *
+     * @param application Owner of capture timers.
+     * @param engine Loaded QML application engine.
+     * @param presentationBridge Existing presentation facade.
+     * @param richComposerController Existing composer state.
+     * @param arguments Startup option list.
+     * @param isVisualTest Whether automated visual testing was requested.
+     * @param openExploreForTest Whether to activate Explore for a fixture.
+     * @param snapshotPath Optional capture destination.
+     * @return Zero on successful scheduling; nonzero on invalid setup.
+     */
     [[nodiscard]] int scheduleSnapshots(
         QGuiApplication& application,
         QQmlApplicationEngine& engine,
