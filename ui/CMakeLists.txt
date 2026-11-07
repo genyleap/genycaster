@@ -272,7 +272,7 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/auth.cpp)
 target_include_directories(genycaster_ui_bootstrap PRIVATE
     "${CMAKE_SOURCE_DIR}/src/presentation/qt")
-target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui)
+target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui Qt6::Qml)
 target_compile_features(genycaster_ui_bootstrap PUBLIC cxx_std_26)
 set_property(TARGET genycaster_ui_bootstrap PROPERTY CXX_SCAN_FOR_MODULES ON)
 
