@@ -992,7 +992,7 @@ void RemoteImageProvider::Impl::startNetwork(
     // directly. After a terminal direct failure, retry Photos only through
     // the existing public-raster-only Genycaster gateway used by WASM.
     // The same download policy, byte budget, timeout and cache key apply.
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const bool routeThroughGateway = true;
 #else
     const bool routeThroughGateway = gatewayFallbackAttempt;
@@ -1039,7 +1039,7 @@ void RemoteImageProvider::Impl::startNetwork(
                 const bool deniedByOrigin = result
                     && (result->statusCode == 401U || result->statusCode == 403U);
                 if (deniedByOrigin) rememberForbiddenOrigin(urlText);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                 // Do not log full URLs: CDNs may put identifying tokens in
                 // paths or queries. Record only host and bounded status.
                 qWarning() << "Browser image request rejected for host"
@@ -1047,7 +1047,7 @@ void RemoteImageProvider::Impl::startNetwork(
                            << (result ? static_cast<int>(result->statusCode) : 0);
 #endif
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
                 if (!deniedByOrigin && !gatewayFallbackAttempt
                     && category == storage_policy::MediaCategory::Photos) {
                     self->startNetwork(std::move(control), std::move(urlText), category, manual,
@@ -1069,7 +1069,7 @@ void RemoteImageProvider::Impl::startNetwork(
                     category, networkAtStart, static_cast<std::uint64_t>(result->body.size()));
             }
             if (!responseMayContainImage(*result)) {
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
                 if (!gatewayFallbackAttempt
                     && category == storage_policy::MediaCategory::Photos) {
                     self->startNetwork(std::move(control), std::move(urlText), category, manual,
@@ -1164,7 +1164,7 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
                         std::move(cacheKey), true, gatewayFallbackAttempt);
                     return;
                 }
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
                 if (!gatewayFallbackAttempt
                     && category == storage_policy::MediaCategory::Photos) {
                     self->startNetwork(std::move(control), std::move(urlText), category, manual,
