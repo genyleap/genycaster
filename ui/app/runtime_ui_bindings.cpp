@@ -4953,4 +4953,50 @@ void connectMediaPlayback(
     });
 }
 
+
+void attachRuntime(RuntimeAttachment attachment,
+                   std::shared_ptr<Runtime> readyRuntime)
+{
+    // QObject connections and presentation state always publish on the GUI
+    // thread; the provider factory itself may run in a background worker.
+    Q_ASSERT(QThread::currentThread() == attachment.presentationBridge.thread());
+    if (!readyRuntime) {
+        attachment.presentationBridge.applyRuntimeState(
+            false, QStringLiteral("Runtime construction returned no instance."));
+        return;
+    }
+
+    attachment.runtime = std::move(readyRuntime);
+    connectRuntime(
+        attachment.presentationBridge,
+        attachment.richComposerController,
+        attachment.openProofConnections,
+        attachment.runtime,
+        attachment.authenticationAvailable,
+        std::move(attachment.siwfDomain),
+        std::move(attachment.siwfUri),
+        attachment.browserSnapchainOrigin);
+    connectMediaPlayback(attachment.mediaPlayback, attachment.runtime);
+#if defined(Q_OS_WASM)
+    connectBrowserMediaUpload(
+        attachment.mediaUploadController, attachment.presentationBridge,
+        attachment.richComposerController);
+#elif FARCASTER_HAS_MEDIA_UPLOAD
+    connectMediaUpload(attachment.mediaUploadController, attachment.runtime);
+#else
+    attachment.mediaUploadController.setAvailable(false);
+#endif
+
+    // Publish readiness only after every GUI-facing capability is wired.
+    attachment.presentationBridge.applyRuntimeState(true);
+    if (attachment.startupIdentity.isEmpty()) {
+        if (attachment.openExploreForTest)
+            attachment.presentationBridge.selectFeed(QStringLiteral("recent"));
+        return;
+    }
+    // PresentationBridge owns restored/manual identity transition. This
+    // function must never infer a signer or selected network from the FID.
+    attachment.presentationBridge.openIdentity(attachment.startupIdentity);
+}
+
 } // namespace genycaster::ui::bindings
