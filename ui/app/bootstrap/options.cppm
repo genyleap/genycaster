@@ -1,4 +1,16 @@
-// Qt's ABI remains globally attached; full Qt headers are private to implementations.
+/*!
+ * @file        ui/app/bootstrap/options.cppm
+ * @brief       Bootstrap argument and service URL validation.
+ *
+ * @details
+ * Defines command-line option extraction, rendering preference selection and strict service endpoint checks shared by startup paths.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include "qt_fwd.hpp"
 
