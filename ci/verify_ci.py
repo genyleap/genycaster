@@ -86,6 +86,8 @@ def main() -> None:
     for relative, name in (
         ("bootstrap/options", "genycaster.ui.bootstrap"),
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
+        ("bootstrap/context", "genycaster.ui.bootstrap.context"),
+        ("bootstrap/monitoring", "genycaster.ui.bootstrap.monitoring"),
         ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
         ("bootstrap/profiles", "genycaster.ui.bootstrap.profiles"),
         ("bootstrap/routes", "genycaster.ui.bootstrap.routes"),
@@ -124,6 +126,34 @@ def main() -> None:
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
+    assert 'import genycaster.ui.bootstrap.context;' in entry
+    assert 'import genycaster.ui.bootstrap.monitoring;' in entry
+    assert 'bootstrap::exposeControllers(engine, {' in entry
+    assert 'bootstrap::exposeFontFamilies(engine, fontFamilies);' in entry
+    assert 'bootstrap::connectNotificationBadge(' in entry
+    assert 'bootstrap::connectNetworkRecovery(' in entry
+    # Context aliases are a public QML contract; none may be renamed,
+    # omitted, duplicated, or injected by partial registration.
+    context_objects = re.findall(
+        r'\{"([A-Za-z][A-Za-z0-9]*)",\s*&[A-Za-z][A-Za-z0-9]*\}', entry)
+    expected_context_objects = {
+        "genyPulseActivity", "openProofConnections", "presentationBridge",
+        "channelDirectory", "dataStorage", "richComposer", "emojiController",
+        "mediaUpload", "mediaClassifier", "mediaPlayback",
+        "localizationController", "geoLocationResolver", "linkPreviewResolver",
+        "browserLinkMetadataController", "browserTokenPreviewController",
+        "castViewController", "browserReactionController", "miniAppHost",
+        "miniAppCatalog", "miniAppTaskManager", "liveInsights",
+        "nodeSelectionController", "providerProfiles", "updateController",
+        "appearanceController", "renderingController", "textSelectionSettings",
+    }
+    assert len(context_objects) == len(expected_context_objects), context_objects
+    assert set(context_objects) == expected_context_objects, context_objects
+    context_source = Path("ui/app/bootstrap/context.cpp").read_text(encoding="utf-8")
+    assert "names.contains(name)" in context_source
+    assert "entry.object == nullptr" in context_source
+    assert Path("tests/ui/bootstrap_context_tests.cpp").is_file()
+    assert 'authenticationAvailable, openExploreForTest]' in entry
     assert 'import genycaster.ui.bootstrap.providers;' in entry
     assert 'import genycaster.ui.bootstrap.profiles;' in entry
     assert 'import genycaster.ui.bootstrap.routes;' in entry
