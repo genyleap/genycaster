@@ -121,6 +121,7 @@ import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.providers;
 #if !defined(__EMSCRIPTEN__)
+import genycaster.ui.bootstrap.teardown;
 import genycaster.ui.bootstrap.worker;
 #endif
 import genycaster.ui.diagnostics.snapshots;
@@ -1906,22 +1907,7 @@ int main(int argc, char* argv[])
     // before either the runtime or the QGuiApplication can disappear.
     shutdownScope.stop();
     bootstrap.join();
-    if (mainWindow != nullptr) {
-        mainWindow->setPersistentGraphics(false);
-        mainWindow->setPersistentSceneGraph(false);
-        mainWindow->hide();
-        mainWindow->releaseResources();
-    }
-    // QQmlApplicationEngine tracks root deletion via QObject::destroyed.
-    // Do not use deleteLater(): the main event loop has already stopped.
-    for (QObject* const rootObject : engine.rootObjects()) {
-        delete rootObject;
-    }
-    // Drain QML/Qt deferred child cleanup while a GUI dispatcher remains
-    // installed; do not spin another event loop or restart network work.
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-    engine.collectGarbage();
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    genycaster::ui::bootstrap::releaseQmlRoots(engine, mainWindow);
 #endif
     return exitCode;
 }
