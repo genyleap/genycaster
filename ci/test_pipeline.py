@@ -63,6 +63,15 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn('QT_RESOURCE_ALIAS "components/' + public + '"',
                               cmake, public)
 
+    def test_native_qml_smoke_uses_public_alias_fixture(self) -> None:
+        """Native QML smoke must load public component names after file moves."""
+        cmake = Path("tests/ui/CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("components/source_paths.json", cmake)
+        self.assertIn("string(JSON genycasterQmlPublicName MEMBER", cmake)
+        self.assertIn("string(JSON genycasterQmlPhysicalName GET", cmake)
+        self.assertIn('MEDIA_COMPONENT_DIRECTORY="${genycasterPublicQmlFixtureDir}"', cmake)
+        self.assertIn('"${genycasterPublicQmlFixtureDir}/ProCastPolicy.js"', cmake)
+
     def test_native_qml_types_import_their_own_module(self) -> None:
         """Nested QML sources must explicitly import C++-registered module types."""
         import re
