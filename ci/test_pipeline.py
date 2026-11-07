@@ -310,18 +310,45 @@ class PipelineTests(unittest.TestCase):
             archives_from_index(html, ("qtbase", "qtdeclarative"))
 
     def test_web_archive_selection_excludes_build_artifacts(self) -> None:
+        import json
+
         with TemporaryDirectory() as path:
             root = Path(path)
-            (root / "genycaster.html").write_text("<html></html>")
-            (root / "genycaster.wasm").write_bytes(b"\x00asm")
-            (root / "genycaster.0123456789abcdef0123.wasm.gz").write_bytes(b"compressed")
+            engine = "genycaster.0123456789abcdef0123.wasm"
+            files = {
+                "genycaster.html": b"<html></html>",
+                "genycaster.js": b"entry",
+                "genycaster-loader.js": b"loader",
+                "genycaster-sw.js": b"worker",
+                "genycaster.wasm": b"\\x00asm",
+                engine: b"\\x00asm",
+                engine + ".gz": b"compressed",
+            }
+            for name, data in files.items():
+                (root / name).write_bytes(data)
+            manifest = {
+                "wasm": engine, "wasmGzip": engine + ".gz",
+                "files": sorted(set(files) - {"genycaster.wasm"}),
+            }
+            (root / "genycaster-assets.json").write_text(json.dumps(manifest))
+            (root / "genycaster.aaaaaaaaaaaaaaaaaaaa.wasm").write_bytes(b"stale")
+            (root / "genycaster.aaaaaaaaaaaaaaaaaaaa.wasm.gz").write_bytes(b"stale")
             (root / "unrelated.tar.gz").write_bytes(b"ignored")
             (root / "genycaster_autogen").mkdir()
             (root / "genycaster_autogen" / "secret.js").write_text("ignored")
             (root / "genycaster.cpp.o").write_bytes(b"obj")
             selected = {p.name for p in select_files(root)}
-            self.assertEqual(selected, {"genycaster.html", "genycaster.wasm",
-                                        "genycaster.0123456789abcdef0123.wasm.gz"})
+            self.assertEqual(selected, set(files) | {"genycaster-assets.json"})
+            manifest["files"].append("../private.json")
+            (root / "genycaster-assets.json").write_text(json.dumps(manifest))
+            with self.assertRaisesRegex(ValueError, "Unsafe or unsupported"):
+                select_files(root)
+            manifest["files"][-1] = "genycaster.aaaaaaaaaaaaaaaaaaaa.wasm"
+            (root / "genycaster-assets.json").write_text(json.dumps(manifest))
+            # A manifest is not allowed to smuggle an obsolete engine into a
+            # release, even if it exists in a previously used build directory.
+            with self.assertRaisesRegex(ValueError, "Unexpected"):
+                select_files(root)
 
     def test_android_16k_elf_alignment(self) -> None:
         # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
