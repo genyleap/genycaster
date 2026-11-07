@@ -652,7 +652,7 @@ private:
     bool m_isAuthenticated{false};
     QString m_authenticationPhase{QStringLiteral("signed-out")};
     bool m_authenticationStateObserved{false};
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     bool m_browserAccountRestorePending{true};
 #endif
     QString m_authenticationRoute{QStringLiteral("openproof")};
