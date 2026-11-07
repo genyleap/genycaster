@@ -11,16 +11,16 @@
 #include <QDir>
 #include <tuple>
 #include <utility>
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
 #include <QProcess>
 #endif
 #include <algorithm>
 #include <ranges>
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
 #include <QDesktopServices>
 #endif
 #include <QtTranslation>
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <QHostAddress>
 #include <QUrl>
 #include <emscripten.h>
@@ -165,7 +165,7 @@ MiniAppHostController::MiniAppHostController(bool runtimeAvailable, QSettings& s
     : QObject(parent), m_settings(settings), m_available(runtimeAvailable) {
     const QString stored = m_settings.value(QStringLiteral("miniapps/presentationMode")).toString();
     if (validPresentationMode(stored)) { m_presentationMode = stored; }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     m_browserVisibilityTimer.setInterval(300);
     connect(&m_browserVisibilityTimer, &QTimer::timeout, this, [this] {
         const bool visible = EM_ASM_INT({
@@ -290,7 +290,7 @@ void MiniAppHostController::requestWalletBrowser(const QString& localSessionUrl)
 
 void MiniAppHostController::chooseWalletBrowser(const QString& browserId)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     Q_UNUSED(browserId);
     return;
 #else
@@ -351,7 +351,7 @@ void MiniAppHostController::setPresentationMode(const QString& mode) {
     if (!validPresentationMode(mode) || mode == m_presentationMode) { return; }
     m_presentationMode = mode;
     m_settings.setValue(QStringLiteral("miniapps/presentationMode"), mode);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const QByteArray modeUtf8 = mode.toUtf8();
     EM_ASM({
         const host=window.__genycasterMiniAppOverlay;
@@ -370,7 +370,7 @@ void MiniAppHostController::setSessionLimit(const int limit)
     const int normalized = std::clamp(limit,1,4);
     if (m_sessionLimit == normalized) return;
     m_sessionLimit = normalized;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     EM_ASM({
         const host = window.__genycasterMiniAppOverlay;
         if (host && host.setLimit) host.setLimit($0);
@@ -399,7 +399,7 @@ void MiniAppHostController::setUser(const QVariantMap& user) {
     if (previousFid != nextFid) closeAll();
     m_user = publicUser;
     emit userChanged();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const auto json = QJsonDocument(QJsonObject::fromVariantMap(publicUser))
                           .toJson(QJsonDocument::Compact);
     EM_ASM({
@@ -445,7 +445,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     }
     m_launchUrl = destination.toString(QUrl::FullyEncoded);
     emit stateChanged();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // WebAssembly cannot create the native macOS WKWebView. Host public,
     // embeddable Mini Apps in a sandboxed in-page iframe instead of launching
     // an unrelated browser tab. Do not claim that the unprivileged iframe
@@ -480,7 +480,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         // ship an embedded SDK runtime. Never bridge signer/wallet permissions.
         // The Open button remains functional without weakening the native
         // sandbox or silently marking a session active.
-#if !defined(__EMSCRIPTEN__) && !defined(Q_OS_ANDROID)
+#if !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
         if (QDesktopServices::openUrl(destination)) {
             emit externalLaunchSucceeded();
             setState(false);
@@ -495,7 +495,7 @@ void MiniAppHostController::openWithMetadata(const QString& url,
     emit launchRequested(destination.toString(QUrl::FullyEncoded), title, iconSource.left(4096));
 }
 void MiniAppHostController::close() {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     m_browserVisibilityTimer.stop();
     EM_ASM({
         if (window.__genycasterMiniAppOverlay)
@@ -507,7 +507,7 @@ void MiniAppHostController::close() {
 }
 
 void MiniAppHostController::closeAll() {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     m_browserVisibilityTimer.stop();
     EM_ASM({
         if (window.__genycasterMiniAppOverlay)
