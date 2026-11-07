@@ -34,5 +34,5 @@ test('cast details use their own back toolbar instead of a duplicate global bran
     assert.match(detail, /if \(root.interactionsAvailable\) root.replyRequested\(root.detail\)/);
     assert.match(detail, /genycaster.detail.back_back_to_feed/);
     assert.match(detail, /onClicked: root.backRequested\(\)/);
-    assert.match(detail, /Layout.topMargin: Theme.space3[\s\S]*?spacing: Theme.space2/);
+    assert.match(detail, /Layout\.topMargin: root\.compact \? 0 : Theme\.space2[\s\S]*?spacing: Theme\.space2/);
 });
