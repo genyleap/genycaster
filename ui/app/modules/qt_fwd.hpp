@@ -7,6 +7,7 @@ using QStringList = QList<QString>;
 class QPoint;
 class QPointF;
 class QQuickWindow;
+class QSettings;
 class QGuiApplication;
 class QQmlApplicationEngine;
 class PresentationBridge;
