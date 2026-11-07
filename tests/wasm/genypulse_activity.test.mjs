@@ -35,7 +35,7 @@ test('Farcaster and GitHub have separate pagination, state, deduplication and ti
   assert.match(source,/publishGitHub\(false\)/);
   assert.match(source,/QNetworkRequest::ManualRedirectPolicy/);
   // Qt WASM may not author User-Agent; HyperSnap CORS does not allow it.
-  assert.match(source,/#if !defined\(__EMSCRIPTEN__\)[\s\S]*?setRawHeader\("User-Agent"/);
+  assert.match(source,/#if !defined\(Q_OS_WASM\)[\s\S]*?setRawHeader\("User-Agent"/);
   assert.match(source,/kMaxResponseBytes/);
   assert.match(header,/Q_PROPERTY\(QVariantMap farcaster/);
   assert.match(header,/Q_PROPERTY\(QVariantMap github/);
