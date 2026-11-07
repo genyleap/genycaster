@@ -20,7 +20,7 @@ test('Channel artwork is essential small UI imagery with controlled network admi
  const cast=read('ui/components/CastItem.qml');
  const detail=read('ui/components/DetailSurface.qml');
  assert.match(avatar,/forceAutomaticDownload: root\.forceAutomaticDownload/);
- assert.match(compose,/avatarSize: 39[\s\S]*?forceAutomaticDownload: true/);
+ assert.match(compose,/avatarSize: 32\s*forceAutomaticDownload: true/);
  assert.match(cast,/sourceUrl: root\.channelImageUrl\s*forceAutomaticDownload: true/);
  assert.match(detail,/sourceUrl: root\.resolvedChannelImage\s*forceAutomaticDownload: true/);
 });
@@ -37,7 +37,7 @@ test('Localized chrome and social connections use dedicated IDs and mirror contr
  const home=read('ui/components/HomeFeedHeader.qml');
  const connections=read('ui/components/AccountConnectionsPopup.qml');
  const fa=read('ui/i18n/qml_fa_IR.ts');
- assert.match(chrome,/font\.family: Theme\.fontFamilyForText\(text\)/);
+ assert.match(chrome,/font\.family: Theme\.latinFontFamily/);
  assert.match(bar,/objectName: "engagementBar"[\s\S]*?layoutDirection: Theme\.uiDirection/);
  assert.match(home,/genycaster\.home\.scope_following/);
  assert.match(home,/genycaster\.home\.scope_everyone/);
