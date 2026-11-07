@@ -99,8 +99,6 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         route_call = main.index("bootstrap::loadProviderRoutes(", routes)
         route_error_gate = main.index("if (!routingPolicy) return 2;", route_call)
         transfers = (
-            "std::move(configuredProfiles->preferredReadProviderId)",
-            "std::move(configuredProfiles->preferredWriteProviderId)",
             "std::move(configuredProfiles->readProviderApiKeys)",
             "std::move(profile.id)",
             "std::move(profile.adapterContract)",
@@ -113,6 +111,13 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
                 route_error_gate,
                 main.index(transfer),
                 msg=f"Route resolution must precede ownership transfer: {transfer}",
+            )
+        # Small selected IDs are copied; the original config stays valid even
+        # when future startup stages also need the route/user selection.
+        for selected in ("preferredReadProviderId", "preferredWriteProviderId"):
+            self.assertNotIn(f"std::move(configuredProfiles->{selected})", main)
+            self.assertIn(
+                f"const auto {selected} = configuredProfiles->{selected};", main
             )
         self.assertIn("*configuredProfiles", main[route_call:route_error_gate])
 
