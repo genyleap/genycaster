@@ -11,7 +11,7 @@ test('sidebar account card presents four factual metrics including tappable full
  assert.match(face,/labelText: "FID"/);
  assert.match(face,/interactive: true\s*onActivated: root\.requestProfile\(\)/);
  assert.match(face,/visible: !root\.compact && root\.bio\.length > 0/);
- assert.match(face,/text: root\.compact \? qsTrId\("genycaster\.pro\.short"\)/);
+ assert.match(face,/text: root\.compact && root\.proEligible\s*\? qsTrId\("genycaster\.pro\.short"\)/);
  assert.match(face,/Layout\.minimumWidth: root\.compact \? 84 : 0/);
  assert.match(face,/wrapMode: Text\.WrapAnywhere/);
  assert.match(face,/maximumLineCount: 2\s*elide: Text\.ElideNone/);
@@ -55,9 +55,9 @@ test('Check status rotates its refresh glyph only while the actual HTTP entitlem
  assert.match(cpp,/m_proEntitlementsRead = reply;\s*emit proEntitlementsChanged\(\)/);
  assert.match(cpp,/m_proEntitlementsRead\.clear\(\)/);
  assert.match(drawer,/spinIconWhileBusy: true/);
- assert.match(drawer,/busy: openProofConnections\.proEntitlementsBusy/);
+ assert.match(drawer,/busy: openProofConnections \? openProofConnections\.proEntitlementsBusy : false/);
  assert.match(drawer,/enabled: !busy/);
- assert.match(drawer,/onClicked: openProofConnections\.fetchProEntitlements\(true\)/);
+ assert.match(drawer,/onClicked: if \(openProofConnections\) openProofConnections\.fetchProEntitlements\(true\)/);
  assert.match(button,/visible: \(!control\.busy \|\| control\.spinIconWhileBusy\)/);
  assert.match(button,/RotationAnimator on rotation/);
  assert.match(button,/running: control\.busy && control\.spinIconWhileBusy/);
