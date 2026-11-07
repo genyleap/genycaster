@@ -403,13 +403,37 @@ target_include_directories(farcaster_media_scroll_tests PRIVATE
 target_link_libraries(farcaster_media_scroll_tests PRIVATE
     farcaster::presentation Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
 target_compile_definitions(farcaster_media_scroll_tests PRIVATE
-    MEDIA_COMPONENT_DIRECTORY="${genycasterUiSourceDir}/components"
+    MEDIA_COMPONENT_DIRECTORY="${genycasterPublicQmlFixtureDir}"
     MEDIA_THEME_FILE="${genycasterUiSourceDir}/theme/Theme.qml")
 add_dependencies(farcaster_media_scroll_tests farcaster_translation_catalogs)
 qt_add_resources(farcaster_media_scroll_tests media_scroll_translations
     PREFIX "/i18n"
     BASE "${genycasterUiBinaryDir}"
     FILES ${farcasterTranslationQmFiles})
+# Source-loaded native QML fixtures must mirror the flattened public resource
+# names, even when production sources are grouped into feature directories.
+set(genycasterPublicQmlFixtureDir "${CMAKE_CURRENT_BINARY_DIR}/qml-public-components")
+file(READ "${genycasterUiSourceDir}/components/source_paths.json" genycasterQmlSourcePaths)
+string(JSON genycasterQmlSourceCount LENGTH "${genycasterQmlSourcePaths}")
+if(genycasterQmlSourceCount LESS 1)
+    message(FATAL_ERROR "QML public-source map must not be empty")
+endif()
+math(EXPR genycasterLastQmlSourceIndex "${genycasterQmlSourceCount} - 1")
+foreach(genycasterQmlIndex RANGE 0 ${genycasterLastQmlSourceIndex})
+    string(JSON genycasterQmlPublicName MEMBER "${genycasterQmlSourcePaths}" ${genycasterQmlIndex})
+    string(JSON genycasterQmlPhysicalName GET "${genycasterQmlSourcePaths}" "${genycasterQmlPublicName}")
+    configure_file("${genycasterUiSourceDir}/components/${genycasterQmlPhysicalName}"
+        "${genycasterPublicQmlFixtureDir}/${genycasterQmlPublicName}" COPYONLY)
+endforeach()
+configure_file("${genycasterUiSourceDir}/components/composer/ProCastPolicy.js"
+    "${genycasterPublicQmlFixtureDir}/ProCastPolicy.js" COPYONLY)
+unset(genycasterQmlIndex)
+unset(genycasterQmlPublicName)
+unset(genycasterQmlPhysicalName)
+unset(genycasterQmlSourcePaths)
+unset(genycasterQmlSourceCount)
+unset(genycasterLastQmlSourceIndex)
+
 qt_add_resources(farcaster_media_scroll_tests media_scroll_icons
     PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
     BASE "${genycasterUiSourceDir}/assets/icons/genyleap"
