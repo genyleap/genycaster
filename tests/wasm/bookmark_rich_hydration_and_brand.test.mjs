@@ -58,8 +58,10 @@ test('header uses a stable wordmark, separated Beta label and bidi-isolated vers
   assert.match(qml,/x: Theme.rtl \? parent.width - root.gutter - width : root.gutter/);
   assert.match(qml,/x: Theme.rtl \? 0 : brandSymbol.width \+ brandCluster.brandGap/);
   assert.match(qml,/x: Theme.rtl \? root.gutter : parent.width - root.gutter - width/);
-  assert.match(qml,/layoutDirection: Qt.RightToLeft/);
-  assert.match(qml,/genycaster.release.beta_label/);
-  assert.match(qml,/genycaster.release.beta_version_number/);
-  assert.match(fa,/id="genycaster.release.beta_label"/);
+  // Brand artwork is not mirrored; only positioning flips for RTL.
+  assert.match(qml,/LayoutMirroring.enabled: false/);
+  assert.match(qml,/layoutDirection: Qt.LeftToRight/);
+  assert.match(qml,/objectName: "appHeaderReleaseVersion"/);
+  assert.match(qml,/Qt.application.version/);
+  assert.match(fa,/id="genycaster.update.channel_beta"/);
 });
