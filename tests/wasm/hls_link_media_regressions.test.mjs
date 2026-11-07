@@ -26,7 +26,7 @@ test('the HLS browser overlay is wired to the actual QML mediaPlayback object',(
  const bridge=read('src/presentation/qt/media_playback_coordinator.cpp');
  const pre=read('ui/wasm/browser-hls-pre.js');
  const cmake=read('ui/CMakeLists.txt');
- assert.match(cpp,/setContextProperty\(QStringLiteral\("mediaPlayback"\)/);
+ assert.match(cpp,/\{"mediaPlayback", &mediaPlayback\}/);
  assert.match(qml,/mediaPlayback\.openBrowserHls\(candidate\)/);
  assert.match(bridge,/MediaPlaybackCoordinator::openBrowserHls/);
  assert.match(pre,/video\.canPlayType\("application\/vnd\.apple\.mpegurl"\)/);
@@ -50,7 +50,7 @@ test('editorial link artwork and focus rings on both home composers',()=>{
  const link=read('ui/components/LinkPreview.qml');
  const home=read('ui/components/HomeDashboard.qml');
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
- assert.match(link,/root\.compact \? 116 : 184/);
+ assert.match(link,/Layout\.fillWidth: root\.compact && shouldReserve[\s\S]*?Math\.min\(root\.compact \? 300 : 180/);
  assert.match(link,/visible: root\.authorText\.length > 0 \|\| root\.dateText\.length > 0/);
  assert.match(home,/desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/objectName: "homeComposerLauncher"/);
