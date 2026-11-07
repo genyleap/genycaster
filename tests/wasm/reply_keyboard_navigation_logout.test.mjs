@@ -56,7 +56,9 @@ test('logout requires confirmation and reopens Setup from first step',()=>{
 });
 test('beta label is short and is translated in every locale',()=>{
  const settings=read('LocaleSettingsPopup.qml');
- assert.match(settings,/text: qsTrId\("genycaster\.settings\.beta_release_short"\)/);
+ assert.match(settings,/text: qsTrId\("genycaster\.update\.version_number"\)/);
+ assert.match(settings,/text: root\.releaseChannelLabel\(updateController\.releaseChannel,/);
+ assert.match(settings,/case "beta": label = qsTrId\("genycaster\.update\.channel_beta"\)/);
  assert.doesNotMatch(settings,/current_beta_release"\)\s*\.arg\(updateController\.appVersion\)/);
  for (const lang of ['en_US','fa_IR','ar_SA','fr_FR','de_DE','es_ES','pt_BR','ru_RU','hi_IN','ja_JP','ko_KR','zh_CN']){
   const data=readFileSync(new URL('../../ui/i18n/qml_'+lang+'.ts',import.meta.url),'utf8');
