@@ -175,7 +175,7 @@ test('The account sidebar uses verified streak instead of Trust Score, and inact
  const account=read('ui/components/ProfileTrustCard.qml');
  const profile=read('ui/components/ProfileSurface.qml');
  assert.match(sidebar,/function requestSidebarStreak\(\)/);
- assert.match(sidebar,/streakSnapshot: openProofConnections.streak/);
+ assert.match(sidebar,/streakSnapshot: openProofConnections \? openProofConnections\.streak : \(\{\}\)/);
  assert.match(account,/objectName: "sidebarStreakMetric"/);
  assert.match(account,/objectName: "sidebarStreakRing"/);
  assert.match(account,/streakSnapshot.time_zone === "UTC"/);
