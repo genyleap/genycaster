@@ -211,7 +211,8 @@ test('composer mobile selectors use solid matching controls and keyboard-safe fo
  assert.match(composer,/objectName: "mobileComposerStickyFooter"/);
  assert.match(composer,/contentItem: ColumnLayout \{[\s\S]*?ScrollView \{/);
  assert.match(composer,/Layout\.fillHeight: true/);
- assert.match(composer,/objectName: "mobileComposerSelectorSlot"/);
+ assert.match(composer,/objectName: "mobileCastContext"/);
+  assert.match(composer,/id: selectedChannelChip/);
  assert.doesNotMatch(composer,/DashedCapsuleOutline \{/);
  assert.match(composer,/fillColor: root.selectedParentUrl.length > 0[\s\S]*?Theme.primarySurface : Theme.surfaceMuted/);
  assert.doesNotMatch(composer,/ctx\.roundedRect/);
