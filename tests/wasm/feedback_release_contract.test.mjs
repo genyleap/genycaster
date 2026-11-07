@@ -60,8 +60,11 @@ test('feedback choices consume pointer input and the entry point uses a face ico
 
 test('desktop bookmark cards keep a consistent inset on every edge', () => {
   const bookmarks = qml('BookmarksSurface');
-  assert.ok(bookmarks.includes('- Theme.space3 * 2'));
-  assert.ok(bookmarks.includes('Layout.margins: Theme.space3'));
+  // A clipped card keeps its outer grid geometry separate from its inner
+  // padding; layout margins are zero, and children are inset on all sides.
+  assert.match(bookmarks, /implicitHeight: Math\.max\(110,\s*savedContent\.implicitHeight \+ Theme\.space3 \* 2\)/);
+  assert.match(bookmarks, /Layout\.margins: 0/);
+  assert.match(bookmarks, /anchors\.margins: Theme\.space3/);
 });
 
 test('feedback text is translated in every supported locale', () => {
