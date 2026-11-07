@@ -13,6 +13,7 @@ or signer implementation.
 | `bootstrap/profiles` | Independent Read/Write adapter registrations and ephemeral provider keys |
 | `bootstrap/routes` | Selected protocol's signed-message destination and node candidates |
 | `bootstrap/auth` | Relying-party identity, app FID, explicit signer attestation, and login relay/RPC |
+| `bootstrap/wallet` | Safe wallet approval URL expansion, platform dispatch, and bounded Mini App chain policy |
 | `bootstrap/fonts` | Bundled typefaces, script-specific fallbacks, and language selection |
 | `bootstrap/context` | Validated non-owning QML controller names, font values, and platform flags |
 | `bootstrap/monitoring` | Per-FID notification cursors and reconnect retry signals scoped to presentation lifetime |
