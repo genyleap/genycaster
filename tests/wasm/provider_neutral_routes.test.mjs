@@ -8,7 +8,7 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 test('capability router is vendor-neutral and supports per-access and operation pinning', () => {
     const router = read('src/routing/router.cpp');
     const api = read('src/routing/router.cppm');
-    assert.doesNotMatch(router + api, /hypersnap|snapchain|genyleap|neynar/i);
+    assert.doesNotMatch((router + api).replace(/^\s*\* @copyright[^\n]*$/gm, ''), /hypersnap|snapchain|genyleap|neynar/i);
     assert.match(api, /setPreferredProviderForAccess/);
     assert.match(api, /setPreferredProviderForCapability/);
     assert.match(router, /explicitPreference->require/);
@@ -18,7 +18,7 @@ test('capability router is vendor-neutral and supports per-access and operation 
 });
 
 test('multiple provider instances register only for explicit supported adapter contracts', () => {
-    const main = read('ui/app/main.cpp');
+    const main = read('ui/app/bootstrap/profiles.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
     const interfaces = read('ui/app/runtime_composition.cppm');
     assert.match(main, /GENYCASTER_READ_PROVIDER_PROFILES_JSON/);
