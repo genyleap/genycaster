@@ -81,7 +81,7 @@ test("mobile Explorer shows dense rows and explicit Open",()=>{
  assert.match(apps,/miniAppDetailDrawer\.open\(\)/);
  assert.match(apps,/id: miniAppStoreTile[\s\S]*?id: storeIcon/);
  assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
- assert.match(apps,/cellHeight: root\.compact \? 116/);
+ assert.match(apps,/cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)/);
  assert.match(apps,/id: storeRow[\s\S]*?visible: !root\.compact/);
  assert.match(apps,/objectName: "miniAppDetailDrawer"/);
  assert.match(apps,/root\.showAppDetails\(cardCell\.modelData\)/);
@@ -151,7 +151,7 @@ test('feature carousel counter follows visible position, arrows and touch use on
 });
 test('WASM uses browser-cacheable first-party raster proxy, native still uses image provider',()=>{
  const cpp=read("ui/app/miniapp_catalog_controller.cpp");
- assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
+ assert.match(cpp,/#if defined\(Q_OS_WASM\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\), url\.toString\(QUrl::FullyEncoded\)\)/);
  assert.match(cpp,/#else\s+const QByteArray encoded/);
 });
