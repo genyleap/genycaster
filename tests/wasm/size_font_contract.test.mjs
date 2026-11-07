@@ -6,7 +6,7 @@ const read=(path)=>readFileSync(new URL("../../"+path,import.meta.url),"utf8");
 test("WASM fonts retain full CJK coverage while removing unneeded TTC faces",()=>{
  const cmake=read("ui/CMakeLists.txt");
  const optimizer=read("ci/optimize_cjk_collection.py");
- const main=read("ui/app/main.cpp");
+ const fonts=read("ui/app/bootstrap/fonts.cpp");
  assert.match(cmake,/GENYCASTER_OPTIMIZE_CJK_COLLECTION/);
  assert.match(cmake,/GENYCASTER_CJK_FONTTOOLS_PYTHON/);
  assert.match(cmake,/ci\/optimize_cjk_collection.py/);
@@ -15,9 +15,9 @@ test("WASM fonts retain full CJK coverage while removing unneeded TTC faces",()=
  assert.match(optimizer,/frozenset\(font.getBestCmap\(\)\)/);
  assert.match(optimizer,/optimized collection lost Unicode glyph coverage/);
  assert.match(optimizer,/SOURCE_SHA256/);
- assert.match(main,/bundledJapaneseFontFamily = chooseCjkFamily\(QStringLiteral\("JP"\)\)/);
- assert.match(main,/bundledKoreanFontFamily = chooseCjkFamily\(QStringLiteral\("KR"\)\)/);
- assert.match(main,/bundledChineseFontFamily = chooseCjkFamily\(QStringLiteral\("SC"\)\)/);
+ assert.match(fonts,/bundledJapaneseFontFamily = chooseCjkFamily\(QStringLiteral\("JP"\)\)/);
+ assert.match(fonts,/bundledKoreanFontFamily = chooseCjkFamily\(QStringLiteral\("KR"\)\)/);
+ assert.match(fonts,/bundledChineseFontFamily = chooseCjkFamily\(QStringLiteral\("SC"\)\)/);
 });
 test("no font glyph is discarded by simplistic fixed-size UI language subset",()=>{
  const optimizer=read("ci/optimize_cjk_collection.py");
