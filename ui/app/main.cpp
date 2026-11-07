@@ -1212,33 +1212,24 @@ int main(int argc, char* argv[])
                  &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
                  snapchainBaseUrl, authenticationAvailable, openExploreForTest]() mutable {
-                    runtime = std::move(readyRuntime);
-                    connectRuntime(
-                        presentationBridge, richComposerController, openProofConnections,
-                        runtime, authenticationAvailable,
-                        siwfDomain, siwfUri,
-                        snapchainBaseUrl ? QString::fromStdString(*snapchainBaseUrl)
-                                         : QStringLiteral("https://snapchain.genyleap.com"));
-                    connectMediaPlayback(mediaPlayback, runtime);
-#if defined(Q_OS_WASM)
-                    connectBrowserMediaUpload(mediaUploadController, presentationBridge,
-                                              richComposerController);
-#elif FARCASTER_HAS_MEDIA_UPLOAD
-                    connectMediaUpload(mediaUploadController, runtime);
-#else
-                    mediaUploadController.setAvailable(false);
-#endif
-                    presentationBridge.applyRuntimeState(true);
-                    if (startupIdentity.isEmpty()) {
-                        if (openExploreForTest) {
-                            presentationBridge.selectFeed(QStringLiteral("recent"));
-                        }
-                        return;
-                    }
-                    // PresentationBridge owns the identity-to-Home transition for both
-                    // restored and manually opened identities. Explorer is an
-                    // explicit Recent capability, independent of personal Home.
-                    presentationBridge.openIdentity(startupIdentity);
+                    // The Qt presentation facade owns GUI-thread attachment;
+                    // the bootstrap worker never publishes partial runtime state.
+                    genycaster::ui::bindings::attachRuntime({
+                        .presentationBridge = presentationBridge,
+                        .richComposerController = richComposerController,
+                        .openProofConnections = openProofConnections,
+                        .mediaUploadController = mediaUploadController,
+                        .mediaPlayback = mediaPlayback,
+                        .runtime = runtime,
+                        .siwfDomain = std::move(siwfDomain),
+                        .siwfUri = std::move(siwfUri),
+                        .browserSnapchainOrigin = snapchainBaseUrl
+                            ? QString::fromStdString(*snapchainBaseUrl)
+                            : QStringLiteral("https://snapchain.genyleap.com"),
+                        .startupIdentity = std::move(startupIdentity),
+                        .authenticationAvailable = authenticationAvailable,
+                        .openExploreForTest = openExploreForTest,
+                    }, std::move(readyRuntime));
                 }, Qt::QueuedConnection);
         };
 #if defined(Q_OS_WASM)
