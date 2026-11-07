@@ -16,6 +16,12 @@ module;
 #include <memory>
 export module genycaster.ui.bootstrap.fonts;
 export namespace genycaster::ui::bootstrap {
+/**
+ * @brief Owns resolved typeface families used by the native QML shell.
+ *
+ * Bundled font families are resolved once; language-specific selection uses
+ * stable fallbacks so switching locale never changes unrelated font assets.
+ */
 class FontFamilies final {
 public:
     FontFamilies();
@@ -24,8 +30,17 @@ public:
     FontFamilies& operator=(const FontFamilies&) = delete;
 
     // Preserve the exact installed-resource checks from native startup.
+    /** @brief Register bundled fonts and capture platform fallbacks.
+     *  @return False when required font resources cannot be prepared.
+     */
     [[nodiscard]] bool load();
+    /** @brief Select an appropriate UI typeface for a language tag.
+     *  @return Bundled script family or the platform fallback.
+     */
     [[nodiscard]] QString forLanguage(QString languageTag) const;
+    /** @brief Stable resolved font families exposed to QML theme properties.
+     *  Accessors return module-owned values and never start a font reload.
+     */
     [[nodiscard]] const QString& persian() const noexcept;
     [[nodiscard]] const QString& devanagari() const noexcept;
     [[nodiscard]] const QString& japanese() const noexcept;
