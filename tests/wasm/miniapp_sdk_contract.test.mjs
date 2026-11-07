@@ -20,7 +20,10 @@ function hostBrowser(sdkInitially=true) {
     addEventListener(type,handler){this.handlers[type]=handler;}
     focus(){}
   }
+  const documentNodes=new Map();
   const document={createElement:name=>{const node=new Element(name);nodes.push(node);return node;},
+    getElementById:id=>documentNodes.get(id)||null,
+    head:{append(node){node.isConnected=true;if(node.id)documentNodes.set(node.id,node);}},
     body:{append(node){node.isConnected=true;}}};
   const window={location:{origin:'https://caster.genyleap.com'},innerWidth:1200};
   const sdk={attach(frame,url,user,actions){
