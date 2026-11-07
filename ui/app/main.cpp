@@ -89,7 +89,7 @@
 #include "provider_profiles_controller.hpp"
 #include "update_controller.hpp"
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
@@ -97,7 +97,7 @@
 #include "browser_openproof_auth.hpp"
 #include "openproof_connections_controller.hpp"
 #include "genypulse_activity_controller.hpp"
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
 #include "browser_emoji_recovery.hpp"
@@ -120,14 +120,14 @@ import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.providers;
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
 import genycaster.ui.bootstrap.teardown;
 import genycaster.ui.bootstrap.worker;
 #endif
 import genycaster.ui.diagnostics.snapshots;
 import genycaster.ui.diagnostics.smoke;
 import genycaster.ui.web.wheel;
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
 import genycaster.ui.desktop.instance;
 #endif
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
@@ -153,7 +153,7 @@ using genycaster::ui::bindings::applyProfileVerificationFixture;
 #if FARCASTER_HAS_MEDIA_UPLOAD
 using genycaster::ui::bindings::connectMediaUpload;
 #endif
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 using genycaster::ui::bindings::connectBrowserMediaUpload;
 #endif
 
@@ -227,7 +227,7 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
             if (!opened) opened = QDesktopServices::openUrl(parsed);
             return opened;
         };
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         const bool opened = open();
 #else
         const bool opened = genycaster::ui::shutdown::invokeOnApplication(open);
@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationVersion(QString::fromLatin1(GENYCASTER_APP_VERSION));
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     // Desktop window/task-switcher identity complements the bundled native
     // Windows PE and macOS application resources.
     QGuiApplication::setWindowIcon(QIcon{QStringLiteral(":/genycaster/app-icon.png")});
@@ -307,7 +307,7 @@ int main(int argc, char* argv[])
     const bool isSmokeTest = arguments.contains(QStringLiteral("--smoke-test"));
     const bool isVisualTest = arguments.contains(QStringLiteral("--visual-test"));
     const bool isRuntimeSmokeTest = arguments.contains(QStringLiteral("--runtime-smoke-test"));
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     // The real desktop client is one process per OS user. Test runners
     // intentionally retain independent instances and isolated fixtures.
     genycaster::ui::DesktopSingleInstance desktopInstance{};
@@ -328,7 +328,7 @@ int main(int argc, char* argv[])
         ? arguments[snapshotIndex + 1] : QString{};
 
     const QString settingsPath = optionValue(arguments, QStringLiteral("--settings-path="));
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // QSettings NativeFormat writes under ~/.config, which is not mounted
     // by IDBFS. Keep only non-secret preferences/consent in the durable
     // virtual user-data directory. The preRun hook restores it before main().
@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
     std::unordered_map<std::string, std::string> readProviderApiKeys{};
     QByteArray providerSecretsJson =
         qgetenv("GENYCASTER_READ_PROVIDER_API_KEYS_JSON");
-#ifdef __EMSCRIPTEN__
+#ifdef Q_OS_WASM
     if (providerSecretsJson.isEmpty()) {
         // Explicitly supplied per-tab browser credentials. Never persist
         // these keys in QSettings/IDBFS or bundle them into WASM assets.
@@ -902,7 +902,7 @@ int main(int argc, char* argv[])
         ? std::nullopt : std::optional<std::string>{optimismRpcUrlText.toStdString()};
     const std::string siwfDomain = siwfDomainText.toStdString();
     const std::string siwfUri = siwfUriText.toStdString();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     const bool authenticationAvailable = true; // OpenProof browser device OAuth, read-only session.
 #elif GENYCASTER_HAS_OPENPROOF_AUTH
     const bool authenticationAvailable = true;
@@ -1014,7 +1014,7 @@ int main(int argc, char* argv[])
         "Farcaster.Client", 1, 0, "RichInlineTextItem");
 
     QQmlApplicationEngine engine{};
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     // Declared after the engine and controller owners so early-return cleanup
     // joins global workers before their borrowed presentation objects disappear.
     genycaster::ui::shutdown::ShutdownScope shutdownScope{};
@@ -1023,7 +1023,7 @@ int main(int argc, char* argv[])
     appearanceControllerOwner = std::make_unique<AppearanceController>(
         settings, std::move(appearanceOverrides));
     AppearanceController& appearanceController = *appearanceControllerOwner;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Browser chrome uses the HTML document theme independently of Qt Quick's
     // canvas. Keep it in sync with the effective app appearance, including
     // manual overrides and system changes.
@@ -1085,7 +1085,7 @@ int main(int argc, char* argv[])
     QObject::connect(
         &localizationController, &LocalizationController::localeChanged,
         &application, applyApplicationLocaleFont);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Keep the phrase-import DOM sheet in the same UI language as Qt/QML,
     // including live changes in the Genycaster language selector. This passes
     // only a public locale tag; recovery words never cross this bridge.
@@ -1111,7 +1111,7 @@ int main(int argc, char* argv[])
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest};
     BrowserLinkMetadataController browserLinkMetadataController{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest
 #else
         false
@@ -1125,7 +1125,7 @@ int main(int argc, char* argv[])
             && !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest};
     BrowserReactionController browserReactionController{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest
 #else
         false
@@ -1148,7 +1148,7 @@ int main(int argc, char* argv[])
     dataStorageControllerOwner = std::make_unique<DataStorageController>(settings);
     DataStorageController& dataStorageController = *dataStorageControllerOwner;
 
-#if defined(__EMSCRIPTEN__) || defined(Q_OS_ANDROID)
+#if defined(Q_OS_WASM) || defined(Q_OS_ANDROID)
     // Browser/WASM and Android host public web content without exposing
     // signer or wallet permissions. macOS separately enables its SDK runtime.
     constexpr bool miniAppLaunchAvailable = true;
@@ -1185,7 +1185,7 @@ int main(int argc, char* argv[])
         .providerLabel = QStringLiteral("Farcaster public developer index"),
         .format = MiniAppCatalogFormat::Json,
     };
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Keep upstream API credentials out of browser binaries and avoid CORS.
     // The first-party gateway only exposes bounded public catalogue reads.
     primaryMiniAppCatalogue = MiniAppCatalogEndpoint{
@@ -1215,7 +1215,7 @@ int main(int argc, char* argv[])
     if (channelDirectoryBaseUrl.isEmpty())
         channelDirectoryBaseUrl = settings.value(
             QStringLiteral("network/channelDirectoryBaseUrl")).toString().trimmed();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (channelDirectoryBaseUrl.isEmpty()) {
         // Discover this optional capability from the configured first-party
         // gateway, not an additional hard-coded host. A custom deployment or
@@ -1531,7 +1531,7 @@ int main(int argc, char* argv[])
                      &openProofConnections, [&openProofConnections] {
         if (openProofConnections.cloudAuthorizationReady()) {
             openProofConnections.fetchProEntitlements();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             openProofConnections.fetchGenyAssets();
 #endif
         }
@@ -1661,7 +1661,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("nodeSelectionController"), &nodeSelectionController);
     engine.rootContext()->setContextProperty(QStringLiteral("providerProfiles"), &providerProfilesController);
     engine.rootContext()->setContextProperty(QStringLiteral("updateController"), &updateController);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{true});
 #else
     engine.rootContext()->setContextProperty(QStringLiteral("wasmReadOnly"), QVariant{false});
@@ -1683,7 +1683,7 @@ int main(int argc, char* argv[])
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
     engine.loadFromModule(QStringLiteral("Farcaster.Client"), QStringLiteral("Main"));
     if (engine.rootObjects().isEmpty()) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // The HTML Qt loader may have declared the runtime ready already.
         // Surface QML construction failures rather than leaving a blank page.
         EM_ASM({
@@ -1695,7 +1695,7 @@ int main(int argc, char* argv[])
     }
     auto* const mainWindow = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
     if (!mainWindow) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         EM_ASM({
             window.__genycasterQmlStartup?.(false,
                 "Qt Main did not produce a QQuickWindow");
@@ -1703,11 +1703,11 @@ int main(int argc, char* argv[])
 #endif
         return 1;
     }
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     desktopInstance.setWindow(mainWindow);
 #endif
     renderingController.attachWindow(mainWindow);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     genycaster::ui::web::installWheelBridge(mainWindow);
     genycasterInstallBrowserEmojiRecovery();
     // This is the only reliable readiness event: the Main.qml object tree
@@ -1724,7 +1724,7 @@ int main(int argc, char* argv[])
         if (!presentationBridge.runtimeReady()
             || presentationBridge.initialSetupRequired()) return;
         QString incoming = nativeIncomingLink;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         const char* const href = emscripten_run_script_string("window.location.href");
         incoming = href != nullptr ? QString::fromUtf8(href) : QString{};
 #endif
@@ -1732,7 +1732,7 @@ int main(int argc, char* argv[])
         lastIncomingLink = incoming;
         static_cast<void>(presentationBridge.openSharedLink(incoming));
     };
-#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
     // Reuse the existing deep-link route after a second desktop launch.
     // If the primary is still bootstrapping, dispatchIncomingLink defers
     // navigation until the runtime/setup state allows opening the URL.
@@ -1748,7 +1748,7 @@ int main(int argc, char* argv[])
                      &application, dispatchIncomingLink);
     QObject::connect(&presentationBridge, &PresentationBridge::setupStateChanged,
                      &application, dispatchIncomingLink);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     QTimer incomingLinkPoll{&application};
     incomingLinkPoll.setInterval(750);
     QObject::connect(&incomingLinkPoll, &QTimer::timeout, &application, dispatchIncomingLink);
@@ -1756,7 +1756,7 @@ int main(int argc, char* argv[])
 #endif
 
     std::shared_ptr<Runtime> runtime{};
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     // Join this native worker before destroying any controller it borrows.
     genycaster::ui::bootstrap::BootstrapWorker bootstrap{};
 #endif
@@ -1830,7 +1830,7 @@ int main(int argc, char* argv[])
                         snapchainBaseUrl ? QString::fromStdString(*snapchainBaseUrl)
                                          : QStringLiteral("https://snapchain.genyleap.com"));
                     connectMediaPlayback(mediaPlayback, runtime);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                     connectBrowserMediaUpload(mediaUploadController, presentationBridge,
                                               richComposerController);
 #elif FARCASTER_HAS_MEDIA_UPLOAD
@@ -1851,7 +1851,7 @@ int main(int argc, char* argv[])
                     presentationBridge.openIdentity(startupIdentity);
                 }, Qt::QueuedConnection);
         };
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // A worker thread cannot start in a single-threaded WASM browser runtime.
         // Defer initialization until Qt's main event loop is active.
         QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
@@ -1867,7 +1867,7 @@ int main(int argc, char* argv[])
         application, engine, presentationBridge, richComposerController,
         arguments, isVisualTest, openExploreForTest, snapshotPath);
     if (snapshotSetup != 0) return snapshotSetup;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // IDBFS is async: periodically flush SQLite's virtual file changes to
     // IndexedDB. The preRun hook restores the directory before main().
     QTimer wasmPersistenceFlush{&application};
@@ -1897,7 +1897,7 @@ int main(int argc, char* argv[])
     });
 #endif
     const int exitCode = application.exec();
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     // Qt's event dispatchers and QPA/scene-graph resources still exist here.
     // If we leave QML root destruction to QQmlApplicationEngine's destructor,
     // it runs during stack unwinding after the shared runtime has been
