@@ -30,6 +30,17 @@ if(NOT EMSCRIPTEN)
     endforeach()
 endif()
 
+# Validate startup provider precedence and credential containment with real
+# Qt settings; this target cannot load or log persisted API credentials.
+add_executable(genycaster_provider_endpoints_tests provider_endpoints_tests.cpp)
+target_link_libraries(genycaster_provider_endpoints_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core)
+target_compile_features(genycaster_provider_endpoints_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_provider_endpoints_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.provider_endpoints COMMAND genycaster_provider_endpoints_tests)
+set_tests_properties(ui.provider_endpoints PROPERTIES
+    TIMEOUT 10 LABELS "ui;provider;configuration;security")
+
 # Exercise QQmlApplicationEngine cleanup with an asynchronous Loader and
 # fatal Qt warnings. The native root must be destroyed before its dispatcher.
 qt_add_executable(farcaster_qml_engine_shutdown_tests
