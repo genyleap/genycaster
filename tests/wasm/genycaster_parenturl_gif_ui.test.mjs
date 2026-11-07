@@ -216,7 +216,7 @@ test('composer mobile selectors use solid matching controls and keyboard-safe fo
  assert.doesNotMatch(composer,/DashedCapsuleOutline \{/);
  assert.match(composer,/fillColor: root.selectedParentUrl.length > 0[\s\S]*?Theme.primarySurface : Theme.surfaceMuted/);
  assert.doesNotMatch(composer,/ctx\.roundedRect/);
- assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space2 : Theme.space3/);
+ assert.match(composer,/Layout\.bottomMargin: root\.keyboardVisible \? Theme.space2\s*: Math\.max\(Theme\.space3, root\.bottomSafeInset\)/);
  assert.match(composer,/fillColor: root\.selectedTopics\.length > 0[\s\S]*?Theme\.primarySurface : Theme.surfaceMuted/);
  assert.match(composer,/objectName: "mobileCastContext"/);
  assert.match(composer,/objectName: "mobileComposerMediaBar"/);
