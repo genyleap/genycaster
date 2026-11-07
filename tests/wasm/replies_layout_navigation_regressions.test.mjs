@@ -11,7 +11,7 @@ test('nested and profile replies keep their measured hit targets while scrolling
   assert.match(profile,/profileCastLoader\.status === Loader\.Ready/);
   assert.match(profile,/profileCastDelegate\.committedHeight = profileCastDelegate\.resolvedHeight/);
   assert.match(feed,/!rowDelegate\.incubating && rowDelegate\.resolvedHeight > 0/);
-  assert.match(feed,/rowDelegate\.committedHeight = rowDelegate\.resolvedHeight/);
+  assert.match(feed,/const nextHeight = !rowDelegate\.incubating && rowDelegate\.resolvedHeight > 0[\s\S]*?rowDelegate\.committedHeight = nextHeight/);
   assert.match(profile,/onReplyRequested: cast => root\.replyRequested\(cast\)/);
   assert.match(feed,/onReactionRequested: \(kind, cast, active\) => root\.reactionRequested/);
 });
