@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Product-owned Pro explainer. It never upgrades an account locally:
 // membership and wallet balances are verified by the account service.

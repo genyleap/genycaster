@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 /**
  * @brief Compact recursive conversation row used by cast detail threads.

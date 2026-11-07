@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Farcaster.Client
 
 // The browser reaction relay is a native Qt adapter, including on WebAssembly.
 // QML owns no HTTP, JSON parsing, fetch, retry timer or global request queue.

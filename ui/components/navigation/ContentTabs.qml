@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Hover softly changes only the label color: no rectangles, scale or layout
 // transitions. The persistent underline moves only after a real selection.

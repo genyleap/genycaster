@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtWebView
+import Farcaster.Client
 
 // Android's public system WebViews are isolated from Farcaster signer/wallet
 // authority. They are kept alive in separate native surfaces, with exactly

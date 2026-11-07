@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Presentation-only public web metadata. The shared C++ resolver owns bounded
 // requests, domain checks, cache and favicon image-provider validation.

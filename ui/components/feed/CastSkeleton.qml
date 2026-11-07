@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Height-bounded, text-shaped placeholder. Every bar declares Layout sizes:
 // Qt layouts do not use a child item's plain width/height as its preferred

@@ -3,6 +3,7 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQml.Models
+import Farcaster.Client
 
 Drawer {
     id: root

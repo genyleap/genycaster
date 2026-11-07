@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+import Farcaster.Client
 
 // Compact navigation dock: five stable destinations in one
 // quiet capsule, one independently configurable primary action outside it.

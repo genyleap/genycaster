@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import Farcaster.Client
 
 // Pure decorative dashed pill outline. Qt Quick Canvas does not implement
 // the browser CanvasRenderingContext2D.roundedRect/setLineDash combination

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Composer/chat media tile. Images render through the shared image path;
 // videos render through the canonical GenyVideoPlayer media stack with the

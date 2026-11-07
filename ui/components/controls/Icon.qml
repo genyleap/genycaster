@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 import QtQuick.Window
+import Farcaster.Client
 
 Control {
     id: root

@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // The caller paints Unicode until the local renderer is ready. Keep the optional
 // Lottie type behind a URL Loader so renderer-free installations remain usable.

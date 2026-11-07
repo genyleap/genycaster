@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Farcaster.Client
 
 // GenyCaster Topics are independent of Farcaster channels and personal bookmark collections.
 Item {

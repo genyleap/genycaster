@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import Farcaster.Client
 
 /**
  * Stable vector stroke primitive for dynamic arcs, sparklines, and rounded

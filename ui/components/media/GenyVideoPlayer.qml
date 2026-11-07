@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Shapes
 import QtMultimedia
+import Farcaster.Client
 
 Item {
     id: root

@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // Worker-prepared PNG sheets share Qt's image cache across picker delegates.
 Item {

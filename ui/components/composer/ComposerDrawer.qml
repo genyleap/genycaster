@@ -4,6 +4,7 @@ import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Window
 import "ProCastPolicy.js" as ProCastPolicy
+import Farcaster.Client
 
 GenyDrawer {
     id: root

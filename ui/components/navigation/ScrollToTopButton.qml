@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Farcaster.Client
 
 // Viewport overlay: stays fixed above the scroll content and is only offered
 // after the reader has traveled farther than a screenful.

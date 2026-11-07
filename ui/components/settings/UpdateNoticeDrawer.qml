@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Lightweight release notice. Instantiates only one drawer per AppShell,
 // and opens once per newly discovered version; no forced downloads.

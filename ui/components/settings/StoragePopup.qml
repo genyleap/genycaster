@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 /**
  * Adaptive Data & Storage surface shared by desktop and mobile clients.

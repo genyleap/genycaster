@@ -72,6 +72,18 @@ class PipelineTests(unittest.TestCase):
         self.assertIn('MEDIA_COMPONENT_DIRECTORY="${genycasterPublicQmlFixtureDir}"', cmake)
         self.assertIn('"${genycasterPublicQmlFixtureDir}/ProCastPolicy.js"', cmake)
 
+    def test_all_qml_module_units_import_the_public_namespace(self) -> None:
+        """Feature folders must not rely on incidental implicit QML imports."""
+        import json
+        import re
+        root = Path("ui/components")
+        mapping = json.loads((root / "source_paths.json").read_text(encoding="utf-8"))
+        sources = [root / "shell/Main.qml", *(root / p for p in mapping.values())]
+        for path in sources:
+            with self.subTest(path=str(path)):
+                text = path.read_text(encoding="utf-8")
+                self.assertRegex(text, r"(?m)^import Farcaster\.Client\s*$")
+
     def test_native_qml_types_import_their_own_module(self) -> None:
         """Nested QML sources must explicitly import C++-registered module types."""
         import re

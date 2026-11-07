@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Farcaster.Client
 
 QtObject {
     function decoded(value) {

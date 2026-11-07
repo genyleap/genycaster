@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Farcaster.Client
 
 // All actions are rendered by our own Items, never Qt's styled MenuItem
 // delegate. This keeps text legible on hover in WASM and Desktop.

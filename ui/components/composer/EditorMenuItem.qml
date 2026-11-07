@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Farcaster.Client
 
 // Use a plain Item, not Qt's MenuItem/Action proxy. In Qt WASM Basic,
 // highlighted MenuItems could paint an empty glyph/text even with a custom

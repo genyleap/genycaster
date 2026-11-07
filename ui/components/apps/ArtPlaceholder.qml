@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // A real image request never looks like a finished generic Mini App icon.
 // Preserve final tile geometry during fetch; reveal fallback only for a

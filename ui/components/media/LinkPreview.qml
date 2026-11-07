@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 /**
  * Stable, metadata-aware link preview. EmbedPreview can provide already-resolved

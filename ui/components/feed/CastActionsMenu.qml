@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Shared lazy Cast actions for feed cards and the conversation header.
 Popup {

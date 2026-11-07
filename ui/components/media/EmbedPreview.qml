@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Authoritative dispatcher for canonical embed presentation.
 //

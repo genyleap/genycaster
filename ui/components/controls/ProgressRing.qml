@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import Farcaster.Client
 
 /**
  * High-quality mostly-static circular progress ring.

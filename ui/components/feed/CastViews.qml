@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Farcaster.Client
 
 // Compatibility/normalization facade for derived cast analytics. All HTTP,
 // JSON parsing, request coalescing and freshness policy are owned by the

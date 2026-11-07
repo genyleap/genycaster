@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Product-owned adaptive filter editor. Selections are staged until Apply.
 // Group cards share the same semantics on mobile (sheet) and desktop (drawer).

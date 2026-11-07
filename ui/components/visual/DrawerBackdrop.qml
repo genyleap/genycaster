@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import Farcaster.Client
 
 Item {
     id: root

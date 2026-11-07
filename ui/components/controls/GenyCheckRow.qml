@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Recovery uses the same dark-ink checkbox as the legal-consent screen,
 // not the separately configurable accent color. Cross-platform styling is

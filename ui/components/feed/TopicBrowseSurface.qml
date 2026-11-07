@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Server-indexed topic discovery. Never derive category membership from the
 // currently loaded feed page; missing local previews are still discoverable.

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Farcaster.Client
 
 /**
  * @brief Normalized market-asset artwork with deterministic built-in glyphs and fallback initials.

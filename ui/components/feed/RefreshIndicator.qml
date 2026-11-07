@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // Busy state shared by Feed, Profile, Detail and Apps. An existing result stays
 // readable while refresh runs; only this non-interactive line moves.

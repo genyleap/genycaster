@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQml.Models
+import Farcaster.Client
 
 // Composer emoji palette. Classic Unicode browsing stays renderer-free;
 // Animated browsing is bounded and retained independently so switching modes

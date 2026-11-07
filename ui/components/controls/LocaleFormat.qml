@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import Farcaster.Client
 
 /**
  * Reactive localization facade for value formatting used by QML bindings.

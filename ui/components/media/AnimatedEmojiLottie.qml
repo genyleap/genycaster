@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.VectorImage
+import Farcaster.Client
 
 VectorImage {
     id: root

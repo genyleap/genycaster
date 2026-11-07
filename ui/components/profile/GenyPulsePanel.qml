@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // One bounded, source-specific read model per provider. Missing heatmap cells
 // are unobserved, not proof of inactivity or a valid contribution streak.

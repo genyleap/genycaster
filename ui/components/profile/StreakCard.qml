@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Owner-scoped verified streaks. The parent Drawer owns the only screen title;
 // this component owns just the summary, calendar and milestone progression.

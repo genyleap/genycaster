@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // Shared pull-to-refresh gesture and small viewport indicator. Attach this
 // *outside* the ListView's content so it does not affect delegate geometry.

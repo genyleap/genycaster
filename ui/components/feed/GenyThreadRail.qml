@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 // Shared conversation connector: a thin, theme-aware line and a
 // Superellipse node that connects nested replies without fake hierarchy.

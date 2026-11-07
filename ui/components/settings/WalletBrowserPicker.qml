@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Wallet approval is owned by the trusted host. The native Mini App surface
 // is temporarily hidden while this Qt modal is open, then restored unchanged.

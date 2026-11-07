@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Farcaster.Client
 
 /**
  * Adaptive transient surface. Mobile presentations use a true bottom Drawer;

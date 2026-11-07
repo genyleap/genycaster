@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Farcaster.Client
 
 // Attribution is evidentiary: no client badge if the selected provider did
 // not report a human-readable client name. Never infer from profile or node.

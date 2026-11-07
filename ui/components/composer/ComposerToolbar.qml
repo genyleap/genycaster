@@ -1,4 +1,5 @@
 import QtQuick
+import Farcaster.Client
 
 GenyTabStrip {
     id: root
