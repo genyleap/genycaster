@@ -37,12 +37,15 @@ public:
 
     /** @brief False when an invalid proxy or credential destination fails closed. */
     [[nodiscard]] bool valid() const noexcept;
+
     /** @brief True only for explicit direct, rather than system, proxy mode. */
     [[nodiscard]] bool proxyDirect() const noexcept;
     [[nodiscard]] const QString& proxyMode() const noexcept;
+
     /** @brief Optional HyperSnap override; empty means provider-owned default. */
     [[nodiscard]] const QString& hypersnapBaseUrl() const noexcept;
     [[nodiscard]] const QString& farcasterReadBaseUrl() const noexcept;
+
     /** @brief Ephemeral canonical hosted-read credential; never persist it. */
     [[nodiscard]] const QString& farcasterReadApiKey() const noexcept;
 
