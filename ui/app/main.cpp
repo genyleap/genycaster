@@ -119,6 +119,7 @@ import farcaster.transport.qtnetwork;
 import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
+import genycaster.ui.bootstrap.providers;
 import genycaster.ui.diagnostics.snapshots;
 import genycaster.ui.diagnostics.smoke;
 import genycaster.ui.web.wheel;
@@ -344,79 +345,21 @@ int main(int argc, char* argv[])
     const auto deploymentIdentity =
         application::configuration::configuredDeploymentIdentity();
 
-    QString networkProxyText = optionValue(arguments, QStringLiteral("--network-proxy="));
-    if (networkProxyText.isEmpty()) {
-        networkProxyText = qEnvironmentVariable("GENYCASTER_NETWORK_PROXY").trimmed();
-    }
-    if (networkProxyText.isEmpty()) {
-        networkProxyText = settings.value(
-            QStringLiteral("network/proxyMode"), QStringLiteral("system")).toString();
-    }
-    networkProxyText = networkProxyText.toLower();
-    farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy{};
-    if (networkProxyText == QStringLiteral("direct")) {
-        networkProxyPolicy = farcaster::transport::qtnetwork::ProxyPolicy::Direct;
-    } else if (networkProxyText == QStringLiteral("system")) {
-        networkProxyPolicy = farcaster::transport::qtnetwork::ProxyPolicy::System;
-    } else {
-        qCritical().noquote()
-            << "GENYCASTER_NETWORK_PROXY/--network-proxy must be 'system' or 'direct'.";
-        return 2;
-    }
+    genycaster::ui::bootstrap::ProviderEndpoints endpoints{settings, arguments};
+    if (!endpoints.valid()) return 2;
+    const QString& networkProxyText = endpoints.proxyMode();
+    const auto networkProxyPolicy = endpoints.proxyDirect()
+        ? farcaster::transport::qtnetwork::ProxyPolicy::Direct
+        : farcaster::transport::qtnetwork::ProxyPolicy::System;
 
-    QString providerBaseUrlText = optionValue(
-        arguments, QStringLiteral("--hypersnap-base-url="));
-    if (providerBaseUrlText.isEmpty()) {
-        providerBaseUrlText = qEnvironmentVariable("GENYCASTER_HYPERSNAP_BASE_URL").trimmed();
-    }
-    if (providerBaseUrlText.isEmpty()) {
-        providerBaseUrlText = settings.value(
-            QStringLiteral("network/hypersnapBaseUrl")).toString().trimmed();
-    }
-    providerBaseUrlText = normalizeConfigurationToken(std::move(providerBaseUrlText));
-    if (!providerBaseUrlText.isEmpty() && !isValidHttpServiceUrl(providerBaseUrlText)) {
-        qWarning().noquote()
-            << "Ignoring invalid Hypersnap base URL override; using the built-in public read source.";
-        providerBaseUrlText.clear();
-    }
+    const QString& providerBaseUrlText = endpoints.hypersnapBaseUrl();
     const std::optional<std::string> providerBaseUrl = providerBaseUrlText.isEmpty()
         ? std::nullopt : std::optional<std::string>{providerBaseUrlText.toStdString()};
 
-    // An independent hosted Farcaster v2-compatible indexed API is optional.
-    // Never hardcode/distribute a Neynar key; a deployment supplies it in the
-    // process environment or proxies requests from its own authenticated host.
-    QString farcasterReadBaseUrlText = optionValue(
-        arguments, QStringLiteral("--farcaster-read-base-url="));
-    if (farcasterReadBaseUrlText.isEmpty()) {
-        farcasterReadBaseUrlText = qEnvironmentVariable(
-            "GENYCASTER_FARCASTER_READ_BASE_URL").trimmed();
-    }
-    QString farcasterReadApiKeyText = qEnvironmentVariable(
-        "GENYCASTER_FARCASTER_READ_API_KEY").trimmed();
-    if (!farcasterReadApiKeyText.isEmpty() && farcasterReadBaseUrlText.isEmpty()) {
-        farcasterReadBaseUrlText = QStringLiteral("https://api.neynar.com");
-    }
-    farcasterReadBaseUrlText = normalizeConfigurationToken(std::move(farcasterReadBaseUrlText));
-    if (!farcasterReadBaseUrlText.isEmpty() && !isValidHttpServiceUrl(farcasterReadBaseUrlText)) {
-        qWarning().noquote() << "Farcaster read endpoint is invalid; hosted provider will not be registered.";
-        farcasterReadBaseUrlText.clear();
-    }
-    if (farcasterReadApiKeyText.size() > 256
-        || farcasterReadApiKeyText.contains(QLatin1Char('\r'))
-        || farcasterReadApiKeyText.contains(QLatin1Char('\n'))) {
-        qCritical().noquote() << "Invalid Farcaster read credential format.";
-        return 2;
-    }
-    // Never disclose a Neynar API key to a custom host or redirect target.
-    if (!farcasterReadApiKeyText.isEmpty()
-        && QUrl(farcasterReadBaseUrlText).host().compare(
-            QStringLiteral("api.neynar.com"), Qt::CaseInsensitive) != 0) {
-        qCritical().noquote()
-            << "Neynar API key may only be sent to the canonical api.neynar.com host.";
-        return 2;
-    }
+    const QString& farcasterReadBaseUrlText = endpoints.farcasterReadBaseUrl();
     const std::optional<std::string> farcasterReadBaseUrl = farcasterReadBaseUrlText.isEmpty()
         ? std::nullopt : std::optional<std::string>{farcasterReadBaseUrlText.toStdString()};
+    const QString& farcasterReadApiKeyText = endpoints.farcasterReadApiKey();
     const std::optional<std::string> farcasterReadApiKey = farcasterReadApiKeyText.isEmpty()
         ? std::nullopt : std::optional<std::string>{farcasterReadApiKeyText.toStdString()};
 
