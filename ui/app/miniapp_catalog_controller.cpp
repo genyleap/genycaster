@@ -115,7 +115,7 @@ constexpr qsizetype recentMiniAppLimit = 20;
         return {};
     }
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Use the browser's HTTP image cache for public Mini App artwork, rather
     // than cycling its immutable URL through the feed's remote-image admission
     // and decode-worker pipeline on each recycled Qt Quick delegate.
@@ -139,7 +139,7 @@ constexpr qsizetype recentMiniAppLimit = 20;
 [[nodiscard]] QString publicMiniAppImageSource(const QString& imageUrl, const QString& homeUrl)
 {
     const QString source = publicImageSource(imageUrl);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (source.isEmpty() || homeUrl.isEmpty()) return source;
     QUrl scoped{source};
     QUrlQuery query{scoped};
@@ -450,7 +450,7 @@ constexpr qsizetype recentMiniAppLimit = 20;
     row.insert(QStringLiteral("description"),
                row.value(QStringLiteral("description")).toString().trimmed().left(420));
     row.insert(QStringLiteral("domain"), domain);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Migrate older local QSettings rows in-place: those images were stored
     // without the manifest scope and fail when the app is not currently ranked.
     const auto restoreScope = [&homeUrl](const QString& stored) {
@@ -776,7 +776,7 @@ public:
             return;
         }
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // Browser networking is asynchronous but has no native QThread.
         // The QObject and QNetworkAccessManager live on Qt's GUI event loop.
         networkWorker = new CatalogNetworkWorker{};
@@ -796,7 +796,7 @@ public:
     ~Impl()
     {
         ++generation;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         if (networkWorker != nullptr) {
             networkWorker->cancel();
             delete networkWorker;
@@ -1110,7 +1110,7 @@ private:
 
     void cancelWorkerReply()
     {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         if (networkWorker != nullptr) {
             networkWorker->cancel();
         }
@@ -1130,7 +1130,7 @@ private:
                const QString& source,
                const bool allowFallback)
     {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         if (networkWorker == nullptr) {
 #else
         if (networkWorker == nullptr || !networkThread.isRunning()) {
@@ -1155,7 +1155,7 @@ private:
                 }, Qt::QueuedConnection);
         };
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         networkWorker->issue(url, headers, source, format, std::move(completion));
 #else
         QMetaObject::invokeMethod(networkWorker,
