@@ -9,7 +9,7 @@ test('profile labels localize only presentation; canonical server options stay s
   assert.match(profile, /function profileOptionLabel\(value\)/);
   assert.match(profile, /optionLabelProvider: function\(value\)/);
   assert.match(combo, /text: control\.localizedOption\(control\.displayText\)/);
-  assert.match(profile, /professionEditor\.currentText/);
+  assert.match(profile, /professionEditor\.selectedValues/);
   assert.match(profile, /categoryEditor\.currentText/);
   assert.match(profile, /genycaster\.profile\.more_links/);
   assert.match(profile, /genycaster\.share\.copy_profile_link/);
@@ -74,7 +74,7 @@ test('link rows retain real OpenGraph artwork when a favicon is missing', () => 
 
 test('flicking freezes async media row reflows and captures anchor before reconciliation', () => {
   const feed = read('ui/components/FeedSurface.qml');
-  assert.match(feed, /function synchronizeHeight\(\) \{[\s\S]*?if \(readList\.moving\) return/);
+  assert.match(feed, /function synchronizeHeight\(\) \{[\s\S]*?root\.rememberVisibleGeometry\(\)\s*rowDelegate\.committedHeight = nextHeight\s*if \(!readList\.moving && root\.geometryAnchorKey\.length > 0\)/);
   assert.match(feed, /onMovingChanged\(\) \{[\s\S]*?root\.rememberVisibleGeometry\(\)[\s\S]*?rowDelegate\.synchronizeHeight\(\)/);
 });
 
