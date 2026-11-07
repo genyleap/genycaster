@@ -70,6 +70,25 @@ elseif(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT)
         ${_farcasterFetchQtKeychainDefault})
     unset(_farcasterFetchQtKeychainDefault)
     if(FARCASTER_BUILD_UI AND GENYCASTER_FETCH_QTKEYCHAIN AND NOT Qt6Keychain_FOUND)
+        # A Linux source build of QtKeychain uses the system's Secret Service
+        # headers. Fail before fetching source or compiling Qt when the
+        # distribution's development package is absent.
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            find_package(PkgConfig QUIET)
+            if(NOT PkgConfig_FOUND)
+                message(FATAL_ERROR
+                    "QtKeychain requires pkg-config and libsecret-1 development files "
+                    "for secure Linux signer storage.")
+            endif()
+            pkg_check_modules(GENYCASTER_QTKEYCHAIN_LIBSECRET QUIET libsecret-1)
+            if(NOT GENYCASTER_QTKEYCHAIN_LIBSECRET_FOUND)
+                message(FATAL_ERROR
+                    "Secure Linux signer storage requires libsecret-1 development files. "
+                    "Install libsecret-1-dev (Debian/Ubuntu) or the equivalent "
+                    "distribution package before configuring GenyCaster. "
+                    "Do not disable FARCASTER_REQUIRE_SECURE_SIGNER_VAULT in shipping builds.")
+            endif()
+        endif()
         # Package builds explicitly enable this source fallback on Linux/Windows.
         # Android uses it by default. Developer builds without libsecret can
         # still configure their pre-existing fail-closed signer adapter.
