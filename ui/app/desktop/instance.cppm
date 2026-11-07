@@ -41,8 +41,10 @@ public:
      * @return Primary, activated existing instance, or a startup error.
      */
     [[nodiscard]] Result acquire(const QString& requestedUrl);
+
     /** @brief Bind the created QML window after engine startup. */
     void setWindow(QQuickWindow* window);
+
     /** @brief Register navigation handoff after runtime/setup becomes ready.
      *  The callback must not outlive the referenced runtime controllers.
      */
