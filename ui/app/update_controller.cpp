@@ -20,7 +20,7 @@
 #include <QUrl>
 #include <QUrlQuery>
 #include <QVersionNumber>
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten/emscripten.h>
 #endif
 
@@ -29,7 +29,7 @@ import genycaster.ui.update.install;
 namespace {
 const QUrl kReleaseApi{QStringLiteral("https://api.github.com/repos/genyleap/genycaster/releases?per_page=20")};
 const QUrl kReleasePage{QStringLiteral("https://github.com/genyleap/genycaster/releases")};
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 // At most one browser refresh is pending; do not retain a dangling QObject.
 QPointer<UpdateController> pendingBrowserRefresh{};
 #endif
@@ -218,7 +218,7 @@ bool matchingAsset(const QString& name)
 
 int assetPreference(const QString& name)
 {
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(__EMSCRIPTEN__)
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(Q_OS_WASM)
     const bool runningAppImage = !qEnvironmentVariable("APPIMAGE").isEmpty();
     const QString distro = QSysInfo::productType().toLower();
     const bool debian = distro == QStringLiteral("debian")
@@ -241,7 +241,7 @@ bool isOfficialAssetUrl(const QUrl& u)
 }
 } // namespace
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 extern "C" EMSCRIPTEN_KEEPALIVE void genycasterWebRefreshSaveFailure()
 {
     if (pendingBrowserRefresh)
@@ -297,7 +297,7 @@ UpdateController::UpdateController(QSettings& settings, const bool startupCheck,
     connect(m_periodic, &QTimer::timeout, this, [this] {
         if (m_autoCheckEnabled) check(false);
     });
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // Browser updates are discovered from the same-origin release manifest,
     // never from desktop GitHub installer releases.
     m_webCurrentBuild = QString::fromUtf8(emscripten_run_script_string(
@@ -330,7 +330,7 @@ UpdateController::~UpdateController()
         m_deltaProcess->kill();
         m_deltaProcess->waitForFinished(1000);
     }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (pendingBrowserRefresh == this) pendingBrowserRefresh = nullptr;
 #endif
     if (m_file) m_file->close();
@@ -435,7 +435,7 @@ void UpdateController::checkForUpdates() { check(true); }
 
 void UpdateController::refreshWebApp()
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (m_webRefreshing) return;
     m_webRefreshing = true;
     m_error.clear();
@@ -514,7 +514,7 @@ void UpdateController::refreshWebApp()
 
 void UpdateController::checkWebManifest(const bool manual)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (m_checking || m_downloading || m_webRefreshing) return;
     m_checking = true;
     m_error.clear();
@@ -587,7 +587,7 @@ void UpdateController::checkWebManifest(const bool manual)
 
 void UpdateController::check(const bool manual)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     checkWebManifest(manual);
     return;
 #endif
@@ -742,7 +742,7 @@ void UpdateController::downloadUpdate()
     m_status = QStringLiteral("Downloading verified package…");
     emit changed();
 
-#if defined(Q_OS_LINUX) && !defined(__EMSCRIPTEN__)
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
     // A current AppImage is a valid block seed for zsync. Bundle the native
     // architecture-matching zsync executable with the AppImage, and never
     // execute a random PATH-resolved helper from untrusted directories.
