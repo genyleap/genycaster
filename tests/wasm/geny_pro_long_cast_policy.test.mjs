@@ -82,6 +82,7 @@ test("mini app quotas are enforced in native runtime and web/Android host",()=>{
  assert.match(runtime,/while \(m_sessions\.size\(\) > m_allowedSessions\)/);
  assert.match(android,/miniAppSessions\.count >= miniAppHost\.sessionLimit/);
  assert.match(android,/onSessionLimitChanged/);
- assert.match(main,/miniAppRuntimeOwner->setSessionLimit\(verified \? 4 : 1\)/);
- assert.match(main,/miniAppHost\.setSessionLimit\(verified \? 4 : 1\)/);
+ assert.match(main,/miniAppRuntimeOwner->setSessionLimit\(\s*status\.value\(QStringLiteral\("eligible"\)\)\.toBool\(\) \? 4 : 1\)/);
+ assert.match(main,/miniAppHost\.setSessionLimit\(\s*status\.value\(QStringLiteral\("eligible"\)\)\.toBool\(\) \? 4 : 1\)/);
+  assert.match(main,/if \(status\.value\(QStringLiteral\("status"\)\)\.toString\(\) != QStringLiteral\("verified"\)\)\s*return;/);
 });
