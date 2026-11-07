@@ -49,6 +49,13 @@ class PipelineTests(unittest.TestCase):
         cmake = Path("ui/CMakeLists.txt").read_text()
         self.assertIn('set(qmlResourceAlias "Main.qml")', cmake)
         self.assertIn('set(qmlResourceAlias "components/${CMAKE_MATCH_1}.qml")', cmake)
+        # Qt 6.12 derives qmldir type entries from the source basename unless
+        # they are explicitly overridden. Qt's extra qmldir generation also
+        # ignores QT_RESOURCE_ALIAS when grouping physical source directories.
+        self.assertIn('QT_QML_SOURCE_TYPENAME "${qmlPublicName}"', cmake)
+        self.assertIn('get_source_file_property(qmlPublicAlias "${qmlFile}" QT_RESOURCE_ALIAS)', cmake)
+        self.assertIn('get_filename_component(qmlPublicName "${qmlPublicAlias}" NAME_WE)', cmake)
+        self.assertIn("NO_GENERATE_EXTRA_QMLDIRS", cmake)
         for public, physical in mapping.items():
             self.assertTrue((source_root / physical).is_file(), public)
             self.assertIn("components/" + physical, cmake, public)
