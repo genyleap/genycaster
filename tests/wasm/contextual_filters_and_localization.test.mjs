@@ -12,7 +12,7 @@ test('topic discovery updates existing Explorer/Profile lists, never a new route
  assert.match(app,/visible: surfaceRequested/);
  assert.doesNotMatch(app,/visible: surfaceRequested && !root\.topicBrowseActive/);
  assert.match(app,/active: false && root\.topicBrowseActive/);
- assert.match(app,/rows: root\.topicBrowseActive && root\.topicBrowseScope==="explorer"/);
+ assert.match(app,/rows: root\.withoutMutedActors\(\s*root\.topicBrowseActive && root\.topicBrowseScope==="explorer"/);
  assert.match(app,/rows: root\.topicBrowseActive && root\.topicBrowseScope==="profile"/);
  assert.match(app,/onLoadMoreRequested: \{\s*if\(root\.topicBrowseActive && root\.topicBrowseScope==="explorer"\)/);
  assert.match(app,/onLoadMoreRequested: \{\s*if\(root\.topicBrowseActive && root\.topicBrowseScope==="profile"\)/);
