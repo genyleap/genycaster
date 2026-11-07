@@ -14,12 +14,14 @@
 
 #pragma once
 
+#include <QtGlobal>
+
 // A Qt WebAssembly input adapter. Some browsers deliver committed emoji via
 // beforeinput without a corresponding Qt Quick key event.
 // Only recover a committed emoji if Qt's focused composer still has exactly
 // the text it had before that event; ordinary IME, paste and native Qt clients
 // are completely untouched.
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
 #include <QCoreApplication>
 #include <QGuiApplication>
