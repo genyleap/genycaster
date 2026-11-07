@@ -41,6 +41,17 @@ add_test(NAME ui.provider_endpoints COMMAND genycaster_provider_endpoints_tests)
 set_tests_properties(ui.provider_endpoints PROPERTIES
     TIMEOUT 10 LABELS "ui;provider;configuration;security")
 
+if(TARGET genycaster_bootstrap_worker)
+    add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
+    target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
+        genycaster_bootstrap_worker)
+    target_compile_features(genycaster_bootstrap_worker_tests PRIVATE cxx_std_26)
+    set_property(TARGET genycaster_bootstrap_worker_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    add_test(NAME ui.bootstrap_worker COMMAND genycaster_bootstrap_worker_tests)
+    set_tests_properties(ui.bootstrap_worker PROPERTIES
+        TIMEOUT 10 LABELS "ui;runtime;shutdown")
+endif()
+
 # Exercise QQmlApplicationEngine cleanup with an asynchronous Loader and
 # fatal Qt warnings. The native root must be destroyed before its dispatcher.
 qt_add_executable(farcaster_qml_engine_shutdown_tests
