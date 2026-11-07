@@ -5,13 +5,13 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('selected read provider remains strictly pinned without user consent', () => {
-    const main = read('ui/app/main.cpp');
+    const profiles = read('ui/app/bootstrap/profiles.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
     const bindings = read('ui/app/runtime_ui_bindings.cpp');
     const controller = read('ui/app/provider_profiles_controller.cpp');
-    assert.match(main, /network\/allowCompatibleReadFallback/);
-    assert.match(main, /GENYCASTER_ALLOW_COMPATIBLE_READ_FALLBACK/);
-    assert.match(main, /--allow-compatible-read-fallback/);
+    assert.match(profiles, /network\/allowCompatibleReadFallback/);
+    assert.match(profiles, /GENYCASTER_ALLOW_COMPATIBLE_READ_FALLBACK/);
+    assert.match(profiles, /--allow-compatible-read-fallback/);
     assert.match(controller, /network\/allowCompatibleReadFallback/);
     assert.match(controller, /setCompatibleReadFallback\(const bool enabled\)/);
     assert.match(composition, /\.require = !allowCompatibleReadFallback/);
