@@ -47,7 +47,7 @@ void connectMediaUpload(MediaUploadController& controller,
                         const std::shared_ptr<runtime::Runtime>& runtime);
 #endif
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 void connectBrowserMediaUpload(MediaUploadController& controller,
                                PresentationBridge& bridge,
                                RichComposerController& richComposer);
