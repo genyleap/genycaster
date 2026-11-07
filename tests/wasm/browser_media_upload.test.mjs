@@ -82,7 +82,7 @@ test('mobile browser picker is synchronous and signing key stays in vault',async
     assert.match(js,/picker\.click\(\)/);
     assert.match(js,/import\('\.\/browser_media_upload\.mjs'\)/);
     assert.match(qml,/mediaUpload\.browseBrowserImage\(root\.pendingMediaBlockIndex\)/);
-    assert.match(main,/connectBrowserMediaUpload\(mediaUploadController, presentationBridge,\s*richComposerController\)/);
+    assert.match(main,/connectBrowserMediaUpload\(\s*attachment\.mediaUploadController, attachment\.presentationBridge,\s*attachment\.richComposerController\)/);
     assert.match(main,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
 });
 
