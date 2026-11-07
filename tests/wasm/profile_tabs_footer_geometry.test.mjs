@@ -36,7 +36,7 @@ test('mobile floating dock preserves scroll clearance without a painted footer',
     assert.match(read('FeedSurface.qml'), /bottomMargin: root\.compact \? 96 : 0/);
     assert.match(read('ProfileSurface.qml'), /bottomMargin: root\.compact \? 96 : 0/);
     assert.doesNotMatch(shell, /mobileBottomNavigation\.height \+ Theme\.space5/);
-    assert.match(footer, /anchors\.topMargin: 8/);
+    assert.match(footer, /anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
     assert.match(footer, /objectName: "mobilePrimaryActionButton"/);
     assert.doesNotMatch(footer, /objectName: "mobileFooterBackground"/);
     assert.doesNotMatch(footer, /objectName: "mobileContentLowerEdge"/);
