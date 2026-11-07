@@ -41,6 +41,17 @@ add_test(NAME ui.provider_endpoints COMMAND genycaster_provider_endpoints_tests)
 set_tests_properties(ui.provider_endpoints PROPERTIES
     TIMEOUT 10 LABELS "ui;provider;configuration;security")
 
+# Verify that provider profile configuration is independent of the runtime
+# execution graph and never persists Read credentials or reroutes Write access.
+add_executable(genycaster_provider_profiles_tests provider_profiles_tests.cpp)
+target_link_libraries(genycaster_provider_profiles_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core)
+target_compile_features(genycaster_provider_profiles_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_provider_profiles_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.provider_profiles_policy COMMAND genycaster_provider_profiles_tests)
+set_tests_properties(ui.provider_profiles_policy PROPERTIES
+    TIMEOUT 10 LABELS "ui;provider;profiles;security")
+
 if(TARGET genycaster_bootstrap_worker)
     add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
     target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
