@@ -13,7 +13,7 @@ test('selection mode is persisted per device and unavailable on WASM canvas',()=
   assert.match(cpp,/accessibility\/textSelectionMode/);
   assert.match(cpp,/#if defined\(Q_OS_WASM\).*return false;/s);
   assert.match(cpp,/if \(requested == QStringLiteral\("system"\) && !nativeAvailable\(\)\) return;/);
-  assert.match(main,/setContextProperty\(QStringLiteral\("textSelectionSettings"\)/);
+  assert.match(main,/\{"textSelectionSettings", &textSelectionSettings\}/);
   assert.match(settings,/objectName: "textSelectionPreference"/);
   assert.match(settings,/textSelectionSettings\.setMode\("genycaster"\)/);
   assert.match(settings,/textSelectionSettings\.setMode\("system"\)/);
