@@ -27,7 +27,22 @@ Item {
     // In particular GENY's branding glyph is not its registered token logo.
     // Primary token artwork is part of the product visual system: a remote
     // black silhouette must not override the official brand/semantic assets.
-    readonly property bool bundledGenyArtwork: root.symbol === "GENY"
+    // An arbitrary token can reuse the symbol GENY. Show the official mark
+    // only for the canonical built-in Base token; never lend its identity to
+    // an unrelated contract or an unverified preview.
+    readonly property bool canonicalGenyAsset: root.symbol === "GENY"
+        && String(root.asset && root.asset.key || "") === "geny"
+        && String(root.asset && root.asset.network || "").toLowerCase() === "base"
+        && String(root.asset && root.asset.address || "").toLowerCase()
+            === "0x2a3d6f8c1fc4acdcf3a75d19b445bae02f03676b"
+    // The provider snapshot is indexed by that token reference. Its verified
+    // image must take precedence over a decorative bundled identity symbol.
+    // The initial offline catalog artwork is not a verified network snapshot.
+    readonly property bool verifiedRemoteArtwork: root.canonicalGenyAsset
+        && root.asset && root.asset.available === true
+        && root.remoteSource.startsWith("image://remote/")
+    readonly property bool bundledGenyArtwork: root.canonicalGenyAsset
+        && !root.verifiedRemoteArtwork
     readonly property bool bundledArtwork: root.semanticIcon.length > 0
     readonly property string fallbackLetter: {
         const candidate = root.symbol.length > 0 ? root.symbol : root.name
