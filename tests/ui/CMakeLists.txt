@@ -73,6 +73,18 @@ add_test(NAME ui.bootstrap_auth COMMAND genycaster_bootstrap_auth_tests)
 set_tests_properties(ui.bootstrap_auth PROPERTIES
     TIMEOUT 10 LABELS "ui;authentication;security")
 
+# QML context names form part of the application ABI. Reject invalid batches
+# before a partially initialized root object tree can become visible.
+add_executable(genycaster_bootstrap_context_tests bootstrap_context_tests.cpp)
+target_link_libraries(genycaster_bootstrap_context_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+target_compile_features(genycaster_bootstrap_context_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_bootstrap_context_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.bootstrap_context COMMAND genycaster_bootstrap_context_tests)
+set_tests_properties(ui.bootstrap_context PROPERTIES
+    TIMEOUT 10 LABELS "ui;qml;bootstrap"
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
 if(TARGET genycaster_bootstrap_worker)
     add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
     target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
