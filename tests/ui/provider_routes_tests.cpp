@@ -165,6 +165,18 @@ int main(int argc, char** argv)
     }
     profiles.readProviders[0].adapterContract = "hypersnap-v2";
 
+    // Defense in depth: direct routing must still reject an unresolved ID,
+    // even though the bootstrap preferences layer repairs stale local
+    // selections before this point. Never cross-post to the Snapchain default.
+    profiles.preferredReadProviderId = "missing-read-instance";
+    {
+        const auto routes = loadProviderRoutes(
+            settings, {}, blank, hypersnapDefault, snapchainDefault,
+            mediaDefault, profiles);
+        passed &= check(!routes, "unregistered selected provider cannot choose a writer");
+    }
+    profiles.preferredReadProviderId = "custom-read";
+
     {
         const auto routes = loadProviderRoutes(
             settings, {QStringLiteral("--snapchain-base-url=file:///etc/passwd")},
