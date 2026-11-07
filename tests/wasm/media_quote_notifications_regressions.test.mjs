@@ -21,7 +21,7 @@ test('late or failed link/NFT artwork retains first-frame geometry during scroll
     // The native Qt media-scroll test verifies these fixed reservations at
     // both breakpoints, across late metadata, failures, and kinetic flicks.
     assert.match(link, /readonly property bool reserveArtwork: !root\.suppressArtwork\s+&& root\.targetUrl\.length > 0/);
-    assert.match(link, /readonly property real targetHeight: root\.reserveArtwork \? readyHeight : 0/g);
+    assert.match(link, /readonly property real targetHeight: root\.reserveArtwork\s*&& !root\.(?:miniAppArtworkUnavailable|richArtworkUnavailable) \? readyHeight : 0/g);
     assert.match(link, /readonly property bool shouldReserve: root\.reserveArtwork/);
     assert.match(link, /root\.compact \? 420 : 640/);
     assert.match(link, /root\.compact \? 238 : 328/);
@@ -79,7 +79,7 @@ test('miniapp posters keep useful original artwork size with better inset spacin
     const link = read('ui/components/LinkPreview.qml');
     assert.match(link, /Math\.min\(root\.compact \? 420 : 640,/);
     assert.match(link, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
-    assert.match(link, /spacing: root\.layoutMiniApp \? Theme\.space3 : Theme\.space2/);
+    assert.match(link, /implicitHeight: content\.implicitHeight\s*\+ \(root\.layoutMiniApp \? Theme\.space4/);
 });
 
 test('search text fields use the themed editor context menu', () => {
