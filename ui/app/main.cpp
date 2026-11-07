@@ -125,6 +125,7 @@ import genycaster.ui.bootstrap.providers;
 import genycaster.ui.bootstrap.profiles;
 import genycaster.ui.bootstrap.routes;
 import genycaster.ui.bootstrap.auth;
+import genycaster.ui.bootstrap.wallet;
 #if !defined(Q_OS_WASM)
 import genycaster.ui.bootstrap.teardown;
 import genycaster.ui.bootstrap.worker;
@@ -173,71 +174,31 @@ using genycaster::ui::bootstrap::siwfDomainMatchesUri;
 [[nodiscard]] std::function<foundation::result::Status(const std::string&)>
 makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalletBrowser = false)
 {
-    return [launchTemplate = std::move(launchTemplate), preferCustodyWalletBrowser](const std::string& approvalUrl)
-        -> foundation::result::Status {
-        const QString rawUrl = QString::fromStdString(approvalUrl);
-        QString target = rawUrl;
-        if (!launchTemplate.isEmpty()) {
-            if (!launchTemplate.contains(QStringLiteral("{url}")) &&
-                !launchTemplate.contains(QStringLiteral("{rawUrl}"))) {
-                return std::unexpected(foundation::error::Error::make(
-                    foundation::error::ErrorCode::InvalidArgument,
-                    "Wallet launch URL template must contain {url} or {rawUrl}."));
-            }
-            target = launchTemplate;
-            target.replace(
-                QStringLiteral("{url}"),
-                QString::fromLatin1(QUrl::toPercentEncoding(rawUrl)));
-            target.replace(QStringLiteral("{rawUrl}"), rawUrl);
-        }
-
-        const QUrl parsed{target};
-        const QString scheme = parsed.scheme().toLower();
-        if (!parsed.isValid() || scheme.isEmpty() ||
-            scheme == QStringLiteral("javascript") ||
-            scheme == QStringLiteral("data") ||
-            scheme == QStringLiteral("file")) {
+    return [launchTemplate = std::move(launchTemplate), preferCustodyWalletBrowser](
+               const std::string& approvalUrl) -> foundation::result::Status {
+        const auto prepared = genycaster::ui::bootstrap::prepareWalletApproval(
+            approvalUrl, launchTemplate.toStdString(), preferCustodyWalletBrowser);
+        if (!prepared) {
+            const bool invalidTemplate =
+                prepared.error() == genycaster::ui::bootstrap::WalletLaunchError::InvalidTemplate;
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::InvalidArgument,
-                "Wallet approval launcher produced an invalid or unsafe URL."));
+                invalidTemplate
+                    ? "Wallet launch URL template must contain {url} or {rawUrl}."
+                    : "Wallet approval launcher produced an invalid or unsafe URL."));
         }
-
-        const bool preferInstalledWalletBrowser = preferCustodyWalletBrowser && launchTemplate.isEmpty()
-            && parsed.scheme() == QStringLiteral("http")
-            && parsed.host() == QStringLiteral("127.0.0.1");
-        const auto open = [parsed, preferInstalledWalletBrowser] {
-            bool opened{false};
-#if defined(Q_OS_MACOS)
-            if (preferInstalledWalletBrowser) {
-                // Safari has no injected EIP-1193 wallet by default. An
-                // installed wallet-capable browser avoids forcing users to
-                // hand-copy a time-limited loopback URL on every attempt.
-                for (const QString& appName : {
-                         QStringLiteral("Brave Browser"),
-                         QStringLiteral("Google Chrome")}) {
-                    const QString bundle = appName + QStringLiteral(".app");
-                    if (QFileInfo::exists(QStringLiteral("/Applications/") + bundle)
-                        || QFileInfo::exists(QDir::homePath()
-                                            + QStringLiteral("/Applications/") + bundle)) {
-                        opened = QProcess::startDetached(
-                            QStringLiteral("/usr/bin/open"),
-                            {QStringLiteral("-a"), appName, parsed.toString()});
-                        if (opened) break;
-                    }
-                }
-            }
-#else
-            Q_UNUSED(preferInstalledWalletBrowser);
-#endif
-            if (!opened) opened = QDesktopServices::openUrl(parsed);
-            return opened;
-        };
+        // The launcher policy is shared; the Qt event-loop shutdown boundary
+        // remains owned by this composition root.
 #if defined(Q_OS_WASM)
-        const bool opened = open();
+        const auto dispatch = [](std::function<bool()> operation) {
+            return operation();
+        };
 #else
-        const bool opened = genycaster::ui::shutdown::invokeOnApplication(open);
+        const auto dispatch = [](std::function<bool()> operation) {
+            return genycaster::ui::shutdown::invokeOnApplication(std::move(operation));
+        };
 #endif
-        if (!opened) {
+        if (!genycaster::ui::bootstrap::openWalletApproval(*prepared, dispatch)) {
             return std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unavailable,
                 "The platform could not open a browser or wallet for Mini App approval."));
@@ -245,34 +206,6 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
         return {};
     };
 }
-
-#if FARCASTER_HAS_MINIAPP_EVM_WALLET
-[[nodiscard]] std::vector<std::string> miniAppEthereumChains()
-{
-    // Mirrors the EVM CAIP-2 chain set accepted by the current Farcaster Mini App manifest schema.
-    const std::array<std::string_view, 16> allowed{
-        "eip155:1", "eip155:8453", "eip155:42161", "eip155:421614",
-        "eip155:84532", "eip155:666666666", "eip155:100", "eip155:10",
-        "eip155:11155420", "eip155:137", "eip155:11155111", "eip155:7777777",
-        "eip155:130", "eip155:10143", "eip155:42220", "eip155:999",
-    };
-    const QString configured = qEnvironmentVariable("GENYCASTER_MINIAPP_EVM_CHAINS").trimmed();
-    if (configured.isEmpty()) {
-        return {allowed.begin(), allowed.end()};
-    }
-    std::vector<std::string> selected{};
-    for (const QString& token : configured.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
-        const std::string chain = token.trimmed().toStdString();
-        if (std::ranges::find(allowed, std::string_view{chain}) == allowed.end()) {
-            qWarning().noquote() << "Ignoring unsupported GENYCASTER_MINIAPP_EVM_CHAINS entry:"
-                                 << QString::fromStdString(chain);
-            continue;
-        }
-        if (std::ranges::find(selected, chain) == selected.end()) selected.push_back(chain);
-    }
-    return selected;
-}
-#endif
 
 }
 
@@ -841,7 +774,7 @@ int main(int argc, char* argv[])
                         return {};
                     }}
                 : makeWalletApprovalLauncher(walletLaunchTemplate),
-            .supportedChains = miniAppEthereumChains(),
+            .supportedChains = genycaster::ui::bootstrap::miniAppEthereumChains(),
         });
         if (walletBridge) {
             miniAppWalletBridgeOwner = std::move(*walletBridge);
