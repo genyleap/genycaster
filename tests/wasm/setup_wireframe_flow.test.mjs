@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source = path => readFileSync(path, 'utf8');
-const setup = source('ui/components/InitialSetup.qml');
-const shell = source('ui/components/AppShell.qml');
+const setup = source('ui/components/setup/InitialSetup.qml');
+const shell = source('ui/components/shell/AppShell.qml');
 
 test('approved wireframe has eight distinct, ordered stages', () => {
   assert.match(setup, /wizardSteps: \[0,1,2,3,4,5,6,7\]/);
@@ -49,7 +49,7 @@ test('new-account registration is muted, clearly unavailable, and never clickabl
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
   const create=account.slice(account.indexOf('objectName: "setupCreateAccountUnavailable"'),
                              account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
-  const card=source('ui/components/SetupActionCard.qml');
+  const card=source('ui/components/setup/SetupActionCard.qml');
   assert.match(create,/accountShowcase: true/);
   assert.match(create,/unavailable: true/);
   assert.match(create,/enabled: false/);
@@ -71,14 +71,14 @@ test('new-account registration is muted, clearly unavailable, and never clickabl
 });
 
 test('native recovery authorizes a device signer only with explicit user consent', () => {
-  const qml=source('ui/components/InitialSetup.qml');
-  const runtime=source('ui/app/runtime_ui_bindings.cpp');
+  const qml=source('ui/components/setup/InitialSetup.qml');
+  const runtime=source('ui/app/runtime/bindings.cpp');
   const platform=source('src/platform/custody_recovery.cpp');
   const app=source('src/application/signer.cpp');
   assert.match(qml,/objectName: "nativeRecoveryDeviceSignerConsent"/);
   assert.match(qml,/deviceSignerConsent\.checked/);
   assert.match(qml,/GenyCheckRow \{[\s\S]*?id: deviceSignerConsent/);
-  assert.match(source('ui/components/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
   assert.match(qml,/genycaster.setup.recovery_signer_consent/);
   assert.match(runtime,/makeOneShotRecoveryAuthorizer\(mnemonic,/);
   assert.match(platform,/wordCount != 24/);
@@ -111,8 +111,8 @@ test('native desktop and mobile recovery use 24 styled secret word slots', () =>
   assert.match(setup,/nativeRecoveryGrid\.distribute\(text, index\)/);
   assert.match(setup,/id: revealWords\s+objectName: "nativeRecoveryRevealWords"/);
   assert.match(setup,/GenyCheckRow \{[\s\S]*?id: revealWords/);
-  assert.match(source('ui/components/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
-  assert.match(source('ui/components/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.ink : "transparent"/);
+  assert.match(source('ui/components/controls/GenyCheckRow.qml'),/Accessible\.role: Accessible\.CheckBox/);
+  assert.match(source('ui/components/controls/GenyCheckRow.qml'),/fillColor: control\.checked \? Theme\.ink : "transparent"/);
   assert.doesNotMatch(setup,/id: recoveryField|CheckBox \{/);
   assert.match(bridge,/const auto exactly24Words = \[\]/);
   assert.match(bridge,/!exactly24Words\(recoveryWords\)/);
@@ -179,8 +179,8 @@ test('terms and privacy open internal scrollable reader with reliable whole-row 
 });
 
 test('full-window setup removes shell chrome and has no fake desktop header or footer', () => {
-  const s=source('ui/components/InitialSetup.qml');
-  const app=source('ui/components/AppShell.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
+  const app=source('ui/components/shell/AppShell.qml');
   assert.match(s,/id: setupCanvas/);
   assert.match(s,/id: desktopBrandPane/);
   assert.match(s,/width: Math\.min\(parent\.width \* 0\.29, 430\)/);
@@ -192,7 +192,7 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
 });
 
 test('welcome uses the same real eight-stage indicator as the other setup stages', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
   const welcome=s.slice(s.indexOf('id: welcomeStage'),s.indexOf('id: languageStage'));
   const header=s.slice(s.indexOf('id: setupProgress'),s.indexOf('        ActionButton {\n            z: 20'));
@@ -208,7 +208,7 @@ test('welcome uses the same real eight-stage indicator as the other setup stages
 });
 
 test('mobile legal reader is a bottom sheet, desktop reader stays centered', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   assert.match(s,/id: legalReader/);
   assert.match(s,/id: legalSurface/);
   assert.match(s,/x: root\.phone \? 0/);
@@ -220,9 +220,9 @@ test('mobile legal reader is a bottom sheet, desktop reader stays centered', () 
 });
 
 test('desktop brand visual persists across all stages without blocking RTL title icons', () => {
-  const s=source('ui/components/InitialSetup.qml');
-  const header=source('ui/components/SetupPageHeader.qml');
-  const card=source('ui/components/SetupActionCard.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
+  const header=source('ui/components/setup/SetupPageHeader.qml');
+  const card=source('ui/components/setup/SetupActionCard.qml');
   assert.match(s,/id: desktopBrandPane[\s\S]*?visible: !root.phone && root.width >= 980/);
   assert.doesNotMatch(s,/visible: !root.phone && root.width >= 980 && root.currentStep === 0/);
   assert.match(s,/id: desktopBrandArt[\s\S]*?fragmentShader: "qrc:\/qt\/qml\/Farcaster\/Client\/shaders\/setup_glass_g\.frag\.qsb"/);
@@ -242,7 +242,7 @@ test('desktop brand visual persists across all stages without blocking RTL title
 });
 
 test('signout returns immediately to Welcome and legal consent accepts a deliberate tap', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   assert.match(s,/Sign-out always restores Welcome immediately/);
   assert.match(s,/currentStep = 0/);
   assert.match(s,/accountIntent = ""/);
@@ -256,7 +256,7 @@ test('signout returns immediately to Welcome and legal consent accepts a deliber
 });
 
 test('RTL back and close do not occupy the same top corner', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const nav=s.slice(s.indexOf('        ActionButton {\n            z: 20'),s.indexOf('        Flickable {\n            id: stageScroll'));
   assert.match(nav,/x: Theme\.rtl \? root\.width - width -/);
   assert.match(nav,/x: Theme\.rtl \? \(desktopBrandPane\.visible \? desktopBrandPane\.width \+ Theme\.space5/);
@@ -265,7 +265,7 @@ test('RTL back and close do not occupy the same top corner', () => {
 });
 
 test('acceptance toggle is borderless unless keyboard focused', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const start=s.indexOf('id: consentCheck');
   const end=s.indexOf('id: accountStage');
   const terms=s.slice(start,end);
@@ -275,8 +275,8 @@ test('acceptance toggle is borderless unless keyboard focused', () => {
 });
 
 test('desktop account is a balanced editorial dark/light pair, with no fake new signup', () => {
-  const s=source('ui/components/InitialSetup.qml');
-  const card=source('ui/components/SetupActionCard.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
+  const card=source('ui/components/setup/SetupActionCard.qml');
   const account=s.slice(s.indexOf('id: accountStage'),s.indexOf('id: signInStage'));
   assert.match(account,/accountShowcase: true[\s\S]*?unavailable: true/);
   assert.match(account,/objectName: "setupCreateAccountUnavailable"/);
@@ -293,10 +293,10 @@ test('desktop account is a balanced editorial dark/light pair, with no fake new 
 });
 
 test('shared marker geometry maintains a common vertical center for pill and eight dots', () => {
-  const s=source('ui/components/InitialSetup.qml');
-  const component=source('ui/components/SetupStepIndicator.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
+  const component=source('ui/components/setup/SetupStepIndicator.qml');
   const manifest=source('ui/CMakeLists.txt');
-  assert.match(manifest,/components\/SetupStepIndicator\.qml/);
+  assert.match(manifest,/components\/setup\/SetupStepIndicator\.qml/);
   assert.match(s,/id: setupProgress/);
   assert.match(s,/readonly property int progressCount: wizardSteps\.length/);
   assert.match(component,/model: root\.safeCount/);
@@ -324,7 +324,7 @@ test('browser recovery occupies the native Setup pane without exposing secrets t
 });
 
 test('completion badge is a flat accent check without glow or shadow', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const complete=s.slice(s.indexOf('id: completeStage'));
   assert.match(complete,/id: completionBadge/);
   assert.match(complete,/fillColor: Theme\.accent/);
@@ -336,7 +336,7 @@ test('completion badge is a flat accent check without glow or shadow', () => {
 });
 
 test('recovery appears before Genyleap and Farcaster, stays usable in review mode', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const stage=s.slice(s.indexOf('id: signInStage'),s.indexOf('id: verifyingStage'));
   const recovery=stage.indexOf('genycaster.setup.design_recovery_title');
   const genyleap=stage.indexOf('genycaster.shell.continue_with_genyleap');
@@ -356,7 +356,7 @@ test('recovery appears before Genyleap and Farcaster, stays usable in review mod
 });
 
 test('copyright and Beta version remain readable at the bottom of the desktop left sidebar', () => {
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const pane=s.slice(s.indexOf('id: desktopBrandPane'), s.indexOf('id: setupProgress'));
   assert.match(pane,/visible: !root\.phone && root\.width >= 980/);
   assert.match(pane,/clip: true\s+\/\/ Keep this pane[\s\S]*?z: 2/);
@@ -380,7 +380,7 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
 });
 
 test('Setup GPU-rendered volumetric G is cross-platform, theme-aware and interactive',()=>{
-  const s=source('ui/components/InitialSetup.qml');
+  const s=source('ui/components/setup/InitialSetup.qml');
   const pane=s.slice(s.indexOf('id: desktopBrandPane'),s.indexOf('id: setupProgress'));
   const cmake=source('ui/CMakeLists.txt');
   const shader=source('ui/shaders/setup_glass_g.frag');

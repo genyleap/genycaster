@@ -8,10 +8,10 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 test('separate validator URL is persisted, validated, and passed to the Qt composition', () => {
     const main = read('ui/app/main.cpp');
     const routes = read('ui/app/bootstrap/routes.cpp');
-    const composition = read('ui/app/runtime_composition.cpp');
+    const composition = read('ui/app/runtime/composition.cpp');
     const controller = read('src/providers/hypersnap/node_selection_controller.cpp');
-    const settings = read('ui/components/LocaleSettingsPopup.qml');
-    const nodes = read('ui/components/NodeManagementPanel.qml');
+    const settings = read('ui/components/settings/SettingsPopup.qml');
+    const nodes = read('ui/components/settings/NodeManagementPanel.qml');
 
     // Endpoint policy moved out of main.cpp into bootstrap/routes.cpp.
     // Keep the behavioral security checks; do not weaken them to a generic
@@ -34,7 +34,7 @@ test('separate validator URL is persisted, validated, and passed to the Qt compo
 });
 
 test('no read-node API credentials are forwarded to another write endpoint', () => {
-    const composition = read('ui/app/runtime_composition.cpp');
+    const composition = read('ui/app/runtime/composition.cpp');
     const signer = read('src/providers/snapchain/signer.cpp');
     assert.match(composition, /snapchainWriteBaseUrl == snapchainBaseUrl/);
     assert.match(signer, /trimTrailingSlashes\(config\.submitBaseUrl\) == trimTrailingSlashes\(config\.baseUrl\)/);

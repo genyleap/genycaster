@@ -13,7 +13,7 @@ const root=new URL('../../',import.meta.url);
 const pack=new URL('../../ci/package_wasm_assets.py',import.meta.url);
 const worker=read(new URL('../../ui/wasm/genycaster-sw.js',import.meta.url),'utf8');
 const html=read(new URL('../../ui/wasm/genycaster-shell.html',import.meta.url),'utf8');
-const main=read(new URL('../../ui/components/AppShell.qml',import.meta.url),'utf8');
+const main=read(new URL('../../ui/components/shell/AppShell.qml',import.meta.url),'utf8');
 
 test('generated filename depends on WASM bytes, not unrelated JS updates',()=>{
     const dir=mkdtempSync(join(tmpdir(),'genycaster-assets-'));
@@ -182,9 +182,9 @@ test('composer waits for confirmed cast hash before closing and keeps failed dra
 });
 
 test('context menu is attached globally to all QML text areas and uses themed popup',()=>{
-    const qml=read(new URL('../../ui/components/EditorContextMenu.qml',import.meta.url),'utf8');
-    const areas=read(new URL('../../ui/components/DirectionAwareTextArea.qml',import.meta.url),'utf8');
-    const code=read(new URL('../../ui/components/CodeBlockEditor.qml',import.meta.url),'utf8');
+    const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
+    const areas=read(new URL('../../ui/components/controls/BidiTextArea.qml',import.meta.url),'utf8');
+    const code=read(new URL('../../ui/components/composer/CodeBlockEditor.qml',import.meta.url),'utf8');
     assert.match(qml,/popupType: nativePresentation \? Popup\.Native : Popup\.Item/);
     assert.match(qml,/EditorMenuItem/);
     assert.doesNotMatch(qml,/delegate: MenuItem/);
@@ -195,7 +195,7 @@ test('context menu is attached globally to all QML text areas and uses themed po
 
 test('recovery failures are not mislabeled Genyleap login errors',()=>{
     const cpp=read(new URL('../../ui/app/main.cpp',import.meta.url),'utf8') + '\n' +
-        read(new URL('../../ui/app/runtime_ui_bindings.cpp',import.meta.url),'utf8');
+        read(new URL('../../ui/app/runtime/bindings.cpp',import.meta.url),'utf8');
     assert.match(cpp,/route == QStringLiteral\("recovery"\)/);
     assert.match(cpp,/genycaster\.setup\.recovery_failed_retry/);
     assert.match(cpp,/event\.phase != BrowserOpenProofState::Phase::SignedOut/);
@@ -207,8 +207,8 @@ test('recovery failures are not mislabeled Genyleap login errors',()=>{
 });
 
 test('menu keeps hover label contrast independent of Qt MenuItem opacity',()=>{
-    const qml=read(new URL('../../ui/components/EditorContextMenu.qml',import.meta.url),'utf8');
-    const item=read(new URL('../../ui/components/EditorMenuItem.qml',import.meta.url),'utf8');
+    const qml=read(new URL('../../ui/components/composer/EditorContextMenu.qml',import.meta.url),'utf8');
+    const item=read(new URL('../../ui/components/composer/EditorMenuItem.qml',import.meta.url),'utf8');
     assert.match(item,/Item \{/);
     assert.doesNotMatch(item,/^MenuItem \{/m);
     assert.match(item,/text: root\.label/);

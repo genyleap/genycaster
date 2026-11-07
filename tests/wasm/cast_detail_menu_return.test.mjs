@@ -4,11 +4,11 @@ import vm from "node:vm";
 import { readFileSync } from "node:fs";
 
 const read = path => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
-const feed = read("ui/components/FeedSurface.qml");
-const shell = read("ui/components/AppShell.qml");
-const detail = read("ui/components/DetailSurface.qml");
-const cast = read("ui/components/CastItem.qml");
-const menu = read("ui/components/CastActionsMenu.qml");
+const feed = read("ui/components/feed/FeedSurface.qml");
+const shell = read("ui/components/shell/AppShell.qml");
+const detail = read("ui/components/feed/DetailSurface.qml");
+const cast = read("ui/components/feed/CastItem.qml");
+const menu = read("ui/components/feed/CastActionsMenu.qml");
 const cmake = read("ui/CMakeLists.txt");
 
 function extractFunction(source, name) {
@@ -25,7 +25,7 @@ function extractFunction(source, name) {
 }
 
 test("conversation header exposes the same lazy, accessible Cast menu as feed cards", () => {
-    assert.match(cmake, /components\/CastActionsMenu\.qml/);
+    assert.match(cmake, /components\/feed\/CastActionsMenu\.qml/);
     assert.match(cast, /CastActionsMenu \{/);
     assert.match(detail, /objectName: "detailCastMoreButton"/);
     assert.match(detail, /iconGlyph: Theme\.iconMore/);

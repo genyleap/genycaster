@@ -6,7 +6,7 @@ import {readFileSync} from 'node:fs';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
@@ -14,7 +14,7 @@ test('Farcaster Quote and Recast notification events survive the provider and pr
   const capability=read('src/capabilities/notification.cppm');
   const codec=read('src/providers/hypersnap/codec.cpp');
   const presenter=readGenycasterMain();
-  const screen=read('ui/components/NotificationSurface.qml');
+  const screen=read('ui/components/feed/NotificationSurface.qml');
   assert.match(capability,/\bQuote,/);
   for(const type of ['cast-quote','quote-cast','cast-recast']) assert.ok(codec.includes('"'+type+'"'));
   assert.match(codec,/NotificationKind::Quote/);
@@ -45,8 +45,8 @@ test('direct cast detail hydrates quote and parent context with a distinct prima
 });
 
 test('cast detail keeps timestamp beside author and views in the same action footer',()=>{
-  const detail=read('ui/components/DetailSurface.qml');
-  const bar=read('ui/components/EngagementBar.qml');
+  const detail=read('ui/components/feed/DetailSurface.qml');
+  const bar=read('ui/components/feed/EngagementBar.qml');
   assert.doesNotMatch(detail,/id: detailMetadata/);
   assert.match(detail,/LocaleFormat\.formatDateTime\(milliseconds\)/);
   assert.match(detail,/LocaleFormat\.formatRelativeTime\(milliseconds\)/);
@@ -64,8 +64,8 @@ test('cast detail keeps timestamp beside author and views in the same action foo
 test('bookmarks persist on-device per verified account and have a navigable route',()=>{
   const c=read('src/presentation/qt/presentation_bridge.cpp');
   const h=read('src/presentation/qt/presentation_bridge.hpp');
-  const shell=read('ui/components/AppShell.qml');
-  const ui=read('ui/components/BookmarksSurface.qml');
+  const shell=read('ui/components/shell/AppShell.qml');
+  const ui=read('ui/components/profile/BookmarksSurface.qml');
   assert.match(h,/Q_PROPERTY\(QStringList bookmarkedCastIds READ bookmarkedCastIds NOTIFY bookmarksChanged\)/);
   assert.match(h,/Q_INVOKABLE void toggleBookmark\(const QVariantMap& cast\)/);
   assert.match(c,/bookmarks\/account_%1/);
@@ -76,14 +76,14 @@ test('bookmarks persist on-device per verified account and have a navigable rout
   assert.match(ui,/objectName: "bookmarkRichCast"/);
   assert.match(ui,/onOpenRequested: castId => root.castRequested\(castId\)/);
   assert.match(shell,/objectName: "mobileAccountBookmarksButton"/);
-  assert.match(read('ui/CMakeLists.txt'),/components\/BookmarksSurface.qml/);
+  assert.match(read('ui/CMakeLists.txt'),/components\/profile\/BookmarksSurface.qml/);
 });
 
 test('main casts and every threaded reply show views in a common footer at all widths',()=>{
-  const cast=read('ui/components/CastItem.qml');
-  const reply=read('ui/components/ThreadReplyItem.qml');
-  const bar=read('ui/components/EngagementBar.qml');
-  const button=read('ui/components/EngagementButton.qml');
+  const cast=read('ui/components/feed/CastItem.qml');
+  const reply=read('ui/components/feed/ThreadReplyItem.qml');
+  const bar=read('ui/components/feed/EngagementBar.qml');
+  const button=read('ui/components/feed/EngagementButton.qml');
   assert.equal((cast.match(/showViews: true/g)||[]).length,2);
   assert.match(reply,/showViews: true/);
   assert.match(reply,/authorFid: Number\(root.reply.authorFid \|\| 0\)/);
@@ -99,7 +99,7 @@ test('main casts and every threaded reply show views in a common footer at all w
 
 test('quote notifications preserve a clickable reference when embedded cast details are absent',()=>{
   const presenter=readGenycasterMain();
-  const ui=read('ui/components/NotificationSurface.qml');
+  const ui=read('ui/components/feed/NotificationSurface.qml');
   assert.match(presenter,/NotificationKind::Quote\) \{[\s\S]*?row.insert\(QStringLiteral\("quotedCastId"\)/);
   assert.match(ui,/quotedCastId: source.quotedCastId/);
   assert.match(ui,/notificationRow.kindKey === "quote"[\s\S]*?notificationRow.modelData.quotedCastId/);
@@ -107,7 +107,7 @@ test('quote notifications preserve a clickable reference when embedded cast deta
 });
 
 test('quoted-cast author avatar is inset and aligned inside the media card',()=>{
-  const card=read('ui/components/EmbedCard.qml');
+  const card=read('ui/components/media/EmbedCard.qml');
   assert.match(card,/anchors.margins: root.isCastReference \? Theme.space4 : Theme.space2/);
   assert.match(card,/Layout.preferredWidth: 32[\s\S]*?Layout.preferredHeight: 32[\s\S]*?avatarSize: 32/);
   assert.match(card,/spacing: Theme.space3[\s\S]*?layoutDirection: root.quotedRtl/);

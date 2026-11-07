@@ -13,7 +13,7 @@ test('studio second scene uses portable protocol order and responsive safe-area 
 });
 
 test('public profile link drawer provides favicon candidate and site monogram fallback', () => {
-  const link = read('ui/components/ProfileLinkRow.qml');
+  const link = read('ui/components/profile/ProfileLinkRow.qml');
   assert.match(link, /metadata\.favicon/);
   assert.match(link, /favicon\.ico/);
   assert.match(link, /linkPreviewResolver\.imageSourceForUrl/);
@@ -22,19 +22,19 @@ test('public profile link drawer provides favicon candidate and site monogram fa
 });
 
 test('raw link text is hidden only if a destination card already represents it', () => {
-  const detail = read('ui/components/DetailSurface.qml');
+  const detail = read('ui/components/feed/DetailSurface.qml');
   assert.match(detail, /readonly property string visibleCastText:/);
   assert.match(detail, /const embedded = root\.protocolEmbedUrls \|\| \[\]/);
   assert.match(detail, /plainText: root\.visibleCastText/);
   assert.match(detail, /String\(embedded\[i\]\)/);
-  const cast = read('ui/components/CastItem.qml');
+  const cast = read('ui/components/feed/CastItem.qml');
   assert.match(cast, /readonly property string displayText:/);
   assert.match(cast, /return source\.replace/);
 });
 
 test('link previews keep complete art and collectibles do not reserve blank panels', () => {
-  const preview = read('ui/components/LinkPreview.qml');
-  const collectible = read('ui/components/CollectiblePreview.qml');
+  const preview = read('ui/components/media/LinkPreview.qml');
+  const collectible = read('ui/components/media/CollectiblePreview.qml');
   assert.match(preview, /id: genericThumb[\s\S]*?fillMode: Image\.PreserveAspectFit/);
   assert.match(preview, /readonly property bool shouldReserve: root\.reserveArtwork[\s\S]*?root\.previewSource\.length > 0/);
   assert.match(collectible, /visible: root\.artworkSource\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
@@ -43,7 +43,7 @@ test('link previews keep complete art and collectibles do not reserve blank pane
 });
 
 test('discovery covers share a superellipse shape and Save action is visible', () => {
-  const feature = read('ui/components/MiniAppFeaturedCarousel.qml');
+  const feature = read('ui/components/apps/FeaturedCarousel.qml');
   assert.match(feature, /id: featureCard[\s\S]*?curveDepth: Theme\.curveContainer/);
   assert.match(feature, /id: cover[\s\S]*?clipToSuperellipse: true[\s\S]*?curveDepth: Theme\.curveContainer/);
   assert.match(feature, /prominent: !Boolean\(featuredCell\.app\.saved\)/);
@@ -51,15 +51,15 @@ test('discovery covers share a superellipse shape and Save action is visible', (
 });
 
 test('mobile reading surface reduces double insets without changing desktop geometry', () => {
-  const cast = read('ui/components/CastItem.qml');
-  const detail = read('ui/components/DetailSurface.qml');
+  const cast = read('ui/components/feed/CastItem.qml');
+  const detail = read('ui/components/feed/DetailSurface.qml');
   assert.match(cast, /anchors\.leftMargin: root\.compact \? Theme\.space2 : Theme\.space3/);
   assert.match(cast, /anchors\.leftMargin: root\.compact \? Theme\.space2 : Theme\.space4/);
   assert.match(detail, /anchors\.margins: root\.compact \? Theme\.space2 : Theme\.space5/);
 });
 
 test('reply TextArea retains IME preedit and commits native keyboard text after composition', () => {
-  const composer = read('ui/components/ComposerDrawer.qml');
+  const composer = read('ui/components/composer/ComposerDrawer.qml');
   assert.match(composer, /fullScreen: root\.compact/);
   assert.match(composer, /height: parent \? \(root\.compact \? parent\.height/);
   assert.match(composer, /mobilePlainEditor\.forceActiveFocus\(\)/);
@@ -72,7 +72,7 @@ test('reply TextArea retains IME preedit and commits native keyboard text after 
 
 
 test('mobile Cast time aligns with name rather than handle or overflow action', () => {
-  const cast = read('ui/components/CastItem.qml');
+  const cast = read('ui/components/feed/CastItem.qml');
   const identity = cast.slice(cast.indexOf('id: castNameAndChannel'),
                               cast.indexOf('id: moreButton'));
   assert.match(identity, /objectName: "compactCastAuthorMetadata"/);
@@ -83,7 +83,7 @@ test('mobile Cast time aligns with name rather than handle or overflow action', 
 });
 
 test('reply cards have unified borders without green ownership outlines', () => {
-  const reply = read('ui/components/ThreadReplyItem.qml');
+  const reply = read('ui/components/feed/ThreadReplyItem.qml');
   const card = reply.slice(reply.indexOf('id: replyCard'), reply.indexOf('id: replyContent'));
   assert.match(card, /borderWidth: 0/);
   assert.match(card, /borderColor: "transparent"/);
@@ -91,7 +91,7 @@ test('reply cards have unified borders without green ownership outlines', () => 
 });
 
 test('connection management stays within mobile viewport and keeps view affordance reachable', () => {
-  const popup = read('ui/components/AccountConnectionsPopup.qml');
+  const popup = read('ui/components/profile/ConnectionsPopup.qml');
   assert.match(popup, /visible: picker\.cachedSnapshot && !picker\.authorized && !picker\.mobilePresentation/);
   assert.match(popup, /visible: picker\.mobilePresentation && picker\.cachedSnapshot && !picker\.authorized/);
   assert.match(popup, /iconOnly: picker\.mobilePresentation/);
@@ -99,8 +99,8 @@ test('connection management stays within mobile viewport and keeps view affordan
 });
 
 test('channel and profile option menus retain readable contrast and surfaces', () => {
-  const combo = read('ui/components/GenyComboBox.qml');
-  const filter = read('ui/components/FilterDropdown.qml');
+  const combo = read('ui/components/controls/GenyComboBox.qml');
+  const filter = read('ui/components/controls/FilterDropdown.qml');
   assert.match(combo, /color: Theme\.ink/);
   assert.match(combo, /color: optionDelegate\.highlighted \|\| optionDelegate\.hovered[\s\S]*?\? Theme\.surfaceHover/);
   assert.match(combo, /Theme\.surfaceRaised/);
@@ -110,14 +110,14 @@ test('channel and profile option menus retain readable contrast and surfaces', (
 });
 
 test('website link drawer always paints a domain monogram behind optional favicon art', () => {
-  const links = read('ui/components/ProfileLinkRow.qml');
+  const links = read('ui/components/profile/ProfileLinkRow.qml');
   assert.match(links, /text: root\.siteInitial/);
   assert.match(links, /visible: true/);
   assert.match(links, /sourceSize\.width: Math\.ceil\(width \* 3\)/);
 });
 
 test('iOS emoji recovery runs only after Qt misses committed Unicode input', () => {
-  const native = read('ui/app/browser_emoji_recovery.hpp');
+  const native = read('ui/app/browser/emoji_recovery.hpp');
   const bootstrap = read('ui/app/main.cpp');
   assert.match(native, /genycasterCaptureBrowserEmoji/);
   assert.match(native, /genycasterRecoverBrowserEmoji/);
@@ -126,7 +126,7 @@ test('iOS emoji recovery runs only after Qt misses committed Unicode input', () 
   assert.match(native, /QCoreApplication::sendEvent\(editor, &event\)/);
   assert.match(native, /event\.inputType !== "insertText"/);
   assert.match(native, /document\.addEventListener\("beforeinput"/);
-  assert.match(bootstrap, /#include "browser_emoji_recovery\.hpp"/);
+  assert.match(bootstrap, /#include "browser\/emoji_recovery\.hpp"/);
   assert.match(bootstrap, /genycasterInstallBrowserEmojiRecovery\(\)/);
   assert.doesNotMatch(native, /fetch\(|localStorage/);
 });

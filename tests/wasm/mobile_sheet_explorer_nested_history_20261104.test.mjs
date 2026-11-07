@@ -35,7 +35,7 @@ test('Back unwinds exact quoted casts and profiles and never records a replay',(
  assert.match(back,/m_restoringDetailHistory = false/);
  assert.match(back,/showFeed\(\)/);
  assert.doesNotMatch(back,/m_detailReturnView ==/);
- const shell=read('ui/components/AppShell.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
  assert.match(shell,/function returnFromProfileSurface\(\) \{\s*presentationBridge\.returnFromDetail\(\)/);
  assert.match(shell,/function returnToPendingShellRoute\(\) \{[\s\S]*?presentationBridge\.activeView !== "feed"/);
  assert.match(shell,/onShellRouteChanged: \{\s*if \(root\.shellRoute\.length > 0\)\s*presentationBridge\.clearDetailHistory\(\)/);
@@ -45,8 +45,8 @@ test('Back unwinds exact quoted casts and profiles and never records a replay',(
 });
 
 test('Explorer explicit entry scrolls the inline StoryStrip from every previous destination',()=>{
- const shell=read('ui/components/AppShell.qml');
- const feed=read('ui/components/FeedSurface.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const feed=read('ui/components/feed/FeedSurface.qml');
  const nav=shell.split('function openExplorer()')[1].split('function openTrends()')[0];
  assert.match(nav,/\+\+root\.explorerTopRevision/);
  assert.match(nav,/presentationBridge\.refreshFollowingStories\(\)/);
@@ -63,11 +63,11 @@ test('Explorer explicit entry scrolls the inline StoryStrip from every previous 
 });
 
 test('short mobile sheets center titles beneath their grabber without duplicate close glyphs',()=>{
- const header=read('ui/components/ModalHeader.qml');
- const share=read('ui/components/EngagementBar.qml');
- const create=read('ui/components/MobileCreateMenu.qml');
- const app=read('ui/components/AppsSurface.qml');
- const pro=read('ui/components/GenyProDetailsDrawer.qml');
+ const header=read('ui/components/controls/ModalHeader.qml');
+ const share=read('ui/components/feed/EngagementBar.qml');
+ const create=read('ui/components/navigation/MobileCreateMenu.qml');
+ const app=read('ui/components/apps/AppsSurface.qml');
+ const pro=read('ui/components/profile/GenyProDetailsDrawer.qml');
  assert.match(header,/property bool sheetPresentation: false/);
  assert.match(header,/root\.sheetPresentation\s*\? Text\.AlignHCenter/);
  assert.match(header,/visible: root\.showClose && !root\.sheetPresentation/);

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import vm from "node:vm";
 
-const raw=readFileSync(new URL("../../ui/components/ProCastPolicy.js",import.meta.url),"utf8")
+const raw=readFileSync(new URL("../../ui/components/composer/ProCastPolicy.js",import.meta.url),"utf8")
   .replace(/^\.pragma library\s*/,"");
 const context=vm.createContext({});
 vm.runInContext(raw,context);
@@ -57,7 +57,7 @@ test("Additional user-authored thread casts are preserved after planned body",()
 });
 
 test("composer visibly confirms every multi-cast plan before sending",()=>{
- const composer=readFileSync(new URL("../../ui/components/ComposerDrawer.qml",import.meta.url),"utf8");
+ const composer=readFileSync(new URL("../../ui/components/composer/ComposerDrawer.qml",import.meta.url),"utf8");
  const controller=readFileSync(new URL("../../src/presentation/qt/rich_composer_controller.cpp",import.meta.url),"utf8");
  const bridge=readFileSync(new URL("../../src/presentation/qt/presentation_bridge.cpp",import.meta.url),"utf8");
  assert.match(composer,/ProCastPolicy\.publicationPlan/);
@@ -73,8 +73,8 @@ test("composer visibly confirms every multi-cast plan before sending",()=>{
 });
 test("mini app quotas are enforced in native runtime and web/Android host",()=>{
  const host=readFileSync(new URL("../../ui/app/miniapp/host.cpp",import.meta.url),"utf8");
- const runtime=readFileSync(new URL("../../ui/app/miniapp_runtime.cpp",import.meta.url),"utf8");
- const android=readFileSync(new URL("../../ui/components/AndroidMiniAppWebView.qml",import.meta.url),"utf8");
+ const runtime=readFileSync(new URL("../../ui/app/miniapp/runtime.cpp",import.meta.url),"utf8");
+ const android=readFileSync(new URL("../../ui/components/apps/AndroidWebView.qml",import.meta.url),"utf8");
  const main=readFileSync(new URL("../../ui/app/main.cpp",import.meta.url),"utf8");
  assert.match(host,/setSessionLimit\(const int limit\)/);
  assert.match(runtime,/m_allowedSessions\{1U\}/);

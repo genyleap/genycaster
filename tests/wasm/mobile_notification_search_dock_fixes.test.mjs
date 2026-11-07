@@ -5,7 +5,7 @@ import test from 'node:test';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('refresh indicator appears in the pulled gap and disappears on release', () => {
-    const source = read('ui/components/PullToRefresh.qml');
+    const source = read('ui/components/feed/PullToRefresh.qml');
     assert.match(source, /y: Math\.max\(0, \(offset - height\) \* 0\.5\)/);
     assert.match(source, /visible: startedAtTop && offset >= height/);
     assert.doesNotMatch(source, /visible: \(busy && flickable/);
@@ -13,14 +13,14 @@ test('refresh indicator appears in the pulled gap and disappears on release', ()
 });
 
 test('mobile apps reserve a visible empty state below the destination tabs', () => {
-    const apps = read('ui/components/AppsSurface.qml');
+    const apps = read('ui/components/apps/AppsSurface.qml');
     assert.match(apps, /root\.visibleApps\.length === 0[\s\S]*?Math\.max\(280, Math\.min\(400, appsScroller\.height \* 0\.43\)\)/);
     assert.match(apps, /anchors\.centerIn: parent/);
 });
 
 test('search handles outside taps and offers explicit clearing of results', () => {
-    const palette = read('ui/components/SearchPalette.qml');
-    const backdrop = read('ui/components/DrawerBackdrop.qml');
+    const palette = read('ui/components/navigation/SearchPalette.qml');
+    const backdrop = read('ui/components/visual/DrawerBackdrop.qml');
     assert.match(palette, /closePolicy: Popup\.CloseOnEscape \| Popup\.CloseOnPressOutside/);
     assert.match(backdrop, /TapHandler \{[\s\S]*?onTapped: root\.requestOutsideDismiss\(\)/);
     assert.match(palette, /function clearResults\(\) \{[\s\S]*?resultRows\.clear\(\)/);
@@ -30,8 +30,8 @@ test('search handles outside taps and offers explicit clearing of results', () =
 });
 
 test('mobile dock has six destinations and a separate configurable Action Button', () => {
-    const nav = read('ui/components/BottomNavigation.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const nav = read('ui/components/navigation/BottomNavigation.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     assert.match(nav, /objectName: "mobileNavigationCapsule"/);
     assert.match(nav, /objectName: "mobilePrimaryActionButton"/);
     assert.doesNotMatch(nav, /objectName: "mobileFooterBackground"/);
@@ -55,7 +55,7 @@ test('mobile dock has six destinations and a separate configurable Action Button
 });
 
 test('mentioned content and search controls have localized labels', () => {
-    const ui = read('ui/components/NotificationSurface.qml');
+    const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(ui, /notificationRow\.kindKey === "mention"[\s\S]*?Layout\.fillWidth: true/);
     assert.match(ui, /genycaster\.notifications\.content_unavailable/);
     for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',

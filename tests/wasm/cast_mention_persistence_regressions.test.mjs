@@ -24,7 +24,7 @@ test('provider-rendered @mentions survive entity-store upserts and roundtrip thr
  assert.match(contract, /\(\*warmed\)->displayText == cast\.displayText/);
  const readService=read('src/application/read_async_service.cpp');
  assert.match(readService, /auto materialized = readLocalPresentationWindow/);
- const presentation=read('ui/app/runtime_ui_bindings.cpp');
+ const presentation=read('ui/app/runtime/bindings.cpp');
  assert.match(presentation, /cast\.displayText\.value_or\(cast\.text\)/);
 });
 test('ENS-like profile handles use exact-match search fallback on the currently configured provider',()=>{
@@ -33,5 +33,5 @@ test('ENS-like profile handles use exact-match search fallback on the currently 
  assert.match(identity, /\/v2\/farcaster\/user\/search/);
  assert.match(identity, /actual\.size\(\) == requested\.size\(\)/);
  assert.match(identity, /std::ranges::find_if\(\*profiles, sameName\)/);
- assert.match(read('ui/components/AppShell.qml'), /presentationBridge\.openProfileUsername/);
+ assert.match(read('ui/components/shell/AppShell.qml'), /presentationBridge\.openProfileUsername/);
 });

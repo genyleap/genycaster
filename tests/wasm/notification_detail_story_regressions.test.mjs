@@ -7,16 +7,16 @@ import { test } from 'node:test';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const root = resolve(import.meta.dirname, '../..');
 const read = path => readFileSync(resolve(root, path), 'utf8');
 
 test('shell self-story avatar is declared and forwarded through the header', () => {
-    const shell = read('ui/components/AppShell.qml');
-    const header = read('ui/components/HomeFeedHeader.qml');
-    const strip = read('ui/components/StoryStrip.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
+    const header = read('ui/components/home/HomeFeedHeader.qml');
+    const strip = read('ui/components/feed/StoryStrip.qml');
     assert.match(shell, /ownAvatarUrl: String\(presentationBridge\.accountAvatarUrl/);
     assert.match(header, /property string ownAvatarUrl: ""/);
     assert.match(header, /StoryStrip \{[\s\S]*?ownAvatarUrl: root\.ownAvatarUrl/);
@@ -24,7 +24,7 @@ test('shell self-story avatar is declared and forwarded through the header', () 
 });
 
 test('first Following story is a clean, untruncated Add action', () => {
-    const item = read('ui/components/StoryItem.qml');
+    const item = read('ui/components/feed/StoryItem.qml');
     assert.match(item, /visible: !root\.addStory \|\| root\.avatarUrl\.length > 0/);
     assert.match(item, /text: root\.addStory \? qsTrId\("genycaster\.home\.add_short"\) : root\.displayName/);
     assert.match(item, /elide: root\.addStory \? Text\.ElideNone : Text\.ElideRight/);
@@ -34,7 +34,7 @@ test('first Following story is a clean, untruncated Add action', () => {
 });
 
 test('notification list uses subtle superellipse cards and real category icons', () => {
-    const ui = read('ui/components/NotificationSurface.qml');
+    const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(ui, /delegate: Item \{\s+id: notificationRow/);
     assert.match(ui, /id: notificationRow[\s\S]*?Superellipse \{/);
     assert.match(ui, /notificationRow.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
@@ -46,7 +46,7 @@ test('notification list uses subtle superellipse cards and real category icons',
 });
 
 test('activity, channels and mentions filter provider-backed notifications in the stable list', () => {
-    const ui = read('ui/components/NotificationSurface.qml');
+    const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(ui, /readonly property var visibleRows: root\.filterKind === "all"/);
     assert.match(ui, /const source = root\.visibleRows \|\| \[\]/);
     assert.match(ui, /onFilterKindChanged: stableModelSyncTimer\.restart\(\)/);
@@ -63,7 +63,7 @@ test('activity, channels and mentions filter provider-backed notifications in th
 
 test('notification cast and quoted-parent media reach the UI without losing navigation', () => {
     const bridge = readGenycasterMain();
-    const ui = read('ui/components/NotificationSurface.qml');
+    const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(bridge, /row\.insert\(QStringLiteral\("castEmbedUrl"\)/);
     assert.match(bridge, /row\.insert\(QStringLiteral\("parentEmbedUrl"\)/);
     assert.match(ui, /notificationImageUrl\(\s*notificationRow\.modelData\.castEmbedUrl\)/);
@@ -89,7 +89,7 @@ test('short Add and notification category strings are translated for every suppo
 });
 
 test('story photo and border share superellipse geometry, with no protruding red arcs', () => {
-    const item = read('ui/components/StoryItem.qml');
+    const item = read('ui/components/feed/StoryItem.qml');
     assert.doesNotMatch(item, /PathAngleArc|ShapePath|import QtQuick.Shapes/);
     assert.match(item, /curveDepth: root.frameCurveDepth/);
     assert.match(item, /avatarCurveDepth: root.avatarCurveDepth/);
@@ -97,7 +97,7 @@ test('story photo and border share superellipse geometry, with no protruding red
 });
 
 test('notification activity uses one actor, a bounded excerpt and compact tappable links', () => {
-    const ui = read('ui/components/NotificationSurface.qml');
+    const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(ui, /readonly property var firstActor:/);
     assert.doesNotMatch(ui, /Repeater \{\s+model: parent.visibleActors/);
     assert.doesNotMatch(ui, /Layout.fillHeight: true\s+color: notificationRow.kindColor/);

@@ -5,10 +5,10 @@ const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('motion preferences persist locally and GIFs are not paused by scroll',()=>{
  const theme=read('ui/theme/Theme.qml');
- const img=read('ui/components/SuperellipseImage.qml');
- const mini=read('ui/components/LinkPreview.qml');
- const settings=read('ui/components/LocaleSettingsPopup.qml');
- const setup=read('ui/components/InitialSetup.qml');
+ const img=read('ui/components/visual/SuperellipseImage.qml');
+ const mini=read('ui/components/media/LinkPreview.qml');
+ const settings=read('ui/components/settings/SettingsPopup.qml');
+ const setup=read('ui/components/setup/InitialSetup.qml');
  assert.match(theme,/property Settings energyPreferences: Settings \{/);
  assert.match(theme,/property bool animateAvatars: true/);
  assert.match(theme,/function setPowerSave\(enabled\)/);
@@ -21,13 +21,13 @@ test('motion preferences persist locally and GIFs are not paused by scroll',()=>
  assert.doesNotMatch(mini,/playing: visible && !root\.scrollMoving/);
 });
 test('viewer chrome anchors to stable viewport not aspect-fitted image bounds',()=>{
- const gallery=read('ui/components/MediaGallery.qml');
+ const gallery=read('ui/components/media/MediaGallery.qml');
  assert.match(gallery,/x: Theme\.space3[\s\S]{0,240}y: root\.width < 700/);
  assert.doesNotMatch(gallery,/x: Math\.max\(Theme\.space3, parent\.chromeRect/);
 });
 test('HLS browser player uses responsive stage and real poster for Stream manifests',()=>{
  const video=read('ui/wasm/browser-hls-pre.js');
- const feed=read('ui/components/VideoPreview.qml');
+ const feed=read('ui/components/media/VideoPreview.qml');
  assert.match(video,/@media \(orientation:landscape\)/);
  assert.match(video,/className = "gc-hls-stage"/);
  assert.match(video,/className = "gc-hls-video"/);

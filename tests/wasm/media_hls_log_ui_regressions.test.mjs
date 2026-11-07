@@ -6,14 +6,14 @@ import test from 'node:test';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path,root),'utf8');
 
 test('log regressions: Avatar tolerates null resolver, GIF decoding has no obsolete Qt.atob',()=>{
- const avatar=read('ui/components/Avatar.qml');
- const image=read('ui/components/SuperellipseImage.qml');
+ const avatar=read('ui/components/content/Avatar.qml');
+ const image=read('ui/components/visual/SuperellipseImage.qml');
  assert.match(avatar,/typeof linkPreviewResolver !== "undefined"/);
  assert.match(avatar,/linkPreviewResolver !== null/);
  assert.doesNotMatch(image,/mediaUrl\s*=\s*Qt\.atob\(/);
@@ -29,7 +29,7 @@ test('log regressions: Avatar tolerates null resolver, GIF decoding has no obsol
  assert.equal(decoder('@@@'),'');
 });
 test('browser native HLS modal and local hls.js work without third-party runtime CDN dependency',()=>{
- const qml=read('ui/components/VideoPreview.qml');
+ const qml=read('ui/components/media/VideoPreview.qml');
  const player=read('src/presentation/qt/media_playback_coordinator.cpp');
  const header=read('src/presentation/qt/media_playback_coordinator.hpp');
  const js=read('ui/wasm/browser-hls-pre.js');
@@ -48,16 +48,16 @@ test('browser native HLS modal and local hls.js work without third-party runtime
  assert.match(main,/dispatch\(true\)/);
 });
 test('home composer focus is visible and link artwork leads the responsive editorial card',()=>{
- const home=read('ui/components/HomeDashboard.qml');
- const link=read('ui/components/LinkPreview.qml');
+ const home=read('ui/components/home/HomeDashboard.qml');
+ const link=read('ui/components/media/LinkPreview.qml');
  assert.match(home,/desktopComposerSurface[\s\S]*borderColor: desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/mobileComposerSurface[\s\S]*curveDepth: Theme\.curveModal/);
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
  assert.match(link,/Layout\.preferredHeight: !shouldReserve \? 0[\s\S]*?Math\.min\(root\.compact \? 300 : 180/);
 });
 test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
- const gallery=read('ui/components/GalleryLayout.qml');
- const tile=read('ui/components/GalleryTile.qml');
+ const gallery=read('ui/components/media/GalleryLayout.qml');
+ const tile=read('ui/components/media/GalleryTile.qml');
  assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"/);
  assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
  assert.match(tile,/clip: true/);
@@ -83,7 +83,7 @@ test('wallet approval stays steady after consent and stops polling on session en
 });
 
 test('failed private media origins back off and tiny SVGs avoid uninitialized mipmaps',()=>{
- const image=read('ui/app/remote_image_provider.cpp');
+ const image=read('ui/app/media/remote_image.cpp');
  assert.match(image,/originTemporarilyForbidden\(urlText\)/);
  // Force-download artwork shares the 'manual' descriptor, so authorization
  // refusal must be honored regardless of that flag.
@@ -93,7 +93,7 @@ test('failed private media origins back off and tiny SVGs avoid uninitialized mi
  assert.match(image,/result->statusCode == 401U \|\| result->statusCode == 403U/);
  assert.match(image,/!deniedByOrigin && !gatewayFallbackAttempt/);
  assert.match(image,/clearForbiddenOrigin\(urlText\)/);
- for(const file of ['ui/components/MarketAssetIcon.qml','ui/components/HomeDashboard.qml']){
+ for(const file of ['ui/components/content/MarketAssetIcon.qml','ui/components/home/HomeDashboard.qml']){
    const qml=read(file);
    assert.doesNotMatch(qml,/mipmap:\s*true/);
  }

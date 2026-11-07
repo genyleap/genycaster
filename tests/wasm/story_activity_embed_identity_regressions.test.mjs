@@ -9,7 +9,7 @@ import vm from 'node:vm';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -25,7 +25,7 @@ function qmlCanonicalizer(relative) {
 }
 
 test('duplicate link cards ignore referral/tracking variants, but not meaningful paths or query IDs', () => {
-    for (const file of ['ui/components/CastEmbedsPanel.qml', 'ui/components/RichCastRenderer.qml']) {
+    for (const file of ['ui/components/media/CastEmbedsPanel.qml', 'ui/components/content/RichCastRenderer.qml']) {
         const canonical = qmlCanonicalizer(file);
         assert.equal(canonical('https://gm.lens.xyz?sharedBy=doporg'),
                      canonical('https://gm.lens.xyz/?sharedBy=someone&utm_source=feed#view'));
@@ -36,7 +36,7 @@ test('duplicate link cards ignore referral/tracking variants, but not meaningful
         assert.notEqual(canonical('https://example.com/post?id=7'),
                         canonical('https://example.com/other?id=7'));
     }
-    const panel = read('ui/components/CastEmbedsPanel.qml');
+    const panel = read('ui/components/media/CastEmbedsPanel.qml');
     assert.match(panel, /const key = root\.embedKey\(value\)/);
     assert.match(panel, /if \(key\.length > 0 && seen\[key\]\)/);
 });
@@ -45,8 +45,8 @@ test('following stories use verified cast timestamps to sort follows while retai
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
     const h = read('src/presentation/qt/presentation_bridge.hpp');
     const runtime = readGenycasterMain();
-    const shell = read('ui/components/AppShell.qml');
-    const strip = read('ui/components/StoryStrip.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
+    const strip = read('ui/components/feed/StoryStrip.qml');
     assert.match(h, /followingStoryActivitiesRequested\(qulonglong viewerFid\)/);
     assert.match(bridge, /m_followingStoryActivity\.constFind\(fid\)/);
     assert.match(bridge, /latestCastId/);

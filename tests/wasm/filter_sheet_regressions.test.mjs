@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const bookmarks=read('ui/components/BookmarksSurface.qml');
-const shell=read('ui/components/AppShell.qml');
-const sheet=read('ui/components/ContentFilterSheet.qml');
+const bookmarks=read('ui/components/profile/BookmarksSurface.qml');
+const shell=read('ui/components/shell/AppShell.qml');
+const sheet=read('ui/components/feed/ContentFilterSheet.qml');
 
 test('collection selection displays the server-confirmed collection rather than resetting to placeholder',()=>{
   assert.match(bookmarks,/function savedCollectionIndex\(hash\)/);
@@ -12,7 +12,7 @@ test('collection selection displays the server-confirmed collection rather than 
   assert.match(bookmarks,/currentIndex: root\.savedCollectionIndex\(/);
   assert.doesNotMatch(bookmarks,/addToCollectionPicker\.currentIndex=0/);
   assert.match(shell,/membershipItems: openProofConnections \? openProofConnections\.bookmarkMembershipItems : \[\]/);
-  const controller=read('ui/app/openproof/connections.cpp');
+  const controller=read('ui/app/identity/connections.cpp');
   assert.match(controller,/m_bookmarkMembershipItems=std::move\(items\)/);
   assert.match(controller,/sendBookmarkCollectionRequest\(\s*QStringLiteral\("bookmark_collection_items"\),\{\},false\)/);
 });

@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const qml=name=>readFileSync('ui/components/'+name+'.qml','utf8');
+const qml=name=>readFileSync('ui/components/' + componentPath(name)+'.qml','utf8');
 
 test('mobile settings use fullscreen navigation and scrollable sections',()=>{
   const settings=qml('LocaleSettingsPopup');

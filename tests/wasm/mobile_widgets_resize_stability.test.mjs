@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
 test('mobile dock exposes a localized Widgets destination with safe six-slot widths',()=>{
- const dock=read('ui/components/BottomNavigation.qml');
+ const dock=read('ui/components/navigation/BottomNavigation.qml');
  assert.match(dock,/signal widgetsRequested\(\)/);
  assert.match(dock,/property bool widgetsOpen: false/);
  assert.match(dock,/objectName: "mobileDockWidgets"/);
@@ -17,8 +17,8 @@ test('mobile dock exposes a localized Widgets destination with safe six-slot wid
 });
 
 test('the mobile Widgets bottom sheet reuses the desktop ContextRail and persistent widget order',()=>{
- const shell=read('ui/components/AppShell.qml');
- const rail=read('ui/components/ContextRail.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const rail=read('ui/components/navigation/ContextRail.qml');
  assert.match(shell,/widgetsOpen: contextDrawer\.visible/);
  assert.match(shell,/onWidgetsRequested: \{/);
  assert.match(shell,/objectName: "responsiveWidgetsDrawer"/);
@@ -38,7 +38,7 @@ test('the mobile Widgets bottom sheet reuses the desktop ContextRail and persist
 });
 
 test('GENY widget mark displays the complete SVG rather than square image cropping',()=>{
- const rail=read('ui/components/ContextRail.qml');
+ const rail=read('ui/components/navigation/ContextRail.qml');
  const mark=rail.slice(rail.indexOf('id: genyAssetMark'),rail.indexOf('id: genyAssetMark')+750);
  assert.match(mark,/anchors\.margins: Theme\.space1/);
  assert.match(mark,/fillMode: Image\.PreserveAspectFit/);
@@ -49,14 +49,14 @@ test('GENY widget mark displays the complete SVG rather than square image croppi
 });
 
 test('resizing profile cover preserves image decode cache and stable account card geometry',()=>{
- const profile=read('ui/components/ProfileSurface.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
  const banner=profile.slice(profile.indexOf('id: bannerImage'),profile.indexOf('id: bannerImage')+2050);
  assert.match(banner,/requestedSourceWidth: 1200/);
  assert.match(banner,/requestedSourceHeight: 480/);
  assert.match(banner,/retainPreviousWhileLoading: false/);
  assert.match(banner,/framePacedPresentation: false/);
  assert.doesNotMatch(banner,/requestedSourceWidth: Math\.max/);
- const trust=read('ui/components/ProfileTrustCard.qml');
+ const trust=read('ui/components/profile/ProfileTrustCard.qml');
  assert.match(trust,/property real settledCompactFaceHeight: 148/);
  assert.match(trust,/onStreakDetailsExpandedChanged: compactHeightSettler\.restart\(\)/);
  assert.match(trust,/interval: 180/);

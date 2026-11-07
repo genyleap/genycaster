@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read=f=>readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
 test('composer topic chooser is dynamic, searchable, capped, and separate from Farcaster channels',()=>{
- const q=read('ui/components/ComposerDrawer.qml');
+ const q=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(q,/objectName: "composerTopicDropdown"/);
  assert.match(q,/model: openProofConnections \? openProofConnections\.topicCatalog : \[\]/);
  assert.match(q,/id: topicSearch/);
@@ -17,11 +17,11 @@ test('composer topic chooser is dynamic, searchable, capped, and separate from F
  assert.match(q,/openProofConnections.fetchTopics\(\)/);
 });
 test('server-backed topics write only after a confirmed Farcaster cast hash',()=>{
- const shell=read('ui/components/AppShell.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
  assert.match(shell,/root.pendingCastTopics = composerDrawer.selectedTopics.slice\(\)/);
  assert.match(shell,/presentationBridge.writePhase === "confirmed"[\s\S]*?openProofConnections.saveCastTopics\(castId,root.pendingCastTopics\)/);
  assert.match(shell,/presentationBridge.writePhase === "failed"/);
- const cpp=read('ui/app/openproof/connections.cpp');
+ const cpp=read('ui/app/identity/connections.cpp');
  assert.match(cpp,/QStringLiteral\("\/api\/v1\/cloud\/topics"\)/);
  assert.match(cpp,/QStringLiteral\("\/api\/v1\/cloud\/cast_topics"\)/);
  assert.match(cpp,/QNetworkRequest::ManualRedirectPolicy/);
@@ -30,7 +30,7 @@ test('server-backed topics write only after a confirmed Farcaster cast hash',()=
  assert.match(cpp,/m_settings->sync\(\)/);
 });
 test('topic labels have explicit localized names for Persian and all supported locales',()=>{
- const q=read('ui/components/ComposerDrawer.qml');
+ const q=read('ui/components/composer/ComposerDrawer.qml');
  const keys=['art','development','photography','design','technology','music',
  'writing','science','business','gaming'];
  for(const slug of keys)assert.ok(q.includes('genycaster.topic.'+slug),slug);
@@ -45,7 +45,7 @@ test('topic labels have explicit localized names for Persian and all supported l
 });
 
 test('confirmed topic writes refresh the currently open server-indexed topic filter',()=>{
- const cpp=read('ui/app/openproof/connections.cpp');
+ const cpp=read('ui/app/identity/connections.cpp');
  assert.match(cpp,/if\(code==200\) \{[\s\S]*?slugs\.contains\(topic\)[\s\S]*?selectCastTopic\(topic,author\)/);
  assert.match(cpp,/fetchTopics\(\); \/\/ Refresh counts/);
  assert.match(cpp,/m_topicOutbox\.isEmpty\(\)[\s\S]*?m_topicRetryDelayMs/);

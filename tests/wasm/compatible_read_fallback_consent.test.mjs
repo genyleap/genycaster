@@ -6,9 +6,9 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('selected read provider remains strictly pinned without user consent', () => {
     const profiles = read('ui/app/bootstrap/profiles.cpp');
-    const composition = read('ui/app/runtime_composition.cpp');
-    const bindings = read('ui/app/runtime_ui_bindings.cpp');
-    const controller = read('ui/app/providers/profiles.cpp');
+    const composition = read('ui/app/runtime/composition.cpp');
+    const bindings = read('ui/app/runtime/bindings.cpp');
+    const controller = read('ui/app/settings/providers.cpp');
     assert.match(profiles, /network\/allowCompatibleReadFallback/);
     assert.match(profiles, /GENYCASTER_ALLOW_COMPATIBLE_READ_FALLBACK/);
     assert.match(profiles, /--allow-compatible-read-fallback/);
@@ -21,8 +21,8 @@ test('selected read provider remains strictly pinned without user consent', () =
 });
 
 test('read fallback consent is an explicit localized control; Write stays pinned', () => {
-    const panel = read('ui/components/ProviderProfilesPanel.qml');
-    const runtime = read('ui/app/runtime_composition.cpp');
+    const panel = read('ui/components/settings/ProviderProfilesPanel.qml');
+    const runtime = read('ui/app/runtime/composition.cpp');
     const core = read('tests/unit/core_tests.cpp');
     assert.match(panel, /providerProfiles\.setCompatibleReadFallback\(checked\)/);
     assert.match(panel, /genycaster\.providers\.compatible_read_fallback_description/);

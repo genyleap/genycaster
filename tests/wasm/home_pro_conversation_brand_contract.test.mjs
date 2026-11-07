@@ -12,9 +12,9 @@ test('official GENY token assets are bundled and consistently selected on home a
   assert.match(svg,/#00A693/);
   assert.doesNotMatch(svg,/<script/);
  }
- const home=file('ui/components/HomeDashboard.qml');
- const rail=file('ui/components/ContextRail.qml');
- const asset=file('ui/components/MarketAssetIcon.qml');
+ const home=file('ui/components/home/HomeDashboard.qml');
+ const rail=file('ui/components/navigation/ContextRail.qml');
+ const asset=file('ui/components/content/MarketAssetIcon.qml');
  assert.match(home,/geny-token-mark-dark\.svg/);
  assert.match(rail,/geny-token-mark-dark\.svg/);
  assert.match(asset,/canonicalGenyAsset: root\.symbol === "GENY"/);
@@ -26,10 +26,10 @@ test('official GENY token assets are bundled and consistently selected on home a
 });
 
 test('Geny Pro replaces the sidebar Streak CTA with a themed, interactive drawer',()=>{
- const trust=file('ui/components/ProfileTrustCard.qml');
- const nav=file('ui/components/SideNavigation.qml');
- const shell=file('ui/components/AppShell.qml');
- const drawer=file('ui/components/GenyProDetailsDrawer.qml');
+ const trust=file('ui/components/profile/ProfileTrustCard.qml');
+ const nav=file('ui/components/navigation/SideNavigation.qml');
+ const shell=file('ui/components/shell/AppShell.qml');
+ const drawer=file('ui/components/profile/GenyProDetailsDrawer.qml');
  assert.match(trust,/signal proRequested\(\)/);
  assert.match(trust,/text: root\.compact && root\.proEligible\s*\? qsTrId\("genycaster\.pro\.short"\)/);
  assert.match(trust,/: qsTrId\("genycaster\.pro\.title"\)/);
@@ -46,7 +46,7 @@ test('Geny Pro replaces the sidebar Streak CTA with a themed, interactive drawer
 });
 
 test('Cast conversation header shows canonical avatar and verified membership without repeating channel by author',()=>{
- const detail=file('ui/components/DetailSurface.qml');
+ const detail=file('ui/components/feed/DetailSurface.qml');
  assert.match(detail,/readonly property bool channelMembershipKnown:/);
  assert.match(detail,/channelDirectory\.membershipReady/);
  assert.match(detail,/channelDirectory\.openForViewer\(Math\.floor\(root\.accountFid\)\)/);

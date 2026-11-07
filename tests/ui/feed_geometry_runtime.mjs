@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 const runner = process.argv[2];
 assert.ok(runner, 'Pass the installed Qt qmltestrunner path');
-const source = readFileSync(new URL('../../ui/components/FeedSurface.qml', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../ui/components/feed/FeedSurface.qml', import.meta.url), 'utf8');
 const start = source.indexOf('        component FeedRow: Loader {');
 const end = source.indexOf('\n\n        footer: Item {', start);
 assert.ok(start >= 0 && end > start);

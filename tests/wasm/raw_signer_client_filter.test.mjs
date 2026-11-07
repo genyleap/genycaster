@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
-const qml = read('ui/components/FeedSurface.qml');
+const qml = read('ui/components/feed/FeedSurface.qml');
 const validA = '0x' + 'aa'.repeat(32);
 const validB = '0x' + 'bb'.repeat(32);
 
@@ -47,7 +47,7 @@ test('canonical signer key is persisted, not inferred from cached display metada
   const codec = read('src/providers/snapchain/read.cpp');
   const storage = read('src/storage/entity_store.cpp');
   const schema = read('src/storage/sqlite_boundary.cpp');
-  const presenter = read('ui/app/runtime_ui_bindings.cpp');
+  const presenter = read('ui/app/runtime/bindings.cpp');
   assert.match(cast, /std::optional<std::string> signerPublicKeyHex/);
   assert.match(codec, /result\.signerPublicKeyHex = canonicalSignerKey\(message\)/);
   assert.match(codec, /value->size\(\) != 44U/);
@@ -111,7 +111,7 @@ test('App FID registry route and canonical cache and locale controls are wired',
   const decoder = read('src/providers/snapchain/read.cpp');
   const store = read('src/storage/entity_store.cpp');
   const schema = read('src/storage/sqlite_boundary.cpp');
-  const bridge = read('ui/app/runtime_ui_bindings.cpp');
+  const bridge = read('ui/app/runtime/bindings.cpp');
   assert.match(decoder, /decodeSignerAppFid\(/);
   assert.match(decoder, /\/v1\/signer\?fid=/);
   assert.match(decoder, /maximumLookups = 8U/);

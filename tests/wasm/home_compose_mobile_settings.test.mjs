@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const source = name => readFileSync(new URL('../../ui/components/' + name, import.meta.url), 'utf8');
+const source = name => readFileSync(new URL('../../ui/components/' + componentPath(name), import.meta.url), 'utf8');
 
 test('Home quick composer transfers text to the rich Cast paragraph', () => {
     const home = source('HomeDashboard.qml');

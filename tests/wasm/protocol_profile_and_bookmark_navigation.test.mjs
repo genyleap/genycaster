@@ -22,17 +22,17 @@ test('Farcaster UserDataAdd emits exact canonical protobuf type/body/slot bytes'
 });
 
 test('Bookmarked cast navigates from whole card, never limited to text label',()=>{
-  const ui=read('ui/components/BookmarksSurface.qml');
-  const shell=read('ui/components/AppShell.qml');
+  const ui=read('ui/components/profile/BookmarksSurface.qml');
+  const shell=read('ui/components/shell/AppShell.qml');
   assert.match(ui,/id: bookmarkCard[\s\S]*?CastItem \{/);
   assert.match(ui,/onOpenRequested: castId => root.castRequested\(castId\)/);
   assert.match(shell,/onCastRequested: castId => \{[\s\S]*?root\.rememberShellRouteForReturn\(\)[\s\S]*?presentationBridge\.openCast\(hash\)/);
 });
 
 test('Protocol profile editor sends only changed canonical slots with verified signer',()=>{
-  const profile=read('ui/components/ProfileSurface.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
   const qt=read('src/presentation/qt/presentation_bridge.cpp');
-  const bindings=read('ui/app/runtime_ui_bindings.cpp');
+  const bindings=read('ui/app/runtime/bindings.cpp');
   const js=read('ui/wasm/browser_protocol_signer.mjs');
   const wasm=read('ui/wasm/protocol-signer-pre.js');
   assert.match(profile,/objectName: "profileProtocolSave"/);
@@ -56,8 +56,8 @@ test('Farsi locale has new protocol profile strings; chrome uses UI direction',(
                     'genycaster.profile.update_farcaster','genycaster.profile.banner',
                     'genycaster.profile.upload_avatar'])
     assert.ok(catalog.includes('id="'+key+'"'),key);
-  const cast=read('ui/components/CastItem.qml');
-  const detail=read('ui/components/DetailSurface.qml');
+  const cast=read('ui/components/feed/CastItem.qml');
+  const detail=read('ui/components/feed/DetailSurface.qml');
   assert.match(cast,/id: messageRow[\s\S]*?layoutDirection: Theme\.uiDirection/);
   assert.match(detail,/id: detailBody[\s\S]*?layoutDirection: Theme\.uiDirection/);
 });

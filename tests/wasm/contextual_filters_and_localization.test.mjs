@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
-const app=read('ui/components/AppShell.qml');
-const feed=read('ui/components/FeedSurface.qml');
-const profile=read('ui/components/ProfileSurface.qml');
-const sheet=read('ui/components/ContentFilterSheet.qml');
-const bookmarks=read('ui/components/BookmarksSurface.qml');
+const app=read('ui/components/shell/AppShell.qml');
+const feed=read('ui/components/feed/FeedSurface.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const sheet=read('ui/components/feed/ContentFilterSheet.qml');
+const bookmarks=read('ui/components/profile/BookmarksSurface.qml');
 
 test('topic discovery updates existing Explorer/Profile lists, never a new route',()=>{
  assert.match(app,/visible: surfaceRequested/);

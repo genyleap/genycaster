@@ -1,9 +1,10 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const qml = file => readFileSync(new URL('../../ui/components/' + file + '.qml', import.meta.url), 'utf8');
+const qml = file => readFileSync(new URL('../../ui/components/' + componentPath(file) + '.qml', import.meta.url), 'utf8');
 
 test('Home routes Explorer, Search, Apps and keeps Wallet disabled', () => {
  const home=qml('HomeDashboard');

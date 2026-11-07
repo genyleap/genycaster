@@ -6,12 +6,12 @@ import {readFileSync} from 'node:fs';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 const read=name=>readFileSync(new URL('../../'+name, import.meta.url),'utf8');
 
 test('thread composer owns vertical scrolling and cannot be swiped away mid-edit',()=>{
- const composer=read('ui/components/ComposerDrawer.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(composer,/interactive: false/);
  assert.match(composer,/contentHeight: composerContent\.implicitHeight/);
  assert.match(composer,/id: composerContent/);
@@ -24,12 +24,12 @@ test('thread composer owns vertical scrolling and cannot be swiped away mid-edit
  assert.match(composer,/Layout\.minimumWidth: 0/);
 });
 test('RTL rich text is detected from paragraph rather than its HTML markup',()=>{
- const editor=read('ui/components/RichTextEditor.qml');
+ const editor=read('ui/components/composer/RichTextEditor.qml');
  assert.match(editor,/forceRightToLeft: localizationController\.isRightToLeftText\(/);
  assert.match(editor,/blockSurface\.parent\.blockData\.text/);
 });
 test('formatting and verbose hints stay optional on compact screens',()=>{
- const composer=read('ui/components/ComposerDrawer.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(composer,/property bool showAdvancedFormatting: false/);
  assert.match(composer,/objectName: "composerMobileFormattingToggle"/);
  assert.match(composer,/!root\.compact \|\| root\.showAdvancedFormatting/);
@@ -45,7 +45,7 @@ test('WASM Sign Out unconditionally transitions to Guest even for recovery-only 
  assert.match(section,/SessionPhase::Guest/);
 });
 test('Updates labels the beta channel and built-in locales translate it',()=>{
- const settings=read('ui/components/LocaleSettingsPopup.qml');
+ const settings=read('ui/components/settings/SettingsPopup.qml');
  assert.match(settings,/objectName: "settingsBetaReleaseLabel"/);
  assert.match(settings,/genycaster\.update\.channel_beta/);
  assert.match(settings,/genycaster\.update\.prerelease_info/);

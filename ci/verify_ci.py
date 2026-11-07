@@ -78,8 +78,8 @@ def main() -> None:
     # A desktop install must not be a portable bundle masquerading as setup.
     # Verify per-user activation, desktop shortcuts, publisher metadata, and
     # architecture hygiene independently from the cross-platform build.
-    instance = Path("ui/app/desktop/instance.cpp").read_text(encoding="utf-8")
-    desktop_module = Path("ui/app/desktop/instance.cppm").read_text(encoding="utf-8")
+    instance = Path("ui/app/platform/instance.cpp").read_text(encoding="utf-8")
+    desktop_module = Path("ui/app/platform/instance.cppm").read_text(encoding="utf-8")
     assert "export module genycaster.ui.desktop.instance;" in desktop_module
     assert "import genycaster.ui.desktop.instance;" in Path("ui/app/main.cpp").read_text(encoding="utf-8")
     entry = Path("ui/app/main.cpp").read_text(encoding="utf-8")
@@ -101,9 +101,9 @@ def main() -> None:
         ("bootstrap/auth", "genycaster.ui.bootstrap.auth"),
         ("bootstrap/worker", "genycaster.ui.bootstrap.worker"),
         ("bootstrap/teardown", "genycaster.ui.bootstrap.teardown"),
-        ("web/wheel", "genycaster.ui.web.wheel"),
+        ("platform/wheel", "genycaster.ui.web.wheel"),
         ("update/install", "genycaster.ui.update.install"),
-        ("desktop/instance", "genycaster.ui.desktop.instance"),
+        ("platform/instance", "genycaster.ui.desktop.instance"),
         ("diagnostics/snapshots", "genycaster.ui.diagnostics.snapshots"),
         ("diagnostics/smoke", "genycaster.ui.diagnostics.smoke"),
     ):
@@ -140,7 +140,7 @@ def main() -> None:
     assert 'bootstrap::openWalletApproval(' in entry
     assert 'bootstrap::miniAppEthereumChains()' in entry
     assert 'browser_wheel_fallback.hpp' not in Path(
-        "ui/app/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
+        "ui/app/runtime/bindings.cpp").read_text(encoding="utf-8")
     assert Path("tests/ui/wallet_launch_tests.cpp").is_file()
     assert 'import genycaster.ui.bootstrap.monitoring;' in entry
     assert 'bootstrap::exposeControllers(engine, {' in entry
@@ -188,9 +188,9 @@ def main() -> None:
     assert "libsecret-1-dev" in signer_cmake
     assert "pkg_check_modules(GENYCASTER_QTKEYCHAIN_LIBSECRET QUIET libsecret-1)" in signer_cmake
     for guarded_header in (
-        "ui/app/browser_signer_bridge.hpp",
-        "ui/app/browser_cast_payload.hpp",
-        "ui/app/browser_emoji_recovery.hpp",
+        "ui/app/browser/signer_bridge.hpp",
+        "ui/app/browser/cast_payload.hpp",
+        "ui/app/browser/emoji_recovery.hpp",
     ):
         header_text = Path(guarded_header).read_text(encoding="utf-8")
         assert header_text.index("#include <QtGlobal>") < header_text.index(
@@ -232,8 +232,8 @@ def main() -> None:
     assert 'import genycaster.ui.bootstrap;' in entry
     assert 'import genycaster.ui.web.wheel;' in entry
     assert 'import genycaster.ui.update.install;' in Path(
-        "ui/app/update_controller.cpp").read_text(encoding="utf-8")
-    assert Path("ui/app/modules/qt_fwd.hpp").is_file()
+        "ui/app/update/controller.cpp").read_text(encoding="utf-8")
+    assert Path("ui/app/runtime/qt_fwd.hpp").is_file()
     assert not Path("ui/app/web/Wheel.hpp").exists()
     assert not Path("ui/app/bootstrap/Options.hpp").exists()
     assert not Path("ui/app/browser_wheel_fallback.hpp").exists()
@@ -260,7 +260,7 @@ def main() -> None:
     assert 'VALUE "LegalCopyright"' in rc
     assert 'VALUE "LegalTrademarks"' in rc
     assert "python ci/audit_windows_stage.py dist/app" in workflow
-    updates = Path("ui/app/update_controller.cpp").read_text(encoding="utf-8")
+    updates = Path("ui/app/update/controller.cpp").read_text(encoding="utf-8")
     assert "checksum.addData(&installer)" in updates
     assert "Cached update failed SHA-256 verification" in updates
     assert "QCoreApplication::quit();" in updates
@@ -286,7 +286,7 @@ def main() -> None:
     assert not Path("prototypes").exists(), "experimental prototypes must not return"
     assert not Path("ui/mobile").exists(), "cross-platform Qt application sources must live in ui/app"
     assert not Path("ui/demo").exists(), "unused sample QML must not re-enter the shipped module"
-    assert Path("ui/app/Main.qml").is_file(), "unified Qt application entrypoint is required"
+    assert Path("ui/components/shell/Main.qml").is_file(), "unified Qt application entrypoint is required"
     assert Path("ui/app/main.cpp").is_file(), "unified native application entrypoint is required"
     public_root_docs = {
         "README.md", "AGENTS.md", "CHANGELOG.md", "CODE_OF_CONDUCT.md",

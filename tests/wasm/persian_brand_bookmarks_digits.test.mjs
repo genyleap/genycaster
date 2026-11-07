@@ -1,13 +1,14 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const read=path=>readFileSync(path,'utf8');
-const sidebar=read('ui/components/SideNavigation.qml');
-const pulse=read('ui/components/GenyPulsePanel.qml');
-const bookmarks=read('ui/components/BookmarksSurface.qml');
-const chooser=read('ui/components/BookmarkCollectionChooser.qml');
-const format=read('ui/components/LocaleFormat.qml');
+const sidebar=read('ui/components/navigation/SideNavigation.qml');
+const pulse=read('ui/components/profile/GenyPulsePanel.qml');
+const bookmarks=read('ui/components/profile/BookmarksSurface.qml');
+const chooser=read('ui/components/profile/CollectionChooser.qml');
+const format=read('ui/components/controls/LocaleFormat.qml');
 
 test('sidebar brand stays visually unified without inherited RTL mirror',()=>{
   const brand=sidebar.slice(sidebar.indexOf('id: navigationBrand'),sidebar.indexOf('SystemStatusCard {'));
@@ -80,9 +81,9 @@ test('presentation-only digit translation keeps canonical IDs unchanged',()=>{
 
 
 test('mobile settings fill safe-area viewport; Persian release numerals remain display-only',()=>{
-  const settings=read('ui/components/LocaleSettingsPopup.qml');
-  const drawer=read('ui/components/GenyDrawer.qml');
-  const notice=read('ui/components/UpdateNoticeDrawer.qml');
+  const settings=read('ui/components/settings/SettingsPopup.qml');
+  const drawer=read('ui/components/controls/GenyDrawer.qml');
+  const notice=read('ui/components/settings/UpdateNoticeDrawer.qml');
   assert.match(settings,/bottomSheet: mobilePresentation/);
   assert.match(settings,/fullScreen: mobilePresentation/);
   assert.match(settings,/height: parent \? parent\.height : 820/);
@@ -96,7 +97,7 @@ test('mobile settings fill safe-area viewport; Persian release numerals remain d
   assert.match(notice,/LocaleFormat\.localizeDigits\(updateController\.webLatestBuild\)/);
   assert.match(drawer,/curveDepth: control\.fullScreen \? 0/);
   for(const file of ['AppHeader.qml','InitialSetup.qml','SideNavigation.qml']){
-    assert.match(read('ui/components/'+file),
+    assert.match(read('ui/components/' + componentPath(file)),
       /LocaleFormat\.localizeDigits\(Qt\.application\.version\)/,file);
   }
   const numbers=format.match(/function localizeDigits\(value\) \{([\s\S]*?)\n    \}/);

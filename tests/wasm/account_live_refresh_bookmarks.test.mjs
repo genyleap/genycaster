@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const code=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('own profile refresh reads both canonical profile fields and account draft',()=>{
-  const profile=code('ui/components/ProfileSurface.qml');
+  const profile=code('ui/components/profile/ProfileSurface.qml');
   assert.match(profile,/function refreshProfileAndAccount\(\) \{[\s\S]*?root\.refreshRequested\(\)[\s\S]*?profileRefreshRetry\.restart\(\)[\s\S]*?openProofConnections\.refreshAccountDraft\(\)/);
   assert.match(profile,/onClicked: root\.refreshProfileAndAccount\(\)/);
   assert.match(profile,/onRefreshRequested: root\.refreshProfileAndAccount\(\)/);
@@ -15,9 +15,9 @@ test('own profile refresh reads both canonical profile fields and account draft'
   assert.match(profile,/root\.profileExtrasGeneration\+\+/);
 });
 test('fresh draft read is performed when the ordinary composer opens',()=>{
-  const composer=code('ui/components/ComposerDrawer.qml');
-  const header=code('ui/app/openproof/connections.hpp');
-  const cpp=code('ui/app/openproof/connections.cpp');
+  const composer=code('ui/components/composer/ComposerDrawer.qml');
+  const header=code('ui/app/identity/connections.hpp');
+  const cpp=code('ui/app/identity/connections.cpp');
   assert.match(header,/Q_INVOKABLE void refreshAccountDraft\(\)/);
   assert.match(cpp,/void OpenProofConnectionsController::refreshAccountDraft\(\)[\s\S]*?pumpDraftChanges\(\)/);
   assert.match(composer,/onOpened: \{[\s\S]*?if \(!root\.transientDraft && !root\.parentCast && !root\.quotedCast\)[\s\S]*?refreshAccountDraft\(\)/);
@@ -34,8 +34,8 @@ test('incoming draft updates an untouched open composer but never overwrites any
   assert.match(cpp,/emit accountDraftApplied\(\)/);
 });
 test('mobile bottom dock exposes saved casts without entering the account popup',()=>{
-  const nav=code('ui/components/BottomNavigation.qml');
-  const shell=code('ui/components/AppShell.qml');
+  const nav=code('ui/components/navigation/BottomNavigation.qml');
+  const shell=code('ui/components/shell/AppShell.qml');
   assert.match(nav,/objectName: "mobileBottomBookmarksButton"[\s\S]*?Theme\.iconBookmark[\s\S]*?root\.routeRequested\("bookmarks"\)/);
   assert.match(shell,/onRouteRequested: route => root\.openShellRoute\(route\)/);
   assert.match(shell,/BookmarksSurface \{[\s\S]*?presentationBridge\.bookmarkedCasts/);

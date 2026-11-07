@@ -6,7 +6,7 @@ const root=new URL('../../',import.meta.url);
 const read=p=>readFileSync(new URL(p,root),'utf8');
 
 test('desktop settings uses vertical categorized destinations instead of two-row tabs',()=>{
- const qml=read('ui/components/LocaleSettingsPopup.qml');
+ const qml=read('ui/components/settings/SettingsPopup.qml');
  assert.match(qml,/id: settingsNavigation/);
  assert.match(qml,/Layout\.preferredWidth: Math\.min\(208/);
  assert.match(qml,/visible: !root\.mobilePresentation \|\| !root\.mobileIndexOpen/);
@@ -18,9 +18,9 @@ test('desktop settings uses vertical categorized destinations instead of two-row
 });
 
 test('node dashboard lists real per-instance API results without claiming continuous ping',()=>{
- const qml=read('ui/components/NodeManagementPanel.qml');
- const cpp=read('ui/app/providers/profiles.cpp');
- const hpp=read('ui/app/providers/profiles.hpp');
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
+ const cpp=read('ui/app/settings/providers.cpp');
+ const hpp=read('ui/app/settings/providers.hpp');
  for(const pattern of [/providerProfiles\.connectionRows/,/providerProfiles\.probeAllReadProviders\(\)/,
     /genycaster\.nodes\.health_short/,/modelData\.latencyMs/,/modelData\.httpStatus/,
     /checked: providerProfiles\.compatibleReadFallback/,/readProfileCard\.showCredentials/])
@@ -36,9 +36,9 @@ test('node dashboard lists real per-instance API results without claiming contin
 });
 
 test('social graph counts are attributed as supplementary data, not claimed from raw Snapchain',()=>{
- const profile=read('ui/components/ProfileSurface.qml');
- const sidebar=read('ui/components/SocialSidebar.qml');
- const node=read('ui/components/NodeManagementPanel.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
+ const sidebar=read('ui/components/navigation/SocialSidebar.qml');
+ const node=read('ui/components/settings/NodeManagementPanel.qml');
  for(const content of [profile,sidebar,node]) {
     assert.match(content,/genycaster\.nodes\.counts_short/);
  }
@@ -63,8 +63,8 @@ test('new settings and health copy is available in all supported languages',()=>
 });
 
 test('settings navigation wraps translated titles instead of truncating them',()=>{
- const nav=read('ui/components/LocaleSettingsPopup.qml');
- const button=read('ui/components/ActionButton.qml');
+ const nav=read('ui/components/settings/SettingsPopup.qml');
+ const button=read('ui/components/controls/ActionButton.qml');
  assert.match(nav,/Layout\.preferredWidth: Math\.min\(208/);
  assert.match(nav,/wrapText: true/);
  assert.match(button,/property bool wrapText: false/);
@@ -73,7 +73,7 @@ test('settings navigation wraps translated titles instead of truncating them',()
  assert.doesNotMatch(nav,/id: settingsTabs/);
 });
 test('selected reader and measured latency remain distinct from actual API health',()=>{
- const qml=read('ui/components/NodeManagementPanel.qml');
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
  assert.match(qml,/objectName: "publicProviderDirectory"/);
  assert.match(qml,/providerProfiles\.activeReadProviderId/);
  assert.match(qml,/text: Theme\.iconCheck/);
@@ -88,7 +88,7 @@ test('selected reader and measured latency remain distinct from actual API healt
  assert.match(qml,/genycaster\.nodes\.directory_unverified/);
 });
 test('self-host provisioning is only an honest, credentials-free future preview',()=>{
- const qml=read('ui/components/NodeManagementPanel.qml');
+ const qml=read('ui/components/settings/NodeManagementPanel.qml');
  assert.match(qml,/objectName: "serverProvisioningPreview"/);
  for(const key of ['provision_soon','provision_personal','provision_private','provision_business',
    'provision_pipeline','provision_requirements','provision_security','provision_docs'])

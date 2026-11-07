@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
-const profile=read('ui/components/ProfileSurface.qml');
-const combo=read('ui/components/GenyComboBox.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const combo=read('ui/components/controls/GenyComboBox.qml');
 const backend=read('services/account-sync/cloud_state.mjs');
 const store=read('services/account-sync/pg_store.mjs');
 test('profile picker is compact, flat and has theme-accent selection',()=>{

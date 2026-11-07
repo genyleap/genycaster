@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const profile=read('ui/components/ProfileSurface.qml');
-const shell=read('ui/components/AppShell.qml');
-const settings=read('ui/components/LocaleSettingsPopup.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const shell=read('ui/components/shell/AppShell.qml');
+const settings=read('ui/components/settings/SettingsPopup.qml');
 test('profile profession and category are selectable, validated, and retain saved roles',()=>{
   assert.match(profile,/readonly property var profileCategoryOptions:/);
   assert.match(profile,/readonly property var profileRoleOptions:/);

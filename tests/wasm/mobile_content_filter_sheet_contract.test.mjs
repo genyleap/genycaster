@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = p => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
-const sheet=read('ui/components/ContentFilterSheet.qml');
-const shell=read('ui/components/AppShell.qml');
-const settings=read('ui/components/LocaleSettingsPopup.qml');
-const bookmarks=read('ui/components/BookmarksSurface.qml');
-const profile=read('ui/components/ProfileSurface.qml');
-const topics=read('ui/components/TopicBrowseSurface.qml');
+const sheet=read('ui/components/feed/ContentFilterSheet.qml');
+const shell=read('ui/components/shell/AppShell.qml');
+const settings=read('ui/components/settings/SettingsPopup.qml');
+const bookmarks=read('ui/components/profile/BookmarksSurface.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const topics=read('ui/components/feed/TopicBrowseSurface.qml');
 test('the QML manifest registers a real product-owned filter sheet',()=>{
-  assert.match(read('ui/CMakeLists.txt'), /components\/ContentFilterSheet\.qml/);
+  assert.match(read('ui/CMakeLists.txt'), /components\/feed\/ContentFilterSheet\.qml/);
   assert.match(sheet, /GenyDrawer \{/);
   assert.match(sheet, /bottomSheet: phoneLayout/);
   assert.match(sheet, /contentHeight: filterGroups\.implicitHeight \+ Theme\.space3/);
@@ -23,7 +23,7 @@ test('the QML manifest registers a real product-owned filter sheet',()=>{
 test('Explorer uses the same responsive filter drawer on desktop and mobile',()=>{
   assert.match(shell, /filterAvailable: presentationBridge\.isAuthenticated/);
   assert.match(shell, /onFilterRequested: explorerFilterSheet\.open\(\)/);
-  const header=read('ui/components/HomeFeedHeader.qml');
+  const header=read('ui/components/home/HomeFeedHeader.qml');
   assert.match(header, /objectName: "explorerFilterTrigger"/);
   assert.match(header, /onClicked: root\.filterRequested\(\)/);
   assert.match(header, /ContentTabs \{[\s\S]*?ActionButton \{/);

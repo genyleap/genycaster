@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -31,9 +32,9 @@ test("all 12 Qt language catalogs include real translations for the new UI",()=>
 });
 
 test("Apps category localization preserves canonical provider IDs while translating labels reactively",()=>{
-    const apps=read("ui/components/AppsSurface.qml");
-    const fmt=read("ui/components/LocaleFormat.qml");
-    const saved=read("ui/components/MiniAppLibraryShelves.qml");
+    const apps=read("ui/components/apps/AppsSurface.qml");
+    const fmt=read("ui/components/controls/LocaleFormat.qml");
+    const saved=read("ui/components/apps/LibraryShelves.qml");
     assert.ok(apps.includes('LocaleFormat.observeRevision()'));
     assert.ok(apps.includes('title: LocaleFormat.formatMiniAppCategory(category)'));
     assert.ok(apps.includes('String(app.category || "").trim() === root.topicFilter'));
@@ -44,15 +45,15 @@ test("Apps category localization preserves canonical provider IDs while translat
     assert.ok(fmt.includes('default: return raw'));
     assert.ok(saved.includes("LocaleFormat.formatMiniAppCategory(savedCell.app.category)"));
     assert.ok(apps.includes("LocaleFormat.formatMiniAppCategory(cardCell.modelData.category)"));
-    for (const view of [apps,saved,read("ui/components/MiniAppFeaturedCarousel.qml")])
+    for (const view of [apps,saved,read("ui/components/apps/FeaturedCarousel.qml")])
         assert.ok(!view.includes('qsTr("'),"unregistered qsTr in "+view.slice(0,30));
 });
 
 test("client attribution is evidence-based, localized and shared by normal/reply cast UI",()=>{
-    const badge=read("ui/components/SourceClientBadge.qml");
-    const cast=read("ui/components/CastItem.qml");
-    const reply=read("ui/components/ThreadReplyItem.qml");
-    const bindings=read("ui/app/runtime_ui_bindings.cpp");
+    const badge=read("ui/components/feed/SourceClientBadge.qml");
+    const cast=read("ui/components/feed/CastItem.qml");
+    const reply=read("ui/components/feed/ThreadReplyItem.qml");
+    const bindings=read("ui/app/runtime/bindings.cpp");
     const codec=read("src/providers/hypersnap/codec.cpp");
     assert.ok(badge.includes("visible: sanitizedName.length > 0"));
     assert.ok(badge.includes('qsTrId("genycaster.cast.source_client_accessible")'));
@@ -67,7 +68,7 @@ test("client attribution is evidence-based, localized and shared by normal/reply
 test("Qt live language selection updates the release drawer language across WASM",()=>{
     const main=read("ui/app/main.cpp");
     const loader=read("ui/wasm/genycaster-loader.js");
-    const native=read("ui/components/UpdateNoticeDrawer.qml");
+    const native=read("ui/components/settings/UpdateNoticeDrawer.qml");
     assert.ok(main.includes('window.__genycasterSetUpdateLanguage(tag)'));
     assert.ok(loader.includes("window.__genycasterSetUpdateLanguage=setUpdateLanguage"));
     assert.ok(loader.includes("if(latestReleaseDetails)fillReleaseDetails(latestReleaseDetails)"));
@@ -81,7 +82,7 @@ test("update drawer reuses the repository icon and success tokens across WASM an
     const cmake=read("ui/CMakeLists.txt");
     const pack=read("ci/package_wasm_assets.py");
     const serviceWorker=read("ui/wasm/genycaster-sw.js");
-    const native=read("ui/components/UpdateNoticeDrawer.qml");
+    const native=read("ui/components/settings/UpdateNoticeDrawer.qml");
     assert.match(shell,/class="update-glyph"[^>]*><span class="update-symbol"/);
     assert.doesNotMatch(shell,/class="update-glyph"[^>]*><svg/);
     assert.match(shell,/mask:url\("\.\/genycaster-update-icon\.svg"\)/);
@@ -111,10 +112,10 @@ test("all 12 language packs translate current miniapp taxonomy and provider capt
     const fa=read("ui/i18n/qml_fa_IR.ts");
     assert.match(fa,/<translation>هنر و خلاقیت<\/translation>/);
     assert.match(fa,/<translation>فهرست عمومی مینی‌اپ‌های جنی‌کستر<\/translation>/);
-    const categories=read("ui/components/LocaleFormat.qml");
+    const categories=read("ui/components/controls/LocaleFormat.qml");
     assert.ok(categories.includes('case "art creativity"'));
     assert.ok(categories.includes('qsTrId("genycaster.apps.category.art_creativity")'));
-    const apps=read("ui/components/AppsSurface.qml");
+    const apps=read("ui/components/apps/AppsSurface.qml");
     assert.match(apps,/miniAppCatalog\.providerLabel === "Genycaster public Mini Apps catalogue"/);
     assert.match(apps,/qsTrId\("genycaster.apps.catalogue_public"\)/);
     assert.match(apps,/String\(app.category \|\| ""\)\.trim\(\) === root.topicFilter/);
@@ -122,7 +123,7 @@ test("all 12 language packs translate current miniapp taxonomy and provider capt
 
 test("foreign Mini App titles and descriptions align to the locale without reordering the text",()=>{
     for(const name of ["AppsSurface","MiniAppLibraryShelves","MiniAppFeaturedCarousel"]){
-        const qml=read("ui/components/"+name+".qml");
+        const qml=read("ui/components/" + componentPath(name)+".qml");
         const alignment="horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft";
         const minCount=name==="AppsSurface"?9:name==="MiniAppLibraryShelves"?3:2;
         assert.ok(qml.split(alignment).length-1>=minCount,name+" edge alignment");
@@ -134,13 +135,13 @@ test("foreign Mini App titles and descriptions align to the locale without reord
 
 
 test("verified Geny Pro admission recovers saved sessions before rejecting another Mini App", () => {
-    const apps=read("ui/components/AppsSurface.qml");
-    const shell=read("ui/components/AppShell.qml");
-    const openproof=read("ui/app/openproof/connections.cpp");
-    const header=read("ui/app/openproof/connections.hpp");
+    const apps=read("ui/components/apps/AppsSurface.qml");
+    const shell=read("ui/components/shell/AppShell.qml");
+    const openproof=read("ui/app/identity/connections.cpp");
+    const header=read("ui/app/identity/connections.hpp");
     const startup=read("ui/app/main.cpp");
-    const card=read("ui/components/ProfileTrustCard.qml");
-    const sidebar=read("ui/components/SideNavigation.qml");
+    const card=read("ui/components/profile/ProfileTrustCard.qml");
+    const sidebar=read("ui/components/navigation/SideNavigation.qml");
 
     assert.match(header,/Q_INVOKABLE void retryProEntitlements\(\)/);
     const retry=openproof.slice(openproof.indexOf(

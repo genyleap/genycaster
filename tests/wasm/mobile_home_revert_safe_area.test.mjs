@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
-const qml = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url), 'utf8');
+const qml = name => readFileSync(new URL('../../ui/components/' + componentPath(name) + '.qml', import.meta.url), 'utf8');
 const wasm = name => readFileSync(new URL('../../ui/wasm/' + name, import.meta.url), 'utf8');
 
 test('Home keeps original layout with GENY banner and four compact slots', () => {

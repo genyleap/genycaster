@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const read = file => readFileSync(new URL('../../'+file, import.meta.url), 'utf8');
-const qml=read('ui/components/DirectionAwareTextArea.qml');
+const qml=read('ui/components/controls/BidiTextArea.qml');
 
 // Exercise the actual QML JavaScript handler instead of only checking source
 // strings. Qt's native selection API can update selectedText while a browser

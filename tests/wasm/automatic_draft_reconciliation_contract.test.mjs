@@ -16,14 +16,14 @@ test('composer saves or clears only ordinary FID-scoped drafts and never publish
   assert.match(composer,/m_impl->composerActive[\s\S]*?m_impl->dirty \|\| m_impl->contextDocument/);
   assert.match(composer,/if \(!active && m_impl->contextDocument\) \{/);
   assert.match(composer,/m_impl->contextDocument=false;[\s\S]*?m_impl->newEmpty\(false\)/);
-  const drawer=read('ui/components/ComposerDrawer.qml');
+  const drawer=read('ui/components/composer/ComposerDrawer.qml');
   assert.match(drawer,/onOpened: \{\s*richComposer\.setComposerActive\(true\)/);
   assert.match(drawer,/onClosed: \{[\s\S]*?richComposer\.setComposerActive\(false\)/);
   assert.match(composer,/m_impl->settings\.remove\(m_impl->managedDraftKey\(\)\)/);
 });
 
 test('account draft replication reuses verified native bearer with durable per-FID queue and revision CAS',()=>{
-  const account=read('ui/app/openproof/connections.cpp');
+  const account=read('ui/app/identity/connections.cpp');
   const main=read('ui/app/main.cpp');
   assert.match(account,/void OpenProofConnectionsController::recordDraftMutation/);
   assert.match(account,/genycaster\/draft-service\/fid_%1/);
@@ -51,7 +51,7 @@ test('account draft replication reuses verified native bearer with durable per-F
 });
 
 test('draft transport transfers serialized document only, never local managed asset authority',()=>{
-  const account=read('ui/app/openproof/connections.cpp');
+  const account=read('ui/app/identity/connections.cpp');
   const write=account.slice(account.indexOf('void OpenProofConnectionsController::uploadDraftChange()'),
     account.indexOf('void OpenProofConnectionsController::reconcileLinkedIn()'));
   assert.match(write,/content\.insert\(QStringLiteral\("document"\),doc\.object\(\)\)/);

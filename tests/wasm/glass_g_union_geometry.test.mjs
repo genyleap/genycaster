@@ -29,7 +29,7 @@ test("extrusion bevel is inset rather than growing the official glyph silhouette
  assert.match(src,/float arrow=1\.0-smoothstep/);
 });
 test("rotation, presentation and GPU texture all remain native Qt driven",()=>{
- const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
+ const qml=readFileSync(new URL("components/setup/InitialSetup.qml",path),"utf8");
  const cmake=readFileSync(new URL("CMakeLists.txt",path),"utf8");
  assert.match(qml,/property var logoDistanceMap: Image/);
  assert.match(qml,/shaders\/genycaster_logo_sdf\.png/);
@@ -56,7 +56,7 @@ test("studio lighting and fine normal field use canonical SVG geometry",()=>{
  assert.match(src,/float viewZoom/);
 });
 test("studio viewport supports reset, scroll zoom, auto-orbit and accessible keyboard and drag controls",()=>{
-  const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
+  const qml=readFileSync(new URL("components/setup/InitialSetup.qml",path),"utf8");
   assert.match(qml,/function resetView\(\)/);
   assert.match(qml,/function changeZoom\(steps\)/);
   assert.match(qml,/id: automaticRotation[\s\S]*?autoOrbitEnabled/);
@@ -73,7 +73,7 @@ test("studio viewport supports reset, scroll zoom, auto-orbit and accessible key
   assert.match(qml,/id: desktopBrandMetadata[\s\S]*?anchors\.bottom: parent\.bottom/);
 });
 test("smooth vector-driven walls and grounded studio shadows",()=>{
- const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
+ const qml=readFileSync(new URL("components/setup/InitialSetup.qml",path),"utf8");
  assert.match(generator,/function vectorSegments\(path\)/);
  assert.match(generator,/const tokens=path\.match/);
  assert.match(generator,/addSegments\(g\);addSegments\(arrow\)/);

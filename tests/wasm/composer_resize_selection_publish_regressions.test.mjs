@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 
-const source = (file) => readFileSync(new URL(`../../ui/components/${file}`, import.meta.url), 'utf8')
+const source = (file) => readFileSync(new URL(`../../ui/components/${componentPath(file)}`, import.meta.url), 'utf8')
 
 test('composer never accepts blank, whitespace or invisible Unicode alone', () => {
     const composer = source('ComposerDrawer.qml')

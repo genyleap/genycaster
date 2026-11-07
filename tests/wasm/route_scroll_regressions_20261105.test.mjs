@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
 test('profile launched from Notifications returns to its actual shell origin',()=>{
-    const shell=read('ui/components/AppShell.qml');
+    const shell=read('ui/components/shell/AppShell.qml');
     assert.match(shell,/function rememberShellRouteForReturn\(\)/);
     assert.match(shell,/function returnToPendingShellRoute\(\)/);
     assert.match(shell,/function returnFromProfileSurface\(\)\s*\{\s*presentationBridge\.returnFromDetail\(\)\s*root\.returnToPendingShellRoute\(\)/);
@@ -14,8 +14,8 @@ test('profile launched from Notifications returns to its actual shell origin',()
 });
 
 test('navigating into a profile resets its scroll without losing regular timeline continuity',()=>{
-    const shell=read('ui/components/AppShell.qml');
-    const profile=read('ui/components/ProfileSurface.qml');
+    const shell=read('ui/components/shell/AppShell.qml');
+    const profile=read('ui/components/profile/ProfileSurface.qml');
     assert.match(shell,/navigationRevision: root\.profileTopRevision/);
     assert.match(profile,/onNavigationRevisionChanged:\s*\{\s*if \(root\.visible\) root\.scrollToBeginning\(\)/);
     assert.match(profile,/onVisibleChanged:[\s\S]*root\.scrollToBeginning\(\)/);
@@ -24,7 +24,7 @@ test('navigating into a profile resets its scroll without losing regular timelin
 });
 
 test('Explorer desktop stories scroll with the cast list, same as mobile',()=>{
-    const feed=read('ui/components/FeedSurface.qml');
+    const feed=read('ui/components/feed/FeedSurface.qml');
     assert.match(feed,/headerPositioning: ListView\.InlineHeader/);
     assert.doesNotMatch(feed,/headerPositioning:\s*root\.compact[\s\S]*?ListView\.OverlayHeader/);
     assert.match(feed,/property Component headerContent: null/);

@@ -6,7 +6,7 @@ import vm from 'node:vm';
 
 // Wheel input now belongs to the dedicated C++26 web wheel module.
 // Exercise the embedded DOM-coordinate mapping without assuming main.cpp owns it.
-const main = readFileSync(new URL('../../ui/app/web/wheel.cpp', import.meta.url), 'utf8');
+const main = readFileSync(new URL('../../ui/app/platform/wheel.cpp', import.meta.url), 'utf8');
 const beginMarker = '    return EM_ASM_DOUBLE({';
 const begin = main.indexOf(beginMarker);
 const end = main.indexOf('    }, clientX, clientY, axis);', begin);

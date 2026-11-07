@@ -5,9 +5,9 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../'+path, import.meta.url), 'utf8');
 
 test('feedback controls consume clicks and use a smiling face entry icon', () => {
-  const dialog = read('ui/components/FeedbackDialog.qml');
+  const dialog = read('ui/components/settings/FeedbackDialog.qml');
   const theme = read('ui/theme/Theme.qml');
-  const header = read('ui/components/AppHeader.qml');
+  const header = read('ui/components/shell/AppHeader.qml');
   assert.ok(theme.includes('iconFeedback: "social/smile"'));
   assert.ok(header.includes('iconGlyph: Theme.iconFeedback'));
   assert.equal((dialog.match(/delegate: Button \{/g) || []).length, 3);
@@ -17,14 +17,14 @@ test('feedback controls consume clicks and use a smiling face entry icon', () =>
 });
 
 test('bookmark cards have even horizontal and vertical inset', () => {
-  const bookmarks = read('ui/components/BookmarksSurface.qml');
+  const bookmarks = read('ui/components/profile/BookmarksSurface.qml');
   assert.ok(bookmarks.includes('savedContent.implicitHeight + Theme.space3 * 2'));
   assert.ok(bookmarks.includes('anchors.margins: Theme.space3'));
 });
 
 test('desktop sidebar stays opaque while the mobile dock retains its blur', () => {
-  const nav = read('ui/components/SideNavigation.qml');
-  const dock = read('ui/components/BottomNavigation.qml');
+  const nav = read('ui/components/navigation/SideNavigation.qml');
+  const dock = read('ui/components/navigation/BottomNavigation.qml');
   assert.ok(nav.includes('fillColor: Theme.surfacePrimary'));
   assert.ok(!nav.includes('desktopNavigationGlassBlur'));
   assert.ok(dock.includes('mobileCapsuleBackdropCapture'));

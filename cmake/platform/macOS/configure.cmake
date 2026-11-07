@@ -172,7 +172,7 @@ macro(genycaster_macos_setup_browser)
     find_library(genycasterQuartzCoreFramework QuartzCore REQUIRED)
 
     add_library(farcaster_miniapp_browser STATIC
-        "${CMAKE_SOURCE_DIR}/ui/app/miniapp_browser_macos.mm")
+        "${CMAKE_SOURCE_DIR}/ui/app/miniapp/browser_macos.mm")
     set_target_properties(farcaster_miniapp_browser PROPERTIES
         OBJCXX_STANDARD 26
         OBJCXX_STANDARD_REQUIRED ON

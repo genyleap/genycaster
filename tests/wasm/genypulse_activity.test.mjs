@@ -6,10 +6,10 @@ import {resolve, dirname} from 'node:path';
 import {runInNewContext} from 'node:vm';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
-const qml=readFileSync(resolve(root,'ui/components/GenyPulsePanel.qml'),'utf8');
-const profile=readFileSync(resolve(root,'ui/components/ProfileSurface.qml'),'utf8');
-const source=readFileSync(resolve(root,'ui/app/genypulse/activity.cpp'),'utf8');
-const header=readFileSync(resolve(root,'ui/app/genypulse/activity.hpp'),'utf8');
+const qml=readFileSync(resolve(root,'ui/components/profile/GenyPulsePanel.qml'),'utf8');
+const profile=readFileSync(resolve(root,'ui/components/profile/ProfileSurface.qml'),'utf8');
+const source=readFileSync(resolve(root,'ui/app/social/activity.cpp'),'utf8');
+const header=readFileSync(resolve(root,'ui/app/social/activity.hpp'),'utf8');
 
 test('activity is read independently from profile timeline and reacts to FID',()=>{
   assert.ok(!qml.includes('root.rows') && !qml.includes('profileFeed'));
@@ -152,7 +152,7 @@ test('normalization and query stay in native adapter, not UI',()=>{
 });
 
 test('GitHub reads canonical OpenProof snapshots even without an active grant',()=>{
-  const openproof=readFileSync(resolve(root,'ui/app/openproof/connections.cpp'),'utf8');
+  const openproof=readFileSync(resolve(root,'ui/app/identity/connections.cpp'),'utf8');
   assert.match(profile,/openProofConnections.connections/);
   const idSection=profile.slice(profile.indexOf('readonly property var verifiedGithubActivityAccount:'),
       profile.indexOf('function socialIcon(provider)'));
@@ -176,7 +176,7 @@ test('GitHub numeric-id fallback stays provider-verified and bounded',()=>{
 test('GitHub calendar is source-specific, real contributions, selectable by year/range',()=>{
   assert.match(header,/Q_PROPERTY\(QVariantMap githubContributions/);
   assert.match(source,/requestGitHubContributions/);
-  const account=readFileSync(resolve(root,"ui/app/openproof/connections.cpp"),"utf8");
+  const account=readFileSync(resolve(root,"ui/app/identity/connections.cpp"),"utf8");
   assert.match(account,/api\/v1\/cloud\/github_contributions/);
   assert.match(source,/requestVerifiedGitHubCalendar/);
   assert.match(account,/authorizeCloudRequest\(request\)/);

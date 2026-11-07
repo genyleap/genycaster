@@ -21,7 +21,7 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #if defined(Q_OS_ANDROID)
-#include "android_tinted_icon_provider.hpp"
+#include "media/android_icon.hpp"
 #include <QtWebView/QtWebView>
 #endif
 #include <QProcess>
@@ -67,16 +67,16 @@
 #include "emoji_controller.hpp"
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
-#include "channels/picker.hpp"
-#include "text/selection.hpp"
+#include "social/channels.hpp"
+#include "settings/selection.hpp"
 #include "appearance_controller.hpp"
 #include "localization_controller.hpp"
 #include "media_upload_controller.hpp"
 #include "media_classifier_controller.hpp"
 #include "media_playback_coordinator.hpp"
-#include "geo_location_resolver.hpp"
-#include "link_preview_resolver.hpp"
-#include "cast_view_controller.hpp"
+#include "network/geo.hpp"
+#include "network/link_preview.hpp"
+#include "social/cast_views.hpp"
 #include "browser/reactions.hpp"
 #include "browser/link_metadata.hpp"
 #include "browser/token_preview.hpp"
@@ -84,25 +84,25 @@
 #include "media/web_host.hpp"
 #include "miniapp/catalog.hpp"
 #include "miniapp/tasks.hpp"
-#include "insights/live.hpp"
-#include "node_selection_controller.hpp"
-#include "providers/profiles.hpp"
-#include "update_controller.hpp"
+#include "data/insights.hpp"
+#include "network/node_selection.hpp"
+#include "settings/providers.hpp"
+#include "update/controller.hpp"
 
 #if defined(Q_OS_WASM)
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
-#include "remote_image_provider.hpp"
-#include "browser/openproof_auth.hpp"
-#include "openproof/connections.hpp"
-#include "genypulse/activity.hpp"
+#include "media/remote_image.hpp"
+#include "identity/browser_auth.hpp"
+#include "identity/connections.hpp"
+#include "social/activity.hpp"
 #if defined(Q_OS_WASM)
-#include "browser_signer_bridge.hpp"
-#include "browser_cast_payload.hpp"
-#include "browser_emoji_recovery.hpp"
+#include "browser/signer_bridge.hpp"
+#include "browser/cast_payload.hpp"
+#include "browser/emoji_recovery.hpp"
 #endif
-#include "storage/controller.hpp"
+#include "data/storage.hpp"
 
 // Entry-point only: provider/storage modules are owned by the separate
 // runtime UI binding implementation, not imported into the Qt bootstrap.
@@ -144,7 +144,7 @@ import farcaster.capability.wallet;
 import farcaster.provider.compatibility.browser_wallet.bridge;
 #endif
 
-#include "runtime_ui_bindings.hpp"
+#include "runtime/bindings.hpp"
 
 
 namespace {

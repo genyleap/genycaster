@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "../miniapp_browser.hpp"
+#include "../miniapp/browser.hpp"
 
 #include <QObject>
 #include <QString>

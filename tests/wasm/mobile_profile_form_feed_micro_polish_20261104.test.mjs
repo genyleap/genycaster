@@ -1,7 +1,8 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const source = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url),'utf8');
+const source = name => readFileSync(new URL('../../ui/components/' + componentPath(name) + '.qml', import.meta.url),'utf8');
 
 test('profile edit/status sheets fill mobile viewport and retain independently scrolling forms',()=>{
  const qml=source('ProfileSurface');

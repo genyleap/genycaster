@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source = file => readFileSync(new URL('../../' + file, import.meta.url), 'utf8');
 
 test('mobile cast share is a lazy bottom drawer, desktop remains a positioned popover', () => {
-  const qml = source('ui/components/EngagementBar.qml');
+  const qml = source('ui/components/feed/EngagementBar.qml');
   assert.match(qml, /id: castShareMenu\s+active: false/);
   assert.match(qml, /sourceComponent: Overlay\.overlay && Overlay\.overlay\.width > 0\s*&& Overlay\.overlay\.width < Theme\.breakpointMobile\s*\? mobileCastShareSheet : desktopCastSharePopup/);
   assert.match(qml, /if \(overlay\.width >= Theme\.breakpointMobile\) \{\s*const point = castShareButton\.mapToItem/);
@@ -22,7 +22,7 @@ test('mobile cast share is a lazy bottom drawer, desktop remains a positioned po
 });
 
 test('all GenyDrawer sheets have coordinated eased movement with reduced-motion support', () => {
-  const drawer = source('ui/components/GenyDrawer.qml');
+  const drawer = source('ui/components/controls/GenyDrawer.qml');
   assert.match(drawer, /readonly property int sheetMotionDuration: Theme\.reduceMotion \? 0 : 275/);
   assert.match(drawer, /property: "position"\s+from: 0\.0\s+to: 1\.0\s+duration: control\.sheetMotionDuration\s+easing\.type: Easing\.OutQuart/);
   assert.match(drawer, /property: "position"\s+to: 0\.0\s+duration: control\.sheetMotionDuration/);
@@ -31,7 +31,7 @@ test('all GenyDrawer sheets have coordinated eased movement with reduced-motion 
 });
 
 test('miniapp poster is uniformly inset rather than touching card edges', () => {
-  const qml = source('ui/components/LinkPreview.qml');
+  const qml = source('ui/components/media/LinkPreview.qml');
   assert.match(qml, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4\s*: root\.compact \? Theme\.space2 : Theme\.space3/);
   assert.match(qml, /id: miniAppPosterFrame[\s\S]*?clip: true/);
   assert.match(qml, /id: miniAppPoster[\s\S]*?clipToSuperellipse: true/);
@@ -39,7 +39,7 @@ test('miniapp poster is uniformly inset rather than touching card edges', () => 
 });
 
 test('mobile channel toolbar does not stretch apart avatar, label and membership', () => {
-  const qml = source('ui/components/DetailSurface.qml');
+  const qml = source('ui/components/feed/DetailSurface.qml');
   const start = qml.indexOf('objectName: "mobileConversationChannelHeader"');
   const end = qml.indexOf('// One elastic region separates navigation/context', start);
   assert.ok(start > 0 && end > start);
@@ -56,7 +56,7 @@ test('mobile channel toolbar does not stretch apart avatar, label and membership
 });
 
 test('Web Mini App chrome vertically centers its close button and respects theme', () => {
-  const qml = source('ui/components/ModalHeader.qml');
+  const qml = source('ui/components/controls/ModalHeader.qml');
   const host = source('ui/wasm/miniapp-host-pre.js');
   assert.match(qml, /Layout\.alignment: Qt\.AlignVCenter/);
   assert.match(host, /dismiss\.type = "button"/);

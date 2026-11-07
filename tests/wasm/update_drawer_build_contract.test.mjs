@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const root=new URL('../../',import.meta.url);
-const qml=readFileSync(new URL('ui/components/UpdateNoticeDrawer.qml',root),'utf8');
+const qml=readFileSync(new URL('ui/components/settings/UpdateNoticeDrawer.qml',root),'utf8');
 const js=readFileSync(new URL('ui/wasm/genycaster-loader.js',root),'utf8');
 const html=readFileSync(new URL('ui/wasm/genycaster-shell.html',root),'utf8');
 

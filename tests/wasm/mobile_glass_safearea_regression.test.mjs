@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(p,'utf8');
-const dock=read('ui/components/BottomNavigation.qml');
-const shell=read('ui/components/AppShell.qml');
-const feed=read('ui/components/FeedSurface.qml');
-const profile=read('ui/components/ProfileSurface.qml');
+const dock=read('ui/components/navigation/BottomNavigation.qml');
+const shell=read('ui/components/shell/AppShell.qml');
+const feed=read('ui/components/feed/FeedSurface.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
 
 test('mobile header gains vertical breathing room without duplicating iOS safe-area',()=>{
   const block=shell.slice(shell.indexOf('id: mobileWorkspace'),

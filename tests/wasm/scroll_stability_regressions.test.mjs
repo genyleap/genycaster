@@ -1,9 +1,10 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const read = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url), 'utf8');
+const read = name => readFileSync(new URL('../../ui/components/' + componentPath(name) + '.qml', import.meta.url), 'utf8');
 const feed = read('FeedSurface');
 const detail = read('DetailSurface');
 function method(source, name, context) {

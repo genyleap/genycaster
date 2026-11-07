@@ -1,4 +1,4 @@
-#include "update_controller.hpp"
+#include "../../ui/app/update/controller.hpp"
 
 #include <QCoreApplication>
 #include <QSettings>

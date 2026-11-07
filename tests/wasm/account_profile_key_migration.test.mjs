@@ -3,7 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const profile=readFileSync(new URL('../../ui/components/ProfileSurface.qml',import.meta.url),'utf8');
+const profile=readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml',import.meta.url),'utf8');
 const start=profile.indexOf('    function migrateLegacyProfileExtras() {');
 const end=profile.indexOf('    onProfileExtrasOwnerKeyChanged:',start);
 assert(start>=0 && end>start);

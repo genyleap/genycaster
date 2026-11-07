@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=relative=>readFileSync(new URL('../../'+relative,import.meta.url),'utf8');
 
 test('Home desktop uses one aligned measured rail; mobile keeps matching side gutters',()=>{
- const home=source('ui/components/HomeDashboard.qml');
+ const home=source('ui/components/home/HomeDashboard.qml');
  assert.match(home,/readonly property real homeContentMaxWidth: Theme.scaleUi\(760\)/);
  assert.match(home,/objectName: "homeAlignedContentRail"/);
  assert.match(home,/width: Math.max\(1, Math.min\(root.homeContentMaxWidth,/);
@@ -15,9 +15,9 @@ test('Home desktop uses one aligned measured rail; mobile keeps matching side gu
  assert.match(home,/id: mobileComposerSurface[\s\S]*?Layout.leftMargin: Theme.space3[\s\S]*?Layout.rightMargin: Theme.space3/);
 });
 test('My Assets on WASM has public CORS Base RPC and an authenticated account fallback',()=>{
- const native=source('ui/app/insights/live.cpp');
- const rail=source('ui/components/ContextRail.qml');
- const controller=source('ui/app/openproof/connections.cpp');
+ const native=source('ui/app/data/insights.cpp');
+ const rail=source('ui/components/navigation/ContextRail.qml');
+ const controller=source('ui/app/identity/connections.cpp');
  const cloud=source('services/account-sync/cloud_state.mjs');
  assert.match(native,/#elif defined\(Q_OS_WASM\)[\s\S]*?https:\/\/mainnet.base.org/);
  assert.match(native,/QStringLiteral\("eth_chainId"\)/);
@@ -33,8 +33,8 @@ test('My Assets on WASM has public CORS Base RPC and an authenticated account fa
 test('Mini App web presents in configured mode with independent fullscreen and no forced external tabs',()=>{
  const web=source('ui/wasm/miniapp-host-pre.js');
  const host=source('ui/app/miniapp/host.cpp');
- const android=source('ui/components/AndroidMiniAppWebView.qml');
- const macos=source('ui/app/miniapp_browser_macos.mm');
+ const android=source('ui/components/apps/AndroidWebView.qml');
+ const macos=source('ui/app/miniapp/browser_macos.mm');
  for(const mode of ['window','bottom','left','right'])assert.ok(web.includes('"'+mode+'"'));
  assert.match(web,/function applyPresentation\(\)/);
  assert.match(web,/function setMode\(mode\)/);

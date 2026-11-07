@@ -11,13 +11,13 @@ def read(rel: str) -> str:
 
 cmake = read('CMakeLists.txt')
 ui_cmake = read('ui/CMakeLists.txt')
-main = read('ui/app/main.cpp') + read('ui/app/runtime_composition.cppm') + read('ui/app/runtime_composition.cpp')
-runtime_signer = read('ui/app/runtime_composition.cpp')
+main = read('ui/app/main.cpp') + read('ui/app/runtime/composition.cppm') + read('ui/app/runtime/composition.cpp')
+runtime_signer = read('ui/app/runtime/composition.cpp')
 font_bootstrap = read('ui/app/bootstrap/fonts.cpp')
 theme = read('ui/theme/Theme.qml')
-side = read('ui/components/SideNavigation.qml')
-bottom = read('ui/components/BottomNavigation.qml')
-icon = read('ui/components/Icon.qml')
+side = read('ui/components/navigation/SideNavigation.qml')
+bottom = read('ui/components/navigation/BottomNavigation.qml')
+icon = read('ui/components/controls/Icon.qml')
 feed = read('src/providers/hypersnap/feed.cpp')
 
 if not re.search(r'set\(FARCASTER_DEFAULT_APP_FID\s+"866408"', cmake):

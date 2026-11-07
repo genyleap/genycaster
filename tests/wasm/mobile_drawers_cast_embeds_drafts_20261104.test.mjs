@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read=(name)=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('WASM profile links use the vetted first-party favicon proxy with ordered fallbacks',()=>{
- const row=read('ui/components/ProfileLinkRow.qml');
+ const row=read('ui/components/profile/ProfileLinkRow.qml');
  const proxy=read('services/media-gateway/browser_image_proxy.mjs');
  assert.match(row,/readonly property string browserFaviconSource:/);
  assert.match(row,/storage-farcaster\.genyleap\.com\/v1\/browser\/images\?url=/);
@@ -18,7 +18,7 @@ test('WASM profile links use the vetted first-party favicon proxy with ordered f
 });
 
 test('Mini App details size to content with a fixed aligned header and short Open action',()=>{
- const app=read('ui/components/AppsSurface.qml');
+ const app=read('ui/components/apps/AppsSurface.qml');
  assert.match(app,/id: miniAppDetailDrawer/);
  assert.match(app,/Math\.min\(parent\.height \* 0\.92, Math\.max\(360,/);
  assert.match(app,/detailsColumn\.implicitHeight \+ Theme\.scaleUi\(150\)/);
@@ -29,7 +29,7 @@ test('Mini App details size to content with a fixed aligned header and short Ope
 });
 
 test('compact cast detail places channel identity on toolbar and author actions in one row',()=>{
- const detail=read('ui/components/DetailSurface.qml');
+ const detail=read('ui/components/feed/DetailSurface.qml');
  assert.match(detail,/objectName: "mobileConversationChannelHeader"/);
  assert.match(detail,/visible: root\.compact && root\.activeView === "cast"/);
  assert.match(detail,/sourceUrl: root\.resolvedChannelImage/);
@@ -42,7 +42,7 @@ test('compact cast detail places channel identity on toolbar and author actions 
 });
 
 test('mobile Widgets is a full-height, non-draggable inspector with an aligned close action',()=>{
- const shell=read('ui/components/AppShell.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
  const widget= shell.slice(shell.indexOf('id: contextDrawer'),shell.indexOf('FloatingComposeButton {',shell.indexOf('id: contextDrawer')));
  assert.match(widget,/objectName: "responsiveWidgetsDrawer"/);
  assert.match(widget,/fullScreen: root\.mobile/);
@@ -55,9 +55,9 @@ test('mobile Widgets is a full-height, non-draggable inspector with an aligned c
 });
 
 test('drawer headers use the same centered title and close-button layout',()=>{
- const shared=read('ui/components/ModalHeader.qml');
- const pro=read('ui/components/GenyProDetailsDrawer.qml');
- const apps=read('ui/components/AppsSurface.qml');
+ const shared=read('ui/components/controls/ModalHeader.qml');
+ const pro=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ const apps=read('ui/components/apps/AppsSurface.qml');
  assert.match(shared,/Layout\.alignment: Qt\.AlignVCenter/);
  assert.match(shared,/Layout\.minimumHeight: root\.sheetPresentation[\s\S]*?Theme\.scaleUi\(32\)/);
  assert.match(pro,/height: Theme\.scaleUi\(56\)/);
@@ -66,7 +66,7 @@ test('drawer headers use the same centered title and close-button layout',()=>{
 });
 
 test('Cast URL and Mini App embeds share gutters, rounded artwork and failure collapse',()=>{
- const card=read('ui/components/LinkPreview.qml');
+ const card=read('ui/components/media/LinkPreview.qml');
  assert.match(card,/anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
  assert.match(card,/spacing: Theme\.space2/);
  assert.match(card,/&& !root\.miniAppArtworkUnavailable \? readyHeight : 0/);
@@ -78,7 +78,7 @@ test('Cast URL and Mini App embeds share gutters, rounded artwork and failure co
 });
 
 test('Save draft is disabled and guarded when no meaningful text/media/embed/thread content exists',()=>{
- const composer=read('ui/components/ComposerDrawer.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(composer,/function hasDraftContent\(\)/);
  assert.match(composer,/root\.hasMeaningfulText\(mobilePlainEditor\.text\)/);
  assert.match(composer,/root\.hasMeaningfulText\(markdownEditor\.text\)/);

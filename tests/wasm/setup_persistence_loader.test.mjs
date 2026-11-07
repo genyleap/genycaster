@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -7,7 +8,7 @@ import vm from 'node:vm';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const root=new URL('../../',import.meta.url);
@@ -54,8 +55,8 @@ test('serialized IDBFS writes finish before refresh and recover after storage fa
 
 test('WASM refresh flushes selected node to IndexedDB before navigation',()=>{
     const app=readGenycasterMain();
-    const update=read('ui/app/update_controller.cpp');
-    const panel=read('ui/components/NodeManagementPanel.qml');
+    const update=read('ui/app/update/controller.cpp');
+    const panel=read('ui/components/settings/NodeManagementPanel.qml');
     assert.ok(app.includes('ProviderProfilesController::selectionChanged'));
     assert.ok(app.includes('ProviderProfilesController::profilesChanged'));
     assert.ok(app.includes('flushBrowserData'));
@@ -94,9 +95,9 @@ test('WASM packages branded shell instead of Qt logo; mobile uses visible viewpo
     assert.match(loader,/visualViewport/);
 });
 test('Setup owns a borderless full-window stage with CTA in the stage, not a global footer',()=>{
-    const setup=read('ui/components/InitialSetup.qml');
-    const language=read('ui/components/SetupLanguageSelector.qml');
-    const main=read('ui/app/Main.qml');
+    const setup=read('ui/components/setup/InitialSetup.qml');
+    const language=read('ui/components/setup/SetupLanguageSelector.qml');
+    const main=read('ui/components/shell/Main.qml');
     assert.match(setup,/id: stageScroll/);
     assert.match(setup,/id: setupCanvas/);
     assert.match(setup,/id: desktopBrandPane/);
@@ -132,7 +133,7 @@ test('completed Setup is independent of a volatile session and signer revocation
         .split('// A browser-safe OpenProof device grant')[0];
     assert.doesNotMatch(observer,/restore-for-setup/);
     assert.match(observer,/browserSigner->start\(QStringLiteral\("restore"\)/);
-    const setup=read('ui/components/InitialSetup.qml');
+    const setup=read('ui/components/setup/InitialSetup.qml');
     assert.doesNotMatch(setup,/guestSelected|continue_as_guest/);
     assert.match(setup,/if \(currentStep === 5\) return authenticated \|\| reviewMode/);
     assert.match(setup,/signal closeReviewRequested\(\)/);
@@ -275,8 +276,8 @@ test('missing Qt 6.12 application entry fails explicitly before qtLoad',()=>{
 test('explicit Logout returns to account Setup while refresh keeps completed onboarding',()=>{
     const bridge=read('src/presentation/qt/presentation_bridge.cpp');
     const header=read('src/presentation/qt/presentation_bridge.hpp');
-    const app=read('ui/components/AppShell.qml');
-    const setup=read('ui/components/InitialSetup.qml');
+    const app=read('ui/components/shell/AppShell.qml');
+    const setup=read('ui/components/setup/InitialSetup.qml');
     assert.match(header,/m_signOutRequestedByUser/);
     assert.match(bridge,/setup\/showAfterSignOut/);
     assert.match(bridge,/m_authenticationPhase == QStringLiteral\("signed-out"\)/);
@@ -291,9 +292,9 @@ test('explicit Logout returns to account Setup while refresh keeps completed onb
 });
 
 test('eight-stage Setup preserves language wheel, legal consent and navigation',()=>{
-    const setup=read('ui/components/InitialSetup.qml');
-    const picker=read('ui/components/SetupLanguageSelector.qml');
-    const app=read('ui/components/AppShell.qml');
+    const setup=read('ui/components/setup/InitialSetup.qml');
+    const picker=read('ui/components/setup/SetupLanguageSelector.qml');
+    const app=read('ui/components/shell/AppShell.qml');
     assert.match(setup,/wizardSteps: \[0,1,2,3,4,5,6,7\]/);
     assert.match(picker,/id: picker/);
     assert.match(picker,/snapMode: ListView.SnapToItem/);
@@ -327,7 +328,7 @@ test('recovery phrase uses centered desktop modal and matching mobile full-scree
 
 
 test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt root',()=>{
-    const app=read('ui/components/AppShell.qml');
+    const app=read('ui/components/shell/AppShell.qml');
     const start=app.indexOf('Item {\n                            id: readingPane');
     const dock=app.indexOf('BottomNavigation {\n                            id: mobileBottomNavigation');
     const handle=app.indexOf('Item {\n                            id: contextResizeHandle');
@@ -337,12 +338,12 @@ test('mobile navigation belongs to readingPane, not the outer RowLayout or Qt ro
     assert.match(app.slice(dock,handle),/anchors\.bottom: readingPane\.bottom/);
     assert.match(app.slice(dock,handle),/blurSourceItem: readingBackdrop/);
     assert.match(app,/anchors\.bottomMargin: 0/);
-    assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
 
 test('mobile Sign Out is reachable through Settings and requires confirmation',()=>{
-    const app=read('ui/components/AppShell.qml');
-    const settings=read('ui/components/LocaleSettingsPopup.qml');
+    const app=read('ui/components/shell/AppShell.qml');
+    const settings=read('ui/components/settings/SettingsPopup.qml');
     assert.match(app,/function requestSignOut\(\)/);
     assert.match(app,/onSignOutConfirmationRequested: root\.requestSignOut\(\)/);
     assert.match(app,/objectName: "signOutConfirmation"/);
@@ -353,8 +354,8 @@ test('mobile Sign Out is reachable through Settings and requires confirmation',(
 });
 
 test('mobile Home editing collapses dashboard cards and removes floating navigation',()=>{
-    const home=read('ui/components/HomeDashboard.qml');
-    const app=read('ui/components/AppShell.qml');
+    const home=read('ui/components/home/HomeDashboard.qml');
+    const app=read('ui/components/shell/AppShell.qml');
     assert.match(home,/readonly property bool composerFocused: mobileDraftEditor\.activeFocus/);
     assert.match(home,/id: mobileFlick/);
     assert.match(home,/onComposerFocusedChanged\(\)/);
@@ -364,22 +365,22 @@ test('mobile Home editing collapses dashboard cards and removes floating navigat
     assert.match(app,/readonly property bool homeComposerFocused:/);
     assert.match(app,/visible: root\.mobile && presentationBridge\.authenticationStateObserved\s*&& !root\.initialSetupOpen\s*&& !root\.homeComposerFocused/);
     assert.match(app,/anchors\.bottomMargin: 0/);
-    assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+    assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
 });
 
 test('account header navigates to profile when signed in and opens sign-in otherwise',()=>{
-    const header=read('ui/components/AppHeader.qml');
+    const header=read('ui/components/shell/AppHeader.qml');
     assert.match(header,/onClicked: root\.isAuthenticated \? root\.ownProfileRequested\(\) : root\.accountRequested\(\)/);
-    const app=read('ui/components/AppShell.qml');
+    const app=read('ui/components/shell/AppShell.qml');
     assert.match(app,/onAccountRequested: root\.openAccountPopup\(\)/);
     assert.match(app,/onOwnProfileRequested: root\.openMyProfileFromNavigation\(\)/);
     assert.match(app,/objectName: "mobileAccountProfileButton"/);
 });
 
 test('mobile compose launcher avoids inline keyboard and desktop hover hints',()=>{
-    const home=read('ui/components/HomeDashboard.qml');
-    const app=read('ui/components/AppShell.qml');
-    const button=read('ui/components/ActionButton.qml');
+    const home=read('ui/components/home/HomeDashboard.qml');
+    const app=read('ui/components/shell/AppShell.qml');
+    const button=read('ui/components/controls/ActionButton.qml');
     assert.match(home,/objectName: "homeComposerLauncher"/);
     assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
     assert.match(home,/id: mobileDraftEditor[\s\S]*?visible: false[\s\S]*?readOnly: true/);
@@ -390,7 +391,7 @@ test('mobile compose launcher avoids inline keyboard and desktop hover hints',()
 });
 
 test('verification provides an adaptive, accessible approval surface',()=>{
-    const setup=read('ui/components/InitialSetup.qml');
+    const setup=read('ui/components/setup/InitialSetup.qml');
     const approval=setup.split('id: verifyingStage')[1].split('id: appearanceStage')[0];
     assert.match(approval,/ColumnLayout \{/);
     assert.match(approval,/Layout.fillWidth: true/);
@@ -406,7 +407,7 @@ test('Qt button rings use keyboard focus, never persistent pointer-focus borders
     assert.match(theme,/Qt\.BacktabFocusReason/);
     for(const file of ['SetupPrimaryButton','ActionButton','NavItem','GenyTabButton',
         'GenySwitch','EngagementButton','GenyComboBox','SetupActionCard']){
-        const code=read('ui/components/'+file+'.qml');
+        const code=read('ui/components/' + componentPath(file)+'.qml');
         assert.match(code,/Theme\.keyboardFocusVisible\(/,file);
         assert.doesNotMatch(code,/borderWidth: [\w]+\.activeFocus/,file);
     }

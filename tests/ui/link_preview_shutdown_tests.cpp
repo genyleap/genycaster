@@ -1,4 +1,4 @@
-#include "link_preview_resolver.hpp"
+#include "../../ui/app/network/link_preview.hpp"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

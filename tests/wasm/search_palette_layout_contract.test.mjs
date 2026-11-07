@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const search=readFileSync(new URL('../../ui/components/SearchPalette.qml',import.meta.url),'utf8');
+const search=readFileSync(new URL('../../ui/components/navigation/SearchPalette.qml',import.meta.url),'utf8');
 test('search input stays under heading; unused drawer height sits below the input',()=>{
   const start=search.indexOf('contentItem: ColumnLayout {');
   const header=search.indexOf('objectName: "closeSearchPalette"',start);

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 
-const qml = readFileSync(new URL('../../ui/components/ComposerDrawer.qml', import.meta.url), 'utf8')
+const qml = readFileSync(new URL('../../ui/components/composer/ComposerDrawer.qml', import.meta.url), 'utf8')
 function popupHeader(id) {
     const start = qml.indexOf('        id: ' + id + '\n')
     assert.ok(start > 0, id + ' popup exists')

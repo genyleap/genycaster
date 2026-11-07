@@ -73,7 +73,7 @@ test("i18n and l10n are first-class, independently configurable product features
     const features = read("docs/FEATURES.md");
     const header = read("src/presentation/qt/localization_controller.hpp");
     const controller = read("src/presentation/qt/localization_controller.cpp");
-    const settings = read("ui/components/LocaleSettingsPopup.qml");
+    const settings = read("ui/components/settings/SettingsPopup.qml");
 
     assert.ok(readme.includes("Internationalization and localization (i18n/l10n)"));
     assert.ok(readme.includes("Your language, your regional conventions"));

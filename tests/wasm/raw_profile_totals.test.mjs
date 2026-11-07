@@ -15,7 +15,7 @@ test('raw UserData never fabricates graph totals and indexed totals require both
 test('social-count availability remains canonical through local cache and UI projection',()=>{
   const store=read('src/storage/entity_store.cpp');
   const sqlite=read('src/storage/sqlite_boundary.cpp');
-  const projection=read('ui/app/runtime_ui_bindings.cpp');
+  const projection=read('ui/app/runtime/bindings.cpp');
   assert.match(store,/social_counts_known/);
   assert.match(store,/sqlite3_bind_int\(statement\.native\(\), 15, profile\.socialCountsKnown/);
   assert.match(store,/profile\.socialCountsKnown = sqlite3_column_int\(statement\.native\(\), 13\)/);
@@ -25,13 +25,13 @@ test('social-count availability remains canonical through local cache and UI pro
 });
 
 test('profile, social rail, and compact account card show unknown instead of zero',()=>{
-  const profile=read('ui/components/ProfileSurface.qml');
-  const rail=read('ui/components/SocialSidebar.qml');
-  const side=read('ui/components/SideNavigation.qml');
-  const card=read('ui/components/ProfileTrustCard.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
+  const rail=read('ui/components/navigation/SocialSidebar.qml');
+  const side=read('ui/components/navigation/SideNavigation.qml');
+  const card=read('ui/components/profile/ProfileTrustCard.qml');
   assert.match(profile,/activeDetail\.socialCountsKnown === false/);
   assert.match(rail,/shownProfile\.socialCountsKnown === false/);
-  assert.match(read('ui/components/SearchPalette.qml'),/modelData\.socialCountsKnown === false/);
+  assert.match(read('ui/components/navigation/SearchPalette.qml'),/modelData\.socialCountsKnown === false/);
   assert.match(side,/profileDetail\.socialCountsKnown !== false/);
   assert.match(card,/root\.followers >= 0 \? LocaleFormat/);
   assert.match(card,/root\.following >= 0 \? LocaleFormat/);

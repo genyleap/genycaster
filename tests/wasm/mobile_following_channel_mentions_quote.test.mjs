@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -5,9 +6,9 @@ import {readFileSync} from 'node:fs';
 const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('Explorer audience filter persists and applies to each semantic tab',()=>{
- const shell=read('ui/components/AppShell.qml');
- const tabs=read('ui/components/ContentTabs.qml');
- const header=read('ui/components/HomeFeedHeader.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const tabs=read('ui/components/navigation/ContentTabs.qml');
+ const header=read('ui/components/home/HomeFeedHeader.qml');
  assert.doesNotMatch(tabs,/id: "following"/);
  assert.match(shell,/property string explorerAudience: "all"/);
  assert.match(shell,/category: "explorer-feed"/);
@@ -20,17 +21,17 @@ test('Explorer audience filter persists and applies to each semantic tab',()=>{
  assert.match(header,/readonly property bool selected: root\.audience === String\(modelData\.id\)/);
  assert.match(header,/Behavior on color/);
  assert.doesNotMatch(header,/audienceMenu\.open\(\)/);
- assert.match(read('ui/app/runtime_ui_bindings.cpp'),/feed == QStringLiteral\("following"\)\) query\.kind = Kind::Following/);
+ assert.match(read('ui/app/runtime/bindings.cpp'),/feed == QStringLiteral\("following"\)\) query\.kind = Kind::Following/);
 });
 test('Stories use only verified following graph and never feed author suggestions',()=>{
- const shell=read('ui/components/AppShell.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
  const bridge=read('src/presentation/qt/presentation_bridge.cpp');
- const strip=read('ui/components/StoryStrip.qml');
+ const strip=read('ui/components/feed/StoryStrip.qml');
  assert.match(shell,/recentProfiles: presentationBridge\.followingStoryProfiles/);
  assert.match(bridge,/m_accountFid != m_followingStoriesViewerFid/);
  assert.match(bridge,/m_followingStoryProfiles/);
  assert.match(strip,/followingOnly: true/);
- assert.match(read('ui/components/HomeFeedHeader.qml'),/root\.authenticated \? root\.recentProfiles : \[\]/);
+ assert.match(read('ui/components/home/HomeFeedHeader.qml'),/root\.authenticated \? root\.recentProfiles : \[\]/);
 });
 test('Portrait policy is present and Web Safari gets a reversible landscape guard',()=>{
  const manifest=JSON.parse(read('properties/WebAssembly/genycaster.webmanifest'));
@@ -43,33 +44,33 @@ test('Portrait policy is present and Web Safari gets a reversible landscape guar
 });
 test('Feed and detail reveal source channel as metadata without a hardcoded provider domain',()=>{
  for(const name of ['CastItem.qml','DetailSurface.qml']){
-  const code=read('ui/components/'+name);
+  const code=read('ui/components/' + componentPath(name));
   assert.match(code,/readonly property string castChannel:/);
   assert.match(code,/channel\\\/|channel\//);
   assert.doesNotMatch(code,/warpcast\.com\/~/);
  }
- assert.match(read('ui/app/runtime_ui_bindings.cpp'),/parentUrl.*QString::fromStdString/);
+ assert.match(read('ui/app/runtime/bindings.cpp'),/parentUrl.*QString::fromStdString/);
 });
 test('Cast surfaces blend into theme, including the detail header',()=>{
- const cast=read('ui/components/CastItem.qml');
- const detail=read('ui/components/DetailSurface.qml');
+ const cast=read('ui/components/feed/CastItem.qml');
+ const detail=read('ui/components/feed/DetailSurface.qml');
  assert.match(cast,/fillColor: Theme\.backgroundPrimary/);
  assert.match(cast,/id: messageSurface[\s\S]*?borderWidth: 0/);
  assert.match(detail,/root\.activeView === "cast" \? Theme\.backgroundPrimary/);
 });
 test('Quote produces a visible error when a canonical target is missing and opens a composer for valid hashes',()=>{
- const shell=read('ui/components/AppShell.qml');
- const bar=read('ui/components/EngagementBar.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const bar=read('ui/components/feed/EngagementBar.qml');
  assert.match(bar,/onClicked: root\.quoteRequested\(\)/);
  assert.match(shell,/function openQuoteComposer\(cast\)/);
  assert.match(shell,/replyTargetErrorLoader\.active = true/);
  assert.match(shell,/root\.openComposer\(null, "quote", "", Object\.assign/);
- assert.match(read('ui/components/ComposerDrawer.qml'),/richComposer\.insertCastReference/);
+ assert.match(read('ui/components/composer/ComposerDrawer.qml'),/richComposer\.insertCastReference/);
 });
 test('Hydrated mention display preserves protocol text and crosses feed, detail and notifications',()=>{
  const cast=read('src/domain/cast.cppm');
  const codec=read('src/providers/hypersnap/codec.cpp');
- const ui=read('ui/app/runtime_ui_bindings.cpp');
+ const ui=read('ui/app/runtime/bindings.cpp');
  assert.match(cast,/optional<std::string> displayText/);
  assert.match(codec,/resolvedMentionText\(/);
  assert.match(codec,/mentioned_profiles/);
@@ -81,7 +82,7 @@ test('Hydrated mention display preserves protocol text and crosses feed, detail 
 });
 
 test('Quoted cast hashes accept both prefixless provider hashes and 0x hashes',()=>{
- const shell=read('ui/components/AppShell.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
  assert.match(shell,/source\.replace\(\/\^0x\/i, ""\)/);
  assert.match(shell,/\/\^\[0-9a-f\]\{40\}\$\/i\.test\(bare\)/);
  assert.match(shell,/castId: hash, authorFid: authorFid/);
@@ -90,7 +91,7 @@ test('Quoted cast hashes accept both prefixless provider hashes and 0x hashes',(
 test('Feed and details display actual channel metadata including an image from provider',()=>{
  const codec=read('src/providers/hypersnap/codec.cpp');
  const domain=read('src/domain/cast.cppm');
- const presentation=read('ui/app/runtime_ui_bindings.cpp');
+ const presentation=read('ui/app/runtime/bindings.cpp');
  for(const word of ['channelId','channelName','channelImageUrl']){
    assert.match(domain,new RegExp(word));
    assert.match(presentation,new RegExp(word));
@@ -99,13 +100,13 @@ test('Feed and details display actual channel metadata including an image from p
  assert.match(codec,/optionalString\(channel,"image_url"\)/);
  assert.match(presentation,/attachChannelPresentation\(row, \*cast\)/);
  assert.match(presentation,/attachChannelPresentation\(detail, \*state\.cast\)/);
- assert.match(read('ui/components/CastItem.qml'),/sourceUrl: root\.channelImageUrl/);
- assert.match(read('ui/components/DetailSurface.qml'),/sourceUrl: root\.resolvedChannelImage/);
+ assert.match(read('ui/components/feed/CastItem.qml'),/sourceUrl: root\.channelImageUrl/);
+ assert.match(read('ui/components/feed/DetailSurface.qml'),/sourceUrl: root\.resolvedChannelImage/);
 });
 
 test('Following selection uses authenticated account FID for initial and next pages',()=>{
  const bridge=read('src/presentation/qt/presentation_bridge.cpp');
- const app=read('ui/components/AppShell.qml');
+ const app=read('ui/components/shell/AppShell.qml');
  assert.match(bridge,/feed == QStringLiteral\("following"\) && \(!m_isAuthenticated \|\| m_accountFid == 0\)/);
  assert.match(bridge,/nextFeed == QStringLiteral\("following"\) \? m_accountFid : m_identityFid/);
  assert.match(bridge,/m_activeFeed == QStringLiteral\("following"\) \? m_accountFid : m_identityFid/);
@@ -115,7 +116,7 @@ test('Following selection uses authenticated account FID for initial and next pa
 });
 
 test('Following audience action updates state and requests new feed instead of silently restoring Everyone',()=>{
- const src=read('ui/components/AppShell.qml');
+ const src=read('ui/components/shell/AppShell.qml');
  const method=src.slice(src.indexOf('function chooseExplorerAudience('),
                         src.indexOf('property string bookmarkChoiceHash:')).trim();
  const bridge={isAuthenticated:true,accountFid:1234};
@@ -137,7 +138,7 @@ test('Following audience action updates state and requests new feed instead of s
 test('New Cast cannot inherit a quoted reference from a previously composed cast',()=>{
  const cpp=read('src/presentation/qt/rich_composer_controller.cpp');
  const header=read('src/presentation/qt/rich_composer_controller.hpp');
- const composer=read('ui/components/ComposerDrawer.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(header,/Q_INVOKABLE void beginContextDocument\(\)/);
  assert.match(cpp,/void RichComposerController::beginContextDocument\(\)/);
  assert.match(cpp,/if \(contextDocument\) return/);
@@ -156,10 +157,10 @@ test('New Cast cannot inherit a quoted reference from a previously composed cast
 
 
 test('Provider channel imagery is resolved from the configured directory, not synthetic glyphs',()=>{
- const controller=read('ui/app/channels/picker.cpp');
- const header=read('ui/app/channels/picker.hpp');
- const item=read('ui/components/CastItem.qml');
- const detail=read('ui/components/DetailSurface.qml');
+ const controller=read('ui/app/social/channels.cpp');
+ const header=read('ui/app/social/channels.hpp');
+ const item=read('ui/components/feed/CastItem.qml');
+ const detail=read('ui/components/feed/DetailSurface.qml');
  assert.match(header,/Q_INVOKABLE void ensureChannelImage\(const QString& id\)/);
  assert.match(controller,/requestDirectory\(QStringLiteral\("channel"\), \{\{QStringLiteral\("key"\), id\}\}/);
  assert.match(controller,/m_castImagePending\.size\(\) >= 4/);
@@ -180,9 +181,9 @@ test('Hydrated mention offsets after multibyte emoji preserve raw Farcaster text
 });
 
 test('Image composer uploads appear below text, large, uncropped and with bounded uploads',()=>{
- const editor=read('ui/components/ComposerDrawer.qml');
- const media=read('ui/components/MediaUploadPanel.qml');
- const preview=read('ui/components/MediaPreview.qml');
+ const editor=read('ui/components/composer/ComposerDrawer.qml');
+ const media=read('ui/components/composer/MediaUploadPanel.qml');
+ const preview=read('ui/components/media/MediaPreview.qml');
  assert.ok(editor.indexOf('id: mediaPanel') > editor.indexOf('id: mobilePlainEditor'));
  assert.match(media,/fitImage: true/);
  assert.match(media,/Layout\.preferredHeight: root\.width < 620 \? 238 : 174/);

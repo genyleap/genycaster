@@ -5,7 +5,7 @@ import {readFileSync} from "node:fs";
 const read = name => readFileSync(new URL("../../"+name,import.meta.url),"utf8");
 
 test("Like uses a consistent semantic heart with red selection in every Cast",()=>{
-    const bar=read("ui/components/EngagementBar.qml");
+    const bar=read("ui/components/feed/EngagementBar.qml");
     assert.match(bar,/readonly property string displayedLikeIcon: Theme\.iconHeart/);
     assert.match(bar,/iconGlyph: root\.displayedLikeIcon/);
     assert.match(bar,/iconFilled: root\.effectiveLikedByMe/);
@@ -15,8 +15,8 @@ test("Like uses a consistent semantic heart with red selection in every Cast",()
 });
 
 test("Home greeting displays authenticated account avatar and DNA for guests",()=>{
-    const home=read("ui/components/HomeDashboard.qml");
-    const shell=read("ui/components/AppShell.qml");
+    const home=read("ui/components/home/HomeDashboard.qml");
+    const shell=read("ui/components/shell/AppShell.qml");
     assert.match(shell,/avatarUrl: presentationBridge\.accountAvatarUrl/);
     assert.match(shell,/authenticated: presentationBridge\.isAuthenticated/);
     assert.match(home,/avatarSize: 62/);
@@ -32,18 +32,18 @@ test("Mini App artwork supports manifest aliases and a visible offline fallback"
         assert.ok(catalog.includes('QStringLiteral("'+key+'")'),key);
     assert.match(catalog,/parsedHome\.resolved\(candidate\)/);
     assert.match(catalog,/publicMiniAppImageSource\(iconUrl, homeUrl\)/);
-    const apps=read("ui/components/AppsSurface.qml");
+    const apps=read("ui/components/apps/AppsSurface.qml");
     assert.match(apps,/id: storeIcon/);
     assert.match(apps,/forceAutomaticDownload: true/);
     assert.match(apps,/MiniAppArtPlaceholder \{/);
-    const placeholder=read("ui/components/MiniAppArtPlaceholder.qml");
+    const placeholder=read("ui/components/apps/ArtPlaceholder.qml");
     assert.match(placeholder,/visible: !root\.hasSource \|\| root\.loadFailed/);
     assert.match(placeholder,/text: Theme\.iconApps/);
 });
 
 test("Welcome uses a focused language picker without promotional preview, and localizes step count",()=>{
-    const selector=read("ui/components/SetupLanguageSelector.qml");
-    const setup=read("ui/components/InitialSetup.qml");
+    const selector=read("ui/components/setup/SetupLanguageSelector.qml");
+    const setup=read("ui/components/setup/InitialSetup.qml");
     assert.doesNotMatch(selector,/id: orbit|NumberAnimation on rotation|Animation\.Infinite/);
     assert.match(selector,/objectName: "setupLanguageWheel"/);
     assert.doesNotMatch(selector,/@genyleap|@compez\.eth|id: previewTab/);

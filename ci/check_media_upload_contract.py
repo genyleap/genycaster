@@ -14,12 +14,12 @@ cmake = read("CMakeLists.txt")
 transport = read("src/transport/qt_network/media_upload.cppm") + read("src/transport/qt_network/media_upload.cpp")
 application = (read("src/application/media_upload.cppm") + read("src/application/media_upload.cpp") +
                read("src/application/media_lifecycle.cppm") + read("src/application/media_lifecycle.cpp"))
-composer = read("ui/components/ComposerDrawer.qml")
+composer = read("ui/components/composer/ComposerDrawer.qml")
 presentation_bridge = read("src/presentation/qt/presentation_bridge.cpp")
-runtime = (read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") +
-           read("ui/app/runtime_composition.cpp") +
-           read("ui/app/runtime_ui_bindings.cpp"))
-insert_panel = read("ui/components/ComposerInsertPanel.qml")
+runtime = (read("ui/app/main.cpp") + read("ui/app/runtime/composition.cppm") +
+           read("ui/app/runtime/composition.cpp") +
+           read("ui/app/runtime/bindings.cpp"))
+insert_panel = read("ui/components/composer/ComposerInsertPanel.qml")
 gateway = read("services/media-gateway/gateway.mjs")
 storage = read("services/media-gateway/storage/quilibrium_sdk.mjs")
 storage_factory = read("services/media-gateway/storage/index.mjs")

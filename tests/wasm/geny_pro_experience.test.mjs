@@ -1,9 +1,10 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=relative=>readFileSync(new URL('../../'+relative,import.meta.url),'utf8');
-const qml=name=>read('ui/components/'+name);
+const qml=name=>read('ui/components/' + componentPath(name));
 const locales=['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR',
     'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
 const ids=['short','title','verified_wallet','unlock_hint',
@@ -101,7 +102,7 @@ test('Pro-only actions explain why they are locked, but users may unlink and unf
 
 test('Market Pulse basic cap offers Pro information, without bypassing native cap',()=>{
     const settings=qml('LocaleSettingsPopup.qml');
-    const controller=read('ui/app/insights/live.cpp');
+    const controller=read('ui/app/data/insights.cpp');
     const wiring=read('ui/app/main.cpp');
     assert.match(settings,/readonly property int marketAssetLimit: marketProEligible \? 16 : 4/);
     assert.match(settings,/objectName: "genyProMarketQuota"/);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 // Execute the QML JavaScript binding; avoid a second test-only parser.
-const qml=readFileSync(new URL('../../ui/components/RichCastRenderer.qml',import.meta.url),'utf8');
+const qml=readFileSync(new URL('../../ui/components/content/RichCastRenderer.qml',import.meta.url),'utf8');
 function bodyBetween(start,end) {
   const a=qml.indexOf(start);
   const b=qml.indexOf(end,a+start.length);

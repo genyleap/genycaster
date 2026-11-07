@@ -1,15 +1,16 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = p => readFileSync(new URL('../../'+p,import.meta.url),'utf8');
-const shell=read('ui/components/AppShell.qml');
-const controller=read('ui/app/openproof/connections.cpp');
-const header=read('ui/app/openproof/connections.hpp');
-const browse=read('ui/components/TopicBrowseSurface.qml');
-const picker=read('ui/components/TopicFilterPicker.qml');
-const profile=read('ui/components/ProfileSurface.qml');
-const chooser=read('ui/components/BookmarkCollectionChooser.qml');
-const engagement=read('ui/components/EngagementBar.qml');
+const shell=read('ui/components/shell/AppShell.qml');
+const controller=read('ui/app/identity/connections.cpp');
+const header=read('ui/app/identity/connections.hpp');
+const browse=read('ui/components/feed/TopicBrowseSurface.qml');
+const picker=read('ui/components/feed/TopicFilterPicker.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const chooser=read('ui/components/profile/CollectionChooser.qml');
+const engagement=read('ui/components/feed/EngagementBar.qml');
 
 test('Explorer and Profile use authenticated server-indexed topic cast retrieval',()=>{
   assert.match(controller,/void OpenProofConnectionsController::selectCastTopic/);
@@ -54,5 +55,5 @@ test('bookmark action opens a nonblocking collection chooser only when adding',(
 test('each new visual surface is registered in the Qt QML module',()=>{
   const cmake=read('ui/CMakeLists.txt');
   for(const component of ['BookmarkCollectionChooser','TopicBrowseSurface','TopicFilterPicker'])
-    assert.ok(cmake.includes('components/'+component+'.qml'));
+    assert.ok(cmake.includes('components/'+componentPath(component)+'.qml'));
 });

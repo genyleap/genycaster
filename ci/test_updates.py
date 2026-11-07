@@ -16,9 +16,9 @@ MACOS = ROOT / "ui/app/update/scripts/macos.sh"
 
 class UpdateInstallTests(unittest.TestCase):
     def test_native_resources_and_ui_contract(self) -> None:
-        source = (ROOT / "ui/app/update_controller.cpp").read_text(encoding="utf-8")
+        source = (ROOT / "ui/app/update/controller.cpp").read_text(encoding="utf-8")
         qt = (ROOT / "ui/CMakeLists.txt").read_text(encoding="utf-8")
-        qml = (ROOT / "ui/components/UpdateNoticeDrawer.qml").read_text(encoding="utf-8")
+        qml = (ROOT / "ui/components/settings/UpdateNoticeDrawer.qml").read_text(encoding="utf-8")
         self.assertIn("launchVerifiedUpdate(", source)
         self.assertIn("installDownloadedUpdate()", source)
         self.assertIn("checksum.addData(&installer)", source)

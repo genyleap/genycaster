@@ -21,17 +21,52 @@ from ci.verify_ci import (FORBIDDEN_CORE_JOB, MATRIX_JOB_DISPLAY_NAME,
 
 
 class PipelineTests(unittest.TestCase):
+    def test_ui_feature_source_ownership(self) -> None:
+        """Keep shared feature folders, short render files and stable QML aliases."""
+        import json
+        app = Path("ui/app")
+        self.assertEqual(sorted(p.name for p in app.iterdir() if p.is_file()),
+                         ["main.cpp"])
+        for group in ("bootstrap", "runtime", "social", "identity",
+                      "network", "browser", "miniapp", "media", "data",
+                      "settings", "update", "platform", "diagnostics"):
+            sources = [p for p in (app / group).rglob("*")
+                       if p.is_file() and p.suffix in (".cpp", ".cppm", ".hpp", ".mm")]
+            self.assertGreaterEqual(len(sources), 4, group)
+        render = Path("ui/render")
+        self.assertEqual({p.name for p in render.iterdir() if p.is_file()},
+                         {"stroke.cpp", "stroke.hpp", "superellipse.cpp",
+                          "superellipse.hpp", "sparkline.cpp", "sparkline.hpp"})
+        source_root = Path("ui/components")
+        mapping = json.loads((source_root / "source_paths.json").read_text())
+        self.assertEqual(len(mapping), 156)
+        self.assertEqual(set(mapping.values()),
+                         {p.relative_to(source_root).as_posix()
+                          for p in source_root.rglob("*.qml")
+                          if p.name != "Main.qml"})
+        self.assertFalse(list(source_root.glob("*.qml")))
+        self.assertEqual(len(mapping.values()), len(set(mapping.values())))
+        cmake = Path("ui/CMakeLists.txt").read_text()
+        self.assertIn('set(qmlResourceAlias "Main.qml")', cmake)
+        self.assertIn('set(qmlResourceAlias "components/${CMAKE_MATCH_1}.qml")', cmake)
+        for public, physical in mapping.items():
+            self.assertTrue((source_root / physical).is_file(), public)
+            self.assertIn("components/" + physical, cmake, public)
+            if physical.split("/")[-1] != public:
+                self.assertIn('QT_RESOURCE_ALIAS "components/' + public + '"',
+                              cmake, public)
+
     def test_responsive_interaction_contracts(self) -> None:
         """Guard the shared motion, mobile sheets and composer chrome."""
         qml = Path("ui/components")
-        setup = (qml / "InitialSetup.qml").read_text(encoding="utf-8")
-        checkbox = (qml / "GenyCheckRow.qml").read_text(encoding="utf-8")
-        home = (qml / "HomeFeedHeader.qml").read_text(encoding="utf-8")
-        tabs = (qml / "ContentTabs.qml").read_text(encoding="utf-8")
-        composer = (qml / "ComposerDrawer.qml").read_text(encoding="utf-8")
-        settings = (qml / "LocaleSettingsPopup.qml").read_text(encoding="utf-8")
-        shell = (qml / "AppShell.qml").read_text(encoding="utf-8")
-        self.assertIn("components/GenyCheckRow.qml", Path("ui/CMakeLists.txt").read_text())
+        setup = (qml / "setup/InitialSetup.qml").read_text(encoding="utf-8")
+        checkbox = (qml / "controls/GenyCheckRow.qml").read_text(encoding="utf-8")
+        home = (qml / "home/HomeFeedHeader.qml").read_text(encoding="utf-8")
+        tabs = (qml / "navigation/ContentTabs.qml").read_text(encoding="utf-8")
+        composer = (qml / "composer/ComposerDrawer.qml").read_text(encoding="utf-8")
+        settings = (qml / "settings/SettingsPopup.qml").read_text(encoding="utf-8")
+        shell = (qml / "shell/AppShell.qml").read_text(encoding="utf-8")
+        self.assertIn("components/controls/GenyCheckRow.qml", Path("ui/CMakeLists.txt").read_text())
         self.assertEqual(setup.count("GenyCheckRow {"), 2)
         self.assertIn("Accessible.role: Accessible.CheckBox", checkbox)
         self.assertIn("spacing: Theme.space3", checkbox)
@@ -56,15 +91,15 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("ColorAnimation", home)
         self.assertIn("background: Item {}", home)
         self.assertNotIn("color: scopeOption.selected ? \"transparent\"", home)
-        shared_tabs = (qml / "GenyTabButton.qml").read_text(encoding="utf-8")
-        actions = (qml / "ActionButton.qml").read_text(encoding="utf-8")
+        shared_tabs = (qml / "controls/GenyTabButton.qml").read_text(encoding="utf-8")
+        actions = (qml / "controls/ActionButton.qml").read_text(encoding="utf-8")
         self.assertIn("ColorAnimation", shared_tabs)
         self.assertIn("ColorAnimation", actions)
         self.assertIn("Theme.surfaceRaised", shared_tabs)
         self.assertNotIn("Theme.surfaceHover", shared_tabs)
         self.assertIn('fillColor: control.segmented && control.selected', shared_tabs)
-        avatar = (qml / "Avatar.qml").read_text(encoding="utf-8")
-        story = (qml / "StoryItem.qml").read_text(encoding="utf-8")
+        avatar = (qml / "content/Avatar.qml").read_text(encoding="utf-8")
+        story = (qml / "feed/StoryItem.qml").read_text(encoding="utf-8")
         self.assertIn("visible: !avatarImage.ready", avatar)
         self.assertIn("opacity: 1.0", story)
         self.assertNotIn("scale: presetHover.hovered", settings)
@@ -72,7 +107,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("Behavior on x", tabs)
         self.assertIn("font.weight: Theme.weightDemiBold", tabs)
         self.assertIn("id: audienceSelectionPill", home)
-        feed = (qml / "FeedSurface.qml").read_text(encoding="utf-8")
+        feed = (qml / "feed/FeedSurface.qml").read_text(encoding="utf-8")
         self.assertIn("property bool selectionSettling: false", feed)
         self.assertIn("root.beginSelectionHandoff()", feed)
         self.assertIn("root.selectionSettling", feed)
@@ -100,8 +135,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(settings.count("id: navigationEntry3"), 1)
 
     def test_composer_taxonomy_uses_bounded_dropdowns_and_full_editor(self) -> None:
-        composer = Path("ui/components/ComposerDrawer.qml").read_text(encoding="utf-8")
-        editor = Path("ui/components/RichTextEditor.qml").read_text(encoding="utf-8")
+        composer = Path("ui/components/composer/ComposerDrawer.qml").read_text(encoding="utf-8")
+        editor = Path("ui/components/composer/RichTextEditor.qml").read_text(encoding="utf-8")
         channel = composer.split('id: channelPicker', 1)[1].split('id: topicPicker', 1)[0]
         topics = composer.split('id: topicPicker', 1)[1].split('id: mediaFileDialog', 1)[0]
         for popup in (channel, topics):
@@ -151,8 +186,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_native_recovery_session_is_pinned_and_cancelable(self) -> None:
         bridge = Path("src/presentation/qt/presentation_bridge.cpp").read_text(encoding="utf-8")
-        wiring = Path("ui/app/runtime_ui_bindings.cpp").read_text(encoding="utf-8")
-        setup = Path("ui/components/InitialSetup.qml").read_text(encoding="utf-8")
+        wiring = Path("ui/app/runtime/bindings.cpp").read_text(encoding="utf-8")
+        setup = Path("ui/components/setup/InitialSetup.qml").read_text(encoding="utf-8")
         self.assertIn("void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)", bridge)
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
@@ -242,7 +277,7 @@ class PipelineTests(unittest.TestCase):
     def test_external_miniapp_fallback_is_unprivileged_and_explicit(self) -> None:
         controller = Path("ui/app/miniapp/host.cpp").read_text(encoding="utf-8")
         header = Path("ui/app/miniapp/host.hpp").read_text(encoding="utf-8")
-        surface = Path("ui/components/AppsSurface.qml").read_text(encoding="utf-8")
+        surface = Path("ui/components/apps/AppsSurface.qml").read_text(encoding="utf-8")
         self.assertIn("if (QDesktopServices::openUrl(destination))", controller)
         self.assertIn("emit externalLaunchSucceeded();", controller)
         self.assertIn("void externalLaunchSucceeded();", header)

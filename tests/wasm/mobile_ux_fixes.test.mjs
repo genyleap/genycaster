@@ -6,9 +6,9 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('search palette can always close and channel selection routes to reading surface', () => {
-  const palette = read('ui/components/SearchPalette.qml');
-  const shell = read('ui/components/AppShell.qml');
-  const header = read('ui/components/FeedHeader.qml');
+  const palette = read('ui/components/navigation/SearchPalette.qml');
+  const shell = read('ui/components/shell/AppShell.qml');
+  const header = read('ui/components/feed/FeedHeader.qml');
   assert.match(palette, /objectName: "closeSearchPalette"/);
   assert.match(palette, /onClicked: root\.close\(\)/);
   assert.match(palette, /signal channelRequested\(string channelId, var channelInfo\)/);
@@ -19,9 +19,9 @@ test('search palette can always close and channel selection routes to reading su
   assert.match(header, /root\.channelInfo\.description/);
 });
 test('reply actions use the Cast menu pattern and Delete keeps a danger accent', () => {
-  const reply = read('ui/components/ThreadReplyItem.qml');
-  const button = read('ui/components/ActionButton.qml');
-  const shell = read('ui/components/AppShell.qml');
+  const reply = read('ui/components/feed/ThreadReplyItem.qml');
+  const button = read('ui/components/controls/ActionButton.qml');
+  const shell = read('ui/components/shell/AppShell.qml');
   assert.match(reply, /objectName: "replyMoreButton"/);
   assert.match(reply, /replyMenuLoader/);
   assert.match(reply, /root\.removeCastRequested\(root\.reply\)/);
@@ -31,7 +31,7 @@ test('reply actions use the Cast menu pattern and Delete keeps a danger accent',
   assert.match(shell, /destructiveFilled: true/);
 });
 test('WebAssembly market cards use bounded data, a compact-first layout and an explicit failure state', () => {
-  const card = read('ui/components/TokenAddressPreview.qml');
+  const card = read('ui/components/content/TokenAddressPreview.qml');
   const gateway = read('services/media-gateway/gateway.mjs');
   assert.match(card, /property bool expanded: false/);
   assert.match(card, /objectName: "expandTokenDetails"/);
@@ -41,15 +41,15 @@ test('WebAssembly market cards use bounded data, a compact-first layout and an e
   assert.match(gateway, /publicTokenSnapshot\(chain, address/);
 });
 test('browser scroll optimizations do not replace Qt default scene graph backend', () => {
-  const backdrop = read('ui/components/DrawerBackdrop.qml');
-  const feed = read('ui/components/FeedSurface.qml');
+  const backdrop = read('ui/components/visual/DrawerBackdrop.qml');
+  const feed = read('ui/components/feed/FeedSurface.qml');
   assert.match(backdrop, /browserRenderer: Qt\.platform\.os === "wasm"/);
   assert.match(backdrop, /!root\.browserRenderer/);
   assert.match(feed, /cacheBuffer: root\.compact \?/);
   assert.doesNotMatch(backdrop, /QSG_RHI_BACKEND/);
 });
 test('recovery does not re-prompt an already authorized signer or pretend a stored phrase exists', () => {
-  const settings = read('ui/components/LocaleSettingsPopup.qml');
+  const settings = read('ui/components/settings/SettingsPopup.qml');
   assert.match(settings, /visible: presentationBridge\.isAuthenticated && !presentationBridge\.writeReady/);
   assert.match(settings, /genycaster.setup.recovery_phrase_unavailable/);
   assert.match(settings, /objectName: "settingsRecoveryExplanation"/);

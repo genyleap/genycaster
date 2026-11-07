@@ -8,7 +8,7 @@ import { uploadBrowserImage } from '../../ui/wasm/browser_media_upload.mjs';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const fid='123456';
@@ -77,7 +77,7 @@ test('unsupported formats and missing signer do not reach media gateway',async()
 test('mobile browser picker is synchronous and signing key stays in vault',async()=>{
     const {readFileSync}=await import('node:fs');
     const js=readFileSync(new URL('../../ui/wasm/protocol-signer-pre.js',import.meta.url),'utf8');
-    const qml=readFileSync(new URL('../../ui/components/ComposerDrawer.qml',import.meta.url),'utf8');
+    const qml=readFileSync(new URL('../../ui/components/composer/ComposerDrawer.qml',import.meta.url),'utf8');
     const main=readGenycasterMain();
     assert.match(js,/picker\.click\(\)/);
     assert.match(js,/import\('\.\/browser_media_upload\.mjs'\)/);
@@ -123,11 +123,11 @@ test('WASM cleanup is durable, signer-gated, and only triggered by confirmed del
     const {readFileSync}=await import('node:fs');
     const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
     const main=readGenycasterMain();
-    const signer=read('ui/app/browser_signer_bridge.hpp');
+    const signer=read('ui/app/browser/signer_bridge.hpp');
     const pre=read('ui/wasm/protocol-signer-pre.js');
-    const panel=read('ui/components/MediaUploadPanel.qml');
-    const shell=read('ui/components/AppShell.qml');
-    const reply=read('ui/components/ThreadReplyItem.qml');
+    const panel=read('ui/components/composer/MediaUploadPanel.qml');
+    const shell=read('ui/components/shell/AppShell.qml');
+    const reply=read('ui/components/feed/ThreadReplyItem.qml');
     // The polling loop must reach cleanup even when there are no upload events.
     assert.match(main,/if\(received == 0\) break;/);
     assert.doesNotMatch(main,/if\(received == 0\) return;/);
@@ -165,9 +165,9 @@ test('gateway HTTP 204 means media deletion completed without a JSON body',async
 test('media URLs stay out of visual-editor text and cancel queues storage cleanup',async()=>{
     const {readFileSync}=await import('node:fs');
     const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
-    const avatar=read('ui/components/Avatar.qml');
-    const editor=read('ui/components/RichTextEditor.qml');
-    const drawer=read('ui/components/ComposerDrawer.qml');
+    const avatar=read('ui/components/content/Avatar.qml');
+    const editor=read('ui/components/composer/RichTextEditor.qml');
+    const drawer=read('ui/components/composer/ComposerDrawer.qml');
     const cpp=read('src/presentation/qt/rich_composer_controller.cpp');
     assert.match(avatar,/linkPreviewResolver\.imageSourceForUrl\(sourceUrl\)/);
     assert.match(editor,/qsTrId\("genycaster\.composer\.media"\)/);
@@ -182,7 +182,7 @@ test('confirmed cast deletion invalidates nested detail replies and pinned reply
     const read=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
     const bridge=read('src/presentation/qt/presentation_bridge.cpp');
     const header=read('src/presentation/qt/presentation_bridge.hpp');
-    const shell=read('ui/components/AppShell.qml');
+    const shell=read('ui/components/shell/AppShell.qml');
     assert.match(header,/Q_PROPERTY\(QString lastRemovedCastId READ lastRemovedCastId NOTIFY stateChanged\)/);
     assert.match(bridge,/void removeReplyPresentation\(QVariantMap& parent, const QString& castId\)/);
     assert.match(bridge,/removeReplyPresentation\(row, castId\)/);

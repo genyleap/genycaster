@@ -6,8 +6,8 @@ import {readFileSync} from "node:fs";
 const read=p=>readFileSync(new URL("../../"+p,import.meta.url),"utf8");
 
 test("reply and quote have distinct publication targets and taxonomy policies",()=>{
-    const composer=read("ui/components/ComposerDrawer.qml");
-    const app=read("ui/components/AppShell.qml");
+    const composer=read("ui/components/composer/ComposerDrawer.qml");
+    const app=read("ui/components/shell/AppShell.qml");
     assert.match(composer,/readonly property string composeIntent: root\.quotedCast !== null \? "quote"/);
     assert.match(composer,/: root\.parentCast !== null \? "reply" : "new"/);
     assert.match(composer,/readonly property bool replyMode: composeIntent === "reply"/);
@@ -27,7 +27,7 @@ test("reply and quote have distinct publication targets and taxonomy policies",(
 });
 
 test("iPhone reply composer keeps context above the editor with the keyboard",()=>{
-    const composer=read("ui/components/ComposerDrawer.qml");
+    const composer=read("ui/components/composer/ComposerDrawer.qml");
     assert.match(composer,/fullScreen: root\.compact/);
     assert.match(composer,/height: parent \? \(root\.compact \? parent\.height/);
     assert.match(composer,/Qt\.inputMethod\.visible/);
@@ -42,7 +42,7 @@ test("iPhone reply composer keeps context above the editor with the keyboard",()
 });
 
 test("clearing a quote draft retains its referenced Cast",()=>{
-    const composer=read("ui/components/ComposerDrawer.qml");
+    const composer=read("ui/components/composer/ComposerDrawer.qml");
     const clear=composer.slice(composer.indexOf("function clearAllComposerContent()"),
                                composer.indexOf("function startNextMediaUpload()"));
     assert.match(clear,/richComposer\.newDocument\(\)/);

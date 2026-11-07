@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const qml = readFileSync(new URL('../../ui/components/ProfileSurface.qml', import.meta.url), 'utf8');
+const qml = readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml', import.meta.url), 'utf8');
 const start = qml.indexOf('    function rowRevision(row) {');
 const end = qml.indexOf('\n    function rowIncubationHeight(', start);
 assert.ok(start >= 0 && end > start, 'real ProfileSurface rowRevision is available');

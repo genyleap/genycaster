@@ -5,9 +5,9 @@ import {readFileSync} from 'node:fs';
 const source = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('inactive windows preserve inline emoji frames while motion is paused', () => {
-  const emoji = source('ui/components/AnimatedEmoji.qml');
-  const rich = source('ui/components/RichInlineText.qml');
-  const sprite = source('ui/components/SpriteEmoji.qml');
+  const emoji = source('ui/components/media/AnimatedEmoji.qml');
+  const rich = source('ui/components/content/RichInlineText.qml');
+  const sprite = source('ui/components/media/SpriteEmoji.qml');
   const motion = emoji.slice(emoji.indexOf('readonly property bool motionActive:'),
                              emoji.indexOf('function resolveHosts()'));
   const artwork = emoji.slice(emoji.indexOf('readonly property bool artworkWanted:'),
@@ -26,8 +26,8 @@ test('inactive windows preserve inline emoji frames while motion is paused', () 
 test('saved signer verification never requires a new custody approval', () => {
   const bridgeH = source('src/presentation/qt/presentation_bridge.hpp');
   const bridge = source('src/presentation/qt/presentation_bridge.cpp');
-  const runtime = source('ui/app/runtime_ui_bindings.cpp');
-  const shell = source('ui/components/AppShell.qml');
+  const runtime = source('ui/app/runtime/bindings.cpp');
+  const shell = source('ui/components/shell/AppShell.qml');
   assert.match(bridgeH, /Q_INVOKABLE void refreshSigner\(\)/);
   assert.match(bridgeH, /void signerRefreshRequested\(\)/);
   assert.match(bridge, /void PresentationBridge::refreshSigner\(\)/);
@@ -43,8 +43,8 @@ test('saved signer verification never requires a new custody approval', () => {
 });
 
 test('Mini App rows reflow and keep Resume text readable at compact widths', () => {
-  const apps = source('ui/components/AppsSurface.qml');
-  const manager = source('ui/components/TaskManagerPopup.qml');
+  const apps = source('ui/components/apps/AppsSurface.qml');
+  const manager = source('ui/components/apps/TaskManagerPopup.qml');
   assert.match(apps, /readonly property bool mobileActionsStacked:/);
   assert.match(apps, /columns: cardCell\.mobileActionsStacked \? 1 : 2/);
   assert.match(apps, /Layout\.minimumWidth: Math\.max\(96, implicitWidth\)/);
@@ -55,8 +55,8 @@ test('Mini App rows reflow and keep Resume text readable at compact widths', () 
 });
 
 test('inline emoji reserve ink space and replace Unicode only in their live layout', () => {
-  const rich = source('ui/components/RichInlineText.qml');
-  const textView = source('ui/components/RichTextView.qml');
+  const rich = source('ui/components/content/RichInlineText.qml');
+  const textView = source('ui/components/content/RichTextView.qml');
   const cpp = source('src/presentation/qt/rich_inline_text_item.cpp');
   const header = source('src/presentation/qt/rich_inline_text_item.hpp');
   assert.match(rich, /readonly property real emojiVerticalInset:/);
@@ -77,10 +77,10 @@ test('inline emoji reserve ink space and replace Unicode only in their live layo
 
 test('feed emoji loop continuously and pause without changing the configured iterations', () => {
   const policy = source('src/application/emoji/animation_policy.cpp');
-  const emoji = source('ui/components/AnimatedEmoji.qml');
-  const lottie = source('ui/components/AnimatedEmojiLottie.qml');
-  const sprite = source('ui/components/SpriteEmoji.qml');
-  const rich = source('ui/components/RichInlineText.qml');
+  const emoji = source('ui/components/media/AnimatedEmoji.qml');
+  const lottie = source('ui/components/media/AnimatedEmojiLottie.qml');
+  const sprite = source('ui/components/media/SpriteEmoji.qml');
+  const rich = source('ui/components/content/RichInlineText.qml');
   const feed = policy.slice(policy.indexOf('case Surface::Feed:'),
                             policy.indexOf('case Surface::PickerCell:'));
   assert.match(feed, /PlaybackMode::Loop/);
@@ -109,7 +109,7 @@ test('feed emoji loop continuously and pause without changing the configured ite
 
 
 test('inline emoji remain painted while Lottie starts, finishes, or is recycled', () => {
-  const rich = source('ui/components/RichInlineText.qml');
+  const rich = source('ui/components/content/RichInlineText.qml');
   const cpp = source('src/presentation/qt/rich_inline_text_item.cpp');
   const qmlFallback = rich.slice(rich.indexOf('Label {\n                id: inlineStaticEmoji'),
                                 rich.indexOf('AnimatedEmoji {\n                id: lottieEmoji'));
@@ -121,7 +121,7 @@ test('inline emoji remain painted while Lottie starts, finishes, or is recycled'
   assert.match(qmlFallback, /renderType: Text\.NativeRendering/);
   assert.match(qmlFallback, /clip: false/);
   assert.match(rich, /retainLoadedRenderer: true/);
-  const emoji = source('ui/components/AnimatedEmoji.qml');
+  const emoji = source('ui/components/media/AnimatedEmoji.qml');
   assert.match(emoji, /onParentChanged: \{/);
   assert.match(emoji, /root\.resolveHosts\(\)/);
   // The native text renderer is suppressed only when a QML delegate with its
@@ -135,7 +135,7 @@ test('inline emoji remain painted while Lottie starts, finishes, or is recycled'
 
 
 test('profile public activity remains null-safe through service teardown and profile switches', () => {
-  const qml = source('ui/components/ProfileSurface.qml');
+  const qml = source('ui/components/profile/ProfileSurface.qml');
   assert.match(qml, /readonly property bool publicActivityMatchesProfile: Boolean\(openProofConnections/);
   assert.match(qml, /Number\(openProofConnections\.publicActivityFid\)/);
   assert.match(qml, /readonly property string publicActivityGithubLogin: root\.publicActivityMatchesProfile/);

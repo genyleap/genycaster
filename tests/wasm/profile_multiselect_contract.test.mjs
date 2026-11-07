@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const field=read('ui/components/GenyMultiSelect.qml');
-const profile=read('ui/components/ProfileSurface.qml');
+const field=read('ui/components/controls/GenyMultiSelect.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
 const manifest=read('ui/CMakeLists.txt');
 
 test('profile roles and secondary categories use one multi-select field each',()=>{
-  assert.match(manifest,/components\/GenyMultiSelect\.qml/);
+  assert.match(manifest,/components\/controls\/GenyMultiSelect\.qml/);
   assert.match(profile,/id: secondaryPicker[\s\S]{0,800}maximumSelection: 3/);
   assert.match(profile,/id: professionEditor[\s\S]{0,420}maximumSelection: 5/);
   assert.match(profile,/selectedValues: profileExtrasEditor\.secondarySelection/);

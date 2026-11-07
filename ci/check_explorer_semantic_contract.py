@@ -19,16 +19,16 @@ def read(rel: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
-shell = read("ui/components/AppShell.qml")
-feed = read("ui/components/FeedSurface.qml")
-runtime = (read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") +
-           read("ui/app/runtime_composition.cpp") +
-           read("ui/app/runtime_ui_bindings.cpp"))
-link_preview = read("ui/components/LinkPreview.qml")
-preview_resolver = read("ui/app/link_preview_resolver.cpp")
-profile = read("ui/components/ProfileSurface.qml")
-detail = read("ui/components/DetailSurface.qml")
-superellipse_image = read("ui/components/SuperellipseImage.qml")
+shell = read("ui/components/shell/AppShell.qml")
+feed = read("ui/components/feed/FeedSurface.qml")
+runtime = (read("ui/app/main.cpp") + read("ui/app/runtime/composition.cppm") +
+           read("ui/app/runtime/composition.cpp") +
+           read("ui/app/runtime/bindings.cpp"))
+link_preview = read("ui/components/media/LinkPreview.qml")
+preview_resolver = read("ui/app/network/link_preview.cpp")
+profile = read("ui/components/profile/ProfileSurface.qml")
+detail = read("ui/components/feed/DetailSurface.qml")
+superellipse_image = read("ui/components/visual/SuperellipseImage.qml")
 bridge_header = read("src/presentation/qt/presentation_bridge.hpp")
 bridge = read("src/presentation/qt/presentation_bridge.cpp")
 model = read("src/application/read_model.cppm")

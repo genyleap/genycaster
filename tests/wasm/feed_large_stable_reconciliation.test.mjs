@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const qml = readFileSync(new URL('../../ui/components/FeedSurface.qml', import.meta.url), 'utf8');
+const qml = readFileSync(new URL('../../ui/components/feed/FeedSurface.qml', import.meta.url), 'utf8');
 const start = qml.indexOf('    function synchronizeStableModel() {');
 const end = qml.indexOf('\n    function isNearEnd()', start);
 assert.ok(start >= 0 && end > start, 'extract the actual FeedSurface reconciliation');

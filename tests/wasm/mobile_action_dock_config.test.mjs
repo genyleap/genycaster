@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=relative=>readFileSync(relative,'utf8');
-const dock=read('ui/components/BottomNavigation.qml');
+const dock=read('ui/components/navigation/BottomNavigation.qml');
 const theme=read('ui/theme/Theme.qml');
-const settings=read('ui/components/LocaleSettingsPopup.qml');
-const shell=read('ui/components/AppShell.qml');
+const settings=read('ui/components/settings/SettingsPopup.qml');
+const shell=read('ui/components/shell/AppShell.qml');
 
 test('six destinations include Widgets and the configurable compose action remains independent',()=>{
   const capsule=dock.slice(dock.indexOf('objectName: "mobileNavigationCapsule"'));

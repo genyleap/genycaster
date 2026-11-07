@@ -6,13 +6,13 @@ import {readFileSync} from 'node:fs';
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const read = relative => readFileSync(new URL('../../' + relative, import.meta.url), 'utf8');
 
 test('Explorer For You keeps all recent root casts in provider order', () => {
-    const qml = read('ui/components/FeedSurface.qml');
+    const qml = read('ui/components/feed/FeedSurface.qml');
     const match = qml.match(/    function sourceRows\(\) \{([\s\S]*?)\n    \}\n\n    function rowKey\(/);
     assert.ok(match, 'sourceRows() must remain extractable for a regression simulation');
     const rows = [
@@ -38,7 +38,7 @@ test('Explorer For You keeps all recent root casts in provider order', () => {
 });
 
 test('Explorer Conversations uses verified network replies instead of text heuristics or root posts', () => {
-    const qml = read('ui/components/FeedSurface.qml');
+    const qml = read('ui/components/feed/FeedSurface.qml');
     const gate = qml.match(/    function isConversation\(data\) \{([\s\S]*?)\n    \}/);
     assert.ok(gate);
     const isConversation = new Function('data', gate[0] + '\nreturn isConversation(data);');
@@ -62,10 +62,10 @@ test('Explorer Conversations uses verified network replies instead of text heuri
 });
 
 test('single ordinary link Cast composes author sentence inside the responsive card', () => {
-    const cast = read('ui/components/CastItem.qml');
-    const panel = read('ui/components/CastEmbedsPanel.qml');
-    const embed = read('ui/components/EmbedPreview.qml');
-    const preview = read('ui/components/LinkPreview.qml');
+    const cast = read('ui/components/feed/CastItem.qml');
+    const panel = read('ui/components/media/CastEmbedsPanel.qml');
+    const embed = read('ui/components/media/EmbedPreview.qml');
+    const preview = read('ui/components/media/LinkPreview.qml');
     assert.match(cast, /readonly property bool combinedLinkCast/);
     assert.match(cast, /active: root.displayText.length > 0 && !root.combinedLinkCast/);
     assert.match(cast, /castCaption: root.combinedLinkCast \? root.displayText : ""/);
@@ -78,15 +78,15 @@ test('single ordinary link Cast composes author sentence inside the responsive c
 });
 
 test('decoded images remain bounded but warm when recycled feed rows return', () => {
-    const cache = read('ui/app/remote_image_provider.cpp');
+    const cache = read('ui/app/media/remote_image.cpp');
     assert.match(cache, /imageCacheCapacityKiB = 96 \* 1024/);
     assert.match(cache, /imageCacheCapacityKiB = 128 \* 1024/);
     assert.match(cache, /rememberImage\(cacheKey, decoded.image, decoded.originalSize\)/);
-    assert.match(read('ui/components/FeedSurface.qml'), /reuseItems: true/);
+    assert.match(read('ui/components/feed/FeedSurface.qml'), /reuseItems: true/);
 });
 
 test('explicit Explorer refresh cannot hide new casts behind the background badge', () => {
-    const shell = read('ui/components/AppShell.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     const cpp = read('src/presentation/qt/presentation_bridge.cpp');
     const header = read('src/presentation/qt/presentation_bridge.hpp');
     assert.match(header, /Q_INVOKABLE void refreshLatestFeed\(\)/);
@@ -96,7 +96,7 @@ test('explicit Explorer refresh cannot hide new casts behind the background badg
 });
 
 test('changing Explorer semantic tabs avoids immediate full ListModel destruction', () => {
-    const qml = read('ui/components/FeedSurface.qml');
+    const qml = read('ui/components/feed/FeedSurface.qml');
     const modes = qml.split('onPresentationModeChanged: {')[1].split('onVisualFilterChanged: {')[0];
     assert.doesNotMatch(modes, /stableRows.clear\(\)/);
     assert.match(qml, /if \(retained \* 4 < Math.min\(stableRows.count, source.length\)\)/);
@@ -104,8 +104,8 @@ test('changing Explorer semantic tabs avoids immediate full ListModel destructio
 });
 
 test('reply intent always reaches the composer gate and failed canonical targets show feedback', () => {
-    const engagement = read('ui/components/EngagementBar.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const engagement = read('ui/components/feed/EngagementBar.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     assert.match(engagement, /onClicked: root.replyRequested\(\)/);
     assert.doesNotMatch(engagement, /onClicked: root.replyInteractive \? root.replyRequested/);
     assert.match(shell, /if \(!presentationBridge.isAuthenticated \|\| !presentationBridge.writeReady\) \{[\s\S]*?accountPopup.open\(\)/);
@@ -115,7 +115,7 @@ test('reply intent always reaches the composer gate and failed canonical targets
 });
 
 test('Explorer uses confirmed Recent; Home restores personalized Following or ranked Trending', () => {
-    const shell = read('ui/components/AppShell.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     const explorer = shell.split('function selectExplorerPresentationMode(mode, forceRefresh) {')[1]
         .split('function openExplorer() {')[0];
     const home = shell.split('function openHome() {')[1]
@@ -131,7 +131,7 @@ test('Explorer uses confirmed Recent; Home restores personalized Following or ra
 });
 
 test('scrolling preserves in-flight images and only explicit deferral pauses unstarted sources', () => {
-    const image = read('ui/components/SuperellipseImage.qml');
+    const image = read('ui/components/visual/SuperellipseImage.qml');
     const block = image.split('onScrollMovingChanged: {')[1]
         .split('onDeferNewLoadsWhileScrollingChanged:')[0];
     assert.match(block, /sourceStartTimer\.stop\(\)/);
@@ -142,7 +142,7 @@ test('scrolling preserves in-flight images and only explicit deferral pauses uns
 });
 
 test('link previews reconcile metadata without binding loops or geometry jumps', () => {
-    const qml = read('ui/components/LinkPreview.qml');
+    const qml = read('ui/components/media/LinkPreview.qml');
     assert.match(qml, /property var previewData: \(\{\}\)/);
     assert.match(qml, /onTriggered: root\.previewData = root\.selectedPreviewData\(\)/);
     assert.match(qml, /readonly property real genericReservedHeight/);
@@ -153,9 +153,9 @@ test('link previews reconcile metadata without binding loops or geometry jumps',
 });
 
 test('Recent has independent native C++ cache, routing and Explorer presentation', () => {
-    const header = read('ui/components/FeedHeader.qml');
-    const empty = read('ui/components/EmptyState.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const header = read('ui/components/feed/FeedHeader.qml');
+    const empty = read('ui/components/controls/EmptyState.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     const cpp = read('src/providers/hypersnap/async_gateway.cpp');
     assert.match(header, /root\.activeFeed === "recent"/);
     assert.match(header, /root\.discoveryFeed/);
@@ -182,8 +182,8 @@ test('native UI and WebAssembly require Qt 6.12 and offer a pinned host preset',
 });
 
 test('video playback preserves production audio while headless Qt 6.12 QA avoids PipeWire', () => {
-    const player = read('ui/components/GenyVideoPlayer.qml');
-    const preview = read('ui/components/VideoPreview.qml');
+    const player = read('ui/components/media/GenyVideoPlayer.qml');
+    const preview = read('ui/components/media/VideoPreview.qml');
     const testFixture = read('tests/ui/media_scroll_tests.cpp');
     assert.match(player, /property bool audioOutputEnabled: true/);
     assert.match(player, /id: audioOutput[\s\S]*?active: root\.audioOutputEnabled\s*&& \(typeof nativeAudioOutputEnabled === "undefined" \|\| nativeAudioOutputEnabled\)\s*&& \(activation\.activated \|\| \(root\.eager && root\.hasSource\)\)/);
@@ -197,7 +197,7 @@ test('NFT and developer tabs have independent provider searches and cache keys',
     const gateway = read('src/providers/hypersnap/async_gateway.cpp');
     const local = read('src/storage/read_store.cpp');
     const model = read('src/application/read_model.cppm');
-    const surface = read('ui/components/FeedSurface.qml');
+    const surface = read('ui/components/feed/FeedSurface.qml');
     assert.match(gateway, /spec\.path = "\/v2\/farcaster\/cast\/search"/);
     assert.match(gateway, /\{"q", query\.kind/);
     assert.match(gateway, /\? "art" : "github"/);
@@ -213,10 +213,10 @@ test('NFT and developer tabs have independent provider searches and cache keys',
 });
 
 test('story strip uses the current account Following graph, never public cast authors', () => {
-    const shell = read('ui/components/AppShell.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     const bridge = read('src/presentation/qt/presentation_bridge.hpp');
     const runtime = readGenycasterMain();
-    const stories = read('ui/components/StoryStrip.qml');
+    const stories = read('ui/components/feed/StoryStrip.qml');
     assert.match(shell, /recentProfiles: presentationBridge\.followingStoryProfiles/);
     assert.doesNotMatch(shell, /recentProfiles: root\.recentPosterProfiles\(presentationBridge\.rows, 8\)/);
     assert.match(bridge, /Q_PROPERTY\(QVariantList followingStoryProfiles/);
@@ -227,8 +227,8 @@ test('story strip uses the current account Following graph, never public cast au
 });
 
 test('loading placeholders have real layout sizes and fixed modest row height', () => {
-    const skeleton = read('ui/components/CastSkeleton.qml');
-    const surface = read('ui/components/FeedSurface.qml');
+    const skeleton = read('ui/components/feed/CastSkeleton.qml');
+    const surface = read('ui/components/feed/FeedSurface.qml');
     assert.match(skeleton, /implicitHeight: mediaPreview \? 222 : 142/);
     assert.match(skeleton, /Layout\.preferredWidth: 100/);
     assert.match(skeleton, /Layout\.preferredHeight: 11/);
@@ -236,7 +236,7 @@ test('loading placeholders have real layout sizes and fixed modest row height', 
 });
 
 test('mobile brand header keeps crisp native text without an offscreen elevation layer', () => {
-    const header = read('ui/components/AppHeader.qml');
+    const header = read('ui/components/shell/AppHeader.qml');
     assert.match(header, /layer\.enabled: false/);
     assert.match(header, /renderType: Text\.NativeRendering/);
     // Branding uses a native SVG icon and wordmark rather than a shadowed tile.
@@ -248,10 +248,10 @@ test('mobile brand header keeps crisp native text without an offscreen elevation
 
 test('stories always start with current identity; fresh Following casts use colored rings while older follows remain visible', () => {
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
-    const strip = read('ui/components/StoryStrip.qml');
-    const item = read('ui/components/StoryItem.qml');
-    const header = read('ui/components/HomeFeedHeader.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const strip = read('ui/components/feed/StoryStrip.qml');
+    const item = read('ui/components/feed/StoryItem.qml');
+    const header = read('ui/components/home/HomeFeedHeader.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     assert.match(bridge, /following\.prepend\(std::move\(own\)\)/);
     assert.match(bridge, /\{QStringLiteral\("isSelf"\), true\}/);
     assert.match(bridge, /QSet<qulonglong> seen/);
@@ -266,11 +266,11 @@ test('stories always start with current identity; fresh Following casts use colo
     assert.match(item, /borderColor: root\.addStory \|\| root\.storyState === "active"/);
     assert.match(item, /opacity: 1\.0/);
     assert.doesNotMatch(item, /opacity: root\.storyState === "viewed"/);
-    assert.match(read('ui/components/Avatar.qml'), /visible: !avatarImage\.ready/);
+    assert.match(read('ui/components/content/Avatar.qml'), /visible: !avatarImage\.ready/);
 });
 
 test('tapping ordinary cast text opens conversation without covering interactive media or controls', () => {
-    const cast = read('ui/components/CastItem.qml');
+    const cast = read('ui/components/feed/CastItem.qml');
     assert.match(cast, /id: castTextBody/);
     assert.doesNotMatch(cast.slice(cast.indexOf('id: castTextBody'),cast.indexOf('// Protocol cast order')), /TapHandler \{/);
     assert.match(cast, /onBodyActivated: \{/);
@@ -280,9 +280,9 @@ test('tapping ordinary cast text opens conversation without covering interactive
 });
 
 test('desktop quick draft keeps context menu; mobile opens the dedicated editor', () => {
-    const home = read('ui/components/HomeDashboard.qml');
-    const composer = read('ui/components/ComposerDrawer.qml');
-    const menu = read('ui/components/EditorContextMenu.qml');
+    const home = read('ui/components/home/HomeDashboard.qml');
+    const composer = read('ui/components/composer/ComposerDrawer.qml');
+    const menu = read('ui/components/composer/EditorContextMenu.qml');
     assert.match(home, /ContextMenu\.menu: EditorContextMenu \{ editor: desktopDraftEditor \}/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
     assert.match(home, /onClicked: root\.composeRequested\(root\.draftText\)/);

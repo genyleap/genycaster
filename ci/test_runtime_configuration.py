@@ -51,10 +51,10 @@ def _fields(source: str) -> tuple[str, ...]:
 class RuntimeStartupPolicyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.interface = (ROOT / "ui/app/runtime_composition.cppm").read_text(
+        cls.interface = (ROOT / "ui/app/runtime/composition.cppm").read_text(
             encoding="utf-8"
         )
-        cls.implementation = (ROOT / "ui/app/runtime_composition.cpp").read_text(
+        cls.implementation = (ROOT / "ui/app/runtime/composition.cpp").read_text(
             encoding="utf-8"
         )
         cls.entry = (ROOT / "ui/app/main.cpp").read_text(encoding="utf-8")
@@ -141,10 +141,10 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
 
     def test_gui_attachment_is_published_after_all_bindings(self) -> None:
         """All controller connections must be established before ready=true."""
-        bridge = (ROOT / "ui/app/runtime_ui_bindings.cpp").read_text(
+        bridge = (ROOT / "ui/app/runtime/bindings.cpp").read_text(
             encoding="utf-8"
         )
-        header = (ROOT / "ui/app/runtime_ui_bindings.hpp").read_text(
+        header = (ROOT / "ui/app/runtime/bindings.hpp").read_text(
             encoding="utf-8"
         )
         self.assertIn("struct RuntimeAttachment final", header)
@@ -186,7 +186,7 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         )
 
     def test_legacy_browser_wheel_header_is_not_imported(self) -> None:
-        bindings = (ROOT / "ui/app/runtime_ui_bindings.cpp").read_text(
+        bindings = (ROOT / "ui/app/runtime/bindings.cpp").read_text(
             encoding="utf-8"
         )
         self.assertNotIn("browser_wheel_fallback.hpp", bindings)

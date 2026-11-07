@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -5,10 +6,10 @@ const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 
 test('the Qt Views controller batches and bounds network work outside QML',()=>{
   const cmake=read('ui/CMakeLists.txt');
-  const facade=read('ui/components/CastViews.qml');
-  const controller=read('ui/app/cast_view_controller.cpp');
-  const header=read('ui/app/cast_view_controller.hpp');
-  assert.match(cmake,/app\/cast_view_controller.cpp/);
+  const facade=read('ui/components/feed/CastViews.qml');
+  const controller=read('ui/app/social/cast_views.cpp');
+  const header=read('ui/app/social/cast_views.hpp');
+  assert.match(cmake,/app\/social\/cast_views.cpp/);
   assert.match(facade,/pragma Singleton/);
   assert.doesNotMatch(facade,/XMLHttpRequest|JSON\.parse|revision/);
   assert.match(controller,/maxBatch = 16/);
@@ -22,7 +23,7 @@ test('the Qt Views controller batches and bounds network work outside QML',()=>{
 });
 
 test('cast delegates retain and release per-cast analytics interest without global invalidation',()=>{
-  const bar=read('ui/components/EngagementBar.qml');
+  const bar=read('ui/components/feed/EngagementBar.qml');
   assert.match(bar,/castViewController\.ensure\(root\.descriptorCastId,/);
   assert.match(bar,/root\.viewDescriptor\.authorFid/);
   assert.match(bar,/root\.enrichmentActive/);
@@ -36,7 +37,7 @@ test('cast delegates retain and release per-cast analytics interest without glob
   assert.match(bar,/Accessible\.role: Accessible\.StaticText/);
   assert.match(bar,/spacing: root\.compact \? 0 : Theme\.space1/);
   for(const name of ['CastItem.qml','ThreadReplyItem.qml','DetailSurface.qml']){
-    const text=read('ui/components/'+name);
+    const text=read('ui/components/' + componentPath(name));
     assert.match(text,/castId: String\(root\.(?:modelData|reply|detail)\.castId \|\| ""\)/,name);
     assert.match(text,/authorFid: Number\(root\.(?:modelData|reply|detail)\.authorFid \|\| 0\)/,name);
     assert.match(text,/castText: String\(root\.(?:modelData|reply|detail)\.text \|\| ""\)/,name);

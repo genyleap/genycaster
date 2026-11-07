@@ -49,8 +49,8 @@ timestamps, and localized numerals do not rewrite Farcaster IDs or hashes.
 
 Implementation references: `src/presentation/qt/localization_controller.hpp`,
 `src/presentation/qt/localization_controller.cpp`,
-`ui/components/LocaleSettingsPopup.qml` and
-`ui/components/LocaleFormat.qml`. Translation resources live in `ui/i18n/`.
+`ui/components/settings/SettingsPopup.qml` and
+`ui/components/controls/LocaleFormat.qml`. Translation resources live in `ui/i18n/`.
 Some platform-specific integrations can have separate localization coverage. The twelve catalogs are present, but translation coverage is not yet complete for every UI string; ongoing localization checks currently identify missing and untranslated entries.
 
 ## Apps and widgets
@@ -73,7 +73,7 @@ GenyCaster includes product-specific integration with the **GENY token ecosystem
 - GENY integration is **an optional product capability**, not the canonical Farcaster protocol, the account identity authority or a requirement for ordinary public reads.
 - This documentation makes **no investment, pricing, staking, reward or guaranteed eligibility claim**.
 
-Implementation references: `ui/components/ContextRail.qml`, `ui/components/GenyProDetailsDrawer.qml`, `ui/components/AppsSurface.qml`, `ui/app/insights/live.cpp` and `services/account-sync/pro_entitlements.mjs`.
+Implementation references: `ui/components/navigation/ContextRail.qml`, `ui/components/profile/GenyProDetailsDrawer.qml`, `ui/components/apps/AppsSurface.qml`, `ui/app/data/insights.cpp` and `services/account-sync/pro_entitlements.mjs`.
 
 ## Networks and platforms
 

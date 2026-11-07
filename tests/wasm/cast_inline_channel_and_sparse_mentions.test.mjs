@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('feed and profile headers keep channel after author name without a third mobile row', () => {
-  const feed = read('ui/components/CastItem.qml');
+  const feed = read('ui/components/feed/CastItem.qml');
   const identity = feed.slice(feed.indexOf('id: castAuthorIdentity'), feed.indexOf('id: moreButton'));
   assert.ok(identity.includes('id: castNameAndChannel'));
   assert.ok(identity.includes('id: castInlineChannel'));
@@ -21,7 +21,7 @@ test('feed and profile headers keep channel after author name without a third mo
 });
 
 test('cast detail uses same first-line channel layout and second-line handle', () => {
-  const detail = read('ui/components/DetailSurface.qml');
+  const detail = read('ui/components/feed/DetailSurface.qml');
   const header = detail.slice(detail.indexOf('id: detailNameAndChannel'), detail.indexOf('// Timestamp belongs with the author identity'));
   assert.ok(header.includes('text: root.resolvedChannelName'));
   assert.ok(header.includes('text: root.ltrHandle(root.detail.username)'));
@@ -49,6 +49,6 @@ test('real emoji-X cast sample proves the hydrated zero-width mention renders in
   assert.match(fixture, /"start":12,"end":12/);
   assert.match(fixture, /"fid":280,"username":"vrypan.eth"/);
   assert.match(fixture, /Right! 💯 @vrypan\.eth/);
-  assert.match(read('ui/components/CastItem.qml'), /\[@#\]\[a-z0-9_\]/);
-  assert.match(read('ui/components/AppShell.qml'), /presentationBridge\.openProfileUsername\(target\.substring\(1\)\)/);
+  assert.match(read('ui/components/feed/CastItem.qml'), /\[@#\]\[a-z0-9_\]/);
+  assert.match(read('ui/components/shell/AppShell.qml'), /presentationBridge\.openProfileUsername\(target\.substring\(1\)\)/);
 });

@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const read = file => readFileSync(new URL('../../'+file,import.meta.url),'utf8');
 
 test('saved casts render through canonical CastItem with full media, link and parent pipeline',()=>{
-  const ui=read('ui/components/BookmarksSurface.qml');
-  const cast=read('ui/components/CastItem.qml');
+  const ui=read('ui/components/profile/BookmarksSurface.qml');
+  const cast=read('ui/components/feed/CastItem.qml');
   assert.match(ui,/CastItem \{/);
   assert.match(ui,/modelData: bookmarkCard.modelData/);
   assert.match(ui,/onExternalRequested: url => root.externalRequested\(url\)/);
@@ -19,9 +19,9 @@ test('saved casts render through canonical CastItem with full media, link and pa
 
 test('bookmarks hydrate by cast hash through native provider read without navigating or uploading',()=>{
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
-  const binding=read('ui/app/runtime_ui_bindings.cpp');
-  const surface=read('ui/components/BookmarksSurface.qml');
-  const shell=read('ui/components/AppShell.qml');
+  const binding=read('ui/app/runtime/bindings.cpp');
+  const surface=read('ui/components/profile/BookmarksSurface.qml');
+  const shell=read('ui/components/shell/AppShell.qml');
   assert.match(bridge,/void PresentationBridge::hydrateBookmarkedCasts\(/);
   assert.match(bridge,/void PresentationBridge::applyHydratedBookmark\(/);
   assert.match(bridge,/if \(!pending.isEmpty\(\)\) emit bookmarkHydrationRequested/);
@@ -39,7 +39,7 @@ test('bookmarks hydrate by cast hash through native provider read without naviga
 });
 
 test('priority uses an outlined star when off and amber filled star when on',()=>{
-  const qml=read('ui/components/BookmarksSurface.qml');
+  const qml=read('ui/components/profile/BookmarksSurface.qml');
   const theme=read('ui/theme/Theme.qml');
   assert.match(qml,/selected: Number\(bookmarkCard.modelData.priority \|\| 0\) > 0/);
   assert.match(qml,/customIconColor: selected \? Theme.warning : Theme.inkMuted/);
@@ -50,7 +50,7 @@ test('priority uses an outlined star when off and amber filled star when on',()=
 });
 
 test('header uses a stable wordmark, separated Beta label and bidi-isolated version',()=>{
-  const qml=read('ui/components/AppHeader.qml');
+  const qml=read('ui/components/shell/AppHeader.qml');
   const fa=read('ui/i18n/qml_fa_IR.ts');
   assert.match(qml,/genycaster-wordmark-dark.svg/);
   assert.match(qml,/objectName: "appHeaderBrandCluster"/);

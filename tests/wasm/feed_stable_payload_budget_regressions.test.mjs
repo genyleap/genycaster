@@ -3,7 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
 const qml = readFileSync(
-    new URL('../../ui/components/FeedSurface.qml', import.meta.url), 'utf8');
+    new URL('../../ui/components/feed/FeedSurface.qml', import.meta.url), 'utf8');
 const source = qml.match(
     /    function synchronizeStableModel\(\) \{([\s\S]*?)\n    \}\n\n    function isNearEnd\(/);
 assert.ok(source, 'The live ListModel reconciliation must be executable in isolation');

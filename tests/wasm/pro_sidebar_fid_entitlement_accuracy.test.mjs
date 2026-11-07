@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read = name => readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('sidebar account card presents four factual metrics including tappable full FID',()=>{
- const qml=read('ui/components/ProfileTrustCard.qml');
+ const qml=read('ui/components/profile/ProfileTrustCard.qml');
  const face=qml.slice(qml.indexOf('id: frontFace'),qml.indexOf('id: backFace'));
  assert.match(face,/objectName: "sidebarFidMetric"/);
  assert.match(face,/valueText: Number\(root\.fid\) > 0\s*\? LocaleFormat\.formatInteger\(root\.fid\)/);
@@ -22,11 +22,11 @@ test('sidebar account card presents four factual metrics including tappable full
 });
 
 test('drawer describes backend-verified Pro capabilities without using cast thread dialog strings',()=>{
- const drawer=read('ui/components/GenyProDetailsDrawer.qml');
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
  const policy=read('services/account-sync/pro_entitlements.mjs');
- const composer=read('ui/components/ComposerDrawer.qml');
- const settings=read('ui/components/LocaleSettingsPopup.qml');
- const chooser=read('ui/components/BookmarkCollectionChooser.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
+ const settings=read('ui/components/settings/SettingsPopup.qml');
+ const chooser=read('ui/components/profile/CollectionChooser.qml');
  assert.match(policy,/concurrent_miniapps:1,market_pulse:4/);
  assert.match(policy,/concurrent_miniapps:4,market_pulse:16/);
  assert.match(policy,/cast_characters:4096,image_embeds:4/);
@@ -45,10 +45,10 @@ test('drawer describes backend-verified Pro capabilities without using cast thre
 });
 
 test('Check status rotates its refresh glyph only while the actual HTTP entitlement request is pending',()=>{
- const drawer=read('ui/components/GenyProDetailsDrawer.qml');
- const button=read('ui/components/ActionButton.qml');
- const header=read('ui/app/openproof/connections.hpp');
- const cpp=read('ui/app/openproof/connections.cpp');
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ const button=read('ui/components/controls/ActionButton.qml');
+ const header=read('ui/app/identity/connections.hpp');
+ const cpp=read('ui/app/identity/connections.cpp');
  assert.match(header,/Q_PROPERTY\(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged\)/);
  assert.match(header,/proEntitlementsBusy\(\) const noexcept \{/);
  assert.match(header,/return m_proEntitlementsRead != nullptr/);

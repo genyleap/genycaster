@@ -3,8 +3,8 @@
 #include "media_playback_coordinator.hpp"
 #include "rendering_controller.hpp"
 #include "rich_inline_text_item.hpp"
-#include "scene_graph_superellipse_item.hpp"
-#include "../../ui/app/feed_rows_model.hpp"
+#include "../../ui/render/superellipse.hpp"
+#include "../../ui/app/social/feed_rows.hpp"
 
 #include <QGuiApplication>
 #include <QDir>

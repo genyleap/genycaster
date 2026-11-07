@@ -16,11 +16,11 @@ test('KEY_REMOVE waits for verified network revocation instead of assuming submi
  assert.match(contract,/testSelfRevokePollsUntilNetworkConfirmsRemoval\(\);/);
 });
 test('QML avoids reading transient null data controllers during profile teardown',()=>{
- const shell=read('ui/components/AppShell.qml');
- const profile=read('ui/components/ProfileSurface.qml');
- const pulse=read('ui/components/GenyPulsePanel.qml');
- const engagement=read('ui/components/EngagementBar.qml');
- const link=read('ui/components/ProfileLinkRow.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
+ const pulse=read('ui/components/profile/GenyPulsePanel.qml');
+ const engagement=read('ui/components/feed/EngagementBar.qml');
+ const link=read('ui/components/profile/ProfileLinkRow.qml');
  assert.match(shell,/openProofConnections \? openProofConnections.topicCastsBusy : false/);
  assert.match(profile,/connections: openProofConnections \? openProofConnections.connections : \[\]/);
  assert.match(profile,/const server = openProofConnections \? openProofConnections.cloudProfileExtras : null/);

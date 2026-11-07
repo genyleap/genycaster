@@ -5,10 +5,10 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 const bridgeHeader = read('src/presentation/qt/presentation_bridge.hpp');
 const bridgeSource = read('src/presentation/qt/presentation_bridge.cpp');
-const runtime = read('ui/app/runtime_ui_bindings.cpp');
-const browse = read('ui/components/TopicBrowseSurface.qml');
-const shell = read('ui/components/AppShell.qml');
-const picker = read('ui/components/TopicFilterPicker.qml');
+const runtime = read('ui/app/runtime/bindings.cpp');
+const browse = read('ui/components/feed/TopicBrowseSurface.qml');
+const shell = read('ui/components/shell/AppShell.qml');
+const picker = read('ui/components/feed/TopicFilterPicker.qml');
 
 test('topic discovery can request canonical provider previews without creating bookmarks', () => {
   assert.match(bridgeHeader, /Q_PROPERTY\(QVariantList topicPreviewCasts READ topicPreviewCasts NOTIFY topicPreviewCastsChanged\)/);
@@ -43,7 +43,7 @@ test('topic filter uses compact native menu and dynamically labels new slugs', (
 
 
 test('bookmark collection creation keeps chooser open while the server confirms the saved collection', () => {
-  const chooser = read('ui/components/BookmarkCollectionChooser.qml');
+  const chooser = read('ui/components/profile/CollectionChooser.qml');
   assert.match(chooser, /property string errorText:/);
   assert.match(chooser, /text: root\.errorText/);
   assert.match(chooser, /root\.createRequested\(root\.newName\.trim\(\)\)/);
@@ -55,8 +55,8 @@ test('bookmark collection creation keeps chooser open while the server confirms 
 });
 
 test('topic pagination advances by raw server rows, not deduplicated cast count', () => {
-  const controller = read('ui/app/openproof/connections.cpp');
-  const header = read('ui/app/openproof/connections.hpp');
+  const controller = read('ui/app/identity/connections.cpp');
+  const header = read('ui/app/identity/connections.hpp');
   assert.match(header, /qsizetype m_topicCastOffset/);
   assert.match(controller, /m_topicCastOffset=0;/);
   assert.match(controller, /const auto offset=m_topicCastOffset;/);

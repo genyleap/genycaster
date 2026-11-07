@@ -4,10 +4,10 @@ import {readFileSync} from 'node:fs';
 const read = f => readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 
 test('selection mode is persisted per device and unavailable on WASM canvas',()=>{
-  const cpp=read('ui/app/text/selection.cpp');
-  const header=read('ui/app/text/selection.hpp');
+  const cpp=read('ui/app/settings/selection.cpp');
+  const header=read('ui/app/settings/selection.hpp');
   const main=read('ui/app/main.cpp');
-  const settings=read('ui/components/LocaleSettingsPopup.qml');
+  const settings=read('ui/components/settings/SettingsPopup.qml');
   assert.match(header,/Q_PROPERTY\(QString mode READ mode NOTIFY modeChanged/);
   assert.match(header,/Q_PROPERTY\(bool nativeAvailable READ nativeAvailable CONSTANT/);
   assert.match(cpp,/accessibility\/textSelectionMode/);
@@ -20,7 +20,7 @@ test('selection mode is persisted per device and unavailable on WASM canvas',()=
   assert.match(settings,/enabled: textSelectionSettings.nativeAvailable/);
 });
 test('mobile composer selection has two unclipped draggable screen-space handles',()=>{
-  const input=read('ui/components/DirectionAwareTextArea.qml');
+  const input=read('ui/components/controls/BidiTextArea.qml');
   assert.match(input,/objectName: "composerTextSelectionHandles"/);
   assert.match(input,/parent: Overlay.overlay/);
   assert.match(input,/root\.positionToRectangle\(root.selectionStart\)/);
@@ -32,7 +32,7 @@ test('mobile composer selection has two unclipped draggable screen-space handles
   assert.match(input,/!textSelectionSettings.systemSelectionEnabled/);
 });
 test('cast selection exposes real document caret rectangles and draggable blue handles',()=>{
-  const cast=read('ui/components/RichInlineText.qml');
+  const cast=read('ui/components/content/RichInlineText.qml');
   const cpp=read('src/presentation/qt/rich_inline_text_item.cpp');
   const h=read('src/presentation/qt/rich_inline_text_item.hpp');
   assert.match(h,/Q_PROPERTY\(QRectF selectionStartRect/);
@@ -48,9 +48,9 @@ test('cast selection exposes real document caret rectangles and draggable blue h
   assert.match(cast,/parent: Overlay.overlay/);
 });
 test('system mode uses Qt built-in native text selection and menus on native platforms',()=>{
-  const cast=read('ui/components/RichInlineText.qml');
-  const input=read('ui/components/DirectionAwareTextArea.qml');
-  const menu=read('ui/components/EditorContextMenu.qml');
+  const cast=read('ui/components/content/RichInlineText.qml');
+  const input=read('ui/components/controls/BidiTextArea.qml');
+  const menu=read('ui/components/composer/EditorContextMenu.qml');
   assert.match(cast,/objectName: "platformCastSelectableText"/);
   assert.match(cast,/readOnly: true/);
   assert.match(cast,/onLinkActivated: url => root.externalRequested\(url\)/);
@@ -61,7 +61,7 @@ test('system mode uses Qt built-in native text selection and menus on native pla
   assert.match(menu,/Popup\.Native : Popup\.Item/);
 });
 test('Clear content destroys unsent content and media safely after confirmation',()=>{
-  const composer=read('ui/components/ComposerDrawer.qml');
+  const composer=read('ui/components/composer/ComposerDrawer.qml');
   const engine=read('src/presentation/qt/rich_composer_controller.cpp');
   assert.match(composer,/function clearAllComposerContent\(\)/);
   assert.match(composer,/if \(presentationBridge.writeBusy \|\| presentationBridge.writePhase === "queued"\)/);

@@ -7,8 +7,8 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('credential injection is strictly bound to explicit HTTPS indexed provider IDs', () => {
   const boot = read('ui/app/bootstrap/profiles.cpp');
-  const iface = read('ui/app/runtime_composition.cppm');
-  const runtime = read('ui/app/runtime_composition.cpp');
+  const iface = read('ui/app/runtime/composition.cppm');
+  const runtime = read('ui/app/runtime/composition.cpp');
   assert.match(boot, /GENYCASTER_READ_PROVIDER_API_KEYS_JSON/);
   assert.match(boot, /readProviderApiKeys\.emplace\(it\.key\(\)\.toStdString\(\), value\.toStdString\(\)\)/);
   assert.match(boot, /profile\.id == it\.key\(\)\.toStdString\(\)/);
@@ -19,9 +19,9 @@ test('credential injection is strictly bound to explicit HTTPS indexed provider 
   assert.match(iface, /const std::unordered_map<std::string, std::string>& readProviderApiKeys/);
   assert.match(runtime, /const auto credential = readProviderApiKeys\.find\(profile\.id\)/);
   assert.match(runtime, /\.apiKey = credential == readProviderApiKeys\.end\(\)/);
-  assert.doesNotMatch(read('ui/app/providers/profiles.cpp'),
+  assert.doesNotMatch(read('ui/app/settings/providers.cpp'),
     /GENYCASTER_READ_PROVIDER_API_KEYS_JSON|readProviderApiKeys|\.apiKey/);
-  assert.doesNotMatch(read('ui/app/providers/profiles.hpp'),
+  assert.doesNotMatch(read('ui/app/settings/providers.hpp'),
     /readProviderApiKeys|\.apiKey/);
 });
 

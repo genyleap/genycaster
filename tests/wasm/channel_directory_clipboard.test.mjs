@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8')
 
 test('WASM channel imagery uses the existing first-party media gateway rather than a missing SPA proxy',()=>{
   const main=read('ui/app/main.cpp');
-  const backend=read('ui/app/channels/picker.cpp');
+  const backend=read('ui/app/social/channels.cpp');
   const gateway=read('services/media-gateway/gateway.mjs');
   assert.match(main,/channelDirectoryBaseUrl = mediaGatewayBaseUrlText/);
   assert.match(main,/channelDirectoryBaseUrl \+= QStringLiteral\("\/v1\/browser\/channels"\)/);
@@ -17,7 +17,7 @@ test('WASM channel imagery uses the existing first-party media gateway rather th
   assert.match(gateway,/\/v1\/browser\/channels\/search-channels/);
   assert.match(gateway,/\/v1\/browser\/channels\/channel/);
   assert.match(gateway,/access-control-allow-origin', '\*'/);
-  assert.doesNotMatch(read('ui/components/ComposerDrawer.qml'),/XMLHttpRequest|channel-icons\.json/);
+  assert.doesNotMatch(read('ui/components/composer/ComposerDrawer.qml'),/XMLHttpRequest|channel-icons\.json/);
 });
 
 test('cast text supports native long press without blocking native touch scrolling',()=>{
@@ -37,7 +37,7 @@ test('cast text supports native long press without blocking native touch scrolli
 
 test('copy uses browser Clipboard API under WASM user interaction and labels lazily instantiate a selection editor',()=>{
   const bridge=read('src/presentation/qt/presentation_bridge.cpp');
-  const label=read('ui/components/DirectionAwareLabel.qml');
+  const label=read('ui/components/controls/BidiLabel.qml');
   assert.match(bridge,/navigator\.clipboard/);
   assert.match(bridge,/clipboard\.writeText\(payload\)/);
   assert.match(bridge,/QGuiApplication::clipboard\(\)/);

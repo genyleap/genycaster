@@ -6,7 +6,7 @@ import {readFileSync} from "node:fs";
 // GCC C++26 module compilation bounded; test both halves as one read pipeline.
 function readGenycasterMain() {
   return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
+    '\n' + readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
 }
 
 const read = filename => readFileSync(new URL("../../"+filename,import.meta.url),"utf8");
@@ -40,7 +40,7 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
 });
 
 test("phone Home is focused on three active actions and a locked Wallet",()=>{
- const home=read("ui/components/HomeDashboard.qml");
+ const home=read("ui/components/home/HomeDashboard.qml");
  assert.match(home,/component HubWorkspace: ColumnLayout/);
  assert.match(home,/columns: 2/);
  assert.match(home,/"homeShortcut_" \+ modelData.destination/);
@@ -65,9 +65,9 @@ test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{
 });
 
 test("Feed and profile allow only drag-triggered top refresh; empty state scrolls after header",()=>{
-    const feed=read("ui/components/FeedSurface.qml");
-    const profile=read("ui/components/ProfileSurface.qml");
-    const empty=read("ui/components/EmptyState.qml");
+    const feed=read("ui/components/feed/FeedSurface.qml");
+    const profile=read("ui/components/profile/ProfileSurface.qml");
+    const empty=read("ui/components/controls/EmptyState.qml");
     for(const source of [feed,profile]) {
         assert.match(source,/boundsBehavior: Flickable\.DragOverBounds/);
         assert.match(source,/boundsMovement: Flickable\.FollowBoundsBehavior/);

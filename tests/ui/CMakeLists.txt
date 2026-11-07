@@ -136,8 +136,8 @@ set_tests_properties(ui.qml_engine_shutdown PROPERTIES
 # time-series sampling and coordinate generation are native and bounded.
 qt_add_executable(farcaster_token_sparkline_tests
     token_sparkline_geometry_tests.cpp
-    "${genycasterUiSourceDir}/render/token_sparkline_geometry.cpp"
-    "${genycasterUiSourceDir}/render/token_sparkline_geometry.hpp")
+    "${genycasterUiSourceDir}/render/sparkline.cpp"
+    "${genycasterUiSourceDir}/render/sparkline.hpp")
 target_compile_features(farcaster_token_sparkline_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_token_sparkline_tests PRIVATE
     Qt6::Core Qt6::Qml Qt6::Test)
@@ -151,8 +151,8 @@ set_tests_properties(ui.token_sparkline_geometry PROPERTIES
 # batching, exact cast counts and unknown values deterministic.
 qt_add_executable(farcaster_cast_views_tests
     cast_view_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/cast_view_controller.cpp"
-    "${genycasterUiSourceDir}/app/cast_view_controller.hpp")
+    "${genycasterUiSourceDir}/app/social/cast_views.cpp"
+    "${genycasterUiSourceDir}/app/social/cast_views.hpp")
 target_compile_features(farcaster_cast_views_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_cast_views_tests PRIVATE Qt6::Core Qt6::Network)
 farcaster_enable_warnings(farcaster_cast_views_tests)
@@ -205,8 +205,8 @@ set_tests_properties(ui.provider_translation_contract PROPERTIES
 
 qt_add_executable(farcaster_provider_profiles_tests
     provider_profiles_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/providers/profiles.cpp"
-    "${genycasterUiSourceDir}/app/providers/profiles.hpp")
+    "${genycasterUiSourceDir}/app/settings/providers.cpp"
+    "${genycasterUiSourceDir}/app/settings/providers.hpp")
 target_compile_features(farcaster_provider_profiles_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_provider_profiles_tests PRIVATE Qt6::Core Qt6::Network Qt6::Gui)
 target_compile_definitions(farcaster_provider_profiles_tests PRIVATE
@@ -221,7 +221,7 @@ set_tests_properties(ui.provider_profiles_contract PROPERTIES
 qt_add_executable(farcaster_node_selection_tests
     node_selection_controller_tests.cpp
     "${PROJECT_SOURCE_DIR}/src/providers/hypersnap/node_selection_controller.cpp"
-    "${genycasterUiSourceDir}/app/node_selection_controller.hpp")
+    "${genycasterUiSourceDir}/app/network/node_selection.hpp")
 target_compile_features(farcaster_node_selection_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_node_selection_tests PRIVATE Qt6::Core Qt6::Network)
 farcaster_enable_warnings(farcaster_node_selection_tests)
@@ -328,10 +328,10 @@ endif()
 
 add_executable(farcaster_openproof_connections_tests
     openproof_connections_tests.cpp
-    "${genycasterUiSourceDir}/app/openproof/connections.cpp"
-    "${genycasterUiSourceDir}/app/openproof/connections.hpp"
-    "${genycasterUiSourceDir}/app/browser/openproof_auth.cpp"
-    "${genycasterUiSourceDir}/app/browser/openproof_auth.hpp")
+    "${genycasterUiSourceDir}/app/identity/connections.cpp"
+    "${genycasterUiSourceDir}/app/identity/connections.hpp"
+    "${genycasterUiSourceDir}/app/identity/browser_auth.cpp"
+    "${genycasterUiSourceDir}/app/identity/browser_auth.hpp")
 target_include_directories(farcaster_openproof_connections_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_openproof_connections_tests PRIVATE
@@ -347,8 +347,8 @@ set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
 
 add_executable(farcaster_channel_picker_controller_tests
     channel_picker_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/channels/picker.cpp"
-    "${genycasterUiSourceDir}/app/channels/picker.hpp")
+    "${genycasterUiSourceDir}/app/social/channels.cpp"
+    "${genycasterUiSourceDir}/app/social/channels.hpp")
 target_include_directories(farcaster_channel_picker_controller_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_channel_picker_controller_tests PRIVATE
@@ -360,8 +360,8 @@ set_tests_properties(ui.channel_picker_controller PROPERTIES TIMEOUT 12
 
 add_executable(farcaster_update_controller_tests
     update_controller_tests.cpp
-    "${genycasterUiSourceDir}/app/update_controller.cpp"
-    "${genycasterUiSourceDir}/app/update_controller.hpp")
+    "${genycasterUiSourceDir}/app/update/controller.cpp"
+    "${genycasterUiSourceDir}/app/update/controller.hpp")
 target_include_directories(farcaster_update_controller_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_update_controller_tests PRIVATE
@@ -383,8 +383,8 @@ set_tests_properties(ui.browser_wheel_fallback PROPERTIES TIMEOUT 15
 
 add_executable(farcaster_feed_rows_model_tests
     feed_rows_model_tests.cpp
-    "${genycasterUiSourceDir}/app/feed_rows_model.cpp"
-    "${genycasterUiSourceDir}/app/feed_rows_model.hpp")
+    "${genycasterUiSourceDir}/app/social/feed_rows.cpp"
+    "${genycasterUiSourceDir}/app/social/feed_rows.hpp")
 target_compile_features(farcaster_feed_rows_model_tests PRIVATE cxx_std_26)
 target_link_libraries(farcaster_feed_rows_model_tests PRIVATE
     Qt6::Core Qt6::Qml Qt6::Test)
@@ -395,9 +395,9 @@ set_tests_properties(ui.feed_rows_model PROPERTIES
 
 add_executable(farcaster_media_scroll_tests
     media_scroll_tests.cpp
-    "${genycasterUiSourceDir}/app/feed_rows_model.cpp"
-    "${genycasterUiSourceDir}/app/feed_rows_model.hpp"
-    "${genycasterUiSourceDir}/render/scene_graph_superellipse_item.cpp")
+    "${genycasterUiSourceDir}/app/social/feed_rows.cpp"
+    "${genycasterUiSourceDir}/app/social/feed_rows.hpp"
+    "${genycasterUiSourceDir}/render/superellipse.cpp")
 target_include_directories(farcaster_media_scroll_tests PRIVATE
     "${genycasterUiSourceDir}/render")
 target_link_libraries(farcaster_media_scroll_tests PRIVATE
@@ -433,7 +433,7 @@ if(APPLE)
 endif()
 add_executable(farcaster_link_preview_shutdown_tests
     link_preview_shutdown_tests.cpp
-    "${genycasterUiSourceDir}/app/link_preview_resolver.cpp")
+    "${genycasterUiSourceDir}/app/network/link_preview.cpp")
 target_include_directories(farcaster_link_preview_shutdown_tests PRIVATE
     "${genycasterUiSourceDir}/app")
 target_link_libraries(farcaster_link_preview_shutdown_tests PRIVATE Qt6::Core Qt6::Network)

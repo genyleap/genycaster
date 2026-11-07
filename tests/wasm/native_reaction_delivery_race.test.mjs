@@ -5,9 +5,9 @@ import {readFileSync} from 'node:fs';
 // Deterministic fake event loop for the asynchronous native reaction ownership
 // contract. This fixture also pins its decision points to the actual C++ path;
 // it is not a substitute for an instrumented compiled Qt runtime interleaving.
-const binding = readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
-const runtime = readFileSync(new URL('../../ui/app/runtime_composition.cpp', import.meta.url), 'utf8');
-const definition = readFileSync(new URL('../../ui/app/runtime_composition.cppm', import.meta.url), 'utf8');
+const binding = readFileSync(new URL('../../ui/app/runtime/bindings.cpp', import.meta.url), 'utf8');
+const runtime = readFileSync(new URL('../../ui/app/runtime/composition.cpp', import.meta.url), 'utf8');
+const definition = readFileSync(new URL('../../ui/app/runtime/composition.cppm', import.meta.url), 'utf8');
 
 class DeliveryFixture {
   constructor() {
@@ -104,7 +104,7 @@ test('partial unknown refreshes expired cooldown instead of preserving a dead en
 
 
 test('native viewport interests are retained and released by the same pooled EngagementBar', () => {
-  const bar = readFileSync(new URL('../../ui/components/EngagementBar.qml', import.meta.url), 'utf8');
+  const bar = readFileSync(new URL('../../ui/components/feed/EngagementBar.qml', import.meta.url), 'utf8');
   const header = readFileSync(new URL('../../src/presentation/qt/presentation_bridge.hpp', import.meta.url), 'utf8');
   assert.match(bar, /Qt\.platform\.os !== "wasm"/);
   assert.match(bar, /syncNativeInterest\(\)/);

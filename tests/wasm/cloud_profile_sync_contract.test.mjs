@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('existing Farcaster/OpenProof authorization is reused, never exposed to QML',()=>{
-  const header=read('ui/app/openproof/connections.hpp');
-  const code=read('ui/app/openproof/connections.cpp');
+  const header=read('ui/app/identity/connections.hpp');
+  const code=read('ui/app/identity/connections.cpp');
   const api=read('services/account-sync/cloud_state.mjs');
   assert.match(header,/Q_PROPERTY\(bool cloudAuthorizationReady READ cloudAuthorizationReady/);
   assert.match(header,/\(m_verified && !m_accountBearer\.isEmpty\(\)\) \|\| m_cloudSessionVerified/);
@@ -25,7 +25,7 @@ test('existing Farcaster/OpenProof authorization is reused, never exposed to QML
 });
 
 test('native Farcaster recovery grant boots a verified account session before loading profile details',()=> {
-  const code=read('ui/app/openproof/connections.cpp');
+  const code=read('ui/app/identity/connections.cpp');
   const api=read('services/account-sync/cloud_state.mjs');
   const body=code.slice(code.indexOf('void OpenProofConnectionsController::acceptRecoveryGrant('),
     code.indexOf('void OpenProofConnectionsController::stopAuthorization('));
@@ -44,8 +44,8 @@ test('native Farcaster recovery grant boots a verified account session before lo
 });
 
 test('canceling in-flight native cloud login cannot dereference a reentrantly cleared reply',()=>{
-  const cpp=read('ui/app/openproof/connections.cpp');
-  const header=read('ui/app/openproof/connections.hpp');
+  const cpp=read('ui/app/identity/connections.cpp');
+  const header=read('ui/app/identity/connections.hpp');
   const testSource=read('tests/ui/openproof_connections_tests.cpp');
   const cancel=cpp.slice(cpp.indexOf('void cancelNetworkReply('),
     cpp.indexOf('[[nodiscard]] bool validProviderName('));
@@ -63,7 +63,7 @@ test('canceling in-flight native cloud login cannot dereference a reentrantly cl
 });
 
 test('profile category and links save locally then replicate without sync controls',()=>{
-  const profile=read('ui/components/ProfileSurface.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
   assert.match(profile,/category: "genycaster-profile-extras"/);
   assert.match(profile,/function saveExtraDetails\(/);
   assert.match(profile,/root\.setCloudFlags\(true\)/);
@@ -81,7 +81,7 @@ test('profile category and links save locally then replicate without sync contro
 });
 
 test('native profile extras sequences are normalized before category restore and save',()=>{
-  const profile=read('ui/components/ProfileSurface.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
   assert.match(profile,/function profileSequence\(value, limit\)/);
   assert.match(profile,/root\.profileSequence\(item\.links, 5\)/);
   assert.match(profile,/root\.profileSequence\(server\.links, 5\)/);
@@ -90,9 +90,9 @@ test('native profile extras sequences are normalized before category restore and
   assert.doesNotMatch(profile,/!Array\.isArray\(item\.links\)/);
 });
 test('LinkedIn saves automatically and does not display upload or restore buttons',()=>{
-  const code=read('ui/app/openproof/connections.cpp');
-  const popup=read('ui/components/AccountConnectionsPopup.qml');
-  const profile=read('ui/components/ProfileSurface.qml');
+  const code=read('ui/app/identity/connections.cpp');
+  const popup=read('ui/components/profile/ConnectionsPopup.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
   assert.match(code,/\.cloudDirty/);
   assert.match(code,/if \(!m_applyingCloudLinkedIn && m_cloudServiceAvailable/);
   assert.match(code,/restoreManualLinkedInCloud\(\)/);
@@ -102,7 +102,7 @@ test('LinkedIn saves automatically and does not display upload or restore button
 });
 
 test('bookmark changes are owner-scoped, idempotent, and replayed without user intervention',()=>{
-  const cpp=read('ui/app/openproof/connections.cpp');
+  const cpp=read('ui/app/identity/connections.cpp');
   const header=read('src/presentation/qt/presentation_bridge.hpp');
   const presentation=read('src/presentation/qt/presentation_bridge.cpp');
   const main=read('ui/app/main.cpp');
@@ -127,8 +127,8 @@ test('bookmark changes are owner-scoped, idempotent, and replayed without user i
 });
 
 test('notification read state is replicated invisibly with a monotonic owner-scoped watermark',()=>{
-  const controller=read('ui/app/openproof/connections.cpp');
-  const header=read('ui/app/openproof/connections.hpp');
+  const controller=read('ui/app/identity/connections.cpp');
+  const header=read('ui/app/identity/connections.hpp');
   const main=read('ui/app/main.cpp');
   const pg=read('services/account-sync/pg_store.mjs');
   assert.match(header,/cloudNotificationSeenAtReceived\(qulonglong fid, qlonglong observedAtMs\)/);

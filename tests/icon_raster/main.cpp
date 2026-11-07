@@ -1,4 +1,4 @@
-#include "android_tinted_icon_provider.hpp"
+#include "../../ui/app/media/android_icon.hpp"
 
 #include <QGuiApplication>
 #include <QImage>

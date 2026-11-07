@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const source=name=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 const bridge=source('src/presentation/qt/presentation_bridge.cpp');
-const controller=source('ui/app/openproof/connections.cpp');
-const surface=source('ui/components/BookmarksSurface.qml');
-const profile=source('ui/components/ProfileSurface.qml');
+const controller=source('ui/app/identity/connections.cpp');
+const surface=source('ui/components/profile/BookmarksSurface.qml');
+const profile=source('ui/components/profile/ProfileSurface.qml');
 const store=source('services/account-sync/pg_store.mjs');
 test('bookmark second click compares canonical prefixed hash rather than creating duplicates',()=>{
   assert.match(bridge,/if \(canonicalProtocolCastId\(m_bookmarkedCasts\.at\(index\)/);
@@ -29,8 +29,8 @@ test('bookmark view supports account refresh, remove, priority and sorting witho
   assert.match(store,/async listBookmarkSnapshot/);
 });
 test('bookmark view accepts native C++ QVariantList and exposes pending/error states',()=>{
-  const header=source('ui/app/openproof/connections.hpp');
-  const shell=source('ui/components/AppShell.qml');
+  const header=source('ui/app/identity/connections.hpp');
+  const shell=source('ui/components/shell/AppShell.qml');
   assert.doesNotMatch(surface,/Array\.isArray\(root\.rows\)/);
   assert.match(surface,/Number\(sequence\.length \|\| 0\)/);
   assert.match(surface,/objectName: "bookmarkAccountStatus"/);
@@ -50,7 +50,7 @@ test('bookmarked Cast preview and priority are owner-scoped with explicit v5 sch
 test('profile display prefers server-confirmed same-FID account fields to clean QSettings cache',()=>{
   assert.match(profile,/const server = openProofConnections \? openProofConnections\.cloudProfileExtras : null/);
   assert.match(profile,/!root\.cloudLocalDirty/);
-  assert.match(source('ui/app/openproof/connections.hpp'),/Q_PROPERTY\(QVariantMap cloudProfileExtras/);
+  assert.match(source('ui/app/identity/connections.hpp'),/Q_PROPERTY\(QVariantMap cloudProfileExtras/);
   assert.match(controller,/m_cloudProfileExtras=confirmedFields/);
 });
 test('connection labels are portable yet separate from upstream verified authority',()=>{
@@ -59,5 +59,5 @@ test('connection labels are portable yet separate from upstream verified authori
   assert.match(controller,/m_cachedSnapshot=!m_connections\.isEmpty\(\)/);
   assert.match(store,/async importConnectionLabels/);
   assert.match(store,/last_confirmed_at IS NULL/);
-  assert.match(source('ui/components/AccountConnectionsPopup.qml'),/genycaster\.connections\.copy_saved_account_links/);
+  assert.match(source('ui/components/profile/ConnectionsPopup.qml'),/genycaster\.connections\.copy_saved_account_links/);
 });

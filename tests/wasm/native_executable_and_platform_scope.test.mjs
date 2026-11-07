@@ -55,13 +55,13 @@ test("native executable output uses Genycaster while Qt targets and web assets k
 });
 
 test("WebAssembly text selection is described as a browser canvas boundary, not iOS-only", () => {
-    const cpp = source("ui/app/text/selection.cpp");
+    const cpp = source("ui/app/settings/selection.cpp");
     assert.match(cpp, /^#if defined\(Q_OS_WASM\)$/m);
     assert.doesNotMatch(cpp, /__EMSCRIPTEN__/);
     assert.match(cpp, /Browser-native selection operates on DOM text/);
     assert.doesNotMatch(cpp, /Native iOS Safari selection/);
 
-    const emoji = source("ui/app/browser_emoji_recovery.hpp");
+    const emoji = source("ui/app/browser/emoji_recovery.hpp");
     assert.match(emoji, /A Qt WebAssembly input adapter/);
     assert.doesNotMatch(emoji, /iOS Safari \/ Qt WebAssembly/);
 });
@@ -101,7 +101,7 @@ test("legacy macOS bundle directory is normalized without losing executable data
 });
 
 test("our Apple Mini App code avoids deprecated NSBox border types and keeps warnings enabled", () => {
-    const objc = source("ui/app/miniapp_browser_macos.mm");
+    const objc = source("ui/app/miniapp/browser_macos.mm");
     assert.match(objc, /GenyMiniAppLoadingSurface : NSView/);
     assert.match(objc, /viewDidChangeEffectiveAppearance/);
     assert.doesNotMatch(objc, /borderType\s*=/);
@@ -136,20 +136,20 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
 });
 
 test("Mini App FID comparison uses exact integers rather than lossy doubles", () => {
-    const runtime = source("ui/app/miniapp_runtime.cpp");
+    const runtime = source("ui/app/miniapp/runtime.cpp");
     assert.match(runtime, /contextFid\s*=\s*session->context\.value/);
     assert.match(runtime, /toInteger\(-1\)/);
     assert.match(runtime, /contextFid < 0/);
     assert.match(runtime, /static_cast<qulonglong>\(contextFid\)/);
     const recovery = source("src/platform/custody_recovery.cpp");
     assert.match(recovery, /static_cast<unsigned char>\(character\)/);
-    const controller = source("ui/app/openproof/connections.cpp");
+    const controller = source("ui/app/identity/connections.cpp");
     assert.doesNotMatch(controller, /\[this,reply,requestGeneration,viewer,currentTopic,offset,pageSize\]/);
 });
 
 test("Linux AppImage delta process never enters a WebAssembly build", () => {
-    const implementation = source("ui/app/update_controller.cpp");
-    const header = source("ui/app/update_controller.hpp");
+    const implementation = source("ui/app/update/controller.cpp");
+    const header = source("ui/app/update/controller.hpp");
     const linuxOnly = "#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)";
     assert.match(implementation, /#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)\s*#include <QProcess>\s*#endif/);
     assert.match(implementation, /UpdateController::~UpdateController\(\)[\s\S]*?#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)\s*if \(m_deltaProcess\)/);

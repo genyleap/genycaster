@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('Muted users are account-scoped, fetched with authorized Qt client and cleared on account switch',()=>{
- const cpp=read('ui/app/openproof/connections.cpp');
- const header=read('ui/app/openproof/connections.hpp');
+ const cpp=read('ui/app/identity/connections.cpp');
+ const header=read('ui/app/identity/connections.hpp');
  assert.match(header,/Q_PROPERTY\(QStringList mutedProfileFids READ mutedProfileFids/);
  assert.match(header,/Q_INVOKABLE void setProfileMuted\(qulonglong targetFid, bool muted\)/);
  assert.match(cpp,/url\.setPath\(QStringLiteral\("\/api\/v1\/cloud\/muted_profiles"\)\)/);
@@ -19,8 +19,8 @@ test('Muted users are account-scoped, fetched with authorized Qt client and clea
 });
 
 test('Muted profiles never issue Farcaster Follow/Block messages',()=>{
- const app=read('ui/components/AppShell.qml');
- const ui=read('ui/components/ProfileSurface.qml');
+ const app=read('ui/components/shell/AppShell.qml');
+ const ui=read('ui/components/profile/ProfileSurface.qml');
  assert.match(ui,/objectName: "profileOptionsMenu"/);
  assert.match(ui,/signal muteRequested\(double targetFid, bool muted\)/);
  assert.match(ui,/root\.muteRequested\(Number\(root\.activeDetail\.fid\)/);
@@ -30,8 +30,8 @@ test('Muted profiles never issue Farcaster Follow/Block messages',()=>{
 });
 
 test('Muted users are removed from main feed and notifications before aggregation',()=>{
- const app=read('ui/components/AppShell.qml');
- const notifications=read('ui/components/NotificationSurface.qml');
+ const app=read('ui/components/shell/AppShell.qml');
+ const notifications=read('ui/components/feed/NotificationSurface.qml');
  assert.match(app,/function withoutMutedActors\(items\)/);
  assert.match(app,/rows: root\.withoutMutedActors\(/);
  assert.match(app,/mutedProfileFids: root\.mutedActorIds/);

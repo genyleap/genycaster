@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 const root=process.cwd();
-const qml=readFileSync(root+'/ui/components/ProfileSurface.qml','utf8');
-const activity=readFileSync(root+'/ui/components/GenyPulsePanel.qml','utf8');
-const controller=readFileSync(root+'/ui/app/openproof/connections.cpp','utf8');
-const header=readFileSync(root+'/ui/app/openproof/connections.hpp','utf8');
+const qml=readFileSync(root+'/ui/components/profile/ProfileSurface.qml','utf8');
+const activity=readFileSync(root+'/ui/components/profile/GenyPulsePanel.qml','utf8');
+const controller=readFileSync(root+'/ui/app/identity/connections.cpp','utf8');
+const header=readFileSync(root+'/ui/app/identity/connections.hpp','utf8');
 test('own mobile profile alone omits redundant back-to-feed toolbar',()=>{
   assert.match(qml,/visible: !\(root\.compact && root\.isOwnProfile\)/);
   assert.match(qml,/text: qsTrId\("genycaster\.setup\.back"\)/);
@@ -119,7 +119,7 @@ test('profile summary and picker carry semantic icon/color for each mood',()=>{
   assert.match(row,/root\.moodAppearance\(root\.displayedMood\.mood\)\.color/);
   assert.match(picker,/customSelectedColor: modelData\.color/);
   assert.match(picker,/customSelectedSurface: Qt\.rgba/);
-  const button=readFileSync(root+'/ui/components/ActionButton.qml','utf8');
+  const button=readFileSync(root+'/ui/components/controls/ActionButton.qml','utf8');
   assert.match(button,/customSelectedColor/);
   assert.match(button,/customSelectedSurface/);
 });

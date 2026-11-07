@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 
-const qml = name => readFileSync(new URL('../../ui/components/' + name + '.qml', import.meta.url), 'utf8');
+const qml = name => readFileSync(new URL('../../ui/components/' + componentPath(name) + '.qml', import.meta.url), 'utf8');
 
 test('dark mobile navigation uses neutral theme-independent selection instead of permanent blue', () => {
  const button = qml('BottomNavButton');

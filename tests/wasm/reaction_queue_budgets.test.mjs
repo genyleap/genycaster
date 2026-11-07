@@ -3,10 +3,10 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../../'+path, import.meta.url),'utf8');
-const qml=read('ui/components/CastReactions.qml');
+const qml=read('ui/components/feed/CastReactions.qml');
 const adapter=read('ui/app/browser/reactions.cpp');
 const header=read('ui/app/browser/reactions.hpp');
-const bar=read('ui/components/EngagementBar.qml');
+const bar=read('ui/components/feed/EngagementBar.qml');
 const cmake=read('tests/ui/CMakeLists.txt');
 
 test('WASM reaction admission is C++ owned and bounded rather than QML network state',()=>{

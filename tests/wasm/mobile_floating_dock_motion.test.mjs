@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(path,'utf8');
-const dock=read('ui/components/BottomNavigation.qml');
-const shell=read('ui/components/AppShell.qml');
+const dock=read('ui/components/navigation/BottomNavigation.qml');
+const shell=read('ui/components/shell/AppShell.qml');
 const html=read('ui/wasm/genycaster-shell.html');
 
 test('floating navigation paints no full-width footer or separator, including PWA chrome',()=>{
@@ -15,8 +15,8 @@ test('floating navigation paints no full-width footer or separator, including PW
   assert.doesNotMatch(html,/background-color:#202128/);
   assert.match(shell,/id: mobileBottomNavigation[\s\S]*?height: Qt\.platform\.os === "android" && root\.mobile \? 74 : 88/);
   assert.match(shell,/anchors\.bottomMargin: 0/);
-  assert.match(read('ui/components/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
-  assert.match(read('ui/components/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+  assert.match(read('ui/components/feed/FeedSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
+  assert.match(read('ui/components/profile/ProfileSurface.qml'),/bottomMargin: root\.compact \? 96 : 0/);
   assert.match(dock,/anchors\.topMargin: Qt\.platform\.os === "android" \? 4 : 8/);
   assert.match(dock,/anchors\.leftMargin: Theme\.mobileGutter \+ extraInset/);
   assert.match(dock,/anchors\.rightMargin: Theme\.mobileGutter \+ extraInset/);

@@ -1,9 +1,10 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL('../../'+path, import.meta.url), 'utf8');
-const qml = path => read('ui/components/'+path+'.qml');
+const qml = path => read('ui/components/' + componentPath(path)+'.qml');
 
 test('phone form dialogs are genuinely full screen with no bogus drag handle', () => {
   const adaptive = qml('GenyAdaptiveDialog');
@@ -31,8 +32,8 @@ test('mobile feedback action sits by bell and opens real full-screen form', () =
 
 test('feedback form performs authenticated server submission and tracks real status', () => {
   const ui = qml('FeedbackDialog');
-  const controller = read('ui/app/openproof/connections.cpp');
-  const header = read('ui/app/openproof/connections.hpp');
+  const controller = read('ui/app/identity/connections.cpp');
+  const header = read('ui/app/identity/connections.hpp');
   assert.match(ui, /openProofConnections\.submitFeedback\(root\.category, root\.sentiment/);
   assert.match(ui, /openProofConnections\.fetchFeedback\(\)/);
   assert.match(ui, /readonly property var feedbackStats: openProofConnections/);

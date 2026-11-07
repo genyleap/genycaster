@@ -31,23 +31,27 @@ Hot timeline rendering
 
 For hot timelines, the architecture must permit migration to custom `QQuickItem` / Qt Quick Scene Graph rendering without changing domain/application/timeline engines.
 
-### UI adapter source ownership
+### UI source ownership
 
-UI-specific C++/Qt adapter implementations live under `ui/app/`, grouped
-by capability instead of repeating long `*_controller` filenames:
+`ui/app/main.cpp` is the only file at the application root. All other
+Qt adapters belong to shared capability groups: `bootstrap/`, `runtime/`,
+`social/`, `browser/`, `miniapp/`, `identity/`, `network/`,
+`data/`, `media/`, `settings/`, `update/`, `platform/` and
+`diagnostics/`. A directory owns cooperating sources, never just one
+`.cpp/.hpp` pair. See `docs/15-ui-app-boundaries.md`.
 
-- `browser/`: browser-safe network, metadata, reactions and OpenProof auth;
-- `miniapp/`: host, catalog and task coordination;
-- `openproof/`, `providers/`, `channels/`: identity, profile selection and channel picking;
-- `storage/`, `media/`, `insights/`, `genypulse/`, `text/`: their respective presentation adapters.
+The scene-graph renderers share `ui/render/` as `stroke`,
+`superellipse` and `sparkline`. QML source files live in feature
+groups beneath `ui/components/`; the physical source paths are registered
+in `ui/components/source_paths.json`. Public QML component names,
+singleton names and their `Farcaster.Client` resource aliases stay stable,
+even if a physical source filename is shortened.
 
-File basenames describe the responsibility within the owning folder (for
-example, `miniapp/catalog.cpp`). Retain established public Qt class names,
-QML context property names, and MOC-facing contracts when reorganizing
-implementation files. Keep full repository-relative paths synchronized in
-CMake source lists, test targets, static architecture guards and Doxygen
-`@file` headers. Domain/provider-neutral dependencies remain outside
-these UI adapters.
+Browser-visible files in `ui/wasm/` retain their public URL filenames:
+changing them requires a separate installer, service-worker and deployment
+migration. Always update CMake, tests, localization checks and architecture
+guards when moving any UI source. Keep provider-neutral domain code out
+of the Qt presentation boundary.
 
 ## Do not prematurely custom-render everything
 
@@ -242,7 +246,7 @@ Performance testing should eventually cover:
 
 ## Apple SDK build warnings and native Mini App integration
 
-The macOS adapter at `ui/app/miniapp_browser_macos.mm` uses Apple's modern
+The macOS adapter at `ui/app/miniapp/browser_macos.mm` uses Apple's modern
 `WKWebView`, **not** the deprecated `WebView`/WebKitLegacy class. Earlier
 umbrella imports (`AppKit.h` and `WebKit.h`) pulled unrelated legacy SDK
 symbols, including OpenGL/ColorSync declarations, into the translation unit.
@@ -345,9 +349,9 @@ GenyVideoPlayer, NotificationSurface and ComposerDrawer.
 | Playback state, Mini App permissions and signer transitions | C++ lifecycle/authority owners | Centralized state machines, scoped permissions and testable failure cases |
 | Numerical chart sampling, decimation and coordinate generation | C++ rendering helper | Deterministic arithmetic outside reactive JavaScript; QML continues painting |
 
-**First small migration:** `ui/components/TokenSparkline.qml` went from
+**First small migration:** `ui/components/content/TokenSparkline.qml` went from
 **138 to 48 lines** by moving finite-value filtering, bounded decimation,
-smoothing and point generation to `ui/render/token_sparkline_geometry.cpp`.
+smoothing and point generation to `ui/render/sparkline.cpp`.
 The Shape/PathPolyline and color behavior remain declarative. This is not
 evidence of a frame-time improvement; `ui.token_sparkline_geometry` exercises
 the C++ geometry and platform rendering still requires live tests.

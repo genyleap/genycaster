@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
@@ -19,8 +20,8 @@ test("Neynar manifest cover is parsed separately from square app icon",()=>{
 });
 
 test("Discover cards use true covers without stretching icons as hero art",()=>{
-    const view=read("ui/components/AppsSurface.qml");
-    const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
+    const view=read("ui/components/apps/AppsSurface.qml");
+    const hero=read("ui/components/apps/FeaturedCarousel.qml");
     assert.match(view,/const illustrated = \[\]/);
     assert.match(view,/String\(app\.coverSource \|\| ""\)/);
     assert.match(view,/heading: qsTrId\("genycaster.apps.discover"\)/);
@@ -38,7 +39,7 @@ test("Discover cards use true covers without stretching icons as hero art",()=>{
 test("recent apps only represent real launch history and remain bounded",()=>{
     const cpp=read("ui/app/miniapp/catalog.cpp");
     const hpp=read("ui/app/miniapp/catalog.hpp");
-    const view=read("ui/components/AppsSurface.qml");
+    const view=read("ui/components/apps/AppsSurface.qml");
     assert.match(hpp,/Q_PROPERTY\(QVariantList recentApps READ recentApps NOTIFY recentAppsChanged FINAL\)/);
     assert.match(hpp,/Q_INVOKABLE void recordRecentUse\(const QVariantMap& app\)/);
     assert.match(cpp,/recentMiniAppLimit = 20/);
@@ -54,8 +55,8 @@ test("recent apps only represent real launch history and remain bounded",()=>{
 });
 
 test("mobile App library uses horizontal Recents and borderless saved rows",()=>{
-    const view=read("ui/components/AppsSurface.qml");
-    const library=read("ui/components/MiniAppLibraryShelves.qml");
+    const view=read("ui/components/apps/AppsSurface.qml");
+    const library=read("ui/components/apps/LibraryShelves.qml");
     const cmake=read("ui/CMakeLists.txt");
     assert.match(view,/visible: root\.compact && root\.farcasterSection === "my"/);
     assert.match(view,/visible: !root\.compact \|\| root\.farcasterSection !== "my"/);
@@ -71,12 +72,12 @@ test("mobile App library uses horizontal Recents and borderless saved rows",()=>
     assert.match(library,/model: root\.savedApps \|\| \[\]/);
     assert.match(library,/forceAutomaticDownload: true/);
     for(const component of ["MiniAppLibraryShelves","MiniAppFeaturedCarousel"])
-        assert.ok(cmake.includes("components/"+component+".qml"));
+        assert.ok(cmake.includes("components/"+componentPath(component)+".qml"));
 });
 
 test("mobile Explorer shows dense rows and explicit Open",()=>{
- const apps=read("ui/components/AppsSurface.qml");
- const library=read("ui/components/MiniAppLibraryShelves.qml");
+ const apps=read("ui/components/apps/AppsSurface.qml");
+ const library=read("ui/components/apps/LibraryShelves.qml");
  assert.match(apps,/function showAppDetails\(app\)/);
  assert.match(apps,/miniAppDetailDrawer\.open\(\)/);
  assert.match(apps,/id: miniAppStoreTile[\s\S]*?id: storeIcon/);
@@ -91,15 +92,15 @@ test("mobile Explorer shows dense rows and explicit Open",()=>{
 });
 
 test("Discover excludes entries without a real banner instead of showing empty feature cards",()=>{
- const apps=read("ui/components/AppsSurface.qml");
+ const apps=read("ui/components/apps/AppsSurface.qml");
  assert.match(apps,/return illustrated\.slice\(0, 8\)/);
  assert.doesNotMatch(apps,/illustrated\.concat\(other\)/);
  assert.match(apps,/root\.discoveryShelfApps\.length > 0/);
 });
 test("mini app image admission is independent of scroll and uses a bounded adjacent cache",()=>{
- const apps=read("ui/components/AppsSurface.qml");
- const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
- const saved=read("ui/components/MiniAppLibraryShelves.qml");
+ const apps=read("ui/components/apps/AppsSurface.qml");
+ const hero=read("ui/components/apps/FeaturedCarousel.qml");
+ const saved=read("ui/components/apps/LibraryShelves.qml");
  assert.match(apps,/id: storeIcon[\s\S]*?deferNewLoadsWhileScrolling: false[\s\S]*?framePacedPresentation: false/);
  assert.match(saved,/deferNewLoadsWhileScrolling: false/);
  assert.match(hero,/cacheBuffer: root\.cardWidth \* 2 \+ spacing \* 2/);
@@ -108,7 +109,7 @@ test("mini app image admission is independent of scroll and uses a bounded adjac
  assert.match(hero,/requestedSourceWidth: Math\.min\(640/);
 });
 test("mobile browsing modes are slim text tabs, not two large full-width action buttons",()=>{
- const apps=read("ui/components/AppsSurface.qml");
+ const apps=read("ui/components/apps/AppsSurface.qml");
  assert.match(apps,/id: miniAppModeTabs[\s\S]*?Layout\.preferredHeight: 34/);
  assert.match(apps,/delegate: Button \{[\s\S]*?Layout\.preferredHeight: 34/);
  assert.match(apps,/modeTab\.selected \? Theme\.ink : Theme\.inkMuted/);
@@ -119,7 +120,7 @@ test("mobile browsing modes are slim text tabs, not two large full-width action 
 test('provider-neutral Mini App paging preserves existing results and rich author metadata',()=>{
  const cpp=read("ui/app/miniapp/catalog.cpp");
  const hpp=read("ui/app/miniapp/catalog.hpp");
- const view=read("ui/components/AppsSurface.qml");
+ const view=read("ui/components/apps/AppsSurface.qml");
  for(const part of [
     'Q_PROPERTY(bool hasMore READ hasMore NOTIFY hasMoreChanged FINAL)',
     'Q_INVOKABLE void loadMore()'
@@ -139,7 +140,7 @@ test('provider-neutral Mini App paging preserves existing results and rich autho
 });
 
 test('feature carousel counter follows visible position, arrows and touch use one index',()=>{
- const hero=read("ui/components/MiniAppFeaturedCarousel.qml");
+ const hero=read("ui/components/apps/FeaturedCarousel.qml");
  assert.match(hero,/property int shownIndex: 0/);
  assert.match(hero,/function navigateTo\(index\)/);
  assert.match(hero,/root\.navigateTo\(root\.shownIndex - 1\)/);
@@ -158,7 +159,7 @@ test('WASM uses browser-cacheable first-party raster proxy, native still uses im
 
 test('failed pagination keeps the cursor for manual retry and prevents automatic request cascades',()=>{
  const cpp=read('ui/app/miniapp/catalog.cpp');
- const apps=read('ui/components/AppsSurface.qml');
+ const apps=read('ui/components/apps/AppsSurface.qml');
  assert.match(cpp,/pendingPageCursor = cursor/);
  assert.match(cpp,/setNextCursor\(pageToken\)/);
  assert.match(cpp,/Tap Load more to retry/);

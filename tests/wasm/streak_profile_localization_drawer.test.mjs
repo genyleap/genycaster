@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const profile=read('ui/components/ProfileSurface.qml');
-const card=read('ui/components/StreakCard.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
+const card=read('ui/components/profile/StreakCard.qml');
 const langCodes=['en_US','fa_IR','de_DE','ja_JP','ko_KR','zh_CN',
   'hi_IN','ar_SA','es_ES','fr_FR','pt_BR','ru_RU'];
 const keys=['title','subtitle','open','profile_badge','activity','creator',
@@ -68,11 +68,11 @@ test('all 12 shipping locale catalogs contain complete nonempty translated Strea
 });
 
 test('Streak leaderboard renders public social identities and uses only the outer drawer scroll',()=>{
-  const card=read('ui/components/StreakCard.qml');
-  const adapter=read('ui/app/openproof/connections.cpp');
+  const card=read('ui/components/profile/StreakCard.qml');
+  const adapter=read('ui/app/identity/connections.cpp');
   const cloud=read('services/account-sync/cloud_state.mjs');
-  const notice=read('ui/components/UpdateNoticeDrawer.qml');
-  const profile=read('ui/components/ProfileSurface.qml');
+  const notice=read('ui/components/settings/UpdateNoticeDrawer.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
   assert.match(card,/Avatar\s*\{[\s\S]*?sourceUrl: String\(modelData\.avatar_url/);
   assert.match(card,/modelData\.display_name/);
   assert.match(card,/modelData\.username/);
@@ -92,14 +92,14 @@ test('Streak leaderboard renders public social identities and uses only the oute
 });
 
 test('Desktop Streak drawer spans overlay height and social rows follow a shared gutter',()=>{
- const source=read('ui/components/ProfileSurface.qml');
+ const source=read('ui/components/profile/ProfileSurface.qml');
  const panel=source.slice(source.indexOf('id: streakDrawer'),source.indexOf('id: profileExtrasEditor'));
  assert.ok(panel.includes(': parent.height) : 600'));
  assert.ok(source.includes('Layout.topMargin: root.compact ? Theme.space1 : Theme.space3'));
  assert.ok(source.includes('profileStatsFlow.spacing * 3)'));
 });
 test('Leaderboard separates latin handles and Persian FIDs with direction-aware layout',()=>{
- const source=read('ui/components/StreakCard.qml');
+ const source=read('ui/components/profile/StreakCard.qml');
  assert.ok(source.includes('objectName: "streakLeaderboardIdentityRow"'));
  assert.ok(source.includes('forceLeftToRight: true'));
  assert.ok(source.includes('forceRightToLeft: Theme.rtl'));
@@ -108,8 +108,8 @@ test('Leaderboard separates latin handles and Persian FIDs with direction-aware 
 });
 
 test('Streak mobile spacing, fire orb and expandable server-owned milestone grid',()=>{
- const source=read('ui/components/ProfileSurface.qml');
- const card=read('ui/components/StreakCard.qml');
+ const source=read('ui/components/profile/ProfileSurface.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
  const theme=read('ui/theme/Theme.qml');
  const backend=read('services/account-sync/streaks.mjs');
  assert.match(source,/objectName: "profileOwnerActions"[\s\S]*?Layout.topMargin: Theme.space3/);
@@ -129,7 +129,7 @@ test('Streak mobile spacing, fire orb and expandable server-owned milestone grid
 });
 
 test('Milestone collection uses exact CC0 SVG Repo flame and readable responsive badge presentation',()=>{
- const source=read('ui/components/StreakCard.qml');
+ const source=read('ui/components/profile/StreakCard.qml');
  const svg=read('ui/assets/icons/genyleap/icons/system/flame.svg');
  assert.match(svg,/viewBox="0 0 24 24"/);
  assert.match(svg,/M15\.3588 21\.751/);
@@ -151,8 +151,8 @@ test('Milestone collection uses exact CC0 SVG Repo flame and readable responsive
 });
 
 test('Streak has a standalone leaderboard tab, with rankings readable without joining',()=>{
- const card=read('ui/components/StreakCard.qml');
- const profile=read('ui/components/ProfileSurface.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
  assert.match(card,/property string activePage: "activity"/);
  assert.match(card,/id: "leaderboard", label: qsTrId\("genycaster.streak.leaderboard"\)/);
  assert.match(card,/objectName: "streakLeaderboardPage"/);
@@ -164,16 +164,16 @@ test('Streak has a standalone leaderboard tab, with rankings readable without jo
  assert.match(profile,/onPageChanged:[\s\S]*?profileStreakScroll.contentY = 0/);
 });
 test('Compact Streak medals use a stable reduced size for carousel and expanded grid',()=>{
- const card=read('ui/components/StreakCard.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
  assert.match(card,/tileHeight: Theme.scaleUi\(root.compact \? 148 : 156\)/);
  assert.match(card,/implicitWidth: Theme.scaleUi\(root.compact \? 118 : 126\)/);
  assert.match(card,/Layout.preferredWidth: Theme.scaleUi\(48\)/);
  assert.match(card,/columns: root\.width < Theme\.scaleUi\(root\.compact \? 380 : 410\) \? 2 : 3/);
 });
 test('The account sidebar uses verified streak instead of Trust Score, and inactive flames are neutral',()=>{
- const sidebar=read('ui/components/SideNavigation.qml');
- const account=read('ui/components/ProfileTrustCard.qml');
- const profile=read('ui/components/ProfileSurface.qml');
+ const sidebar=read('ui/components/navigation/SideNavigation.qml');
+ const account=read('ui/components/profile/ProfileTrustCard.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
  assert.match(sidebar,/function requestSidebarStreak\(\)/);
  assert.match(sidebar,/streakSnapshot: openProofConnections \? openProofConnections\.streak : \(\{\}\)/);
  assert.match(account,/objectName: "sidebarStreakMetric"/);
@@ -187,7 +187,7 @@ test('The account sidebar uses verified streak instead of Trust Score, and inact
 });
 
 test('Streak milestones fill the inspector as a responsive grid with a useful preview',()=>{
- const card=read('ui/components/StreakCard.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
  assert.match(card,/objectName: "streakBadgeGrid"/);
  assert.match(card,/columns: root.width < Theme.scaleUi\(root.compact \? 380 : 410\) \? 2 : 3/);
  assert.match(card,/model: root.showAllBadges[\s\S]*?root.milestoneItems.slice\(0, 6\)/);
@@ -195,8 +195,8 @@ test('Streak milestones fill the inspector as a responsive grid with a useful pr
  assert.doesNotMatch(card,/Flickable.HorizontalFlick/);
 });
 test('Profile Streak badge matches the account card progress-ring and flame, with neutral inactive state',()=>{
- const profile=read('ui/components/ProfileSurface.qml');
- const sidebar=read('ui/components/ProfileTrustCard.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
+ const sidebar=read('ui/components/profile/ProfileTrustCard.qml');
  const badge=profile.slice(profile.indexOf('id: profileStreakBadge'),
    profile.indexOf('objectName: "profileUnverifiedStreak"'));
  assert.match(badge,/objectName: "profileStreakRing"/);
@@ -210,9 +210,9 @@ test('Profile Streak badge matches the account card progress-ring and flame, wit
 
 
 test('named achievements are translated in all twelve locales, retaining duration as secondary text',()=>{
- const card=read('ui/components/StreakCard.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
  const catalog=read('services/account-sync/streaks.mjs');
- const profile=read('ui/components/ProfileSurface.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
  assert.match(card,/function milestoneName\(badge\)/);
  assert.match(card,/function milestoneDuration\(days\)/);
  assert.match(card,/objectName: "streakAchievementName"/);
@@ -233,9 +233,9 @@ test('named achievements are translated in all twelve locales, retaining duratio
 });
 
 test('Streak tabs display semantic icons without changing the shared no-icon tab behavior',()=>{
- const strip=read('ui/components/GenyTabStrip.qml');
- const button=read('ui/components/GenyTabButton.qml');
- const streak=read('ui/components/StreakCard.qml');
+ const strip=read('ui/components/controls/GenyTabStrip.qml');
+ const button=read('ui/components/controls/GenyTabButton.qml');
+ const streak=read('ui/components/profile/StreakCard.qml');
  assert.match(strip,/iconGlyph: String\(modelData.icon \|\| ""\)/);
  assert.match(button,/property string iconGlyph: ""/);
  assert.match(button,/visible: control.iconGlyph.length > 0/);
@@ -275,9 +275,9 @@ test('international Streak tiers use recognizable names with Persian equivalents
 
 test('Ember-orange Streak colors remain accessible and do not recolor warning alerts',()=>{
  const theme=read('ui/theme/Theme.qml');
- const card=read('ui/components/StreakCard.qml');
- const sidebar=read('ui/components/ProfileTrustCard.qml');
- const profile=read('ui/components/ProfileSurface.qml');
+ const card=read('ui/components/profile/StreakCard.qml');
+ const sidebar=read('ui/components/profile/ProfileTrustCard.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
  const palette={streak:['#FF995F','#B94716'],
    streakSurface:['#38251F','#FFF0E7'],streakTrack:['#634234','#F1D5C6'],
    streakGlow:['#FFAA76','#E76E36']};
@@ -301,8 +301,8 @@ test('Ember-orange Streak colors remain accessible and do not recolor warning al
 });
 
 test('verified Pro chip is beside Streak and has a themed accessible hint',()=>{
- const pro=read('ui/components/ProfileProBadge.qml');
- const source=read('ui/components/ProfileSurface.qml');
+ const pro=read('ui/components/profile/ProfileProBadge.qml');
+ const source=read('ui/components/profile/ProfileSurface.qml');
  const theme=read('ui/theme/Theme.qml');
  const cluster=source.slice(source.indexOf('id: profileBadgesRow'),
    source.indexOf('objectName: "profileOwnerActions"'));
@@ -323,5 +323,5 @@ test('verified Pro chip is beside Streak and has a themed accessible hint',()=>{
  for(const key of ['proAccent','proSurface','proSurfaceHover','proBorder'])
   assert.ok(theme.includes('readonly property color '+key+': dark ?'));
  const qmlList=read('ui/CMakeLists.txt');
- assert.match(qmlList,/components\/ProfileProBadge\.qml/);
+ assert.match(qmlList,/components\/profile\/ProfileProBadge\.qml/);
 });

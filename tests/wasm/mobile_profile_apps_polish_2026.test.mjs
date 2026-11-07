@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('profile labels localize only presentation; canonical server options stay stable', () => {
-  const profile = read('ui/components/ProfileSurface.qml');
-  const combo = read('ui/components/GenyComboBox.qml');
+  const profile = read('ui/components/profile/ProfileSurface.qml');
+  const combo = read('ui/components/controls/GenyComboBox.qml');
   assert.match(profile, /function profileOptionLabel\(value\)/);
   assert.match(profile, /optionLabelProvider: function\(value\)/);
   assert.match(combo, /text: control\.localizedOption\(control\.displayText\)/);
@@ -37,19 +37,19 @@ test('every locale includes user-visible share and option keys; Persian strings 
 });
 
 test('desktop app details open from the right in a bounded inspector', () => {
-  const apps = read('ui/components/AppsSurface.qml');
+  const apps = read('ui/components/apps/AppsSurface.qml');
   const detail = apps.slice(apps.indexOf('id: miniAppDetailDrawer'));
   assert.match(detail, /bottomSheet: mobilePresentation/);
   assert.doesNotMatch(detail, /edge:\s*(?:Qt\.|mobilePresentation)/);
-  const shared = read('ui/components/GenyDrawer.qml');
+  const shared = read('ui/components/controls/GenyDrawer.qml');
   assert.match(shared, /edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.match(detail, /Math\.min\(480, parent\.width \* 0\.9\)/);
   assert.match(detail, /parent\.height\) : 640/);
 });
 
 test('apps saved indicators remain legibly green and enabled when already saved', () => {
-  const apps = read('ui/components/AppsSurface.qml');
-  const shelf = read('ui/components/MiniAppFeaturedCarousel.qml');
+  const apps = read('ui/components/apps/AppsSurface.qml');
+  const shelf = read('ui/components/apps/FeaturedCarousel.qml');
   assert.match(apps, /positive: saved/);
   assert.match(apps, /positive: saved && !inLibrary/);
   assert.match(shelf, /positive: Boolean\(featuredCell\.app\.saved\)/);
@@ -58,7 +58,7 @@ test('apps saved indicators remain legibly green and enabled when already saved'
 });
 
 test('bookmarks show compact icon-only actions and a gold priority star', () => {
-  const saved = read('ui/components/BookmarksSurface.qml');
+  const saved = read('ui/components/profile/BookmarksSurface.qml');
   assert.match(saved, /CastItem \{/);
   assert.match(saved, /customIconColor: selected \? Theme.warning : Theme.inkMuted/);
   assert.match(saved, /iconGlyph: Theme.iconPriorityStar/);
@@ -67,14 +67,14 @@ test('bookmarks show compact icon-only actions and a gold priority star', () => 
 });
 
 test('link rows retain real OpenGraph artwork when a favicon is missing', () => {
-  const links = read('ui/components/ProfileLinkRow.qml');
+  const links = read('ui/components/profile/ProfileLinkRow.qml');
   assert.match(links, /String\(metadata\.favicon \|\| ""\)/);
   assert.match(links, /String\(metadata\.previewImage \|\| ""\)/);
   assert.match(links, /favicon\.ico/);
 });
 
 test('flicking freezes async media row reflows and captures anchor before reconciliation', () => {
-  const feed = read('ui/components/FeedSurface.qml');
+  const feed = read('ui/components/feed/FeedSurface.qml');
   assert.match(feed, /function synchronizeHeight\(\) \{[\s\S]*?root\.rememberVisibleGeometry\(\)\s*rowDelegate\.committedHeight = nextHeight\s*if \(!readList\.moving && root\.geometryAnchorKey\.length > 0\)/);
   assert.match(feed, /onMovingChanged\(\) \{[\s\S]*?root\.rememberVisibleGeometry\(\)[\s\S]*?rowDelegate\.synchronizeHeight\(\)/);
 });

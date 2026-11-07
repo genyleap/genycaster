@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('double tap selects entire cast composer field, reply editor and rich block editor', () => {
-  const input=read('ui/components/DirectionAwareTextArea.qml');
-  const composer=read('ui/components/ComposerDrawer.qml');
-  const rich=read('ui/components/RichTextEditor.qml');
+  const input=read('ui/components/controls/BidiTextArea.qml');
+  const composer=read('ui/components/composer/ComposerDrawer.qml');
+  const rich=read('ui/components/composer/RichTextEditor.qml');
   assert.match(input,/property bool selectAllOnDoubleTap: false/);
   assert.match(input,/TapHandler \{[\s\S]*?onDoubleTapped: \{[\s\S]*?root.selectAll\(\)/);
   for (const id of ['mobilePlainEditor','threadEditor','markdownEditor'])
@@ -34,7 +34,7 @@ test('native cast selection reserves mouse and touch gestures from Flickable onl
 });
 
 test('Copy popup is lazy and anchored to selected text in the window overlay, not card top-right', () => {
-  const qml=read('ui/components/RichInlineText.qml');
+  const qml=read('ui/components/content/RichInlineText.qml');
   assert.match(qml,/Loader \{[\s\S]*?id: selectionMenuLoader/);
   assert.match(qml,/active: !root.usePlatformSelection && root.selectionReady/);
   assert.match(qml,/textLayout.selectedText.length > 0/);
@@ -48,8 +48,8 @@ test('Copy popup is lazy and anchored to selected text in the window overlay, no
 });
 
 test('composer preserves mouse selection and offers touch drag grips across platforms', () => {
-  const input=read('ui/components/DirectionAwareTextArea.qml');
-  const composer=read('ui/components/ComposerDrawer.qml');
+  const input=read('ui/components/controls/BidiTextArea.qml');
+  const composer=read('ui/components/composer/ComposerDrawer.qml');
   assert.match(input,/selectByMouse: true/);
   assert.match(input,/persistentSelection: true/);
   assert.match(input,/onPressAndHold: mouse =>/);
@@ -73,9 +73,9 @@ test('composer preserves mouse selection and offers touch drag grips across plat
 });
 
 test('cast text selection offers Copy, Select all and clear without deleting content', () => {
-  const qml=read('ui/components/RichInlineText.qml');
-  const editor=read('ui/components/DirectionAwareTextArea.qml');
-  const desktop=read('ui/components/EditorContextMenu.qml');
+  const qml=read('ui/components/content/RichInlineText.qml');
+  const editor=read('ui/components/controls/BidiTextArea.qml');
+  const desktop=read('ui/components/composer/EditorContextMenu.qml');
   assert.match(qml,/objectName: "castSelectionCopy"/);
   assert.match(qml,/objectName: "castSelectionAll"/);
   assert.match(qml,/objectName: "castSelectionReset"/);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const theme = readFileSync(new URL('../../ui/theme/Theme.qml', import.meta.url), 'utf8');
-const dock = readFileSync(new URL('../../ui/components/BottomNavigation.qml', import.meta.url), 'utf8');
+const dock = readFileSync(new URL('../../ui/components/navigation/BottomNavigation.qml', import.meta.url), 'utf8');
 function token(name, dark) {
   const match = theme.match(new RegExp('property color ' + name + ': dark \\? "(#[A-Fa-f0-9]+)" : "(#[A-Fa-f0-9]+)"'));
   assert.ok(match, name);

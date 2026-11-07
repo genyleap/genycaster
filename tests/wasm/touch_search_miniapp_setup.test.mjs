@@ -5,32 +5,32 @@ const base=new URL('../../', import.meta.url);
 const read=(path)=>readFileSync(new URL(path,base),'utf8');
 
 test('contextual menus exclusively own pointer/touch events',()=>{
-  const cast=read('ui/components/CastItem.qml');
+  const cast=read('ui/components/feed/CastItem.qml');
   assert.match(cast,/CastActionsMenu \{/);
-  assert.match(read('ui/components/CastActionsMenu.qml'),/modal: true/);
-  for (const path of ['ui/components/ThreadReplyItem.qml',
-      'ui/components/EditorContextMenu.qml','ui/components/GenyVideoPlayer.qml']) {
+  assert.match(read('ui/components/feed/CastActionsMenu.qml'),/modal: true/);
+  for (const path of ['ui/components/feed/ThreadReplyItem.qml',
+      'ui/components/composer/EditorContextMenu.qml','ui/components/media/GenyVideoPlayer.qml']) {
     const source=read(path);
     assert.match(source,/modal: true/,path);
   }
-  const preview=read('ui/components/LinkPreview.qml');
+  const preview=read('ui/components/media/LinkPreview.qml');
   assert.match(preview,/enabled: root\.targetUrl\.length > 0 && !root\.layoutMiniApp/);
-  const setup=read('ui/components/InitialSetup.qml');
+  const setup=read('ui/components/setup/InitialSetup.qml');
   assert.match(setup,/MouseArea \{[\s\S]*?z: -1[\s\S]*?propagateComposedEvents: false/);
 });
 test('search scopes filter the actual result models and avoid translucent bleed-through',()=>{
-  const qml=read('ui/components/SearchPalette.qml');
+  const qml=read('ui/components/navigation/SearchPalette.qml');
   assert.match(qml,/readonly property string searchScope/);
   assert.match(qml,/if \(root\.searchScope !== 'all' && kind !== root\.searchScope\)/);
   assert.match(qml,/rowIndex\+\+/);
   assert.match(qml,/snapshotBlurOnBrowser: true/);
   assert.match(qml,/genycaster\.search\.no_channel_results/);
-  const backdrop=read('ui/components/DrawerBackdrop.qml');
+  const backdrop=read('ui/components/visual/DrawerBackdrop.qml');
   assert.match(backdrop,/capture\.scheduleUpdate\(\)/);
   assert.match(backdrop,/!root\.browserRenderer/);
 });
 test('browser miniapps resolve verified public manifests and use in-app presentation',()=>{
-  const qml=read('ui/components/LinkPreview.qml');
+  const qml=read('ui/components/media/LinkPreview.qml');
   const browser=read('ui/wasm/miniapp-host-pre.js');
   const gateway=read('services/media-gateway/gateway.mjs');
   assert.match(qml,/requestBrowserMiniAppManifest/);
@@ -45,31 +45,31 @@ test('browser miniapps resolve verified public manifests and use in-app presenta
   assert.match(gateway,/resolveMiniAppPreview\(rawUrl\)/);
 });
 test('scrolling never demotes a loaded Mini App or detaches an existing image',()=>{
-  const preview=read('ui/components/LinkPreview.qml');
+  const preview=read('ui/components/media/LinkPreview.qml');
   assert.doesNotMatch(preview,/browserMiniAppPreview\.providerKind === "miniapp"\)\s*&& !root\.scrollMoving/);
   assert.match(preview,/readonly property string animatedPosterUrl/);
   assert.match(preview,/AnimatedImage \{\s*id: miniAppAnimation/);
-  const image=read('ui/components/SuperellipseImage.qml');
+  const image=read('ui/components/visual/SuperellipseImage.qml');
   assert.doesNotMatch(image,/current !== requested \|\| \(!root\.ready/);
   assert.match(image,/if \(current !== requested\)\s*root\.activeSource = ""/);
   assert.match(image,/AnimatedImage \{\s*id: animatedGif/);
-  const engagement=read('ui/components/EngagementButton.qml');
+  const engagement=read('ui/components/feed/EngagementButton.qml');
   assert.doesNotMatch(engagement,/containmentMask:\s*background/);
   assert.match(engagement,/implicitHeight: Theme\.touchTarget/);
 });
 test('account summary has an aligned avatar and visible text target',()=>{
-  const qml=read('ui/components/AppShell.qml');
+  const qml=read('ui/components/shell/AppShell.qml');
   assert.match(qml,/id: accountSummary[\s\S]*?RowLayout \{[\s\S]*?Avatar \{/);
   assert.match(qml,/sourceUrl: presentationBridge\.accountAvatarUrl/);
   assert.match(qml,/forceLeftToRight: true\s*horizontalAlignment: Text\.AlignLeft/);
 });
 test('approved onboarding stays minimal while advanced nodes remain available in Settings',()=>{
-  const setup=read('ui/components/InitialSetup.qml');
-  const settings=read('ui/components/LocaleSettingsPopup.qml');
+  const setup=read('ui/components/setup/InitialSetup.qml');
+  const settings=read('ui/components/settings/SettingsPopup.qml');
   assert.doesNotMatch(setup,/nodeSelectionController\.nodes/);
   assert.doesNotMatch(setup,/genycaster\.setup\.advanced_nodes/);
   assert.match(settings,/NodeManagementPanel \{/);
-  assert.match(read('ui/components/SetupActionCard.qml'),/root\.latencyMs <= 300 \? Theme\.success/);
+  assert.match(read('ui/components/setup/SetupActionCard.qml'),/root\.latencyMs <= 300 \? Theme\.success/);
 });
 test('Persian setup translations do not use English brand or setup names',()=>{
   const xml=read('ui/i18n/qml_fa_IR.ts');

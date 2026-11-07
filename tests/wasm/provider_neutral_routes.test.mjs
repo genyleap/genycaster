@@ -19,8 +19,8 @@ test('capability router is vendor-neutral and supports per-access and operation 
 
 test('multiple provider instances register only for explicit supported adapter contracts', () => {
     const main = read('ui/app/bootstrap/profiles.cpp');
-    const composition = read('ui/app/runtime_composition.cpp');
-    const interfaces = read('ui/app/runtime_composition.cppm');
+    const composition = read('ui/app/runtime/composition.cpp');
+    const interfaces = read('ui/app/runtime/composition.cppm');
     assert.match(main, /GENYCASTER_READ_PROVIDER_PROFILES_JSON/);
     assert.match(main, /--read-provider-profiles-json=/);
     assert.match(main, /--preferred-read-provider-id=/);
@@ -37,7 +37,7 @@ test('multiple provider instances register only for explicit supported adapter c
 });
 
 test('user preference maps to registered adapter instance id, not global vendor switch', () => {
-    const bridge = read('ui/app/runtime_ui_bindings.cpp');
+    const bridge = read('ui/app/runtime/bindings.cpp');
     const presentation = read('src/presentation/qt/presentation_bridge.cpp');
     assert.match(bridge, /runtime->independentReadProviderId/);
     assert.match(bridge, /runtime->hostedReadProviderId/);

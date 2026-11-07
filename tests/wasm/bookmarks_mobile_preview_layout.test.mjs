@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const bookmarks=read('ui/components/BookmarksSurface.qml');
-const link=read('ui/components/LinkPreview.qml');
-const cast=read('ui/components/CastItem.qml');
+const bookmarks=read('ui/components/profile/BookmarksSurface.qml');
+const link=read('ui/components/media/LinkPreview.qml');
+const cast=read('ui/components/feed/CastItem.qml');
 
 test('mobile bookmark header never asks three text buttons and a 260px select to share one row',()=>{
   assert.match(bookmarks,/ColumnLayout \{[\s\S]*?bookmarkSortPicker/);
@@ -40,7 +40,7 @@ test('compact bookmark filters have bounded widths and do not consume the full r
   assert.match(bookmarks,/visible: !root\.compact[\s\S]*?text: qsTrId\("genycaster\.filters\.collections"\)/);
 });
 test('owned Farcaster images fall back to their original HTTPS URL only after a provider error',()=>{
-  const tile=read('ui/components/GalleryTile.qml');
+  const tile=read('ui/components/media/GalleryTile.qml');
   assert.match(tile,/readonly property string ownMediaUrl:/);
   assert.match(tile,/media-farcaster/);
   assert.match(tile,/if \(root\.originFallbackAttempted && root\.ownMediaUrl\.length > 0\)/);

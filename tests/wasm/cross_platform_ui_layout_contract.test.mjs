@@ -10,12 +10,12 @@ const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 test("Qt application source layout is platform-neutral and ships no demo data", () => {
     assert.equal(existsSync(path.join(root, "ui/mobile")), false);
     assert.equal(existsSync(path.join(root, "ui/demo")), false);
-    assert.equal(existsSync(path.join(root, "ui/app/Main.qml")), true);
+    assert.equal(existsSync(path.join(root, "ui/components/shell/Main.qml")), true);
     assert.equal(existsSync(path.join(root, "ui/app/main.cpp")), true);
 
     const cmake = read("ui/CMakeLists.txt");
-    assert.match(cmake, /app\/Main\.qml/);
-    assert.match(cmake, /if\(qmlFile MATCHES "\^app\/\(\.\+\)\$"\)/);
+    assert.match(cmake, /components\/shell\/Main\.qml/);
+    assert.match(cmake, /if\(qmlFile STREQUAL "components\/shell\/Main.qml"\)/);
     assert.match(cmake, /QT_RESOURCE_ALIAS "\$\{qmlResourceAlias\}"/);
     assert.doesNotMatch(cmake, /demo\/DemoSocialData|mobile\/Main\.qml/);
 });
@@ -44,15 +44,15 @@ test("native UI tests belong to tests/ui and their source includes resolve", () 
 });
 
 test("sparkline renders in QML while numeric geometry is generated in C++", () => {
-    const qml = read("ui/components/TokenSparkline.qml");
+    const qml = read("ui/components/content/TokenSparkline.qml");
     const cmake = read("ui/CMakeLists.txt");
-    const header = read("ui/render/token_sparkline_geometry.hpp");
-    const source = read("ui/render/token_sparkline_geometry.cpp");
+    const header = read("ui/render/sparkline.hpp");
+    const source = read("ui/render/sparkline.cpp");
     assert.match(qml, /TokenSparklineGeometry\.compute\(/);
     assert.match(qml, /PathPolyline/);
     assert.doesNotMatch(qml, /\bfunction\s+(?:finiteValues|decimatedValues|smoothedValues|buildPoints|buildAreaPoints)\b/);
-    assert.match(cmake, /render\/token_sparkline_geometry\.cpp/);
-    assert.match(cmake, /render\/token_sparkline_geometry\.hpp/);
+    assert.match(cmake, /render\/sparkline\.cpp/);
+    assert.match(cmake, /render\/sparkline\.hpp/);
     assert.match(header, /QML_SINGLETON/);
     assert.match(header, /Q_INVOKABLE QVariantMap compute/);
     assert.match(source, /finiteSamples|decimate/);

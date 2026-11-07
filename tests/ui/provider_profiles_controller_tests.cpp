@@ -1,4 +1,4 @@
-#include "../../ui/app/providers/profiles.hpp"
+#include "../../ui/app/settings/providers.hpp"
 
 #include <QCoreApplication>
 #include <QJsonArray>

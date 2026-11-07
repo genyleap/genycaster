@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
-const read = name => readFileSync(new URL('../../ui/components/' + name, import.meta.url), 'utf8');
+const read = name => readFileSync(new URL('../../ui/components/' + componentPath(name), import.meta.url), 'utf8');
 
 test('all Cast reactions have uniform unboxed touch targets and semantic active hues', () => {
     const button = read('EngagementButton.qml');

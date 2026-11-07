@@ -1,13 +1,14 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
-const indicator = read('ui/components/PullToRefresh.qml');
-const notification = read('ui/components/NotificationSurface.qml');
-const shell = read('ui/components/AppShell.qml');
-const wheelMain = read('ui/app/web/wheel.cpp');
+const indicator = read('ui/components/feed/PullToRefresh.qml');
+const notification = read('ui/components/feed/NotificationSurface.qml');
+const shell = read('ui/components/shell/AppShell.qml');
+const wheelMain = read('ui/app/platform/wheel.cpp');
 const wheelFallback = wheelMain; // C++26 module owns the bounded direct-scroll fallback.
 
 test('Chrome wheel bridge consumes handled DOM events once and preserves subpixel ticks', () => {
@@ -29,7 +30,7 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
     assert.match(indicator, /if \(shouldRefresh\)\s+control\.refreshRequested\(\)/);
     assert.match(indicator, /control\.startedAtTop = false/);
     for (const file of ['FeedSurface','ProfileSurface','NotificationSurface']) {
-        const source = read('ui/components/' + file + '.qml');
+        const source = read('ui/components/' + componentPath(file) + '.qml');
         assert.match(source, /boundsBehavior: Flickable\.DragOverBounds/);
         assert.match(source, /boundsMovement: Flickable\.FollowBoundsBehavior/);
         assert.match(source, file === 'ProfileSurface'
@@ -39,7 +40,7 @@ test('pull-to-refresh arms only for a real top-origin drag and emits one refresh
     assert.match(shell, /onRefreshRequested: presentationBridge\.openNotifications\(\)/);
     assert.match(shell, /onRefreshRequested: root\.topicBrowseActive && root\.topicBrowseScope==="explorer"[\s\S]*?root\.primaryDestination === "explorer"[\s\S]*?presentationBridge\.refreshLatestFeed\(\)/);
     assert.match(shell, /onRefreshRequested: presentationBridge\.selectProfileFeed\(presentationBridge\.profileFeed\)/);
-    assert.match(read('ui/CMakeLists.txt'), /components\/PullToRefresh.qml/);
+    assert.match(read('ui/CMakeLists.txt'), /components\/feed\/PullToRefresh.qml/);
 });
 
 test('notification categories classify only provider-backed channel data, mention and reply', () => {

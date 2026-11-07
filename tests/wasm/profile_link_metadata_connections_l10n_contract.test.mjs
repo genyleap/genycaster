@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const read = path => readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('profile links use shared Qt metadata resolver for favicon/title/description on drawer open',()=>{
-  const profile=read('ui/components/ProfileSurface.qml');
-  const link=read('ui/components/ProfileLinkRow.qml');
+  const profile=read('ui/components/profile/ProfileSurface.qml');
+  const link=read('ui/components/profile/ProfileLinkRow.qml');
   const cmake=read('ui/CMakeLists.txt');
   assert.match(profile,/id: profileLinksDrawer[\s\S]*?function requestMetadata\(url\)[\s\S]*?linkPreviewResolver\.requestPreview/);
   assert.match(profile,/onOpened: \{[\s\S]*?requestMetadata/);
@@ -19,16 +19,16 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
   assert.match(link,/metadata\.summary \|\| metadata\.description/);
   assert.match(link,/browserLinkMetadataController\.previewFor\(root\.targetUrl, "link"\)/);
   assert.match(link,/function onPreviewReady\(url, kind, preview\)/);
-  assert.match(read('ui/app/link_preview_resolver.cpp'),/#if defined\(Q_OS_WASM\)[\s\S]*?Metadata parsing requires a native worker/);
+  assert.match(read('ui/app/network/link_preview.cpp'),/#if defined\(Q_OS_WASM\)[\s\S]*?Metadata parsing requires a native worker/);
   assert.doesNotMatch(link,/\b(?:fetch|XMLHttpRequest|localStorage|document|window)\s*[.(]/);
-  assert.match(cmake,/components\/ProfileLinkRow\.qml/);
+  assert.match(cmake,/components\/profile\/ProfileLinkRow\.qml/);
   const native=read('ui/app/main.cpp');
   assert.match(native,/LinkPreviewResolver linkPreviewResolver/);
   assert.match(native,/\{"linkPreviewResolver", &linkPreviewResolver\}/);
 });
 
 test('bookmark priority action is clear, not a location marker, and missing previews are actionable',()=>{
-  const surface=read('ui/components/BookmarksSurface.qml');
+  const surface=read('ui/components/profile/BookmarksSurface.qml');
   assert.match(surface,/objectName: "bookmarkPriorityMobileButton"[\s\S]*?iconGlyph: Theme\.iconPriorityStar/);
   assert.doesNotMatch(surface,/iconGlyph: Theme\.iconLocation/);
   assert.match(surface,/onOpenRequested: castId => root.castRequested\(castId\)/);
@@ -36,8 +36,8 @@ test('bookmark priority action is clear, not a location marker, and missing prev
 });
 
 test('connections distinguish offered networks from confirmed links across devices',()=>{
-  const picker=read('ui/components/AccountConnectionsPopup.qml');
-  const controller=read('ui/app/openproof/connections.cpp');
+  const picker=read('ui/components/profile/ConnectionsPopup.qml');
+  const controller=read('ui/app/identity/connections.cpp');
   assert.match(picker,/readonly property var orderedProviders:/);
   assert.match(picker,/readonly property int linkedCount:/);
   assert.match(picker,/model: picker\.orderedProviders/);

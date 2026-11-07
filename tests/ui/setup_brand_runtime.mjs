@@ -11,7 +11,7 @@ const runner = process.argv[2];
 assert.ok(runner, 'Pass an installed Qt qmltestrunner path');
 const artifacts = process.argv[3] ? resolve(process.argv[3]) : '';
 if (artifacts) mkdirSync(artifacts, { recursive: true });
-const source = readFileSync(new URL('../../ui/components/InitialSetup.qml', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../ui/components/setup/InitialSetup.qml', import.meta.url), 'utf8');
 const start = source.indexOf('        Rectangle {\n            id: desktopBrandPane');
 const end = source.indexOf('\n        // The exact same eight-stage indicator', start);
 assert.ok(start >= 0 && end > start);

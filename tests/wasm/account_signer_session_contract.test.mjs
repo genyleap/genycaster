@@ -8,9 +8,9 @@ const file=(name)=>readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('previously registered Farcaster signer automatically starts account ownership proof',()=>{
   const pre=file('ui/wasm/protocol-signer-pre.js');
-  const bridge=file('ui/app/browser_signer_bridge.hpp');
-  const runtime=file('ui/app/runtime_ui_bindings.cpp');
-  const controller=file('ui/app/openproof/connections.cpp');
+  const bridge=file('ui/app/browser/signer_bridge.hpp');
+  const runtime=file('ui/app/runtime/bindings.cpp');
+  const controller=file('ui/app/identity/connections.cpp');
   assert.match(pre,/status\.phase==="ready" && status\.ready/);
   assert.match(pre,/ensureBrowserAccountSession/);
   assert.match(bridge,/kind\s*==\s*QStringLiteral\("account-session"\)/);

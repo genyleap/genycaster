@@ -5,8 +5,8 @@ import test from 'node:test';
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 
 test('share menus show concise, untruncated action labels', () => {
-    const cast = read('ui/components/EngagementBar.qml');
-    const profile = read('ui/components/ProfileSurface.qml');
+    const cast = read('ui/components/feed/EngagementBar.qml');
+    const profile = read('ui/components/profile/ProfileSurface.qml');
     assert.match(cast, /text: qsTrId\("genycaster.share.share_action"\)/);
     assert.match(cast, /text: qsTrId\("genycaster.share.copy_link"\)/);
     assert.doesNotMatch(cast, /text: qsTr\("Copy Farcaster URI"\)/);
@@ -17,7 +17,7 @@ test('share menus show concise, untruncated action labels', () => {
 });
 
 test('views are a reaction metric, not a centered flexible footer action', () => {
-    const bar = read('ui/components/EngagementBar.qml');
+    const bar = read('ui/components/feed/EngagementBar.qml');
     const reactions = bar.indexOf('id: reactionActions');
     const views = bar.indexOf('id: castViewsLabel');
     const reactionClose = bar.indexOf('// Flexible space keeps utility actions');
@@ -27,7 +27,7 @@ test('views are a reaction metric, not a centered flexible footer action', () =>
 });
 
 test('desktop Home presents one bounded content column', () => {
-    const home = read('ui/components/HomeDashboard.qml');
+    const home = read('ui/components/home/HomeDashboard.qml');
     assert.match(home, /Math\.min\(root\.homeContentMaxWidth,/);
     assert.match(home, /anchors\.horizontalCenter: parent\.horizontalCenter/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
@@ -35,8 +35,8 @@ test('desktop Home presents one bounded content column', () => {
 });
 
 test('desktop store uses borderless app rows and compact Open buttons', () => {
-    const apps = read('ui/components/AppsSurface.qml');
-    const feature = read('ui/components/MiniAppFeaturedCarousel.qml');
+    const apps = read('ui/components/apps/AppsSurface.qml');
+    const feature = read('ui/components/apps/FeaturedCarousel.qml');
     assert.match(apps, /cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)\s*: \(width < Theme\.scaleUi\(660\)\s*\? Theme\.scaleUi\(152\) : Theme\.scaleUi\(112\)\)/);
     assert.match(apps, /id: storeRow/);
     assert.match(apps, /objectName: "miniAppDesktopStoreRow"/);
@@ -51,11 +51,11 @@ test('desktop store uses borderless app rows and compact Open buttons', () => {
 });
 
 test('desktop outside click closes drawers without changing mobile input handling', () => {
-    const drawer = read('ui/components/GenyDrawer.qml');
+    const drawer = read('ui/components/controls/GenyDrawer.qml');
     assert.match(drawer, /onBackgroundTapped: control\.close\(\)/);
     assert.match(drawer, /visible: !control\.bottomSheet/);
     assert.doesNotMatch(drawer, /visible: !control\.bottomSheet\s*&&\s*\(Qt\.platform\.os/);
-    const settings = read('ui/components/LocaleSettingsPopup.qml');
+    const settings = read('ui/components/settings/SettingsPopup.qml');
     assert.match(settings, /viewportWidth: Overlay\.overlay/);
     assert.match(settings, /viewportWidth < Theme\.breakpointMobile/);
     assert.match(drawer, /onPressed: mouse => \{[\s\S]*?control\.close\(\)/);
@@ -63,8 +63,8 @@ test('desktop outside click closes drawers without changing mobile input handlin
 });
 
 test('profile lifecycle and cast identity avoid undefined access and layout feedback', () => {
-    const cast = read('ui/components/CastItem.qml');
-    const profile = read('ui/components/ProfileSurface.qml');
+    const cast = read('ui/components/feed/CastItem.qml');
+    const profile = read('ui/components/profile/ProfileSurface.qml');
     assert.doesNotMatch(cast, /castNameAndChannel\.width \* 0\.62/);
     assert.doesNotMatch(cast, /Layout\.maximumWidth: Layout\.preferredWidth/);
     assert.match(profile, /const current = root\.detail \|\| \(\{\}\)/);
@@ -73,8 +73,8 @@ test('profile lifecycle and cast identity avoid undefined access and layout feed
 
 
 test('all platforms share consistent app-first client actions', () => {
-    const cast = read('ui/components/EngagementBar.qml');
-    const profile = read('ui/components/ProfileSurface.qml');
+    const cast = read('ui/components/feed/EngagementBar.qml');
+    const profile = read('ui/components/profile/ProfileSurface.qml');
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
     const header = read('src/presentation/qt/presentation_bridge.hpp');
 
@@ -103,7 +103,7 @@ test('all platforms share consistent app-first client actions', () => {
 });
 
 test('Apps search has constrained width and data-driven topic filter', () => {
-    const apps = read('ui/components/AppsSurface.qml');
+    const apps = read('ui/components/apps/AppsSurface.qml');
     assert.match(apps, /objectName: "miniAppTopicFilter"/);
     assert.match(apps, /Layout\.maximumWidth: 420/);
     assert.match(apps, /readonly property var availableCategories/);
@@ -111,9 +111,9 @@ test('Apps search has constrained width and data-driven topic filter', () => {
 });
 
 test('cast backgrounds and floating compose use page canvas and physical right edge', () => {
-    const cast = read('ui/components/CastItem.qml');
-    const reply = read('ui/components/ThreadReplyItem.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const cast = read('ui/components/feed/CastItem.qml');
+    const reply = read('ui/components/feed/ThreadReplyItem.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     assert.match(cast, /fillColor: Theme\.backgroundPrimary\s*borderWidth: 0/);
     assert.match(reply, /fillColor: Theme\.backgroundPrimary/);
     assert.match(shell, /root\.width - Theme\.space5 - width/);
@@ -121,8 +121,8 @@ test('cast backgrounds and floating compose use page canvas and physical right e
 });
 
 test('release updates use a top-edge drawer with real versions and actions', () => {
-    const notice = read('ui/components/UpdateNoticeDrawer.qml');
-    const shell = read('ui/components/AppShell.qml');
+    const notice = read('ui/components/settings/UpdateNoticeDrawer.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
     assert.match(notice, /edge: Qt\.TopEdge/);
     assert.match(notice, /updateController\.updateAvailable/);
     assert.match(notice, /updateController\.appVersion/);
@@ -133,9 +133,9 @@ test('release updates use a top-edge drawer with real versions and actions', () 
 });
 
 test('client badge only uses provider-returned metadata in feed and replies', () => {
-    const badge = read('ui/components/SourceClientBadge.qml');
-    const feed = read('ui/components/CastItem.qml');
-    const reply = read('ui/components/ThreadReplyItem.qml');
+    const badge = read('ui/components/feed/SourceClientBadge.qml');
+    const feed = read('ui/components/feed/CastItem.qml');
+    const reply = read('ui/components/feed/ThreadReplyItem.qml');
     assert.match(badge, /visible: sanitizedName\.length > 0/);
     assert.match(feed, /objectName: "castSourceClientBadge"/);
     assert.match(reply, /objectName: "replySourceClientBadge"/);
@@ -144,8 +144,8 @@ test('client badge only uses provider-returned metadata in feed and replies', ()
 });
 
 test('mobile Apps show the same compact store rows as desktop with topic filters', () => {
-    const apps=read('ui/components/AppsSurface.qml');
-    const library=read('ui/components/MiniAppLibraryShelves.qml');
+    const apps=read('ui/components/apps/AppsSurface.qml');
+    const library=read('ui/components/apps/LibraryShelves.qml');
     assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
     assert.match(apps,/cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)\s*: \(width < Theme\.scaleUi\(660\)\s*\? Theme\.scaleUi\(152\) : Theme\.scaleUi\(112\)\)/);
     assert.match(apps,/objectName: "miniAppMobileStoreRow"/);
@@ -159,9 +159,9 @@ test('mobile Apps show the same compact store rows as desktop with topic filters
 });
 
 test('native update sheet shows published release metadata with vertical drawer motion', () => {
-    const drawer=read('ui/components/UpdateNoticeDrawer.qml');
-    const header=read('ui/app/update_controller.hpp');
-    const cpp=read('ui/app/update_controller.cpp');
+    const drawer=read('ui/components/settings/UpdateNoticeDrawer.qml');
+    const header=read('ui/app/update/controller.hpp');
+    const cpp=read('ui/app/update/controller.cpp');
     assert.match(drawer,/edge: Qt\.TopEdge/);
     assert.match(drawer,/property: "position"/);
     assert.match(drawer,/updateController\.releaseTitle/);
@@ -173,7 +173,7 @@ test('native update sheet shows published release metadata with vertical drawer 
 });
 
 test('release notice has fixed header and footer with only release notes scrollable', () => {
-    const source = read('ui/components/UpdateNoticeDrawer.qml');
+    const source = read('ui/components/settings/UpdateNoticeDrawer.qml');
     assert.match(source,/contentItem: Item \{[\s\S]*?id: updateLayoutViewport/);
     assert.match(source,/id: updateFixedChrome/);
     assert.match(source,/id: updateScrollableSection[\s\S]*?Layout.minimumHeight: 0[\s\S]*?Layout.preferredHeight: 0/);

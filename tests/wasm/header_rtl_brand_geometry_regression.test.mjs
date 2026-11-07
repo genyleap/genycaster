@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const read = name => readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
 test('header uses physical x/y coordinates, not mirrored conditional horizontal anchors',()=>{
-  const qml=read('ui/components/AppHeader.qml');
+  const qml=read('ui/components/shell/AppHeader.qml');
   assert.match(qml,/objectName: "appHeaderBrandCluster"[\s\S]*?x: Theme.rtl \? parent.width - root.gutter - width : root.gutter/);
   assert.match(qml,/id: brandSymbol[\s\S]*?x: Theme.rtl \? brandCluster.width - width : 0/);
   assert.match(qml,/objectName: "appHeaderWordmarkAndVersion"[\s\S]*?x: Theme.rtl \? 0 : brandSymbol.width \+ brandCluster.brandGap/);
@@ -30,7 +30,7 @@ test('RTL brand cluster and actions cannot cross at mobile widths',()=>{
 });
 
 test('version sits beneath the wordmark using separate visual runs',()=>{
-  const qml=read('ui/components/AppHeader.qml');
+  const qml=read('ui/components/shell/AppHeader.qml');
   const fa=read('ui/i18n/qml_fa_IR.ts');
   assert.match(qml,/objectName: "appHeaderReleaseVersion"[\s\S]*?horizontalAlignment: Theme\.rtl \? Text\.AlignRight : Text\.AlignLeft/);
   assert.match(qml,/objectName: "appHeaderReleaseVersion"[\s\S]*?y: brandWordmark\.height \+ Theme\.scaleUi\(2\)/);
@@ -42,7 +42,7 @@ test('version sits beneath the wordmark using separate visual runs',()=>{
 });
 
 test('all header controls retain their original actions',()=>{
-  const qml=read('ui/components/AppHeader.qml');
+  const qml=read('ui/components/shell/AppHeader.qml');
   assert.match(qml,/visible: root.showBrand/);
   for(const handler of ['notificationsRequested','settingsRequested','ownProfileRequested'])
     assert.ok(qml.includes('root.'+handler+'()'),handler);

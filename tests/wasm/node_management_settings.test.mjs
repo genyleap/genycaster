@@ -4,10 +4,10 @@ import {readFileSync} from 'node:fs';
 
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
-const settings = read('ui/components/LocaleSettingsPopup.qml');
-const manager = read('ui/components/NodeManagementPanel.qml');
-const controller = read('ui/app/providers/profiles.cpp');
-const header = read('ui/app/providers/profiles.hpp');
+const settings = read('ui/components/settings/SettingsPopup.qml');
+const manager = read('ui/components/settings/NodeManagementPanel.qml');
+const controller = read('ui/app/settings/providers.cpp');
+const header = read('ui/app/settings/providers.hpp');
 const bootstrap = read('ui/app/bootstrap/profiles.cpp');
 
 test('Node Management is its own settings destination on desktop and mobile', () => {
@@ -100,13 +100,13 @@ test('Node Management labels including contract correction are translated in eve
 });
 
 test('a custom raw node can receive only its own explicit HTTPS x-api-key', () => {
-  const composition = read('ui/app/runtime_composition.cpp');
+  const composition = read('ui/app/runtime/composition.cpp');
   assert.match(bootstrap, /profile\.adapterContract == "snapchain-v1"/);
   assert.match(composition, /const auto rawCredential = readProviderApiKeys\.find\(profile\.id\)/);
   assert.match(composition, /\.authorizationHeaderName = rawCredential/);
   assert.match(composition, /std::string\{"x-api-key"\}/);
   assert.match(composition, /Authenticated raw read providers require HTTPS/);
-  const controller = read('ui/app/providers/profiles.cpp');
+  const controller = read('ui/app/settings/providers.cpp');
   assert.match(controller, /QStringLiteral\("snapchain-v1"\)\)/);
   assert.match(manager, /readKey\.text\)/);
 });
@@ -138,8 +138,8 @@ test('raw node limitations are explicit, and saving does not automatically switc
 });
 
 test('unsupported raw notifications do not masquerade as a transient node outage', () => {
-  const notifications = read('ui/components/NotificationSurface.qml');
-  const shell = read('ui/components/AppShell.qml');
+  const notifications = read('ui/components/feed/NotificationSurface.qml');
+  const shell = read('ui/components/shell/AppShell.qml');
   assert.match(header, /appliedCompatibleReadFallback READ appliedCompatibleReadFallback/);
   assert.match(shell, /providerProfiles\.activeReadContract === "snapchain-v1"/);
   assert.match(shell, /!providerProfiles\.appliedCompatibleReadFallback/);

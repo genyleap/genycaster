@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
-const source = readFileSync(new URL('../../ui/components/FeedSurface.qml', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../../ui/components/feed/FeedSurface.qml', import.meta.url), 'utf8');
 const start = source.indexOf('    function rowRevision(row) {');
 const end = source.indexOf('\n    function payloadForStableKey(key) {', start);
 assert.ok(start >= 0 && end > start, 'extract actual FeedSurface QML function');

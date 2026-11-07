@@ -1,9 +1,10 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import test from 'node:test';
 
-const read = file => readFileSync(new URL('../../ui/components/' + file + '.qml', import.meta.url), 'utf8');
+const read = file => readFileSync(new URL('../../ui/components/' + componentPath(file) + '.qml', import.meta.url), 'utf8');
 
 test('Home hub replaces the duplicate cast timeline and prompt carousel', () => {
     const home = read('HomeDashboard');

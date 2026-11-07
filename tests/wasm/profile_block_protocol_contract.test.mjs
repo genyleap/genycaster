@@ -21,7 +21,7 @@ test('signed Block and Unblock are canonical LinkAdd/LinkRemove with type block'
 
 test('Block is routed through durable sign-and-submit on the selected writer',()=>{
     const protocol=read('src/providers/snapchain/write.cpp');
-    const native=read('ui/app/runtime_ui_bindings.cpp');
+    const native=read('ui/app/runtime/bindings.cpp');
     const routes=read('ui/app/bootstrap/routes.cpp');
     assert.match(protocol,/OperationKind::Block: return "MESSAGE_TYPE_LINK_ADD"/);
     assert.match(protocol,/OperationKind::Unblock: return "MESSAGE_TYPE_LINK_REMOVE"/);
@@ -34,7 +34,7 @@ test('Block is routed through durable sign-and-submit on the selected writer',()
 });
 
 test('Block UI requires verified directions and includes mobile options and translations',()=>{
-    const profile=read('ui/components/ProfileSurface.qml');
+    const profile=read('ui/components/profile/ProfileSurface.qml');
     const bridge=read('src/presentation/qt/presentation_bridge.cpp');
     assert.match(profile,/objectName: "profileOptionsButton"\s*\/\/ The same profile actions[\s\S]*visible: true/);
     assert.match(profile,/onBlockingMutationRequested|blockingMutationRequested\(/);

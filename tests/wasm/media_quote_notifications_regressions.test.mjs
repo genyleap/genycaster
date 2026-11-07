@@ -1,3 +1,4 @@
+import { componentPath } from './ui_component_paths.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -5,8 +6,8 @@ import {readFileSync} from 'node:fs';
 const read = name => readFileSync(new URL('../../' + name, import.meta.url), 'utf8');
 
 test('remote link, collectible, and miniapp art use the CORS-safe image provider', () => {
-    const link = read('ui/components/LinkPreview.qml');
-    const collectible = read('ui/components/CollectiblePreview.qml');
+    const link = read('ui/components/media/LinkPreview.qml');
+    const collectible = read('ui/components/media/CollectiblePreview.qml');
     assert.match(link, /readonly property string rawPreviewSource:/);
     assert.match(link, /linkPreviewResolver\.imageSourceForUrl\(source\)/);
     assert.match(collectible, /readonly property string rawArtworkSource:/);
@@ -16,8 +17,8 @@ test('remote link, collectible, and miniapp art use the CORS-safe image provider
 });
 
 test('late or failed link/NFT artwork retains first-frame geometry during scrolling', () => {
-    const link = read('ui/components/LinkPreview.qml');
-    const collectible = read('ui/components/CollectiblePreview.qml');
+    const link = read('ui/components/media/LinkPreview.qml');
+    const collectible = read('ui/components/media/CollectiblePreview.qml');
     // The native Qt media-scroll test verifies these fixed reservations at
     // both breakpoints, across late metadata, failures, and kinetic flicks.
     assert.match(link, /readonly property bool reserveArtwork: !root\.suppressArtwork\s+&& root\.targetUrl\.length > 0/);
@@ -35,17 +36,17 @@ test('late or failed link/NFT artwork retains first-frame geometry during scroll
 });
 
 test('quote action travels from every cast list to a protocol cast-reference', () => {
-    const bar = read('ui/components/EngagementBar.qml');
-    const cast = read('ui/components/CastItem.qml');
-    const shell = read('ui/components/AppShell.qml');
-    const drawer = read('ui/components/ComposerDrawer.qml');
+    const bar = read('ui/components/feed/EngagementBar.qml');
+    const cast = read('ui/components/feed/CastItem.qml');
+    const shell = read('ui/components/shell/AppShell.qml');
+    const drawer = read('ui/components/composer/ComposerDrawer.qml');
     const cpp = read('src/presentation/qt/rich_composer_controller.cpp');
     assert.match(bar, /objectName: "castQuoteButton"/);
     assert.match(cast, /onQuoteRequested: root\.quoteRequested\(root\.modelData\)/);
     for (const file of ['FeedSurface.qml', 'ProfileSurface.qml', 'DetailSurface.qml',
                         'SemanticFeedItem.qml', 'ConversationRow.qml', 'VisualPost.qml',
                         'DeveloperPost.qml', 'ThreadReplyItem.qml']) {
-        const source = read('ui/components/' + file);
+        const source = read('ui/components/' + componentPath(file));
         assert.match(source, /signal quoteRequested\(var cast\)/, file);
         assert.match(source, /onQuoteRequested:/, file);
         assert.doesNotMatch(source, /function on[A-Za-z]+:/, file);
@@ -60,8 +61,8 @@ test('quote action travels from every cast list to a protocol cast-reference', (
 
 
 test('marketplace artwork retries through the CORS-safe browser metadata provider', () => {
-    const embed = read('ui/components/EmbedPreview.qml');
-    const art = read('ui/components/CollectiblePreview.qml');
+    const embed = read('ui/components/media/EmbedPreview.qml');
+    const art = read('ui/components/media/CollectiblePreview.qml');
     assert.match(embed, /function requestBrowserMarketplacePreview\(\)/);
     const adapter = read('ui/app/browser/link_metadata.cpp');
     assert.match(embed, /browserLinkMetadataController\.requestPreview\(target, "link"\)/);
@@ -76,15 +77,15 @@ test('marketplace artwork retries through the CORS-safe browser metadata provide
 });
 
 test('miniapp posters keep useful original artwork size with better inset spacing', () => {
-    const link = read('ui/components/LinkPreview.qml');
+    const link = read('ui/components/media/LinkPreview.qml');
     assert.match(link, /Math\.min\(root\.compact \? 420 : 640,/);
     assert.match(link, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
     assert.match(link, /implicitHeight: content\.implicitHeight\s*\+ \(root\.layoutMiniApp \? Theme\.space4/);
 });
 
 test('search text fields use the themed editor context menu', () => {
-    const input = read('ui/components/DirectionAwareTextField.qml');
-    const search = read('ui/components/SearchPalette.qml');
+    const input = read('ui/components/controls/BidiTextField.qml');
+    const search = read('ui/components/navigation/SearchPalette.qml');
     assert.match(input, /ContextMenu\.menu: EditorContextMenu \{ editor: root \}/);
     assert.match(search, /DirectionAwareTextField \{\s+id: searchField/);
 });
@@ -102,15 +103,15 @@ test('supported locales contain every public English translation key', () => {
 });
 
 test('unknown impressions never become fabricated zero views', () => {
-    const bar = read('ui/components/EngagementBar.qml');
+    const bar = read('ui/components/feed/EngagementBar.qml');
     assert.match(bar, /property var viewCount: null/);
     assert.match(bar, /visible: root\.showViews && root\.resolvedViewCount !== null && root\.resolvedViewCount !== undefined/);
-    assert.match(read('ui/components/CastItem.qml'),
+    assert.match(read('ui/components/feed/CastItem.qml'),
         /viewCount: root\.modelData\.viewCount === undefined \? null : root\.modelData\.viewCount/);
 });
 
 test('newest activity is tinted and grouped actors get a separate nonoverlapping portrait row', () => {
-    const qml = read('ui/components/NotificationSurface.qml');
+    const qml = read('ui/components/feed/NotificationSurface.qml');
     assert.match(qml, /readonly property bool latestActivity:/);
     assert.match(qml, /notificationRow\.latestActivity[\s\S]*?Qt\.rgba\(Theme\.accent/);
     assert.match(qml, /return Theme\.surfaceSelected/);

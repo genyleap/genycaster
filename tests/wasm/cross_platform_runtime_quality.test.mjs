@@ -15,14 +15,14 @@ test("fresh installs start in English without overwriting an explicit language",
     assert.match(cpp, /overrides\.languageTag\.isEmpty\(\) \? storedLanguage/);
     assert.match(cpp, /setLanguageTag\(QStringLiteral\("en"\)\)/);
     assert.match(cpp, /m_impl->settings\.setValue\(QString::fromLatin1\(kLanguageSetting\)/);
-    const qml = read("ui/components/InitialSetup.qml");
+    const qml = read("ui/components/setup/InitialSetup.qml");
     assert.match(qml, /showsPrimaryCta: \[0,1,2,6,7\]\.includes\(currentStep\)/);
     assert.doesNotMatch(qml, /showsPrimaryCta: .*\.indexOf\(/);
 });
 
 test("verified GitHub calendar reuses account credentials, not a public network request", () => {
-    const account = read("ui/app/openproof/connections.cpp");
-    const activity = read("ui/app/genypulse/activity.cpp");
+    const account = read("ui/app/identity/connections.cpp");
+    const activity = read("ui/app/social/activity.cpp");
     const main = read("ui/app/main.cpp");
     const ownRequest = account.slice(
         account.indexOf("OpenProofConnectionsController::requestVerifiedGitHubCalendar"),
@@ -59,7 +59,7 @@ test("busy or starting protocol writes never fabricate a missing signer", () => 
 });
 
 test("market rows rearrange the sparkline and truncate names at constrained rail widths", () => {
-    const rail = read("ui/components/ContextRail.qml");
+    const rail = read("ui/components/navigation/ContextRail.qml");
     const section = rail.slice(rail.indexOf("id: marketComponent"),
                                rail.indexOf("id: suggestedComponent"));
     assert.match(section, /readonly property bool compactMarketRow: width < 330/);
@@ -72,7 +72,7 @@ test("market rows rearrange the sparkline and truncate names at constrained rail
 });
 
 test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrella APIs", () => {
-    const native = read("ui/app/miniapp_browser_macos.mm");
+    const native = read("ui/app/miniapp/browser_macos.mm");
     assert.doesNotMatch(native, /#pragma clang diagnostic ignored/);
     assert.doesNotMatch(native, /<AppKit\/AppKit\.h>|<WebKit\/WebKit\.h>|<QuartzCore\/QuartzCore\.h>/);
     assert.match(native, /#import <AppKit\/NSView\.h>/);
@@ -86,7 +86,7 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
     assert.match(sdkBridge, /check_objcxx_source_compiles/);
     assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|diagnostic ignored/);
     assert.match(read("ui/CMakeLists.txt"), /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);
-    const qml = read("ui/components/InitialSetup.qml");
+    const qml = read("ui/components/setup/InitialSetup.qml");
     assert.match(qml, /showsPrimaryCta: .*\.includes\(currentStep\)/);
 });
 

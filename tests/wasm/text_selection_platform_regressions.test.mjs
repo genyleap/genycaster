@@ -6,8 +6,8 @@ import vm from 'node:vm';
 const read = p => readFileSync(new URL('../../'+p, import.meta.url), 'utf8');
 
 test('canvas-only selection actions never bind Popup.visible open on Home', () => {
- const editor=read('ui/components/DirectionAwareTextArea.qml');
- const composer=read('ui/components/ComposerDrawer.qml');
+ const editor=read('ui/components/controls/BidiTextArea.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  const popup=editor.slice(editor.indexOf('id: selectionBar'));
  assert.doesNotMatch(popup,/visible:\s*!textSelectionSettings\.systemSelectionEnabled/);
  assert.match(editor,/if \(!root\.customCanvasSelection \|\| !root\.visible/);
@@ -20,7 +20,7 @@ test('canvas-only selection actions never bind Popup.visible open on Home', () =
 });
 
 test('native platform menus use actual MenuItems; custom Items remain canvas-only',()=>{
- const editor=read('ui/components/DirectionAwareTextArea.qml');
+ const editor=read('ui/components/controls/BidiTextArea.qml');
  assert.match(editor,/Qt\.platform\.os === "ios"/);
  assert.match(editor,/Qt\.platform\.os === "android"/);
  assert.match(editor,/Qt\.platform\.os === "wasm"/);

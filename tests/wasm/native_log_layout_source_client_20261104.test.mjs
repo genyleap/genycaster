@@ -1,7 +1,8 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const qml=(name)=>readFileSync(new URL('../../ui/components/'+name+'.qml',import.meta.url),'utf8');
+const qml=(name)=>readFileSync(new URL('../../ui/components/' + componentPath(name)+'.qml',import.meta.url),'utf8');
 test('cast header preferred size must never depend on its own Layout width',()=>{
  const src=qml('DetailSurface');
  const part=src.slice(src.indexOf('id: detailNameAndChannel'),src.indexOf('id: parentContextLayout'));
@@ -33,7 +34,7 @@ test('deep cast rich blocks do not retain orphaned pending loaders on a feed swi
 
 
 test('HTML served with a misleading image Content-Type never reaches QImageReader', () => {
- const src=readFileSync(new URL('../../ui/app/remote_image_provider.cpp', import.meta.url),'utf8');
+ const src=readFileSync(new URL('../../ui/app/media/remote_image.cpp', import.meta.url),'utf8');
  const predicate=src.slice(src.indexOf('[[nodiscard]] bool responseMayContainImage('),
    src.indexOf('[[nodiscard]] int quantizedRequestedDimension('));
  assert.ok(predicate.length>0, 'image response gate is present');

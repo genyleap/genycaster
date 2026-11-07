@@ -2,178 +2,178 @@
 find_package(Qt6 QUIET COMPONENTS Lottie)
 
 set(farcasterQmlFiles
-    app/Main.qml
-    components/ActionButton.qml
-    components/DisplayScaleControl.qml
-    components/PanelWidthControl.qml
-    components/AnimatedEmoji.qml
-    components/SpriteEmoji.qml
-    components/AppHeader.qml
-    components/AppShell.qml
-    components/AppsSurface.qml
-    components/MiniAppFeaturedCarousel.qml
-    components/MiniAppLibraryShelves.qml
-    components/MiniAppArtPlaceholder.qml
-    components/ContentRefreshIndicator.qml
-    components/CompactNavigationRail.qml
-    components/ContentTabs.qml
-    components/ConversationRow.qml
-    components/DataStoragePopup.qml
-    components/CollectiblePreview.qml
-    components/EmbedPreview.qml
-    components/DeveloperPost.qml
-    components/DrawerBackdrop.qml
-    components/Avatar.qml
-    components/AudioPreview.qml
-    components/BottomNavButton.qml
-    components/BottomNavigation.qml
-    components/CodeBlockEditor.qml
-    components/CodeBlockView.qml
-    components/CastEmbedsPanel.qml
-    components/ComposerToolbar.qml
-    components/CastItem.qml
-    components/CastActionsMenu.qml
-    components/SourceClientBadge.qml
-    components/CastSkeleton.qml
-    components/CastViews.qml
-    components/CastReactions.qml
-    components/BookmarksSurface.qml
-    components/ContentFilterSheet.qml
-    components/BookmarkCollectionChooser.qml
-    components/ContextRail.qml
-    components/ComposerDrawer.qml
-    components/DashedCapsuleOutline.qml
-    components/EmojiPicker.qml
-    components/FeedbackDialog.qml
-    components/ComposerInsertPanel.qml
-    components/MediaUploadPanel.qml
-    components/MediaPreview.qml
-    components/FloatingComposeButton.qml
-    components/FarcasterPreview.qml
-    components/FeedPulseCard.qml
-    components/FormattingToolbar.qml
-    components/GenyDrawer.qml
-    components/GenyProDetailsDrawer.qml
-    components/GenyAdaptiveDialog.qml
-    components/GalleryLayout.qml
-    components/GalleryTile.qml
-    components/MediaGallery.qml
-    components/ComingSoonSurface.qml
-    components/EmbedCard.qml
-    components/EngagementButton.qml
-    components/EngagementBar.qml
-    components/AccentColorStudio.qml
-    components/AmbientMediaBackdrop.qml
-    components/LocaleSettingsPopup.qml
-    components/ProviderProfilesPanel.qml
-    components/NodeManagementPanel.qml
-    components/UpdateNoticeDrawer.qml
-    components/LocaleFormat.qml
-    components/MiniAppPresentationPreview.qml
-    components/LanguageSelector.qml
-    components/SetupLanguageSelector.qml
-    components/SetupStepIndicator.qml
-    components/SetupActionCard.qml
-    components/SetupPrimaryButton.qml
-    components/SetupPageHeader.qml
-    components/ModalHeader.qml
-    components/LocalizedPrice.qml
-    components/MarketAssetIcon.qml
-    components/Icon.qml
-    components/Superellipse.qml
-    components/SuperellipseImage.qml
-    components/GenyTabButton.qml
-    components/GenyCheckRow.qml
-    components/DetailSurface.qml
-    components/ThreadReplyItem.qml
-    components/GenyThreadRail.qml
-    components/DirectionAwareLabel.qml
-    components/DirectionAwareTextArea.qml
-    components/EditorContextMenu.qml
-    components/EditorMenuItem.qml
-    components/DirectionAwareTextField.qml
-    components/EmptyState.qml
-    components/ExplorerFeedHeader.qml
-    components/FeedHeader.qml
-    components/FeedSurface.qml
-    components/FilterDropdown.qml
-    components/FilePreview.qml
-    components/HomeComposer.qml
-    components/HomeDashboard.qml
-    components/HomeFeedHeader.qml
-    components/InitialSetup.qml
-    components/LinkPreview.qml
-    components/MobileCreateMenu.qml
-    components/GenyComboBox.qml
-    components/GenyMultiSelect.qml
-    components/GenyProgressBar.qml
-    components/GenySlider.qml
-    components/GenyVideoPlayer.qml
-    components/GenyModal.qml
-    components/GenyScrollBar.qml
-    components/ScrollToTopButton.qml
-    components/PullToRefresh.qml
-    components/GenySpinner.qml
-    components/GenySwitch.qml
-    components/GenyRadioIndicator.qml
-    components/NavItem.qml
-    components/NotificationSurface.qml
-    components/GenyTabStrip.qml
-    components/ProfileListItem.qml
-    components/ProgressRing.qml
-    components/ProfileLinkRow.qml
-    components/ProfileSurface.qml
-    components/ProfileProBadge.qml
-    components/ProUpgradeNotice.qml
-    components/GenyPulsePanel.qml
-    components/StreakCard.qml
-    components/AccountConnectionsPopup.qml
-    components/ProfileTrustCard.qml
-    components/SearchPalette.qml
-    components/SemanticFeedItem.qml
-    components/SidebarProfileSummary.qml
-    components/SocialSidebar.qml
-    components/StoryItem.qml
-    components/StoryStrip.qml
-    components/PopupSurface.qml
-    components/RichCastRenderer.qml
-    components/RichInlineText.qml
-    components/RichText.qml
-    components/RichTextEditor.qml
-    components/RichTextView.qml
-    components/SectionHeader.qml
-    components/SideNavigation.qml
-    components/StatusStrip.qml
-    components/StatusFooter.qml
-    components/TaskManagerPopup.qml
-    components/WalletBrowserPicker.qml
-    components/RenderingSettingsPopup.qml
-    components/SystemStatusCard.qml
-    components/TokenSparkline.qml
-    components/TokenSemantic.qml
-    components/VectorStroke.qml
-    components/TokenAddressPreview.qml
-    components/TopicBrowseSurface.qml
-    components/TopicFilterPicker.qml
-    components/VideoPreview.qml
-    components/VisualPost.qml
+    components/shell/Main.qml
+    components/controls/ActionButton.qml
+    components/settings/DisplayScaleControl.qml
+    components/settings/PanelWidthControl.qml
+    components/media/AnimatedEmoji.qml
+    components/media/SpriteEmoji.qml
+    components/shell/AppHeader.qml
+    components/shell/AppShell.qml
+    components/apps/AppsSurface.qml
+    components/apps/FeaturedCarousel.qml
+    components/apps/LibraryShelves.qml
+    components/apps/ArtPlaceholder.qml
+    components/feed/RefreshIndicator.qml
+    components/navigation/CompactNavigationRail.qml
+    components/navigation/ContentTabs.qml
+    components/feed/ConversationRow.qml
+    components/settings/StoragePopup.qml
+    components/media/CollectiblePreview.qml
+    components/media/EmbedPreview.qml
+    components/feed/DeveloperPost.qml
+    components/visual/DrawerBackdrop.qml
+    components/content/Avatar.qml
+    components/media/AudioPreview.qml
+    components/navigation/BottomNavButton.qml
+    components/navigation/BottomNavigation.qml
+    components/composer/CodeBlockEditor.qml
+    components/content/CodeBlockView.qml
+    components/media/CastEmbedsPanel.qml
+    components/composer/ComposerToolbar.qml
+    components/feed/CastItem.qml
+    components/feed/CastActionsMenu.qml
+    components/feed/SourceClientBadge.qml
+    components/feed/CastSkeleton.qml
+    components/feed/CastViews.qml
+    components/feed/CastReactions.qml
+    components/profile/BookmarksSurface.qml
+    components/feed/ContentFilterSheet.qml
+    components/profile/CollectionChooser.qml
+    components/navigation/ContextRail.qml
+    components/composer/ComposerDrawer.qml
+    components/visual/DashedCapsuleOutline.qml
+    components/composer/EmojiPicker.qml
+    components/settings/FeedbackDialog.qml
+    components/composer/ComposerInsertPanel.qml
+    components/composer/MediaUploadPanel.qml
+    components/media/MediaPreview.qml
+    components/navigation/FloatingComposeButton.qml
+    components/media/FarcasterPreview.qml
+    components/feed/FeedPulseCard.qml
+    components/composer/FormattingToolbar.qml
+    components/controls/GenyDrawer.qml
+    components/profile/GenyProDetailsDrawer.qml
+    components/controls/GenyAdaptiveDialog.qml
+    components/media/GalleryLayout.qml
+    components/media/GalleryTile.qml
+    components/media/MediaGallery.qml
+    components/shell/ComingSoonSurface.qml
+    components/media/EmbedCard.qml
+    components/feed/EngagementButton.qml
+    components/feed/EngagementBar.qml
+    components/settings/AccentColorStudio.qml
+    components/visual/AmbientMediaBackdrop.qml
+    components/settings/SettingsPopup.qml
+    components/settings/ProviderProfilesPanel.qml
+    components/settings/NodeManagementPanel.qml
+    components/settings/UpdateNoticeDrawer.qml
+    components/controls/LocaleFormat.qml
+    components/apps/MiniAppPreview.qml
+    components/settings/LanguageSelector.qml
+    components/setup/SetupLanguageSelector.qml
+    components/setup/SetupStepIndicator.qml
+    components/setup/SetupActionCard.qml
+    components/setup/SetupPrimaryButton.qml
+    components/setup/SetupPageHeader.qml
+    components/controls/ModalHeader.qml
+    components/content/LocalizedPrice.qml
+    components/content/MarketAssetIcon.qml
+    components/controls/Icon.qml
+    components/visual/Superellipse.qml
+    components/visual/SuperellipseImage.qml
+    components/controls/GenyTabButton.qml
+    components/controls/GenyCheckRow.qml
+    components/feed/DetailSurface.qml
+    components/feed/ThreadReplyItem.qml
+    components/feed/GenyThreadRail.qml
+    components/controls/BidiLabel.qml
+    components/controls/BidiTextArea.qml
+    components/composer/EditorContextMenu.qml
+    components/composer/EditorMenuItem.qml
+    components/controls/BidiTextField.qml
+    components/controls/EmptyState.qml
+    components/feed/ExplorerFeedHeader.qml
+    components/feed/FeedHeader.qml
+    components/feed/FeedSurface.qml
+    components/controls/FilterDropdown.qml
+    components/media/FilePreview.qml
+    components/home/HomeComposer.qml
+    components/home/HomeDashboard.qml
+    components/home/HomeFeedHeader.qml
+    components/setup/InitialSetup.qml
+    components/media/LinkPreview.qml
+    components/navigation/MobileCreateMenu.qml
+    components/controls/GenyComboBox.qml
+    components/controls/GenyMultiSelect.qml
+    components/controls/GenyProgressBar.qml
+    components/controls/GenySlider.qml
+    components/media/GenyVideoPlayer.qml
+    components/controls/GenyModal.qml
+    components/controls/GenyScrollBar.qml
+    components/navigation/ScrollToTopButton.qml
+    components/feed/PullToRefresh.qml
+    components/controls/GenySpinner.qml
+    components/controls/GenySwitch.qml
+    components/controls/GenyRadioIndicator.qml
+    components/navigation/NavItem.qml
+    components/feed/NotificationSurface.qml
+    components/controls/GenyTabStrip.qml
+    components/profile/ProfileListItem.qml
+    components/controls/ProgressRing.qml
+    components/profile/ProfileLinkRow.qml
+    components/profile/ProfileSurface.qml
+    components/profile/ProfileProBadge.qml
+    components/profile/ProUpgradeNotice.qml
+    components/profile/GenyPulsePanel.qml
+    components/profile/StreakCard.qml
+    components/profile/ConnectionsPopup.qml
+    components/profile/ProfileTrustCard.qml
+    components/navigation/SearchPalette.qml
+    components/feed/SemanticFeedItem.qml
+    components/profile/SidebarSummary.qml
+    components/navigation/SocialSidebar.qml
+    components/feed/StoryItem.qml
+    components/feed/StoryStrip.qml
+    components/controls/PopupSurface.qml
+    components/content/RichCastRenderer.qml
+    components/content/RichInlineText.qml
+    components/content/RichText.qml
+    components/composer/RichTextEditor.qml
+    components/content/RichTextView.qml
+    components/controls/SectionHeader.qml
+    components/navigation/SideNavigation.qml
+    components/shell/StatusStrip.qml
+    components/shell/StatusFooter.qml
+    components/apps/TaskManagerPopup.qml
+    components/settings/WalletBrowserPicker.qml
+    components/settings/RenderingPopup.qml
+    components/shell/SystemStatusCard.qml
+    components/content/TokenSparkline.qml
+    components/content/TokenSemantic.qml
+    components/visual/VectorStroke.qml
+    components/content/TokenAddressPreview.qml
+    components/feed/TopicBrowseSurface.qml
+    components/feed/TopicFilterPicker.qml
+    components/media/VideoPreview.qml
+    components/feed/VisualPost.qml
     theme/Theme.qml
 )
 
 set_source_files_properties(theme/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(components/LocaleFormat.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(components/CastViews.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(components/CastReactions.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(components/TokenSemantic.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(components/controls/LocaleFormat.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(components/feed/CastViews.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(components/feed/CastReactions.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(components/content/TokenSemantic.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
-    list(APPEND farcasterQmlFiles components/AnimatedEmojiLottie.qml)
+    list(APPEND farcasterQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
 
 # Android uses the platform WebView for public Mini App web content. No
 # privileged SDK / signer bridge is exposed to that untrusted web surface.
 if(ANDROID)
-    list(APPEND farcasterQmlFiles components/AndroidMiniAppWebView.qml)
+    list(APPEND farcasterQmlFiles components/apps/AndroidWebView.qml)
 endif()
 
 # Verify the manifest, allowing the optional renderer to be absent from the module.
@@ -183,10 +183,10 @@ file(GLOB_RECURSE farcasterDiscoveredQmlFiles
     "*.qml"
 )
 if(NOT Qt6Lottie_FOUND OR Qt6_VERSION VERSION_LESS 6.11)
-    list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/AnimatedEmojiLottie.qml)
+    list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/media/AnimatedEmojiLottie.qml)
 endif()
 if(NOT ANDROID)
-    list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/AndroidMiniAppWebView.qml)
+    list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/apps/AndroidWebView.qml)
 endif()
 list(SORT farcasterDiscoveredQmlFiles)
 set(farcasterRegisteredQmlFiles ${farcasterQmlFiles})
@@ -225,26 +225,40 @@ foreach(qmlFile IN LISTS farcasterQmlFiles)
     endif()
 endforeach()
 
+# QML source locations are grouped, but public resource names remain stable.
 foreach(qmlFile IN LISTS farcasterQmlFiles)
-    if(qmlFile MATCHES "^app/(.+)$")
-        set(qmlResourceAlias "${CMAKE_MATCH_1}")
+    if(qmlFile STREQUAL "components/shell/Main.qml")
+        set(qmlResourceAlias "Main.qml")
+    elseif(qmlFile MATCHES "^components/[^/]+/(.+)\\.qml$")
+        set(qmlResourceAlias "components/${CMAKE_MATCH_1}.qml")
     else()
         set(qmlResourceAlias "${qmlFile}")
     endif()
-
-    set_source_files_properties(
-        "${qmlFile}"
-        PROPERTIES
-            QT_RESOURCE_ALIAS "${qmlResourceAlias}"
-    )
+    set_source_files_properties("${qmlFile}" PROPERTIES QT_RESOURCE_ALIAS "${qmlResourceAlias}")
 endforeach()
+set_source_files_properties("components/profile/ConnectionsPopup.qml" PROPERTIES QT_RESOURCE_ALIAS "components/AccountConnectionsPopup.qml")
+set_source_files_properties("components/apps/AndroidWebView.qml" PROPERTIES QT_RESOURCE_ALIAS "components/AndroidMiniAppWebView.qml")
+set_source_files_properties("components/profile/CollectionChooser.qml" PROPERTIES QT_RESOURCE_ALIAS "components/BookmarkCollectionChooser.qml")
+set_source_files_properties("components/feed/RefreshIndicator.qml" PROPERTIES QT_RESOURCE_ALIAS "components/ContentRefreshIndicator.qml")
+set_source_files_properties("components/settings/StoragePopup.qml" PROPERTIES QT_RESOURCE_ALIAS "components/DataStoragePopup.qml")
+set_source_files_properties("components/controls/BidiLabel.qml" PROPERTIES QT_RESOURCE_ALIAS "components/DirectionAwareLabel.qml")
+set_source_files_properties("components/controls/BidiTextArea.qml" PROPERTIES QT_RESOURCE_ALIAS "components/DirectionAwareTextArea.qml")
+set_source_files_properties("components/controls/BidiTextField.qml" PROPERTIES QT_RESOURCE_ALIAS "components/DirectionAwareTextField.qml")
+set_source_files_properties("components/settings/SettingsPopup.qml" PROPERTIES QT_RESOURCE_ALIAS "components/LocaleSettingsPopup.qml")
+set_source_files_properties("components/apps/ArtPlaceholder.qml" PROPERTIES QT_RESOURCE_ALIAS "components/MiniAppArtPlaceholder.qml")
+set_source_files_properties("components/apps/FeaturedCarousel.qml" PROPERTIES QT_RESOURCE_ALIAS "components/MiniAppFeaturedCarousel.qml")
+set_source_files_properties("components/apps/LibraryShelves.qml" PROPERTIES QT_RESOURCE_ALIAS "components/MiniAppLibraryShelves.qml")
+set_source_files_properties("components/apps/MiniAppPreview.qml" PROPERTIES QT_RESOURCE_ALIAS "components/MiniAppPresentationPreview.qml")
+set_source_files_properties("components/settings/RenderingPopup.qml" PROPERTIES QT_RESOURCE_ALIAS "components/RenderingSettingsPopup.qml")
+set_source_files_properties("components/profile/SidebarSummary.qml" PROPERTIES QT_RESOURCE_ALIAS "components/SidebarProfileSummary.qml")
+
 
 aimcpp_reject_final_qml_creatable_types(
     SOURCES
         "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.hpp"
         "${CMAKE_SOURCE_DIR}/src/presentation/qt/media_upload_controller.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/render/scene_graph_stroke_item.hpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/render/scene_graph_superellipse_item.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/render/stroke.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/render/superellipse.hpp"
 )
 
 # Qt QObject/QML adapters remain MOC-readable; the non-QObject
@@ -294,7 +308,7 @@ if(NOT EMSCRIPTEN)
         PUBLIC FILE_SET CXX_MODULES FILES app/bootstrap/teardown.cppm
         PRIVATE app/bootstrap/teardown.cpp)
     target_include_directories(genycaster_bootstrap_teardown PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/runtime")
     target_link_libraries(genycaster_bootstrap_teardown PUBLIC
         Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
     target_compile_features(genycaster_bootstrap_teardown PUBLIC cxx_std_26)
@@ -303,8 +317,8 @@ endif()
 
 add_library(genycaster_web_wheel STATIC)
 target_sources(genycaster_web_wheel
-    PUBLIC FILE_SET CXX_MODULES FILES app/web/wheel.cppm
-    PRIVATE app/web/wheel.cpp)
+    PUBLIC FILE_SET CXX_MODULES FILES app/platform/wheel.cppm
+    PRIVATE app/platform/wheel.cpp)
 target_link_libraries(genycaster_web_wheel PUBLIC Qt6::Quick)
 target_compile_features(genycaster_web_wheel PUBLIC cxx_std_26)
 set_property(TARGET genycaster_web_wheel PROPERTY CXX_SCAN_FOR_MODULES ON)
@@ -321,8 +335,8 @@ set_property(TARGET genycaster_update_install PROPERTY CXX_SCAN_FOR_MODULES ON)
 if(NOT ANDROID AND NOT IOS AND NOT EMSCRIPTEN)
     add_library(genycaster_desktop_instance STATIC)
     target_sources(genycaster_desktop_instance
-        PUBLIC FILE_SET CXX_MODULES FILES app/desktop/instance.cppm
-        PRIVATE app/desktop/instance.cpp)
+        PUBLIC FILE_SET CXX_MODULES FILES app/platform/instance.cppm
+        PRIVATE app/platform/instance.cpp)
     target_link_libraries(genycaster_desktop_instance PUBLIC
         Qt6::Core Qt6::Network Qt6::Quick)
     target_compile_features(genycaster_desktop_instance PUBLIC cxx_std_26)
@@ -334,25 +348,25 @@ endif()
 foreach(_genycasterModuleTarget IN ITEMS
     genycaster_ui_bootstrap genycaster_web_wheel genycaster_update_install)
     target_include_directories(${_genycasterModuleTarget} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/runtime")
 endforeach()
 if(TARGET genycaster_desktop_instance)
     target_include_directories(genycaster_desktop_instance PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/runtime")
 endif()
 unset(_genycasterModuleTarget)
 
 qt_add_executable(genycaster
     app/main.cpp
-    app/runtime_ui_bindings.cpp
-    app/storage/controller.cpp
-    app/storage/controller.hpp
-    app/geo_location_resolver.cpp
-    app/geo_location_resolver.hpp
-    app/link_preview_resolver.cpp
-    app/link_preview_resolver.hpp
-    app/cast_view_controller.cpp
-    app/cast_view_controller.hpp
+    app/runtime/bindings.cpp
+    app/data/storage.cpp
+    app/data/storage.hpp
+    app/network/geo.cpp
+    app/network/geo.hpp
+    app/network/link_preview.cpp
+    app/network/link_preview.hpp
+    app/social/cast_views.cpp
+    app/social/cast_views.hpp
     app/browser/reactions.cpp
     app/browser/reactions.hpp
     app/browser/link_metadata.cpp
@@ -365,28 +379,28 @@ qt_add_executable(genycaster
     app/media/web_host.hpp
     app/miniapp/catalog.cpp
     app/miniapp/catalog.hpp
-    app/channels/picker.cpp
-    app/channels/picker.hpp
-    app/text/selection.cpp
-    app/text/selection.hpp
+    app/social/channels.cpp
+    app/social/channels.hpp
+    app/settings/selection.cpp
+    app/settings/selection.hpp
     app/miniapp/tasks.cpp
     app/miniapp/tasks.hpp
-    app/insights/live.cpp
-    app/insights/live.hpp
+    app/data/insights.cpp
+    app/data/insights.hpp
     ../src/providers/hypersnap/node_selection_controller.cpp
-    app/node_selection_controller.hpp
-    app/providers/profiles.cpp
-    app/providers/profiles.hpp
-    app/update_controller.cpp
-    app/update_controller.hpp
-    app/remote_image_provider.cpp
-    app/remote_image_provider.hpp
-    app/browser/openproof_auth.cpp
-    app/browser/openproof_auth.hpp
-    app/openproof/connections.cpp
-    app/openproof/connections.hpp
-    app/genypulse/activity.cpp
-    app/genypulse/activity.hpp
+    app/network/node_selection.hpp
+    app/settings/providers.cpp
+    app/settings/providers.hpp
+    app/update/controller.cpp
+    app/update/controller.hpp
+    app/media/remote_image.cpp
+    app/media/remote_image.hpp
+    app/identity/browser_auth.cpp
+    app/identity/browser_auth.hpp
+    app/identity/connections.cpp
+    app/identity/connections.hpp
+    app/social/activity.cpp
+    app/social/activity.hpp
 )
 
 target_link_libraries(genycaster PRIVATE
@@ -405,16 +419,16 @@ endif()
 
 target_sources(genycaster
     PRIVATE
-        app/runtime_composition.cpp
+        app/runtime/composition.cpp
         app/diagnostics/snapshots.cpp
         app/diagnostics/smoke.cpp
     PRIVATE FILE_SET CXX_MODULES FILES
-        app/runtime_composition.cppm
+        app/runtime/composition.cppm
         app/diagnostics/snapshots.cppm
         app/diagnostics/smoke.cppm
 )
 target_include_directories(genycaster PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+    "${CMAKE_CURRENT_SOURCE_DIR}/app/runtime")
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
 # Preserve the CMake target and WebAssembly/Android artifact identities.
 # Native executable and Apple bundle filenames use the product casing.
@@ -456,9 +470,9 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT EMSCRIPTEN)
     set_source_files_properties(
         app/main.cpp
-        app/runtime_ui_bindings.cpp
-        app/runtime_composition.cpp
-        app/runtime_composition.cppm
+        app/runtime/bindings.cpp
+        app/runtime/composition.cpp
+        app/runtime/composition.cppm
         PROPERTIES COMPILE_OPTIONS "$<$<CONFIG:Debug>:-g0>"
     )
 endif()
@@ -474,8 +488,8 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     add_library(farcaster_miniapp_runtime STATIC)
     target_sources(farcaster_miniapp_runtime
-        PUBLIC FILE_SET CXX_MODULES FILES app/miniapp_runtime.cppm
-        PRIVATE app/miniapp_runtime.cpp)
+        PUBLIC FILE_SET CXX_MODULES FILES app/miniapp/runtime.cppm
+        PRIVATE app/miniapp/runtime.cpp)
     set_property(TARGET farcaster_miniapp_runtime PROPERTY CXX_SCAN_FOR_MODULES ON)
     target_compile_features(farcaster_miniapp_runtime PUBLIC cxx_std_26)
     target_link_libraries(farcaster_miniapp_runtime PUBLIC Qt6::Core farcaster::capabilities
@@ -499,8 +513,8 @@ endif()
 
 add_library(genycaster_shutdown STATIC)
 target_sources(genycaster_shutdown
-    PUBLIC FILE_SET CXX_MODULES FILES app/shutdown_scope.cppm
-    PRIVATE app/shutdown_scope.cpp)
+    PUBLIC FILE_SET CXX_MODULES FILES app/runtime/shutdown.cppm
+    PRIVATE app/runtime/shutdown.cpp)
 target_link_libraries(genycaster_shutdown PRIVATE Qt6::Core farcaster::transport_qt_network)
 set_property(TARGET genycaster_shutdown PROPERTY CXX_SCAN_FOR_MODULES ON)
 target_compile_features(genycaster_shutdown PUBLIC cxx_std_26)
@@ -509,8 +523,8 @@ target_link_libraries(genycaster PRIVATE genycaster_shutdown)
 
 add_library(farcaster_emoji_runtime STATIC)
 target_sources(farcaster_emoji_runtime
-    PUBLIC FILE_SET CXX_MODULES FILES app/emoji_runtime.cppm
-    PRIVATE app/emoji_runtime.cpp
+    PUBLIC FILE_SET CXX_MODULES FILES app/media/emoji.cppm
+    PRIVATE app/media/emoji.cpp
 )
 target_link_libraries(farcaster_emoji_runtime PUBLIC farcaster::presentation
     PRIVATE farcaster::provider_emoji farcaster::transport_qt_network farcaster::execution Qt6::Gui)
@@ -1321,21 +1335,23 @@ if(ANDROID)
     target_link_libraries(genycaster PRIVATE Qt6::WebView)
 endif()
 
+set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT_RESOURCE_ALIAS "components/ProCastPolicy.js")
+
 qt_add_qml_module(genycaster
     URI Farcaster.Client
     VERSION 1.0
     QML_FILES
         ${farcasterQmlFiles}
-        components/ProCastPolicy.js
+        components/composer/ProCastPolicy.js
     SOURCES
-        render/scene_graph_stroke_item.cpp
-        render/scene_graph_stroke_item.hpp
-        render/scene_graph_superellipse_item.cpp
-        render/scene_graph_superellipse_item.hpp
-        render/token_sparkline_geometry.cpp
-        render/token_sparkline_geometry.hpp
-        app/feed_rows_model.cpp
-        app/feed_rows_model.hpp
+        render/stroke.cpp
+        render/stroke.hpp
+        render/superellipse.cpp
+        render/superellipse.hpp
+        render/sparkline.cpp
+        render/sparkline.hpp
+        app/social/feed_rows.cpp
+        app/social/feed_rows.hpp
     RESOURCES
         shaders/setup_glass_g.frag.qsb
         shaders/genycaster_logo_sdf.png
@@ -1352,6 +1368,7 @@ target_include_directories(genycaster
         # The generated QML type registrar conditionally includes the native
         # item-model header by basename. Expose this Qt/MOC boundary explicitly.
         "${CMAKE_CURRENT_SOURCE_DIR}/app"
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/social"
 )
 
 # VectorImage track-matte composition needs Qt 6.11+ and the Qt Lottie vector-format plugin.
@@ -1380,14 +1397,14 @@ set(farcasterTranslationFiles
 set(farcasterTranslationSources
     ${farcasterQmlFiles}
     app/main.cpp
-    app/runtime_ui_bindings.cpp
-    app/storage/controller.cpp
-    app/storage/controller.hpp
+    app/runtime/bindings.cpp
+    app/data/storage.cpp
+    app/data/storage.hpp
     app/miniapp/host.cpp
     app/miniapp/catalog.cpp
     app/miniapp/tasks.cpp
-    app/miniapp_runtime.cpp
-    app/miniapp_browser_macos.mm
+    app/miniapp/runtime.cpp
+    app/miniapp/browser_macos.mm
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.cpp"
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/localization_controller.cpp"
     i18n/catalog.cpp

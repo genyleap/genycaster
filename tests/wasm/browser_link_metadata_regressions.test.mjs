@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
-  const link=read('ui/components/LinkPreview.qml');
-  const embed=read('ui/components/EmbedPreview.qml');
+  const link=read('ui/components/media/LinkPreview.qml');
+  const embed=read('ui/components/media/EmbedPreview.qml');
   const cpp=read('ui/app/browser/link_metadata.cpp');
   const main=read('ui/app/main.cpp');
   const cmake=read('tests/ui/CMakeLists.txt');
@@ -32,8 +32,8 @@ test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
 });
 
 test('no browser-side metadata result is permitted to redefine a recycled cast',()=>{
-  const link=read('ui/components/LinkPreview.qml');
-  const embed=read('ui/components/EmbedPreview.qml');
+  const link=read('ui/components/media/LinkPreview.qml');
+  const embed=read('ui/components/media/EmbedPreview.qml');
   assert.match(link,/String\(root\.targetUrl \|\| ""\)\.split\("#"\)\[0\] !== String\(url\)/);
   assert.match(embed,/kind !== "link"/);
   assert.match(link,/if \(root\.scrollMoving\) root\.pendingBrowserMiniAppPreview = metadata/);
@@ -42,7 +42,7 @@ test('no browser-side metadata result is permitted to redefine a recycled cast',
 });
 
 test('Mini App metadata retries are bounded, delayed beyond negative cache and cancelled on URL reuse',()=>{
-  const qml=read('ui/components/LinkPreview.qml');
+  const qml=read('ui/components/media/LinkPreview.qml');
   assert.match(qml,/property int miniAppRetryCount: 0/);
   assert.match(qml,/root\.miniAppRetryCount < 2/);
   assert.match(qml,/id: miniAppManifestRetryTimer/);
@@ -53,7 +53,7 @@ test('Mini App metadata retries are bounded, delayed beyond negative cache and c
 
 test('provisional Mini App cards use short metadata cache and admit bounded retry',()=>{
  const native=read('ui/app/browser/link_metadata.cpp');
- const qml=read('ui/components/LinkPreview.qml');
+ const qml=read('ui/components/media/LinkPreview.qml');
  assert.ok(native.includes('castMetadataPending'));
  assert.ok(qml.includes('metadata.castMetadataPending && root.miniAppRetryCount < 2'));
  assert.ok(qml.includes('!Boolean(root.browserMiniAppPreview.castMetadataPending)'));

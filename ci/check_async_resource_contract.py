@@ -13,26 +13,26 @@ def read(rel: str) -> str:
 
 async_http = read("src/transport/qt_network/async_http.cpp") + read("src/transport/qt_network/async_http.cppm")
 async_contract = read("src/transport/async_http.cppm")
-remote = read("ui/app/remote_image_provider.hpp") + read("ui/app/remote_image_provider.cpp")
+remote = read("ui/app/media/remote_image.hpp") + read("ui/app/media/remote_image.cpp")
 rendering = read("src/presentation/qt/rendering_controller.hpp") + read("src/presentation/qt/rendering_controller.cpp")
 media = read("src/transport/qt_network/media_upload.cpp")
-feed = read("ui/components/FeedSurface.qml")
-profile = read("ui/components/ProfileSurface.qml")
-superellipse_image = read("ui/components/SuperellipseImage.qml")
-runtime = read("ui/app/main.cpp") + read("ui/app/runtime_composition.cppm") + read("ui/app/runtime_composition.cpp")
+feed = read("ui/components/feed/FeedSurface.qml")
+profile = read("ui/components/profile/ProfileSurface.qml")
+superellipse_image = read("ui/components/visual/SuperellipseImage.qml")
+runtime = read("ui/app/main.cpp") + read("ui/app/runtime/composition.cppm") + read("ui/app/runtime/composition.cpp")
 storage = read("src/storage/read_store.cpp") + read("src/storage/sqlite_boundary.cpp")
 
 # Blocking dispatch is only allowed toward a live, explicitly owned network
 # thread. GUI dispatch must remain interruptible when the application stops.
 blocking_dispatch_boundaries = {
     "src/transport/qt_network/async_http.cpp",
-    "ui/app/link_preview_resolver.cpp",
+    "ui/app/network/link_preview.cpp",
 }
 global_pool_owners = {
-    "ui/app/insights/live.cpp",  # Scope-bound HTTP, guarded delivery.
-    "ui/app/miniapp_runtime.cpp",  # Scope-bound HTTP, CallbackGate delivery.
-    "ui/app/runtime_ui_bindings.cpp",  # Owned recovery/runtime state.
-    "ui/app/storage/controller.cpp",  # Owned storage snapshot, no Qt I/O loop.
+    "ui/app/data/insights.cpp",  # Scope-bound HTTP, guarded delivery.
+    "ui/app/miniapp/runtime.cpp",  # Scope-bound HTTP, CallbackGate delivery.
+    "ui/app/runtime/bindings.cpp",  # Owned recovery/runtime state.
+    "ui/app/data/storage.cpp",  # Owned storage snapshot, no Qt I/O loop.
 }
 for directory in (root / "src", root / "ui"):
     for path in directory.rglob("*.cpp"):

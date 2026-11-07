@@ -21,22 +21,22 @@ def read(rel: str) -> str:
 
 
 policy = read("src/presentation/media/storage_policy.cppm") + read("src/presentation/media/storage_policy.cpp")
-controller = read("ui/app/storage/controller.hpp") + read("ui/app/storage/controller.cpp")
-provider = read("ui/app/remote_image_provider.hpp") + read("ui/app/remote_image_provider.cpp")
-image_surface = read("ui/components/SuperellipseImage.qml")
-storage_qml = read("ui/components/DataStoragePopup.qml")
-geny_slider = read("ui/components/GenySlider.qml")
-geny_progress = read("ui/components/GenyProgressBar.qml")
-link_preview_resolver = read("ui/app/link_preview_resolver.cpp")
+controller = read("ui/app/data/storage.hpp") + read("ui/app/data/storage.cpp")
+provider = read("ui/app/media/remote_image.hpp") + read("ui/app/media/remote_image.cpp")
+image_surface = read("ui/components/visual/SuperellipseImage.qml")
+storage_qml = read("ui/components/settings/StoragePopup.qml")
+geny_slider = read("ui/components/controls/GenySlider.qml")
+geny_progress = read("ui/components/controls/GenyProgressBar.qml")
+link_preview_resolver = read("ui/app/network/link_preview.cpp")
 async_qt_network = read("src/transport/qt_network/async_http.cpp")
-settings_qml = read("ui/components/LocaleSettingsPopup.qml")
-shell_qml = read("ui/components/AppShell.qml")
-gallery_layout = read("ui/components/GalleryLayout.qml")
-cast_embeds = read("ui/components/CastEmbedsPanel.qml")
-embed_preview = read("ui/components/EmbedPreview.qml")
-link_preview = read("ui/components/LinkPreview.qml")
-collectible = read("ui/components/CollectiblePreview.qml")
-gallery_tile = read("ui/components/GalleryTile.qml")
+settings_qml = read("ui/components/settings/SettingsPopup.qml")
+shell_qml = read("ui/components/shell/AppShell.qml")
+gallery_layout = read("ui/components/media/GalleryLayout.qml")
+cast_embeds = read("ui/components/media/CastEmbedsPanel.qml")
+embed_preview = read("ui/components/media/EmbedPreview.qml")
+link_preview = read("ui/components/media/LinkPreview.qml")
+collectible = read("ui/components/media/CollectiblePreview.qml")
+gallery_tile = read("ui/components/media/GalleryTile.qml")
 ui_cmake = read("ui/CMakeLists.txt")
 media_cmake = read("src/presentation/media/CMakeLists.txt")
 tests_cmake = read("tests/unit/CMakeLists.txt")
@@ -99,12 +99,12 @@ for exported_name, qt_wrapper in (
 # Named-module-owned RuntimeState must not leak through Qt textual headers.
 # Clang gives module-attached declarations a distinct ownership identity; forward-declaring the
 # same spelling in a textual header can therefore compile but produce a different linker symbol.
-controller_header = read("ui/app/storage/controller.hpp")
-provider_header = read("ui/app/remote_image_provider.hpp")
+controller_header = read("ui/app/data/storage.hpp")
+provider_header = read("ui/app/media/remote_image.hpp")
 main_cpp = read("ui/app/main.cpp")
 for rel, text in (
-    ("ui/app/storage/controller.hpp", controller_header),
-    ("ui/app/remote_image_provider.hpp", provider_header),
+    ("ui/app/data/storage.hpp", controller_header),
+    ("ui/app/media/remote_image.hpp", provider_header),
 ):
     if re.search(r"storage_policy\s*\{\s*class\s+RuntimeState", text):
         errors.append(f"{rel}: must not redeclare module-owned storage_policy::RuntimeState")
@@ -180,9 +180,9 @@ if "artworkStillLoadingAt" not in link_preview:
 if "mediaRequested" not in collectible or "openArtwork" not in collectible:
     errors.append("NFT artwork must open in media viewer independently from marketplace navigation")
 
-if "components/DataStoragePopup.qml" not in ui_cmake:
+if "components/settings/StoragePopup.qml" not in ui_cmake:
     errors.append("DataStoragePopup.qml is not registered in the QML manifest")
-for component in ("components/GenySlider.qml", "components/GenyProgressBar.qml"):
+for component in ("components/controls/GenySlider.qml", "components/controls/GenyProgressBar.qml"):
     if component not in ui_cmake:
         errors.append(f"{component} is not registered in the QML manifest")
 if not geny_slider or not geny_progress:
@@ -206,7 +206,7 @@ if "imageIsPage" not in link_preview_resolver:
     errors.append("Mini App metadata must not route the app page itself into the image provider")
 if "contextIterator->second->isCancelled || active.bodyLimitExceeded" not in async_qt_network:
     errors.append("Qt async cancellation must drain/discard cancelled media response bytes")
-if "app/storage/controller.cpp" not in ui_cmake:
+if "app/data/storage.cpp" not in ui_cmake:
     errors.append("DataStorageController is not compiled into genycaster")
 if "storage_policy.cppm" not in media_cmake or "storage_policy.cpp" not in media_cmake:
     errors.append("storage_policy module is not registered in presentation media target")

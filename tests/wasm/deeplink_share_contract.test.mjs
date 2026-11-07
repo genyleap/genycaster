@@ -5,7 +5,7 @@ const root = new URL('../../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
 
 test('cast share is the right-most footer action and has native and web targets', () => {
-  const bar = read('ui/components/EngagementBar.qml');
+  const bar = read('ui/components/feed/EngagementBar.qml');
   assert.ok(bar.indexOf('id: castShareButton') > bar.indexOf('id: bookmarkButton'));
   assert.match(bar, /presentationBridge\.shareUrl\(presentationBridge\.castShareUrl/);
   assert.match(bar, /presentationBridge\.farcasterWebCastUrl/);
@@ -16,10 +16,10 @@ test('cast share is the right-most footer action and has native and web targets'
 });
 
 test('cast context menu copies the cast permalink, not an attached image or website', () => {
-  const cast = read('ui/components/CastItem.qml');
+  const cast = read('ui/components/feed/CastItem.qml');
   assert.ok(cast.includes('readonly property string castPermalink: presentationBridge.castShareUrl('));
   assert.ok(cast.includes('CastViews.normalizeHash(root.modelData.castId || "")'));
-  const menu = read('ui/components/CastActionsMenu.qml');
+  const menu = read('ui/components/feed/CastActionsMenu.qml');
   assert.ok(cast.includes('CastActionsMenu {'));
   assert.ok(menu.includes('CastViews.normalizeHash(root.castData.castId || "")'));
   const menuStart = menu.indexOf('text: qsTrId("genycaster.cast.copy_link")');
@@ -31,7 +31,7 @@ test('cast context menu copies the cast permalink, not an attached image or webs
 });
 
 test('profile sharing appears on the shared profile surface', () => {
-  const profile = read('ui/components/ProfileSurface.qml');
+  const profile = read('ui/components/profile/ProfileSurface.qml');
   assert.match(profile, /id: profileShareButton/);
   assert.match(profile, /profileShareUrl/);
   assert.match(profile, /farcasterWebProfileUrl/);
@@ -39,23 +39,23 @@ test('profile sharing appears on the shared profile surface', () => {
 });
 
 test('profile moderation uses signed Block while Mute remains client-account scoped', () => {
-  const cast = read('ui/components/CastItem.qml');
-  const profile = read('ui/components/ProfileSurface.qml');
+  const cast = read('ui/components/feed/CastItem.qml');
+  const profile = read('ui/components/profile/ProfileSurface.qml');
   for (const view of [cast, profile]) {
     assert.doesNotMatch(view, /authorMuted|authorBlocked|setAuthorMuted|setAuthorBlocked/);
     assert.doesNotMatch(view, /Copy report reference|Mute locally|Block locally|Mute author locally|Block author locally/);
   }
   assert.doesNotMatch(cast, /text: qsTr\("Bookmark cast"\)|qsTr\("Remove bookmark"\)/);
-  assert.match(read('ui/components/EngagementBar.qml'), /id: bookmarkButton/);
+  assert.match(read('ui/components/feed/EngagementBar.qml'), /id: bookmarkButton/);
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
   assert.match(bridge, /QVariantList PresentationBridge::rows\(\) const \{ return m_rows; \}/);
   assert.doesNotMatch(bridge, /moderation\/%1\/mute|moderation\/%1\/block/);
   assert.match(profile,/onClicked: \{[\s\S]*root\.blockingMutationRequested\(/);
-  assert.match(read('ui/components/AppShell.qml'),/onBlockingMutationRequested/);
+  assert.match(read('ui/components/shell/AppShell.qml'),/onBlockingMutationRequested/);
 });
 
 test('mobile footer has tightly grouped reactions and always-visible trailing bookmark/share', () => {
-  const bar = read('ui/components/EngagementBar.qml');
+  const bar = read('ui/components/feed/EngagementBar.qml');
   assert.match(bar, /id: reactionActions/);
   assert.match(bar, /id: utilityActions/);
   assert.match(bar, /id: bookmarkButton[\s\S]*?Layout\.minimumWidth: Theme\.touchTarget/);
@@ -70,7 +70,7 @@ test('mobile footer has tightly grouped reactions and always-visible trailing bo
 
 test('public Genycaster links use runtime hosting origin or native configuration', () => {
   const bridge = read('src/presentation/qt/presentation_bridge.cpp');
-  const qml = read('ui/components/EngagementBar.qml');
+  const qml = read('ui/components/feed/EngagementBar.qml');
   const cmake = read('CMakeLists.txt');
   assert.ok(bridge.includes('window.location.origin'));
   assert.ok(bridge.includes('GENYCASTER_PUBLIC_BASE_URL'));
@@ -94,7 +94,7 @@ test('app attribution requires node-returned provenance', () => {
   const codec = read('src/providers/hypersnap/codec.cpp');
   assert.match(codec, /findValue\(castObject, "app"\)/);
   assert.match(codec, /cast\.sourceClient = std::move\(\*name\)/);
-  const feed = read('ui/app/runtime_ui_bindings.cpp');
+  const feed = read('ui/app/runtime/bindings.cpp');
   assert.match(feed, /"sourceClient"/);
-  assert.match(read('ui/components/CastItem.qml'), /objectName: "castSourceClientBadge"/);
+  assert.match(read('ui/components/feed/CastItem.qml'), /objectName: "castSourceClientBadge"/);
 });

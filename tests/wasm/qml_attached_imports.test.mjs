@@ -29,7 +29,7 @@ test('QML modules that use Layout attached properties import QtQuick.Layouts exp
 });
 
 test('EmbedPreview is constrained without breaking the native QML loading contract', () => {
-    const file = readFileSync(join(ui, 'components/EmbedPreview.qml'), 'utf8');
+    const file = readFileSync(join(ui, 'components/media/EmbedPreview.qml'), 'utf8');
     assert.match(file, /^import QtQuick\s*\nimport QtQuick\.Layouts\s*\n/);
     assert.match(file, /Layout\.minimumWidth: 0/);
 });

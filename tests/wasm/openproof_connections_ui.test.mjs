@@ -3,10 +3,10 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
-const qml = read('../../ui/components/ProfileSurface.qml');
-const popup = read('../../ui/components/AccountConnectionsPopup.qml');
-const shell = read('../../ui/components/AppShell.qml');
-const controller = read('../../ui/app/openproof/connections.cpp');
+const qml = read('../../ui/components/profile/ProfileSurface.qml');
+const popup = read('../../ui/components/profile/ConnectionsPopup.qml');
+const shell = read('../../ui/components/shell/AppShell.qml');
+const controller = read('../../ui/app/identity/connections.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
 const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
 
@@ -51,7 +51,7 @@ test('connections opens as mobile bottom sheet and desktop right drawer', () => 
   assert.ok(popup.includes('GenyDrawer {'));
   assert.ok(popup.includes('bottomSheet: mobilePresentation'));
   assert.ok(!popup.includes('edge: mobilePresentation ? Qt.BottomEdge : Qt.RightEdge'));
-  assert.match(read('../../ui/components/GenyDrawer.qml'), /edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
+  assert.match(read('../../ui/components/controls/GenyDrawer.qml'), /edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge\s*:\s*\(Theme\.rtl\s*\?\s*Qt\.LeftEdge\s*:\s*Qt\.RightEdge\)/);
   assert.ok(popup.includes('Theme.breakpointMobile'));
   assert.ok(popup.includes('dimBackground: true'));
   assert.ok(!popup.includes('GenyModal {'));
@@ -84,8 +84,8 @@ test('provider Connect opens secure OAuth from the first user gesture and update
 });
 
 test('canonical Farcaster proof grants transient Connections access without a second OpenProof device approval', () => {
-  const auth = read('../../ui/app/browser/openproof_auth.cpp');
-  const runtime = read('../../ui/app/runtime_ui_bindings.cpp');
+  const auth = read('../../ui/app/identity/browser_auth.cpp');
+  const runtime = read('../../ui/app/runtime/bindings.cpp');
   const broker = read('../../services/media-gateway/browser_farcaster_auth.mjs');
   assert.ok(broker.includes('issueVerifiedAccountTicket('));
   assert.ok(broker.includes('account_expires_in: Math.floor(accountLifetimeMs / 1000)'));
@@ -124,7 +124,7 @@ test('Farcaster ownership unlocks Connections without a Genyleap password and Te
 });
 
 test('OpenProof verification no longer sends the user to the Genyleap account portal', () => {
-  const auth = read('../../ui/app/browser/openproof_auth.cpp');
+  const auth = read('../../ui/app/identity/browser_auth.cpp');
   assert.ok(auth.includes('verification_uri_complete'));
   assert.ok(auth.includes('approval.host() != canonicalIssuer.host()'));
   assert.ok(auth.includes('approval.path() != QStringLiteral("/oauth/device")'));
@@ -184,8 +184,8 @@ test('origins remain configurable and social data is not copied from OpenProof',
 
 
 test('verified OpenProof session commits before its transient account grant (same Qt event queue)', () => {
-  const auth = read('../../ui/app/browser/openproof_auth.cpp');
-  const runtime = read('../../ui/app/runtime_ui_bindings.cpp');
+  const auth = read('../../ui/app/identity/browser_auth.cpp');
+  const runtime = read('../../ui/app/runtime/bindings.cpp');
   const connectionEvidence = auth.slice(
     auth.indexOf('BrowserOpenProofState authenticated{}'),
     auth.indexOf('m_sessionExpiryTimer.start(m_tokenExpiresSeconds * 1000);'));
@@ -235,8 +235,8 @@ test('connection selector packages provider-owned SVGs and keeps links in the ap
 });
 
 test('desktop Connections and shared Settings drawer dismiss by backdrop and Escape', () => {
-  const base = read('../../ui/components/GenyDrawer.qml');
-  const settings = read('../../ui/components/LocaleSettingsPopup.qml');
+  const base = read('../../ui/components/controls/GenyDrawer.qml');
+  const settings = read('../../ui/components/settings/SettingsPopup.qml');
   assert.match(base, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutside/);
   assert.match(base, /sequence: "Escape"/);
   assert.match(base, /enabled: control.visible && !control.bottomSheet/);

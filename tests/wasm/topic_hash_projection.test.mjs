@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const shell = readFileSync(new URL('../../ui/components/AppShell.qml',import.meta.url),'utf8');
+const shell = readFileSync(new URL('../../ui/components/shell/AppShell.qml',import.meta.url),'utf8');
 const bridge = readFileSync(new URL('../../src/presentation/qt/presentation_bridge.cpp',import.meta.url),'utf8');
-const runtime = readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp',import.meta.url),'utf8');
-const code = readFileSync(new URL('../../ui/components/CodeBlockView.qml',import.meta.url),'utf8');
+const runtime = readFileSync(new URL('../../ui/app/runtime/bindings.cpp',import.meta.url),'utf8');
+const code = readFileSync(new URL('../../ui/components/content/CodeBlockView.qml',import.meta.url),'utf8');
 
 test('topic UI matches both indexed and HyperSnap 40-hex cast IDs', () => {
   const match = shell.match(/function canonicalTopicHash\(value\) \{([\s\S]*?)\n    \}/);

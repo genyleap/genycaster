@@ -71,9 +71,9 @@ test('Cloud schema isolates all intended owner features, not speculative leaderb
   assert.match(second,/published_at/);
 });
 test('Manual LinkedIn edits are owner-gated local state, not a provider verification claim',()=>{
-  const cpp=source('ui/app/openproof/connections.cpp');
-  const qml=source('ui/components/AccountConnectionsPopup.qml');
-  const profile=source('ui/components/ProfileSurface.qml');
+  const cpp=source('ui/app/identity/connections.cpp');
+  const qml=source('ui/components/profile/ConnectionsPopup.qml');
+  const profile=source('ui/components/profile/ProfileSurface.qml');
   assert.match(cpp,/m_accountSubject\.toUtf8\(\)/);
   assert.match(cpp,/QCryptographicHash::Sha256/);
   assert.match(cpp,/!m_verified \|\| !isConnected\(QStringLiteral\("linkedin"\)\)/);

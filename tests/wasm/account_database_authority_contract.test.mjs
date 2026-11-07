@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
-const qml=readFileSync(new URL('../../ui/components/ProfileSurface.qml',import.meta.url),'utf8');
-const cpp=readFileSync(new URL('../../ui/app/openproof/connections.cpp',import.meta.url),'utf8');
+const qml=readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml',import.meta.url),'utf8');
+const cpp=readFileSync(new URL('../../ui/app/identity/connections.cpp',import.meta.url),'utf8');
 function extracted(begin,end) {
   const start=qml.indexOf(begin);
   const finish=qml.indexOf(end,start+begin.length);
@@ -34,14 +34,14 @@ function runReceived({dirty,baseRevision,remote}) {
 }
 test('category and bookmark account transport are compiled into every Qt client, not only WASM',()=>{
   const cmake=readFileSync(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
-  const bookmarks=readFileSync(new URL('../../ui/components/BookmarksSurface.qml',import.meta.url),'utf8');
-  const profile=readFileSync(new URL('../../ui/components/ProfileSurface.qml',import.meta.url),'utf8');
+  const bookmarks=readFileSync(new URL('../../ui/components/profile/BookmarksSurface.qml',import.meta.url),'utf8');
+  const profile=readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml',import.meta.url),'utf8');
   const config=readFileSync(new URL('../../ui/config/public_endpoints.json',import.meta.url),'utf8');
   const nativeBoundary=cmake.indexOf('\nif(EMSCRIPTEN)');
   assert.ok(nativeBoundary>0);
   for(const entry of [
-    'app/openproof/connections.cpp',
-    'components/ProfileSurface.qml','components/BookmarksSurface.qml'
+    'app/identity/connections.cpp',
+    'components/profile/ProfileSurface.qml','components/profile/BookmarksSurface.qml'
   ]) assert.ok(cmake.indexOf(entry)>0 && cmake.indexOf(entry)<nativeBoundary,entry);
   assert.match(cpp,/void OpenProofConnectionsController::recordBookmarkMutation/);
   assert.match(cpp,/void OpenProofConnectionsController::sendCloudProfileRequest/);

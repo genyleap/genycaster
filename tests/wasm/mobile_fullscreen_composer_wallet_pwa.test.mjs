@@ -1,8 +1,9 @@
+import { componentPath } from './ui_component_paths.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const qml = file => readFileSync(new URL('../../ui/components/' + file + '.qml', import.meta.url), 'utf8');
+const qml = file => readFileSync(new URL('../../ui/components/' + componentPath(file) + '.qml', import.meta.url), 'utf8');
 const wasm = file => readFileSync(new URL('../../ui/wasm/' + file, import.meta.url), 'utf8');
 
 test('Home replaces Trends with locked Wallet and removes Agent and Studio', () => {

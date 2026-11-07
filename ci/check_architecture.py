@@ -34,14 +34,14 @@ QML_IO = re.compile(
 # Other QML surfaces must remain completely provider-neutral, and no QML may
 # initiate network/database I/O. Keep this list narrow and auditable.
 PROVIDER_SELECTION_QML = {
-    "ui/components/NodeManagementPanel.qml",
-    "ui/components/ProviderProfilesPanel.qml",
+    "ui/components/settings/NodeManagementPanel.qml",
+    "ui/components/settings/ProviderProfilesPanel.qml",
 }
 PROVIDER_AWARE_PRESENTATION = {
-    "ui/app/providers/profiles.cpp",
-    "ui/app/channels/picker.cpp",
-    "ui/app/genypulse/activity.cpp",
-    "ui/app/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
+    "ui/app/settings/providers.cpp",
+    "ui/app/social/channels.cpp",
+    "ui/app/social/activity.cpp",
+    "ui/app/runtime/bindings.cpp",  # Selected-node social relationship binding.
     "tests/ui/provider_profiles_controller_tests.cpp",
 }
 # These named bootstrap adapters resolve explicit user-selected Read/Write
@@ -332,8 +332,8 @@ for path in ROOT.rglob("*"):
             and not rel.startswith("tests/providers/")
             and rel not in {
                 "ui/app/main.cpp",
-                "ui/app/runtime_composition.cpp",
-                "ui/app/runtime_composition.cppm",
+                "ui/app/runtime/composition.cpp",
+                "ui/app/runtime/composition.cppm",
             } | PROVIDER_AWARE_PRESENTATION | PROVIDER_AWARE_BOOTSTRAP  # Audited app-adapter boundaries.
         ):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")

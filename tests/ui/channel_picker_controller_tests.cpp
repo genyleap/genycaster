@@ -1,4 +1,4 @@
-#include "channels/picker.hpp"
+#include "../../ui/app/social/channels.hpp"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

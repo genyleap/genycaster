@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = f => readFileSync(new URL('../../'+f,import.meta.url),'utf8');
 test('composer keeps topic selection separate from protocol parent and channel',()=>{
- const q=read('ui/components/ComposerDrawer.qml');
+ const q=read('ui/components/composer/ComposerDrawer.qml');
  assert.match(q,/property var selectedTopics: \[\]/);
  assert.match(q,/readonly property int maxCastTopics: 3/);
  assert.match(q,/objectName: "composerTopicDropdown"/);
@@ -16,8 +16,8 @@ test('composer keeps topic selection separate from protocol parent and channel',
  assert.doesNotMatch(q,/publishPreparedCast\([^\n]+selectedTopics/);
 });
 test('client saves topics only after the protocol confirms a cast hash',()=>{
- const shell=read('ui/components/AppShell.qml');
- const controller=read('ui/app/openproof/connections.cpp');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const controller=read('ui/app/identity/connections.cpp');
  assert.match(shell,/presentationBridge\.writePhase === "confirmed"[\s\S]*?openProofConnections\.saveCastTopics\(castId,root.pendingCastTopics\)/);
  assert.match(shell,/root.pendingTopicsOwner === Number\(presentationBridge.accountFid\)/);
  assert.match(controller,/void OpenProofConnectionsController::pumpTopicWrites/);
@@ -26,7 +26,7 @@ test('client saves topics only after the protocol confirms a cast hash',()=>{
 });
 test('all built-in topic labels are localized without schema translation tables',()=>{
  const fa=read('ui/i18n/qml_fa_IR.ts');
- const composer=read('ui/components/ComposerDrawer.qml');
+ const composer=read('ui/components/composer/ComposerDrawer.qml');
  for(const slug of ['art','development','photography','design','technology','music','writing','science','business','gaming']) {
   assert.ok(fa.includes('id="genycaster.topic.'+slug+'"'),slug);
   assert.ok(composer.includes('qsTrId("genycaster.topic.'+slug+'")'),slug);

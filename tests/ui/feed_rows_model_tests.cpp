@@ -1,4 +1,4 @@
-#include "../../ui/app/feed_rows_model.hpp"
+#include "../../ui/app/social/feed_rows.hpp"
 
 #include <QCoreApplication>
 #include <QSignalSpy>

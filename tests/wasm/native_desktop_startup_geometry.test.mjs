@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const qml = readFileSync(new URL("../../ui/app/Main.qml", import.meta.url), "utf8");
+const qml = readFileSync(new URL("../../ui/components/shell/Main.qml", import.meta.url), "utf8");
 
 const extract = (start, end) => {
     const a = qml.indexOf(start);

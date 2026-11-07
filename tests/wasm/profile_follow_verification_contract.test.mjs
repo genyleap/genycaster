@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const source=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('a visited profile requests independently verified incoming and outgoing relationships',()=>{
-  const runtime=source('ui/app/runtime_ui_bindings.cpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
   const begin=runtime.indexOf('PresentationBridge::profileRequested');
   const end=runtime.indexOf('QMetaObject::invokeMethod(&bridge,',begin);
   assert.ok(begin>0 && end>begin);
@@ -28,7 +28,7 @@ test('verified outgoing state reaches active profile, not only search suggestion
 });
 
 test('Follow remains actionable while relationship evidence loads, with signer and Block gates',()=>{
-  const qml=source('ui/components/ProfileSurface.qml');
+  const qml=source('ui/components/profile/ProfileSurface.qml');
   const begin=qml.indexOf('visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile');
   const end=qml.indexOf('root.followingMutationRequested(',begin);
   assert.ok(begin>0 && end>begin);

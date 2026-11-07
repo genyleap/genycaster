@@ -168,8 +168,8 @@ test('WASM overlays refresh avatar metadata without remounting the Mini App', ()
 
 
 test('native SIWF is advertised only when a real wallet and verified account are available', () => {
-  const runtime = read('ui/app/miniapp_runtime.cpp');
-  const api = read('ui/app/miniapp_runtime.cppm');
+  const runtime = read('ui/app/miniapp/runtime.cpp');
+  const api = read('ui/app/miniapp/runtime.cppm');
   const composition = read('ui/app/main.cpp');
   const cmake = read('ui/CMakeLists.txt');
   const auth = read('src/providers/compatibility/farcaster_auth/auth.cpp');

@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('token preview has no QML network or JSON and honors viewport demand',()=>{
-  const qml=read('ui/components/TokenAddressPreview.qml');
-  const embed=read('ui/components/EmbedPreview.qml');
+  const qml=read('ui/components/content/TokenAddressPreview.qml');
+  const embed=read('ui/components/media/EmbedPreview.qml');
   const adapter=read('ui/app/browser/token_preview.cpp');
   const main=read('ui/app/main.cpp');
   assert.doesNotMatch(qml,/XMLHttpRequest|JSON\.parse\(|\.send\(/);
@@ -25,7 +25,7 @@ test('token preview has no QML network or JSON and honors viewport demand',()=>{
 test('browser token snapshots require exact chain+address and preserve verified local state',()=>{
   const cpp=read('ui/app/browser/token_preview.cpp');
   const header=read('ui/app/browser/token_preview.hpp');
-  const qml=read('ui/components/TokenAddressPreview.qml');
+  const qml=read('ui/components/content/TokenAddressPreview.qml');
   assert.match(cpp,/base\|eth/);
   assert.match(cpp,/\[0-9a-f\]\{40\}/);
   assert.match(cpp,/obj\.value\(QStringLiteral\("network"\)\)\.toString\(\)\.toLower\(\)/);

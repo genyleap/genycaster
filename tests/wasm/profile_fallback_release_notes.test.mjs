@@ -17,7 +17,7 @@ const sourceNotes=JSON.parse(read('release-notes/v'+releaseVersion+'.json'));
 
 test('supplementary totals require consent and cannot replace source identity',()=>{
   const gateway=read('src/routing/read_async_gateway.cpp');
-  const composition=read('ui/app/runtime_composition.cpp');
+  const composition=read('ui/app/runtime/composition.cpp');
   assert.match(gateway,/m_allowCompatibleProfileEnrichment && !\(\*binding\)->providesProfileCounts/);
   assert.match(gateway,/candidate\.providerId\.value != route->provider\.id\.value/);
   assert.match(gateway,/indexed->fid\.value == fid\.value/);
@@ -64,16 +64,16 @@ test('WASM metadata carries independently versioned, fully localized release inf
 
 test('no UI hardcodes numeric versions or concatenates product and version',()=>{
   for(const path of [
-    'ui/components/SideNavigation.qml',
-    'ui/components/AppHeader.qml',
-    'ui/components/InitialSetup.qml',
-    'ui/components/LocaleSettingsPopup.qml'
+    'ui/components/navigation/SideNavigation.qml',
+    'ui/components/shell/AppHeader.qml',
+    'ui/components/setup/InitialSetup.qml',
+    'ui/components/settings/SettingsPopup.qml'
   ]){
     const qml=read(path);
     assert.doesNotMatch(qml,/\b\d+\.\d+\.\d+(?:-rc\d+)?\b/,path);
     assert.doesNotMatch(qml,/"Genycaster v"\s*\+/,path);
   }
-  assert.match(read('ui/components/AppHeader.qml'),/visible: !root\.compact/);
+  assert.match(read('ui/components/shell/AppHeader.qml'),/visible: !root\.compact/);
   const html=read('ui/wasm/genycaster-shell.html');
   assert.match(html,/<title>@@GENYCASTER_PRODUCT_NAME@@<\/title>/);
   assert.match(html, /<span class="boot-beta">BETA<\/span>/);
@@ -88,7 +88,7 @@ test('no UI hardcodes numeric versions or concatenates product and version',()=>
 test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
   const cmake=read('ui/CMakeLists.txt');
   const rootCmake=read('CMakeLists.txt');
-  const native=read('ui/app/update_controller.cpp');
+  const native=read('ui/app/update/controller.cpp');
   const workflow=read('.github/workflows/ci.yml');
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.json/);
   assert.match(rootCmake,/release-notes\/\$\{GENYCASTER_RELEASE_TAG\}\.md/);
@@ -107,9 +107,9 @@ test('all platform notes use canonical JSON and generated GitHub Markdown',()=>{
 });
 
 test('wasm update UI uses same-origin manifest and never substitutes GitHub installer notes',()=>{
-  const controller=read('ui/app/update_controller.cpp');
-  const drawer=read('ui/components/UpdateNoticeDrawer.qml');
-  const settings=read('ui/components/LocaleSettingsPopup.qml');
+  const controller=read('ui/app/update/controller.cpp');
+  const drawer=read('ui/components/settings/UpdateNoticeDrawer.qml');
+  const settings=read('ui/components/settings/SettingsPopup.qml');
   assert.match(controller,/void UpdateController::checkWebManifest/);
   assert.match(controller,/genycaster-assets\.json/);
   assert.match(controller,/m_webCurrentBuild/);
@@ -123,7 +123,7 @@ test('wasm update UI uses same-origin manifest and never substitutes GitHub inst
   assert.match(read('ui/app/main.cpp'),/updateController\.setLanguageTag/);
   assert.match(drawer,/genycaster\.update\.type_/);
   assert.match(settings,/updateController\.releaseNotes/);
-  const pulse=read('ui/components/FeedPulseCard.qml');
+  const pulse=read('ui/components/feed/FeedPulseCard.qml');
   assert.match(pulse,/activeReadContract !== "snapchain-v1"/);
   assert.match(pulse,/!root\.engagementAvailable/);
   const locales=['en_US','fa_IR','ar_SA','de_DE','es_ES','fr_FR','hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];

@@ -200,7 +200,7 @@ def main() -> int:
     # rather than embedding literal IDs in individual qsTrId calls. Resolve
     # this specific bounded vocabulary when checking coverage: an unknown
     # option still fails if it has no translation in the English catalog.
-    profile_path = root / "ui" / "components" / "ProfileSurface.qml"
+    profile_path = root / "ui" / "components" / "profile" / "ProfileSurface.qml"
     if profile_path.is_file():
         profile_text = profile_path.read_text(encoding="utf-8")
         if 'qsTrId("genycaster.profile.option." + key)' in profile_text:

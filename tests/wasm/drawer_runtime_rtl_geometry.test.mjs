@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 
-const source=readFileSync('ui/components/GenyDrawer.qml','utf8');
+const source=readFileSync('ui/components/controls/GenyDrawer.qml','utf8');
 const match=source.match(/^\s*edge:\s*(bottomSheet\s*\?[^\n]+)$/m);
 assert.ok(match,'real GenyDrawer edge binding must exist');
 const expression=match[1].replaceAll('bottomSheet','drawer.bottomSheet').replaceAll('Theme.rtl','root.rtl');

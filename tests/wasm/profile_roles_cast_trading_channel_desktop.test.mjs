@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const composer=read('ui/components/ComposerDrawer.qml');
-const profile=read('ui/components/ProfileSurface.qml');
+const composer=read('ui/components/composer/ComposerDrawer.qml');
+const profile=read('ui/components/profile/ProfileSurface.qml');
 const store=read('services/account-sync/pg_store.mjs');
 const validator=read('services/account-sync/cloud_state.mjs');
 test('desktop has separately actionable Farcaster channel and cast topic selectors',()=>{
@@ -21,7 +21,7 @@ test('multiple roles are additive owner scoped with migration and legacy compati
  assert.match(profile,/property var roleSelection: \[\]/);
  assert.match(profile,/maximumSelection: 5/);
  assert.match(profile,/profileExtrasEditor\.roleSelection = nextValues/);
- const multi=read('ui/components/GenyMultiSelect.qml');
+ const multi=read('ui/components/controls/GenyMultiSelect.qml');
  assert.match(multi,/next\.push\(canonical\)/);
  assert.match(multi,/next\.splice\(existing, 1\)/);
  assert.match(profile,/roles: root\.profileSequence\(saved\.roles, 5\)/);
@@ -39,6 +39,6 @@ test('Trading is localized and discoverable through the topic catalog presentati
   for(const id of ['genycaster.topic.trading','genycaster.profile.add_role','genycaster.profile.roles_hint'])
    assert.ok(content.includes('id="'+id+'"'),locale+': '+id);
  }
- for(const path of ['ui/components/ComposerDrawer.qml','ui/components/TopicFilterPicker.qml','ui/components/AppShell.qml','ui/components/ProfileSurface.qml','ui/components/TopicBrowseSurface.qml'])
+ for(const path of ['ui/components/composer/ComposerDrawer.qml','ui/components/feed/TopicFilterPicker.qml','ui/components/shell/AppShell.qml','ui/components/profile/ProfileSurface.qml','ui/components/feed/TopicBrowseSurface.qml'])
   assert.match(read(path),/genycaster\.topic\.trading/);
 });
