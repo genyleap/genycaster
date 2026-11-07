@@ -17,7 +17,9 @@ test('official GENY token assets are bundled and consistently selected on home a
  const asset=file('ui/components/MarketAssetIcon.qml');
  assert.match(home,/geny-token-mark-dark\.svg/);
  assert.match(rail,/geny-token-mark-dark\.svg/);
- assert.match(asset,/bundledGenyArtwork: root\.symbol === "GENY"/);
+ assert.match(asset,/canonicalGenyAsset: root\.symbol === "GENY"/);
+  assert.match(asset,/readonly property bool verifiedRemoteArtwork: root\.canonicalGenyAsset/);
+  assert.match(asset,/bundledGenyArtwork: root\.canonicalGenyAsset/);
  assert.match(asset,/geny-token-mark-dark\.svg/);
  assert.match(asset,/root\.symbol === "ETH" \? 0\.78 : 0\.64/);
  assert.match(asset,/bundledArtwork: root\.semanticIcon\.length > 0/);
@@ -29,7 +31,7 @@ test('Geny Pro replaces the sidebar Streak CTA with a themed, interactive drawer
  const shell=file('ui/components/AppShell.qml');
  const drawer=file('ui/components/GenyProDetailsDrawer.qml');
  assert.match(trust,/signal proRequested\(\)/);
- assert.match(trust,/text: root\.compact \? qsTrId\("genycaster\.pro\.short"\)/);
+ assert.match(trust,/text: root\.compact && root\.proEligible\s*\? qsTrId\("genycaster\.pro\.short"\)/);
  assert.match(trust,/: qsTrId\("genycaster\.pro\.title"\)/);
  assert.match(trust,/onClicked: root\.proRequested\(\)/);
  assert.match(nav,/onProRequested: root\.proRequested\(\)/);
