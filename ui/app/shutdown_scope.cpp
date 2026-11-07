@@ -71,7 +71,7 @@ void ShutdownScope::stop()
     }
     m_impl->dispatch->changed.notify_all();
     m_impl->requests.stop();
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     // Worker event loops must still receive abort/finished/timer events. Qt's
     // application destructor disables that delivery before waiting on this pool.
     // Drain again on scope destruction in case another aboutToQuit handler
