@@ -268,6 +268,15 @@ target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui)
 target_compile_features(genycaster_ui_bootstrap PUBLIC cxx_std_26)
 set_property(TARGET genycaster_ui_bootstrap PROPERTY CXX_SCAN_FOR_MODULES ON)
 
+if(NOT EMSCRIPTEN)
+    add_library(genycaster_bootstrap_worker STATIC)
+    target_sources(genycaster_bootstrap_worker
+        PUBLIC FILE_SET CXX_MODULES FILES app/bootstrap/worker.cppm
+        PRIVATE app/bootstrap/worker.cpp)
+    target_compile_features(genycaster_bootstrap_worker PUBLIC cxx_std_26)
+    set_property(TARGET genycaster_bootstrap_worker PROPERTY CXX_SCAN_FOR_MODULES ON)
+endif()
+
 add_library(genycaster_web_wheel STATIC)
 target_sources(genycaster_web_wheel
     PUBLIC FILE_SET CXX_MODULES FILES app/web/wheel.cppm
@@ -362,6 +371,9 @@ target_link_libraries(genycaster PRIVATE
     genycaster_update_install)
 if(TARGET genycaster_desktop_instance)
     target_link_libraries(genycaster PRIVATE genycaster_desktop_instance)
+endif()
+if(TARGET genycaster_bootstrap_worker)
+    target_link_libraries(genycaster PRIVATE genycaster_bootstrap_worker)
 endif()
 
 target_sources(genycaster
