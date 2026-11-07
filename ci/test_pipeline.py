@@ -63,6 +63,36 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn('QT_RESOURCE_ALIAS "components/' + public + '"',
                               cmake, public)
 
+    def test_native_qml_types_import_their_own_module(self) -> None:
+        """Nested QML sources must explicitly import C++-registered module types."""
+        import re
+
+        native_sources = {
+            "RichInlineTextItem": "src/presentation/qt/rich_inline_text_item.hpp",
+            "FeedRowsModel": "ui/app/social/feed_rows.hpp",
+            "SceneGraphSuperellipse": "ui/render/superellipse.hpp",
+            "SceneGraphStroke": "ui/render/stroke.hpp",
+            "TokenSparklineGeometry": "ui/render/sparkline.hpp",
+        }
+        main = Path("ui/app/main.cpp").read_text(encoding="utf-8")
+        for native_type, header in native_sources.items():
+            native_source = Path(header).read_text(encoding="utf-8")
+            if native_type == "RichInlineTextItem":
+                self.assertIn("qmlRegisterType<RichInlineTextItem>", main)
+            else:
+                self.assertIn(f"QML_NAMED_ELEMENT({native_type})", native_source)
+        for qml in Path("ui/components").rglob("*.qml"):
+            source = qml.read_text(encoding="utf-8")
+            used_types = [
+                name for name in native_sources
+                if re.search(r"(?m)^\\s*" + name + r"\\s*(?:\\{|\\.)", source)
+            ]
+            if used_types:
+                self.assertRegex(
+                    source, r"(?m)^import Farcaster\\.Client(?:\\s|$)",
+                    f"{qml} must import Farcaster.Client for {used_types}",
+                )
+
     def test_responsive_interaction_contracts(self) -> None:
         """Guard the shared motion, mobile sheets and composer chrome."""
         qml = Path("ui/components")

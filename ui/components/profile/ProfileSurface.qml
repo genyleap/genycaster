@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import QtQuick.Dialogs
 import QtCore
+import Farcaster.Client
 
 Item {
     id: root

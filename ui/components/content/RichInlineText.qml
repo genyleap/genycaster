@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import Farcaster.Client
 
 // Renders one rich-text block natively (RichInlineTextItem) with emoji as
 // real inline layout objects and optional Noto Lottie animation overlays.

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQml.Models
 import Qt.labs.qmlmodels as DelegateModels
+import Farcaster.Client
 
 Item {
     id: root
