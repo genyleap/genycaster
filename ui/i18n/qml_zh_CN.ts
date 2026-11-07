@@ -6824,5 +6824,17 @@ Company | https://company.com</source>
             <source>Could not open this browser. Choose another.</source>
             <translation>无法打开此浏览器，请选择其他浏览器。</translation>
         </message>
+        <message id="genycaster.rendering.frame_target">
+            <source>Target frame rate</source>
+            <translation>目标帧率</translation>
+        </message>
+        <message id="genycaster.editor.copy">
+            <source>Copy</source>
+            <translation>复制</translation>
+        </message>
+        <message id="genycaster.setup.logo_3d_accessible">
+            <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
+            <translation>GenyCaster 3D 标志。拖动可旋转，滚动可缩放，按 R 重置。</translation>
+        </message>
     </context>
 </TS>
