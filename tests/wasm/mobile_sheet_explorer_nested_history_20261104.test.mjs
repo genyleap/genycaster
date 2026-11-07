@@ -39,7 +39,7 @@ test('Back unwinds exact quoted casts and profiles and never records a replay',(
  assert.match(shell,/function returnFromProfileSurface\(\) \{\s*presentationBridge\.returnFromDetail\(\)/);
  assert.match(shell,/function returnToPendingShellRoute\(\) \{[\s\S]*?presentationBridge\.activeView !== "feed"/);
  assert.match(shell,/onShellRouteChanged: \{\s*if \(root\.shellRoute\.length > 0\)\s*presentationBridge\.clearDetailHistory\(\)/);
- assert.match(shell,/function openMyProfileFromNavigation\(\) \{\s*presentationBridge\.clearDetailHistory\(\)/);
+ assert.match(shell,/function openMyProfileFromNavigation\(\) \{\s*\+\+root\.profileTopRevision\s*presentationBridge\.clearDetailHistory\(\)/);
  assert.match(cpp,/m_activeFeed = nextFeed/);
  assert.match(cpp,/clearDetailHistory\(\);\s*m_activeView = QStringLiteral\("feed"\)/);
 });
@@ -55,7 +55,8 @@ test('Explorer explicit entry scrolls the inline StoryStrip from every previous 
  assert.match(shell,/scrollRequestRevision: root\.primaryDestination === "explorer"/);
  assert.match(feed,/property int appliedScrollRequestRevision: 0/);
  assert.match(feed,/function honorPrimaryScrollRequest\(\)/);
- assert.match(feed,/onScrollRequestRevisionChanged: Qt\.callLater\(root\.honorPrimaryScrollRequest\)/);
+ assert.match(feed,/onScrollRequestRevisionChanged: primaryScrollRequestTimer\.restart\(\)/);
+ assert.match(feed,/id: primaryScrollRequestTimer[\s\S]*?onTriggered: root\.honorPrimaryScrollRequest\(\)/);
  assert.match(feed,/root\.scrollToBeginning\(\)/);
  assert.match(feed,/readList\.positionViewAtBeginning\(\)/);
  assert.match(feed,/headerPositioning: root\.compact \|\| root\.activeFeed === "channel"\s*\|\| stableRows\.count === 0\s*\? ListView\.InlineHeader/);
