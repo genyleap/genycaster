@@ -1525,6 +1525,10 @@ Item {
                                         username: presentationBridge.accountUsername
                                         avatarUrl: presentationBridge.accountAvatarUrl
                                         authenticated: presentationBridge.isAuthenticated
+                                        accountFid: presentationBridge.isAuthenticated
+                                                    ? String(presentationBridge.accountFid) : ""
+                                        readContract: providerProfiles.activeReadContract
+                                        readEndpoint: providerProfiles.activeReadEndpoint
                                         busy: presentationBridge.isBusy
                                         notificationUnreadCount: presentationBridge.notificationUnreadCount
                                         rows: presentationBridge.rows

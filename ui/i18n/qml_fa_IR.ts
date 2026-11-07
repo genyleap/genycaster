@@ -2,6 +2,126 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.stats.overview">
+            <source>Overview</source>
+            <translation>نمای کلی</translation>
+        </message>
+        <message id="genycaster.stats.stats">
+            <source>Stats</source>
+            <translation>آمار</translation>
+        </message>
+        <message id="genycaster.stats.your_stats">
+            <source>Your stats</source>
+            <translation>آمار شما</translation>
+        </message>
+        <message id="genycaster.stats.subtitle">
+            <source>Activity and performance of your published content</source>
+            <translation>فعالیت و عملکرد محتوای منتشرشدهٔ شما</translation>
+        </message>
+        <message id="genycaster.stats.refresh">
+            <source>Refresh statistics</source>
+            <translation>به‌روزرسانی آمار</translation>
+        </message>
+        <message id="genycaster.stats.all">
+            <source>All</source>
+            <translation>همه</translation>
+        </message>
+        <message id="genycaster.stats.last_n_days">
+            <source>Last %1 days</source>
+            <translation>%1 روز گذشته</translation>
+        </message>
+        <message id="genycaster.stats.loading">
+            <source>Loading account statistics… %1 casts checked</source>
+            <translation>در حال دریافت آمار… %1 کست بررسی شد</translation>
+        </message>
+        <message id="genycaster.stats.node_unavailable">
+            <source>Statistics unavailable for the selected node. %1</source>
+            <translation>آمار از نود انتخاب‌شده در دسترس نیست. %1</translation>
+        </message>
+        <message id="genycaster.stats.select_to_load">
+            <source>Select Stats to load your activity.</source>
+            <translation>برای دریافت آمار، زبانهٔ آمار را انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.stats.partial">
+            <source>Partial data — the node did not provide complete history. Values cover only the casts fetched.</source>
+            <translation>داده‌ها ناقص‌اند؛ نود تمام تاریخچه را برنگردانده است. اعداد فقط کست‌های دریافت‌شده را شامل می‌شوند.</translation>
+        </message>
+        <message id="genycaster.stats.period_note">
+            <source>Content published in the selected period · engagement counted to date</source>
+            <translation>محتوای منتشرشده در بازهٔ انتخابی · تعاملات تا امروز</translation>
+        </message>
+        <message id="genycaster.stats.casts">
+            <source>Casts</source>
+            <translation>کست‌ها</translation>
+        </message>
+        <message id="genycaster.stats.replies">
+            <source>Replies</source>
+            <translation>پاسخ‌ها</translation>
+        </message>
+        <message id="genycaster.stats.engagement">
+            <source>Engagement</source>
+            <translation>تعاملات</translation>
+        </message>
+        <message id="genycaster.stats.followers">
+            <source>Followers</source>
+            <translation>دنبال‌کنندگان</translation>
+        </message>
+        <message id="genycaster.stats.published_posts">
+            <source>Published posts</source>
+            <translation>پست‌های منتشرشده</translation>
+        </message>
+        <message id="genycaster.stats.written_replies">
+            <source>Replies written</source>
+            <translation>پاسخ‌های نوشته‌شده</translation>
+        </message>
+        <message id="genycaster.stats.received_on_posts">
+            <source>Received on these posts</source>
+            <translation>دریافتی روی این پست‌ها</translation>
+        </message>
+        <message id="genycaster.stats.current_total">
+            <source>Current total</source>
+            <translation>تعداد فعلی</translation>
+        </message>
+        <message id="genycaster.stats.publishing_activity">
+            <source>Publishing activity</source>
+            <translation>فعالیت انتشار</translation>
+        </message>
+        <message id="genycaster.stats.today">
+            <source>Today</source>
+            <translation>امروز</translation>
+        </message>
+        <message id="genycaster.stats.last_90_days">
+            <source>Last 90 days shown</source>
+            <translation>نمودار ۹۰ روز گذشته</translation>
+        </message>
+        <message id="genycaster.stats.top_casts">
+            <source>Top casts</source>
+            <translation>برترین کست‌ها</translation>
+        </message>
+        <message id="genycaster.stats.no_posts">
+            <source>No posts in this period.</source>
+            <translation>در این بازه پستی وجود ندارد.</translation>
+        </message>
+        <message id="genycaster.stats.open_cast">
+            <source>Open cast</source>
+            <translation>بازکردن کست</translation>
+        </message>
+        <message id="genycaster.stats.media_cast">
+            <source>Media cast</source>
+            <translation>کست رسانه‌ای</translation>
+        </message>
+        <message id="genycaster.stats.cast_engagement">
+            <source>%1 likes · %2 recasts · %3 replies</source>
+            <translation>%1 لایک · %2 ریکست · %3 پاسخ</translation>
+        </message>
+        <message id="genycaster.stats.average">
+            <source>Average engagement per cast: %1</source>
+            <translation>میانگین تعامل هر کست: %1</translation>
+        </message>
+        <message id="genycaster.stats.engagement_unavailable">
+            <source>Engagement counts are not provided by this node.</source>
+            <translation>نود انتخاب‌شده شمارنده‌های تعامل را ارائه نمی‌دهد.</translation>
+        </message>
         <message id="genycaster.activity.default_source">
             <source>Show on profile</source>
             <translation>نمای پیش‌فرض پروفایل</translation>

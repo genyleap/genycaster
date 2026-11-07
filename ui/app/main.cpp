@@ -77,6 +77,7 @@
 #include "network/geo.hpp"
 #include "network/link_preview.hpp"
 #include "social/cast_views.hpp"
+#include "social/stats.hpp"
 #include "browser/reactions.hpp"
 #include "browser/link_metadata.hpp"
 #include "browser/token_preview.hpp"
@@ -627,6 +628,9 @@ int main(int argc, char* argv[])
     };
     LinkPreviewResolver linkPreviewResolver{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct};
+    StatsController statsController{
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest};
     CastViewController castViewController{
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         GENYCASTER_CAST_VIEWS_ENABLED != 0
@@ -1046,6 +1050,7 @@ int main(int argc, char* argv[])
         {"browserLinkMetadataController", &browserLinkMetadataController},
         {"browserTokenPreviewController", &browserTokenPreviewController},
         {"castViewController", &castViewController},
+        {"statsController", &statsController},
         {"browserReactionController", &browserReactionController},
         {"miniAppHost", &miniAppHost},
         {"miniAppCatalog", &miniAppCatalog},

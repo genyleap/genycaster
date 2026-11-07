@@ -100,6 +100,7 @@ set(farcasterQmlFiles
     components/media/FilePreview.qml
     components/home/HomeComposer.qml
     components/home/HomeDashboard.qml
+    components/home/StatsPanel.qml
     components/home/HomeFeedHeader.qml
     components/setup/InitialSetup.qml
     components/media/LinkPreview.qml
@@ -381,6 +382,8 @@ qt_add_executable(genycaster
     app/network/link_preview.hpp
     app/social/cast_views.cpp
     app/social/cast_views.hpp
+    app/social/stats.cpp
+    app/social/stats.hpp
     app/browser/reactions.cpp
     app/browser/reactions.hpp
     app/browser/link_metadata.cpp

@@ -2,6 +2,126 @@
 <TS version="2.1" language="pt_BR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.stats.overview">
+            <source>Overview</source>
+            <translation>Overview</translation>
+        </message>
+        <message id="genycaster.stats.stats">
+            <source>Stats</source>
+            <translation>Stats</translation>
+        </message>
+        <message id="genycaster.stats.your_stats">
+            <source>Your stats</source>
+            <translation>Your stats</translation>
+        </message>
+        <message id="genycaster.stats.subtitle">
+            <source>Activity and performance of your published content</source>
+            <translation>Activity and performance of your published content</translation>
+        </message>
+        <message id="genycaster.stats.refresh">
+            <source>Refresh statistics</source>
+            <translation>Refresh statistics</translation>
+        </message>
+        <message id="genycaster.stats.all">
+            <source>All</source>
+            <translation>All</translation>
+        </message>
+        <message id="genycaster.stats.last_n_days">
+            <source>Last %1 days</source>
+            <translation>Last %1 days</translation>
+        </message>
+        <message id="genycaster.stats.loading">
+            <source>Loading account statistics… %1 casts checked</source>
+            <translation>Loading account statistics… %1 casts checked</translation>
+        </message>
+        <message id="genycaster.stats.node_unavailable">
+            <source>Statistics unavailable for the selected node. %1</source>
+            <translation>Statistics unavailable for the selected node. %1</translation>
+        </message>
+        <message id="genycaster.stats.select_to_load">
+            <source>Select Stats to load your activity.</source>
+            <translation>Select Stats to load your activity.</translation>
+        </message>
+        <message id="genycaster.stats.partial">
+            <source>Partial data — the node did not provide complete history. Values cover only the casts fetched.</source>
+            <translation>Partial data — the node did not provide complete history. Values cover only the casts fetched.</translation>
+        </message>
+        <message id="genycaster.stats.period_note">
+            <source>Content published in the selected period · engagement counted to date</source>
+            <translation>Content published in the selected period · engagement counted to date</translation>
+        </message>
+        <message id="genycaster.stats.casts">
+            <source>Casts</source>
+            <translation>Casts</translation>
+        </message>
+        <message id="genycaster.stats.replies">
+            <source>Replies</source>
+            <translation>Replies</translation>
+        </message>
+        <message id="genycaster.stats.engagement">
+            <source>Engagement</source>
+            <translation>Engagement</translation>
+        </message>
+        <message id="genycaster.stats.followers">
+            <source>Followers</source>
+            <translation>Followers</translation>
+        </message>
+        <message id="genycaster.stats.published_posts">
+            <source>Published posts</source>
+            <translation>Published posts</translation>
+        </message>
+        <message id="genycaster.stats.written_replies">
+            <source>Replies written</source>
+            <translation>Replies written</translation>
+        </message>
+        <message id="genycaster.stats.received_on_posts">
+            <source>Received on these posts</source>
+            <translation>Received on these posts</translation>
+        </message>
+        <message id="genycaster.stats.current_total">
+            <source>Current total</source>
+            <translation>Current total</translation>
+        </message>
+        <message id="genycaster.stats.publishing_activity">
+            <source>Publishing activity</source>
+            <translation>Publishing activity</translation>
+        </message>
+        <message id="genycaster.stats.today">
+            <source>Today</source>
+            <translation>Today</translation>
+        </message>
+        <message id="genycaster.stats.last_90_days">
+            <source>Last 90 days shown</source>
+            <translation>Last 90 days shown</translation>
+        </message>
+        <message id="genycaster.stats.top_casts">
+            <source>Top casts</source>
+            <translation>Top casts</translation>
+        </message>
+        <message id="genycaster.stats.no_posts">
+            <source>No posts in this period.</source>
+            <translation>No posts in this period.</translation>
+        </message>
+        <message id="genycaster.stats.open_cast">
+            <source>Open cast</source>
+            <translation>Open cast</translation>
+        </message>
+        <message id="genycaster.stats.media_cast">
+            <source>Media cast</source>
+            <translation>Media cast</translation>
+        </message>
+        <message id="genycaster.stats.cast_engagement">
+            <source>%1 likes · %2 recasts · %3 replies</source>
+            <translation>%1 likes · %2 recasts · %3 replies</translation>
+        </message>
+        <message id="genycaster.stats.average">
+            <source>Average engagement per cast: %1</source>
+            <translation>Average engagement per cast: %1</translation>
+        </message>
+        <message id="genycaster.stats.engagement_unavailable">
+            <source>Engagement counts are not provided by this node.</source>
+            <translation>Engagement counts are not provided by this node.</translation>
+        </message>
         <message id="genycaster.activity.default_source">
             <source>Show on profile</source>
             <translation>Exibição padrão do perfil</translation>

@@ -11,6 +11,31 @@ Item {
     property string username: ""
     property string avatarUrl: ""
     property bool authenticated: false
+    property string accountFid: ""
+    property string readContract: ""
+    property string readEndpoint: ""
+    property string activeTab: "overview"
+    property int statsDays: 30
+    function requestStats(force) {
+        if (!root.authenticated || root.accountFid === "" || root.accountFid === "0") {
+            statsController.clear()
+            return
+        }
+        if (root.visible && root.activeTab === "stats")
+            statsController.load(root.accountFid, root.readContract, root.readEndpoint,
+                                 root.statsDays, Boolean(force))
+    }
+    onActiveTabChanged: {
+        root.finishComposerEditing()
+        root.scrollToBeginning()
+        root.requestStats(false)
+    }
+    onStatsDaysChanged: root.requestStats(false)
+    onAccountFidChanged: root.requestStats(false)
+    onAuthenticatedChanged: root.requestStats(false)
+    onReadContractChanged: root.requestStats(false)
+    onReadEndpointChanged: root.requestStats(false)
+    onVisibleChanged: if (visible) root.requestStats(false)
     property bool compact: false
     property bool busy: false
     property int notificationUnreadCount: 0
@@ -103,6 +128,34 @@ Item {
         if (destination === "search") root.searchRequested()
         else if (destination === "apps") root.appsRequested()
         else if (destination === "explorer") root.exploreRequested()
+    }
+
+    component HomeTabs: Item {
+        implicitHeight: 43
+        RowLayout {
+            anchors.fill: parent
+            spacing: Theme.space1
+            layoutDirection: Theme.uiDirection
+            GenyTabButton {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                minimumWidth: 0
+                segmented: false
+                selected: root.activeTab === "overview"
+                text: qsTrId("genycaster.stats.overview")
+                onClicked: root.activeTab = "overview"
+            }
+            GenyTabButton {
+                objectName: "homeStatsTab"
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                minimumWidth: 0
+                segmented: false
+                selected: root.activeTab === "stats"
+                text: qsTrId("genycaster.stats.stats")
+                onClicked: root.activeTab = "stats"
+            }
+        }
     }
 
     component HubWorkspace: ColumnLayout {
@@ -329,8 +382,14 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.space2
                 }
+                HomeTabs {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: root.homeContentMaxWidth
+                }
 
                 ColumnLayout {
+                    visible: root.activeTab === "overview"
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
@@ -377,6 +436,7 @@ Item {
                 }
 
                 Superellipse {
+                    visible: root.activeTab === "overview"
                     id: desktopComposerSurface
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
@@ -429,14 +489,43 @@ Item {
                         }
                     }
                 }
-GenyTokenBanner {}
+GenyTokenBanner {
+                    visible: root.activeTab === "overview"
+                }
 
                 HubWorkspace {
+                    visible: root.activeTab === "overview"
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
                     Layout.maximumWidth: root.homeContentMaxWidth
                 }
-                Item { Layout.fillHeight: true; Layout.minimumHeight: Theme.space2 }
+                Flickable {
+                    objectName: "homeDesktopStatsScroll"
+                    visible: root.activeTab === "stats"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 0
+                    contentWidth: width
+                    contentHeight: desktopStats.implicitHeight + Theme.space4
+                    clip: true
+                    flickableDirection: Flickable.VerticalFlick
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: GenyScrollBar { policy: ScrollBar.AsNeeded }
+                    StatsPanel {
+                        id: desktopStats
+                        width: parent.width
+                        compact: false
+                        periodDays: root.statsDays
+                        onPeriodRequested: days => root.statsDays = days
+                        onRefreshRequested: root.requestStats(true)
+                        onCastRequested: hash => root.castRequested(hash)
+                    }
+                }
+                Item {
+                    visible: root.activeTab === "overview"
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: Theme.space2
+                }
             }
         }
 
@@ -478,7 +567,7 @@ GenyTokenBanner {}
                                                   : root.densePhone ? Theme.space1
                                                   : root.androidCompact ? Theme.space2 : Theme.space3 }
             Superellipse {
-                visible: !root.composerFocused
+                visible: !root.composerFocused && root.activeTab === "overview"
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: root.androidCompact
                                        ? (root.densePhone ? 52 : 68)
@@ -506,16 +595,24 @@ GenyTokenBanner {}
                     visible: !root.authenticated || root.avatarUrl.length === 0
                 }
             }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.androidCompact
+            DirectionAwareLabel { visible: !root.composerFocused && root.activeTab === "overview"; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: root.greetingText; color: Theme.textPrimary; font.pixelSize: root.androidCompact
                 ? (root.densePhone ? Theme.typeTitle2Size : Theme.typeTitle1Size)
                 : (root.densePhone ? Theme.typeTitle1Size : Theme.typeDisplaySize); font.weight: Theme.weightBold; wrapMode: Text.Wrap }
-            DirectionAwareLabel { visible: !root.composerFocused; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
+            DirectionAwareLabel { visible: !root.composerFocused && root.activeTab === "overview"; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: qsTrId("genycaster.home.hub_tagline"); color: Theme.textSecondary; font.pixelSize: Theme.typeMetaSize }
+
+            HomeTabs {
+                visible: !root.composerFocused
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
+            }
 
             // A single aligned launcher: composing starts in the dedicated
             // full-screen editor, never in a cramped inline keyboard state.
             Superellipse {
                 id: mobileComposerSurface
                 objectName: "homeComposerLauncher"
+                visible: root.activeTab === "overview"
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
@@ -567,10 +664,25 @@ GenyTokenBanner {}
                 text: root.draftText
                 onTextChanged: root.draftText = text
             }
-GenyTokenBanner {}
+GenyTokenBanner {
+                visible: root.activeTab === "overview"
+            }
+
+            StatsPanel {
+                objectName: "homeMobileStats"
+                visible: root.activeTab === "stats" && !root.composerFocused
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.space3
+                Layout.rightMargin: Theme.space3
+                compact: true
+                periodDays: root.statsDays
+                onPeriodRequested: days => root.statsDays = days
+                onRefreshRequested: root.requestStats(true)
+                onCastRequested: hash => root.castRequested(hash)
+            }
 
             HubWorkspace {
-                visible: !root.composerFocused
+                visible: !root.composerFocused && root.activeTab === "overview"
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3

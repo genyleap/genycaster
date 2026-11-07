@@ -161,6 +161,21 @@ set_tests_properties(ui.cast_views_contract PROPERTIES
     LABELS "ui;analytics;qt"
     TIMEOUT 15)
 
+# Provider-scoped, period-accurate statistics from a deterministic local HTTP node.
+# Distinguishes publishing activity from received engagement, rejects account
+# leakage and never invents Snapchain raw-message engagement counters.
+qt_add_executable(farcaster_stats_controller_tests
+    stats_controller_tests.cpp
+    "${genycasterUiSourceDir}/app/social/stats.cpp"
+    "${genycasterUiSourceDir}/app/social/stats.hpp")
+target_compile_features(farcaster_stats_controller_tests PRIVATE cxx_std_26)
+target_link_libraries(farcaster_stats_controller_tests PRIVATE Qt6::Core Qt6::Network)
+farcaster_enable_warnings(farcaster_stats_controller_tests)
+add_test(NAME ui.stats_controller_contract COMMAND farcaster_stats_controller_tests)
+set_tests_properties(ui.stats_controller_contract PROPERTIES
+    LABELS "ui;analytics;provider;qt"
+    TIMEOUT 15)
+
 # Actual Qt HTTP/lifecycle fixture for the browser reaction adapter.
 # QML no longer owns or parses network replies.
 qt_add_executable(farcaster_browser_reactions_tests
