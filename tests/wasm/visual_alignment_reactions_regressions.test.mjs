@@ -28,8 +28,8 @@ test('mobile Home uses viewport-aware dimensions and preserves composer clearanc
     assert.match(home, /contentHeight: mobileColumn\.implicitHeight \+ root\.bottomOverlayInset \+ Theme\.space4/);
     assert.doesNotMatch(home, /Math\.max\(108, Theme\.touchTarget/);
     assert.match(home, /visible: !root\.composerFocused/);
-    assert.match(shell, /anchors\.bottomMargin: root\.mobile && !root\.homeComposerFocused/);
-    assert.match(shell, /\? mobileBottomNavigation\.height : 0/);
+    assert.match(shell, /bottomOverlayInset: mobileBottomNavigation\.visible \? mobileBottomNavigation\.height : 0/);
+    assert.match(shell, /!root\.homeComposerFocused/);
     assert.doesNotMatch(shell, /mobileBottomNavigation\.height \+ Theme\.space5/);
 });
 
