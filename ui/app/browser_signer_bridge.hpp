@@ -14,10 +14,12 @@
 
 #pragma once
 
+#include <QtGlobal>
+
 // Qt/Emscripten asynchronous bridge. It never blocks on a browser Promise,
 // exports a secret, or treats login as signer permission. The pre-js module
 // produces bounded JSON events which are polled on the Qt GUI event loop.
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
 #include <QByteArray>
 #include <QJsonDocument>
