@@ -85,6 +85,17 @@ set_tests_properties(ui.bootstrap_context PROPERTIES
     TIMEOUT 10 LABELS "ui;qml;bootstrap"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
+# Wallet URLs are validated without starting a browser; the OS dispatch is
+# separately guarded by the application shutdown boundary.
+add_executable(genycaster_wallet_launch_tests wallet_launch_tests.cpp)
+target_link_libraries(genycaster_wallet_launch_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core Qt6::Gui)
+target_compile_features(genycaster_wallet_launch_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_wallet_launch_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.wallet_launch_policy COMMAND genycaster_wallet_launch_tests)
+set_tests_properties(ui.wallet_launch_policy PROPERTIES
+    TIMEOUT 10 LABELS "ui;wallet;security")
+
 if(TARGET genycaster_bootstrap_worker)
     add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
     target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
