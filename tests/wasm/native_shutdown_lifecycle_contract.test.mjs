@@ -9,20 +9,25 @@ const read = path => readFileSync(resolve(root, path), "utf8");
 
 test("native shutdown owns QML teardown before C++ runtime/controller stack unwinding", () => {
     const main = read("ui/app/main.cpp");
+    const teardown = read("ui/app/bootstrap/teardown.cpp");
     const segment = main.slice(main.lastIndexOf("const int exitCode = application.exec();"));
-    assert.match(segment, /const int exitCode = application\.exec\(\);\s*#if !defined\(__EMSCRIPTEN__\)/);
+    assert.match(segment, /const int exitCode = application\.exec\(\);\s*#if !defined\(Q_OS_WASM\)/);
     const stopped = segment.indexOf("shutdownScope.stop();");
-    const joined = segment.indexOf("bootstrap.worker.join();");
-    const release = segment.indexOf("mainWindow->releaseResources();");
-    const roots = segment.indexOf("engine.rootObjects()");
-    const destroy = segment.indexOf("delete rootObject;");
-    const drain = segment.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
-    const collect = segment.indexOf("engine.collectGarbage();");
-    const returns = segment.indexOf("return exitCode;");
-    assert.ok(stopped >= 0 && joined > stopped && release > joined
-        && roots > release && destroy > roots && drain > destroy
-        && collect > drain && returns > collect,
-        "cleanup order must stop asynchronous producers, delete QML roots, then drain Qt deletions");
+    const joined = segment.indexOf("bootstrap.join();");
+    const released = segment.indexOf("genycaster::ui::bootstrap::releaseQmlRoots(engine, mainWindow);");
+    const returned = segment.indexOf("return exitCode;");
+    assert.ok(stopped >= 0 && joined > stopped
+        && released > joined && returned > released,
+        "the main thread must stop producers, join workers and explicitly release the scene graph");
+
+    const releaseResources = teardown.indexOf("mainWindow->releaseResources();");
+    const roots = teardown.indexOf("engine.rootObjects()");
+    const destroy = teardown.indexOf("delete root;");
+    const drain = teardown.indexOf("QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);");
+    const collect = teardown.indexOf("engine.collectGarbage();");
+    assert.ok(releaseResources >= 0 && roots > releaseResources
+        && destroy > roots && drain > destroy && collect > drain,
+        "QML teardown must release the window, destroy roots and drain deferred Qt deletion");
     assert.match(main, /#include <QEvent>/);
     assert.doesNotMatch(segment, /#if defined\(Q_OS_ANDROID\)/);
     assert.doesNotMatch(segment, /qInstallMessageHandler|QT_LOGGING_RULES|QT_FATAL_WARNINGS=0/);
