@@ -7,8 +7,8 @@ const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'ut
 const indicator = read('ui/components/PullToRefresh.qml');
 const notification = read('ui/components/NotificationSurface.qml');
 const shell = read('ui/components/AppShell.qml');
-const wheelMain = read('ui/app/main.cpp');
-const wheelFallback = read('ui/app/browser_wheel_fallback.hpp');
+const wheelMain = read('ui/app/web/wheel.cpp');
+const wheelFallback = wheelMain; // C++26 module owns the bounded direct-scroll fallback.
 
 test('Chrome wheel bridge consumes handled DOM events once and preserves subpixel ticks', () => {
     assert.match(wheelMain, /window\.__genycasterWheelEvent = event/);
