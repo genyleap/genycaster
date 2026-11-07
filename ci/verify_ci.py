@@ -86,6 +86,8 @@ def main() -> None:
     for relative, name in (
         ("bootstrap/options", "genycaster.ui.bootstrap"),
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
+        ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
+        ("bootstrap/worker", "genycaster.ui.bootstrap.worker"),
         ("web/wheel", "genycaster.ui.web.wheel"),
         ("update/install", "genycaster.ui.update.install"),
         ("desktop/instance", "genycaster.ui.desktop.instance"),
@@ -104,6 +106,16 @@ def main() -> None:
         assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
+    assert 'import genycaster.ui.bootstrap.providers;' in entry
+    assert 'import genycaster.ui.bootstrap.worker;' in entry
+    assert "bootstrap.start(std::move(bootstrapRuntime));" in entry
+    assert "bootstrap.join();" in entry
+    assert 'std::thread worker' not in entry
+    assert 'RenderingController::canonicalProfile' not in Path(
+        "ui/app/bootstrap/options.cpp").read_text(encoding="utf-8")
+    assert "RenderingController::canonicalProfile" in Path(
+        "ui/app/bootstrap/rendering.cpp").read_text(encoding="utf-8")
+    assert Path("tests/ui/provider_endpoints_tests.cpp").is_file()
     assert 'import genycaster.ui.diagnostics.snapshots;' in entry
     assert 'import genycaster.ui.diagnostics.smoke;' in entry
     assert "fontFamilies.forLanguage(" in entry
