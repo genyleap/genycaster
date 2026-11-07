@@ -275,6 +275,17 @@ if(NOT EMSCRIPTEN)
         PRIVATE app/bootstrap/worker.cpp)
     target_compile_features(genycaster_bootstrap_worker PUBLIC cxx_std_26)
     set_property(TARGET genycaster_bootstrap_worker PROPERTY CXX_SCAN_FOR_MODULES ON)
+
+    add_library(genycaster_bootstrap_teardown STATIC)
+    target_sources(genycaster_bootstrap_teardown
+        PUBLIC FILE_SET CXX_MODULES FILES app/bootstrap/teardown.cppm
+        PRIVATE app/bootstrap/teardown.cpp)
+    target_include_directories(genycaster_bootstrap_teardown PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
+    target_link_libraries(genycaster_bootstrap_teardown PUBLIC
+        Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick)
+    target_compile_features(genycaster_bootstrap_teardown PUBLIC cxx_std_26)
+    set_property(TARGET genycaster_bootstrap_teardown PROPERTY CXX_SCAN_FOR_MODULES ON)
 endif()
 
 add_library(genycaster_web_wheel STATIC)
@@ -375,6 +386,9 @@ endif()
 if(TARGET genycaster_bootstrap_worker)
     target_link_libraries(genycaster PRIVATE genycaster_bootstrap_worker)
 endif()
+if(TARGET genycaster_bootstrap_teardown)
+    target_link_libraries(genycaster PRIVATE genycaster_bootstrap_teardown)
+endif()
 
 target_sources(genycaster
     PRIVATE
@@ -386,11 +400,6 @@ target_sources(genycaster
         app/diagnostics/snapshots.cppm
         app/diagnostics/smoke.cppm
 )
-if(NOT EMSCRIPTEN)
-    target_sources(genycaster
-        PRIVATE app/bootstrap/teardown.cpp
-        PRIVATE FILE_SET CXX_MODULES FILES app/bootstrap/teardown.cppm)
-endif()
 target_include_directories(genycaster PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/app/modules")
 set_property(TARGET genycaster PROPERTY CXX_SCAN_FOR_MODULES ON)
