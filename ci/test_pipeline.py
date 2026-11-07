@@ -283,7 +283,14 @@ class PipelineTests(unittest.TestCase):
                      "ci/package_wasm_assets.py", "ci/verify_platform_package.py",
                      "ui/wasm/genycaster-loader.js"):
             with self.subTest(path=file):
-                self.assertNotIn("farcaster_client", Path(file).read_text(encoding="utf-8"))
+                content = Path(file).read_text(encoding="utf-8")
+                if file == "ci/package_web.py":
+                    # The old name is permitted only as an explicit rejection
+                    # rule; a legacy engine must never enter a new archive.
+                    self.assertIn('name.startswith("farcaster_client")', content)
+                    self.assertNotIn('archive.add(source / "farcaster_client', content)
+                else:
+                    self.assertNotIn("farcaster_client", content)
         self.assertIn("window.genycaster_entry",
                       Path("ui/wasm/genycaster-loader.js").read_text(encoding="utf-8"))
 
