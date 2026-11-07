@@ -19,12 +19,12 @@ test('profile links use shared Qt metadata resolver for favicon/title/descriptio
   assert.match(link,/metadata\.summary \|\| metadata\.description/);
   assert.match(link,/browserLinkMetadataController\.previewFor\(root\.targetUrl, "link"\)/);
   assert.match(link,/function onPreviewReady\(url, kind, preview\)/);
-  assert.match(read('ui/app/link_preview_resolver.cpp'),/#if defined\(__EMSCRIPTEN__\)[\s\S]*?Metadata parsing requires a native worker/);
+  assert.match(read('ui/app/link_preview_resolver.cpp'),/#if defined\(Q_OS_WASM\)[\s\S]*?Metadata parsing requires a native worker/);
   assert.doesNotMatch(link,/\b(?:fetch|XMLHttpRequest|localStorage|document|window)\s*[.(]/);
   assert.match(cmake,/components\/ProfileLinkRow\.qml/);
   const native=read('ui/app/main.cpp');
   assert.match(native,/LinkPreviewResolver linkPreviewResolver/);
-  assert.match(native,/setContextProperty\(QStringLiteral\("linkPreviewResolver"\), &linkPreviewResolver\)/);
+  assert.match(native,/\{"linkPreviewResolver", &linkPreviewResolver\}/);
 });
 
 test('bookmark priority action is clear, not a location marker, and missing previews are actionable',()=>{
