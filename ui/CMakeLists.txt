@@ -252,6 +252,20 @@ set_source_files_properties("components/apps/MiniAppPreview.qml" PROPERTIES QT_R
 set_source_files_properties("components/settings/RenderingPopup.qml" PROPERTIES QT_RESOURCE_ALIAS "components/RenderingSettingsPopup.qml")
 set_source_files_properties("components/profile/SidebarSummary.qml" PROPERTIES QT_RESOURCE_ALIAS "components/SidebarProfileSummary.qml")
 
+# Physical filenames are deliberately short, but the public QML type names
+# are part of the Farcaster.Client API. A resource alias alone does not rename
+# the type entry generated in qmldir. Derive the public type from the final
+# alias, including for platform-conditional QML components.
+foreach(qmlFile IN LISTS farcasterQmlFiles)
+    get_source_file_property(qmlPublicAlias "${qmlFile}" QT_RESOURCE_ALIAS)
+    get_filename_component(qmlPhysicalName "${qmlFile}" NAME_WE)
+    get_filename_component(qmlPublicName "${qmlPublicAlias}" NAME_WE)
+    if(NOT qmlPhysicalName STREQUAL qmlPublicName)
+        set_source_files_properties("${qmlFile}" PROPERTIES
+            QT_QML_SOURCE_TYPENAME "${qmlPublicName}")
+    endif()
+endforeach()
+
 
 aimcpp_reject_final_qml_creatable_types(
     SOURCES
@@ -1340,6 +1354,10 @@ set_source_files_properties("components/composer/ProCastPolicy.js" PROPERTIES QT
 qt_add_qml_module(genycaster
     URI Farcaster.Client
     VERSION 1.0
+    # Qt 6.8+ extra qmldir files follow physical directories, ignoring
+    # QT_RESOURCE_ALIAS. Keep one canonical qmldir for the flattened public
+    # components/ namespace shared by every platform.
+    NO_GENERATE_EXTRA_QMLDIRS
     QML_FILES
         ${farcasterQmlFiles}
         components/composer/ProCastPolicy.js
