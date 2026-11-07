@@ -487,6 +487,37 @@ void Runtime::keepAccountProfileRequest(application::read::async_service::ReadRe
 }
 
 foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
+    RuntimeConfiguration configuration)
+{
+    // Keep one validated provider factory. The named options are a lifetime
+    // and readability boundary, not a second protocol/signing implementation.
+    return makeRuntime(
+        configuration.databasePath,
+        configuration.networkProxyPolicy,
+        configuration.providerBaseUrl,
+        configuration.farcasterReadBaseUrl,
+        configuration.farcasterReadApiKey,
+        configuration.additionalReadProviders,
+        configuration.readProviderApiKeys,
+        configuration.preferredReadProviderId,
+        configuration.allowCompatibleReadFallback,
+        configuration.additionalWriteProviders,
+        configuration.preferredWriteProviderId,
+        configuration.authRelayUrl,
+        configuration.optimismRpcUrl,
+        configuration.snapchainBaseUrl,
+        configuration.snapchainWriteBaseUrl,
+        configuration.mediaGatewayBaseUrl,
+        configuration.snapchainAuthorizationHeader,
+        configuration.snapchainAuthorizationValue,
+        configuration.snapchainWriteAuthorizationHeader,
+        configuration.snapchainWriteAuthorizationValue,
+        configuration.appFid,
+        configuration.signerAttestationUrl,
+        std::move(configuration.approvalLauncher));
+}
+
+foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     const std::filesystem::path& databasePath,
     const farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy,
     [[maybe_unused]] const std::optional<std::string>& providerBaseUrl,
