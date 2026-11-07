@@ -120,6 +120,9 @@ import genycaster.ui.shutdown;
 import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.providers;
+#if !defined(__EMSCRIPTEN__)
+import genycaster.ui.bootstrap.worker;
+#endif
 import genycaster.ui.diagnostics.snapshots;
 import genycaster.ui.diagnostics.smoke;
 import genycaster.ui.web.wheel;
@@ -1753,20 +1756,8 @@ int main(int argc, char* argv[])
 
     std::shared_ptr<Runtime> runtime{};
 #if !defined(__EMSCRIPTEN__)
-    // Android NDK 27's libc++ does not provide std::jthread. Bootstrap has no
-    // stop_token parameter, so a joining std::thread preserves its lifetime
-    // without detaching or exposing referenced Qt objects to a dangling worker.
-    struct BootstrapThread final {
-        std::thread worker{};
-
-        ~BootstrapThread()
-        {
-            if (worker.joinable()) {
-                worker.join();
-            }
-        }
-    };
-    BootstrapThread bootstrap{};
+    // Join this native worker before destroying any controller it borrows.
+    genycaster::ui::bootstrap::BootstrapWorker bootstrap{};
 #endif
     if (!isSmokeTest && !isVisualTest) {
         const QString databasePathText = optionValue(
@@ -1864,7 +1855,7 @@ int main(int argc, char* argv[])
         // Defer initialization until Qt's main event loop is active.
         QTimer::singleShot(0, &application, std::move(bootstrapRuntime));
 #else
-        bootstrap.worker = std::thread(std::move(bootstrapRuntime));
+        bootstrap.start(std::move(bootstrapRuntime));
 #endif
     }
 
@@ -1914,9 +1905,7 @@ int main(int argc, char* argv[])
     // Stop producers, finish bootstrap, and dismantle the QML object tree
     // before either the runtime or the QGuiApplication can disappear.
     shutdownScope.stop();
-    if (bootstrap.worker.joinable()) {
-        bootstrap.worker.join();
-    }
+    bootstrap.join();
     if (mainWindow != nullptr) {
         mainWindow->setPersistentGraphics(false);
         mainWindow->setPersistentSceneGraph(false);
