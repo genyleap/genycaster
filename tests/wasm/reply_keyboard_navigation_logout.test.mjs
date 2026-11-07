@@ -62,7 +62,7 @@ test('beta label is short and is translated in every locale',()=>{
  assert.doesNotMatch(settings,/current_beta_release"\)\s*\.arg\(updateController\.appVersion\)/);
  for (const lang of ['en_US','fa_IR','ar_SA','fr_FR','de_DE','es_ES','pt_BR','ru_RU','hi_IN','ja_JP','ko_KR','zh_CN']){
   const data=readFileSync(new URL('../../ui/i18n/qml_'+lang+'.ts',import.meta.url),'utf8');
-  for (const id of ['genycaster.detail.your_confirmed_reply','genycaster.settings.beta_release_short','genycaster.session.logout_confirm_title','genycaster.session.logout_confirm_description'])
+  for (const id of ['genycaster.detail.your_confirmed_reply','genycaster.update.channel_beta','genycaster.session.logout_confirm_title','genycaster.session.logout_confirm_description'])
    assert.ok(data.includes('id="'+id+'"'),lang+': '+id);
  }
 });
