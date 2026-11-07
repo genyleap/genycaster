@@ -9,7 +9,9 @@ const fn=source.slice(source.indexOf("function recoverFromStaleWasmServiceWorker
 const sw=readFileSync(new URL("../../ui/wasm/genycaster-sw.js",import.meta.url),"utf8");
 
 test("large WASM bypasses service worker without removing private browser data",()=>{
-    assert.match(sw,/const CACHE="genycaster-static-v12"/);
+    const cacheVersion = sw.match(/const CACHE="genycaster-static-v(\d+)"/);
+    assert.ok(cacheVersion && Number(cacheVersion[1]) >= 13,
+        "app service worker must stay on the version that excludes WASM payloads");
     assert.match(sw,/if\(relative==="genycaster\.wasm" \|\| WASM_HASH\.test\(relative\)\)return;/);
     assert.doesNotMatch(sw,/cache\.put\([^\n]*\.wasm/);
     assert.match(source,/manifestBytes>16\*1024\*1024\)return;/);
@@ -194,7 +196,11 @@ test("WebKit gzip sidecar streams and decodes valid WebAssembly without cloning 
         fill:{classList:{add(){}},style:{}},percent:{textContent:""},
         track:{setAttribute(){}},performance:{now:()=>200},showPhase(){},console
     };
-    vm.runInNewContext(source.slice(begin,end)+"\nthis.loadCompressed=compressedWebKitEngine;",ctx);
+    const progress = source.slice(source.indexOf("function downloadProgressText("),
+        source.indexOf("function preparing()"));
+    assert.match(progress,/function downloadProgressText/);
+    vm.runInNewContext(progress + source.slice(begin,end)
+        +"\nthis.loadCompressed=compressedWebKitEngine;",ctx);
     const result=await ctx.loadCompressed(new URL(url),{credentials:"same-origin"});
     assert.ok(result);
     assert.equal(result.response.headers.get("content-type"),"application/wasm");
