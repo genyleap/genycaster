@@ -87,6 +87,7 @@ def main() -> None:
         ("bootstrap/options", "genycaster.ui.bootstrap"),
         ("bootstrap/fonts", "genycaster.ui.bootstrap.fonts"),
         ("bootstrap/providers", "genycaster.ui.bootstrap.providers"),
+        ("bootstrap/profiles", "genycaster.ui.bootstrap.profiles"),
         ("bootstrap/worker", "genycaster.ui.bootstrap.worker"),
         ("bootstrap/teardown", "genycaster.ui.bootstrap.teardown"),
         ("web/wheel", "genycaster.ui.web.wheel"),
@@ -103,12 +104,37 @@ def main() -> None:
         assert not (Path("ui/app") / (relative + ".hpp")).exists()
         assert interface.name == interface.name.lower()
         assert implementation.name == implementation.name.lower()
+        # Every named-module interface must retain the canonical project
+        # documentation contract, not an ad-hoc one-line comment.
+        source = interface.read_text(encoding="utf-8")
+        assert source.startswith("/*!\\n".replace("\\\\n", "\\n")), relative
+        for tag in ("@file", "@brief", "@details", "@author", "@since",
+                    "@copyright", "@license"):
+            assert tag in source.split("*/", 1)[0], (relative, tag)
+        assert f"@file        ui/app/{relative}.cppm" in source, relative
+        assert "Copyright (c) 2026 Genyleap." in source, relative
+        assert "GPL-3.0-only" in source, relative
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
         if relative != "bootstrap/worker":  # pure C++ worker has no Qt ABI
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
     assert 'import genycaster.ui.bootstrap.providers;' in entry
+    assert 'import genycaster.ui.bootstrap.profiles;' in entry
+    assert 'bootstrap::loadProviderProfiles(' in entry
+    assert Path("tests/ui/provider_profiles_tests.cpp").is_file()
+    assert 'GENYCASTER_READ_PROVIDER_API_KEYS_JSON' in Path(
+        "ui/app/bootstrap/profiles.cpp").read_text(encoding="utf-8")
+    assert 'GENYCASTER_READ_PROVIDER_API_KEYS_JSON' not in entry
+    # Qt's platform abstraction is the source of truth for Qt-facing
+    # translation units. Do not use a compiler vendor macro for UI policy.
+    for directory in (Path("ui/app"), Path("src/presentation/qt")):
+        for qt_source in directory.rglob("*"):
+            if qt_source.suffix not in (".cpp", ".hpp", ".cppm"):
+                continue
+            assert "__EMSCRIPTEN__" not in qt_source.read_text(
+                encoding="utf-8"), qt_source
+
     assert 'import genycaster.ui.bootstrap.worker;' in entry
     assert "bootstrap.start(std::move(bootstrapRuntime));" in entry
     assert "bootstrap.join();" in entry
