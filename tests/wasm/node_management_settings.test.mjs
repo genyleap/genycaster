@@ -134,7 +134,7 @@ test('raw node limitations are explicit, and saving does not automatically switc
   assert.match(manager, /genycaster\.nodes\.counts_short/);
   assert.match(manager, /providerProfiles\.activeReadContract/);
   assert.doesNotMatch(manager, /providerProfiles\.selectReadProvider\(nodeId\)/);
-  assert.match(bootstrap, /activeReadProviderLabel\(\)/);
+  assert.match(read('ui/app/main.cpp'), /activeReadProviderLabel\(\)/);
 });
 
 test('unsupported raw notifications do not masquerade as a transient node outage', () => {
