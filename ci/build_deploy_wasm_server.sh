@@ -115,6 +115,13 @@ for item in genycaster.html genycaster.wasm genycaster-assets.json genycaster-as
   test -s "$stage/$item" || { echo "Missing deploy asset: $item" >&2; exit 1; }
 done
 
+# Some existing virtual hosts still route / and SPA fallback to the legacy
+# HTML filename. Promote an identical, verified Genycaster entrypoint there,
+# not an old HTML artifact left in the Qt build directory.
+if [[ -f "$web_root/farcaster_client.html" ]]; then
+  cp -p -- "$stage/genycaster.html" "$stage/farcaster_client.html"
+fi
+
 # Preserve all old hashed WASM binaries: running tabs can still request them.
 while IFS= read -r -d '' file; do
   rel="${file#"$stage/"}"
@@ -148,11 +155,14 @@ promote() {
 }
 while IFS= read -r -d '' file; do
   rel="${file#"$stage/"}"
-  if [[ "$rel" == genycaster.html ||
+  if [[ "$rel" == genycaster.html || "$rel" == farcaster_client.html ||
         "$rel" =~ ^(genycaster|farcaster_client)\.[0-9a-f]{20}\.wasm$ ]]; then continue; fi
   promote "$rel"
 done < <(find "$stage" -type f -print0)
 promote genycaster.html
+if [[ -f "$stage/farcaster_client.html" ]]; then
+  promote farcaster_client.html
+fi
 finished=1
 echo "Published verified WASM assets at: $web_root"
 
