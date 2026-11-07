@@ -91,7 +91,7 @@ bool FontFamilies::load()
             }
         }
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // The renderer supports CBDT/CBLC and emoji sequence segmentation.
         // System/browser fonts are not available in the WASM sandbox.
         const QStringList colorEmojiFamilies = loadApplicationFont(QStringLiteral(
