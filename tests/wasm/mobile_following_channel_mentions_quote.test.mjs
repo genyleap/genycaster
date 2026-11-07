@@ -16,7 +16,7 @@ test('Explorer audience filter persists and applies to each semantic tab',()=>{
  assert.match(shell,/\? "following" : globalSource/);
  assert.match(shell,/presentationBridge\.selectFeed\(source\)/);
  assert.match(header,/objectName: "explorerAudienceSelector"/);
- assert.match(header,/onClicked: root\.audienceRequested\(String\(modelData\.id\)\)/);
+ assert.match(header,/onClicked: \{\s*if \(!scopeOption\.selected\)\s*root\.audienceRequested\(String\(modelData\.id\)\)/);
  assert.match(header,/readonly property bool selected: root\.audience === String\(modelData\.id\)/);
  assert.match(header,/Behavior on color/);
  assert.doesNotMatch(header,/audienceMenu\.open\(\)/);
@@ -117,7 +117,7 @@ test('Following selection uses authenticated account FID for initial and next pa
 test('Following audience action updates state and requests new feed instead of silently restoring Everyone',()=>{
  const src=read('ui/components/AppShell.qml');
  const method=src.slice(src.indexOf('function chooseExplorerAudience('),
-                        src.indexOf('property string explorerPresentationMode:')).trim();
+                        src.indexOf('property string bookmarkChoiceHash:')).trim();
  const bridge={isAuthenticated:true,accountFid:1234};
  const calls=[];
  const root={
