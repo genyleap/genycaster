@@ -121,6 +121,7 @@ import genycaster.ui.bootstrap;
 import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.providers;
 import genycaster.ui.bootstrap.profiles;
+import genycaster.ui.bootstrap.routes;
 #if !defined(Q_OS_WASM)
 import genycaster.ui.bootstrap.teardown;
 import genycaster.ui.bootstrap.worker;
@@ -385,10 +386,10 @@ int main(int argc, char* argv[])
     additionalReadProviders.reserve(configuredProfiles->readProviders.size());
     for (auto& profile : configuredProfiles->readProviders) {
         additionalReadProviders.push_back({
-            .id = std::move(profile.id),
-            .displayName = std::move(profile.displayName),
-            .endpoint = std::move(profile.endpoint),
-            .adapterContract = std::move(profile.adapterContract),
+            .id = profile.id,
+            .displayName = profile.displayName,
+            .endpoint = profile.endpoint,
+            .adapterContract = profile.adapterContract,
             .selfHosted = profile.selfHosted,
         });
     }
@@ -400,7 +401,7 @@ int main(int argc, char* argv[])
             .id = std::move(profile.id),
             .displayName = std::move(profile.displayName),
             .endpoint = std::move(profile.endpoint),
-            .readEndpoint = std::move(profile.readEndpoint),
+            .readEndpoint = profile.readEndpoint,
             .adapterContract = std::move(profile.adapterContract),
             .selfHosted = profile.selfHosted,
         });
@@ -419,187 +420,34 @@ int main(int argc, char* argv[])
     const QString preferredWriteProviderText =
         QString::fromStdString(configuredProfiles->preferredWriteProviderText);
 
-    QStringList nodeCandidateEndpoints{};
-    const QString nodeCandidatesText =
-        qEnvironmentVariable("GENYCASTER_HYPERSNAP_NODE_CANDIDATES").trimmed();
-    if (!nodeCandidatesText.isEmpty()) {
-        nodeCandidateEndpoints = nodeCandidatesText.split(
-            QLatin1Char(','), Qt::SkipEmptyParts);
-        for (QString& endpoint : nodeCandidateEndpoints) {
-            endpoint = endpoint.trimmed();
-        }
-    }
-    if (!providerBaseUrlText.isEmpty()) {
-        nodeCandidateEndpoints.prepend(providerBaseUrlText);
-    }
-    // Provider-specific defaults belong to src/providers, never the QML/UI
-    // composition root. A selected custom node still overrides the default.
-    QString appliedNodeEndpoint = providerBaseUrlText;
+    // Resolve the selected protocol's canonical writer independently from
+    // optional explicitly chosen Write providers. Never cross-post by accident.
+    QString compiledHypersnapEndpoint{};
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
-    const QString hypersnapDefaultEndpoint = QString::fromStdString(
+    compiledHypersnapEndpoint = QString::fromStdString(
         farcaster::provider::hypersnap::config::Config{}.baseUrl);
-    nodeCandidateEndpoints.append(hypersnapDefaultEndpoint);
-    if (appliedNodeEndpoint.isEmpty())
-        appliedNodeEndpoint = hypersnapDefaultEndpoint;
 #endif
+    auto routingPolicy = genycaster::ui::bootstrap::loadProviderRoutes(
+        settings, arguments, providerBaseUrlText, compiledHypersnapEndpoint,
+        QString::fromStdString(std::string{deploymentEndpoints.snapchainBaseUrl}),
+        QString::fromStdString(std::string{deploymentEndpoints.mediaGatewayBaseUrl}),
+        *configuredProfiles);
+    if (!routingPolicy) return 2;
 
-    QString snapchainBaseUrlText = optionValue(arguments, QStringLiteral("--snapchain-base-url="));
-    if (snapchainBaseUrlText.isEmpty()) {
-        snapchainBaseUrlText = qEnvironmentVariable("GENYCASTER_SNAPCHAIN_BASE_URL").trimmed();
-    }
-    if (snapchainBaseUrlText.isEmpty()) {
-        snapchainBaseUrlText = settings.value(
-            QStringLiteral("network/snapchainReadBaseUrl")).toString().trimmed();
-    }
-    if (snapchainBaseUrlText.isEmpty()) {
-        snapchainBaseUrlText = QString::fromStdString(
-            std::string{deploymentEndpoints.snapchainBaseUrl});
-    }
-    snapchainBaseUrlText = normalizeConfigurationToken(std::move(snapchainBaseUrlText));
-    if (!isValidHttpServiceUrl(snapchainBaseUrlText)) {
-        qCritical().noquote() << "Snapchain read URL must be a credential-free HTTP(S) origin.";
-        return 2;
-    }
-    // A selected read-only Snapchain node cannot accept submissions. Configure
-    // its validator/write route separately; with no override, preserve the
-    // prior one-origin behavior for deployments whose node supports both.
-    QString snapchainWriteBaseUrlText = optionValue(
-        arguments, QStringLiteral("--snapchain-write-base-url="));
-    if (snapchainWriteBaseUrlText.isEmpty()) {
-        snapchainWriteBaseUrlText = qEnvironmentVariable(
-            "GENYCASTER_SNAPCHAIN_WRITE_BASE_URL").trimmed();
-    }
-    if (snapchainWriteBaseUrlText.isEmpty()) {
-        snapchainWriteBaseUrlText = settings.value(
-            QStringLiteral("network/snapchainWriteBaseUrl")).toString().trimmed();
-    }
-    snapchainWriteBaseUrlText = normalizeConfigurationToken(
-        std::move(snapchainWriteBaseUrlText));
-
-    // The primary Farcaster message writer is selected by the active
-    // protocol, not by the historical name of the Snapchain-compatible
-    // /v1/ adapter. HyperSnap also accepts canonical signed protobuf at
-    // /v1/submitMessage. Never silently send a HyperSnap user's block,
-    // reaction or follow to a different Snapchain origin.
-    const bool primaryProtocolWriter =
-        !preferredWriteProviderId || *preferredWriteProviderId == "primary-protocol-writer";
-    if (primaryProtocolWriter && preferredReadProviderId) {
-        QString selectedProtocolOrigin{};
-        if (*preferredReadProviderId == "hypersnap-v2") {
-            selectedProtocolOrigin = appliedNodeEndpoint;
-        } else if (*preferredReadProviderId != "farcaster-snapchain") {
-            const auto match = std::find_if(
-                additionalReadProviders.cbegin(), additionalReadProviders.cend(),
-                [&](const genycaster::ui::runtime::ReadProviderProfile& profile) {
-                    return profile.id == *preferredReadProviderId;
-                });
-            if (match != additionalReadProviders.cend()
-                && (match->adapterContract == "hypersnap-v2"
-                    || match->adapterContract == "snapchain-v1")) {
-                selectedProtocolOrigin = QString::fromStdString(match->endpoint);
-            } else {
-                // Incompatible/unknown read contracts cannot be treated as
-                // canonical write endpoints. Refuse rather than cross-post.
-                qCritical().noquote()
-                    << "Selected protocol has no compatible canonical message writer.";
-                return 2;
-            }
-        }
-        if (!selectedProtocolOrigin.isEmpty()) {
-            if (!isValidHttpServiceUrl(selectedProtocolOrigin)) {
-                qCritical().noquote() << "Selected protocol writer URL is invalid.";
-                return 2;
-            }
-            // Both signer registry and signed writes must use the SAME
-            // selected node. Caller may still choose an explicit separate
-            // write provider through network/preferredWriteProviderId.
-            snapchainBaseUrlText = selectedProtocolOrigin;
-            snapchainWriteBaseUrlText = selectedProtocolOrigin;
-        }
-    }
-    if (!snapchainWriteBaseUrlText.isEmpty()
-        && !isValidHttpServiceUrl(snapchainWriteBaseUrlText)) {
-        qCritical().noquote() << "Snapchain validator/write URL must be a credential-free HTTP(S) origin.";
-        return 2;
-    }
-    const std::optional<std::string> snapchainBaseUrl{snapchainBaseUrlText.toStdString()};
-    const std::optional<std::string> snapchainWriteBaseUrl =
-        snapchainWriteBaseUrlText.isEmpty()
-            ? snapchainBaseUrl
-            : std::optional<std::string>{snapchainWriteBaseUrlText.toStdString()};
-
-    QString mediaGatewayBaseUrlText = optionValue(
-        arguments, QStringLiteral("--media-gateway-base-url="));
-    if (mediaGatewayBaseUrlText.isEmpty()) {
-        mediaGatewayBaseUrlText =
-            qEnvironmentVariable("GENYCASTER_MEDIA_GATEWAY_BASE_URL").trimmed();
-    }
-    if (mediaGatewayBaseUrlText.isEmpty()) {
-        mediaGatewayBaseUrlText = QString::fromStdString(
-            std::string{deploymentEndpoints.mediaGatewayBaseUrl});
-    }
-    mediaGatewayBaseUrlText = normalizeConfigurationToken(std::move(mediaGatewayBaseUrlText));
-    if (!isValidHttpServiceUrl(mediaGatewayBaseUrlText)) {
-        qCritical().noquote()
-            << "GENYCASTER_MEDIA_GATEWAY_BASE_URL/--media-gateway-base-url must be a credential-free HTTP(S) origin.";
-        return 2;
-    }
-    const std::optional<std::string> mediaGatewayBaseUrl{mediaGatewayBaseUrlText.toStdString()};
-
-    QString snapchainAuthorizationHeaderText = optionValue(
-        arguments, QStringLiteral("--snapchain-auth-header="));
-    if (snapchainAuthorizationHeaderText.isEmpty()) {
-        snapchainAuthorizationHeaderText =
-            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_AUTH_HEADER").trimmed();
-    }
-    QString snapchainAuthorizationValueText = optionValue(
-        arguments, QStringLiteral("--snapchain-auth-value="));
-    if (snapchainAuthorizationValueText.isEmpty()) {
-        snapchainAuthorizationValueText =
-            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_AUTH_VALUE").trimmed();
-    }
-    const std::optional<std::string> snapchainAuthorizationHeader =
-        snapchainAuthorizationHeaderText.isEmpty()
-            ? std::nullopt
-            : std::optional<std::string>{snapchainAuthorizationHeaderText.toStdString()};
-    const std::optional<std::string> snapchainAuthorizationValue =
-        snapchainAuthorizationValueText.isEmpty()
-            ? std::nullopt
-            : std::optional<std::string>{snapchainAuthorizationValueText.toStdString()};
-    if (snapchainAuthorizationHeader.has_value() != snapchainAuthorizationValue.has_value()) {
-        qCritical().noquote()
-            << "Snapchain advanced authorization requires both --snapchain-auth-header/"
-               "GENYCASTER_SNAPCHAIN_AUTH_HEADER and --snapchain-auth-value/"
-               "GENYCASTER_SNAPCHAIN_AUTH_VALUE.";
-        return 2;
-    }
-
-    QString snapchainWriteAuthorizationHeaderText = optionValue(
-        arguments, QStringLiteral("--snapchain-write-auth-header="));
-    if (snapchainWriteAuthorizationHeaderText.isEmpty()) {
-        snapchainWriteAuthorizationHeaderText =
-            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_WRITE_AUTH_HEADER").trimmed();
-    }
-    QString snapchainWriteAuthorizationValueText = optionValue(
-        arguments, QStringLiteral("--snapchain-write-auth-value="));
-    if (snapchainWriteAuthorizationValueText.isEmpty()) {
-        snapchainWriteAuthorizationValueText =
-            qEnvironmentVariable("GENYCASTER_SNAPCHAIN_WRITE_AUTH_VALUE").trimmed();
-    }
-    const std::optional<std::string> snapchainWriteAuthorizationHeader =
-        snapchainWriteAuthorizationHeaderText.isEmpty()
-            ? std::nullopt
-            : std::optional<std::string>{snapchainWriteAuthorizationHeaderText.toStdString()};
-    const std::optional<std::string> snapchainWriteAuthorizationValue =
-        snapchainWriteAuthorizationValueText.isEmpty()
-            ? std::nullopt
-            : std::optional<std::string>{snapchainWriteAuthorizationValueText.toStdString()};
-    if (snapchainWriteAuthorizationHeader.has_value()
-        != snapchainWriteAuthorizationValue.has_value()) {
-        qCritical().noquote()
-            << "Validator authorization requires both write-auth-header and write-auth-value.";
-        return 2;
-    }
+    QStringList nodeCandidateEndpoints{};
+    for (const std::string& endpoint : routingPolicy->nodeCandidateEndpoints)
+        nodeCandidateEndpoints.push_back(QString::fromStdString(endpoint));
+    const QString appliedNodeEndpoint =
+        QString::fromStdString(routingPolicy->appliedNodeEndpoint);
+    const QString mediaGatewayBaseUrlText =
+        QString::fromStdString(routingPolicy->mediaGatewayEndpoint);
+    const std::optional<std::string> snapchainBaseUrl{routingPolicy->snapchainReadEndpoint};
+    const std::optional<std::string> snapchainWriteBaseUrl{routingPolicy->snapchainWriteEndpoint};
+    const std::optional<std::string> mediaGatewayBaseUrl{routingPolicy->mediaGatewayEndpoint};
+    const auto& snapchainAuthorizationHeader = routingPolicy->readAuthorizationHeader;
+    const auto& snapchainAuthorizationValue = routingPolicy->readAuthorizationValue;
+    const auto& snapchainWriteAuthorizationHeader = routingPolicy->writeAuthorizationHeader;
+    const auto& snapchainWriteAuthorizationValue = routingPolicy->writeAuthorizationValue;
 
     QString appFidText = optionValue(arguments, QStringLiteral("--app-fid="));
     if (appFidText.isEmpty()) {
