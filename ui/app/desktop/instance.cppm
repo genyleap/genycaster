@@ -1,4 +1,16 @@
-// Qt's ABI remains globally attached; full Qt headers are private to implementations.
+/*!
+ * @file        ui/app/desktop/instance.cppm
+ * @brief       Desktop single-instance and deep-link handoff.
+ *
+ * @details
+ * Coordinates one process per operating-system user, forwards safe incoming URLs and activates the existing Qt window.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include "qt_fwd.hpp"
 #include <functional>
