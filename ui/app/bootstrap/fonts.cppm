@@ -1,5 +1,16 @@
-// Explicit UI font policy module. Qt types are globally attached via
-// forward declarations; font loading and Qt platform APIs stay private.
+/*!
+ * @file        ui/app/bootstrap/fonts.cppm
+ * @brief       Cross-platform UI font selection.
+ *
+ * @details
+ * Exposes bundled font initialization and script-aware fallback families while keeping Qt font loading inside the implementation.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include "qt_fwd.hpp"
 #include <memory>
