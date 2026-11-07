@@ -20,7 +20,7 @@ test('link and embed metadata run through one Qt adapter, not QML HTTP',()=>{
   assert.match(link,/root\.previewData\.miniAppLaunchUrl \|\| root\.targetUrl/);
   assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\),request\.url\)/);
   assert.match(embed,/String\(url\) !== root\.targetUrl\.split\("#"\)\[0\]/);
-  assert.match(main,/setContextProperty\([\s\S]*?browserLinkMetadataController/);
+  assert.match(main,/\{"browserLinkMetadataController", &browserLinkMetadataController\}/);
   assert.match(cmake,/farcaster_browser_link_metadata_tests/);
   assert.match(cpp,/maximumQueued\{32\}/);
   assert.match(cpp,/maximumActive\{2\}/);
