@@ -62,9 +62,9 @@ the app's language reselects the release content immediately.
 
 | Target | Runner | Result |
 |---|---|---|
-| Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage |
-| macOS arm64 / x86_64 | macOS 15 ARM / Intel, LLVM | Architecture-specific DMG |
-| Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | Portable ZIP |
+| Linux x86_64 / arm64 | Ubuntu 24.04 x64 / ARM hosted, GCC 16 | Architecture-specific AppImage, DEB and `.zsync` metadata |
+| macOS arm64 / x86_64 | macOS 26 ARM / Intel, LLVM | Architecture-specific DMG and verified self-update transport archive |
+| Windows x86_64 / arm64 | Windows 2022 x64 / Windows 11 ARM, Clang-CL/MSVC ABI | NSIS `.exe` installer and verified self-update transport archive |
 | Android arm64-v8a / armeabi-v7a | Ubuntu 24.04, NDK 27.2.12479018 | ABI-specific APK |
 | WebAssembly | Ubuntu 24.04, Emscripten 5.0.5 | Static-site tar.gz |
 | iOS arm64 | macOS 15 + iOS SDK | CI-only unsigned .app archive (not a distributable IPA) |
@@ -162,10 +162,11 @@ publishes a GitHub release even if you manually run it from a tag.
 
 1. Set the numeric version in the top-level CMake `project()` declaration,
    and keep `GENYCASTER_RELEASE_CANDIDATE` in sync with the intended RC suffix.
-   Author the single versioned Markdown file `release-notes/v1.0.0-rc1.md`
-   (or its matching future version) in the repository root. It is embedded
-   into native desktop/mobile app resources, transformed into the WASM update
-   manifest, and used verbatim as the GitHub Release description.
+   Author the canonical, fully localized JSON source, such as
+   `release-notes/v1.0.0-rc1.json`, and generate its Markdown using
+   `ci/release_notes.py`. The JSON is embedded into native and WebAssembly
+   resources; the release gate verifies the generated Markdown matches the
+   JSON before that Markdown is published as the GitHub Release description.
 2. Push that code to main; this does not trigger a CI build.
 3. Prefer first running a manual `all` workflow.
 4. Configure GitHub Actions release signing secrets:
@@ -190,12 +191,13 @@ publishes a GitHub release even if you manually run it from a tag.
 * Android: Manually dispatched APKs are not release-signed. Tagged candidate
   builds require the GitHub keystore secrets. Device startup, TLS, signer
   vault, network access and login must be verified before wider distribution.
-* macOS: the GitHub macOS 15 runner and its Homebrew OpenSSL libraries target
-  macOS 15+; builds for macOS 14 require separately built deployment-target
-  compatible dependencies. macdeployqt creates an ad-hoc development DMG; Developer ID signing
-  and Apple notarization are NOT configured yet.
-* Windows: The ZIP is not Authenticode-signed; production certificates and
-  verified signing remain a separate release requirement.
+* macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
+  OpenSSL 3.5.9 source compiled for the deployment target, rather than
+  linking Homebrew bottles that may require macOS 26. `macdeployqt` creates
+  an ad-hoc development DMG; Developer ID signing and Apple notarization
+  are NOT configured yet.
+* Windows: The NSIS installer is not Authenticode-signed; production
+  certificates and verified signing remain a separate release requirement.
 * Linux: AppImage runtime checks must be performed on clean supported systems.
 * Web: The static site is archived only. It is not auto-deployed. Browser
   startup, HTTPS/CORS and cache behavior need end-to-end verification.
