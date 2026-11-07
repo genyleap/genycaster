@@ -145,3 +145,14 @@ test("Mini App FID comparison uses exact integers rather than lossy doubles", ()
     const controller = source("ui/app/openproof_connections_controller.cpp");
     assert.doesNotMatch(controller, /\[this,reply,requestGeneration,viewer,currentTopic,offset,pageSize\]/);
 });
+
+test("Linux AppImage delta process never enters a WebAssembly build", () => {
+    const implementation = source("ui/app/update_controller.cpp");
+    const header = source("ui/app/update_controller.hpp");
+    const linuxOnly = "#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)";
+    assert.match(implementation, /#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)\s*#include <QProcess>\s*#endif/);
+    assert.match(implementation, /UpdateController::~UpdateController\(\)[\s\S]*?#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)\s*if \(m_deltaProcess\)/);
+    assert.match(header, /#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)\s*QPointer<QProcess> m_deltaProcess;\s*#endif/);
+    assert.match(implementation, /#if defined\(Q_OS_LINUX\) && !defined\(Q_OS_WASM\)[\s\S]*?auto\* const delta = new QProcess\(this\)/);
+    assert.ok(implementation.includes(linuxOnly));
+});
