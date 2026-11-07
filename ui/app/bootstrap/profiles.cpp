@@ -97,6 +97,25 @@ std::optional<ProviderProfileConfiguration> loadProviderProfiles(
                 qCritical().noquote() << "Invalid, duplicate, or credential-bearing read provider profile.";
                 return std::nullopt;
             }
+            // Older installations may retain a profile whose protocol
+            // contract is no longer implemented. Such a profile must NEVER
+            // become a canonical message writer (or an active Read adapter).
+            // Keep its original JSON in QSettings so the user can edit it.
+            // Non-strict deployments with a compiled HyperSnap default may
+            // safely quarantine it instead of aborting the entire GUI startup.
+            if (contract != QStringLiteral("hypersnap-v2")
+                && contract != QStringLiteral("snapchain-v1")) {
+                if (!enableHypersnapDefault) {
+                    qCritical().noquote()
+                        << "Read provider contract has no installed adapter;"
+                           " strict deployment requires an explicit compatible profile.";
+                    return std::nullopt;
+                }
+                qWarning().noquote()
+                    << "Ignoring an unsupported saved Read provider contract;"
+                       " the original profile remains available for editing.";
+                continue;
+            }
             additionalReadProviders.push_back({
                 .id = id.toStdString(),
                 .displayName = label.isEmpty() ? id.toStdString() : label.toStdString(),
