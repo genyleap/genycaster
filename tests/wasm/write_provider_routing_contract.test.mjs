@@ -7,16 +7,22 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('separate validator URL is persisted, validated, and passed to the Qt composition', () => {
     const main = read('ui/app/main.cpp');
+    const routes = read('ui/app/bootstrap/routes.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
     const controller = read('src/providers/hypersnap/node_selection_controller.cpp');
     const settings = read('ui/components/LocaleSettingsPopup.qml');
     const nodes = read('ui/components/NodeManagementPanel.qml');
 
-    assert.match(main, /--snapchain-write-base-url=/);
-    assert.match(main, /GENYCASTER_SNAPCHAIN_WRITE_BASE_URL/);
-    assert.match(main, /network\/snapchainWriteBaseUrl/);
-    assert.match(main, /isValidHttpServiceUrl\(snapchainWriteBaseUrlText\)/);
-    assert.match(main, /snapchainBaseUrl, snapchainWriteBaseUrl,/);
+    // Endpoint policy moved out of main.cpp into bootstrap/routes.cpp.
+    // Keep the behavioral security checks; do not weaken them to a generic
+    // module-exists assertion.
+    assert.match(main, /bootstrap::loadProviderRoutes\(/);
+    assert.match(routes, /--snapchain-write-base-url=/);
+    assert.match(routes, /GENYCASTER_SNAPCHAIN_WRITE_BASE_URL/);
+    assert.match(routes, /network\/snapchainWriteBaseUrl/);
+    assert.match(routes, /isValidHttpServiceUrl\(snapchainWriteBaseUrlText\)/);
+    assert.match(main, /routingPolicy->snapchainWriteEndpoint/);
+    assert.match(main, /\.snapchainWriteBaseUrl = snapchainWriteBaseUrl/);
     assert.match(composition, /signerRegistryConfig\.submitBaseUrl = \*snapchainWriteBaseUrl/);
     assert.match(composition, /writeSubmitterConfig\.baseUrl = \*snapchainWriteBaseUrl/);
     assert.match(controller, /bool NodeSelectionController::setSnapchainWriteEndpoint/);
