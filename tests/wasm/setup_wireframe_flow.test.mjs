@@ -22,7 +22,7 @@ test('Setup allows return and review without resetting the account', () => {
   assert.match(setup, /signal closeReviewRequested\(\)/);
   assert.match(shell, /property bool setupReviewOpen: false/);
   assert.match(shell, /function openSetupReview\(step\)/);
-  assert.match(shell, /visible: presentationBridge.initialSetupRequired \|\| root.setupReviewOpen/);
+  assert.match(shell, /visible: root\.setupReviewOpen \|\| \(presentationBridge\.authenticationStateObserved\s*&& presentationBridge\.initialSetupRequired\)/);
   assert.match(shell, /reviewMode: root.setupReviewOpen && !presentationBridge.initialSetupRequired/);
   assert.doesNotMatch(setup, /resetInitialSetupProgress\(/);
 });
@@ -187,8 +187,8 @@ test('full-window setup removes shell chrome and has no fake desktop header or f
   assert.match(s,/id: stageAction/);
   assert.match(s,/anchors\.bottom: parent\.bottom/);
   assert.doesNotMatch(s,/id: setupFooter/);
-  assert.match(app,/id: shellContent[\s\S]*?visible: !root\.initialSetupOpen/);
-  assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && !root\.initialSetupOpen/);
+  assert.match(app,/id: shellContent[\s\S]*?visible: presentationBridge\.authenticationStateObserved && !root\.initialSetupOpen/);
+  assert.match(app,/id: globalStatus[\s\S]*?visible: !root\.mobile && presentationBridge\.authenticationStateObserved\s*&& !root\.initialSetupOpen/);
 });
 
 test('welcome uses the same real eight-stage indicator as the other setup stages', () => {
