@@ -337,6 +337,8 @@ jobs:
           python3 ci/package_selfupdate.py --platform macos \
             --arch "${{ matrix.arch }}" --version "$VERSION" \
             --source "$APP" --output dist/selfupdate
+          python3 ci/verify_selfupdate_snapshot.py \
+            "dist/selfupdate/GenyCaster-selfupdate-v${VERSION}-macos-${{ matrix.arch }}.tar.gz"
           (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
@@ -526,6 +528,9 @@ jobs:
           python ci/package_selfupdate.py --platform windows `
             --arch "${{ matrix.arch }}" --version "$env:VERSION" `
             --source dist/app --output dist/selfupdate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python ci/verify_selfupdate_snapshot.py `
+            "dist/selfupdate/GenyCaster-selfupdate-v$env:VERSION-windows-${{ matrix.arch }}.zip"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
