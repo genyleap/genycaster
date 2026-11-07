@@ -53,6 +53,11 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.setup.neynar_hub_farcaster",
     "genycaster.setup.pinata_hub_farcaster",
     "genycaster.setup.standard_crypto_hub_farcaster",
+    # Protocol identity and mythological badge names are proper nouns, not prose.
+    "genycaster.streak.fid",
+    "genycaster.streak.badge_eternal_flame",
+    # Bronze is the same named metal/achievement tier in all supported locales.
+    "genycaster.streak.badge_ignition",
 }
 
 INTENTIONALLY_IDENTICAL_BY_LOCALE = {
@@ -85,7 +90,34 @@ INTENTIONALLY_IDENTICAL_BY_LOCALE = {
 }
 
 
+# These terms naturally retain their spelling for the specified locales,
+# without making every English source string exempt from translation checks.
+IDENTICAL_TERM_IDS_BY_LOCALE = {
+    "de_DE": {
+        "genycaster.context.widgets",
+        "genycaster.streak.badge_on_fire",
+    },
+    "fr_FR": {
+        "genycaster.context.widgets",
+        "genycaster.detail.conversation",
+        "genycaster.streak.badge_firestorm",
+        "genycaster.streak.sat",
+    },
+    "es_ES": {"genycaster.streak.sat"},
+    "pt_BR": {
+        "genycaster.streak.tue",
+        "genycaster.streak.sat",
+    },
+}
+
+# URLs, technical media identifiers and canonical service names are not
+# natural-language text. All other visible Latin literals remain prohibited.
+VISIBLE_NONLINGUISTIC_LITERALS = {"GIF", "GitHub", "system/lock", "https://"}
+
+
 def intentionally_identical(identifier: str, source: str, locale: str) -> bool:
+    if identifier in IDENTICAL_TERM_IDS_BY_LOCALE.get(locale, set()):
+        return True
     if identifier in INTENTIONALLY_IDENTICAL_IDS:
         return True
     if identifier.startswith("genycaster.settings.theme_"):
@@ -152,8 +184,15 @@ def main() -> int:
             errors.append(f"{path.relative_to(root)}: source-text translation call found; use qsTrId/qtTrId")
         if path.suffix == ".qml":
             for match in VISIBLE_LITERAL_PATTERN.finditer(text):
+                literal = match.group(1)
+                # URL examples in edit fields and protocol/icon identifiers
+                # must remain exact; they are not user-facing English prose.
+                if literal in VISIBLE_NONLINGUISTIC_LITERALS or (
+                    literal.startswith("https://") and not any(c.isspace() for c in literal)
+                ):
+                    continue
                 errors.append(
-                    f"{path.relative_to(root)}: visible hard-coded Latin text: {match.group(1)!r}"
+                    f"{path.relative_to(root)}: visible hard-coded Latin text: {literal!r}"
                 )
 
     # Profile category/role labels are a finite server-validated vocabulary.
@@ -227,10 +266,30 @@ def main() -> int:
                     f"qml_{locale}.ts: untranslated source text for {identifier}: {en_source!r}"
                 )
 
-    orphan_ids = sorted(set(english) - referenced_ids)
-    if len(orphan_ids) > 4:
+    orphan_ids = set(english) - referenced_ids
+    # Retain translations used by earlier cached WASM/native clients rather
+    # than silently deleting meaningful localized content after a QML refactor.
+    # The inventory is exact: new orphan IDs must be consciously documented.
+    retained_path = root / "ci" / "i18n_retained_ids.txt"
+    if not retained_path.is_file():
+        errors.append("missing reviewed compatibility translation inventory")
+        retained_ids: set[str] = set()
+    else:
+        retained_ids = {
+            line.strip()
+            for line in retained_path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+    missing_retained = sorted(orphan_ids - retained_ids)
+    obsolete_retained = sorted(retained_ids - orphan_ids)
+    if missing_retained:
         errors.append(
-            "qml_en_US.ts: too many unreferenced ids: " + ", ".join(orphan_ids[:12])
+            "unreviewed, unreferenced translation ids: " + ", ".join(missing_retained[:12])
+        )
+    if obsolete_retained:
+        errors.append(
+            "retained translation inventory contains referenced/deleted ids: "
+            + ", ".join(obsolete_retained[:12])
         )
 
     english_ids = set(english)
