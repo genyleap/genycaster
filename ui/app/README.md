@@ -29,6 +29,13 @@ presentation controllers because the QML engine must be destroyed **before**
 the objects referenced by its bindings. Do not move these owners across that
 lifetime boundary merely to reduce the number of lines in `main.cpp`.
 
+The application now prepares one owned `RuntimeConfiguration` snapshot before
+starting its background worker. The named fields distinguish Read providers,
+Write destinations, ephemeral API credentials, signer attestation and wallet
+approval. `makeRuntime(RuntimeConfiguration)` forwards this snapshot to the
+existing validated runtime factory; it is not a second implementation of
+protocol routing, signing, or session authorization.
+
 ## Source and documentation conventions
 
 - Keep source filenames lowercase and short: `auth.cppm`, `routes.cppm`,
