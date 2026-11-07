@@ -318,6 +318,21 @@ int main(int argc, char* argv[])
         settings, arguments, enableHypersnapDefault);
     if (!configuredProfiles) return 2;
 
+    // Resolve the selected protocol's canonical writer independently from
+    // optional explicitly chosen Write providers. Never cross-post by accident.
+    QString compiledHypersnapEndpoint{};
+#if FARCASTER_HAS_HYPERSNAP_PROVIDER
+    compiledHypersnapEndpoint = QString::fromStdString(
+        farcaster::provider::hypersnap::config::Config{}.baseUrl);
+#endif
+    auto routingPolicy = genycaster::ui::bootstrap::loadProviderRoutes(
+        settings, arguments, providerBaseUrlText, compiledHypersnapEndpoint,
+        QString::fromStdString(std::string{deploymentEndpoints.snapchainBaseUrl}),
+        QString::fromStdString(std::string{deploymentEndpoints.mediaGatewayBaseUrl}),
+        *configuredProfiles);
+    if (!routingPolicy) return 2;
+
+
     std::vector<genycaster::ui::runtime::ReadProviderProfile> additionalReadProviders{};
     additionalReadProviders.reserve(configuredProfiles->readProviders.size());
     for (auto& profile : configuredProfiles->readProviders) {
@@ -355,20 +370,6 @@ int main(int argc, char* argv[])
         QString::fromStdString(configuredProfiles->preferredReadProviderText);
     const QString preferredWriteProviderText =
         QString::fromStdString(configuredProfiles->preferredWriteProviderText);
-
-    // Resolve the selected protocol's canonical writer independently from
-    // optional explicitly chosen Write providers. Never cross-post by accident.
-    QString compiledHypersnapEndpoint{};
-#if FARCASTER_HAS_HYPERSNAP_PROVIDER
-    compiledHypersnapEndpoint = QString::fromStdString(
-        farcaster::provider::hypersnap::config::Config{}.baseUrl);
-#endif
-    auto routingPolicy = genycaster::ui::bootstrap::loadProviderRoutes(
-        settings, arguments, providerBaseUrlText, compiledHypersnapEndpoint,
-        QString::fromStdString(std::string{deploymentEndpoints.snapchainBaseUrl}),
-        QString::fromStdString(std::string{deploymentEndpoints.mediaGatewayBaseUrl}),
-        *configuredProfiles);
-    if (!routingPolicy) return 2;
 
     QStringList nodeCandidateEndpoints{};
     for (const std::string& endpoint : routingPolicy->nodeCandidateEndpoints)
