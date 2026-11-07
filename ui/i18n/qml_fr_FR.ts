@@ -132,7 +132,7 @@
         </message>
         <message id="genycaster.streak.badges">
             <source>Badges · %1/%2</source>
-            <translation>Badges · %1/%2</translation>
+            <translation>Insignes · %1/%2</translation>
         </message>
         <message id="genycaster.streak.show_less">
             <source>Show less</source>
