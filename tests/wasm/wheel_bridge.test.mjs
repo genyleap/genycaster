@@ -4,14 +4,9 @@ import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 
-// Runtime binding functions live in a separate Qt composition unit to keep
-// GCC C++26 module compilation bounded; test both halves as one read pipeline.
-function readGenycasterMain() {
-  return readFileSync(new URL('../../ui/app/main.cpp', import.meta.url), 'utf8') +
-    '\n' + readFileSync(new URL('../../ui/app/runtime_ui_bindings.cpp', import.meta.url), 'utf8');
-}
-
-const main = readGenycasterMain();
+// Wheel input now belongs to the dedicated C++26 web wheel module.
+// Exercise the embedded DOM-coordinate mapping without assuming main.cpp owns it.
+const main = readFileSync(new URL('../../ui/app/web/wheel.cpp', import.meta.url), 'utf8');
 const beginMarker = '    return EM_ASM_DOUBLE({';
 const begin = main.indexOf(beginMarker);
 const end = main.indexOf('    }, clientX, clientY, axis);', begin);
