@@ -65,8 +65,10 @@ test('rich cast text wraps long unspaced terms within its actual width',()=>{
   const renderer=read('ui/components/RichCastRenderer.qml');
   assert.match(native,/QTextOption::WrapAtWordBoundaryOrAnywhere/);
   assert.doesNotMatch(native,/option.setWrapMode\(QTextOption::WordWrap\)/);
-  assert.match(view,/clip: true/);
-  assert.match(inline,/clip: true/);
+  assert.match(view,/clip: false/);
+  assert.match(inline,/clip: false/);
+   assert.match(inline,/wrapMode: TextEdit\.Wrap/);
+   assert.match(inline,/width: parent\.width/);
   assert.match(renderer,/Layout.minimumWidth: 0/);
 });
 
@@ -76,7 +78,7 @@ test('generic link cards constrain thumbnail and metadata to available width',()
   const panel=read('ui/components/CastEmbedsPanel.qml');
   assert.match(link,/clip: true/);
   assert.match(link,/Layout.minimumWidth: 0/);
-  assert.match(link,/Math.min\(root.compact \? 116 : 184,/);
+  assert.match(link,/Math\.min\(184, Math\.max\(64, \(root\.width - Theme\.space3 \* 2\) \* 0\.38\)/);
   assert.match(link,/Math.max\(0, root.width - content.anchors.leftMargin/);
   assert.match(embed,/Layout.minimumWidth: 0/);
   assert.match(panel,/Layout.minimumWidth: 0/);
@@ -88,5 +90,5 @@ test('reaction and view lifecycle handlers are combined rather than assigned twi
   assert.equal((bar.match(/onCastDataChanged:/g)||[]).length,1);
   assert.match(bar,/Component.onCompleted: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
   assert.match(bar,/onCastDataChanged: \{\s*syncViewInterest\(\)\s*requestViews\(\)\s*requestBrowserReactions\(\)/);
-  assert.match(bar,/Component.onDestruction: \{\s*if \(root.retainedViewsCastId.length > 0\)\s*castViewController.release\(root.retainedViewsCastId\)/);
+  assert.match(bar,/Component.onDestruction: \{\s*if \(root\.retainedViewsCastId\.length > 0 && castViewController\)\s*castViewController\.release\(root\.retainedViewsCastId\)/);
 });
