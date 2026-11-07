@@ -104,7 +104,8 @@ def main() -> None:
         assert interface.name == interface.name.lower()
         assert implementation.name == implementation.name.lower()
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
-        assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
+        if relative != "bootstrap/worker":  # pure C++ worker has no Qt ABI
+            assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
         assert '#include <QString>' not in interface.read_text(encoding="utf-8")
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
     assert 'import genycaster.ui.bootstrap.providers;' in entry
