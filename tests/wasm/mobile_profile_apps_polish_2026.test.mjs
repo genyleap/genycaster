@@ -9,7 +9,8 @@ test('profile labels localize only presentation; canonical server options stay s
   assert.match(profile, /function profileOptionLabel\(value\)/);
   assert.match(profile, /optionLabelProvider: function\(value\)/);
   assert.match(combo, /text: control\.localizedOption\(control\.displayText\)/);
-  assert.match(profile, /professionEditor\.selectedValues/);
+  assert.match(profile, /selectedValues: profileExtrasEditor\.roleSelection/);
+  assert.match(profile, /String\(profileExtrasEditor\.roleSelection\[0\]\)/);
   assert.match(profile, /categoryEditor\.currentText/);
   assert.match(profile, /genycaster\.profile\.more_links/);
   assert.match(profile, /genycaster\.share\.copy_profile_link/);
