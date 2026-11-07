@@ -125,7 +125,10 @@ std::optional<ProviderRoutes> loadProviderRoutes(
                 // Incompatible/unknown read contracts cannot be treated as
                 // canonical write endpoints. Refuse rather than cross-post.
                 qCritical().noquote()
-                    << "Selected protocol has no compatible canonical message writer.";
+                    << "Selected protocol has no compatible canonical message writer."
+                    << "Read provider ID:" << QString::fromStdString(*preferredReadProviderId)
+                    << (match == additionalReadProviders.cend()
+                        ? "(not registered)" : "(unsupported Read contract)");
                 return std::nullopt;
             }
         }
