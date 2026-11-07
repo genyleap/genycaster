@@ -48,7 +48,7 @@ test('iOS status style is install-time policy and page theme changes remain live
 
 test('WASM Clipboard API failures use legacy fallback and restore DOM focus',async()=>{
  const cpp=read('src/presentation/qt/presentation_bridge.cpp');
- const method=cpp.slice(cpp.indexOf('void PresentationBridge::copyText('),cpp.indexOf('QString PresentationBridge::contextualReactionIcon'));
+ const method=cpp.slice(cpp.indexOf('bool PresentationBridge::copyText('),cpp.indexOf('QString PresentationBridge::contextualReactionIcon'));
  const start=method.indexOf('EM_ASM({')+'EM_ASM({'.length;
  const end=method.indexOf('}, utf8.constData());',start);
  assert.ok(end>start,'EM_ASM JS must exist');
