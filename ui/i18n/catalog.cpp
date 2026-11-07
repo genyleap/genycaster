@@ -1099,6 +1099,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.shell.your_genyleap_account");
     //% "Set up Genycaster"
     (void)qtTrId("genycaster.setup.title");
+    //% "3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset."
+    (void)qtTrId("genycaster.setup.logo_3d_accessible");
+    //% "Copy"
+    (void)qtTrId("genycaster.editor.copy");
     //% "Sign in to continue. OpenProof verifies your Genyleap identity, and a linked Farcaster account is required for Genycaster."
     (void)qtTrId("genycaster.setup.subtitle");
     //% "Review and accept the Terms of Use and Privacy Policy before signing in."
