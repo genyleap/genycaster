@@ -85,11 +85,11 @@ class PipelineTests(unittest.TestCase):
             source = qml.read_text(encoding="utf-8")
             used_types = [
                 name for name in native_sources
-                if re.search(r"(?m)^\\s*" + name + r"\\s*(?:\\{|\\.)", source)
+                if re.search(r"(?m)^\s*" + re.escape(name) + r"\s*(?:\{|[.])", source)
             ]
             if used_types:
                 self.assertRegex(
-                    source, r"(?m)^import Farcaster\\.Client(?:\\s|$)",
+                    source, r"(?m)^import Farcaster\.Client(?:\s|$)",
                     f"{qml} must import Farcaster.Client for {used_types}",
                 )
 
