@@ -121,6 +121,58 @@ int main(int argc, char** argv)
     ])");
     settings.setValue(QStringLiteral("network/readProviderProfilesJson"), readJson);
     settings.setValue(QStringLiteral("network/writeProviderProfilesJson"), writeJson);
+
+    // Regression: older macOS/native preferences may retain a selected Read
+    // provider that has since been deleted. Its stale pointer must not crash
+    // the application before the user can open the provider settings.
+    const QString readSelectionKey = QStringLiteral("network/preferredReadProviderId");
+    const QString writeSelectionKey = QStringLiteral("network/preferredWriteProviderId");
+    settings.setValue(readSelectionKey, QStringLiteral("removed-read-profile"));
+    settings.setValue(writeSelectionKey, QStringLiteral("write-private"));
+    {
+        const auto config = loadProviderProfiles(settings, {}, true);
+        passed &= check(config && config->preferredReadProviderId == "hypersnap-v2",
+                        "stale persisted Read selection recovers to HyperSnap");
+        passed &= check(settings.value(readSelectionKey).toString()
+                            == QStringLiteral("hypersnap-v2"),
+                        "recovered preference is persisted for the settings UI");
+        passed &= check(config && config->preferredWriteProviderId == "write-private",
+                        "Read recovery cannot change the selected Write adapter");
+        passed &= check(config && config->readProviders.size() == 1
+                        && config->readProviders[0].id == "read-private",
+                        "Read recovery does not remove custom profiles");
+    }
+    settings.setValue(readSelectionKey, QStringLiteral("read-private"));
+    {
+        const auto config = loadProviderProfiles(settings, {}, true);
+        passed &= check(config && config->preferredReadProviderId == "read-private",
+                        "existing custom Read selection is never reset");
+    }
+    {
+        const auto config = loadProviderProfiles(
+            settings, {QStringLiteral("--preferred-read-provider-id=removed-read-profile")},
+            true);
+        passed &= check(!config, "explicit unknown CLI Read selection fails closed");
+        passed &= check(settings.value(readSelectionKey).toString()
+                            == QStringLiteral("read-private"),
+                        "explicit invalid override must not overwrite stored selection");
+    }
+    qputenv("GENYCASTER_PREFERRED_READ_PROVIDER_ID", "removed-read-profile");
+    {
+        const auto config = loadProviderProfiles(settings, {}, true);
+        passed &= check(!config, "explicit unknown environment Read selection fails closed");
+    }
+    qunsetenv("GENYCASTER_PREFERRED_READ_PROVIDER_ID");
+    settings.setValue(readSelectionKey, QStringLiteral("removed-read-profile"));
+    {
+        const auto config = loadProviderProfiles(settings, {}, false);
+        passed &= check(!config, "strict/self-hosted mode cannot silently change protocol");
+        passed &= check(settings.value(readSelectionKey).toString()
+                            == QStringLiteral("removed-read-profile"),
+                        "strict mode preserves unresolved selection for explicit repair");
+    }
+    settings.setValue(readSelectionKey, QStringLiteral("read-private"));
+
     {
         const auto config = loadProviderProfiles(
             settings,
