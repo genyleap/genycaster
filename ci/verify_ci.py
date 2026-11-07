@@ -114,6 +114,9 @@ def main() -> None:
         assert f"@file        ui/app/{relative}.cppm" in source, relative
         assert "Copyright (c) 2026 Genyleap." in source, relative
         assert "GPL-3.0-only" in source, relative
+        header = source.split("*/", 1)[0]
+        assert "@author      Kambiz Asadzadeh" in header, relative
+        assert re.search(r"@since\\s+[0-9]{2} [A-Za-z]{3} [0-9]{4}", header), relative
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
         if relative != "bootstrap/worker":  # pure C++ worker has no Qt ABI
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
@@ -121,6 +124,14 @@ def main() -> None:
     assert 'import genycaster.ui.bootstrap.fonts;' in entry
     assert 'import genycaster.ui.bootstrap.providers;' in entry
     assert 'import genycaster.ui.bootstrap.profiles;' in entry
+    for guarded_header in (
+        "ui/app/browser_signer_bridge.hpp",
+        "ui/app/browser_cast_payload.hpp",
+        "ui/app/browser_emoji_recovery.hpp",
+    ):
+        header_text = Path(guarded_header).read_text(encoding="utf-8")
+        assert header_text.index("#include <QtGlobal>") < header_text.index(
+            "#if defined(Q_OS_WASM)"), guarded_header
     assert 'bootstrap::loadProviderProfiles(' in entry
     assert Path("tests/ui/provider_profiles_tests.cpp").is_file()
     assert 'GENYCASTER_READ_PROVIDER_API_KEYS_JSON' in Path(
