@@ -6,11 +6,17 @@ from pathlib import Path
 import re
 
 
+# Job-level `if` is evaluated before matrix expansion; these must fail closed.
+FORBIDDEN_CORE_JOB = re.compile(r"^  core:\s*$", re.M)
+MATRIX_JOB_DISPLAY_NAME = re.compile(r"^    name: .*\$\{\{\s*matrix\.", re.M)
+PARENT_DIRECTORY_INCLUDE = re.compile(r'^\s*#include\s+"\.\./', re.M)
+
+
 def main() -> None:
     workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert re.search(r"^on:\n  workflow_dispatch:", workflow, re.M)
     assert "default: web" in workflow
-    assert not re.search(r"^  core:\\n", workflow, re.M)
+    assert not FORBIDDEN_CORE_JOB.search(workflow)
     assert "confirm_full_matrix:" in workflow
     assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
     # Hosted Actions only build/package; development tests run on the server.
@@ -42,7 +48,7 @@ def main() -> None:
                  "Windows NSIS installer", "Android APK",
                  "NixOS native package"):
         assert f"    name: {name}" in workflow
-    assert not re.search(r"^    name: .*\\$\\{\\{.*matrix\\.", workflow, re.M)
+    assert not MATRIX_JOB_DISPLAY_NAME.search(workflow)
     # A completed macOS ARM64 link was previously rejected by a malformed
     # lipo invocation. Keep the executable before -verify_arch.
     assert '/usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"' in workflow
@@ -122,7 +128,7 @@ def main() -> None:
         header = source.split("*/", 1)[0]
         assert "@author      Kambiz Asadzadeh" in header, relative
         assert re.search(r"@since\s+[0-9]{2} [A-Za-z]{3} [0-9]{4}", header), relative
-        assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
+        assert not PARENT_DIRECTORY_INCLUDE.search(implementation.read_text(encoding="utf-8")), relative
         if relative not in ("bootstrap/worker", "bootstrap/wallet"):
             # The worker and URL policy interfaces export no Qt types.
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
