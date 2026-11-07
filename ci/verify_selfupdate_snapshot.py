@@ -50,7 +50,7 @@ def digest(stream) -> str:
     return result.hexdigest()
 
 
-def expected_files(manifest: dict) -> tuple[dict[str, dict], str]:
+def expected_files(manifest: dict) -> tuple[dict[str, dict], str, dict[str, str]]:
     require(manifest.get("schemaVersion") == 1
             and manifest.get("kind") == "runtime-snapshot"
             and manifest.get("product") == "GenyCaster"
@@ -88,7 +88,31 @@ def expected_files(manifest: dict) -> tuple[dict[str, dict], str]:
     executable = (root + "/Genycaster.exe" if platform == "windows"
                   else root + "/Contents/MacOS/Genycaster")
     require(executable in expected, "Snapshot manifest missing main executable")
-    return expected, platform
+    symlink_entries = manifest.get("symlinks", [])
+    require(isinstance(symlink_entries, list)
+            and len(symlink_entries) <= MAX_MEMBERS,
+            "Invalid macOS symlink manifest")
+    if platform == "windows":
+        require(not symlink_entries, "Windows snapshots cannot declare symlinks")
+    symlinks: dict[str, str] = {}
+    for item in symlink_entries:
+        require(isinstance(item, dict) and set(item) == {"path", "target"},
+                "Malformed runtime symlink entry")
+        p = safe_path(item["path"])
+        require(p.startswith(root + "/") and p not in expected
+                and p not in symlinks and p.casefold() not in folded,
+                "Duplicate or invalid symlink path")
+        target = item["target"]
+        require(isinstance(target, str) and bool(target)
+                and not target.startswith("/") and "\\" not in target
+                and "\x00" not in target, "Invalid symlink target")
+        resolved = posixpath.normpath(
+            posixpath.join(posixpath.dirname(p), target))
+        require(resolved == root or resolved.startswith(root + "/"),
+                "Symlink escapes app bundle")
+        symlinks[p] = target
+        folded.add(p.casefold())
+    return expected, platform, symlinks
 
 
 def validate_manifest(data: bytes) -> dict:
@@ -125,8 +149,9 @@ def verify_snapshot(path: Path) -> dict:
                         "Manifest too large")
                 with archive.open("selfupdate.json") as input_stream:
                     manifest = validate_manifest(input_stream.read(MAX_MANIFEST_BYTES + 1))
-                files, platform = expected_files(manifest)
-                require(platform == archive_format, "Platform/archive type mismatch")
+                files, platform, symlinks = expected_files(manifest)
+                require(platform == archive_format and not symlinks,
+                        "Platform/archive type mismatch")
                 require(set(payload) == set(files) | {"selfupdate.json"},
                         "Snapshot contents differ from file manifest")
                 for name, entry in files.items():
@@ -171,8 +196,14 @@ def verify_snapshot(path: Path) -> dict:
             require(header.size <= MAX_MANIFEST_BYTES, "Manifest too large")
             with archive.extractfile(header) as manifest_stream:
                 manifest = validate_manifest(manifest_stream.read(MAX_MANIFEST_BYTES + 1))
-            files, platform = expected_files(manifest)
+            files, platform, symlinks = expected_files(manifest)
             require(platform == archive_format, "Platform/archive type mismatch")
+            archive_symlinks = {
+                name: info.linkname
+                for name, info in payload.items() if info.issym()
+            }
+            require(archive_symlinks == symlinks,
+                    "Archive symlinks differ from signed transport manifest")
             require(files_seen == set(files) | {"selfupdate.json"},
                     "Snapshot contents differ from file manifest")
             for name, entry in files.items():
