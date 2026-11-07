@@ -350,6 +350,16 @@ class PipelineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unexpected"):
                 select_files(root)
 
+    def test_web_deployment_updates_legacy_root_last(self) -> None:
+        script = Path("ci/build_deploy_wasm_server.sh").read_text(encoding="utf-8")
+        self.assertIn('if [[ -f "$web_root/farcaster_client.html" ]]', script)
+        self.assertIn('cp -p -- "$stage/genycaster.html" "$stage/farcaster_client.html"', script)
+        self.assertIn('if [[ "$rel" == genycaster.html || "$rel" == farcaster_client.html', script)
+        self.assertLess(script.index("promote genycaster.html"),
+                        script.index("promote farcaster_client.html"))
+        self.assertLess(script.index("python3 ci/verify_platform_package.py"),
+                        script.index('tar -xzf "$archive" -C "$stage"'))
+
     def test_android_16k_elf_alignment(self) -> None:
         # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
         data = bytearray(128)
