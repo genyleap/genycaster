@@ -15,7 +15,7 @@ test('provider profiles UI is wired to persisted composition settings', () => {
   assert.match(controller, /network\/preferredReadProviderId/);
   assert.match(controller, /network\/preferredWriteProviderId/);
   assert.match(bootstrap, /make_unique<ProviderProfilesController>/);
-  assert.match(bootstrap, /setContextProperty\(QStringLiteral\("providerProfiles"\)/);
+  assert.match(bootstrap, /\{"providerProfiles", &providerProfilesController\}/);
   assert.match(layout, /providerProfiles\.addReadProfile/);
   assert.match(layout, /providerProfiles\.addWriteProfile/);
   assert.match(layout, /providerProfiles\.selectReadProvider/);
@@ -58,14 +58,15 @@ test('provider operations have complete native localization in all installed lan
 });
 
 test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaster, and separately pinned signer writer', () => {
-  const bootstrap=read('ui/app/main.cpp');
+  const bootstrap=read('ui/app/bootstrap/profiles.cpp');
+  const appEntry=read('ui/app/main.cpp');
   const cpp=read('ui/app/provider_profiles_controller.cpp');
   const h=read('ui/app/provider_profiles_controller.hpp');
   const qml=read('ui/components/ProviderProfilesPanel.qml');
   const composition=read('ui/app/runtime_composition.cpp');
   assert.match(bootstrap,/preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
   assert.match(bootstrap,/preferredWriteProviderId/);
-  assert.match(bootstrap,/farcasterReadBaseUrlText\);/);
+  assert.match(appEntry,/farcasterReadBaseUrlText\);/);
   assert.match(h,/Q_PROPERTY\(bool hostedReadSupported READ hostedReadSupported CONSTANT\)/);
   assert.match(cpp,/return !m_hostedReadEndpoint.isEmpty\(\)/);
   assert.match(cpp,/selected == QStringLiteral\("farcaster-snapchain"\) && !hostedReadSupported\(\)/);
