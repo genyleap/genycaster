@@ -259,13 +259,15 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/providers.cppm
         app/bootstrap/profiles.cppm
         app/bootstrap/routes.cppm
+        app/bootstrap/auth.cppm
     PRIVATE
         app/bootstrap/options.cpp
         app/bootstrap/rendering.cpp
         app/bootstrap/fonts.cpp
         app/bootstrap/providers.cpp
         app/bootstrap/profiles.cpp
-        app/bootstrap/routes.cpp)
+        app/bootstrap/routes.cpp
+        app/bootstrap/auth.cpp)
 target_include_directories(genycaster_ui_bootstrap PRIVATE
     "${CMAKE_SOURCE_DIR}/src/presentation/qt")
 target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui)
