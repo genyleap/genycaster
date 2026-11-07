@@ -118,6 +118,34 @@ int main(int argc, char** argv)
                         "saved selection matches the applied provider after recovery");
     }
 
+    // Reproduce the exact failing branch from a previously registered
+    // custom Read profile with an obsolete adapter contract. The parser now
+    // quarantines its runtime registration and recovers the default Read
+    // preference before routing attempts to select a canonical writer.
+    const QString legacyProfilesJson = QStringLiteral(R"([
+      {"id":"legacy-node","contract":"legacy-read-v1",
+       "endpoint":"https://legacy.example","selfHosted":true}
+    ])");
+    settings.setValue(QStringLiteral("network/readProviderProfilesJson"),
+                      legacyProfilesJson);
+    settings.setValue(QStringLiteral("network/preferredReadProviderId"),
+                      QStringLiteral("legacy-node"));
+    {
+        const auto restored = loadProviderProfiles(settings, {}, true);
+        passed &= check(restored && restored->preferredReadProviderId == "hypersnap-v2",
+                        "registered unsupported legacy Read contract is quarantined");
+        if (restored) {
+            const auto routes = loadProviderRoutes(
+                settings, {}, blank, hypersnapDefault, snapchainDefault,
+                mediaDefault, *restored);
+            passed &= check(routes && routes->snapchainWriteEndpoint ==
+                                    "https://hypersnap.default.example",
+                            "legacy contract never routes signed writes to Snapchain");
+        }
+    }
+    settings.remove(QStringLiteral("network/readProviderProfilesJson"));
+    settings.remove(QStringLiteral("network/preferredReadProviderId"));
+
     ProviderProfileConfiguration profiles{};
     profiles.preferredReadProviderId = "hypersnap-v2";
     {
