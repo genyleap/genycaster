@@ -57,8 +57,8 @@ cmake --build "$build_dir" --target genycaster_wasm_asset_refresh --parallel 2
 
 version="$(python3 - <<'PY'
 from pathlib import Path
-from ci.release_gate import project_version
-print(project_version(Path.cwd()))
+from ci.release_gate import release_designation
+print(release_designation(Path.cwd()))
 PY
 )"
 mkdir -p dist
