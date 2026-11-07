@@ -259,6 +259,7 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/providers.cppm
     PRIVATE
         app/bootstrap/options.cpp
+        app/bootstrap/rendering.cpp
         app/bootstrap/fonts.cpp
         app/bootstrap/providers.cpp)
 target_include_directories(genycaster_ui_bootstrap PRIVATE
