@@ -12,6 +12,8 @@ def read(rel: str) -> str:
 cmake = read('CMakeLists.txt')
 ui_cmake = read('ui/CMakeLists.txt')
 main = read('ui/app/main.cpp') + read('ui/app/runtime_composition.cppm') + read('ui/app/runtime_composition.cpp')
+runtime_signer = read('ui/app/runtime_composition.cpp')
+font_bootstrap = read('ui/app/bootstrap/fonts.cpp')
 theme = read('ui/theme/Theme.qml')
 side = read('ui/components/SideNavigation.qml')
 bottom = read('ui/components/BottomNavigation.qml')
@@ -22,12 +24,19 @@ if not re.search(r'set\(FARCASTER_DEFAULT_APP_FID\s+"866408"', cmake):
     errors.append('Shipping source must compile the canonical Genycaster/Genyleap App FID 866408.')
 if 'FARCASTER_DEFAULT_APP_FID STREQUAL "256" OR FARCASTER_DEFAULT_APP_FID STREQUAL "0"' not in cmake:
     errors.append('Legacy cached App FID values must migrate to the canonical 866408 identity.')
-if 'requireExternalAppAttribution = true' not in main:
-    errors.append('Shipping signer policy must reject viewer-owned/self client attribution.')
-if 'protocol writes stay disabled rather than being attributed to the signed-in user' not in main:
-    errors.append('Product signer wiring must fail closed when client attribution is not configured.')
-if 'bundledPersianFontResources' not in main or 'QFontDatabase::addApplicationFont' not in main:
-    errors.append('The Persian UI family must be loaded from application resources.')
+# App-attributed signing requires a configured app FID *and* a trusted
+# attestor. A verified personal custody signer is a distinct authorized path;
+# the old gate accidentally prohibited it and is no longer product policy.
+if ('const bool useExternalAppAttribution = hasAppFid && hasAttestationUrl' not in runtime_signer
+        or 'if (useExternalAppAttribution)' not in runtime_signer
+        or 'signerPolicy.requireExternalAppAttribution = true' not in runtime_signer):
+    errors.append('App-attributed signers must require both FID and trusted attestor.')
+if ('if (hasAttestationUrl && !hasAppFid' not in runtime_signer
+        or 'runtime->signerSetupError' not in runtime_signer):
+    errors.append('Attestor configured without App FID must fail closed.')
+if ('bundledPersianFontResources' not in font_bootstrap
+        or 'QFontDatabase::addApplicationFont' not in font_bootstrap):
+    errors.append('The Persian UI family must be loaded from bundled application fonts.')
 if 'GENYCASTER_FETCH_UI_FONT' not in ui_cmake or 'qt_add_resources(genycaster genycaster_ui_fonts' not in ui_cmake:
     errors.append('CMake must acquire and embed the pinned UI font family.')
 if 'bundledPersianFontFamily' not in theme:
@@ -38,10 +47,14 @@ for stale in (
 ):
     if stale in main:
         errors.append(f'Stale environment-warning noise remains: {stale}')
-for route in ('channels', 'notifications', 'store', 'business', 'messages', 'bookmarks'):
+# Only implemented destinations are a release contract. Future roadmap
+# surfaces (Store, Business, Messages) must not be silently added as dead links.
+for route in ('apps', 'channels', 'notifications', 'bookmarks'):
     if f'routeRequested("{route}")' not in side:
-        errors.append(f'Desktop roadmap route missing: {route}')
-for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.title'):
+        errors.append(f'Desktop navigation destination missing: {route}')
+if 'root.settingsRequested()' not in side:
+    errors.append('Desktop settings action must remain accessible.')
+for token in ('bottom_nav.home', 'side_nav.explorer', 'bottom_nav.create', 'apps.title', 'settings.appearance'):
     if token not in bottom:
         errors.append(f'Five-destination mobile navigation is missing: {token}')
 if ('Theme.iconSource(root.text, root.filled)' not in icon
