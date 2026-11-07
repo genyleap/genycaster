@@ -3,6 +3,9 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: root
+    // A Cast can be narrower than an unbroken URL or handle. Allow the
+    // containing layout to shrink so native rich text wraps to its real width.
+    Layout.minimumWidth: 0
     property string castId: ""
     property string plainText: ""
     property bool compact: false
