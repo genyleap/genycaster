@@ -402,14 +402,6 @@ target_include_directories(farcaster_media_scroll_tests PRIVATE
     "${genycasterUiSourceDir}/render")
 target_link_libraries(farcaster_media_scroll_tests PRIVATE
     farcaster::presentation Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Multimedia)
-target_compile_definitions(farcaster_media_scroll_tests PRIVATE
-    MEDIA_COMPONENT_DIRECTORY="${genycasterPublicQmlFixtureDir}"
-    MEDIA_THEME_FILE="${genycasterUiSourceDir}/theme/Theme.qml")
-add_dependencies(farcaster_media_scroll_tests farcaster_translation_catalogs)
-qt_add_resources(farcaster_media_scroll_tests media_scroll_translations
-    PREFIX "/i18n"
-    BASE "${genycasterUiBinaryDir}"
-    FILES ${farcasterTranslationQmFiles})
 # Source-loaded native QML fixtures must mirror the flattened public resource
 # names, even when production sources are grouped into feature directories.
 set(genycasterPublicQmlFixtureDir "${CMAKE_CURRENT_BINARY_DIR}/qml-public-components")
@@ -434,6 +426,14 @@ unset(genycasterQmlSourcePaths)
 unset(genycasterQmlSourceCount)
 unset(genycasterLastQmlSourceIndex)
 
+target_compile_definitions(farcaster_media_scroll_tests PRIVATE
+    MEDIA_COMPONENT_DIRECTORY="${genycasterPublicQmlFixtureDir}"
+    MEDIA_THEME_FILE="${genycasterUiSourceDir}/theme/Theme.qml")
+add_dependencies(farcaster_media_scroll_tests farcaster_translation_catalogs)
+qt_add_resources(farcaster_media_scroll_tests media_scroll_translations
+    PREFIX "/i18n"
+    BASE "${genycasterUiBinaryDir}"
+    FILES ${farcasterTranslationQmFiles})
 qt_add_resources(farcaster_media_scroll_tests media_scroll_icons
     PREFIX "/qt/qml/Farcaster/Client/assets/icons/genyleap"
     BASE "${genycasterUiSourceDir}/assets/icons/genyleap"
