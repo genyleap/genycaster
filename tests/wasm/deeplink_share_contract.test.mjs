@@ -19,12 +19,15 @@ test('cast context menu copies the cast permalink, not an attached image or webs
   const cast = read('ui/components/CastItem.qml');
   assert.ok(cast.includes('readonly property string castPermalink: presentationBridge.castShareUrl('));
   assert.ok(cast.includes('CastViews.normalizeHash(root.modelData.castId || "")'));
-  const menuStart = cast.indexOf('text: qsTrId("genycaster.cast.copy_link")');
+  const menu = read('ui/components/CastActionsMenu.qml');
+  assert.ok(cast.includes('CastActionsMenu {'));
+  assert.ok(menu.includes('CastViews.normalizeHash(root.castData.castId || "")'));
+  const menuStart = menu.indexOf('text: qsTrId("genycaster.cast.copy_link")');
   assert.ok(menuStart > 0);
-  const menuAction = cast.slice(menuStart, menuStart + 210);
+  const menuAction = menu.slice(menuStart, menuStart + 250);
   assert.ok(menuAction.includes('presentationBridge.copyText(root.castPermalink)'));
-  assert.ok(cast.includes('visible: root.castPermalink.length > 0'));
-  assert.ok(!cast.includes('presentationBridge.copyText(root.firstExternalUrl)'));
+  assert.ok(menu.includes('visible: root.castPermalink.length > 0'));
+  assert.ok(!menu.includes('presentationBridge.copyText(root.firstExternalUrl)'));
 });
 
 test('profile sharing appears on the shared profile surface', () => {
