@@ -9,7 +9,7 @@ test('Home keeps original layout with GENY banner and four compact slots', () =>
  const home=qml('HomeDashboard');
  assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);
  assert.match(home,/id: mobileFlick/);
- assert.match(home,/avatarSize: root.densePhone \? 56 : 76/);
+ assert.match(home,/avatarSize: root\.androidCompact\s*\? \(root\.densePhone \? 50 : 64\)\s*: \(root\.densePhone \? 56 : 76\)/);
  for(const id of ['explorer','search','apps','wallet'])
    assert.match(home,new RegExp('destination: "'+id+'"'));
  assert.match(home,/GenyTokenBanner \{/);
