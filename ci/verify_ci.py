@@ -116,7 +116,7 @@ def main() -> None:
         assert "GPL-3.0-only" in source, relative
         header = source.split("*/", 1)[0]
         assert "@author      Kambiz Asadzadeh" in header, relative
-        assert re.search(r"@since\\s+[0-9]{2} [A-Za-z]{3} [0-9]{4}", header), relative
+        assert re.search(r"@since\s+[0-9]{2} [A-Za-z]{3} [0-9]{4}", header), relative
         assert not re.search(r'^\\s*#include\\s+"\\.\\./', implementation.read_text(encoding="utf-8"), re.M), relative
         if relative != "bootstrap/worker":  # pure C++ worker has no Qt ABI
             assert '#include "qt_fwd.hpp"' in interface.read_text(encoding="utf-8")
