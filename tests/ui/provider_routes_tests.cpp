@@ -35,7 +35,9 @@ public:
         QByteArray oldValue{};
         bool wasSet{};
     };
-    std::array<Variable, 8> variables{{
+    std::array<Variable, 10> variables{{
+        {"GENYCASTER_PREFERRED_READ_PROVIDER_ID"},
+        {"GENYCASTER_READ_PROVIDER_PROFILES_JSON"},
         {"GENYCASTER_HYPERSNAP_NODE_CANDIDATES"},
         {"GENYCASTER_SNAPCHAIN_BASE_URL"},
         {"GENYCASTER_SNAPCHAIN_WRITE_BASE_URL"},
@@ -79,6 +81,7 @@ int main(int argc, char** argv)
     using genycaster::ui::bootstrap::ProviderProfileConfiguration;
     using genycaster::ui::bootstrap::ReadProviderProfile;
     using genycaster::ui::bootstrap::loadProviderRoutes;
+    using genycaster::ui::bootstrap::loadProviderProfiles;
 
     const QString hypersnapDefault = QStringLiteral("https://hypersnap.default.example");
     const QString snapchainDefault = QStringLiteral("https://snapchain.default.example");
@@ -86,6 +89,35 @@ int main(int argc, char** argv)
     const QString blank{};
 
     bool passed = true;
+
+    // Reproduce the native/macOS startup regression end-to-end: a removed
+    // read-provider ID survived in QSettings after an application update.
+    // Recovery must repair only that stale local preference and align the
+    // canonical signed-message writer with HyperSnap, not Snapchain.
+    settings.setValue(QStringLiteral("network/preferredReadProviderId"),
+                      QStringLiteral("deleted-legacy-provider"));
+    {
+        const auto restored = loadProviderProfiles(settings, {}, true);
+        passed &= check(restored && restored->preferredReadProviderId == "hypersnap-v2",
+                        "stale native Read preference is repaired at startup");
+        if (restored) {
+            const auto routes = loadProviderRoutes(
+                settings, {}, blank, hypersnapDefault, snapchainDefault,
+                mediaDefault, *restored);
+            passed &= check(routes && routes->snapchainReadEndpoint ==
+                                    "https://hypersnap.default.example"
+                            && routes->snapchainWriteEndpoint ==
+                                    "https://hypersnap.default.example",
+                            "repaired startup selects HyperSnap for canonical writes");
+            passed &= check(routes && routes->snapchainWriteEndpoint !=
+                                    "https://snapchain.default.example",
+                            "repaired startup never silently cross-posts to Snapchain");
+        }
+        passed &= check(settings.value(QStringLiteral("network/preferredReadProviderId"))
+                            .toString() == QStringLiteral("hypersnap-v2"),
+                        "saved selection matches the applied provider after recovery");
+    }
+
     ProviderProfileConfiguration profiles{};
     profiles.preferredReadProviderId = "hypersnap-v2";
     {
