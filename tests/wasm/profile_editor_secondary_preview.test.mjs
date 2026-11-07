@@ -15,7 +15,7 @@ test('profile picker is compact, flat and has theme-accent selection',()=>{
 });
 test('cover and avatar are composed as a single live preview',()=>{
  assert.match(profile,/objectName: "profileLivePreview"/);
- assert.match(profile,/source: linkPreviewResolver\.imageSourceForUrl\(bannerProtocolEditor\.text\.trim\(\)\)/);
+ assert.match(profile,/source: linkPreviewResolver \? linkPreviewResolver\.imageSourceForUrl\(bannerProtocolEditor\.text\.trim\(\)\) : ""/);
  assert.match(profile,/sourceUrl: avatarProtocolEditor\.text\.trim\(\)/);
  assert.match(profile,/displayName: displayProtocolEditor\.text/);
  assert.match(profile,/root\.chooseProfileImage\(-1001\)/);
