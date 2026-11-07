@@ -1,6 +1,6 @@
 #include <QCoreApplication>
 #include <QDateTime>
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
 #include <QFutureWatcher>
 #include <QtConcurrent>
 #endif
@@ -83,13 +83,13 @@
 #include "node_selection_controller.hpp"
 #include "update_controller.hpp"
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
@@ -120,7 +120,7 @@ import farcaster.domain.write;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 import farcaster.foundation.time;
-#if !defined(__EMSCRIPTEN__) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
 // A C++ module import does not transitively expose declarations imported by
 // other modules. Native recovery stores an ICustodyAuthorizer in RecoveryBundle,
 // so this translation unit must import the defining capability module itself.
@@ -1623,7 +1623,7 @@ void hydrateWriteProjections(
         for (auto it = localCasts->begin(); it != localCasts->end(); ++it) {
             if (!it->operation.optimisticCast
                 || it->status == domain::write::OutboxStatus::Failed) continue;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             // Browser builds without protocol write authority must not
             // rehydrate pending drafts as if they were published casts.
             if (it->status != domain::write::OutboxStatus::Confirmed) continue;
@@ -2379,7 +2379,7 @@ void connectRuntime(
     std::string siwfUri,
     const QString& browserSnapchainOrigin)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     auto* const browserSigner = new genycaster::ui::browser_signing::Bridge(
         bridge, richComposer, browserSnapchainOrigin,
         connections.recoveryGatewayOrigin());
@@ -2531,7 +2531,7 @@ void connectRuntime(
         });
 
     const auto sessionObserver = [&bridge, runtime, authenticationAvailable, signerObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ] (application::session::SessionState state) {
@@ -2540,11 +2540,11 @@ void connectRuntime(
             QMetaObject::invokeMethod(
                 &bridge,
                 [&bridge, runtime, state = std::move(state), authenticationAvailable
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                  , browserSigner
 #endif
                 ]() mutable {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                     const auto completedPhase = state.phase;
                     const auto verifiedFid = state.session ? state.session->fid.value : 0U;
                     const bool deviceLocalSession = state.session
@@ -2553,7 +2553,7 @@ void connectRuntime(
                     applySessionState(bridge, std::move(state), authenticationAvailable);
                     runtime->authenticationPollInFlight.store(false, std::memory_order_release);
                     hydrateAuthenticatedAccountProfile(bridge, runtime);
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                     // Restore only after PresentationBridge has committed
                     // the actual signed-in FID; never race queued session UI.
                     if (completedPhase == application::session::SessionPhase::Authenticated
@@ -2596,7 +2596,7 @@ void connectRuntime(
             }
         };
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // A browser-safe OpenProof device grant is independent from the blocking
     // native authentication adapter and from protocol signer authorization.
     auto* const browserAuth = new BrowserOpenProofAuth(&bridge);
@@ -3061,13 +3061,13 @@ void connectRuntime(
     // recovery flow, signs KEY_ADD, or mutates the secure vault.
     QObject::connect(&bridge, &PresentationBridge::signerRefreshRequested, &bridge,
         [&bridge, runtime, signerObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ] {
             if (!bridge.isAuthenticated() || bridge.signerBusy() || bridge.writeReady())
                 return;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             if (bridge.accountFid() != 0) {
                 const auto session = runtime->currentSessionSnapshot();
                 const bool deviceLocalSession = session
@@ -3097,11 +3097,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
         [&bridge, runtime, signerObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ] {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             if (bridge.isAuthenticated() && bridge.accountFid() != 0)
                 browserSigner->start(QStringLiteral("provision"),
                     QString::number(bridge.accountFid()));
@@ -3130,11 +3130,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::signerRevokeRequested, &bridge,
         [&bridge, runtime, signerObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ] {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             if (bridge.isAuthenticated() && bridge.accountFid() != 0)
                 browserSigner->start(QStringLiteral("revoke"),
                     QString::number(bridge.accountFid()));
@@ -3208,13 +3208,13 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::publishCastRequested, &bridge,
         [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](
             const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
             const QVariantList& embeds, const QString& parentUrl) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             if (!bridge.isAuthenticated() || !bridge.writeReady()) {
                 bridge.applyWriteState(QStringLiteral("blocked"), false, {},
@@ -3275,13 +3275,13 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::publishReplyRequested, &bridge,
         [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](
             const QString& text, const QVariantList& mentionFids, const QVariantList& mentionPositions,
             const QVariantList& embeds, const qulonglong parentAuthorFid, const QString& parentCastId) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             const auto parent = genycaster::ui::browser_signing::makeCastReference(
                 parentAuthorFid, parentCastId);
@@ -3342,12 +3342,12 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::publishThreadRequested, &bridge,
         [&bridge, runtime, writeObserver, mentionFidsFromVariants, mentionPositionsFromVariants, embedsFromVariants
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](
             const QVariantList& casts, const qulonglong parentAuthorFid, const QString& parentCastId) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             if (!bridge.isAuthenticated() || !bridge.writeReady()
                 || casts.isEmpty() || casts.size() > 32) {
@@ -3444,12 +3444,12 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::reactionRequested, &bridge,
         [&bridge, runtime, writeObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](const QString& kind, const qulonglong targetAuthorFid,
             const QString& targetCastId, const bool active) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             const auto target = genycaster::ui::browser_signing::makeCastReference(
                 targetAuthorFid, targetCastId);
@@ -3499,11 +3499,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::protocolProfileUpdateRequested, &bridge,
         [&bridge, runtime
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](const QVariantMap& changes) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             if (!bridge.isAuthenticated() || !bridge.writeReady()) {
                 bridge.applyWriteState(QStringLiteral("blocked"), false, {},
                     qtTrId("genycaster.profile.protocol_signer_required"));
@@ -3529,11 +3529,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::followingMutationRequested, &bridge,
         [&bridge, runtime, writeObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](const qulonglong targetFid, const bool following) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             if (!bridge.isAuthenticated() || !bridge.writeReady()
                 || targetFid == 0 || targetFid == bridge.accountFid()) {
@@ -3573,11 +3573,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::blockingMutationRequested, &bridge,
         [&bridge, runtime, writeObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](const qulonglong targetFid, const bool blocked) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             if (!bridge.isAuthenticated() || !bridge.writeReady()
                 || targetFid == 0 || targetFid == bridge.accountFid()) {
@@ -3617,11 +3617,11 @@ void connectRuntime(
 
     QObject::connect(&bridge, &PresentationBridge::removeCastRequested, &bridge,
         [&bridge, runtime, writeObserver
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         , browserSigner
 #endif
         ](const qulonglong authorFid, const QString& castId) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 
             const auto target = genycaster::ui::browser_signing::makeCastReference(
                 authorFid, castId);
@@ -3681,7 +3681,7 @@ void connectRuntime(
         });
     runtimeRecoveryTimer->start();
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(Q_OS_WASM)
     // Native auth uses SessionService polling and persistent local sessions.
     // Browser OpenProof uses its own async QNetworkAccessManager device grant;
     // native polling would cancel its challenge as a spurious Guest response.
@@ -4764,7 +4764,7 @@ void connectMediaUpload(
 }
 #endif
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 // The browser owns selected Files and non-extractable signer keys. Keep
 // media bytes out of the Qt heap and transfer only bounded state events.
 void connectBrowserMediaUpload(
