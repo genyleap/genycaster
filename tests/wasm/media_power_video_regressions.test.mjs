@@ -14,7 +14,7 @@ test('motion preferences persist locally and GIFs are not paused by scroll',()=>
  assert.match(theme,/function setPowerSave\(enabled\)/);
  assert.match(settings,/checked: Theme\.animateAvatars/);
  assert.match(settings,/checked: Theme\.powerSave/);
- assert.match(setup,/onToggled: Theme\.setPowerSave\(checked\)/);
+ assert.match(settings,/onToggled: Theme\.setPowerSave\(checked\)/);
  assert.doesNotMatch(img,/playing: visible && !root\.scrollMoving/);
  assert.match(img,/playing: visible && root\.visible && !Theme\.powerSave/);
  assert.match(img,/root\.mediaCategory !== "avatars" \|\| Theme\.animateAvatars/);
