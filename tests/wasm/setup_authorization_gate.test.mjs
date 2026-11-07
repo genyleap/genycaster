@@ -166,7 +166,9 @@ test('explicit logout disables automatic sign-in and erases remembered device',a
     h.bridge.start('resume-account','','https://snapchain.example.test',
         JSON.stringify({requestId:'ffffffff-ffff-4fff-8fff-ffffffffffff'}));
     await tick();
-    assert.equal(h.events.some(event=>event.kind==='setup-account'&&event.localDevice),false);
+    assert.equal(h.events.some(event=>event.kind==='setup-account'&&event.localDevice&&event.phase==='ready'),false);
+    assert.ok(h.events.some(event=>event.kind==='setup-account'&&event.phase==='cancelled'),
+        'explicit sign-out must reject remembered-device restoration');
 });
 
 test('mobile recovery opens local numbered-words dialog before signer initialization',async()=>{
