@@ -257,6 +257,7 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/options.cppm
         app/bootstrap/fonts.cppm
         app/bootstrap/context.cppm
+        app/bootstrap/monitoring.cppm
         app/bootstrap/providers.cppm
         app/bootstrap/profiles.cppm
         app/bootstrap/routes.cppm
@@ -266,13 +267,15 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/rendering.cpp
         app/bootstrap/fonts.cpp
         app/bootstrap/context.cpp
+        app/bootstrap/monitoring.cpp
         app/bootstrap/providers.cpp
         app/bootstrap/profiles.cpp
         app/bootstrap/routes.cpp
         app/bootstrap/auth.cpp)
 target_include_directories(genycaster_ui_bootstrap PRIVATE
     "${CMAKE_SOURCE_DIR}/src/presentation/qt")
-target_link_libraries(genycaster_ui_bootstrap PUBLIC Qt6::Core Qt6::Gui Qt6::Qml)
+target_link_libraries(genycaster_ui_bootstrap PUBLIC
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Network)
 target_compile_features(genycaster_ui_bootstrap PUBLIC cxx_std_26)
 set_property(TARGET genycaster_ui_bootstrap PROPERTY CXX_SCAN_FOR_MODULES ON)
 
