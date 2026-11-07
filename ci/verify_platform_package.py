@@ -7,6 +7,9 @@ runtime behavior. CI must additionally gate those operations independently.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
+import re
 from pathlib import Path, PurePosixPath
 import struct
 import subprocess
@@ -61,17 +64,96 @@ def validate_web(path: Path) -> None:
     with tarfile.open(path, "r:gz") as archive:
         members = archive.getmembers()
         names = {member.name for member in members}
+        require(len(members) == len(names) and 0 < len(members) <= 512,
+                "Web archive has duplicate names or too many entries")
         require(all(member.isfile() and not member.issym() and not member.islnk()
                     and not PurePosixPath(member.name).is_absolute()
                     and ".." not in PurePosixPath(member.name).parts
+                    and not any(part.startswith(".") for part in
+                                PurePosixPath(member.name).parts)
                     for member in members), "Web archive contains unsafe entries")
-        for required in (
+        required = {
             "genycaster.html", "genycaster.js",
             "genycaster.wasm", "genycaster-assets.json",
-            "genycaster-loader.js", "genycaster-sw.js",
-        ):
-            require(required in names, f"Web archive missing {required}")
-        require(any(name.endswith(".wasm") for name in names), "Missing WASM payload")
+            "genycaster-assets.js", "genycaster-loader.js",
+            "genycaster-sw.js",
+        }
+        require(required.issubset(names), "Web archive missing required runtime files")
+
+        # Hash every member in bounded chunks, then compare against the public
+        # release manifest. Structural tar checks alone would accept a corrupt
+        # engine, a stale HTML entry, or an unrelated historical WASM payload.
+        digests: dict[str, str] = {}
+        sizes: dict[str, int] = {}
+        captured: dict[str, bytes] = {}
+        for member in members:
+            stream = archive.extractfile(member)
+            require(stream is not None, f"Unable to read {member.name}")
+            sha = hashlib.sha256()
+            size = 0
+            body = bytearray() if member.name in {
+                "genycaster-assets.json", "genycaster-assets.js"} else None
+            with stream:
+                while data := stream.read(1024 * 1024):
+                    size += len(data)
+                    sha.update(data)
+                    if body is not None:
+                        require(size <= 1024 * 1024,
+                                "Web release manifest/config too large")
+                        body.extend(data)
+            digests[member.name] = sha.hexdigest()
+            sizes[member.name] = size
+            if body is not None:
+                captured[member.name] = bytes(body)
+
+        try:
+            manifest = json.loads(captured["genycaster-assets.json"])
+            files = manifest["files"]
+            checksums = manifest["integrity"]
+            engine = manifest["wasm"]
+            compressed = manifest["wasmGzip"]
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("Invalid WebAssembly release manifest") from error
+        require(isinstance(files, list) and all(isinstance(x, str) for x in files)
+                and len(files) == len(set(files)),
+                "Web release contains an invalid asset inventory")
+        require(names == set(files) | {"genycaster.wasm", "genycaster-assets.json"},
+                "Web archive disagrees with its current release inventory")
+        require(isinstance(engine, str)
+                and re.fullmatch(r"genycaster\.[0-9a-f]{20}\.wasm", engine) is not None
+                and isinstance(compressed, str) and compressed == engine + ".gz"
+                and {engine, compressed}.issubset(names),
+                "Web manifest has an invalid immutable engine pair")
+        require(engine.split(".")[1] == digests[engine][:20],
+                "Content-addressed WASM filename does not match SHA-256")
+        require(digests["genycaster.wasm"] == digests[engine],
+                "Stable and immutable WASM engines disagree")
+        require(sizes[engine] == manifest.get("wasmBytes")
+                and sizes[compressed] == manifest.get("wasmGzipBytes"),
+                "WASM engine or gzip sidecar size does not match the manifest")
+        require(digests[compressed] == manifest.get("wasmGzipSha256"),
+                "WASM gzip sidecar SHA-256 mismatch")
+        require(isinstance(checksums, dict)
+                and set(checksums) == set(files) - {"genycaster-assets.js", engine}
+                and all(isinstance(value, str) and
+                        re.fullmatch(r"[0-9a-f]{64}", value)
+                        for value in checksums.values()),
+                "Web manifest lacks a complete integrity map")
+        for name, expected in checksums.items():
+            require(digests[name] == expected,
+                    f"Web release asset digest mismatch: {name}")
+
+        config = captured["genycaster-assets.js"].decode("utf-8").strip()
+        prefix = "window.__genycasterAssets="
+        require(config.startswith(prefix) and config.endswith(";"),
+                "Browser asset bootstrap is invalid")
+        try:
+            browser = json.loads(config[len(prefix):-1])
+        except ValueError as error:
+            raise ValueError("Invalid browser release bootstrap") from error
+        for field in ("wasm", "wasmBytes", "wasmGzip", "wasmGzipBytes", "version"):
+            require(browser.get(field) == manifest.get(field),
+                    f"Browser and release manifest disagree on {field}")
 
 
 def validate_android_elf_alignment(
