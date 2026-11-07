@@ -35,8 +35,9 @@ test('feedback form performs authenticated server submission and tracks real sta
   const header = read('ui/app/openproof_connections_controller.hpp');
   assert.match(ui, /openProofConnections\.submitFeedback\(root\.category, root\.sentiment/);
   assert.match(ui, /openProofConnections\.fetchFeedback\(\)/);
-  assert.match(ui, /openProofConnections\.feedbackStats\.accepted/);
-  assert.match(ui, /openProofConnections\.feedbackStats\.resolved/);
+  assert.match(ui, /readonly property var feedbackStats: openProofConnections/);
+  assert.match(ui, /root\.feedbackStats\.accepted/);
+  assert.match(ui, /root\.feedbackStats\.resolved/);
   assert.doesNotMatch(ui, /backend_pending|copyText\(/);
   assert.match(header, /Q_INVOKABLE void submitFeedback/);
   assert.match(controller, /m_network\.post\(request, QJsonDocument\{payload\}/);
