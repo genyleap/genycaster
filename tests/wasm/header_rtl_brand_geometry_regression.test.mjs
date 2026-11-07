@@ -36,8 +36,8 @@ test('version sits beneath the wordmark using separate visual runs',()=>{
   assert.match(qml,/objectName: "appHeaderReleaseVersion"[\s\S]*?y: brandWordmark\.height \+ Theme\.scaleUi\(2\)/);
   assert.match(qml,/layoutDirection: Qt\.LeftToRight/);
   assert.match(qml,/LocaleFormat\.localizeDigits\(Qt\.application\.version\)/);
-  assert.match(fa,/<source>Beta<\/source>\s*<translation>بتا<\/translation>/);
-  assert.match(fa,/<source>1\.0<\/source>\s*<translation>۱٫۰<\/translation>/);
+  assert.match(fa,/<message id="genycaster\.update\.channel_beta">[\s\S]*?<translation>بتا<\/translation>/);
+  assert.match(qml,/text: Qt\.application\.version \? "v" \+ LocaleFormat\.localizeDigits\(Qt\.application\.version\)/);
   assert.match(qml,/objectName: "appHeaderWordmarkAndVersion"/);
 });
 
