@@ -25,7 +25,10 @@ test('WASM gallery corners use one shared image mask, not vector inverse covers'
 });
 test('verified market logos take precedence over decorative bundled GENY artwork',()=>{
  const icon=read('ui/components/MarketAssetIcon.qml');
- assert.match(icon,/root\.semanticIcon\.length > 0 && root\.remoteSource\.length === 0/);
+ assert.match(icon,/readonly property bool verifiedRemoteArtwork: root\.canonicalGenyAsset/);
+  assert.match(icon,/root\.asset\.available === true/);
+  assert.match(icon,/readonly property bool bundledGenyArtwork: root\.canonicalGenyAsset\s*&& !root\.verifiedRemoteArtwork/);
+  assert.match(icon,/0x2a3d6f8c1fc4acdcf3a75d19b445bae02f03676b/);
  assert.match(icon,/source: root\.remoteSource/);
 });
 test('browser link metadata is separate from Mini App manifests and media slots are populated',()=>{
