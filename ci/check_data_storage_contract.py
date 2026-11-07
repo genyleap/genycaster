@@ -131,8 +131,17 @@ for token in (
 ):
     if token not in provider:
         errors.append(f"RemoteImageProvider missing Data & Storage integration token {token}")
-if "if (!manual && requestIsBackedOff(urlText))" not in provider:
-    errors.append("manual image loads must bypass automatic negative-cache backoff")
+# The provider also enforces a per-origin 401/403 cooldown before
+# consulting the automatic image-failure cache. Manual retries bypass only
+# the negative-cache backoff; they must not bypass an origin-wide auth ban.
+if (
+    "originTemporarilyForbidden(urlText)" not in provider
+    or "(!manual && requestIsBackedOff(urlText))" not in provider
+):
+    errors.append(
+        "manual image loads must bypass automatic negative-cache backoff "
+        "without bypassing origin-wide authorization cooldown"
+    )
 if "if (!policy.diskCacheEnabled)" not in provider or "legacyDiskCachePathForUrl" not in provider:
     errors.append("legacy cache migration must be gated by disk-cache policy")
 
