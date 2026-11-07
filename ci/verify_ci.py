@@ -107,7 +107,7 @@ def main() -> None:
         # Every named-module interface must retain the canonical project
         # documentation contract, not an ad-hoc one-line comment.
         source = interface.read_text(encoding="utf-8")
-        assert source.startswith("/*!\\n".replace("\\\\n", "\\n")), relative
+        assert source.startswith("/*!\n"), relative
         for tag in ("@file", "@brief", "@details", "@author", "@since",
                     "@copyright", "@license"):
             assert tag in source.split("*/", 1)[0], (relative, tag)
