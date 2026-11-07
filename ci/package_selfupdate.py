@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import io
 import json
+import posixpath
 from pathlib import Path, PurePosixPath
 import re
 import tarfile
@@ -43,11 +44,22 @@ def create_snapshot(platform: str, arch: str, version: str,
 
     root = "Genycaster.app" if platform == "macos" else "app"
     files = []
+    symlinks = []
     for file in sorted(source.rglob("*")):
         relative = PurePosixPath(root, file.relative_to(source).as_posix())
         if file.is_symlink():
             if platform == "windows":
                 raise ValueError("Windows runtime snapshots cannot contain symlinks")
+            # A macOS .app normally contains Qt framework symlinks. Their
+            # targets are part of the immutable manifest and may never escape
+            # the app root, even when the link uses legal '..' components.
+            target = file.readlink().as_posix()
+            resolved = posixpath.normpath(
+                posixpath.join(posixpath.dirname(str(relative)), target))
+            if (not target or target.startswith("/") or "\\" in target
+                    or not (resolved == root or resolved.startswith(root + "/"))):
+                raise ValueError("Unsafe macOS runtime symlink target")
+            symlinks.append({"path": str(relative), "target": target})
             continue
         if file.is_file():
             files.append({
@@ -60,6 +72,7 @@ def create_snapshot(platform: str, arch: str, version: str,
         "product": "GenyCaster", "version": version,
         "platform": platform, "architecture": arch,
         "installAction": "unsupported", "files": files,
+        "symlinks": symlinks,
     }
     output.mkdir(parents=True, exist_ok=True)
     suffix = ".tar.gz" if platform == "macos" else ".zip"
