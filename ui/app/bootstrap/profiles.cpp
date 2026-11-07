@@ -183,22 +183,58 @@ std::optional<ProviderProfileConfiguration> loadProviderProfiles(
                       .trimmed() == QStringLiteral("1")
                 : settings.value(QStringLiteral("network/allowCompatibleReadFallback"),
                                  false).toBool());
+    // Resolve the effective Read selection without silently rewriting a
+    // deliberate command-line or environment override. A previously saved
+    // profile may disappear after an upgrade, profile removal or deployment
+    // change; that stale local pointer must not prevent the entire GUI from
+    // starting when a safe built-in HyperSnap default is available.
     QString preferredReadProviderText = optionValue(
         arguments, QStringLiteral("--preferred-read-provider-id="));
-    if (preferredReadProviderText.isEmpty()) {
+    bool explicitReadSelection = !preferredReadProviderText.isEmpty();
+    if (!explicitReadSelection) {
         preferredReadProviderText = qEnvironmentVariable(
             "GENYCASTER_PREFERRED_READ_PROVIDER_ID").trimmed();
+        explicitReadSelection = !preferredReadProviderText.isEmpty();
     }
-    if (preferredReadProviderText.isEmpty()) {
+    if (!explicitReadSelection) {
         preferredReadProviderText = settings.value(
             QStringLiteral("network/preferredReadProviderId")).toString().trimmed();
     }
-    // HyperSnap defaults to Read only when deployment policy allows it.
-    // Neither an explicit user choice nor the Write adapter is overridden.
+
+    if (!preferredReadProviderText.isEmpty()) {
+        const std::string selectedId = preferredReadProviderText.toStdString();
+        const bool builtIn = selectedId == "hypersnap-v2"
+            || selectedId == "farcaster-snapchain";
+        const bool configured = std::any_of(
+            additionalReadProviders.cbegin(), additionalReadProviders.cend(),
+            [&](const ReadProviderProfile& profile) {
+                return profile.id == selectedId;
+            });
+        if (!builtIn && !configured) {
+            if (!explicitReadSelection && enableHypersnapDefault) {
+                // Repair only a stale *saved* preference. Never reinterpret a
+                // missing provider as a different writer, and never convert a
+                // custom contract into another protocol. The default below
+                // persists the canonical HyperSnap choice for the settings UI.
+                qWarning().noquote()
+                    << "Saved Read provider is no longer registered; restoring the HyperSnap default.";
+                preferredReadProviderText.clear();
+            } else {
+                // An explicit invalid selection or a strict self-hosted
+                // deployment has no authorized automatic replacement.
+                qCritical().noquote()
+                    << "Selected Read provider ID has no registered adapter; "
+                       "choose an available profile or correct the startup override.";
+                return std::nullopt;
+            }
+        }
+    }
+
+    // HyperSnap is the default Read experience, never a forced signer or
+    // Write adapter. Only absent or genuinely stale saved preferences may
+    // enter this branch; valid explicit user choices are preserved.
     if (preferredReadProviderText.isEmpty() && enableHypersnapDefault) {
         preferredReadProviderText = QStringLiteral("hypersnap-v2");
-        // Keep the settings UI in agreement with the actual applied runtime.
-        // In a read-only settings backend, the runtime preference still works.
         settings.setValue(QStringLiteral("network/preferredReadProviderId"),
                           preferredReadProviderText);
         settings.sync();
