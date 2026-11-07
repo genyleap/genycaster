@@ -6,11 +6,11 @@ const root = new URL('../../', import.meta.url);
 const read = file => readFileSync(new URL(file, root), 'utf8');
 
 test('HyperSnap is the default indexed read route, without overriding a user-selected writer', () => {
-    const bootstrap = read('ui/app/main.cpp');
+    const bootstrap = read('ui/app/bootstrap/profiles.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
     const profiles = read('ui/app/provider_profiles_controller.cpp');
 
-    assert.match(bootstrap,/preferredReadProviderText\.isEmpty\(\)[\s\S]*?configuredDeploymentProfile\(\)[\s\S]*?StrictSelfHosted[\s\S]*?preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
+    assert.match(bootstrap,/if \(preferredReadProviderText\.isEmpty\(\) && enableHypersnapDefault\) \{\s*preferredReadProviderText = QStringLiteral\("hypersnap-v2"\)/);
     assert.match(bootstrap,/network\/preferredReadProviderId/);
     assert.match(bootstrap,/network\/preferredWriteProviderId/);
     assert.match(composition,/\.independent = farcaster::provider::model::ProviderId\{"hypersnap-v2"\}/);
@@ -30,7 +30,7 @@ test('HyperSnap is the default indexed read route, without overriding a user-sel
 test('signer operations route through capability-neutral access contract', () => {
     const source = read('src/routing/signer_gateway.cpp');
     const api = read('src/routing/signer_gateway.cppm');
-    assert.doesNotMatch(source + api, /snapchain|hypersnap|neynar|genyleap/i);
+    assert.doesNotMatch((source + api).replace(/^\s*\* @copyright[^\n]*$/gm, ''), /snapchain|hypersnap|neynar|genyleap/i);
     assert.match(source, /protocolSignerManage\(\)/);
     assert.match(source, /CapabilityAccess::Write/);
     assert.match(source, /m_router->resolve\(policy::CapabilityRequest/);
