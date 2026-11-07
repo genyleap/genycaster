@@ -56,7 +56,7 @@ test("lightweight fallback includes common emoji and DNA glyph", () => {
 
 test("WASM retains pinned lightweight fallback and bundles full color emoji without a CDN", () => {
     const cmake = read("ui/CMakeLists.txt").toString("utf8");
-    const main = readGenycasterMain().toString("utf8");
+    const main = read("ui/app/bootstrap/fonts.cpp").toString("utf8");
     assert.match(cmake, /qt_add_resources\(genycaster genycaster_emoji_fallback/);
     assert.match(cmake, /_emojiFallbackSize GREATER 1048576/);
     assert.match(cmake, /_emojiFallbackHash STREQUAL/);
@@ -82,7 +82,7 @@ test("WASM registers a pinned complete color emoji font with CBDT, CBLC, cmap an
     for(const code of [0x1f9ec,0x1f600,0x1f525,0x1f44d,0x1f680,0x1f3fd,0x1f1fa])
         assert.ok(covers(code),"Missing color emoji U+"+code.toString(16));
     const cmake=read("ui/CMakeLists.txt").toString("utf8");
-    const main=readGenycasterMain();
+    const main=read("ui/app/bootstrap/fonts.cpp").toString("utf8");
     assert.match(cmake,/GenycasterColorEmoji\.ttf/);
     assert.match(cmake,/_colorEmojiHash STREQUAL/);
     assert.match(main,/QFontDatabase::setApplicationEmojiFontFamilies/);
