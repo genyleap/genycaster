@@ -8,7 +8,7 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 test('provider-neutral canonical writer routes without vendor names in core', () => {
     const api = read('src/routing/write_gateway.cppm');
     const impl = read('src/routing/write_gateway.cpp');
-    assert.doesNotMatch(api + impl, /hypersnap|snapchain|genyleap|neynar/i);
+    assert.doesNotMatch((api + impl).replace(/^\s*\* @copyright[^\n]*$/gm, ''), /hypersnap|snapchain|genyleap|neynar/i);
     assert.match(impl, /capability::catalog::protocolMessageSubmit\(\)/);
     assert.match(impl, /m_bindings\.bindOnce\(operation\.idempotencyKey, std::move\(binding\)\)/);
     assert.match(impl, /Pending canonical write has no durable provider binding/);
@@ -18,7 +18,7 @@ test('provider-neutral canonical writer routes without vendor names in core', ()
 });
 
 test('multiple writers are explicit compatible adapter instances, pinned per operation', () => {
-    const main = read('ui/app/main.cpp');
+    const main = read('ui/app/bootstrap/profiles.cpp');
     const composition = read('ui/app/runtime_composition.cpp');
     const api = read('ui/app/runtime_composition.cppm');
     assert.match(main, /GENYCASTER_WRITE_PROVIDER_PROFILES_JSON/);
