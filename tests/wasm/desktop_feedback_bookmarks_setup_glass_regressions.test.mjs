@@ -18,8 +18,8 @@ test('feedback controls consume clicks and use a smiling face entry icon', () =>
 
 test('bookmark cards have even horizontal and vertical inset', () => {
   const bookmarks = read('ui/components/BookmarksSurface.qml');
-  assert.ok(bookmarks.includes('- Theme.space3 * 2'));
-  assert.ok(bookmarks.includes('Layout.margins: Theme.space3'));
+  assert.ok(bookmarks.includes('savedContent.implicitHeight + Theme.space3 * 2'));
+  assert.ok(bookmarks.includes('anchors.margins: Theme.space3'));
 });
 
 test('desktop sidebar stays opaque while the mobile dock retains its blur', () => {
