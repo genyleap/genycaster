@@ -15,7 +15,7 @@ test('token preview has no QML network or JSON and honors viewport demand',()=>{
   assert.match(qml,/root\.requestedLocator !== String\(locator\)/);
   assert.match(qml,/if \(!root\.enrichmentActive\)/);
   assert.match(embed,/enrichmentActive: root.visible && !root.scrollMoving/);
-  assert.match(main,/setContextProperty\([\s\S]*?browserTokenPreviewController/);
+  assert.match(main,/\{"browserTokenPreviewController", &browserTokenPreviewController\}/);
   assert.match(adapter,/maximumPending\{16\}/);
   assert.match(adapter,/maximumEntries\{128\}/);
   assert.match(adapter,/maximumResponseBytes\{32 \* 1024\}/);
