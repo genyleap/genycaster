@@ -110,7 +110,7 @@ int main(int argc, char** argv)
     {
         const auto defaults = miniAppEthereumChains();
         passed &= check(defaults.size() == 16, "default EVM chain allowlist count");
-        passed &= check(std::ranges::find(defaults, "eip155:8453") != defaults.end(),
+        passed &= check(std::ranges::find(defaults, std::string{"eip155:8453"}) != defaults.end(),
                         "Base Mainnet remains supported by default");
     }
     qputenv("GENYCASTER_MINIAPP_EVM_CHAINS",
