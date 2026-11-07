@@ -122,6 +122,59 @@ int main(int argc, char** argv)
     settings.setValue(QStringLiteral("network/readProviderProfilesJson"), readJson);
     settings.setValue(QStringLiteral("network/writeProviderProfilesJson"), writeJson);
 
+    // macOS startup regression: the selected ID is still registered in the
+    // saved JSON, but its old contract no longer has an installed adapter.
+    // Previously the parser accepted it, then routes.cpp refused to derive
+    // a canonical writer and the application exited with code 2.
+    const QString legacyJson = QStringLiteral(R"([
+      {"id":"legacy-node","contract":"legacy-read-v1",
+       "endpoint":"https://legacy.example","label":"Old adapter","selfHosted":true},
+      {"id":"read-private","contract":"hypersnap-v2",
+       "endpoint":"https://node.example","label":"Own node","selfHosted":true}
+    ])");
+    settings.setValue(QStringLiteral("network/readProviderProfilesJson"), legacyJson);
+    settings.setValue(QStringLiteral("network/preferredReadProviderId"),
+                      QStringLiteral("legacy-node"));
+    settings.setValue(QStringLiteral("network/preferredWriteProviderId"),
+                      QStringLiteral("write-private"));
+    {
+        const auto config = loadProviderProfiles(settings, {}, true);
+        passed &= check(config && config->preferredReadProviderId == "hypersnap-v2",
+                        "selected unsupported saved contract cannot abort native startup");
+        passed &= check(config && config->readProviders.size() == 1
+                        && config->readProviders[0].id == "read-private",
+                        "only adapters with installed contracts enter runtime registration");
+        passed &= check(config && config->readProfilesJson == legacyJson.toStdString(),
+                        "unsupported profile remains in settings editor for repair");
+        passed &= check(config && config->preferredWriteProviderId == "write-private",
+                        "quarantining Read contract does not change Write selection");
+        passed &= check(settings.value(
+                            QStringLiteral("network/preferredReadProviderId")).toString()
+                            == QStringLiteral("hypersnap-v2"),
+                        "repaired local Read selection is persisted");
+    }
+    {
+        const auto config = loadProviderProfiles(
+            settings, {QStringLiteral("--preferred-read-provider-id=legacy-node")}, true);
+        passed &= check(!config,
+                        "explicit CLI selection of unsupported contract fails closed");
+    }
+    qputenv("GENYCASTER_PREFERRED_READ_PROVIDER_ID", "legacy-node");
+    {
+        const auto config = loadProviderProfiles(settings, {}, true);
+        passed &= check(!config,
+                        "explicit environment selection of unsupported contract fails closed");
+    }
+    qunsetenv("GENYCASTER_PREFERRED_READ_PROVIDER_ID");
+    {
+        const auto config = loadProviderProfiles(settings, {}, false);
+        passed &= check(!config,
+                        "strict self-hosted deployment rejects unsupported Read contract");
+    }
+    settings.setValue(QStringLiteral("network/readProviderProfilesJson"), readJson);
+    settings.remove(QStringLiteral("network/preferredReadProviderId"));
+    settings.remove(QStringLiteral("network/preferredWriteProviderId"));
+
     // Regression: older macOS/native preferences may retain a selected Read
     // provider that has since been deleted. Its stale pointer must not crash
     // the application before the user can open the provider settings.
