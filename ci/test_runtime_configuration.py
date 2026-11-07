@@ -85,6 +85,37 @@ class RuntimeStartupPolicyTest(unittest.TestCase):
         self.assertIn("makeRuntime(std::move(startupOptions))", self.entry)
         self.assertIn("startupOptions = std::move(startupOptions)", self.entry)
 
+    def test_provider_routes_resolved_before_ownership_transfer(self) -> None:
+        """Regression: moved-from std::optional<string> remains engaged but empty.
+
+        Routing from that value previously produced:
+        'Selected protocol has no compatible canonical message writer.
+         Read provider ID:  (not registered)'
+        and exited with code 2 before QML started on macOS.
+        """
+        main = self.entry
+        parser = main.index("auto configuredProfiles = ")
+        routes = main.index("auto routingPolicy = ")
+        route_call = main.index("bootstrap::loadProviderRoutes(", routes)
+        route_error_gate = main.index("if (!routingPolicy) return 2;", route_call)
+        transfers = (
+            "std::move(configuredProfiles->preferredReadProviderId)",
+            "std::move(configuredProfiles->preferredWriteProviderId)",
+            "std::move(configuredProfiles->readProviderApiKeys)",
+            "std::move(profile.id)",
+            "std::move(profile.adapterContract)",
+        )
+        self.assertLess(parser, routes)
+        self.assertLess(route_call, route_error_gate)
+        for transfer in transfers:
+            self.assertIn(transfer, main)
+            self.assertLess(
+                route_error_gate,
+                main.index(transfer),
+                msg=f"Route resolution must precede ownership transfer: {transfer}",
+            )
+        self.assertIn("*configuredProfiles", main[route_call:route_error_gate])
+
     def test_read_write_and_attestor_are_independent(self) -> None:
         block = self.interface.split("struct RuntimeConfiguration final {", 1)[1]
         block = block.split("\n};", 1)[0]
