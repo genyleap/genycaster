@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Archive only deployable static Qt WebAssembly artifacts, never build internals."""
+"""Archive only public assets declared by this exact WASM release manifest."""
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import json
+from pathlib import Path, PurePosixPath
+import re
 import tarfile
 
 EXTENSIONS = {
@@ -12,26 +14,58 @@ EXTENSIONS = {
     ".ico", ".webmanifest", ".woff", ".woff2",
     ".ttf", ".otf", ".txt", ".map", ".license",
 }
-BLOCKED = {".qt", ".rcc", "CMakeFiles", "_deps", "CMakeFiles", "genycaster_autogen"}
+BLOCKED = {".qt", ".rcc", "CMakeFiles", "_deps", "genycaster_autogen"}
+HASHED_WASM = re.compile(r"genycaster\.[0-9a-f]{20}\.wasm")
 
 
 def select_files(source: Path) -> list[Path]:
-    required = ["genycaster.html", "genycaster.wasm"]
-    for name in required:
-        if not (source / name).is_file():
-            raise ValueError(f"WebAssembly packaging missing {source / name}")
-    result: list[Path] = []
-    for path in source.rglob("*"):
-        if not path.is_file() or path.is_symlink():
-            continue
-        relative = path.relative_to(source)
-        if any(part in BLOCKED or part.startswith(".") for part in relative.parts):
-            continue
-        if (path.suffix.lower() in EXTENSIONS
-                or path.name.endswith(".wasm.gz")
-                or path.name.endswith(".LICENSE")):
-            result.append(path)
-    return sorted(result)
+    source = source.resolve(strict=True)
+    manifest_path = source / "genycaster-assets.json"
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError("Missing canonical WASM release manifest")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as error:
+        raise ValueError("Invalid canonical WASM release manifest") from error
+    entries = manifest.get("files")
+    engine = manifest.get("wasm")
+    compressed = manifest.get("wasmGzip")
+    if (not isinstance(entries, list) or not entries
+            or any(not isinstance(name, str) for name in entries)
+            or len(entries) != len(set(entries))
+            or not isinstance(engine, str) or not HASHED_WASM.fullmatch(engine)):
+        raise ValueError("Malformed WASM release file inventory")
+    required = {
+        "genycaster.html", "genycaster.js", "genycaster-loader.js",
+        "genycaster-sw.js", engine,
+    }
+    if isinstance(compressed, str) and compressed:
+        if compressed != engine + ".gz":
+            raise ValueError("WASM compressed file does not match the engine")
+        required.add(compressed)
+    if not required.issubset(set(entries)):
+        raise ValueError("WASM release manifest omits required public assets")
+
+    # The stable binary is used by Qt's loader and remains part of the
+    # verified release, even though the manifest points to the immutable
+    # content-addressed equivalent.
+    selected: set[Path] = set()
+    for name in [*entries, "genycaster.wasm", "genycaster-assets.json"]:
+        rel = PurePosixPath(name)
+        if (not name or "\\" in name or rel.is_absolute()
+                or any(part in BLOCKED or part.startswith(".") or part == ".."
+                       for part in rel.parts)
+                or (rel.suffix.lower() not in EXTENSIONS
+                    and not name.endswith((".wasm.gz", ".LICENSE")))):
+            raise ValueError(f"Unsafe or unsupported WASM release path: {name!r}")
+        path = source.joinpath(*rel.parts)
+        if (not path.is_file() or path.is_symlink()
+                or any(parent.is_symlink() for parent in path.parents if parent != source)
+                or not path.resolve().is_relative_to(source)):
+            raise ValueError(f"Missing or unsafe WASM release asset: {name!r}")
+        selected.add(path)
+
+    return sorted(selected)
 
 
 def main() -> None:
@@ -47,7 +81,7 @@ def main() -> None:
             archive.add(path, arcname=path.relative_to(source), recursive=False)
     if args.output.stat().st_size == 0:
         raise ValueError("Empty WebAssembly archive")
-    print(f"Packaged {len(files)} web assets into {args.output}")
+    print(f"Packaged {len(files)} manifest-pinned web assets into {args.output}")
 
 
 if __name__ == "__main__":
