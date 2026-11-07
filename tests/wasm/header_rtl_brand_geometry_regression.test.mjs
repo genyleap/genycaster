@@ -32,10 +32,10 @@ test('RTL brand cluster and actions cannot cross at mobile widths',()=>{
 test('version sits beneath the wordmark using separate visual runs',()=>{
   const qml=read('ui/components/AppHeader.qml');
   const fa=read('ui/i18n/qml_fa_IR.ts');
-  assert.match(qml,/id: localizedVersion[\s\S]*?x: parent.width - implicitWidth/);
-  assert.match(qml,/id: localizedVersion[\s\S]*?y: brandWordmark.height \+ Theme.scaleUi\(2\)/);
-  assert.match(qml,/layoutDirection: Qt.RightToLeft/);
-  assert.match(qml,/genycaster.release.beta_version_number/);
+  assert.match(qml,/objectName: "appHeaderReleaseVersion"[\s\S]*?horizontalAlignment: Theme\.rtl \? Text\.AlignRight : Text\.AlignLeft/);
+  assert.match(qml,/objectName: "appHeaderReleaseVersion"[\s\S]*?y: brandWordmark\.height \+ Theme\.scaleUi\(2\)/);
+  assert.match(qml,/layoutDirection: Qt\.LeftToRight/);
+  assert.match(qml,/LocaleFormat\.localizeDigits\(Qt\.application\.version\)/);
   assert.match(fa,/<source>Beta<\/source>\s*<translation>بتا<\/translation>/);
   assert.match(fa,/<source>1\.0<\/source>\s*<translation>۱٫۰<\/translation>/);
   assert.match(qml,/objectName: "appHeaderWordmarkAndVersion"/);
