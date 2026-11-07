@@ -17,7 +17,7 @@ test('Home replaces Trends with locked Wallet and removes Agent and Studio', () 
 test('Mobile home launcher is vertically centered, accessible and skips inline input', () => {
     const home=qml('HomeDashboard'), shell=qml('AppShell');
     assert.match(home,/objectName: "homeComposerLauncher"/);
-    assert.match(home,/Layout\.preferredHeight: 60/);
+    assert.match(home,/Layout\.preferredHeight: root\.androidCompact \? 52 : 60/);
     assert.match(home,/verticalAlignment: Text\.AlignVCenter/);
     assert.match(home,/Accessible\.onPressAction: root\.composeRequested\(root\.draftText\)/);
     assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
