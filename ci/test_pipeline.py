@@ -226,7 +226,7 @@ class PipelineTests(unittest.TestCase):
         end = source.index("void MiniAppHostController::close()", start)
         procedure = source[start:end]
         validation = procedure.index("const QUrl destination{url.trimmed(), QUrl::StrictMode};")
-        wasm_dispatch = procedure.index("#if defined(__EMSCRIPTEN__)")
+        wasm_dispatch = procedure.index("#if defined(Q_OS_WASM)")
         self.assertLess(validation, wasm_dispatch)
         self.assertEqual(procedure.count("const QUrl destination{"), 1)
         self.assertEqual(procedure.count("QHostAddress numericHost{};"), 1)
