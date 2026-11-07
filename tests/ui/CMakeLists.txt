@@ -63,6 +63,16 @@ add_test(NAME ui.provider_routes_policy COMMAND genycaster_provider_routes_tests
 set_tests_properties(ui.provider_routes_policy PROPERTIES
     TIMEOUT 10 LABELS "ui;provider;routing;security")
 
+# Authentication remains independent of protocol Read/Write routing.
+add_executable(genycaster_bootstrap_auth_tests bootstrap_auth_tests.cpp)
+target_link_libraries(genycaster_bootstrap_auth_tests PRIVATE
+    genycaster_ui_bootstrap Qt6::Core)
+target_compile_features(genycaster_bootstrap_auth_tests PRIVATE cxx_std_26)
+set_property(TARGET genycaster_bootstrap_auth_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+add_test(NAME ui.bootstrap_auth COMMAND genycaster_bootstrap_auth_tests)
+set_tests_properties(ui.bootstrap_auth PROPERTIES
+    TIMEOUT 10 LABELS "ui;authentication;security")
+
 if(TARGET genycaster_bootstrap_worker)
     add_executable(genycaster_bootstrap_worker_tests bootstrap_worker_tests.cpp)
     target_link_libraries(genycaster_bootstrap_worker_tests PRIVATE
