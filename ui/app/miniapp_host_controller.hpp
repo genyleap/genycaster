@@ -160,7 +160,7 @@ private:
     bool m_walletBrowserWaiting{};
     QVariantList m_walletBrowserOptions{};
     QVariantMap m_user{};
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     QTimer m_browserVisibilityTimer{};
 #endif
 };
