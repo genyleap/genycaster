@@ -96,6 +96,44 @@ struct ReadProviderProfile final {
 };
 
 /**
+ * @brief Owned, provider-neutral startup options for a single runtime.
+ *
+ * The configuration makes Read, Write, signer attestation and authorization
+ * policy explicit rather than relying on the positional order of unrelated
+ * optional strings. It contains ephemeral API keys only in process memory;
+ * it must never be persisted or sent to a QML context property.
+ *
+ * The selected Read provider does not imply a Write provider. An attestor
+ * is configured independently from both Read and Write endpoints.
+ */
+struct RuntimeConfiguration final {
+    std::filesystem::path databasePath{};
+    farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy{};
+    std::optional<std::string> providerBaseUrl{};
+    std::optional<std::string> farcasterReadBaseUrl{};
+    std::optional<std::string> farcasterReadApiKey{};
+    std::vector<ReadProviderProfile> additionalReadProviders{};
+    std::unordered_map<std::string, std::string> readProviderApiKeys{};
+    std::optional<std::string> preferredReadProviderId{};
+    bool allowCompatibleReadFallback{false};
+    std::vector<WriteProviderProfile> additionalWriteProviders{};
+    std::optional<std::string> preferredWriteProviderId{};
+    std::optional<std::string> authRelayUrl{};
+    std::optional<std::string> optimismRpcUrl{};
+    std::optional<std::string> snapchainBaseUrl{};
+    std::optional<std::string> snapchainWriteBaseUrl{};
+    std::optional<std::string> mediaGatewayBaseUrl{};
+    std::optional<std::string> snapchainAuthorizationHeader{};
+    std::optional<std::string> snapchainAuthorizationValue{};
+    std::optional<std::string> snapchainWriteAuthorizationHeader{};
+    std::optional<std::string> snapchainWriteAuthorizationValue{};
+    std::optional<std::uint64_t> appFid{};
+    std::optional<std::string> signerAttestationUrl{};
+    std::function<farcaster::foundation::result::Status(const std::string&)>
+        approvalLauncher{};
+};
+
+/**
  * @brief Owns the outer runtime composition used by the Qt application shell.
  *
  * The type centralizes executor, storage, provider, routing, signer, write and
@@ -299,5 +337,19 @@ struct Runtime final {
     const std::optional<std::uint64_t> appFid,
     const std::optional<std::string>& signerAttestationUrl,
     std::function<farcaster::foundation::result::Status(const std::string&)> approvalLauncher);
+
+/**
+ * @brief Build the runtime from a named, owned set of startup options.
+ *
+ * @param configuration Single-use policy snapshot assembled before the worker
+ *        begins, including ephemeral Read/Write credentials.
+ * @return The same result and signer security guarantees as the underlying
+ *         provider-neutral runtime factory.
+ *
+ * This overload forwards to the existing validated factory without changing
+ * protocol routing, signer approval or runtime ownership.
+ */
+[[nodiscard]] farcaster::foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
+    RuntimeConfiguration configuration);
 
 } // namespace genycaster::ui::runtime
