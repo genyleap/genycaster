@@ -1,4 +1,16 @@
-// Joining bootstrap worker; the GUI thread owns runtime publication.
+/*!
+ * @file        ui/app/bootstrap/worker.cppm
+ * @brief       Joining startup worker ownership.
+ *
+ * @details
+ * Owns the native bootstrap thread and guarantees joining before referenced GUI and runtime controllers can be destroyed.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include <functional>
 #include <memory>
