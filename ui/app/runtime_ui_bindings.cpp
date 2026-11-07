@@ -90,7 +90,6 @@
 #include "remote_image_provider.hpp"
 #include "browser_openproof_auth.hpp"
 #if defined(Q_OS_WASM)
-#include "browser_wheel_fallback.hpp"
 #include "browser_signer_bridge.hpp"
 #include "browser_cast_payload.hpp"
 #endif
