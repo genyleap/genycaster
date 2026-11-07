@@ -11,7 +11,7 @@ test('feed and profile headers keep channel after author name without a third mo
   assert.ok(identity.includes('id: castInlineChannel'));
   assert.ok(identity.includes('text: root.authorName'));
   assert.ok(identity.includes('sourceUrl: root.channelImageUrl'));
-  assert.ok(identity.includes('text: root.channelDisplayName'));
+  assert.ok(identity.includes('text: "/" + root.castChannel'));
   assert.ok(identity.includes('text: root.ltrHandle'));
   assert.ok(identity.includes('objectName: "compactCastAuthorMetadata"'));
   assert.ok(identity.indexOf('text: root.authorName') < identity.indexOf('id: castInlineChannel'));
