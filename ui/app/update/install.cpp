@@ -104,7 +104,7 @@ InstallMode launchVerifiedUpdate(
     return launchSystemInstaller(verifiedPackage)
         ? InstallMode::SystemInstaller
         : fail(QStringLiteral("Could not open macOS DMG"));
-#elif defined(Q_OS_LINUX) && !defined(__EMSCRIPTEN__)
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
     const QString appImage = qEnvironmentVariable("APPIMAGE");
     const QFileInfo current{appImage};
     const QFileInfo folder{current.absolutePath()};
