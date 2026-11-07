@@ -25,7 +25,7 @@ test('Muted profiles never issue Farcaster Follow/Block messages',()=>{
  assert.match(ui,/signal muteRequested\(double targetFid, bool muted\)/);
  assert.match(ui,/root\.muteRequested\(Number\(root\.activeDetail\.fid\)/);
  assert.match(ui,/root\.muteSettingsReady && !root\.muteWriteBusy/);
- assert.match(app,/onMuteRequested: \(fid,muted\) =>\s*openProofConnections\.setProfileMuted/);
+ assert.match(app,/onMuteRequested: \(fid,muted\) => \{\s*if \(openProofConnections\)\s*openProofConnections\.setProfileMuted\(Math\.floor\(fid\), muted\)/);
  assert.doesNotMatch(app,/onMuteRequested:[^\n]*setFollowing/);
 });
 
