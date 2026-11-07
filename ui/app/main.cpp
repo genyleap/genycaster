@@ -1162,46 +1162,42 @@ int main(int argc, char* argv[])
                   QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation).toStdString()}
                   / "genycaster.sqlite3"
             : std::filesystem::path{databasePathText.toStdString()};
-        auto bootstrapRuntime = [&presentationBridge, &richComposerController, &openProofConnections,
-                                 &mediaUploadController,
-                                  &mediaPlayback, &runtime,
-                                  databasePath, networkProxyPolicy, providerBaseUrl,
-                                  farcasterReadBaseUrl, farcasterReadApiKey,
-                                  additionalReadProviders, readProviderApiKeys,
-                                  preferredReadProviderId, allowCompatibleReadFallback,
-                                  additionalWriteProviders, preferredWriteProviderId, authRelayUrl,
-                                  optimismRpcUrl, snapchainBaseUrl, snapchainWriteBaseUrl,
-                                  mediaGatewayBaseUrl, snapchainAuthorizationHeader,
-                                  snapchainAuthorizationValue,
-                                  snapchainWriteAuthorizationHeader,
-                                  snapchainWriteAuthorizationValue, appFid,
-                                  signerAttestationUrl, walletLaunchTemplate,
-                                  siwfDomain, siwfUri, startupIdentity,
-                                  authenticationAvailable, openExploreForTest] {
-            auto made = makeRuntime(
-                databasePath,
-                networkProxyPolicy,
-                providerBaseUrl,
-                farcasterReadBaseUrl,
-                farcasterReadApiKey,
-                additionalReadProviders,
-                readProviderApiKeys,
-                preferredReadProviderId,
-                allowCompatibleReadFallback,
-                additionalWriteProviders,
-                preferredWriteProviderId,
-                authRelayUrl,
-                optimismRpcUrl,
-                snapchainBaseUrl,
-                snapchainWriteBaseUrl,
-                mediaGatewayBaseUrl,
-                snapchainAuthorizationHeader,
-                snapchainAuthorizationValue,
-                snapchainWriteAuthorizationHeader,
-                snapchainWriteAuthorizationValue,
-                appFid,
-                signerAttestationUrl,
-                makeWalletApprovalLauncher(walletLaunchTemplate, true));
+        // Capture one immutable policy snapshot for this startup attempt.
+        // Read and Write routes, signer attestation and ephemeral credentials
+        // remain separately named, and the owned snapshot never enters QML.
+        auto startupOptions = genycaster::ui::runtime::RuntimeConfiguration{
+            .databasePath = databasePath,
+            .networkProxyPolicy = networkProxyPolicy,
+            .providerBaseUrl = providerBaseUrl,
+            .farcasterReadBaseUrl = farcasterReadBaseUrl,
+            .farcasterReadApiKey = farcasterReadApiKey,
+            .additionalReadProviders = additionalReadProviders,
+            .readProviderApiKeys = readProviderApiKeys,
+            .preferredReadProviderId = preferredReadProviderId,
+            .allowCompatibleReadFallback = allowCompatibleReadFallback,
+            .additionalWriteProviders = additionalWriteProviders,
+            .preferredWriteProviderId = preferredWriteProviderId,
+            .authRelayUrl = authRelayUrl,
+            .optimismRpcUrl = optimismRpcUrl,
+            .snapchainBaseUrl = snapchainBaseUrl,
+            .snapchainWriteBaseUrl = snapchainWriteBaseUrl,
+            .mediaGatewayBaseUrl = mediaGatewayBaseUrl,
+            .snapchainAuthorizationHeader = snapchainAuthorizationHeader,
+            .snapchainAuthorizationValue = snapchainAuthorizationValue,
+            .snapchainWriteAuthorizationHeader = snapchainWriteAuthorizationHeader,
+            .snapchainWriteAuthorizationValue = snapchainWriteAuthorizationValue,
+            .appFid = appFid,
+            .signerAttestationUrl = signerAttestationUrl,
+            .approvalLauncher = makeWalletApprovalLauncher(walletLaunchTemplate, true),
+        };
+        auto bootstrapRuntime = [&presentationBridge, &richComposerController,
+                                 &openProofConnections, &mediaUploadController,
+                                 &mediaPlayback, &runtime,
+                                 startupOptions = std::move(startupOptions),
+                                 siwfDomain, siwfUri, startupIdentity,
+                                 snapchainBaseUrl, authenticationAvailable,
+                                 openExploreForTest]() mutable {
+            auto made = makeRuntime(std::move(startupOptions));
             if (!made) {
                 const QString message = QString::fromStdString(made.error().message);
                 QMetaObject::invokeMethod(&presentationBridge,
