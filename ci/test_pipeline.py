@@ -360,6 +360,64 @@ class PipelineTests(unittest.TestCase):
         self.assertLess(script.index("python3 ci/verify_platform_package.py"),
                         script.index('tar -xzf "$archive" -C "$stage"'))
 
+    def test_web_archive_manifest_integrity_detects_corruption(self) -> None:
+        import hashlib
+        import json
+        import tarfile
+        from ci.verify_platform_package import validate_web
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "public"
+            source.mkdir()
+            binary = b"\\x00asm\\x01\\x00\\x00\\x00"
+            engine = "genycaster." + hashlib.sha256(binary).hexdigest()[:20] + ".wasm"
+            gzip_name = engine + ".gz"
+            assets = {
+                "genycaster.html": b"<html>Genycaster</html>",
+                "genycaster.js": b"entry",
+                "genycaster-loader.js": b"loader",
+                "genycaster-sw.js": b"worker",
+                "genycaster.wasm": binary,
+                engine: binary,
+                gzip_name: b"compressed-fixture",
+            }
+            version = "a" * 20
+            assets["genycaster-assets.js"] = (
+                "window.__genycasterAssets=" + json.dumps({
+                    "wasm": engine, "wasmBytes": len(binary),
+                    "wasmGzip": gzip_name, "wasmGzipBytes": len(assets[gzip_name]),
+                    "version": version,
+                }) + ";\n").encode()
+            files = sorted(set(assets) - {"genycaster.wasm"})
+            manifest = {
+                "wasm": engine, "wasmBytes": len(binary),
+                "wasmGzip": gzip_name, "wasmGzipBytes": len(assets[gzip_name]),
+                "wasmGzipSha256": hashlib.sha256(assets[gzip_name]).hexdigest(),
+                "version": version, "files": files,
+                "integrity": {
+                    name: hashlib.sha256(assets[name]).hexdigest()
+                    for name in files if name not in {engine, "genycaster-assets.js"}
+                },
+            }
+            assets["genycaster-assets.json"] = json.dumps(manifest).encode()
+            for name, content in assets.items():
+                (source / name).write_bytes(content)
+
+            def make_archive(target: Path) -> None:
+                with tarfile.open(target, "w:gz") as archive:
+                    for file in select_files(source):
+                        archive.add(file, arcname=file.name)
+
+            archive = root / "genycaster-good.tar.gz"
+            make_archive(archive)
+            validate_web(archive)
+            (source / "genycaster.js").write_bytes(b"tampered")
+            damaged = root / "genycaster-damaged.tar.gz"
+            make_archive(damaged)
+            with self.assertRaisesRegex(ValueError, "digest mismatch"):
+                validate_web(damaged)
+
     def test_android_16k_elf_alignment(self) -> None:
         # Synthetic ELF64 AArch64 DSO with a single PT_LOAD program header.
         data = bytearray(128)
