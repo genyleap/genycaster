@@ -37,7 +37,7 @@ test('desktop Home presents one bounded content column', () => {
 test('desktop store uses borderless app rows and compact Open buttons', () => {
     const apps = read('ui/components/AppsSurface.qml');
     const feature = read('ui/components/MiniAppFeaturedCarousel.qml');
-    assert.match(apps, /cellHeight: root\.compact \? 116 : 112/);
+    assert.match(apps, /cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)\s*: \(width < Theme\.scaleUi\(660\)\s*\? Theme\.scaleUi\(152\) : Theme\.scaleUi\(112\)\)/);
     assert.match(apps, /id: storeRow/);
     assert.match(apps, /objectName: "miniAppDesktopStoreRow"/);
     assert.match(apps, /objectName: "miniAppStoreOpenButton"/);
@@ -146,7 +146,7 @@ test('mobile Apps show the same compact store rows as desktop with topic filters
     const apps=read('ui/components/AppsSurface.qml');
     const library=read('ui/components/MiniAppLibraryShelves.qml');
     assert.match(apps,/targetColumns: root\.compact\s*\? 1/);
-    assert.match(apps,/cellHeight: root\.compact \? 116 : 112/);
+    assert.match(apps,/cellHeight: root\.compact\s*\? \(width < Theme\.scaleUi\(540\)\s*\? Theme\.scaleUi\(148\) : Theme\.scaleUi\(118\)\)\s*: \(width < Theme\.scaleUi\(660\)\s*\? Theme\.scaleUi\(152\) : Theme\.scaleUi\(112\)\)/);
     assert.match(apps,/objectName: "miniAppMobileStoreRow"/);
     assert.match(apps,/objectName: "miniAppMobileOpenButton"/);
     assert.match(apps,/objectName: "miniAppMobileTopicFilter"/);
