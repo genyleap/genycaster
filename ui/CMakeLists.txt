@@ -256,6 +256,7 @@ target_sources(genycaster_ui_bootstrap
     PUBLIC FILE_SET CXX_MODULES FILES
         app/bootstrap/options.cppm
         app/bootstrap/fonts.cppm
+        app/bootstrap/context.cppm
         app/bootstrap/providers.cppm
         app/bootstrap/profiles.cppm
         app/bootstrap/routes.cppm
@@ -264,6 +265,7 @@ target_sources(genycaster_ui_bootstrap
         app/bootstrap/options.cpp
         app/bootstrap/rendering.cpp
         app/bootstrap/fonts.cpp
+        app/bootstrap/context.cpp
         app/bootstrap/providers.cpp
         app/bootstrap/profiles.cpp
         app/bootstrap/routes.cpp
