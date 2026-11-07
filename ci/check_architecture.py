@@ -44,6 +44,22 @@ PROVIDER_AWARE_PRESENTATION = {
     "ui/app/runtime_ui_bindings.cpp",  # Selected-node social relationship binding.
     "tests/ui/provider_profiles_controller_tests.cpp",
 }
+# These named bootstrap adapters resolve explicit user-selected Read/Write
+# protocols and are never imported into the provider-neutral core or QML.
+# Tests of this edge must name the protocols to protect against cross-posting.
+PROVIDER_AWARE_BOOTSTRAP = {
+    "ui/app/bootstrap/auth.cppm",
+    "ui/app/bootstrap/profiles.cpp",
+    "ui/app/bootstrap/profiles.cppm",
+    "ui/app/bootstrap/providers.cpp",
+    "ui/app/bootstrap/providers.cppm",
+    "ui/app/bootstrap/routes.cpp",
+    "ui/app/bootstrap/routes.cppm",
+    "tests/ui/provider_endpoints_tests.cpp",
+    "tests/ui/provider_profiles_tests.cpp",
+    "tests/ui/provider_routes_tests.cpp",
+}
+
 
 # Textual project headers are exceptional boundaries, never the default architecture.
 # Isolated external module/BMI compatibility boundaries may use the dialect required by
@@ -318,7 +334,7 @@ for path in ROOT.rglob("*"):
                 "ui/app/main.cpp",
                 "ui/app/runtime_composition.cpp",
                 "ui/app/runtime_composition.cppm",
-            } | PROVIDER_AWARE_PRESENTATION  # Explicit presentation/composition boundaries.
+            } | PROVIDER_AWARE_PRESENTATION | PROVIDER_AWARE_BOOTSTRAP  # Audited app-adapter boundaries.
         ):
             add(path, "vendor/flagship-backend semantic leaked outside provider adapter boundary")
 
