@@ -676,7 +676,7 @@ public:
     Impl(LinkPreviewResolver& owner, const bool useDirectProxy)
         : q(owner)
     {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // Preview fetching uses a QThread and blocking cross-thread setup on
         // native platforms. Browser WASM keeps safe URL-only preview seeds.
         (void)useDirectProxy;
@@ -799,7 +799,7 @@ public:
         if (!cache.contains(key) && !rememberPreview(key, seedPreview(url))) {
             return;
         }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         // Metadata parsing requires a native worker. Avoid queuing requests
         // against a non-existent browser thread; keep the clickable URL seed.
         QVariantMap fallback = cache.value(key);
