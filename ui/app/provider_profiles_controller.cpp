@@ -404,9 +404,25 @@ bool ProviderProfilesController::selectReadProvider(const QString& id)
 {
     const QString selected = id.trimmed();
     if (!selected.isEmpty() && selected != QStringLiteral("hypersnap-v2")
-        && selected != QStringLiteral("farcaster-snapchain")
-        && !exists(parseProfiles(m_settings.value(settingKey(kReadProfiles)).toString()), selected))
-        return fail(QStringLiteral("unknown_provider"));
+        && selected != QStringLiteral("farcaster-snapchain")) {
+        // A saved profile can outlive the adapter implementing its contract.
+        // Keep that entry editable but never let the settings UI select it
+        // for a later startup or infer a canonical message writer from it.
+        bool found{false};
+        bool supported{false};
+        for (const auto& entry : parseProfiles(
+                 m_settings.value(settingKey(kReadProfiles)).toString())) {
+            if (!entry.isObject()) continue;
+            const QJsonObject profile = entry.toObject();
+            if (profile.value(QStringLiteral("id")).toString() != selected) continue;
+            found = true;
+            supported = knownContract(
+                profile.value(QStringLiteral("contract")).toString(), false);
+            break;
+        }
+        if (!found) return fail(QStringLiteral("unknown_provider"));
+        if (!supported) return fail(QStringLiteral("unsupported_contract"));
+    }
     if (selected == QStringLiteral("hypersnap-v2") && !indexedReadSupported())
         return fail(QStringLiteral("unsupported_contract"));
     // A custom/hosted provider ID can be persisted only when actually registered.
