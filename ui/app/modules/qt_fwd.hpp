@@ -10,5 +10,6 @@ class QQuickWindow;
 class QSettings;
 class QGuiApplication;
 class QQmlApplicationEngine;
+class QObject;
 class PresentationBridge;
 class RichComposerController;
