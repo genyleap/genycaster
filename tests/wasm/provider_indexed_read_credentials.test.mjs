@@ -6,7 +6,7 @@ const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 
 test('credential injection is strictly bound to explicit HTTPS indexed provider IDs', () => {
-  const boot = read('ui/app/main.cpp');
+  const boot = read('ui/app/bootstrap/profiles.cpp');
   const iface = read('ui/app/runtime_composition.cppm');
   const runtime = read('ui/app/runtime_composition.cpp');
   assert.match(boot, /GENYCASTER_READ_PROVIDER_API_KEYS_JSON/);
