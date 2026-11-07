@@ -318,8 +318,11 @@ int main(int argc, char* argv[])
         settings, arguments, enableHypersnapDefault);
     if (!configuredProfiles) return 2;
 
-    // Resolve the selected protocol's canonical writer independently from
-    // optional explicitly chosen Write providers. Never cross-post by accident.
+    // Resolve routes while ProviderProfileConfiguration still owns its
+    // original selections. Moving an optional<string> keeps it engaged on
+    // common standard libraries but can empty the contained string; resolving
+    // after that move caused macOS startup to exit with an empty provider ID.
+    // Read and Write choices remain independent. Never cross-post by accident.
     QString compiledHypersnapEndpoint{};
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
     compiledHypersnapEndpoint = QString::fromStdString(
@@ -360,8 +363,9 @@ int main(int argc, char* argv[])
 
     auto readProviderApiKeys = std::move(configuredProfiles->readProviderApiKeys);
     const bool allowCompatibleReadFallback = configuredProfiles->allowCompatibleReadFallback;
-    const auto preferredReadProviderId = std::move(configuredProfiles->preferredReadProviderId);
-    const auto preferredWriteProviderId = std::move(configuredProfiles->preferredWriteProviderId);
+    // Keep the tiny selection IDs intact in the original configuration too.
+    const auto preferredReadProviderId = configuredProfiles->preferredReadProviderId;
+    const auto preferredWriteProviderId = configuredProfiles->preferredWriteProviderId;
     const QString providerProfilesJson =
         QString::fromStdString(configuredProfiles->readProfilesJson);
     const QString writeProfilesJson =
