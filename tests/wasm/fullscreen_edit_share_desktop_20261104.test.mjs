@@ -38,7 +38,7 @@ test('connections and activity inspector remain fully scrollable and occupy view
 test('Share is a popup on a desktop viewport even when CastItem is compact',()=>{
  const share=read('EngagementBar');
  assert.match(share,/Overlay\.overlay\.width < Theme\.breakpointMobile\s*\? mobileCastShareSheet : desktopCastSharePopup/);
- assert.match(share,/if \(Overlay\.overlay\.width >= Theme\.breakpointMobile\)/);
+ assert.match(share,/if \(overlay\.width >= Theme\.breakpointMobile\)/);
  assert.match(share,/id: desktopCastSharePopup[\s\S]*?Popup \{/);
  assert.match(share,/id: mobileCastShareSheet[\s\S]*?GenyDrawer \{/);
 });
