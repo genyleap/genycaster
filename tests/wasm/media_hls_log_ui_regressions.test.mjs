@@ -53,7 +53,7 @@ test('home composer focus is visible and link artwork leads the responsive edito
  assert.match(home,/desktopComposerSurface[\s\S]*borderColor: desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/mobileComposerSurface[\s\S]*curveDepth: Theme\.curveModal/);
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
- assert.match(link,/Layout\.preferredHeight: shouldReserve \? \(root\.compact \? 116 : 156\) : 0/);
+ assert.match(link,/Layout\.preferredHeight: !shouldReserve \? 0[\s\S]*?Math\.min\(root\.compact \? 300 : 180/);
 });
 test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
  const gallery=read('ui/components/GalleryLayout.qml');
