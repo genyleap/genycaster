@@ -14,7 +14,9 @@
 
 #pragma once
 
-#if defined(__EMSCRIPTEN__)
+#include <QtGlobal>
+
+#if defined(Q_OS_WASM)
 
 #include <QJsonArray>
 #include <QJsonObject>
