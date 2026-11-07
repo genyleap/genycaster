@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL('../../'+path, import.meta.url),'utf8'
 
 test('plain cast tokenizer preserves handles and distinct #/$ styles without false price tokens',()=>{
     const source=read('ui/components/RichCastRenderer.qml');
-    const body=source.match(/function inlineSpansFor\(value\) \{([\s\S]*?)\n    \}\n\n    readonly property var fallbackBlock/);
+    const body=source.match(/function inlineSpansFor\(value\) \{([\s\S]*?)\n    \}\n\n    \/\/ Protocol Markdown/);
     assert.ok(body);
     const tokenize=new Function('Theme','value',body[1]);
     const spans=tokenize({accent:'#9a98e3'},'Hi @compez.eth $GENY #Farcaster 0.01 USD and http://example.com/a');
@@ -31,7 +31,7 @@ test('mentions are true internal profile links in both Qt text rendering modes a
     assert.match(shell,/function openCastTextLink\(url\)/);
     assert.match(shell,/presentationBridge.openProfileUsername\(target.substring\(1\)\)/);
     assert.match(shell,/presentationBridge.openProfileFid\(Number\(target.substring\(5\)\)\)/);
-    assert.equal((shell.match(/onExternalRequested: url => root.openCastTextLink\(url\)/g)||[]).length,4);
+    assert.equal((shell.match(/onExternalRequested: url => root.openCastTextLink\(url\)/g)||[]).length,5);
     assert.match(read('ui/components/RichText.qml'),/token.startsWith\("@"\)/);
 });
 
