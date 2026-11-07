@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <utility>
 
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
 #include <emscripten/emscripten.h>
 
 // Opening the popup must happen in the original user-click stack: opening
@@ -544,7 +544,7 @@ void OpenProofConnectionsController::recordBookmarkMutation(
     m_settings->setValue(bookmarkStorageKey() + QStringLiteral("/outbox"), m_bookmarkOutbox);
     m_settings->sync();
     emit cloudStateChanged();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
     pumpBookmarkChanges();
@@ -653,7 +653,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
             emit cloudStateChanged();
             m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
             m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
             QMetaObject::invokeMethod(this,[this] { pumpBookmarkChanges(); },
@@ -700,7 +700,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
             if (next!=previous) {
                 m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/cursor"),next);
                 m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                 EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
             }
@@ -734,7 +734,7 @@ void OpenProofConnectionsController::pumpBookmarkChanges()
                 m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/migrated"),true);
                 m_settings->setValue(bookmarkStorageKey()+QStringLiteral("/outbox"),m_bookmarkOutbox);
                 m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                 EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
             }
@@ -757,7 +757,7 @@ void OpenProofConnectionsController::recordNotificationSeenAt(
     m_settings->setValue(QStringLiteral("notifications/seen_at/%1").arg(fid),
                          m_notificationSeenAtMs);
     m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
     pumpNotificationSeenAt();
@@ -820,7 +820,7 @@ void OpenProofConnectionsController::pumpNotificationSeenAt(const bool upload)
             m_settings->setValue(QStringLiteral("notifications/seen_at/%1").arg(viewer),
                                  m_notificationSeenAtMs);
             m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
             emit cloudNotificationSeenAtReceived(viewer,m_notificationSeenAtMs);
@@ -849,7 +849,7 @@ void OpenProofConnectionsController::recordDraftMutation(
     m_settings->setValue(key+QStringLiteral("/dirty"),true);
     m_settings->setValue(key+QStringLiteral("/deleted"),deleted);
     m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
     if (m_draftRemoteInitialized && !m_draftConflict) uploadDraftChange();
@@ -866,7 +866,7 @@ void OpenProofConnectionsController::confirmDraftSnapshot(
     m_settings->setValue(draftStorageKey()+QStringLiteral("/revision"),revision);
     m_settings->setValue(draftStorageKey()+QStringLiteral("/seen"),true);
     m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
 }
@@ -998,7 +998,7 @@ void OpenProofConnectionsController::pumpDraftChanges()
                 m_settings->setValue(key+QStringLiteral("/seen"),true);
                 m_settings->setValue(key+QStringLiteral("/dirty"),false);
                 m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                 EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
                 return;
@@ -1105,7 +1105,7 @@ void OpenProofConnectionsController::uploadDraftChange()
         if (serial==m_draftMutationSerial)
             m_settings->setValue(stateKey+QStringLiteral("/dirty"),false);
         m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
         EM_ASM({ Module.genycasterSyncBrowserData?.().catch(function() {}); });
 #endif
         if (serial!=m_draftMutationSerial)
@@ -2527,7 +2527,7 @@ void OpenProofConnectionsController::saveCachedConnections() const
         + QString::number(m_viewerFid);
     m_settings->setValue(key, QString::fromUtf8(QJsonDocument(snapshot).toJson(QJsonDocument::Compact)));
     m_settings->sync();
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // The persistent cache contains only public-facing profile labels, never
     // OpenProof cookies or bearer material. IDBFS persistence is serialized
     // with the existing Genycaster browser-data flush contract.
@@ -2540,7 +2540,7 @@ void OpenProofConnectionsController::saveCachedConnections() const
 
 void OpenProofConnectionsController::clearAccountGrant()
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     closeGenycasterConnectionWindow();
 #endif
     ++m_grantGeneration;
@@ -3425,7 +3425,7 @@ void OpenProofConnectionsController::refreshConnections()
             }
             if (!m_pendingProvider.isEmpty() && isConnected(m_pendingProvider)
                 && (!m_reconnectingLinkedIn || linkedInUrlReady)) {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
                 // Only a server-confirmed OpenProof link closes the browser
                 // window; browser redirect/204 alone is not a success signal.
                 closeGenycasterConnectionWindow();
@@ -3450,7 +3450,7 @@ bool OpenProofConnectionsController::isConnected(
 
 void OpenProofConnectionsController::finishAction(QString error)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     // The result is established by the authenticated connections response,
     // not by any redirect or an untrusted message from the popup.
     closeGenycasterConnectionWindow();
@@ -3488,7 +3488,7 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
         emit stateChanged();
         return;
     }
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
     if (prepareGenycasterConnectionWindow() == 0) {
         m_error = QStringLiteral("The browser blocked secure account approval. Allow popups for Genycaster and retry.");
         emit stateChanged();
@@ -3520,7 +3520,7 @@ void OpenProofConnectionsController::connectProvider(const QString& provider)
             // Genycaster drawer owns initiation, polling and final status.
             // The WASM window was created synchronously on the initial click.
             bool opened = false;
-#if defined(__EMSCRIPTEN__)
+#if defined(Q_OS_WASM)
             const QByteArray destination = url.toString(QUrl::FullyEncoded).toUtf8();
             opened = navigateGenycasterConnectionWindow(destination.constData()) != 0;
 #else
