@@ -36,6 +36,17 @@ approval. `makeRuntime(RuntimeConfiguration)` forwards this snapshot to the
 existing validated runtime factory; it is not a second implementation of
 protocol routing, signing, or session authorization.
 
+A successfully constructed runtime is attached to the existing
+`runtime_ui_bindings.cpp` Qt presentation facade using a borrowed
+`RuntimeAttachment` value. It must run on the GUI thread in this order:
+transfer the runtime to its owner, connect the presentation/read/write and
+media controllers, publish runtime readiness, and then restore or explicitly
+open the requested identity. Failed construction publishes an error without
+binding a partial session. The facade keeps its MOC-compatible header;
+moving QObject-facing declarations into a named module would violate the
+existing Qt build boundary. Never infer write permission or signer approval
+from this GUI attachment step.
+
 ## Source and documentation conventions
 
 - Keep source filenames lowercase and short: `auth.cppm`, `routes.cppm`,
