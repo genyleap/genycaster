@@ -1,5 +1,16 @@
-// Native visual test fixtures and live snapshots, isolated from production
-// application wiring. No QObject internals are exported across this module.
+/*!
+ * @file        ui/app/diagnostics/snapshots.cppm
+ * @brief       Visual and live snapshot diagnostics.
+ *
+ * @details
+ * Schedules bounded UI captures and diagnostic fixtures without enlarging the production bootstrap entry point.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 module;
 #include "qt_fwd.hpp"
 export module genycaster.ui.diagnostics.snapshots;
