@@ -55,20 +55,22 @@ test("studio lighting and fine normal field use canonical SVG geometry",()=>{
  assert.match(src,/float roughness=mix/);
  assert.match(src,/float viewZoom/);
 });
-test("studio viewport supports reset, scroll zoom, auto-orbit and accessible controls",()=>{
- const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
- assert.match(qml,/objectName: "gpuResetView"/);
- assert.match(qml,/objectName: "gpuAutoOrbit"/);
- assert.match(qml,/objectName: "gpuZoomOut"/);
- assert.match(qml,/objectName: "gpuZoomIn"/);
- assert.match(qml,/function resetView\(\)/);
- assert.match(qml,/function changeZoom\(steps\)/);
- assert.match(qml,/onWheel: function\(wheel\)/);
- assert.match(qml,/autoOrbitEnabled/);
- assert.match(qml,/viewZoom: desktopBrandPane\.viewZoom/);
- assert.match(qml,/Keys\.onPressed: function\(event\)/);
- assert.match(qml,/id: gpuStageControls[\s\S]*?anchors\.bottom: desktopBrandMetadata\.top/);
- assert.match(qml,/anchors\.bottom: gpuStageControls\.top/);
+test("studio viewport supports reset, scroll zoom, auto-orbit and accessible keyboard and drag controls",()=>{
+  const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
+  assert.match(qml,/function resetView\(\)/);
+  assert.match(qml,/function changeZoom\(steps\)/);
+  assert.match(qml,/id: automaticRotation[\s\S]*?autoOrbitEnabled/);
+  assert.match(qml,/onWheel: function\(wheel\)/);
+  assert.match(qml,/viewZoom: desktopBrandPane\.viewZoom/);
+  assert.match(qml,/Keys\.onPressed: function\(event\)/);
+  assert.match(qml,/event\.key === Qt\.Key_R \|\| event\.key === Qt\.Key_Home/);
+  assert.match(qml,/event\.key === Qt\.Key_Plus \|\| event\.key === Qt\.Key_Equal/);
+  assert.match(qml,/event\.key === Qt\.Key_Minus/);
+  assert.match(qml,/Keys\.onSpacePressed:[\s\S]*?autoOrbitEnabled = !desktopBrandPane\.autoOrbitEnabled/);
+  assert.match(qml,/onPositionChanged: function\(mouse\)[\s\S]*?desktopBrandPane\.dragYaw/);
+  assert.match(qml,/Accessible\.role: Accessible\.Button/);
+  assert.match(qml,/Accessible\.name: qsTrId\("genycaster\.setup\.logo_3d_accessible"\)/);
+  assert.match(qml,/id: desktopBrandMetadata[\s\S]*?anchors\.bottom: parent\.bottom/);
 });
 test("smooth vector-driven walls and grounded studio shadows",()=>{
  const qml=readFileSync(new URL("components/InitialSetup.qml",path),"utf8");
