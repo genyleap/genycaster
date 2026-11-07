@@ -36,7 +36,7 @@ test("iOS safe-area background and PWA metadata use the app appearance",()=>{
     assert.match(js,/__genycasterSetBrowserChromeTheme=applyBrowserChromeTheme/);
     assert.match(cpp,/updateBrowserChromeTheme/);
     assert.match(cpp,/AppearanceController::appearanceChanged/);
-    assert.match(cpp,/#if defined\(__EMSCRIPTEN__\)/);
+    assert.match(cpp,/#if defined\(Q_OS_WASM\)/);
 });
 
 test("phone Home is focused on three active actions and a locked Wallet",()=>{
@@ -77,7 +77,7 @@ test("Feed and profile allow only drag-triggered top refresh; empty state scroll
     assert.match(footer,/id: feedEmptyState/);
     assert.match(footer,/height: stableRows\.count === 0/);
     assert.match(footer,/anchors\.fill: parent/);
-    assert.match(feed,/headerPositioning: root\.compact \|\| root\.activeFeed === "channel"/);
+    assert.match(feed,/headerPositioning: ListView\.InlineHeader/);
     assert.equal((feed.match(/\bEmptyState \{/g)||[]).length,1);
     assert.match(empty,/implicitHeight: stateContent\.implicitHeight/);
     assert.doesNotMatch(profile,/verticalOvershoot/);
