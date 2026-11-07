@@ -122,6 +122,7 @@ import genycaster.ui.bootstrap.fonts;
 import genycaster.ui.bootstrap.providers;
 import genycaster.ui.bootstrap.profiles;
 import genycaster.ui.bootstrap.routes;
+import genycaster.ui.bootstrap.auth;
 #if !defined(Q_OS_WASM)
 import genycaster.ui.bootstrap.teardown;
 import genycaster.ui.bootstrap.worker;
@@ -449,128 +450,35 @@ int main(int argc, char* argv[])
     const auto& snapchainWriteAuthorizationHeader = routingPolicy->writeAuthorizationHeader;
     const auto& snapchainWriteAuthorizationValue = routingPolicy->writeAuthorizationValue;
 
-    QString appFidText = optionValue(arguments, QStringLiteral("--app-fid="));
-    if (appFidText.isEmpty()) {
-        appFidText = qEnvironmentVariable("GENYCASTER_APP_FID").trimmed();
-    }
-    std::optional<std::uint64_t> appFid{};
-    if (!appFidText.isEmpty()) {
-        bool ok{false};
-        const qulonglong parsed = appFidText.toULongLong(&ok);
-        if (!ok || parsed == 0U) {
-            qCritical().noquote() << "GENYCASTER_APP_FID/--app-fid must be a non-zero unsigned integer.";
-            return 2;
-        }
-        appFid = static_cast<std::uint64_t>(parsed);
-    }
-    if (!appFid && deploymentIdentity.appFid != 0U) {
-        appFid = deploymentIdentity.appFid;
-    }
-
-    QString signerAttestationUrlText = optionValue(
-        arguments, QStringLiteral("--signer-attestation-url="));
-    if (signerAttestationUrlText.isEmpty()) {
-        signerAttestationUrlText =
-            qEnvironmentVariable("GENYCASTER_SIGNER_ATTESTATION_URL").trimmed();
-    }
-    // Snapchain gateways implement signed-message submission, NOT App-FID
-    // SignedKeyRequest attestation. Never infer a signing endpoint from the
-    // public read/write gateway: it returns 404 route_not_available and cannot
-    // produce a valid App-FID signature. Only an explicitly configured trusted
-    // signer-attestation service may authorize a new protocol signer.
-    const std::optional<std::string> signerAttestationUrl = signerAttestationUrlText.isEmpty()
-        ? std::nullopt : std::optional<std::string>{signerAttestationUrlText.toStdString()};
-
-    QString walletLaunchTemplate = optionValue(
-        arguments, QStringLiteral("--wallet-launch-url-template="));
-    if (walletLaunchTemplate.isEmpty()) {
-        walletLaunchTemplate =
-            qEnvironmentVariable("GENYCASTER_WALLET_LAUNCH_URL_TEMPLATE").trimmed();
-    }
-
-    const QString compiledSiwfDomain = normalizeConfigurationToken(
-        QString::fromStdString(std::string{deploymentEndpoints.siwfDomain}));
-    const QString compiledSiwfUri = normalizeConfigurationToken(
-        QString::fromStdString(std::string{deploymentEndpoints.siwfUri}));
-
-    QString siwfDomainOverride = optionValue(arguments, QStringLiteral("--siwf-domain="));
-    const bool explicitSiwfDomainOverride = !siwfDomainOverride.isEmpty();
-    if (siwfDomainOverride.isEmpty()) {
-        siwfDomainOverride = qEnvironmentVariable("GENYCASTER_SIWF_DOMAIN").trimmed();
-    }
-    QString siwfUriOverride = optionValue(arguments, QStringLiteral("--siwf-uri="));
-    const bool explicitSiwfUriOverride = !siwfUriOverride.isEmpty();
-    if (siwfUriOverride.isEmpty()) {
-        siwfUriOverride = qEnvironmentVariable("GENYCASTER_SIWF_URI").trimmed();
-    }
-    const bool hasRuntimeSiwfDomainOverride = !siwfDomainOverride.isEmpty();
-    const bool hasRuntimeSiwfUriOverride = !siwfUriOverride.isEmpty();
-    siwfDomainOverride = normalizeConfigurationToken(std::move(siwfDomainOverride));
-    siwfUriOverride = normalizeConfigurationToken(std::move(siwfUriOverride));
-
-    QString siwfDomainText = compiledSiwfDomain;
-    QString siwfUriText = compiledSiwfUri;
-    if (hasRuntimeSiwfDomainOverride && hasRuntimeSiwfUriOverride) {
-        if (isValidSiwfDomain(siwfDomainOverride) && isValidSiwfUri(siwfUriOverride) &&
-            siwfDomainMatchesUri(siwfDomainOverride, siwfUriOverride)) {
-            siwfDomainText = std::move(siwfDomainOverride);
-            siwfUriText = std::move(siwfUriOverride);
-        } else if (explicitSiwfDomainOverride || explicitSiwfUriOverride) {
-            qWarning().noquote()
-                << "Invalid explicit SIWF override; using the compiled deployment identity.";
-        }
-    }
-
-    if (!isValidSiwfDomain(siwfDomainText) || !isValidSiwfUri(siwfUriText) ||
-        !siwfDomainMatchesUri(siwfDomainText, siwfUriText)) {
-        qWarning().noquote()
-            << "Sign in with Farcaster is disabled because the compiled SIWF deployment configuration is invalid.";
-        siwfDomainText.clear();
-        siwfUriText.clear();
-    }
-    QString authRelayUrlText = optionValue(arguments, QStringLiteral("--farcaster-auth-relay="));
-    const bool explicitAuthRelayOverride = !authRelayUrlText.isEmpty();
-    if (authRelayUrlText.isEmpty()) {
-        authRelayUrlText = qEnvironmentVariable("GENYCASTER_FARCASTER_AUTH_RELAY").trimmed();
-    }
-    authRelayUrlText = normalizeConfigurationToken(std::move(authRelayUrlText));
-    if (!authRelayUrlText.isEmpty() && !isValidHttpServiceUrl(authRelayUrlText)) {
-        if (explicitAuthRelayOverride) {
-            qWarning().noquote()
-                << "Invalid explicit Farcaster authentication relay override; using the official relay default.";
-        }
-        authRelayUrlText.clear();
-    }
-
-    QString optimismRpcUrlText = optionValue(arguments, QStringLiteral("--optimism-rpc-url="));
-    const bool explicitOptimismRpcOverride = !optimismRpcUrlText.isEmpty();
-    if (optimismRpcUrlText.isEmpty()) {
-        optimismRpcUrlText = qEnvironmentVariable("GENYCASTER_OPTIMISM_RPC_URL").trimmed();
-    }
-    optimismRpcUrlText = normalizeConfigurationToken(std::move(optimismRpcUrlText));
-    if (!optimismRpcUrlText.isEmpty() && !isValidHttpServiceUrl(optimismRpcUrlText, true)) {
-        if (explicitOptimismRpcOverride) {
-            qWarning().noquote()
-                << "Invalid explicit Optimism RPC override; using the built-in public RPC default.";
-        }
-        optimismRpcUrlText.clear();
-    }
-
-    const std::optional<std::string> authRelayUrl = authRelayUrlText.isEmpty()
-        ? std::nullopt : std::optional<std::string>{authRelayUrlText.toStdString()};
-    const std::optional<std::string> optimismRpcUrl = optimismRpcUrlText.isEmpty()
-        ? std::nullopt : std::optional<std::string>{optimismRpcUrlText.toStdString()};
-    const std::string siwfDomain = siwfDomainText.toStdString();
-    const std::string siwfUri = siwfUriText.toStdString();
-#if defined(Q_OS_WASM)
-    const bool authenticationAvailable = true; // OpenProof browser device OAuth, read-only session.
-#elif GENYCASTER_HAS_OPENPROOF_AUTH
-    const bool authenticationAvailable = true;
-#elif FARCASTER_HAS_FARCASTER_AUTH
-    const bool authenticationAvailable = !siwfDomain.empty() && !siwfUri.empty();
+    // Authentication is independent from the selected provider route.
+    // A Read/Write gateway never becomes a signer attestation authority.
+#if defined(Q_OS_WASM) || GENYCASTER_HAS_OPENPROOF_AUTH
+    constexpr bool openProofLoginAvailable = true;
 #else
-    const bool authenticationAvailable = false;
+    constexpr bool openProofLoginAvailable = false;
 #endif
+#if FARCASTER_HAS_FARCASTER_AUTH
+    constexpr bool compatibleLoginAvailable = true;
+#else
+    constexpr bool compatibleLoginAvailable = false;
+#endif
+    const auto authenticationOptions = genycaster::ui::bootstrap::loadAuthenticationOptions(
+        arguments, deploymentIdentity.appFid,
+        QString::fromStdString(std::string{deploymentEndpoints.siwfDomain}),
+        QString::fromStdString(std::string{deploymentEndpoints.siwfUri}),
+        openProofLoginAvailable, compatibleLoginAvailable);
+    if (!authenticationOptions) return 2;
+
+    const auto& appFid = authenticationOptions->appFid;
+    const auto& signerAttestationUrl = authenticationOptions->signerAttestationUrl;
+    const QString walletLaunchTemplate =
+        QString::fromStdString(authenticationOptions->walletLaunchTemplate);
+    const QString siwfUriText = QString::fromStdString(authenticationOptions->siwfUri);
+    const auto& siwfDomain = authenticationOptions->siwfDomain;
+    const auto& siwfUri = authenticationOptions->siwfUri;
+    const auto& authRelayUrl = authenticationOptions->authRelayUrl;
+    const auto& optimismRpcUrl = authenticationOptions->optimismRpcUrl;
+    const bool authenticationAvailable = authenticationOptions->authenticationAvailable;
 
     // Optional development/demo identity. Normal guest startup never restores a
     // previously browsed identity as if it were the current account.
