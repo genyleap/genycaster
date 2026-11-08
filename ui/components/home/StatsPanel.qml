@@ -13,7 +13,28 @@ ColumnLayout {
     property int periodDays: 30
     property bool compact: false
     property string section: "social"
+    property real sectionArrival: 1
+
+    // The section's content arrives with the same restrained shift and fade
+    // used for navigation. The shared tabs/header themselves remain stable.
+    NumberAnimation {
+        id: sectionEntrance
+        target: root
+        property: "sectionArrival"
+        from: 0
+        to: 1
+        duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis
+        easing.type: Easing.OutCubic
+    }
+
     onSectionChanged: {
+        sectionEntrance.stop()
+        if (!tabActive || Theme.reduceMotion)
+            sectionArrival = 1
+        else {
+            sectionArrival = 0
+            sectionEntrance.start()
+        }
         if (tabActive) {
             if (section === "market") marketController.refresh(false)
             else refreshGithub()
@@ -324,67 +345,117 @@ ColumnLayout {
         }
     }
 
-    // A bounded segmented control on desktop; the phone gets a single
-    // compact dropdown instead of four full-width rows of navigation.
-    Superellipse {
-        objectName: "statsDesktopPeriodFilter"
-        visible: root.section === "social" && !root.compact
-        Layout.preferredWidth: Math.min(440, root.width)
-        Layout.maximumWidth: 440
-        Layout.preferredHeight: 42
-        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-        fillColor: Theme.surfaceMuted
-        borderWidth: 1
-        borderColor: Theme.borderMuted
-        curveDepth: Theme.curveControl
+    // Keep the context and range actions on the same compact line. The
+    // period menu is local to this surface, not a second navigation strip.
+    RowLayout {
+        objectName: "statsPeriodContextRow"
+        visible: root.section === "social"
+        Layout.fillWidth: true
+        Layout.minimumWidth: 0
+        layoutDirection: Theme.uiDirection
+        spacing: Theme.space2
+        opacity: root.sectionArrival
+        transform: Translate { y: (1 - root.sectionArrival) * 6 }
 
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 3
-            spacing: Theme.space1
-            layoutDirection: Theme.uiDirection
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            alignToUi: true
+            text: qsTrId("genycaster.stats.period_note")
+            font.pixelSize: Theme.typeCaptionSize
+            color: Theme.textSecondary
+            wrapMode: Text.Wrap
+        }
 
-            Repeater {
-                model: root.rangeDays
-                delegate: GenyTabButton {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 1
-                    Layout.fillHeight: true
-                    minimumWidth: 0
-                    dense: true
-                    selected: root.periodDays === modelData
-                    text: root.rangeLabel(modelData)
-                    Accessible.name: qsTrId("genycaster.stats.last_n_days")
-                                     .arg(LocaleFormat.formatInteger(modelData))
-                    onClicked: if (root.periodDays !== modelData)
-                                   root.periodRequested(modelData)
+        DirectionAwareLabel {
+            text: root.rangeLabel(root.periodDays)
+            font.pixelSize: Theme.typeCaptionSize
+            font.weight: Theme.weightDemiBold
+            color: Theme.textSecondary
+            Layout.alignment: Qt.AlignVCenter
+        }
+
+        ActionButton {
+            id: periodMenuButton
+            objectName: "statsPeriodMenuButton"
+            Layout.preferredWidth: 36
+            Layout.preferredHeight: 36
+            Layout.alignment: Qt.AlignVCenter
+            compact: true
+            quiet: true
+            elevated: false
+            iconOnly: true
+            iconGlyph: Theme.iconMore
+            text: qsTrId("genycaster.stats.choose_period")
+            onClicked: periodMenu.open()
+
+            Popup {
+                id: periodMenu
+                objectName: "statsPeriodMenu"
+                parent: periodMenuButton
+                x: Theme.rtl ? 0 : parent.width - width
+                y: parent.height + Theme.space1
+                width: Math.min(200, Math.max(152, root.width - Theme.space4))
+                padding: 2
+                implicitHeight: contentItem.implicitHeight + topPadding + bottomPadding
+                modal: false
+                focus: true
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+                background: PopupSurface {
+                    fillColor: Theme.surfaceElevated
+                    borderColor: Theme.borderDefault
+                    curveDepth: Theme.curveContainer
+                    elevation: Theme.elevationPopover
+                }
+                contentItem: Column {
+                    spacing: 1
+                    Repeater {
+                        model: root.rangeDays
+                        delegate: ItemDelegate {
+                            id: periodChoice
+                            required property var modelData
+                            width: periodMenu.width - periodMenu.leftPadding
+                                   - periodMenu.rightPadding
+                            height: 38
+                            hoverEnabled: true
+                            onClicked: {
+                                periodMenu.close()
+                                if (root.periodDays !== modelData)
+                                    root.periodRequested(modelData)
+                            }
+                            contentItem: RowLayout {
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: root.rangeLabel(periodChoice.modelData)
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: root.periodDays === periodChoice.modelData
+                                                 ? Theme.weightDemiBold : Font.Normal
+                                    color: Theme.textPrimary
+                                }
+                                Icon {
+                                    visible: root.periodDays === periodChoice.modelData
+                                    text: Theme.iconCheck
+                                    color: Theme.accent
+                                    preferredSize: Theme.iconSizeSmall
+                                    Layout.preferredWidth: Theme.iconSizeSmall
+                                    Layout.preferredHeight: Theme.iconSizeSmall
+                                }
+                            }
+                            background: Superellipse {
+                                fillColor: periodChoice.hovered
+                                           ? Theme.surfaceHover
+                                           : periodChoice.modelData === root.periodDays
+                                             ? Theme.primarySurface : "transparent"
+                                borderWidth: 0
+                                curveDepth: Theme.curveCompact
+                            }
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    GenyComboBox {
-        id: mobilePeriodFilter
-        objectName: "statsMobilePeriodFilter"
-        visible: root.section === "social" && root.compact
-        Layout.preferredWidth: Math.min(210, Math.max(152, root.width * 0.52))
-        Layout.maximumWidth: 210
-        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
-        implicitWidth: 184
-        model: [
-            root.rangeLabel(7),
-            root.rangeLabel(30),
-            root.rangeLabel(90),
-            root.rangeLabel(365)
-        ]
-        currentIndex: root.rangeIndex(root.periodDays)
-        Accessible.name: qsTrId("genycaster.stats.last_n_days")
-                         .arg(LocaleFormat.formatInteger(root.periodDays))
-        onActivated: index => {
-            const days = root.rangeDays[index]
-            if (days !== undefined && days !== root.periodDays)
-                root.periodRequested(days)
         }
     }
 
@@ -424,30 +495,20 @@ ColumnLayout {
         }
     }
 
-    // Loaded components fade in once per response. Refresh falls back to a
-    // lightweight skeleton; no old FID's statistics can leak into a new FID.
+    // Loaded content follows the section entrance progress. Refresh still
+    // uses the skeleton and never exposes the previous account's statistics.
     ColumnLayout {
         id: content
         Layout.fillWidth: true
         visible: root.section === "social" && root.loaded
         spacing: Theme.space3
-        opacity: root.loaded ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis }
-        }
+        opacity: root.loaded ? root.sectionArrival : 0
+        transform: Translate { y: (1 - root.sectionArrival) * 8 }
 
         DirectionAwareLabel {
             Layout.fillWidth: true
             visible: root.partial
             text: qsTrId("genycaster.stats.partial")
-            font.pixelSize: Theme.typeCaptionSize
-            color: Theme.textSecondary
-            wrapMode: Text.Wrap
-        }
-
-        DirectionAwareLabel {
-            Layout.fillWidth: true
-            text: qsTrId("genycaster.stats.period_note")
             font.pixelSize: Theme.typeCaptionSize
             color: Theme.textSecondary
             wrapMode: Text.Wrap
@@ -699,5 +760,7 @@ ColumnLayout {
     MarketPanel {
         visible: root.section === "market"
         Layout.fillWidth: true
+        opacity: root.sectionArrival
+        transform: Translate { y: (1 - root.sectionArrival) * 8 }
     }
 }

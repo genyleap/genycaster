@@ -13,7 +13,7 @@ test("stats range labels use translatable IDs, not English-only abbreviations", 
     for (const id of ["range_week", "range_month", "range_quarter", "range_year"])
         assert.ok(panel.includes('qsTrId("genycaster.stats.' + id + '")'));
     assert.doesNotMatch(panel, /title:\s*"(?:7D|30D|90D|1Y)"/);
-    assert.match(panel, /LocaleFormat\.formatInteger\(modelData\)/);
+    assert.match(panel, /root\.rangeLabel\(periodChoice\.modelData\)/);
 });
 
 test("every bundled locale contains the new stats and market names", () => {
@@ -78,7 +78,7 @@ test("received engagement uses real cohort-based line series with independent ax
 
 test("large desktop statistics fill the workspace without stretching the home composer", () => {
     const home=read("ui/components/home/HomeDashboard.qml");
-    assert.match(home, /root\.activeTab === "stats" \? parent\.width : root\.homeContentMaxWidth/);
+    assert.match(home, /width: root\.activeTab === "stats"[\s\S]*?Math\.max\(1, parent\.width\)/);
     assert.match(home, /Layout\.maximumWidth: root\.homeContentMaxWidth/);
     assert.match(home, /width: parent\.width[\s\S]*?tabActive: root\.activeTab === "stats"/);
 });
@@ -312,7 +312,7 @@ test("social chart palette is subdued and scaled strokes stay thin", () => {
     assert.match(breakdown, /strokeColor:\s*root\.lineInk\("receivedReplies", root\.repliesInk\)/);
     assert.match(breakdown, /strokeStyle:\s*ShapePath\.DashLine/);
     assert.match(breakdown, /const dx = \(b\.x - a\.x\) \* 0\.16/);
-    assert.match(rings, /readonly property real stroke: root\.compact \? 4\.5 : 5\.8/);
+    assert.match(rings, /root\.sidebarMode \? 4\.8 : root\.compact \? 4\.5 : 5\.8/);
 });
 
 test("publishing bar stacks have a square baseline and overlap at shared edges", () => {
@@ -418,21 +418,50 @@ test("publishing tooltip anchors follow column order in both LTR and RTL", () =>
 });
 
 
-test("stats period control is bounded on desktop and a real dropdown on mobile", () => {
+test("stats filter uses a contextual three-dot menu beside the period note", () => {
     const panel = read("ui/components/home/StatsPanel.qml");
-    assert.match(panel, /objectName: "statsDesktopPeriodFilter"/);
-    assert.match(panel, /visible: root\.section === "social" && !root\.compact/);
-    assert.match(panel, /Layout\.preferredWidth: Math\.min\(440, root\.width\)/);
-    assert.match(panel, /objectName: "statsMobilePeriodFilter"/);
-    assert.match(panel, /GenyComboBox \{/);
-    assert.match(panel, /visible: root\.section === "social" && root\.compact/);
-    assert.match(panel, /currentIndex: root\.rangeIndex\(root\.periodDays\)/);
-    assert.match(panel, /root\.periodRequested\(days\)/);
-    assert.match(panel, /compact: root\.compact\s*\n\s*metrics: root\.metrics/);
-    assert.match(panel, /compact: root\.compact\s*\n\s*bars: statsController\.activity/);
+    assert.match(panel, /objectName: "statsPeriodContextRow"/);
+    assert.match(panel, /text: qsTrId\("genycaster.stats.period_note"\)/);
+    assert.match(panel, /text: root.rangeLabel\(root.periodDays\)/);
+    assert.match(panel, /objectName: "statsPeriodMenuButton"/);
+    assert.match(panel, /iconGlyph: Theme.iconMore/);
+    assert.match(panel, /objectName: "statsPeriodMenu"/);
+    assert.match(panel, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutsideParent/);
+    assert.match(panel, /model: root.rangeDays/);
+    assert.match(panel, /root.periodRequested\(modelData\)/);
+    assert.match(panel, /periodMenu.close\(\)/);
+    assert.doesNotMatch(panel, /statsDesktopPeriodFilter|statsMobilePeriodFilter/);
+    assert.match(panel, /compact: root.compact\s*\n\s*metrics: root.metrics/);
+    assert.match(panel, /compact: root.compact\s*\n\s*bars: statsController.activity/);
     const breakdown = read("ui/components/home/StatsBreakdown.qml");
-    assert.match(breakdown, /columns: root\.compact \? 1 : 2/);
-    assert.doesNotMatch(breakdown, /columns: root\.width >= 980/);
+    assert.match(breakdown, /columns: root.compact \? 1 : 2/);
+});
+
+test("desktop analytics uses all available width with a slim beside-chart insight rail", () => {
+    const home = read("ui/components/home/HomeDashboard.qml");
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    assert.match(home, /width: root.activeTab === "stats"\s*\n\s*\? Math.max\(1, parent.width\)/);
+    assert.match(breakdown, /columnSpacing: Theme.space2/);
+    assert.match(breakdown, /Layout.preferredWidth: root.compact \? 1 : 164/);
+    assert.match(breakdown, /sidebarMode: !root.compact/);
+    assert.match(breakdown, /compact: root.compact/);
+    assert.match(rings, /property bool sidebarMode: false/);
+    assert.match(rings, /ringSize: sidebarMode \? 156 : compact \? 196 : 226/);
+    assert.match(rings, /root.sidebarMode \? 16 : root.compact \? 22 : 26/);
+});
+
+test("social and market tabs reveal content with reduced-motion-aware entrance", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    assert.match(panel, /property real sectionArrival: 1/);
+    assert.match(panel, /id: sectionEntrance/);
+    assert.match(panel, /duration: Theme.reduceMotion \? 0 : Theme.motionEmphasis/);
+    assert.match(panel, /onSectionChanged:\s*\{/);
+    assert.match(panel, /sectionEntrance.stop\(\)/);
+    assert.match(panel, /sectionEntrance.start\(\)/);
+    assert.match(panel, /opacity: root.loaded \? root.sectionArrival : 0/);
+    assert.match(panel, /transform: Translate \{ y: \(1 - root.sectionArrival\) \* 8 \}/);
+    assert.match(panel, /MarketPanel \{[\s\S]*?opacity: root.sectionArrival/);
 });
 
 test("hover-only tooltips close on pointer exit while touch selection keeps summary", () => {
@@ -456,7 +485,7 @@ test("chart lines and engagement rings reduce stroke width only in dense layouts
     assert.match(line, /const smallPlot = root\.compact \|\| plot\.width < 440/);
     assert.match(line, /emphasized \? 1\.55 : 1\.1/);
     assert.match(line, /emphasized \? 1\.25 : 0\.95/);
-    assert.match(rings, /root\.compact \? 4\.5 : 5\.8/);
+    assert.match(rings, /root\.sidebarMode \? 4\.8 : root\.compact \? 4\.5 : 5\.8/);
 });
 
 test("sharing statistics opens the authentic composer with only verified loaded values", () => {

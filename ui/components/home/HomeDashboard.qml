@@ -370,8 +370,10 @@ Item {
                 // analytics is a workspace: do not cap it at 760 logical px.
                 // Reflow charts against the real available width, including
                 // resized windows and large desktop monitors.
-                width: Math.max(1, Math.min(parent.width - Theme.space4 * 2,
-                    root.activeTab === "stats" ? parent.width : root.homeContentMaxWidth))
+                width: root.activeTab === "stats"
+                    ? Math.max(1, parent.width)
+                    : Math.max(1, Math.min(parent.width - Theme.space4 * 2,
+                                           root.homeContentMaxWidth))
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
