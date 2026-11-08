@@ -382,6 +382,10 @@ Item {
     }
 
     implicitHeight: messageRow.implicitHeight + (root.magazineCard ? 0 : Theme.space3)
+    // The parent Loader measures implicitHeight, but the card must also have
+    // actual paint geometry for anchored rich text/media and interaction hit
+    // targets. Never leave a zero-height Item painting into the next slot.
+    height: implicitHeight
     Accessible.description: (root.modelData.castId !== undefined ? qsTrId("genycaster.cast.view_conversation") : "")
                             + (Number(root.modelData.embedCount || 0) > 1
                                ? " · " + qsTrId("genycaster.cast.value_embeds").arg(LocaleFormat.formatInteger(Number(root.modelData.embedCount || 0))) : "")
@@ -395,6 +399,7 @@ Item {
         anchors.rightMargin: root.magazineCard ? 0 : root.compact ? Theme.space2 : Theme.space3
         anchors.topMargin: root.magazineCard ? 0 : Theme.space2
         anchors.bottomMargin: Theme.space1
+        height: implicitHeight
         spacing: root.compact ? Theme.space1 : Theme.space3
         layoutDirection: Theme.uiDirection
 
@@ -607,7 +612,11 @@ Item {
                             SourceClientBadge {
                                 objectName: "castSourceClientBadge"
                                 clientName: String(root.modelData.sourceClient || "")
-                                visible: !root.magazineCard || root.width >= 390
+                                // A provider can legitimately omit source-client
+                                // attribution. Do not force an empty Label to
+                                // paint as a dark circular badge next to time.
+                                visible: sanitizedName.length > 0
+                                         && (!root.magazineCard || root.width >= 390)
                             }
 
                         }

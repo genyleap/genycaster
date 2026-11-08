@@ -27,9 +27,13 @@ Item {
         Superellipse {
             id: segments
             objectName: "magazineViewSegments"
-            Layout.preferredWidth: segmentChoices.implicitWidth + 8
+            // Equal segment widths prevent the wider translated option
+            // from shifting the icon/text center of its neighbor.
+            readonly property real segmentWidth: Math.max(
+                magazineChoice.implicitWidth, timelineChoice.implicitWidth)
+            Layout.preferredWidth: segmentWidth * 2 + 12
             Layout.preferredHeight: Theme.compactControlHeight + 4
-            implicitWidth: segmentChoices.implicitWidth + 8
+            implicitWidth: segmentWidth * 2 + 12
             implicitHeight: Theme.compactControlHeight + 4
             curveDepth: Theme.curveControl
             fillColor: Theme.surfaceMuted
@@ -44,10 +48,16 @@ Item {
                 layoutDirection: Theme.uiDirection
 
                 ActionButton {
+                    id: magazineChoice
                     objectName: "explorerMagazineChoice"
+                    Layout.preferredWidth: segments.segmentWidth
+                    Layout.preferredHeight: Theme.compactControlHeight - 4
+                    Layout.alignment: Qt.AlignVCenter
                     compact: true
                     quiet: true
                     elevated: false
+                    iconSize: Theme.iconSizeSmall
+                    balancedIcon: !root.condensed
                     iconOnly: root.condensed
                     selected: root.layoutMode !== "timeline"
                     customSelectedSurface: Theme.surfaceRaised
@@ -58,10 +68,16 @@ Item {
                 }
 
                 ActionButton {
+                    id: timelineChoice
                     objectName: "explorerTimelineChoice"
+                    Layout.preferredWidth: segments.segmentWidth
+                    Layout.preferredHeight: Theme.compactControlHeight - 4
+                    Layout.alignment: Qt.AlignVCenter
                     compact: true
                     quiet: true
                     elevated: false
+                    iconSize: Theme.iconSizeSmall
+                    balancedIcon: !root.condensed
                     iconOnly: root.condensed
                     selected: root.layoutMode === "timeline"
                     customSelectedSurface: Theme.surfaceRaised

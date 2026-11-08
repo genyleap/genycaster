@@ -59,7 +59,7 @@ test('late media height changes shift only following cards in their stable lane'
   assert.equal(belowFirst.y, originalY + 270, 'new media height moves lower slot, never overlaps it');
   assert.match(wall, /if \(relayoutPending\) \{\s*relayoutPending = false\s*scheduleLayout\(\)/);
   assert.match(wall, /onHeightChanged: view\.scheduleLayout\(\)/);
-  assert.match(wall, /clip: true\s+onHeightChanged: view\.scheduleLayout\(\)/);
+  assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
 });
 
 test('measured QML implicit height replaces oversized provisional Loader height', () => {

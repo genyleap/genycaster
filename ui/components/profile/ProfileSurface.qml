@@ -2905,6 +2905,7 @@ Item {
         footer: root.profileMagazineEnabled ? profileFooterComponent : null
         targetCardWidth: Theme.scaleUi(420)
         maximumColumns: 3
+        outsideInset: root.profileContentX
         layoutDirection: Theme.uiDirection
         estimateHeight: function(key, kind, media, width) {
             return root.rowIncubationHeight(root.payloadForStableKey(key), width)

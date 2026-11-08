@@ -76,7 +76,7 @@ test('late image dimensions only move subsequent cards vertically in the same la
         lastBottom[slot.assignedColumn] += slot.height + 12;
     }
     assert.equal(context.rowsBottom, Math.max(...lastBottom));
-    assert.match(wall, /clip: true\s+onHeightChanged: view\.scheduleLayout\(\)/);
+    assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
     assert.doesNotMatch(code, /const repack = !moving && !flicking/,
         'idle scroll must never repack cards sideways on media completion');
 });

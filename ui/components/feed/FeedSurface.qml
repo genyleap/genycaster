@@ -1121,6 +1121,14 @@ Item {
             return false
         if (readList.atYEnd)
             return true
+        // A Masonry feed has several independently sized columns. Waiting
+        // until the tallest column nears its end leaves the shorter columns
+        // black/empty after a small 5/10-post response. Preload a bounded next
+        // page when the shortest lane no longer covers the visible viewport.
+        if (root.magazineEnabled
+                && magazineView.shortestColumnBottom - readList.contentY
+                    < readList.height + Math.max(240, readList.height * 0.3))
+            return true
         // ListView originY is not guaranteed to be zero for variable-height
         // delegates. Normalize contentY before comparing with contentHeight.
         const normalizedY = Math.max(0, readList.contentY - readList.originY)
@@ -1547,7 +1555,13 @@ Item {
         targetCardWidth: Theme.scaleUi(420)
         maximumColumns: 3
         onLayoutStarted: root.applyingGeometryAnchor = true
-        onLayoutFinished: root.applyingGeometryAnchor = false
+        onLayoutFinished: {
+            root.applyingGeometryAnchor = false
+            // Shortest-lane changes may not affect Flickable.contentHeight;
+            // trigger the same debounced, budgeted pagination check.
+            if (!magazineView.moving && !scrollWorkThrottle.running)
+                scrollWorkThrottle.start()
+        }
         estimateHeight: function(key, kind, media, width) {
             return root.rowIncubationHeight(root.payloadForStableKey(key), kind, media, width)
         }

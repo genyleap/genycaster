@@ -24,16 +24,18 @@ test("windowed Explorer fills the reading pane with two columns instead of a cen
     // Execute the actual QML geometry expressions, not a duplicate formula
     // in the test. This catches regressions in cutoff and unused outside space.
     const minimum = qml.match(/readonly property real minimumCardWidth: ([^\n]+)/)?.[1];
+    const usableFormula = qml.match(/readonly property real usableWidth: ([^\n]+)/)?.[1];
     const columnFormula = qml.match(/readonly property int columns: ([\s\S]*?)\n    \/\/ Allocate/)?.[1];
     const widthFormula = qml.match(/readonly property real cardWidth: ([\s\S]*?)\n    readonly property real leadingInset:/)?.[1];
     const insetFormula = qml.match(/readonly property real leadingInset: ([^\n]+)/)?.[1];
-    assert.ok(minimum && columnFormula && widthFormula && insetFormula);
+    assert.ok(minimum && usableFormula && columnFormula && widthFormula && insetFormula);
 
     const evaluate = (width, targetCardWidth = 420) => {
-        const values = {width, targetCardWidth, gutter: 12, maximumColumns: 3};
+        const values = {width, targetCardWidth, gutter: 12, outsideInset: 12, maximumColumns: 3};
         const context = vm.createContext(values);
         for (const [property, expr] of [
             ["minimumCardWidth", minimum],
+            ["usableWidth", usableFormula],
             ["columns", columnFormula],
             ["cardWidth", widthFormula],
             ["leadingInset", insetFormula]

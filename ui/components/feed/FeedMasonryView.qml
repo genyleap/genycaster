@@ -16,6 +16,9 @@ Flickable {
     property int maximumColumns: 2
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
+    // Profile's header uses a measured symmetric reading gutter. Its cards
+    // must use the same gutter; Explorer keeps its own compact gutter.
+    property real outsideInset: gutter
     property real cacheBuffer: Math.min(height * 0.8, 720)
     // Keep recently displayed cards mounted through ordinary reverse scrolls.
     // Churn from destroying/recreating image trees on every scroll reversal
@@ -67,14 +70,19 @@ Flickable {
     // 76% keeps a legible minimum while allowing 2 columns in a windowed
     // desktop and 3 columns in the wider full-screen workspace.
     readonly property real minimumCardWidth: Math.max(1, targetCardWidth * 0.76)
+    readonly property real usableWidth: Math.max(1, width - outsideInset * 2)
     readonly property int columns: Math.max(1, Math.min(maximumColumns,
-        Math.floor((Math.max(0, width) - gutter) / (minimumCardWidth + gutter))))
-    // Allocate the entire reading-pane width to the chosen columns. Do not
-    // cap a lone card at 115% and leave unused outside slabs on either side.
+        Math.floor((usableWidth + gutter) / (minimumCardWidth + gutter))))
+    // Allocate the entire usable reading width while matching the profile
+    // banner/bio boundaries, including when the window is resized.
     readonly property real cardWidth: Math.max(1,
-        (width - gutter * (columns + 1)) / columns)
-    readonly property real leadingInset: gutter
+        (usableWidth - gutter * (columns - 1)) / columns)
+    readonly property real leadingInset: outsideInset
     property real rowsBottom: 0
+    // The tallest lane defines scroll length, but the shortest lane tells us
+    // when an editorial grid is visibly starved for more cards. This matters
+    // when a page contains only 5 or 10 posts with very different heights.
+    property real shortestColumnBottom: 0
     property bool arranging: false
     property bool positioned: false
     // Layout changes made while we are positioning delegates must never be
@@ -181,6 +189,8 @@ Flickable {
             bottoms[column] += slot.height + gutter
         }
         rowsBottom = slots.count > 0 ? Math.max(...bottoms) : headerLoader.height
+        shortestColumnBottom = slots.count >= columns
+            ? Math.min(...bottoms) : headerLoader.height
         if (anchor) contentY = Math.max(0, Math.min(anchor.y - offset,
             Math.max(0, contentHeight - height)))
         positioned = true
@@ -250,6 +260,7 @@ Flickable {
     onCardWidthChanged: scheduleLayout()
     onLayoutDirectionChanged: scheduleLayout()
     onGutterChanged: scheduleLayout()
+    onOutsideInsetChanged: scheduleLayout()
     onMovingChanged: if (!moving) scheduleLayout()
     Component.onCompleted: scheduleLayout()
 
@@ -295,10 +306,11 @@ Flickable {
                 ? view.estimateHeight(stableKey, presentationKind, mediaLayoutKind, width) : 320
             width: view.cardWidth
             height: Math.max(1, measuredHeight > 0 ? measuredHeight : estimatedHeight)
-            // A nested preview may update before its new implicit height
-            // reaches this slot. Clip transient overdraw rather than let the
-            // preceding card paint across the following card.
-            clip: true
+            // The measured height follows the cast's real paint geometry.
+            // Clipping the slot itself hid the final lines of Markdown and
+            // media while nested Loaders updated their size; the card's own
+            // rounded media surfaces handle their visual clipping.
+            clip: cardLoader.item === null
             onHeightChanged: view.scheduleLayout()
             onIndexChanged: {
                 assignedColumn = -1
@@ -354,12 +366,27 @@ Flickable {
                 active: view.visible && slot.placed
                         && slot.y + slot.height > view.contentY
                         && slot.y < view.contentY + view.height
-                        && cardLoader.item === null
+                        && (cardLoader.item === null
+                            || Number(cardLoader.item.resolvedHeight
+                                      || cardLoader.item.implicitHeight || 0) <= 0)
                 asynchronous: false
                 sourceComponent: Component {
-                    CastSkeleton {
-                        mediaPreview: slot.mediaLayoutKind !== "other"
-                        animate: !view.moving
+                    Item {
+                        // The placeholder fills the entire estimated card, not
+                        // just the 142px text bars; that formerly appeared as
+                        // a giant blank strip beneath a short skeleton.
+                        Superellipse {
+                            anchors.fill: parent
+                            fillColor: Theme.surfaceRaised
+                            borderWidth: 0
+                            curveDepth: Theme.curveContainer
+                        }
+                        CastSkeleton {
+                            width: parent.width
+                            height: Math.min(parent.height, implicitHeight)
+                            mediaPreview: slot.mediaLayoutKind !== "other"
+                            animate: !view.moving
+                        }
                     }
                 }
             }

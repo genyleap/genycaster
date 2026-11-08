@@ -29,11 +29,17 @@ Item {
                                           : "conversation"
 
     implicitHeight: loader.item ? loader.item.implicitHeight : 0
+    // Give the nested Loader a real vertical extent. Width-only anchoring
+    // allows rich children to calculate their implicitHeight while painting
+    // with a zero-height scene node, clipping markdown/media into the next row.
+    height: implicitHeight
 
     Loader {
         id: loader
         anchors.left: parent.left
         anchors.right: parent.right
+        anchors.top: parent.top
+        height: root.height
         sourceComponent: root.magazineCard ? magazineComponent
                        : root.resolvedKind === "visual" ? visualComponent
                        : root.resolvedKind === "developer" ? developerComponent : conversationComponent

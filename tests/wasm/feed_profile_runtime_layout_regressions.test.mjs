@@ -40,10 +40,12 @@ test('Magazine shows a bounded skeleton for truly visible slots awaiting their d
     assert.match(placeholder, /slot\.y \+ slot\.height > view\.contentY/);
     assert.match(placeholder, /slot\.y < view\.contentY \+ view\.height/);
     assert.match(placeholder, /cardLoader\.item === null/);
-    assert.match(placeholder, /sourceComponent: Component \{\s*CastSkeleton/);
+    assert.match(placeholder, /sourceComponent: Component \{\s*Item \{/);
+    assert.match(placeholder, /Superellipse \{\s*anchors\.fill: parent\s*fillColor: Theme\.surfaceRaised/);
+    assert.match(placeholder, /CastSkeleton \{[\s\S]*?height: Math\.min\(parent\.height, implicitHeight\)/);
     assert.match(placeholder, /animate: !view\.moving/);
     assert.match(wall, /active: slot\.admitted/, 'the real card uses sampled admission, not geometry bindings');
-    assert.match(wall, /clip: true\s+onHeightChanged: view\.scheduleLayout\(\)/);
+    assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
 });
 
 test('Rich text and animated sprite fallback cannot abandon nested asynchronous incubators', () => {
