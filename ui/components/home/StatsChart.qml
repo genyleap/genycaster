@@ -191,7 +191,8 @@ Superellipse {
                                 y: plot.height - column.castHeight - column.replyHeight
                                 width: column.barWidth
                                 height: Math.max(0, column.castHeight + column.replyHeight)
-                                opacity: column.highlighted ? 0.78 : 1
+                                clip: true
+                                opacity: column.highlighted ? 0.86 : 1
                                 Behavior on opacity {
                                     NumberAnimation {
                                         duration: Theme.reduceMotion ? 0 : Theme.motionFast
@@ -220,7 +221,10 @@ Superellipse {
                                     x: 0
                                     y: 0
                                     width: stack.width
-                                    height: column.replyHeight
+                                    // Overpaint one logical pixel of the lower segment.
+                                    // Both heights are pixel-snapped; this closes
+                                    // subpixel hairlines at fractional display scales.
+                                    height: column.replyHeight + (column.castHeight > 0 ? 1 : 0)
                                     fillColor: root.replyInk
                                     borderWidth: 0
                                     curveDepth: Math.min(5, width / 2, height / 2)

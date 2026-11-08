@@ -235,14 +235,11 @@ QtObject {
         : Qt.rgba(presetAccent.r, presetAccent.g, presetAccent.b, 0.20)
     readonly property color focusOnAccent: accentInk
 
-    // Categorical analytics colors must stay distinguishable from the user's
-    // chosen accent. The primary series always inherits Theme.accent.
-    // Reuse the existing Light/Dark palette rather than shifting the accent
-    // hue towards pale blue for every series.
-    readonly property color analyticsRecasts: colorThemeId === "mint" || colorThemeId === "ocean"
-        ? swatchViolet : swatchMint
-    readonly property color analyticsReplies: colorThemeId === "rose" || colorThemeId === "violet"
-        ? swatchOcean : swatchRose
+    // Keep the primary analytics series on the configured accent. Secondary
+    // series use neutral greys with separate light/dark contrast, so charts
+    // remain legible without adding unrelated saturated accent colors.
+    readonly property color analyticsRecasts: dark ? "#98A0AE" : "#6B7280"
+    readonly property color analyticsReplies: dark ? "#C2C7D0" : "#9CA3AF"
 
     readonly property color warning: dark ? "#F2B75E" : "#A76208"
     readonly property color warningSurface: dark ? "#2E281E" : "#FFF4E5"

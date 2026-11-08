@@ -98,7 +98,7 @@ test("publishing stacks share a square baseline, a rounded top and native Feed P
     assert.match(chart, /id:\s*stack/);
     assert.match(chart, /height:\s*Math\.max\(0,\s*column\.castHeight \+ column\.replyHeight\)/);
     assert.match(chart, /visible:\s*column\.castHeight > 0/);
-    assert.match(chart, /opacity:\s*column\.highlighted \? 0\.78 : 1/);
+    assert.match(chart, /opacity:\s*column\.highlighted \? 0\.86 : 1/);
     assert.match(chart, /curveTopLeft:\s*column\.replyHeight <= 0/);
     assert.match(chart, /curveBottomLeft:\s*false/);
     assert.match(chart, /curveBottomRight:\s*false/);
@@ -235,7 +235,7 @@ test("engagement chart animates actual paths and publishing hover is paint-only"
     assert.match(breakdown, /Theme\.rtl \? plot\.width \* \(1 - root\.chartReveal\)/);
     assert.doesNotMatch(breakdown, /color:\s*Theme\.warning,\s*axis: 1/);
     assert.match(publishing, /readonly property bool highlighted:/);
-    assert.match(publishing, /opacity:\s*column\.highlighted \? 0\.78 : 1/);
+    assert.match(publishing, /opacity:\s*column\.highlighted \? 0\.86 : 1/);
     assert.match(publishing, /Behavior on opacity/);
     assert.doesNotMatch(publishing, /Behavior on scale/);
     assert.doesNotMatch(publishing, /Behavior on color/);
@@ -295,4 +295,42 @@ test("ring centre labels never set the same QML binding twice", () => {
         "horizontalAlignment: Text.AlignHCenter\n                    horizontalAlignment: Text.AlignHCenter"
     );
     assert.deepEqual(duplicateBindings(broken), ["horizontalAlignment"]);
+});
+
+
+test("social chart palette is subdued and scaled strokes stay thin", () => {
+    const theme = read("ui/theme/Theme.qml");
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    assert.match(theme, /analyticsRecasts: dark \? "#98A0AE" : "#6B7280"/);
+    assert.match(theme, /analyticsReplies: dark \? "#C2C7D0" : "#9CA3AF"/);
+    for (const [color, width] of [
+        ["Theme.accent", "2.1"],
+        ["root.recastsInk", "1.7"],
+        ["root.repliesInk", "1.7"]
+    ]) {
+        assert.ok(breakdown.includes("strokeColor: " + color + "\n                                strokeWidth: " + width));
+    }
+    assert.match(rings, /readonly property real stroke: root\.compact \? 5\.5 : 6/);
+});
+
+test("publishing bar stacks have a square baseline and overlap at shared edges", () => {
+    const chart = read("ui/components/home/StatsChart.qml");
+    const begin = chart.indexOf("Item {\n                                id: stack");
+    const end = chart.indexOf("TapHandler {", begin);
+    assert.ok(begin >= 0 && end > begin);
+    const stack = chart.slice(begin, end);
+    assert.match(stack, /clip:\s*true/);
+    assert.match(stack, /opacity:\s*column\.highlighted \? 0\.86 : 1/);
+    assert.match(stack, /height: column\.replyHeight \+ \(column\.castHeight > 0 \? 1 : 0\)/);
+    assert.match(stack, /curveBottomLeft:\s*false/);
+    assert.match(stack, /curveBottomRight:\s*false/);
+    assert.doesNotMatch(stack, /borderWidth:\s*[1-9]|Behavior on scale/);
+
+    // Opaque upper segments cover exactly one logical pixel of lower material,
+    // and no extra pixel is added when the stacked bar has no lower segment.
+    const overlap = (replies, casts) => replies + (casts > 0 ? 1 : 0);
+    assert.equal(overlap(12, 9), 13);
+    assert.equal(overlap(12, 0), 12);
+    assert.equal(overlap(0, 9), 1); // hidden upper segment cannot draw it
 });

@@ -329,7 +329,7 @@ Superellipse {
                             }
                             ShapePath {
                                 strokeColor: Theme.accent
-                                strokeWidth: 2.8
+                                strokeWidth: 2.1
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
@@ -340,7 +340,7 @@ Superellipse {
                             }
                             ShapePath {
                                 strokeColor: root.recastsInk
-                                strokeWidth: 2.3
+                                strokeWidth: 1.7
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
@@ -351,7 +351,7 @@ Superellipse {
                             }
                             ShapePath {
                                 strokeColor: root.repliesInk
-                                strokeWidth: 2.3
+                                strokeWidth: 1.7
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
