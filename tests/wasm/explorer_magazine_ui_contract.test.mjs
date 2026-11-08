@@ -124,7 +124,10 @@ test("Magazine avoids partial asynchronous cast incubation without disabling tim
     const cast = read("ui/components/feed/CastItem.qml");
     const wall = read("ui/components/feed/FeedMasonryView.qml");
     assert.match(surface, /asynchronous: !sectionRow && !magazineRow/);
-    assert.equal((cast.match(/asynchronous: !root\.magazineCard/g) || []).length, 4);
+    assert.equal((cast.match(/asynchronous: !root\.magazineCard/g) || []).length, 3);
+    // Rich text builds synchronously inside the already virtualized row,
+    // preventing Qt from abandoning nested text incubators on scroll.
+    assert.match(cast, /id: castTextBody[\s\S]*?asynchronous: false/);
     assert.match(wall, /asynchronous: false\s*\n\s*sourceComponent: view\.delegate/);
     assert.match(wall, /function updateAdmissions\(\)/);
     assert.doesNotMatch(wall, /active: .*slot\.height/);

@@ -15,7 +15,7 @@ function section(start, end) {
 
 test('a resolved magazine card replaces an oversized reservation with its actual height', () => {
     const code = section('            function recordHeight() {',
-                         '\n            Loader {\n                id: cardLoader');
+                         '\n            Loader {\n                id: visiblePlaceholder');
     const sample = [];
     const context = vm.createContext({
         cardLoader: {item: {height: 850, implicitHeight: 230}},

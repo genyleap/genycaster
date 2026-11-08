@@ -465,7 +465,10 @@ Item {
                 active: emojiOverlay.spriteFallbackArmed && !lottieEmoji.animationReady
                 visible: active && !lottieEmoji.animationReady
                 opacity: emojiOverlay.spriteReady && !lottieEmoji.animationReady ? 1 : 0
-                asynchronous: true
+                // Sprite fallbacks are tiny viewport-bound delegates.
+                // Do not leave an incubator outstanding when a scrolled-off
+                // cast destroys its RichInlineText parent mid-frame.
+                asynchronous: false
 
                 sourceComponent: Component {
                     SpriteEmoji {

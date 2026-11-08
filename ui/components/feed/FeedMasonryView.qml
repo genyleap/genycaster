@@ -345,6 +345,26 @@ Flickable {
             }
 
             Loader {
+                id: visiblePlaceholder
+                // Only construct a skeleton for an actually visible empty
+                // reservation. Otherwise a just-admitted card can leave a
+                // black hole while its nested QML/media finishes loading.
+                // An independent placeholder must never drive slot geometry.
+                anchors.fill: parent
+                active: view.visible && slot.placed
+                        && slot.y + slot.height > view.contentY
+                        && slot.y < view.contentY + view.height
+                        && cardLoader.item === null
+                asynchronous: false
+                sourceComponent: Component {
+                    CastSkeleton {
+                        mediaPreview: slot.mediaLayoutKind !== "other"
+                        animate: !view.moving
+                    }
+                }
+            }
+
+            Loader {
                 id: cardLoader
                 // Explicitly forward every model role to the component created
                 // in FeedSurface's scope; Loader does not inject model roles.

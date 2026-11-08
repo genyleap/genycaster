@@ -877,7 +877,11 @@ Item {
                     // Magazine cards are admitted only near the viewport; avoid
                     // abandoning unfinished rich/embedded QML incubation on
                     // rapid magazine scrolling or view changes.
-                    asynchronous: !root.magazineCard
+                    // A short-lived rich text incubator is frequently
+                    // invalidated when ListView recycles a cast mid-scroll.
+                    // The outer row already throttles Timeline construction;
+                    // create the small native text subtree synchronously.
+                    asynchronous: false
                     Layout.fillWidth: true
 
                     // Inline text owns its pointer events. A broad parent

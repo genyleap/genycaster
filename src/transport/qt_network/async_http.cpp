@@ -609,8 +609,8 @@ private:
         // QIODevice before the reply necessarily flips its open flag. Avoid reads
         // after timeout; normal caller cancellation is instead drained below so
         // Qt can tear down the TLS device in order.
-        if (!active.reply || active.timedOut || !active.reply->isReadable()
-            || active.reply->bytesAvailable() <= 0) {
+        if (!active.reply || active.timedOut || !active.reply->isOpen()
+            || !active.reply->isReadable() || active.reply->bytesAvailable() <= 0) {
             return;
         }
         const QByteArray bytes = active.reply->readAll();

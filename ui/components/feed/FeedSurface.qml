@@ -1601,22 +1601,32 @@ Item {
                 sourceComponent: root.headerContent
             }
 
-            DirectionAwareLabel {
+            Item {
                 id: topicFilterNotice
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: feedHeaderLoader.bottom
                 anchors.leftMargin: Theme.mobileGutter
                 anchors.rightMargin: Theme.mobileGutter
-                height: visible ? implicitHeight + Theme.space3 : 0
                 visible: root.topicFilterActive
-                text: qsTrId("genycaster.filters.topic_results") + " · "
-                      + root.topicFilterSlug.replace(/-/g," ")
-                color: Theme.accent
-                font.pixelSize: Theme.typeMetaSize
-                font.weight: Theme.weightDemiBold
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Theme.textStartAlignment
+                // QQC2 Label's implicitHeight can depend on its assigned
+                // height while computing elision. A separate wrapper owns
+                // the extra padding, avoiding the Qt height binding loop.
+                height: visible ? topicFilterText.implicitHeight + Theme.space3 : 0
+
+                DirectionAwareLabel {
+                    id: topicFilterText
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    text: qsTrId("genycaster.filters.topic_results") + " · "
+                          + root.topicFilterSlug.replace(/-/g, " ")
+                    color: Theme.accent
+                    font.pixelSize: Theme.typeMetaSize
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Theme.textStartAlignment
+                    elide: Text.ElideRight
+                }
             }
 
             DirectionAwareLabel {
@@ -1634,23 +1644,29 @@ Item {
                 wrapMode: Text.WordWrap
             }
 
-            DirectionAwareLabel {
+            Item {
                 id: localRecentNotice
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: communityNotice.bottom
-                height: visible ? implicitHeight + Theme.space2 : 0
                 visible: !root.socialMode && (
                     (root.localDerivedRecent && root.activeFeed === "recent") ||
                     (root.localDerivedFollowing && root.activeFeed === "following"))
-                text: root.localDerivedFollowing && root.activeFeed === "following"
-                    ? qsTrId("genycaster.feed.following_local_only_notice")
-                    : qsTrId("genycaster.feed.recent_local_only_notice")
-                color: Theme.inkMuted
-                font.pixelSize: Theme.typeCaptionSize
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Theme.textStartAlignment
-                wrapMode: Text.WordWrap
+                height: visible ? localRecentText.implicitHeight + Theme.space2 : 0
+
+                DirectionAwareLabel {
+                    id: localRecentText
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    text: root.localDerivedFollowing && root.activeFeed === "following"
+                        ? qsTrId("genycaster.feed.following_local_only_notice")
+                        : qsTrId("genycaster.feed.recent_local_only_notice")
+                    color: Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    horizontalAlignment: Theme.textStartAlignment
+                    wrapMode: Text.WordWrap
+                }
             }
 
             Column {

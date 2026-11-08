@@ -321,8 +321,8 @@ void NodeSelectionController::finishProbe(QNetworkReply* const reply)
         const int statusCode = httpStatus.toInt();
         // Authentication failures and aborted probes may finish with a closed
         // device. The HTTP status still classifies them without reading a body.
-        const auto body = reply->error() == QNetworkReply::NoError && reply->isReadable()
-                && reply->bytesAvailable() > 0
+        const auto body = reply->error() == QNetworkReply::NoError && reply->isOpen()
+                && reply->isReadable() && reply->bytesAvailable() > 0
             ? QJsonDocument::fromJson(reply->readAll()) : QJsonDocument{};
         const QJsonObject info = body.isObject() ? body.object() : QJsonObject{};
         const bool hypersnapCompatible = reply->error() == QNetworkReply::NoError &&
