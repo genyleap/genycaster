@@ -17,6 +17,9 @@ Item {
     property color repliesColor: Theme.analyticsReplies
     property bool compact: false
     property real reveal: 1
+    // Selecting an arc/legend item persists; hover temporarily overrides it.
+    property int hoveredSeriesIndex: -1
+    property int selectedSeriesIndex: -1
 
     readonly property real sum: Math.max(0, likes) + Math.max(0, recasts)
                                  + Math.max(0, receivedReplies)
@@ -33,14 +36,36 @@ Item {
 
     // The centre communicates the largest measured share, not a fictitious
     // completion goal. The absolute total is still shown in the parent header.
-    readonly property var leadingSeries: {
-        const rows = segments
-        let leading = rows[0]
-        for (let i = 1; i < rows.length; ++i) {
-            if (rows[i].count > leading.count)
-                leading = rows[i]
+    readonly property int leadingIndex: {
+        let leading = 0
+        for (let i = 1; i < segments.length; ++i) {
+            if (segments[i].count > segments[leading].count)
+                leading = i
         }
         return leading
+    }
+    readonly property var leadingSeries: segments[leadingIndex]
+    readonly property int activeSeriesIndex: hoveredSeriesIndex >= 0 ? hoveredSeriesIndex
+                                             : selectedSeriesIndex >= 0 ? selectedSeriesIndex
+                                             : leadingIndex
+    readonly property var activeSeries: segments[activeSeriesIndex]
+
+    function ringIndexAt(x, y) {
+        const dx = x - ring.center
+        const dy = y - ring.center
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const radii = [ring.outerRadius, ring.middleRadius, ring.innerRadius]
+        const allowance = ring.stroke / 2 + 7
+        let candidate = -1
+        let nearest = allowance
+        for (let i = 0; i < radii.length; ++i) {
+            const delta = Math.abs(distance - radii[i])
+            if (delta <= nearest) {
+                nearest = delta
+                candidate = i
+            }
+        }
+        return candidate
     }
 
     function animate() {
@@ -68,8 +93,9 @@ Item {
     Accessible.role: Accessible.StaticText
     Accessible.name: qsTrId("genycaster.stats.engagement") + ": "
                      + LocaleFormat.formatInteger(root.sum) + " · "
-                     + root.leadingSeries.label + ": "
-                     + LocaleFormat.formatInteger(Math.round(root.leadingSeries.share * 100)) + "%"
+                     + root.activeSeries.label + ": "
+                     + LocaleFormat.formatInteger(Math.round(root.activeSeries.share * 100)) + "%"
+                     + " · " + LocaleFormat.formatInteger(root.activeSeries.count)
 
     GridLayout {
         id: distribution
@@ -84,6 +110,19 @@ Item {
             Layout.preferredWidth: root.ringSize
             Layout.preferredHeight: root.ringSize
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Button
+            Accessible.name: root.activeSeries.label + ": "
+                             + LocaleFormat.formatInteger(root.activeSeries.count)
+            Accessible.onPressAction: root.selectedSeriesIndex = (root.activeSeriesIndex + 1) % 3
+            Keys.onLeftPressed: event => {
+                root.selectedSeriesIndex = (root.activeSeriesIndex + (Theme.rtl ? 1 : 2)) % 3
+                event.accepted = true
+            }
+            Keys.onRightPressed: event => {
+                root.selectedSeriesIndex = (root.activeSeriesIndex + (Theme.rtl ? 2 : 1)) % 3
+                event.accepted = true
+            }
             readonly property real center: width / 2
             readonly property real stroke: root.compact ? 5.5 : 6
             readonly property real outerRadius: width / 2 - stroke / 2 - 4
@@ -169,7 +208,7 @@ Item {
                     Layout.preferredWidth: Math.max(64, ring.innerRadius * 1.8)
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
-                    text: root.sum > 0 ? LocaleFormat.formatInteger(Math.round(root.leadingSeries.share * 100)) + "%" : "—"
+                    text: root.sum > 0 ? LocaleFormat.formatInteger(Math.round(root.activeSeries.share * 100)) + "%" : "—"
                     color: Theme.textPrimary
                     font.pixelSize: Theme.typeTitle2Size
                     font.weight: Theme.weightBold
@@ -179,9 +218,35 @@ Item {
                     Layout.preferredWidth: Math.max(64, ring.innerRadius * 1.8)
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
-                    text: root.sum > 0 ? root.leadingSeries.label : qsTrId("genycaster.stats.engagement")
+                    text: root.sum > 0 ? root.activeSeries.label : qsTrId("genycaster.stats.engagement")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.typeCaptionSize
+                }
+                DirectionAwareLabel {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Math.max(64, ring.innerRadius * 1.8)
+                    horizontalAlignment: Text.AlignHCenter
+                    text: root.sum > 0 ? LocaleFormat.formatInteger(root.activeSeries.count) : ""
+                    color: Theme.textTertiary
+                    font.pixelSize: Theme.typeCaptionSize
+                }
+            }
+
+            // Hit-test the annulus rather than the bounding square, so the
+            // central labels do not accidentally select a series.
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton
+                cursorShape: root.hoveredSeriesIndex >= 0
+                             ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onPositionChanged: mouse =>
+                    root.hoveredSeriesIndex = root.ringIndexAt(mouse.x, mouse.y)
+                onExited: root.hoveredSeriesIndex = -1
+                onClicked: mouse => {
+                    const index = root.ringIndexAt(mouse.x, mouse.y)
+                    if (index >= 0)
+                        root.selectedSeriesIndex = index
                 }
             }
         }
@@ -197,6 +262,8 @@ Item {
             Repeater {
                 model: root.segments
                 delegate: RowLayout {
+                    id: segmentRow
+                    required property int index
                     required property var modelData
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
@@ -221,9 +288,27 @@ Item {
                     DirectionAwareLabel {
                         text: LocaleFormat.formatInteger(Math.round(modelData.share * 100)) + "%"
                         font.pixelSize: Theme.typeCaptionSize
-                        font.weight: Theme.weightDemiBold
+                        font.weight: root.activeSeriesIndex === segmentRow.index
+                                     ? Theme.weightBold : Theme.weightDemiBold
                         color: Theme.textPrimary
                     }
+                    opacity: root.activeSeriesIndex === segmentRow.index ? 1 : 0.7
+                    HoverHandler {
+                        cursorShape: Qt.PointingHandCursor
+                        onHoveredChanged: {
+                            if (hovered)
+                                root.hoveredSeriesIndex = segmentRow.index
+                            else if (root.hoveredSeriesIndex === segmentRow.index)
+                                root.hoveredSeriesIndex = -1
+                        }
+                    }
+                    TapHandler {
+                        onTapped: root.selectedSeriesIndex = segmentRow.index
+                    }
+                    Accessible.role: Accessible.Button
+                    Accessible.name: segmentRow.modelData.label + ": "
+                                     + LocaleFormat.formatInteger(segmentRow.modelData.count)
+                    Accessible.onPressAction: root.selectedSeriesIndex = segmentRow.index
                 }
             }
         }

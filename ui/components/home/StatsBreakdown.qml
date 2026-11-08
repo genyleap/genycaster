@@ -15,6 +15,15 @@ Superellipse {
     property var activity: []
     property int hoveredIndex: -1
     property int selectedIndex: -1
+    // Legend selection persists; hovering a line temporarily inspects it.
+    // Keeping one series in focus prevents three near-parallel curves
+    // from looking like a single thick, ambiguous stroke.
+    property string selectedSeriesKey: "likes"
+    property string hoveredSeriesKey: ""
+    readonly property string focusedSeriesKey: hoveredSeriesKey || selectedSeriesKey
+    readonly property color focusedInk: focusedSeriesKey === "recasts" ? recastsInk
+                                        : focusedSeriesKey === "receivedReplies" ? repliesInk
+                                        : Theme.accent
     readonly property int inspectedIndex: hoveredIndex >= 0 ? hoveredIndex : selectedIndex
     readonly property var inspectedBucket: inspectedIndex >= 0 && inspectedIndex < activity.length
                                             ? activity[inspectedIndex] : null
@@ -44,6 +53,32 @@ Superellipse {
                                Number(bucket.receivedReplies || 0))
         return maximum
     }
+    function lineInk(key, ink) {
+        const amount = focusedSeriesKey === "" || focusedSeriesKey === key ? 1 : 0.30
+        return Qt.rgba(ink.r, ink.g, ink.b, amount)
+    }
+    function lineWidth(key) {
+        const emphasized = focusedSeriesKey === "" || focusedSeriesKey === key
+        return key === "likes" ? (emphasized ? 2.1 : 1.45)
+                               : (emphasized ? 1.8 : 1.3)
+    }
+    function nearestSeriesAt(x, y, w, h) {
+        const index = indexAt(x, w)
+        if (index < 0) return ""
+        let nearest = ""
+        let distance = 20
+        for (const entry of receivedSeries) {
+            const point = pointFor(index, entry.key,
+                entry.axis === 0 ? likesMax : secondaryMax, w, h)
+            const delta = Math.abs(point.y - y)
+            if (delta < distance) {
+                distance = delta
+                nearest = entry.key
+            }
+        }
+        return nearest
+    }
+
     readonly property bool hasTimeSeries: activity && activity.length >= 2
     readonly property real plotInset: 5
     readonly property bool narrow: width < 460
@@ -64,9 +99,9 @@ Superellipse {
             points.push(pointFor(i, key, maximum, width, height))
         return points
     }
-    // Monotone cubic Hermite interpolation. The control-point slopes are
-    // bounded by neighboring secants, so smoothing never invents a higher
-    // peak, a negative count, or a nonzero valley between two zero buckets.
+    // Restrained monotone cubic Hermite interpolation. Short tangent handles
+    // make the weekly trend readable (rather than waves piled on top of
+    // each other) without overshooting the measured endpoints.
     // Plot points stay exact and remain in chronological order in both LTR
     // and RTL; only their physical x coordinates are mirrored.
     function smoothPath(key, maximum, w, h, fillArea) {
@@ -92,7 +127,7 @@ Superellipse {
         for (let i = 0; i < points.length - 1; ++i) {
             const a = points[i]
             const b = points[i + 1]
-            const dx = (b.x - a.x) / 3
+            const dx = (b.x - a.x) * 0.16
             svg += " C " + n(a.x + dx) + " " + n(a.y + slopes[i] * dx)
                 + " " + n(b.x - dx) + " " + n(b.y - slopes[i + 1] * dx)
                 + " " + n(b.x) + " " + n(b.y)
@@ -143,6 +178,7 @@ Superellipse {
     onActivityChanged: {
         selectedIndex = -1
         hoveredIndex = -1
+        hoveredSeriesKey = ""
         Qt.callLater(animateChart)
     }
     Component.onCompleted: animateChart()
@@ -234,20 +270,44 @@ Superellipse {
                     Repeater {
                         model: root.receivedSeries
                         delegate: RowLayout {
+                            id: legendEntry
                             required property var modelData
                             spacing: Theme.space1
+                            opacity: root.focusedSeriesKey === ""
+                                     || root.focusedSeriesKey === modelData.key ? 1 : 0.48
                             Rectangle {
-                                width: 10
+                                width: 12
                                 height: 3
                                 radius: height / 2
                                 color: modelData.color
                             }
                             DirectionAwareLabel {
                                 text: modelData.label
-                                color: Theme.textSecondary
+                                color: root.focusedSeriesKey === modelData.key
+                                       ? Theme.textPrimary : Theme.textSecondary
                                 font.pixelSize: Theme.typeCaptionSize
+                                font.weight: root.focusedSeriesKey === modelData.key
+                                             ? Theme.weightDemiBold : Font.Normal
                                 elide: Text.ElideRight
                             }
+                            HoverHandler {
+                                cursorShape: Qt.PointingHandCursor
+                                onHoveredChanged: {
+                                    if (hovered)
+                                        root.hoveredSeriesKey = legendEntry.modelData.key
+                                    else if (root.hoveredSeriesKey === legendEntry.modelData.key)
+                                        root.hoveredSeriesKey = ""
+                                }
+                            }
+                            TapHandler {
+                                onTapped: {
+                                    const key = legendEntry.modelData.key
+                                    root.selectedSeriesKey = root.selectedSeriesKey === key ? "" : key
+                                }
+                            }
+                            Accessible.role: Accessible.Button
+                            Accessible.name: legendEntry.modelData.label
+                            Accessible.onPressAction: root.selectedSeriesKey = legendEntry.modelData.key
                         }
                     }
                 }
@@ -320,16 +380,20 @@ Superellipse {
 
                             ShapePath {
                                 strokeColor: "transparent"
-                                fillColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                                   Theme.accent.b, Theme.dark ? 0.13 : 0.075)
+                                fillColor: Qt.rgba(root.focusedInk.r, root.focusedInk.g,
+                                                   root.focusedInk.b, Theme.dark ? 0.10 : 0.055)
                                 PathSvg {
-                                    path: root.smoothPath("likes", root.likesMax,
-                                                          plot.width, plot.height, true)
+                                    path: root.smoothPath(
+                                        root.focusedSeriesKey || "likes",
+                                        root.focusedSeriesKey === "recasts"
+                                        || root.focusedSeriesKey === "receivedReplies"
+                                            ? root.secondaryMax : root.likesMax,
+                                        plot.width, plot.height, true)
                                 }
                             }
                             ShapePath {
-                                strokeColor: Theme.accent
-                                strokeWidth: 2.1
+                                strokeColor: root.lineInk("likes", Theme.accent)
+                                strokeWidth: root.lineWidth("likes")
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
@@ -339,8 +403,8 @@ Superellipse {
                                 }
                             }
                             ShapePath {
-                                strokeColor: root.recastsInk
-                                strokeWidth: 1.7
+                                strokeColor: root.lineInk("recasts", root.recastsInk)
+                                strokeWidth: root.lineWidth("recasts")
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
@@ -350,8 +414,10 @@ Superellipse {
                                 }
                             }
                             ShapePath {
-                                strokeColor: root.repliesInk
-                                strokeWidth: 1.7
+                                strokeColor: root.lineInk("receivedReplies", root.repliesInk)
+                                strokeWidth: root.lineWidth("receivedReplies")
+                                strokeStyle: ShapePath.DashLine
+                                dashPattern: [3, 3]
                                 fillColor: "transparent"
                                 capStyle: ShapePath.RoundCap
                                 joinStyle: ShapePath.RoundJoin
@@ -363,25 +429,39 @@ Superellipse {
                         }
                         }
 
-                        Rectangle {
+                        // Quiet dashed crosshair exposes the inspected publish
+                        // period without competing with the measured series.
+                        Item {
                             visible: root.inspectedBucket !== null
                             width: 1
                             height: parent.height
-                            color: Theme.borderStrong
                             x: root.inspectedIndex >= 0
                                ? root.pointFor(root.inspectedIndex, "likes", root.likesMax,
                                                plot.width, plot.height).x : 0
+                            Repeater {
+                                model: Math.ceil(plot.height / 12)
+                                delegate: Rectangle {
+                                    required property int index
+                                    y: index * 12
+                                    width: 1
+                                    height: 6
+                                    color: Theme.borderStrong
+                                }
+                            }
                         }
                         Repeater {
                             model: root.inspectedBucket ? root.receivedSeries : []
                             delegate: Rectangle {
                                 required property var modelData
-                                width: 7
-                                height: 7
+                                readonly property bool emphasized:
+                                    root.focusedSeriesKey === "" || root.focusedSeriesKey === modelData.key
+                                width: emphasized ? 9 : 6
+                                height: width
                                 radius: width / 2
                                 color: modelData.color
+                                opacity: emphasized ? 1 : 0.38
                                 border.color: Theme.surface
-                                border.width: 1
+                                border.width: 1.5
                                 readonly property var point: root.pointFor(root.inspectedIndex,
                                     modelData.key, modelData.axis === 0 ? root.likesMax : root.secondaryMax,
                                     plot.width, plot.height)
@@ -403,7 +483,11 @@ Superellipse {
                             borderWidth: 1
                             curveDepth: Theme.curveContainer
                             readonly property point selectedPosition: root.activePoint(
-                                "likes", root.likesMax, plot.width, plot.height)
+                                root.focusedSeriesKey || "likes",
+                                root.focusedSeriesKey === "recasts"
+                                || root.focusedSeriesKey === "receivedReplies"
+                                    ? root.secondaryMax : root.likesMax,
+                                plot.width, plot.height)
                             x: Math.max(2, Math.min(plot.width - width - 2,
                                 selectedPosition.x - width / 2))
                             y: selectedPosition.y >= height + 14
@@ -433,6 +517,8 @@ Superellipse {
                                         Layout.fillWidth: true
                                         layoutDirection: Theme.uiDirection
                                         spacing: Theme.space2
+                                        opacity: root.focusedSeriesKey === ""
+                                                 || root.focusedSeriesKey === modelData.key ? 1 : 0.62
                                         Rectangle {
                                             width: 7
                                             height: width
@@ -463,10 +549,18 @@ Superellipse {
                         HoverHandler {
                             id: plotHover
                             onPointChanged: {
-                                if (hovered)
+                                if (hovered) {
                                     root.hoveredIndex = root.indexAt(point.position.x, plot.width)
+                                    root.hoveredSeriesKey = root.nearestSeriesAt(
+                                        point.position.x, point.position.y, plot.width, plot.height)
+                                }
                             }
-                            onHoveredChanged: if (!hovered) root.hoveredIndex = -1
+                            onHoveredChanged: {
+                                if (!hovered) {
+                                    root.hoveredIndex = -1
+                                    root.hoveredSeriesKey = ""
+                                }
+                            }
                         }
                         TapHandler {
                             onTapped: eventPoint =>

@@ -138,6 +138,12 @@ Superellipse {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 readonly property real columnGap: Math.min(2, Math.max(0, width / Math.max(1, root.bars.length) / 4))
+                function columnCenter(index) {
+                    const count = Math.max(1, root.bars.length)
+                    const slot = Math.max(0.75, (width - columnGap * (count - 1)) / count)
+                    const center = index * (slot + columnGap) + slot / 2
+                    return Theme.rtl ? width - center : center
+                }
                 clip: true
 
                 Repeater {
@@ -237,8 +243,113 @@ Superellipse {
                             TapHandler { onTapped: root.selectedIndex = column.index }
                             HoverHandler {
                                 cursorShape: Qt.PointingHandCursor
-                                onHoveredChanged: root.hoveredIndex = hovered
-                                    ? column.index : -1
+                                // Only a visible bar triggers the floating details.
+                                // A tap can still inspect an empty day on touch.
+                                onPointChanged: {
+                                    if (hovered)
+                                        root.hoveredIndex = point.position.y >= stack.y - 6
+                                            ? column.index : -1
+                                }
+                                onHoveredChanged: {
+                                    if (hovered)
+                                        root.hoveredIndex = point.position.y >= stack.y - 6
+                                            ? column.index : -1
+                                    else if (root.hoveredIndex === column.index)
+                                        root.hoveredIndex = -1
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Non-intercepting inspection bubble stays within the plot.
+                // The guide below remains available for touch/narrow widths.
+                Superellipse {
+                    id: barInspectCard
+                    z: 8
+                    enabled: false
+                    visible: root.selected !== null && plot.width >= 290
+                    width: Math.min(204, plot.width - 8)
+                    height: barInspectContent.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.surfaceRaised
+                    borderColor: Theme.borderMuted
+                    borderWidth: 1
+                    curveDepth: Theme.curveContainer
+                    readonly property real anchorX: plot.columnCenter(root.activeIndex)
+                    readonly property real topY: root.selected
+                        ? plot.height - Math.round(plot.height
+                            * (Number(root.selected.casts || 0) + Number(root.selected.replies || 0))
+                            / root.maxCount * root.reveal)
+                        : plot.height
+                    x: anchorX + width + 12 <= plot.width - 4
+                       ? anchorX + 12 : Math.max(4, anchorX - width - 12)
+                    y: Math.max(4, Math.min(plot.height - height - 4, topY - height - 10))
+
+                    ColumnLayout {
+                        id: barInspectContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space1
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            alignToUi: true
+                            text: root.localizedRange(root.selected)
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeMetaSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            Rectangle {
+                                width: 7
+                                height: 7
+                                radius: width / 2
+                                color: Theme.accent
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.stats.casts")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            DirectionAwareLabel {
+                                text: root.selected
+                                    ? LocaleFormat.formatInteger(Number(root.selected.casts || 0)) : ""
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            Rectangle {
+                                width: 7
+                                height: 7
+                                radius: width / 2
+                                color: root.replyInk
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.stats.replies")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            DirectionAwareLabel {
+                                text: root.selected
+                                    ? LocaleFormat.formatInteger(Number(root.selected.replies || 0)) : ""
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeCaptionSize
+                                font.weight: Theme.weightDemiBold
                             }
                         }
                     }

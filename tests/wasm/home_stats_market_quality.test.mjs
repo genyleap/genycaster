@@ -103,7 +103,8 @@ test("publishing stacks share a square baseline, a rounded top and native Feed P
     assert.match(chart, /curveBottomLeft:\s*false/);
     assert.match(chart, /curveBottomRight:\s*false/);
     assert.match(chart, /borderWidth:\s*0/);
-    assert.match(chart, /onHoveredChanged:\s*root\.hoveredIndex = hovered/);
+    assert.match(chart, /onPointChanged:/);
+    assert.match(chart, /root\.hoveredIndex = point\.position\.y >= stack\.y - 6/);
     assert.doesNotMatch(chart, /0\.52/);
 });
 
@@ -254,7 +255,7 @@ test("analytics uses categorical theme tokens instead of three blue accent shade
     assert.match(publishing, /readonly property color replyInk: Theme\.analyticsReplies/);
     assert.match(rings, /property color recastsColor: Theme\.analyticsRecasts/);
     assert.match(rings, /property color repliesColor: Theme\.analyticsReplies/);
-    assert.match(rings, /root\.leadingSeries\.share \* 100/);
+    assert.match(rings, /root\.activeSeries\.share \* 100/);
     assert.doesNotMatch(rings, /LocaleFormat\.formatInteger\(root\.sum\)\s*\n\s*color: Theme\.textPrimary/);
 });
 
@@ -270,7 +271,7 @@ test("ring centre labels never set the same QML binding twice", () => {
     // Each centre label is a leaf QML object. Read only its own immediate
     // bindings; siblings may legitimately use the same property names.
     const labels = [...centre.matchAll(/DirectionAwareLabel\s*\{([\s\S]*?)\n {16}\}/g)];
-    assert.equal(labels.length, 2, "expected percentage and label");
+    assert.equal(labels.length, 3, "expected percentage, label and count");
     function duplicateBindings(body) {
         const seen = new Set();
         const duplicates = [];
@@ -304,13 +305,13 @@ test("social chart palette is subdued and scaled strokes stay thin", () => {
     const rings = read("ui/components/home/StatsDistributionRings.qml");
     assert.match(theme, /analyticsRecasts: dark \? "#98A0AE" : "#6B7280"/);
     assert.match(theme, /analyticsReplies: dark \? "#C2C7D0" : "#9CA3AF"/);
-    for (const [color, width] of [
-        ["Theme.accent", "2.1"],
-        ["root.recastsInk", "1.7"],
-        ["root.repliesInk", "1.7"]
-    ]) {
-        assert.ok(breakdown.includes("strokeColor: " + color + "\n                                strokeWidth: " + width));
-    }
+    assert.match(breakdown, /function lineInk\(key, ink\)/);
+    assert.match(breakdown, /function lineWidth\(key\)/);
+    assert.match(breakdown, /strokeColor:\s*root\.lineInk\("likes", Theme\.accent\)/);
+    assert.match(breakdown, /strokeColor:\s*root\.lineInk\("recasts", root\.recastsInk\)/);
+    assert.match(breakdown, /strokeColor:\s*root\.lineInk\("receivedReplies", root\.repliesInk\)/);
+    assert.match(breakdown, /strokeStyle:\s*ShapePath\.DashLine/);
+    assert.match(breakdown, /const dx = \(b\.x - a\.x\) \* 0\.16/);
     assert.match(rings, /readonly property real stroke: root\.compact \? 5\.5 : 6/);
 });
 
@@ -333,4 +334,85 @@ test("publishing bar stacks have a square baseline and overlap at shared edges",
     assert.equal(overlap(12, 9), 13);
     assert.equal(overlap(12, 0), 12);
     assert.equal(overlap(0, 9), 1); // hidden upper segment cannot draw it
+});
+
+
+test("engagement series focus follows a persistent legend selection or hovered curve", () => {
+    const view = read("ui/components/home/StatsBreakdown.qml");
+    assert.match(view, /property string selectedSeriesKey: "likes"/);
+    assert.match(view, /property string hoveredSeriesKey: ""/);
+    assert.match(view, /readonly property string focusedSeriesKey: hoveredSeriesKey \|\| selectedSeriesKey/);
+    assert.match(view, /function nearestSeriesAt\(x, y, w, h\)/);
+    assert.match(view, /root\.hoveredSeriesKey = root\.nearestSeriesAt\(/);
+    assert.match(view, /root\.selectedSeriesKey = root\.selectedSeriesKey === key \? "" : key/);
+    assert.match(view, /Accessible\.onPressAction: root\.selectedSeriesKey = legendEntry\.modelData\.key/);
+    assert.match(view, /id: inspectCard/);
+    assert.match(view, /root\.inspectedBucket\[modelData\.key\]/);
+});
+
+test("ring arcs and legends inspect every metric without changing provider totals", () => {
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    assert.match(rings, /readonly property int activeSeriesIndex: hoveredSeriesIndex >= 0/);
+    assert.match(rings, /readonly property var activeSeries: segments\[activeSeriesIndex\]/);
+    assert.match(rings, /function ringIndexAt\(x, y\)/);
+    assert.match(rings, /root\.hoveredSeriesIndex = root\.ringIndexAt\(mouse\.x, mouse\.y\)/);
+    assert.match(rings, /onClicked: mouse =>/);
+    assert.match(rings, /root\.selectedSeriesIndex = index/);
+    assert.match(rings, /root\.selectedSeriesIndex = segmentRow\.index/);
+    assert.match(rings, /Keys\.onLeftPressed:/);
+    assert.match(rings, /Keys\.onRightPressed:/);
+    assert.match(rings, /LocaleFormat\.formatInteger\(root\.activeSeries\.count\)/);
+    assert.match(rings, /Math\.round\(root\.activeSeries\.share \* 100\)/);
+    assert.match(rings, /readonly property real sum:/);
+});
+
+test("publishing bars expose bounded live tooltip and touch fallback", () => {
+    const chart = read("ui/components/home/StatsChart.qml");
+    assert.match(chart, /id: barInspectCard/);
+    assert.match(chart, /enabled: false/);
+    assert.match(chart, /visible: root\.selected !== null && plot\.width >= 290/);
+    assert.match(chart, /function columnCenter\(index\)/);
+    assert.match(chart, /Theme\.rtl \? width - center : center/);
+    assert.match(chart, /Math\.max\(4, anchorX - width - 12\)/);
+    assert.match(chart, /Math\.max\(4, Math\.min\(plot\.height - height - 4,/);
+    assert.match(chart, /text: root\.localizedRange\(root\.selected\)/);
+    assert.match(chart, /root\.selected\.casts \|\| 0/);
+    assert.match(chart, /root\.selected\.replies \|\| 0/);
+    assert.match(chart, /onPointChanged: \{/);
+    assert.match(chart, /Accessible\.onPressAction: root\.selectedIndex = index/);
+    assert.match(chart, /: qsTrId\("genycaster.stats.chart_hint"\)/);
+});
+
+
+test("ring annulus hit-testing selects the intended ring and rejects the centre", () => {
+    const source = read("ui/components/home/StatsDistributionRings.qml");
+    const match = source.match(/    function ringIndexAt\(x, y\) \{([\s\S]*?)\n    \}\n\n    function animate/);
+    assert.ok(match, "the ring hit test must be independently inspectable");
+    const hitTest = vm.runInNewContext(
+        "function ringIndexAt(x, y) {" + match[1] + "\n}\nringIndexAt",
+        {ring: {center: 100, stroke: 6, outerRadius: 90, middleRadius: 68, innerRadius: 46}}
+    );
+    assert.equal(hitTest(190, 100), 0, "outer likes ring");
+    assert.equal(hitTest(168, 100), 1, "middle recasts ring");
+    assert.equal(hitTest(146, 100), 2, "inner replies ring");
+    assert.equal(hitTest(100, 100), -1, "center label is not an arc");
+    assert.equal(hitTest(20, 20), -1, "empty corners are not arcs");
+});
+
+test("publishing tooltip anchors follow column order in both LTR and RTL", () => {
+    const source = read("ui/components/home/StatsChart.qml");
+    const match = source.match(/                function columnCenter\(index\) \{([\s\S]*?)\n                \}\n                clip: true/);
+    assert.ok(match);
+    const ctx = vm.createContext({
+        width: 300, columnGap: 2,
+        root: {bars: Array(5)},
+        Theme: {rtl: false}
+    });
+    vm.runInContext("function columnCenter(index) {" + match[1] + "\n}", ctx);
+    const left = ctx.columnCenter(0);
+    const right = ctx.columnCenter(4);
+    assert.ok(left < right && left > 0 && right < 300);
+    ctx.Theme.rtl = true;
+    assert.ok(Math.abs(ctx.columnCenter(0) - (300 - left)) < 0.001);
+    assert.ok(Math.abs(ctx.columnCenter(4) - (300 - right)) < 0.001);
 });
