@@ -284,16 +284,24 @@ read-only**, unlike authenticated account state; no account cookie, FID, or
 wallet information is needed. Each market metric is fetched **once per server
 cache interval** across every connected desktop, mobile and WASM client.
 
-For production CoinMarketCap market indicators configure
-`GENYCASTER_CMC_API_KEY` in the account API process environment (for example
-`/etc/genycaster/account-api.env`, never a shipped QML/WASM asset), using
-a plan whose terms permit GenyCaster's application use. Restart the
-`genycaster-account-api` PM2 service after configuration. The implementation
-uses the authenticated CMC Pro API, not the rate-limited keyless evaluation API.
+With no API key configured, the server uses CoinMarketCap's documented
+`https://pro-api.coinmarketcap.com/public-api` keyless endpoints for global
+market metrics, CMC Fear & Greed, Altcoin Season and CMC100. No key is sent or
+required by any GenyCaster client. Keyless access is IP-rate-limited and
+intended by CMC for evaluation/prototyping; it is **not** a guarantee of
+unlimited production/commercial usage. Independently validate licensing
+before relying on it commercially.
 
-Without a key, the endpoint returns an honestly **partial** snapshot: the
-Fear & Greed indicator from Alternative.me, credited and linked in the UI;
-CMC-specific cards show unavailable, never fabricated values. Each indicator
-has independent TTL/single-flight caching and stale-data fallback; upstream
-exceptions and credentials are not forwarded to clients. Add provider-supplied
-attribution and respect CMC API subscription and redistribution restrictions.
+For a dedicated authenticated API allocation or production/commercial rights,
+configure `GENYCASTER_CMC_API_KEY` in the account API process environment
+(e.g. `/etc/genycaster/account-api.env`, never QML/WASM) with a plan whose
+terms allow GenyCaster's use, and restart `genycaster-account-api` via PM2.
+This automatically switches the upstream to the keyed CMC Pro API.
+
+If only CMC Fear & Greed is unavailable, the server falls back to the
+separately attributed Alternative.me value; other CMC metrics remain intact.
+Each metric has independent TTL, single-flight caching, exponential cooldown
+on upstream errors/HTTP 429 (including initial cache misses), and stale-data
+fallback. Missing values remain unavailable, never fabricated; upstream
+exceptions and credentials are not forwarded to clients. Respect the source's
+attribution, subscription and redistribution requirements.

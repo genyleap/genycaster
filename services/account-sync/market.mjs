@@ -1,8 +1,11 @@
-// Shared, read-only Market snapshot. Never send CMC credentials to a client.
-// The authenticated Basic API is required for production CMC market metrics.
-// A separately attributed Alternative.me Fear & Greed value is available
-// when a CMC plan has not yet been configured.
+// Shared read-only market snapshot. The public CMC endpoints use the
+// keyless /public-api prefix; an optional server-side key uses the authenticated
+// API instead. Never send API credentials to a browser or QML client.
+//
+// Keyless access is IP-rate-limited, not unlimited production entitlement.
+// Use shared TTL caches, single-flight requests and bounded retry backoff.
 const SOURCE='https://pro-api.coinmarketcap.com';
+const PUBLIC_SOURCE=SOURCE+'/public-api';
 const ALTERNATIVE='https://api.alternative.me/fng/?limit=1';
 const DEFINITIONS=Object.freeze({
   global:{path:'/v1/global-metrics/quotes/latest?convert=USD',ttl:600_000},
@@ -30,8 +33,7 @@ async function jsonLimited(response,max=96*1024){
       chunks.push(value);
     }
   }finally{await reader.cancel().catch(()=>{});}
-  const data=Buffer.concat(chunks.map(chunk=>Buffer.from(chunk)));
-  return JSON.parse(data.toString('utf8'));
+  return JSON.parse(Buffer.concat(chunks.map(chunk=>Buffer.from(chunk))).toString('utf8'));
 }
 function parse(name,root){
   if(root?.status && Number(root.status.error_code)!==0)
@@ -70,71 +72,91 @@ function parse(name,root){
   }
   throw Error('unsupported_metric');
 }
+function alternativeSentiment(root){
+  const d=root?.data?.[0];
+  const value=finite(d?.value,100);
+  if(value===null)throw Error('invalid_alternative');
+  const timestamp=Number(d.timestamp);
+  return {value,label:String(d.value_classification||'').slice(0,24),
+    timestamp:Number.isFinite(timestamp) && timestamp>0 && timestamp<1e11
+      ? new Date(timestamp*1000).toISOString() : ''};
+}
 export function createMarketReader({
   key=process.env.GENYCASTER_CMC_API_KEY||'',
   fetchImpl=globalThis.fetch,now=Date.now
 }={}){
-  // Per-field single-flight cache, retry cooldown and stale-while-error.
+  // CMC quota is shared across all users of this one server instance.
+  // A transient 429/failure is cached NEGATIVELY too, preventing retry floods
+  // during the first fetch when no valid historical snapshot exists.
   const cache=new Map();
   const inflight=new Map();
-  const planReady=typeof key==='string' && key.trim().length>0;
-  const request=async(name)=>{
+  const failures=new Map();
+  const hasKey=typeof key==='string' && key.trim().length>0;
+  const mode=hasKey?'keyed':'public';
+  const request=async(name,provider=mode)=>{
+    if(provider==='alternative'&&name!=='sentiment')return null;
     const definition=DEFINITIONS[name];
-    const cacheKey=planReady?'cmc:'+name:'alternative:sentiment';
-    const existing=cache.get(cacheKey);
+    const id=provider+':'+name;
+    const existing=cache.get(id);
     const at=now();
-    if(existing && at<existing.freshUntil)return {...existing,stale:false};
-    if(existing && at<existing.retryAfter)return {...existing,stale:true};
-    if(inflight.has(cacheKey))return inflight.get(cacheKey);
+    if(existing && at<existing.freshUntil)
+      return {...existing,stale:false};
+    if(at<(failures.get(id)?.retryAfter??0))
+      return existing?{...existing,stale:true}:null;
+    if(inflight.has(id))return inflight.get(id);
     const job=(async()=>{
       try{
-        let value;
-        let origin;
-        if(!planReady && name==='sentiment'){
-          const result=await fetchImpl(ALTERNATIVE,{headers:{accept:'application/json'},
-            redirect:'error',signal:AbortSignal.timeout(8000)});
-          const doc=await jsonLimited(result,8192);
-          const entry=doc?.data?.[0];
-          const n=finite(entry?.value,100);
-          if(n===null)throw Error('invalid_alternative');
-          value={value:n,label:String(entry.value_classification||'').slice(0,24),
-            timestamp:new Date(Number(entry.timestamp)*1000).toISOString()};
+        let value,origin;
+        if(provider==='alternative'){
+          const response=await fetchImpl(ALTERNATIVE,{
+            headers:{Accept:'application/json'},redirect:'error',
+            signal:AbortSignal.timeout(8000)});
+          value=alternativeSentiment(await jsonLimited(response,8192));
           origin='Alternative.me';
         }else{
-          const endpoint=SOURCE+definition.path;
-          const result=await fetchImpl(endpoint,{headers:{
-            'Accept':'application/json','X-CMC_PRO_API_KEY':key
-          },redirect:'error',signal:AbortSignal.timeout(8000)});
-          value=parse(name,await jsonLimited(result));
+          const endpoint=(provider==='keyed'?SOURCE:PUBLIC_SOURCE)+definition.path;
+          const headers=provider==='keyed'
+            ? {Accept:'application/json','X-CMC_PRO_API_KEY':key}
+            : {Accept:'application/json'};
+          const response=await fetchImpl(endpoint,{
+            headers,redirect:'error',signal:AbortSignal.timeout(8000)});
+          value=parse(name,await jsonLimited(response));
           origin='CoinMarketCap';
         }
         const data={value,source:origin,fetchedAt:new Date(at).toISOString(),
-          freshUntil:at+(definition?.ttl||3_600_000),retryAfter:0};
-        cache.set(cacheKey,data);
+          freshUntil:at+definition.ttl};
+        cache.set(id,data);
+        failures.delete(id);
         return {...data,stale:false};
       }catch{
-        if(existing){
-          existing.retryAfter=at+Math.min(600_000,definition?.ttl||600_000);
-          return {...existing,stale:true};
-        }
-        return null;
+        const failuresSoFar=(failures.get(id)?.attempts||0)+1;
+        // Exponential cooldown: 60s, 120s, 240s, 480s, capped at 15m.
+        const cooldown=Math.min(900_000,60_000*Math.pow(2,Math.min(4,failuresSoFar-1)));
+        failures.set(id,{attempts:failuresSoFar,retryAfter:at+cooldown});
+        return existing?{...existing,stale:true}:null;
       }
-    })().finally(()=>inflight.delete(cacheKey));
-    inflight.set(cacheKey,job);
+    })().finally(()=>inflight.delete(id));
+    inflight.set(id,job);
     return job;
   };
   return async()=>{
-    const metrics={};
     const entries=await Promise.all(Object.keys(DEFINITIONS).map(async name=>{
-      if(!planReady&&name!=='sentiment')return [name,null];
-      return [name,await request(name)];
+      let result=await request(name);
+      // Retain a correctly attributed fallback only when the CMC sentiment
+      // endpoint has not yielded a usable snapshot.
+      if(name==='sentiment'&&!result)result=await request(name,'alternative');
+      return [name,result];
     }));
-    for(const [key,value] of entries)
-      if(value) metrics[key]={...value.value,source:value.source,
-        fetched_at:value.fetchedAt,stale:value.stale};
-    return {metrics,partial:Object.keys(metrics).length<4
-      ||Object.values(metrics).some(v=>v.stale),
-      plan_configured:planReady,
-      updated_at:new Date(now()).toISOString()};
+    const metrics={};
+    for(const [name,result] of entries)
+      if(result)metrics[name]={...result.value,source:result.source,
+        fetched_at:result.fetchedAt,stale:result.stale};
+    return {
+      metrics,partial:Object.keys(metrics).length!==Object.keys(DEFINITIONS).length
+        ||Object.values(metrics).some(v=>v.stale),
+      plan_configured:hasKey,
+      access_mode:mode,
+      updated_at:new Date(now()).toISOString()
+    };
   };
 }
