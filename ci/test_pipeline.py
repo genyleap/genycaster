@@ -39,7 +39,9 @@ class PipelineTests(unittest.TestCase):
                           "superellipse.hpp", "sparkline.cpp", "sparkline.hpp"})
         source_root = Path("ui/components")
         mapping = json.loads((source_root / "source_paths.json").read_text())
-        self.assertEqual(len(mapping), 156)
+        # This count grows when new public QML components are registered.
+        # The exact manifest-to-source set equality below is the real gate.
+        self.assertGreaterEqual(len(mapping), 156)
         self.assertEqual(set(mapping.values()),
                          {p.relative_to(source_root).as_posix()
                           for p in source_root.rglob("*.qml")

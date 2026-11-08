@@ -346,21 +346,22 @@ public:
         }
     }
 
-    [[nodiscard]] std::vector<Completion> shutdown()
+    [[nodiscard]] std::vector<std::shared_ptr<RequestContext>> shutdown()
     {
         m_isStopping = true;
-        // In-flight completion closures may borrow read services, gateways and
-        // Qt presentation state that the owner is already tearing down.
-        // Never invoke application callbacks from transport destruction.
-        // Move them back to the owning thread for destruction after the
-        // network reactor has stopped; this also prevents a captured final
-        // shared_ptr from destroying the runtime on its own reactor thread.
-        std::vector<Completion> abandoned{};
+        // Pending completions may borrow services and Qt presentation state.
+        // Never invoke application callbacks while the transport is stopping.
+        // Transfer request ownership back to the transport's owning thread,
+        // so captured references are released after its reactor is joined.
+        // Retaining the contexts (rather than vector<Completion>) also avoids
+        // Emscripten libc++'s std::expected comparison constraint recursion
+        // when relocating std::function completion objects.
+        std::vector<std::shared_ptr<RequestContext>> abandoned{};
         abandoned.reserve(m_contexts.size());
         for (auto& [id, context] : m_contexts) {
             static_cast<void>(id);
-            if (context && context->completion) {
-                abandoned.push_back(std::move(context->completion));
+            if (context) {
+                abandoned.push_back(std::move(context));
             }
         }
         for (auto& [id, active] : m_active) {
@@ -927,7 +928,7 @@ public:
         }
         // Keep pending closures alive on the owner thread until after the
         // reactor thread is joined. They must not run during teardown.
-        std::vector<Completion> abandoned{};
+        std::vector<std::shared_ptr<RequestContext>> abandoned{};
 #if defined(__EMSCRIPTEN__)
         if (m_worker) {
             abandoned = m_worker->shutdown();

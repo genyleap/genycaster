@@ -490,43 +490,43 @@ int main(int argc, char** argv)
             return visualItemsNamed(*wall, QStringLiteral("masonrySlot")).size() == 60
                 && visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() >= 4;
         }), "magazine creates slots and admits visible cards");
-        auto slots = visualItemsNamed(*wall, QStringLiteral("masonrySlot"));
-        std::sort(slots.begin(), slots.end(), [](const auto* left, const auto* right) {
+        auto magazineSlots = visualItemsNamed(*wall, QStringLiteral("masonrySlot"));
+        std::sort(magazineSlots.begin(), magazineSlots.end(), [](const auto* left, const auto* right) {
             return left->property("index").toInt() < right->property("index").toInt();
         });
         expect(magazine->property("columns").toInt() == 2,
             "default magazine uses two columns at desktop reading width");
         const double gap = magazine->property("gutter").toDouble();
-        expect(slots.size() == 60, "magazine preserves every source row");
-        if (slots.size() != 60) { return 1; }
-        expect(qAbs(slots[0]->y() - slots[1]->y()) < 1 && slots[0]->x() != slots[1]->x(),
+        expect(magazineSlots.size() == 60, "magazine preserves every source row");
+        if (magazineSlots.size() != 60) { return 1; }
+        expect(qAbs(magazineSlots[0]->y() - magazineSlots[1]->y()) < 1 && magazineSlots[0]->x() != magazineSlots[1]->x(),
             "first cards share a top edge in separate columns");
-        expect(qAbs(slots[2]->y() - slots[0]->y() - slots[0]->height() - gap) < 1,
+        expect(qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - magazineSlots[0]->height() - gap) < 1,
             "short card's lane continues without waiting for the taller neighbor");
         expect(visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() < 16,
             "offscreen rows do not instantiate expensive card content");
-        auto firstCards = visualItemsNamed(*slots[0], QStringLiteral("masonryFixtureCard"));
+        auto firstCards = visualItemsNamed(*magazineSlots[0], QStringLiteral("masonryFixtureCard"));
         if (firstCards.empty()) { return 1; }
-        const double lane = slots[2]->x();
+        const double lane = magazineSlots[2]->x();
         firstCards.front()->setProperty("extraHeight", 100);
         expect(QTest::qWaitFor([&] {
-            return qAbs(slots[2]->y() - slots[0]->y() - slots[0]->height() - gap) < 1;
+            return qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - magazineSlots[0]->height() - gap) < 1;
         }), "late media height pushes the next card without overlap");
-        expect(slots[2]->x() == lane, "late metadata preserves assigned columns");
+        expect(magazineSlots[2]->x() == lane, "late metadata preserves assigned columns");
         expect(QMetaObject::invokeMethod(wall, "positionViewAtIndex",
             Q_ARG(QVariant, 40), Q_ARG(QVariant, 0)), "magazine accepts indexed navigation");
         expect(QTest::qWaitFor([&] {
-            return !visualItemsNamed(*slots[40], QStringLiteral("masonryFixtureCard")).empty()
-                && visualItemsNamed(*slots[0], QStringLiteral("masonryFixtureCard")).empty();
+            return !visualItemsNamed(*magazineSlots[40], QStringLiteral("masonryFixtureCard")).empty()
+                && visualItemsNamed(*magazineSlots[0], QStringLiteral("masonryFixtureCard")).empty();
         }), "scrolling admits the destination and releases distant card trees");
         wall->setWidth(500);
         expect(QTest::qWaitFor([&] { return magazine->property("columns").toInt() == 1; }),
             "narrow magazine reflows into one column");
         QMetaObject::invokeMethod(wall, "forceLayout");
-        for (std::size_t index = 1; index < slots.size(); ++index) {
-            expect(slots[index]->y() >= slots[index - 1]->y() + slots[index - 1]->height(),
+        for (std::size_t index = 1; index < magazineSlots.size(); ++index) {
+            expect(magazineSlots[index]->y() >= magazineSlots[index - 1]->y() + magazineSlots[index - 1]->height(),
                 "single-column reflow never overlaps adjacent cards");
-            expect(slots[index]->x() >= 0 && slots[index]->x() + slots[index]->width() <= wall->width(),
+            expect(magazineSlots[index]->x() >= 0 && magazineSlots[index]->x() + magazineSlots[index]->width() <= wall->width(),
                 "magazine cards remain inside their viewport");
         }
         expect(QMetaObject::invokeMethod(magazineModel.get(), "appendRow"), "local pagination appends a row");
