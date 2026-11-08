@@ -19,6 +19,22 @@ Superellipse {
     readonly property var selected: selectedIndex >= 0 && selectedIndex < bars.length
                                     ? bars[selectedIndex] : null
 
+    function localizedDay(iso, fallback) {
+        const canonical = String(iso || "")
+        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(canonical))
+            return LocaleFormat.localizeDigits(String(fallback || ""))
+        // Local noon prevents a UTC-midnight date shift in western time zones.
+        const day = new Date(canonical + "T12:00:00")
+        return LocaleFormat.localizeDigits(
+            day.toLocaleDateString(Qt.locale(localizationController.effectiveLanguageTag), "MMM d"))
+    }
+    function localizedRange(row) {
+        if (!row) return ""
+        const first = localizedDay(row.startDate, row.label)
+        if (!row.endDate || row.endDate === row.startDate) return first
+        return first + " – " + localizedDay(row.endDate, row.label)
+    }
+
     onBarsChanged: {
         selectedIndex = -1
         revealTween.stop()
@@ -91,21 +107,21 @@ Superellipse {
                 DirectionAwareLabel {
                     anchors.top: parent.top
                     anchors.right: parent.right
-                    text: String(root.maxCount)
+                    text: LocaleFormat.formatInteger(root.maxCount)
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textTertiary
                 }
                 DirectionAwareLabel {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.right: parent.right
-                    text: String(Math.round(root.maxCount / 2))
+                    text: LocaleFormat.formatInteger(Math.round(root.maxCount / 2))
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textTertiary
                 }
                 DirectionAwareLabel {
                     anchors.bottom: parent.bottom
                     anchors.right: parent.right
-                    text: "0"
+                    text: LocaleFormat.formatInteger(0)
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textTertiary
                 }
@@ -149,9 +165,9 @@ Superellipse {
                             height: plot.height
                             Accessible.role: Accessible.Button
                             Accessible.name: qsTrId("genycaster.stats.chart_point")
-                                .arg(String(modelData.range || modelData.label))
-                                .arg(Number(modelData.casts).toLocaleString(Qt.locale(), "f", 0))
-                                .arg(Number(modelData.replies).toLocaleString(Qt.locale(), "f", 0))
+                                .arg(root.localizedRange(modelData))
+                                .arg(LocaleFormat.formatInteger(Number(modelData.casts)))
+                                .arg(LocaleFormat.formatInteger(Number(modelData.replies)))
                             Accessible.onPressAction: root.selectedIndex = index
 
                             // The stack has rounded OUTER corners only. Flatten both
@@ -208,7 +224,7 @@ Superellipse {
             spacing: Theme.space2
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.bars.length ? String(root.bars[0].label) : ""
+                text: root.bars.length ? LocaleFormat.localizeDigits(String(root.bars[0].label)) : ""
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -222,9 +238,9 @@ Superellipse {
             Layout.fillWidth: true
             text: root.selected
                 ? qsTrId("genycaster.stats.chart_point")
-                    .arg(String(root.selected.range || root.selected.label))
-                    .arg(Number(root.selected.casts).toLocaleString(Qt.locale(), "f", 0))
-                    .arg(Number(root.selected.replies).toLocaleString(Qt.locale(), "f", 0))
+                    .arg(LocaleFormat.localizeDigits(String(root.selected.range || root.selected.label)))
+                    .arg(LocaleFormat.formatInteger(Number(root.selected.casts)))
+                    .arg(LocaleFormat.formatInteger(Number(root.selected.replies)))
                 : qsTrId("genycaster.stats.chart_hint")
             color: root.selected ? Theme.textPrimary : Theme.textTertiary
             font.pixelSize: Theme.typeCaptionSize

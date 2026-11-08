@@ -102,7 +102,7 @@ Superellipse {
                                         preferredSize: Theme.iconSizeSmall
                                     }
                                     DirectionAwareLabel {
-                                        text: Number(modelData.amount).toLocaleString(Qt.locale(), "f", 0)
+                                        text: LocaleFormat.formatInteger(Number(modelData.amount))
                                         color: Theme.textSecondary
                                         font.pixelSize: Theme.typeCaptionSize
                                     }

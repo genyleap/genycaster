@@ -7,15 +7,16 @@ Item {
     property real index: -1
     readonly property bool available: Number.isFinite(index) && index >= 0 && index <= 100
     readonly property real progress: available ? Math.min(1, Math.max(0, index / 100)) : 0
-    implicitHeight: 66
+    implicitHeight: 54
     Layout.preferredHeight: implicitHeight
     Layout.fillWidth: true
 
     Accessible.role: Accessible.Indicator
     Accessible.name: qsTrId("genycaster.market.season") + ": "
-                    + (available ? String(Math.round(index)) + "/100" : "—")
+                    + (available ? LocaleFormat.formatInteger(Math.round(index)) + "/" + LocaleFormat.formatInteger(100) : "—")
 
     RowLayout {
+        layoutDirection: Theme.uiDirection
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right

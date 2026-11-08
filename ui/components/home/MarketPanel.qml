@@ -24,34 +24,48 @@ ColumnLayout {
     readonly property bool hasSentiment: sentiment.value !== undefined
     readonly property bool hasSeason: season.value !== undefined
     readonly property bool hasBenchmark: benchmark.value !== undefined
+    readonly property bool initialLoading: marketController.state === "loading"
+                                           && !hasGlobal && !hasSentiment
     readonly property bool wideLayout: width >= 790
 
+    function sentimentLabel() {
+        const classification = String(root.sentiment.label || "").trim().toLowerCase()
+        switch (classification) {
+        case "extreme fear": return qsTrId("genycaster.market.extreme_fear")
+        case "fear": return qsTrId("genycaster.market.sentiment_fear")
+        case "neutral": return qsTrId("genycaster.market.neutral")
+        case "greed": return qsTrId("genycaster.market.greed")
+        case "extreme greed": return qsTrId("genycaster.market.extreme_greed")
+        default: return String(root.sentiment.label || "")
+        }
+    }
     function compact(value) {
         const n = Number(value)
         if (!Number.isFinite(n) || n < 0) return "—"
-        if (n >= 1e12) return "$" + (n/1e12).toLocaleString(Qt.locale(),"f",2) + "T"
-        if (n >= 1e9) return "$" + (n/1e9).toLocaleString(Qt.locale(),"f",2) + "B"
-        if (n >= 1e6) return "$" + (n/1e6).toLocaleString(Qt.locale(),"f",2) + "M"
-        return "$" + n.toLocaleString(Qt.locale(),"f",2)
+        if (n >= 1e12) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e12,2)) + qsTrId("genycaster.market.unit_trillion")
+        if (n >= 1e9) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e9,2)) + qsTrId("genycaster.market.unit_billion")
+        if (n >= 1e6) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e6,2)) + qsTrId("genycaster.market.unit_million")
+        return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n,2))
     }
     function percentage(value) {
         const n = Number(value)
         return Number.isFinite(n) && n >= 0 && n <= 100
-            ? n.toLocaleString(Qt.locale(),"f",2) + "%" : "—"
+            ? LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n,2)) + "%" : "—"
     }
     function price(value) {
         const n = Number(value)
         return Number.isFinite(n) && n >= 0
-            ? "$" + n.toLocaleString(Qt.locale(),"f",2) : "—"
+            ? "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n,2)) : "—"
     }
     function dateLabel(timestamp) {
         const parsed = Date.parse(String(timestamp || ""))
-        return Number.isFinite(parsed) ? new Date(parsed).toLocaleDateString(Qt.locale(),
-              "MMM d") : ""
+        return Number.isFinite(parsed) ? LocaleFormat.localizeDigits(
+            new Date(parsed).toLocaleDateString(Qt.locale(localizationController.effectiveLanguageTag), "MMM d")) : ""
     }
 
     RowLayout {
         Layout.fillWidth: true
+        layoutDirection: Theme.uiDirection
         spacing: Theme.space2
 
         Icon {
@@ -82,6 +96,11 @@ ColumnLayout {
         wrapMode: Text.Wrap
     }
 
+    StatsSkeleton {
+        visible: root.initialLoading
+        Layout.fillWidth: true
+    }
+
     Flickable {
         id: tokenStrip
         visible: root.assets.length > 0
@@ -96,6 +115,7 @@ ColumnLayout {
 
         Row {
             id: tokensRow
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             height: parent.height
 
@@ -118,6 +138,7 @@ ColumnLayout {
 
                         RowLayout {
                             Layout.fillWidth: true
+                            layoutDirection: Theme.uiDirection
                             DirectionAwareLabel {
                                 Layout.fillWidth: true
                                 text: String(assetCard.modelData.symbol)
@@ -135,6 +156,7 @@ ColumnLayout {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            forceLeftToRight: true
                             text: root.price(assetCard.modelData.price_usd)
                             font.pixelSize: Theme.typeLabelSize
                             font.weight: Theme.weightBold
@@ -143,9 +165,11 @@ ColumnLayout {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: (Number(assetCard.modelData.change_24h_percent) >= 0 ? "+" : "")
-                                + Number(assetCard.modelData.change_24h_percent).toLocaleString(
-                                    Qt.locale(),"f",2) + "%  ·  24h"
+                            forceLeftToRight: true
+                            text: qsTrId("genycaster.market.change_24h").arg(
+                                (Number(assetCard.modelData.change_24h_percent) >= 0 ? "+" : "−")
+                                + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(
+                                    Math.abs(Number(assetCard.modelData.change_24h_percent)),2)))
                             font.pixelSize: Theme.typeCaptionSize
                             color: Number(assetCard.modelData.change_24h_percent) < 0
                                 ? (Theme.dark ? "#FF9EA4" : "#DB4853")
@@ -158,7 +182,9 @@ ColumnLayout {
     }
 
     GridLayout {
+        visible: !root.initialLoading
         Layout.fillWidth: true
+        layoutDirection: Theme.uiDirection
         columns: 2
         columnSpacing: Theme.space2
         rowSpacing: Theme.space2
@@ -178,7 +204,9 @@ ColumnLayout {
     }
 
     GridLayout {
+        visible: !root.initialLoading
         Layout.fillWidth: true
+        layoutDirection: Theme.uiDirection
         columns: root.wideLayout ? 2 : 1
         columnSpacing: Theme.space3
         rowSpacing: Theme.space3
@@ -191,7 +219,7 @@ ColumnLayout {
             Superellipse {
                 id: fearCard
                 Layout.fillWidth: true
-                Layout.preferredHeight: 226
+                Layout.preferredHeight: 208
                 fillColor: Theme.surface
                 borderColor: Theme.borderMuted
                 borderWidth: 1
@@ -203,6 +231,7 @@ ColumnLayout {
                     spacing: Theme.space2
                     RowLayout {
                         Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
                         spacing: Theme.space2
                         Icon {
                             text: Theme.iconHeart
@@ -217,7 +246,7 @@ ColumnLayout {
                             color: Theme.textPrimary
                         }
                         DirectionAwareLabel {
-                            text: "0–100"
+                            text: LocaleFormat.formatInteger(0) + "–" + LocaleFormat.formatInteger(100)
                             color: Theme.textTertiary
                             font.pixelSize: Theme.typeCaptionSize
                         }
@@ -226,14 +255,14 @@ ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         index: root.hasSentiment ? Number(root.sentiment.value) : -1
-                        classification: String(root.sentiment.label || "")
+                        classification: root.sentimentLabel()
                     }
                 }
             }
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 166
+                Layout.preferredHeight: 162
                 fillColor: Theme.surface
                 borderColor: Theme.borderMuted
                 borderWidth: 1
@@ -245,6 +274,7 @@ ColumnLayout {
                     spacing: Theme.space2
                     RowLayout {
                         Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
                         Icon { text: Theme.iconEnergy; preferredSize: Theme.iconSizeLarge; color: Theme.textSecondary }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
@@ -256,7 +286,9 @@ ColumnLayout {
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.hasSeason ? String(Math.round(Number(root.season.value))) + "/100" : "—"
+                        text: root.hasSeason
+                            ? LocaleFormat.formatInteger(Math.round(Number(root.season.value)))
+                              + "/" + LocaleFormat.formatInteger(100) : "—"
                         font.pixelSize: Theme.typeTitle1Size
                         font.weight: Theme.weightBold
                         color: Theme.textPrimary
@@ -298,6 +330,7 @@ ColumnLayout {
                     spacing: Theme.space3
                     RowLayout {
                         Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
                         Icon {
                             text: Theme.iconChart
                             color: Theme.textSecondary
@@ -363,6 +396,7 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
+        layoutDirection: Theme.uiDirection
         spacing: Theme.space3
 
         DirectionAwareLabel {
@@ -384,7 +418,9 @@ ColumnLayout {
             }
         }
         DirectionAwareLabel {
-            text: marketController.updatedAt
+            text: marketController.updatedAt.length > 0
+                ? qsTrId("genycaster.market.last_checked").arg(
+                    LocaleFormat.localizeDigits(marketController.updatedAt)) : ""
             color: Theme.textTertiary
             font.pixelSize: Theme.typeCaptionSize
         }

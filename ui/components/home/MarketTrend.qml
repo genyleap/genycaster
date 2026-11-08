@@ -29,6 +29,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             Icon { text: Theme.iconChart; preferredSize: Theme.iconSizeLarge; color: Theme.textSecondary }
             DirectionAwareLabel {
@@ -47,9 +48,11 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space3
             DirectionAwareLabel {
-                text: root.validLatest ? Number(root.latest).toLocaleString(Qt.locale(), "f", 2) : "—"
+                forceLeftToRight: true
+                text: root.validLatest ? LocaleFormat.localizeDigits(LocaleFormat.formatNumber(Number(root.latest), 2)) : "—"
                 font.pixelSize: Theme.typeTitle1Size
                 font.weight: Theme.weightBold
                 color: Theme.textPrimary
@@ -64,8 +67,9 @@ Superellipse {
                 DirectionAwareLabel {
                     id: changeText
                     anchors.centerIn: parent
+                    forceLeftToRight: true
                     text: (root.declining ? "▼ " : "▲ ")
-                          + Math.abs(Number(root.change)).toLocaleString(Qt.locale(), "f", 2) + "%"
+                          + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(Math.abs(Number(root.change)), 2)) + "%"
                     font.pixelSize: Theme.typeCaptionSize
                     font.weight: Theme.weightDemiBold
                     color: root.trendColor
@@ -114,6 +118,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: root.validSeries ? root.startLabel : ""

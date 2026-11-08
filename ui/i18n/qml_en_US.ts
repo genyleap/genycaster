@@ -1,14 +1,70 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="en_US" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.market.last_checked">
+            <source>Last checked: %1</source>
+            <translation>Last checked: %1</translation>
+        </message>
+        <message id="genycaster.market.checked">
+            <source>Market data checked</source>
+            <translation>Market data checked</translation>
+        </message>
+        <message id="genycaster.market.checking">
+            <source>Checking latest market data…</source>
+            <translation>Checking latest market data…</translation>
+        </message>
+        <message id="genycaster.market.refresh_failed">
+            <source>Could not refresh market data</source>
+            <translation>Could not refresh market data</translation>
+        </message>
+        <message id="genycaster.market.refresh_unavailable">
+            <source>Refresh temporarily unavailable</source>
+            <translation>Refresh temporarily unavailable</translation>
+        </message>
+        <message id="genycaster.market.change_24h">
+            <source>%1% · 24h</source>
+            <translation>%1% · 24h</translation>
+        </message>
+        <message id="genycaster.market.unit_trillion">
+            <source>T</source>
+            <translation>T</translation>
+        </message>
+        <message id="genycaster.market.unit_billion">
+            <source>B</source>
+            <translation>B</translation>
+        </message>
+        <message id="genycaster.market.unit_million">
+            <source>M</source>
+            <translation>M</translation>
+        </message>
+        <message id="genycaster.market.extreme_fear">
+            <source>Extreme fear</source>
+            <translation>Extreme fear</translation>
+        </message>
+        <message id="genycaster.market.sentiment_fear">
+            <source>Fear</source>
+            <translation>Fear</translation>
+        </message>
+        <message id="genycaster.market.neutral">
+            <source>Neutral</source>
+            <translation>Neutral</translation>
+        </message>
+        <message id="genycaster.market.greed">
+            <source>Greed</source>
+            <translation>Greed</translation>
+        </message>
+        <message id="genycaster.market.extreme_greed">
+            <source>Extreme greed</source>
+            <translation>Extreme greed</translation>
+        </message>
         <name />
         <message id="genycaster.market.overview_title">
             <source>Crypto market overview</source>
             <translation>Crypto market overview</translation>
         </message>
         <message id="genycaster.market.spot">
-            <source>Live market</source>
-            <translation>Live market</translation>
+            <source>Latest snapshot</source>
+            <translation>Latest snapshot</translation>
         </message>
         <message id="genycaster.market.bitcoin_season">
             <source>Bitcoin season</source>
@@ -47,8 +103,8 @@
             <translation>Some market indicators are temporarily unavailable.</translation>
         </message>
         <message id="genycaster.market.unconfigured">
-            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
-            <translation>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</translation>
+            <source>Market data may be delayed while upstream sources are unavailable.</source>
+            <translation>Market data may be delayed while upstream sources are unavailable.</translation>
         </message>
         <message id="genycaster.market.unavailable">
             <source>Unavailable</source>

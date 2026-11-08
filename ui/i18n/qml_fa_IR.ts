@@ -1,14 +1,70 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.market.last_checked">
+            <source>Last checked: %1</source>
+            <translation>آخرین بررسی: %1</translation>
+        </message>
+        <message id="genycaster.market.checked">
+            <source>Market data checked</source>
+            <translation>داده‌های بازار بررسی شد</translation>
+        </message>
+        <message id="genycaster.market.checking">
+            <source>Checking latest market data…</source>
+            <translation>در حال بررسی تازه‌ترین داده‌های بازار…</translation>
+        </message>
+        <message id="genycaster.market.refresh_failed">
+            <source>Could not refresh market data</source>
+            <translation>به‌روزرسانی داده‌های بازار ناموفق بود</translation>
+        </message>
+        <message id="genycaster.market.refresh_unavailable">
+            <source>Refresh temporarily unavailable</source>
+            <translation>به‌روزرسانی موقتاً در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.market.change_24h">
+            <source>%1% · 24h</source>
+            <translation>%1٪ · ۲۴ ساعت</translation>
+        </message>
+        <message id="genycaster.market.unit_trillion">
+            <source>T</source>
+            <translation> تریلیون</translation>
+        </message>
+        <message id="genycaster.market.unit_billion">
+            <source>B</source>
+            <translation> میلیارد</translation>
+        </message>
+        <message id="genycaster.market.unit_million">
+            <source>M</source>
+            <translation> میلیون</translation>
+        </message>
+        <message id="genycaster.market.extreme_fear">
+            <source>Extreme fear</source>
+            <translation>ترس شدید</translation>
+        </message>
+        <message id="genycaster.market.sentiment_fear">
+            <source>Fear</source>
+            <translation>ترس</translation>
+        </message>
+        <message id="genycaster.market.neutral">
+            <source>Neutral</source>
+            <translation>خنثی</translation>
+        </message>
+        <message id="genycaster.market.greed">
+            <source>Greed</source>
+            <translation>طمع</translation>
+        </message>
+        <message id="genycaster.market.extreme_greed">
+            <source>Extreme greed</source>
+            <translation>طمع شدید</translation>
+        </message>
         <name />
         <message id="genycaster.market.overview_title">
             <source>Crypto market overview</source>
             <translation>نمای کلی بازار رمزارزها</translation>
         </message>
         <message id="genycaster.market.spot">
-            <source>Live market</source>
-            <translation>بازار زنده</translation>
+            <source>Latest snapshot</source>
+            <translation>آخرین دادهٔ بازار</translation>
         </message>
         <message id="genycaster.market.bitcoin_season">
             <source>Bitcoin season</source>
@@ -47,8 +103,8 @@
             <translation>بخشی از شاخص‌های بازار موقتاً در دسترس نیست.</translation>
         </message>
         <message id="genycaster.market.unconfigured">
-            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
-            <translation>شاخص‌های بازار به کلید سروری CoinMarketCap نیاز دارند. ترس و طمع از Alternative.me در دسترس است.</translation>
+            <source>Market data may be delayed while upstream sources are unavailable.</source>
+            <translation>در صورت اختلال منبع داده، به‌روزرسانی بازار ممکن است با تأخیر انجام شود.</translation>
         </message>
         <message id="genycaster.market.unavailable">
             <source>Unavailable</source>

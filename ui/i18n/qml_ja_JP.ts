@@ -1,254 +1,310 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.market.last_checked">
+            <source>Last checked: %1</source>
+            <translation>最終確認：%1</translation>
+        </message>
+        <message id="genycaster.market.checked">
+            <source>Market data checked</source>
+            <translation>市場データを確認しました</translation>
+        </message>
+        <message id="genycaster.market.checking">
+            <source>Checking latest market data…</source>
+            <translation>最新の市場データを確認中…</translation>
+        </message>
+        <message id="genycaster.market.refresh_failed">
+            <source>Could not refresh market data</source>
+            <translation>市場データを更新できませんでした</translation>
+        </message>
+        <message id="genycaster.market.refresh_unavailable">
+            <source>Refresh temporarily unavailable</source>
+            <translation>一時的に更新できません</translation>
+        </message>
+        <message id="genycaster.market.change_24h">
+            <source>%1% · 24h</source>
+            <translation>%1% · 24時間</translation>
+        </message>
+        <message id="genycaster.market.unit_trillion">
+            <source>T</source>
+            <translation>兆</translation>
+        </message>
+        <message id="genycaster.market.unit_billion">
+            <source>B</source>
+            <translation>十億</translation>
+        </message>
+        <message id="genycaster.market.unit_million">
+            <source>M</source>
+            <translation>百万</translation>
+        </message>
+        <message id="genycaster.market.extreme_fear">
+            <source>Extreme fear</source>
+            <translation>極度の恐怖</translation>
+        </message>
+        <message id="genycaster.market.sentiment_fear">
+            <source>Fear</source>
+            <translation>恐怖</translation>
+        </message>
+        <message id="genycaster.market.neutral">
+            <source>Neutral</source>
+            <translation>中立</translation>
+        </message>
+        <message id="genycaster.market.greed">
+            <source>Greed</source>
+            <translation>強欲</translation>
+        </message>
+        <message id="genycaster.market.extreme_greed">
+            <source>Extreme greed</source>
+            <translation>極度の強欲</translation>
+        </message>
         <name />
         <message id="genycaster.market.overview_title">
             <source>Crypto market overview</source>
-            <translation>Crypto market overview</translation>
+            <translation>暗号資産市場の概要</translation>
         </message>
         <message id="genycaster.market.spot">
-            <source>Live market</source>
-            <translation>Live market</translation>
+            <source>Latest snapshot</source>
+            <translation>最新の市場データ</translation>
         </message>
         <message id="genycaster.market.bitcoin_season">
             <source>Bitcoin season</source>
-            <translation>Bitcoin season</translation>
+            <translation>ビットコインのシーズン</translation>
         </message>
         <message id="genycaster.market.altcoin_season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>アルトコインのシーズン</translation>
         </message>
         <message id="genycaster.market.ten_day_trend">
             <source>Last 10 days</source>
-            <translation>Last 10 days</translation>
+            <translation>過去10日間</translation>
         </message>
         <message id="genycaster.market.history_unavailable">
             <source>Historical chart unavailable</source>
-            <translation>Historical chart unavailable</translation>
+            <translation>過去のチャートを利用できません</translation>
         </message>
         <message id="genycaster.market.social">
             <source>Social</source>
-            <translation>Social</translation>
+            <translation>ソーシャル</translation>
         </message>
         <message id="genycaster.market.market">
             <source>Market</source>
-            <translation>Market</translation>
+            <translation>マーケット</translation>
         </message>
         <message id="genycaster.market.title">
             <source>Crypto market</source>
-            <translation>Crypto market</translation>
+            <translation>暗号資産市場</translation>
         </message>
         <message id="genycaster.market.subtitle">
             <source>Market trends and key indicators</source>
-            <translation>Market trends and key indicators</translation>
+            <translation>市場動向と主要指標</translation>
         </message>
         <message id="genycaster.market.partial">
             <source>Some market indicators are temporarily unavailable.</source>
-            <translation>Some market indicators are temporarily unavailable.</translation>
+            <translation>一部の市場指標は一時的に利用できません。</translation>
         </message>
         <message id="genycaster.market.unconfigured">
-            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
-            <translation>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</translation>
+            <source>Market data may be delayed while upstream sources are unavailable.</source>
+            <translation>上流データソースが利用できない間、市場データの更新が遅れる場合があります。</translation>
         </message>
         <message id="genycaster.market.unavailable">
             <source>Unavailable</source>
-            <translation>Unavailable</translation>
+            <translation>利用できません</translation>
         </message>
         <message id="genycaster.market.marketcap">
             <source>Market cap</source>
-            <translation>Market cap</translation>
+            <translation>時価総額</translation>
         </message>
         <message id="genycaster.market.total_market">
             <source>Total crypto market</source>
-            <translation>Total crypto market</translation>
+            <translation>暗号資産市場全体</translation>
         </message>
         <message id="genycaster.market.volume">
             <source>Trading volume</source>
-            <translation>Trading volume</translation>
+            <translation>取引高</translation>
         </message>
         <message id="genycaster.market.last_24h">
             <source>Last 24 hours</source>
-            <translation>Last 24 hours</translation>
+            <translation>過去24時間</translation>
         </message>
         <message id="genycaster.market.dominance">
             <source>Market dominance</source>
-            <translation>Market dominance</translation>
+            <translation>市場ドミナンス</translation>
         </message>
         <message id="genycaster.market.fear">
             <source>Fear &amp; Greed</source>
-            <translation>Fear &amp; Greed</translation>
+            <translation>恐怖・強欲指数</translation>
         </message>
         <message id="genycaster.market.season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>アルトコインのシーズン</translation>
         </message>
         <message id="genycaster.market.altseason">
             <source>Altcoin Season Index</source>
-            <translation>Altcoin Season Index</translation>
+            <translation>アルトコインシーズン指数</translation>
         </message>
         <message id="genycaster.market.cmc100">
             <source>CMC100 Index</source>
-            <translation>CMC100 Index</translation>
+            <translation>CMC100指数</translation>
         </message>
         <message id="genycaster.market.source_cmc">
             <source>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</source>
-            <translation>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</translation>
+            <translation>データ提供：CoinMarketCap.com。恐怖・強欲指数にはAlternative.meを使用する場合があります。</translation>
         </message>
         <message id="genycaster.market.source_alternative">
             <source>Fear &amp; Greed data: Alternative.me</source>
-            <translation>Fear &amp; Greed data: Alternative.me</translation>
+            <translation>恐怖・強欲指数のデータ：Alternative.me</translation>
         </message>
         <message id="genycaster.stats.subtitle_short">
             <source>Your publishing activity and engagement</source>
-            <translation>Your publishing activity and engagement</translation>
+            <translation>投稿アクティビティとエンゲージメント</translation>
         </message>
         <message id="genycaster.stats.engagement_breakdown">
             <source>Engagement breakdown</source>
-            <translation>Engagement breakdown</translation>
+            <translation>エンゲージメントの内訳</translation>
         </message>
         <message id="genycaster.stats.likes">
             <source>Likes</source>
-            <translation>Likes</translation>
+            <translation>いいね</translation>
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
-            <translation>Recasts</translation>
+            <translation>リキャスト</translation>
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>
-            <translation>Replies received</translation>
+            <translation>受け取った返信</translation>
         </message>
         <message id="genycaster.stats.chart_hint">
             <source>Tap a bar to inspect activity</source>
-            <translation>Tap a bar to inspect activity</translation>
+            <translation>棒グラフをタップして活動を確認</translation>
         </message>
         <message id="genycaster.stats.chart_point">
             <source>%1 · %2 casts · %3 replies</source>
-            <translation>%1 · %2 casts · %3 replies</translation>
+            <translation>%1 · 投稿%2件 · 返信%3件</translation>
         </message>
         <message id="genycaster.stats.engagement_scope">
             <source>Engagement is counted to date, on posts in this period</source>
-            <translation>Engagement is counted to date, on posts in this period</translation>
+            <translation>この期間の投稿に対する現在までのエンゲージメント</translation>
         </message>
         <message id="genycaster.stats.overview">
             <source>Overview</source>
-            <translation>Overview</translation>
+            <translation>概要</translation>
         </message>
         <message id="genycaster.stats.stats">
             <source>Stats</source>
-            <translation>Stats</translation>
+            <translation>統計</translation>
         </message>
         <message id="genycaster.stats.your_stats">
             <source>Your stats</source>
-            <translation>Your stats</translation>
+            <translation>あなたの統計</translation>
         </message>
         <message id="genycaster.stats.subtitle">
             <source>Activity and performance of your published content</source>
-            <translation>Activity and performance of your published content</translation>
+            <translation>公開したコンテンツの活動とパフォーマンス</translation>
         </message>
         <message id="genycaster.stats.refresh">
             <source>Refresh statistics</source>
-            <translation>Refresh statistics</translation>
+            <translation>統計を更新</translation>
         </message>
         <message id="genycaster.stats.all">
             <source>All</source>
-            <translation>All</translation>
+            <translation>すべて</translation>
         </message>
         <message id="genycaster.stats.last_n_days">
             <source>Last %1 days</source>
-            <translation>Last %1 days</translation>
+            <translation>過去%1日間</translation>
         </message>
         <message id="genycaster.stats.loading">
             <source>Loading account statistics… %1 casts checked</source>
-            <translation>Loading account statistics… %1 casts checked</translation>
+            <translation>アカウント統計を読み込み中… %1件の投稿を確認</translation>
         </message>
         <message id="genycaster.stats.node_unavailable">
             <source>Statistics unavailable for the selected node. %1</source>
-            <translation>Statistics unavailable for the selected node. %1</translation>
+            <translation>選択したノードの統計を取得できません。%1</translation>
         </message>
         <message id="genycaster.stats.select_to_load">
             <source>Select Stats to load your activity.</source>
-            <translation>Select Stats to load your activity.</translation>
+            <translation>統計を選択して活動を読み込みます。</translation>
         </message>
         <message id="genycaster.stats.partial">
             <source>Partial coverage · totals include fetched posts only.</source>
-            <translation>Partial coverage · totals include fetched posts only.</translation>
+            <translation>一部のデータのみ · 取得できた投稿のみ集計</translation>
         </message>
         <message id="genycaster.stats.period_note">
             <source>Content published in the selected period · engagement counted to date</source>
-            <translation>Content published in the selected period · engagement counted to date</translation>
+            <translation>選択期間の投稿 · エンゲージメントは現在までの累計</translation>
         </message>
         <message id="genycaster.stats.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>投稿</translation>
         </message>
         <message id="genycaster.stats.replies">
             <source>Replies</source>
-            <translation>Replies</translation>
+            <translation>返信</translation>
         </message>
         <message id="genycaster.stats.engagement">
             <source>Engagement</source>
-            <translation>Engagement</translation>
+            <translation>エンゲージメント</translation>
         </message>
         <message id="genycaster.stats.followers">
             <source>Followers</source>
-            <translation>Followers</translation>
+            <translation>フォロワー</translation>
         </message>
         <message id="genycaster.stats.published_posts">
             <source>Published posts</source>
-            <translation>Published posts</translation>
+            <translation>公開した投稿</translation>
         </message>
         <message id="genycaster.stats.written_replies">
             <source>Replies written</source>
-            <translation>Replies written</translation>
+            <translation>書き込んだ返信</translation>
         </message>
         <message id="genycaster.stats.received_on_posts">
             <source>Received on these posts</source>
-            <translation>Received on these posts</translation>
+            <translation>これらの投稿への反応</translation>
         </message>
         <message id="genycaster.stats.current_total">
             <source>Current total</source>
-            <translation>Current total</translation>
+            <translation>現在の合計</translation>
         </message>
         <message id="genycaster.stats.publishing_activity">
             <source>Publishing activity</source>
-            <translation>Publishing activity</translation>
+            <translation>投稿アクティビティ</translation>
         </message>
         <message id="genycaster.stats.today">
             <source>Today</source>
-            <translation>Today</translation>
+            <translation>今日</translation>
         </message>
         <message id="genycaster.stats.last_90_days">
             <source>Last 90 days shown</source>
-            <translation>Last 90 days shown</translation>
+            <translation>過去90日間を表示</translation>
         </message>
         <message id="genycaster.stats.top_casts">
             <source>Top casts</source>
-            <translation>Top casts</translation>
+            <translation>人気の投稿</translation>
         </message>
         <message id="genycaster.stats.no_posts">
             <source>No posts in this period.</source>
-            <translation>No posts in this period.</translation>
+            <translation>この期間には投稿がありません。</translation>
         </message>
         <message id="genycaster.stats.open_cast">
             <source>Open cast</source>
-            <translation>Open cast</translation>
+            <translation>投稿を開く</translation>
         </message>
         <message id="genycaster.stats.media_cast">
             <source>Media cast</source>
-            <translation>Media cast</translation>
+            <translation>メディア付き投稿</translation>
         </message>
         <message id="genycaster.stats.cast_engagement">
             <source>%1 likes · %2 recasts · %3 replies</source>
-            <translation>%1 likes · %2 recasts · %3 replies</translation>
+            <translation>いいね%1 · リキャスト%2 · 返信%3</translation>
         </message>
         <message id="genycaster.stats.average">
             <source>Average engagement per cast: %1</source>
-            <translation>Average engagement per cast: %1</translation>
+            <translation>投稿あたりの平均エンゲージメント：%1</translation>
         </message>
         <message id="genycaster.stats.engagement_unavailable">
             <source>Engagement counts are not provided by this node.</source>
-            <translation>Engagement counts are not provided by this node.</translation>
+            <translation>このノードはエンゲージメント数を提供していません。</translation>
         </message>
         <message id="genycaster.activity.default_source">
             <source>Show on profile</source>

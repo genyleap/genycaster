@@ -33,16 +33,18 @@ MarketController::~MarketController(){
         reply->deleteLater();
     }
 }
-void MarketController::refresh(const bool force){
-    if(!m_networkEnabled)return;
+bool MarketController::refresh(const bool force){
+    if(!m_networkEnabled)return false;
     const qint64 now=QDateTime::currentMSecsSinceEpoch();
     if(m_reply || now<m_retryAtMs ||
-       (!force && m_lastRefreshMs>0 && now-m_lastRefreshMs<localCacheMs))return;
+       (!force && m_lastRefreshMs>0 && now-m_lastRefreshMs<localCacheMs))return false;
     QNetworkRequest request{QUrl{QString::fromLatin1(snapshotUrl)}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(12'000);
     request.setRawHeader("Accept","application/json");
+    // An explicit user refresh must revalidate the browser/network cache.
+    if(force)request.setRawHeader("Cache-Control","no-cache");
     auto* const reply=m_network.get(request);
     m_reply=reply;
     m_state=QStringLiteral("loading");
@@ -84,4 +86,5 @@ void MarketController::refresh(const bool force){
         m_partial=true;
         emit changed();
     });
+    return true;
 }

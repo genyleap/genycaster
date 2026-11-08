@@ -150,6 +150,23 @@ Item {
     property string homePresentationMode: "for-you"
     property string homeVisualFilter: "nfts"
     property string primaryDestination: "home"
+    // A single reduced-motion-aware entrance for every main workspace route.
+    // Apply to the shared reading surface, not individual network views, so
+    // Feed, Explorer, profile, cast, bookmarks, apps and notifications share
+    // one navigation rhythm without recreating their content or scroll state.
+    property bool routeMotionArmed: false
+    readonly property string navigationMotionKey: root.shellRoute + "|" + root.primaryDestination
+        + "|" + presentationBridge.activeView + "|" + presentationBridge.activeFeed
+    onNavigationMotionKeyChanged: {
+        if (root.routeMotionArmed && !Theme.reduceMotion)
+            sharedRouteEntrance.restart()
+    }
+    Timer {
+        interval: 0
+        running: true
+        repeat: false
+        onTriggered: root.routeMotionArmed = true
+    }
     property var selectedChannelInfo: ({})
     property string explorerAudience: "all"
     Settings {
@@ -1233,9 +1250,60 @@ Item {
                                 anchors.fill: parent
                                 color: Theme.canvas
 
+                                // Actual background network activity, not a fake page load:
+                                // remain unobtrusive and never steal taps or scroll gestures.
+                                Item {
+                                    id: workspaceActivity
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    height: 3
+                                    z: 9
+                                    visible: presentationBridge.isBusy && !root.initialSetupOpen
+                                    clip: true
+
+                                    Rectangle {
+                                        width: Math.max(44, parent.width * 0.24)
+                                        height: parent.height
+                                        radius: 1.5
+                                        color: Theme.accent
+                                        x: -width
+                                        SequentialAnimation on x {
+                                            running: workspaceActivity.visible && !Theme.reduceMotion
+                                            loops: Animation.Infinite
+                                            NumberAnimation {
+                                                from: -workspaceActivity.width * 0.24
+                                                to: workspaceActivity.width
+                                                duration: 1050
+                                                easing.type: Easing.InOutSine
+                                            }
+                                        }
+                                    }
+                                }
+
                                 ColumnLayout {
                                     id: readingContent
                                     anchors.fill: parent
+                                    transform: Translate { id: sharedRouteOffset; y: 0 }
+                                    ParallelAnimation {
+                                        id: sharedRouteEntrance
+                                        NumberAnimation {
+                                            target: readingContent
+                                            property: "opacity"
+                                            from: 0.82
+                                            to: 1
+                                            duration: Theme.motionEmphasis
+                                            easing.type: Easing.OutCubic
+                                        }
+                                        NumberAnimation {
+                                            target: sharedRouteOffset
+                                            property: "y"
+                                            from: 7
+                                            to: 0
+                                            duration: Theme.motionEmphasis
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
                                     // No reserved/painted footer: content extends to the
                                     // screen edge *behind* the floating dock.
                                     // Each scrollable list provides its own trailing

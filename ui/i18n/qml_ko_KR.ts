@@ -1,254 +1,310 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.market.last_checked">
+            <source>Last checked: %1</source>
+            <translation>마지막 확인: %1</translation>
+        </message>
+        <message id="genycaster.market.checked">
+            <source>Market data checked</source>
+            <translation>시장 데이터를 확인했습니다</translation>
+        </message>
+        <message id="genycaster.market.checking">
+            <source>Checking latest market data…</source>
+            <translation>최신 시장 데이터 확인 중…</translation>
+        </message>
+        <message id="genycaster.market.refresh_failed">
+            <source>Could not refresh market data</source>
+            <translation>시장 데이터를 새로고침할 수 없습니다</translation>
+        </message>
+        <message id="genycaster.market.refresh_unavailable">
+            <source>Refresh temporarily unavailable</source>
+            <translation>새로고침을 일시적으로 사용할 수 없음</translation>
+        </message>
+        <message id="genycaster.market.change_24h">
+            <source>%1% · 24h</source>
+            <translation>%1% · 24시간</translation>
+        </message>
+        <message id="genycaster.market.unit_trillion">
+            <source>T</source>
+            <translation>조</translation>
+        </message>
+        <message id="genycaster.market.unit_billion">
+            <source>B</source>
+            <translation>십억</translation>
+        </message>
+        <message id="genycaster.market.unit_million">
+            <source>M</source>
+            <translation>백만</translation>
+        </message>
+        <message id="genycaster.market.extreme_fear">
+            <source>Extreme fear</source>
+            <translation>극도의 공포</translation>
+        </message>
+        <message id="genycaster.market.sentiment_fear">
+            <source>Fear</source>
+            <translation>공포</translation>
+        </message>
+        <message id="genycaster.market.neutral">
+            <source>Neutral</source>
+            <translation>중립</translation>
+        </message>
+        <message id="genycaster.market.greed">
+            <source>Greed</source>
+            <translation>탐욕</translation>
+        </message>
+        <message id="genycaster.market.extreme_greed">
+            <source>Extreme greed</source>
+            <translation>극도의 탐욕</translation>
+        </message>
         <name />
         <message id="genycaster.market.overview_title">
             <source>Crypto market overview</source>
-            <translation>Crypto market overview</translation>
+            <translation>암호화폐 시장 개요</translation>
         </message>
         <message id="genycaster.market.spot">
-            <source>Live market</source>
-            <translation>Live market</translation>
+            <source>Latest snapshot</source>
+            <translation>최신 시장 데이터</translation>
         </message>
         <message id="genycaster.market.bitcoin_season">
             <source>Bitcoin season</source>
-            <translation>Bitcoin season</translation>
+            <translation>비트코인 시즌</translation>
         </message>
         <message id="genycaster.market.altcoin_season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>알트코인 시즌</translation>
         </message>
         <message id="genycaster.market.ten_day_trend">
             <source>Last 10 days</source>
-            <translation>Last 10 days</translation>
+            <translation>최근 10일</translation>
         </message>
         <message id="genycaster.market.history_unavailable">
             <source>Historical chart unavailable</source>
-            <translation>Historical chart unavailable</translation>
+            <translation>과거 차트를 사용할 수 없음</translation>
         </message>
         <message id="genycaster.market.social">
             <source>Social</source>
-            <translation>Social</translation>
+            <translation>소셜</translation>
         </message>
         <message id="genycaster.market.market">
             <source>Market</source>
-            <translation>Market</translation>
+            <translation>시장</translation>
         </message>
         <message id="genycaster.market.title">
             <source>Crypto market</source>
-            <translation>Crypto market</translation>
+            <translation>암호화폐 시장</translation>
         </message>
         <message id="genycaster.market.subtitle">
             <source>Market trends and key indicators</source>
-            <translation>Market trends and key indicators</translation>
+            <translation>시장 동향 및 주요 지표</translation>
         </message>
         <message id="genycaster.market.partial">
             <source>Some market indicators are temporarily unavailable.</source>
-            <translation>Some market indicators are temporarily unavailable.</translation>
+            <translation>일부 시장 지표를 일시적으로 사용할 수 없습니다.</translation>
         </message>
         <message id="genycaster.market.unconfigured">
-            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
-            <translation>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</translation>
+            <source>Market data may be delayed while upstream sources are unavailable.</source>
+            <translation>데이터 공급원이 중단되면 시장 데이터가 지연될 수 있습니다.</translation>
         </message>
         <message id="genycaster.market.unavailable">
             <source>Unavailable</source>
-            <translation>Unavailable</translation>
+            <translation>사용할 수 없음</translation>
         </message>
         <message id="genycaster.market.marketcap">
             <source>Market cap</source>
-            <translation>Market cap</translation>
+            <translation>시가총액</translation>
         </message>
         <message id="genycaster.market.total_market">
             <source>Total crypto market</source>
-            <translation>Total crypto market</translation>
+            <translation>전체 암호화폐 시장</translation>
         </message>
         <message id="genycaster.market.volume">
             <source>Trading volume</source>
-            <translation>Trading volume</translation>
+            <translation>거래량</translation>
         </message>
         <message id="genycaster.market.last_24h">
             <source>Last 24 hours</source>
-            <translation>Last 24 hours</translation>
+            <translation>최근 24시간</translation>
         </message>
         <message id="genycaster.market.dominance">
             <source>Market dominance</source>
-            <translation>Market dominance</translation>
+            <translation>시장 점유율</translation>
         </message>
         <message id="genycaster.market.fear">
             <source>Fear &amp; Greed</source>
-            <translation>Fear &amp; Greed</translation>
+            <translation>공포와 탐욕</translation>
         </message>
         <message id="genycaster.market.season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>알트코인 시즌</translation>
         </message>
         <message id="genycaster.market.altseason">
             <source>Altcoin Season Index</source>
-            <translation>Altcoin Season Index</translation>
+            <translation>알트코인 시즌 지수</translation>
         </message>
         <message id="genycaster.market.cmc100">
             <source>CMC100 Index</source>
-            <translation>CMC100 Index</translation>
+            <translation>CMC100 지수</translation>
         </message>
         <message id="genycaster.market.source_cmc">
             <source>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</source>
-            <translation>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</translation>
+            <translation>데이터 제공: CoinMarketCap.com. 공포와 탐욕은 Alternative.me를 사용할 수도 있습니다.</translation>
         </message>
         <message id="genycaster.market.source_alternative">
             <source>Fear &amp; Greed data: Alternative.me</source>
-            <translation>Fear &amp; Greed data: Alternative.me</translation>
+            <translation>공포와 탐욕 데이터: Alternative.me</translation>
         </message>
         <message id="genycaster.stats.subtitle_short">
             <source>Your publishing activity and engagement</source>
-            <translation>Your publishing activity and engagement</translation>
+            <translation>게시 활동과 참여도</translation>
         </message>
         <message id="genycaster.stats.engagement_breakdown">
             <source>Engagement breakdown</source>
-            <translation>Engagement breakdown</translation>
+            <translation>참여도 세부 내역</translation>
         </message>
         <message id="genycaster.stats.likes">
             <source>Likes</source>
-            <translation>Likes</translation>
+            <translation>좋아요</translation>
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
-            <translation>Recasts</translation>
+            <translation>리캐스트</translation>
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>
-            <translation>Replies received</translation>
+            <translation>받은 답글</translation>
         </message>
         <message id="genycaster.stats.chart_hint">
             <source>Tap a bar to inspect activity</source>
-            <translation>Tap a bar to inspect activity</translation>
+            <translation>막대를 탭하여 활동 확인</translation>
         </message>
         <message id="genycaster.stats.chart_point">
             <source>%1 · %2 casts · %3 replies</source>
-            <translation>%1 · %2 casts · %3 replies</translation>
+            <translation>%1 · 게시물 %2개 · 답글 %3개</translation>
         </message>
         <message id="genycaster.stats.engagement_scope">
             <source>Engagement is counted to date, on posts in this period</source>
-            <translation>Engagement is counted to date, on posts in this period</translation>
+            <translation>이 기간의 게시물에 대한 현재까지의 참여도</translation>
         </message>
         <message id="genycaster.stats.overview">
             <source>Overview</source>
-            <translation>Overview</translation>
+            <translation>개요</translation>
         </message>
         <message id="genycaster.stats.stats">
             <source>Stats</source>
-            <translation>Stats</translation>
+            <translation>통계</translation>
         </message>
         <message id="genycaster.stats.your_stats">
             <source>Your stats</source>
-            <translation>Your stats</translation>
+            <translation>내 통계</translation>
         </message>
         <message id="genycaster.stats.subtitle">
             <source>Activity and performance of your published content</source>
-            <translation>Activity and performance of your published content</translation>
+            <translation>게시한 콘텐츠의 활동 및 성과</translation>
         </message>
         <message id="genycaster.stats.refresh">
             <source>Refresh statistics</source>
-            <translation>Refresh statistics</translation>
+            <translation>통계 새로고침</translation>
         </message>
         <message id="genycaster.stats.all">
             <source>All</source>
-            <translation>All</translation>
+            <translation>전체</translation>
         </message>
         <message id="genycaster.stats.last_n_days">
             <source>Last %1 days</source>
-            <translation>Last %1 days</translation>
+            <translation>최근 %1일</translation>
         </message>
         <message id="genycaster.stats.loading">
             <source>Loading account statistics… %1 casts checked</source>
-            <translation>Loading account statistics… %1 casts checked</translation>
+            <translation>계정 통계 불러오는 중… 게시물 %1개 확인</translation>
         </message>
         <message id="genycaster.stats.node_unavailable">
             <source>Statistics unavailable for the selected node. %1</source>
-            <translation>Statistics unavailable for the selected node. %1</translation>
+            <translation>선택한 노드의 통계를 사용할 수 없습니다. %1</translation>
         </message>
         <message id="genycaster.stats.select_to_load">
             <source>Select Stats to load your activity.</source>
-            <translation>Select Stats to load your activity.</translation>
+            <translation>통계를 선택하여 활동을 불러오세요.</translation>
         </message>
         <message id="genycaster.stats.partial">
             <source>Partial coverage · totals include fetched posts only.</source>
-            <translation>Partial coverage · totals include fetched posts only.</translation>
+            <translation>일부 데이터만 포함 · 가져온 게시물만 집계됩니다.</translation>
         </message>
         <message id="genycaster.stats.period_note">
             <source>Content published in the selected period · engagement counted to date</source>
-            <translation>Content published in the selected period · engagement counted to date</translation>
+            <translation>선택 기간에 게시한 콘텐츠 · 현재까지의 참여도</translation>
         </message>
         <message id="genycaster.stats.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>게시물</translation>
         </message>
         <message id="genycaster.stats.replies">
             <source>Replies</source>
-            <translation>Replies</translation>
+            <translation>답글</translation>
         </message>
         <message id="genycaster.stats.engagement">
             <source>Engagement</source>
-            <translation>Engagement</translation>
+            <translation>참여도</translation>
         </message>
         <message id="genycaster.stats.followers">
             <source>Followers</source>
-            <translation>Followers</translation>
+            <translation>팔로워</translation>
         </message>
         <message id="genycaster.stats.published_posts">
             <source>Published posts</source>
-            <translation>Published posts</translation>
+            <translation>게시한 게시물</translation>
         </message>
         <message id="genycaster.stats.written_replies">
             <source>Replies written</source>
-            <translation>Replies written</translation>
+            <translation>작성한 답글</translation>
         </message>
         <message id="genycaster.stats.received_on_posts">
             <source>Received on these posts</source>
-            <translation>Received on these posts</translation>
+            <translation>이 게시물에서 받은 참여</translation>
         </message>
         <message id="genycaster.stats.current_total">
             <source>Current total</source>
-            <translation>Current total</translation>
+            <translation>현재 합계</translation>
         </message>
         <message id="genycaster.stats.publishing_activity">
             <source>Publishing activity</source>
-            <translation>Publishing activity</translation>
+            <translation>게시 활동</translation>
         </message>
         <message id="genycaster.stats.today">
             <source>Today</source>
-            <translation>Today</translation>
+            <translation>오늘</translation>
         </message>
         <message id="genycaster.stats.last_90_days">
             <source>Last 90 days shown</source>
-            <translation>Last 90 days shown</translation>
+            <translation>최근 90일 표시</translation>
         </message>
         <message id="genycaster.stats.top_casts">
             <source>Top casts</source>
-            <translation>Top casts</translation>
+            <translation>인기 게시물</translation>
         </message>
         <message id="genycaster.stats.no_posts">
             <source>No posts in this period.</source>
-            <translation>No posts in this period.</translation>
+            <translation>이 기간에는 게시물이 없습니다.</translation>
         </message>
         <message id="genycaster.stats.open_cast">
             <source>Open cast</source>
-            <translation>Open cast</translation>
+            <translation>게시물 열기</translation>
         </message>
         <message id="genycaster.stats.media_cast">
             <source>Media cast</source>
-            <translation>Media cast</translation>
+            <translation>미디어 게시물</translation>
         </message>
         <message id="genycaster.stats.cast_engagement">
             <source>%1 likes · %2 recasts · %3 replies</source>
-            <translation>%1 likes · %2 recasts · %3 replies</translation>
+            <translation>좋아요 %1 · 리캐스트 %2 · 답글 %3</translation>
         </message>
         <message id="genycaster.stats.average">
             <source>Average engagement per cast: %1</source>
-            <translation>Average engagement per cast: %1</translation>
+            <translation>게시물당 평균 참여도: %1</translation>
         </message>
         <message id="genycaster.stats.engagement_unavailable">
             <source>Engagement counts are not provided by this node.</source>
-            <translation>Engagement counts are not provided by this node.</translation>
+            <translation>이 노드는 참여도 수치를 제공하지 않습니다.</translation>
         </message>
         <message id="genycaster.activity.default_source">
             <source>Show on profile</source>

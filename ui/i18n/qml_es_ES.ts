@@ -1,30 +1,86 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.market.last_checked">
+            <source>Last checked: %1</source>
+            <translation>Última comprobación: %1</translation>
+        </message>
+        <message id="genycaster.market.checked">
+            <source>Market data checked</source>
+            <translation>Datos del mercado comprobados</translation>
+        </message>
+        <message id="genycaster.market.checking">
+            <source>Checking latest market data…</source>
+            <translation>Comprobando los últimos datos…</translation>
+        </message>
+        <message id="genycaster.market.refresh_failed">
+            <source>Could not refresh market data</source>
+            <translation>No se pudieron actualizar los datos</translation>
+        </message>
+        <message id="genycaster.market.refresh_unavailable">
+            <source>Refresh temporarily unavailable</source>
+            <translation>Actualización temporalmente no disponible</translation>
+        </message>
+        <message id="genycaster.market.change_24h">
+            <source>%1% · 24h</source>
+            <translation>%1% · 24 h</translation>
+        </message>
+        <message id="genycaster.market.unit_trillion">
+            <source>T</source>
+            <translation> billones</translation>
+        </message>
+        <message id="genycaster.market.unit_billion">
+            <source>B</source>
+            <translation> mil M</translation>
+        </message>
+        <message id="genycaster.market.unit_million">
+            <source>M</source>
+            <translation> M</translation>
+        </message>
+        <message id="genycaster.market.extreme_fear">
+            <source>Extreme fear</source>
+            <translation>Miedo extremo</translation>
+        </message>
+        <message id="genycaster.market.sentiment_fear">
+            <source>Fear</source>
+            <translation>Miedo</translation>
+        </message>
+        <message id="genycaster.market.neutral">
+            <source>Neutral</source>
+            <translation>Neutral</translation>
+        </message>
+        <message id="genycaster.market.greed">
+            <source>Greed</source>
+            <translation>Codicia</translation>
+        </message>
+        <message id="genycaster.market.extreme_greed">
+            <source>Extreme greed</source>
+            <translation>Codicia extrema</translation>
+        </message>
         <name />
         <message id="genycaster.market.overview_title">
             <source>Crypto market overview</source>
-            <translation>Crypto market overview</translation>
+            <translation>Resumen del mercado cripto</translation>
         </message>
         <message id="genycaster.market.spot">
-            <source>Live market</source>
-            <translation>Live market</translation>
+            <source>Latest snapshot</source>
+            <translation>Últimos datos del mercado</translation>
         </message>
         <message id="genycaster.market.bitcoin_season">
             <source>Bitcoin season</source>
-            <translation>Bitcoin season</translation>
+            <translation>Temporada de Bitcoin</translation>
         </message>
         <message id="genycaster.market.altcoin_season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>Temporada de altcoins</translation>
         </message>
         <message id="genycaster.market.ten_day_trend">
             <source>Last 10 days</source>
-            <translation>Last 10 days</translation>
+            <translation>Últimos 10 días</translation>
         </message>
         <message id="genycaster.market.history_unavailable">
             <source>Historical chart unavailable</source>
-            <translation>Historical chart unavailable</translation>
+            <translation>Gráfico histórico no disponible</translation>
         </message>
         <message id="genycaster.market.social">
             <source>Social</source>
@@ -32,83 +88,83 @@
         </message>
         <message id="genycaster.market.market">
             <source>Market</source>
-            <translation>Market</translation>
+            <translation>Mercado</translation>
         </message>
         <message id="genycaster.market.title">
             <source>Crypto market</source>
-            <translation>Crypto market</translation>
+            <translation>Mercado cripto</translation>
         </message>
         <message id="genycaster.market.subtitle">
             <source>Market trends and key indicators</source>
-            <translation>Market trends and key indicators</translation>
+            <translation>Tendencias del mercado e indicadores clave</translation>
         </message>
         <message id="genycaster.market.partial">
             <source>Some market indicators are temporarily unavailable.</source>
-            <translation>Some market indicators are temporarily unavailable.</translation>
+            <translation>Algunos indicadores del mercado no están disponibles temporalmente.</translation>
         </message>
         <message id="genycaster.market.unconfigured">
-            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
-            <translation>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</translation>
+            <source>Market data may be delayed while upstream sources are unavailable.</source>
+            <translation>Los datos del mercado pueden retrasarse si fallan las fuentes.</translation>
         </message>
         <message id="genycaster.market.unavailable">
             <source>Unavailable</source>
-            <translation>Unavailable</translation>
+            <translation>No disponible</translation>
         </message>
         <message id="genycaster.market.marketcap">
             <source>Market cap</source>
-            <translation>Market cap</translation>
+            <translation>Capitalización de mercado</translation>
         </message>
         <message id="genycaster.market.total_market">
             <source>Total crypto market</source>
-            <translation>Total crypto market</translation>
+            <translation>Mercado cripto total</translation>
         </message>
         <message id="genycaster.market.volume">
             <source>Trading volume</source>
-            <translation>Trading volume</translation>
+            <translation>Volumen de negociación</translation>
         </message>
         <message id="genycaster.market.last_24h">
             <source>Last 24 hours</source>
-            <translation>Last 24 hours</translation>
+            <translation>Últimas 24 horas</translation>
         </message>
         <message id="genycaster.market.dominance">
             <source>Market dominance</source>
-            <translation>Market dominance</translation>
+            <translation>Dominancia del mercado</translation>
         </message>
         <message id="genycaster.market.fear">
             <source>Fear &amp; Greed</source>
-            <translation>Fear &amp; Greed</translation>
+            <translation>Miedo y codicia</translation>
         </message>
         <message id="genycaster.market.season">
             <source>Altcoin season</source>
-            <translation>Altcoin season</translation>
+            <translation>Temporada de altcoins</translation>
         </message>
         <message id="genycaster.market.altseason">
             <source>Altcoin Season Index</source>
-            <translation>Altcoin Season Index</translation>
+            <translation>Índice de temporada de altcoins</translation>
         </message>
         <message id="genycaster.market.cmc100">
             <source>CMC100 Index</source>
-            <translation>CMC100 Index</translation>
+            <translation>Índice CMC100</translation>
         </message>
         <message id="genycaster.market.source_cmc">
             <source>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</source>
-            <translation>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</translation>
+            <translation>Datos de CoinMarketCap.com; Miedo y codicia también puede usar Alternative.me.</translation>
         </message>
         <message id="genycaster.market.source_alternative">
             <source>Fear &amp; Greed data: Alternative.me</source>
-            <translation>Fear &amp; Greed data: Alternative.me</translation>
+            <translation>Datos de Miedo y codicia: Alternative.me</translation>
         </message>
         <message id="genycaster.stats.subtitle_short">
             <source>Your publishing activity and engagement</source>
-            <translation>Your publishing activity and engagement</translation>
+            <translation>Tu actividad de publicación e interacciones</translation>
         </message>
         <message id="genycaster.stats.engagement_breakdown">
             <source>Engagement breakdown</source>
-            <translation>Engagement breakdown</translation>
+            <translation>Desglose de interacciones</translation>
         </message>
         <message id="genycaster.stats.likes">
             <source>Likes</source>
-            <translation>Likes</translation>
+            <translation>Me gusta</translation>
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
@@ -116,139 +172,139 @@
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>
-            <translation>Replies received</translation>
+            <translation>Respuestas recibidas</translation>
         </message>
         <message id="genycaster.stats.chart_hint">
             <source>Tap a bar to inspect activity</source>
-            <translation>Tap a bar to inspect activity</translation>
+            <translation>Toca una barra para ver la actividad</translation>
         </message>
         <message id="genycaster.stats.chart_point">
             <source>%1 · %2 casts · %3 replies</source>
-            <translation>%1 · %2 casts · %3 replies</translation>
+            <translation>%1 · %2 publicaciones · %3 respuestas</translation>
         </message>
         <message id="genycaster.stats.engagement_scope">
             <source>Engagement is counted to date, on posts in this period</source>
-            <translation>Engagement is counted to date, on posts in this period</translation>
+            <translation>Interacciones acumuladas hasta hoy en las publicaciones de este período</translation>
         </message>
         <message id="genycaster.stats.overview">
             <source>Overview</source>
-            <translation>Overview</translation>
+            <translation>Resumen</translation>
         </message>
         <message id="genycaster.stats.stats">
             <source>Stats</source>
-            <translation>Stats</translation>
+            <translation>Estadísticas</translation>
         </message>
         <message id="genycaster.stats.your_stats">
             <source>Your stats</source>
-            <translation>Your stats</translation>
+            <translation>Tus estadísticas</translation>
         </message>
         <message id="genycaster.stats.subtitle">
             <source>Activity and performance of your published content</source>
-            <translation>Activity and performance of your published content</translation>
+            <translation>Actividad y rendimiento del contenido publicado</translation>
         </message>
         <message id="genycaster.stats.refresh">
             <source>Refresh statistics</source>
-            <translation>Refresh statistics</translation>
+            <translation>Actualizar estadísticas</translation>
         </message>
         <message id="genycaster.stats.all">
             <source>All</source>
-            <translation>All</translation>
+            <translation>Todo</translation>
         </message>
         <message id="genycaster.stats.last_n_days">
             <source>Last %1 days</source>
-            <translation>Last %1 days</translation>
+            <translation>Últimos %1 días</translation>
         </message>
         <message id="genycaster.stats.loading">
             <source>Loading account statistics… %1 casts checked</source>
-            <translation>Loading account statistics… %1 casts checked</translation>
+            <translation>Cargando estadísticas… %1 publicaciones revisadas</translation>
         </message>
         <message id="genycaster.stats.node_unavailable">
             <source>Statistics unavailable for the selected node. %1</source>
-            <translation>Statistics unavailable for the selected node. %1</translation>
+            <translation>Estadísticas no disponibles para el nodo seleccionado. %1</translation>
         </message>
         <message id="genycaster.stats.select_to_load">
             <source>Select Stats to load your activity.</source>
-            <translation>Select Stats to load your activity.</translation>
+            <translation>Selecciona Estadísticas para cargar tu actividad.</translation>
         </message>
         <message id="genycaster.stats.partial">
             <source>Partial coverage · totals include fetched posts only.</source>
-            <translation>Partial coverage · totals include fetched posts only.</translation>
+            <translation>Datos parciales · solo se cuentan las publicaciones obtenidas.</translation>
         </message>
         <message id="genycaster.stats.period_note">
             <source>Content published in the selected period · engagement counted to date</source>
-            <translation>Content published in the selected period · engagement counted to date</translation>
+            <translation>Contenido publicado en el período elegido · interacciones acumuladas hasta hoy</translation>
         </message>
         <message id="genycaster.stats.casts">
             <source>Casts</source>
-            <translation>Casts</translation>
+            <translation>Publicaciones</translation>
         </message>
         <message id="genycaster.stats.replies">
             <source>Replies</source>
-            <translation>Replies</translation>
+            <translation>Respuestas</translation>
         </message>
         <message id="genycaster.stats.engagement">
             <source>Engagement</source>
-            <translation>Engagement</translation>
+            <translation>Interacciones</translation>
         </message>
         <message id="genycaster.stats.followers">
             <source>Followers</source>
-            <translation>Followers</translation>
+            <translation>Seguidores</translation>
         </message>
         <message id="genycaster.stats.published_posts">
             <source>Published posts</source>
-            <translation>Published posts</translation>
+            <translation>Publicaciones publicadas</translation>
         </message>
         <message id="genycaster.stats.written_replies">
             <source>Replies written</source>
-            <translation>Replies written</translation>
+            <translation>Respuestas escritas</translation>
         </message>
         <message id="genycaster.stats.received_on_posts">
             <source>Received on these posts</source>
-            <translation>Received on these posts</translation>
+            <translation>Recibidas en estas publicaciones</translation>
         </message>
         <message id="genycaster.stats.current_total">
             <source>Current total</source>
-            <translation>Current total</translation>
+            <translation>Total actual</translation>
         </message>
         <message id="genycaster.stats.publishing_activity">
             <source>Publishing activity</source>
-            <translation>Publishing activity</translation>
+            <translation>Actividad de publicación</translation>
         </message>
         <message id="genycaster.stats.today">
             <source>Today</source>
-            <translation>Today</translation>
+            <translation>Hoy</translation>
         </message>
         <message id="genycaster.stats.last_90_days">
             <source>Last 90 days shown</source>
-            <translation>Last 90 days shown</translation>
+            <translation>Se muestran los últimos 90 días</translation>
         </message>
         <message id="genycaster.stats.top_casts">
             <source>Top casts</source>
-            <translation>Top casts</translation>
+            <translation>Publicaciones destacadas</translation>
         </message>
         <message id="genycaster.stats.no_posts">
             <source>No posts in this period.</source>
-            <translation>No posts in this period.</translation>
+            <translation>No hay publicaciones en este período.</translation>
         </message>
         <message id="genycaster.stats.open_cast">
             <source>Open cast</source>
-            <translation>Open cast</translation>
+            <translation>Abrir publicación</translation>
         </message>
         <message id="genycaster.stats.media_cast">
             <source>Media cast</source>
-            <translation>Media cast</translation>
+            <translation>Publicación multimedia</translation>
         </message>
         <message id="genycaster.stats.cast_engagement">
             <source>%1 likes · %2 recasts · %3 replies</source>
-            <translation>%1 likes · %2 recasts · %3 replies</translation>
+            <translation>%1 Me gusta · %2 recasts · %3 respuestas</translation>
         </message>
         <message id="genycaster.stats.average">
             <source>Average engagement per cast: %1</source>
-            <translation>Average engagement per cast: %1</translation>
+            <translation>Interacciones promedio por publicación: %1</translation>
         </message>
         <message id="genycaster.stats.engagement_unavailable">
             <source>Engagement counts are not provided by this node.</source>
-            <translation>Engagement counts are not provided by this node.</translation>
+            <translation>Este nodo no proporciona métricas de interacción.</translation>
         </message>
         <message id="genycaster.activity.default_source">
             <source>Show on profile</source>

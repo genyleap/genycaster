@@ -44,7 +44,7 @@ Superellipse {
                 font.weight: Theme.weightDemiBold
             }
             DirectionAwareLabel {
-                text: Number(root.total).toLocaleString(Qt.locale(), "f", 0)
+                text: LocaleFormat.formatInteger(root.total)
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeMetaSize
             }
@@ -65,7 +65,7 @@ Superellipse {
                         color: Theme.textSecondary
                     }
                     DirectionAwareLabel {
-                        text: Number(categoryRow.modelData.count).toLocaleString(Qt.locale(), "f", 0)
+                        text: LocaleFormat.formatInteger(categoryRow.modelData.count)
                         font.pixelSize: Theme.typeMetaSize
                         font.weight: Theme.weightDemiBold
                         color: Theme.textPrimary
@@ -100,7 +100,7 @@ Superellipse {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: qsTrId("genycaster.stats.average").arg(
-                Number(root.metrics.average || 0).toLocaleString(Qt.locale(), "f", 1))
+                LocaleFormat.formatNumber(Number(root.metrics.average || 0), 1))
             font.pixelSize: Theme.typeCaptionSize
             color: Theme.textSecondary
             wrapMode: Text.Wrap

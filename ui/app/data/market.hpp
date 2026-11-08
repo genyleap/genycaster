@@ -24,7 +24,7 @@ public:
     QString updatedAt() const { return m_updatedAt; }
     bool partial() const { return m_partial; }
     bool planConfigured() const { return m_planConfigured; }
-    Q_INVOKABLE void refresh(bool force = false);
+    Q_INVOKABLE bool refresh(bool force = false);
 signals:
     void changed();
 private:

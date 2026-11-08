@@ -25,6 +25,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
             Superellipse {
@@ -53,6 +54,7 @@ Superellipse {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: root.value
+            forceLeftToRight: true
             color: Theme.textPrimary
             font.pixelSize: Theme.typeTitle1Size
             font.weight: Theme.weightBold

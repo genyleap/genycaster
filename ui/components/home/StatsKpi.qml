@@ -12,15 +12,15 @@ Superellipse {
     property real amount: 0
     property bool available: true
     property real animatedAmount: 0
-    readonly property string exactValue: Number(Math.max(0, Math.round(amount))).toLocaleString(Qt.locale(), "f", 0)
+    readonly property string exactValue: LocaleFormat.formatInteger(Math.max(0, Math.round(amount)))
     readonly property string currentValue: {
         if (!available) return "—"
         const number = Math.max(0, animatedAmount)
         if (number >= 1000000)
-            return Number(number / 1000000).toLocaleString(Qt.locale(), "f", 1) + "M"
+            return LocaleFormat.formatNumber(number / 1000000, 1) + "M"
         if (number >= 10000)
-            return Number(number / 1000).toLocaleString(Qt.locale(), "f", 1) + "K"
-        return Number(Math.round(number)).toLocaleString(Qt.locale(), "f", 0)
+            return LocaleFormat.formatNumber(number / 1000, 1) + "K"
+        return LocaleFormat.formatInteger(Math.round(number))
     }
     function updateAnimatedValue() {
         numberTween.stop()

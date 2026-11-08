@@ -35,6 +35,63 @@ ColumnLayout {
     readonly property bool loaded: fetchState === "ready" || fetchState === "partial"
     readonly property bool partial: fetchState === "partial"
     readonly property var metrics: statsController.summary
+    property bool manualMarketRefresh: false
+    property string marketRefreshFeedback: ""
+    readonly property bool marketRequestBusy: marketController.state === "loading"
+                                                   || manualMarketRefresh
+
+    // A network/cache hit can finish in one frame. Keep the busy state visible
+    // long enough for the user to perceive the refresh and its final outcome.
+    function settleMarketRefresh() {
+        if (!manualMarketRefresh || minimumRefreshDisplay.running
+                || marketController.state === "loading")
+            return
+        manualMarketRefresh = false
+        marketRefreshFeedback = marketController.state === "ready"
+            ? qsTrId("genycaster.market.checked")
+            : marketController.state === "partial"
+              ? qsTrId("genycaster.market.partial")
+              : qsTrId("genycaster.market.refresh_failed")
+        dismissRefreshFeedback.restart()
+    }
+
+    function requestMarketRefresh() {
+        dismissRefreshFeedback.stop()
+        const accepted = marketController.refresh(true)
+        if (!accepted) {
+            marketRefreshFeedback = qsTrId("genycaster.market.refresh_unavailable")
+            dismissRefreshFeedback.restart()
+            return
+        }
+        manualMarketRefresh = true
+        marketRefreshFeedback = qsTrId("genycaster.market.checking")
+        minimumRefreshDisplay.restart()
+    }
+
+    Timer {
+        id: minimumRefreshDisplay
+        interval: Theme.reduceMotion ? 200 : 850
+        repeat: false
+        onTriggered: root.settleMarketRefresh()
+    }
+    Timer {
+        id: dismissRefreshFeedback
+        interval: 2800
+        repeat: false
+        onTriggered: root.marketRefreshFeedback = ""
+    }
+    Timer {
+        // Poll only when the user is actually viewing Market; the first-party
+        // aggregator remains responsible for shared TTL/rate limiting.
+        interval: 300000
+        repeat: true
+        running: root.tabActive && root.section === "market" && root.visible
+        onTriggered: marketController.refresh(false)
+    }
+    Connections {
+        target: marketController
+        function onChanged() { root.settleMarketRefresh() }
+    }
 
     signal periodRequested(int days)
     signal refreshRequested()
@@ -81,13 +138,27 @@ ColumnLayout {
             iconSize: Theme.iconSizeLarge
             iconGlyph: Theme.iconRefresh
             text: qsTrId("genycaster.stats.refresh")
-            busy: root.section === "market" ? marketController.state === "loading" : root.loading
+            busy: root.section === "market" ? root.marketRequestBusy : root.loading
             spinIconWhileBusy: !Theme.reduceMotion
             enabled: !busy
             onClicked: {
-                if (root.section === "market") marketController.refresh(true)
+                if (root.section === "market") root.requestMarketRefresh()
                 else root.refreshRequested()
             }
+        }
+    }
+
+    DirectionAwareLabel {
+        Layout.fillWidth: true
+        visible: root.section === "market" && root.marketRefreshFeedback.length > 0
+        text: root.marketRefreshFeedback
+        color: root.manualMarketRefresh ? Theme.accent : Theme.textSecondary
+        font.pixelSize: Theme.typeCaptionSize
+        wrapMode: Text.Wrap
+        Accessible.role: Accessible.StaticText
+        opacity: visible ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
         }
     }
 
@@ -141,8 +212,8 @@ ColumnLayout {
                     minimumWidth: 0
                     dense: true
                     selected: root.periodDays === modelData.days
-                    text: modelData.title
-                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(modelData.days)
+                    text: LocaleFormat.localizeDigits(modelData.title)
+                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(LocaleFormat.formatInteger(modelData.days))
                     onClicked: if (root.periodDays !== modelData.days)
                                    root.periodRequested(modelData.days)
                 }
@@ -153,7 +224,7 @@ ColumnLayout {
     DirectionAwareLabel {
         Layout.fillWidth: true
         visible: root.section === "social" && root.loading
-        text: qsTrId("genycaster.stats.loading").arg(statsController.loadedCount)
+        text: qsTrId("genycaster.stats.loading").arg(LocaleFormat.formatInteger(statsController.loadedCount))
         color: Theme.textSecondary
         font.pixelSize: Theme.typeCaptionSize
     }
@@ -283,7 +354,7 @@ ColumnLayout {
             }
             DirectionAwareLabel {
                 Layout.alignment: Qt.AlignBottom
-                text: statsController.updatedAt
+                text: LocaleFormat.localizeDigits(statsController.updatedAt)
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
             }
