@@ -124,7 +124,7 @@ Item {
                 event.accepted = true
             }
             readonly property real center: width / 2
-            readonly property real stroke: root.compact ? 5.5 : 6
+            readonly property real stroke: root.compact ? 4.5 : 5.8
             readonly property real outerRadius: width / 2 - stroke / 2 - 4
             readonly property real middleRadius: outerRadius - (root.compact ? 22 : 26)
             readonly property real innerRadius: middleRadius - (root.compact ? 22 : 26)

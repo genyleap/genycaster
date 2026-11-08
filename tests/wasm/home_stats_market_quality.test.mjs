@@ -212,7 +212,7 @@ test("engagement rings use measured shares, theme colors and an adaptive layout"
     const cmake = read("ui/CMakeLists.txt");
     assert.match(cmake, /components\/home\/StatsDistributionRings\.qml/);
     assert.match(breakdown, /StatsDistributionRings\s*\{/);
-    assert.match(breakdown, /columns:\s*root\.width >= 980 \? 2 : 1/);
+    assert.match(breakdown, /columns:\s*root\.compact \? 1 : 2/);
     assert.match(rings, /readonly property real sum:/);
     for (const key of ["likesShare", "recastsShare", "repliesShare"])
         assert.match(rings, new RegExp(key + ": sum > 0"));
@@ -312,7 +312,7 @@ test("social chart palette is subdued and scaled strokes stay thin", () => {
     assert.match(breakdown, /strokeColor:\s*root\.lineInk\("receivedReplies", root\.repliesInk\)/);
     assert.match(breakdown, /strokeStyle:\s*ShapePath\.DashLine/);
     assert.match(breakdown, /const dx = \(b\.x - a\.x\) \* 0\.16/);
-    assert.match(rings, /readonly property real stroke: root\.compact \? 5\.5 : 6/);
+    assert.match(rings, /readonly property real stroke: root\.compact \? 4\.5 : 5\.8/);
 });
 
 test("publishing bar stacks have a square baseline and overlap at shared edges", () => {
@@ -370,7 +370,7 @@ test("publishing bars expose bounded live tooltip and touch fallback", () => {
     const chart = read("ui/components/home/StatsChart.qml");
     assert.match(chart, /id: barInspectCard/);
     assert.match(chart, /enabled: false/);
-    assert.match(chart, /visible: root\.selected !== null && plot\.width >= 290/);
+    assert.match(chart, /visible: root\.hoveredIndex >= 0 && plotHover\.hovered/);
     assert.match(chart, /function columnCenter\(index\)/);
     assert.match(chart, /Theme\.rtl \? width - center : center/);
     assert.match(chart, /Math\.max\(4, anchorX - width - 12\)/);
@@ -415,4 +415,69 @@ test("publishing tooltip anchors follow column order in both LTR and RTL", () =>
     ctx.Theme.rtl = true;
     assert.ok(Math.abs(ctx.columnCenter(0) - (300 - left)) < 0.001);
     assert.ok(Math.abs(ctx.columnCenter(4) - (300 - right)) < 0.001);
+});
+
+
+test("stats period control is bounded on desktop and a real dropdown on mobile", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    assert.match(panel, /objectName: "statsDesktopPeriodFilter"/);
+    assert.match(panel, /visible: root\.section === "social" && !root\.compact/);
+    assert.match(panel, /Layout\.preferredWidth: Math\.min\(440, root\.width\)/);
+    assert.match(panel, /objectName: "statsMobilePeriodFilter"/);
+    assert.match(panel, /GenyComboBox \{/);
+    assert.match(panel, /visible: root\.section === "social" && root\.compact/);
+    assert.match(panel, /currentIndex: root\.rangeIndex\(root\.periodDays\)/);
+    assert.match(panel, /root\.periodRequested\(days\)/);
+    assert.match(panel, /compact: root\.compact\s*\n\s*metrics: root\.metrics/);
+    assert.match(panel, /compact: root\.compact\s*\n\s*bars: statsController\.activity/);
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    assert.match(breakdown, /columns: root\.compact \? 1 : 2/);
+    assert.doesNotMatch(breakdown, /columns: root\.width >= 980/);
+});
+
+test("hover-only tooltips close on pointer exit while touch selection keeps summary", () => {
+    const line = read("ui/components/home/StatsBreakdown.qml");
+    const bars = read("ui/components/home/StatsChart.qml");
+    assert.match(line, /visible: root\.hoveredIndex >= 0 && plotHover\.hovered/);
+    assert.match(bars, /visible: root\.hoveredIndex >= 0 && plotHover\.hovered/);
+    assert.match(line, /enabled: false/);
+    assert.match(bars, /enabled: false/);
+    assert.match(line, /if \(!hovered\) \{\s*root\.hoveredIndex = -1/);
+    assert.match(bars, /if \(!hovered\)\s*root\.hoveredIndex = -1/);
+    assert.match(line, /onVisibleChanged: \{\s*if \(!visible\)/);
+    assert.match(bars, /onVisibleChanged: if \(!visible\) hoveredIndex = -1/);
+    assert.match(line, /root\.inspectedBucket\s*\n\s*\? root\.bucketLabel/);
+    assert.match(bars, /root\.selected\s*\n\s*\? qsTrId\("genycaster\.stats\.chart_point"\)/);
+});
+
+test("chart lines and engagement rings reduce stroke width only in dense layouts", () => {
+    const line = read("ui/components/home/StatsBreakdown.qml");
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    assert.match(line, /const smallPlot = root\.compact \|\| plot\.width < 440/);
+    assert.match(line, /emphasized \? 1\.55 : 1\.1/);
+    assert.match(line, /emphasized \? 1\.25 : 0\.95/);
+    assert.match(rings, /root\.compact \? 4\.5 : 5\.8/);
+});
+
+test("sharing statistics opens the authentic composer with only verified loaded values", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const home = read("ui/components/home/HomeDashboard.qml");
+    const shell = read("ui/components/shell/AppShell.qml");
+    assert.match(panel, /signal shareRequested\(string text\)/);
+    assert.match(panel, /function buildShareText\(\)/);
+    assert.match(panel, /if \(section !== "social" \|\| !loaded\) return ""/);
+    assert.match(panel, /if \(Boolean\(metrics\.hasEngagement\)\)/);
+    assert.match(panel, /root\.shareRequested\(draft\)/);
+    assert.equal((home.match(/onShareRequested: text => root\.composeRequested\(text\)/g) || []).length, 2);
+    assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
+    assert.match(shell, /composerDrawer\.suggestedText = String\(suggestedText \|\| ""\)/);
+    assert.doesNotMatch(panel, /publishCast|submitCast|sendCast|writeCast/);
+    for (const locale of [
+        "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
+        "hi_IN", "ja_JP", "ko_KR", "pt_BR", "ru_RU", "zh_CN"
+    ]) {
+        const catalog = read("ui/i18n/qml_" + locale + ".ts");
+        assert.equal(catalog.split('<message id="genycaster.stats.share_results">').length - 1,
+                     1, "share label not localized in " + locale);
+    }
 });

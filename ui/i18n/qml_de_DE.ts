@@ -7140,6 +7140,10 @@ Company | https://company.com</source>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>3D-Logo von GenyCaster. Zum Drehen ziehen, zum Zoomen scrollen. Mit R zurücksetzen.</translation>
         </message>
+        <message id="genycaster.stats.share_results">
+            <source>Share results</source>
+            <translation>Ergebnisse teilen</translation>
+        </message>
         <message id="genycaster.stats.range_week">
             <source>7 days</source>
             <translation>7 Tage</translation>

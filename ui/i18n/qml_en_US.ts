@@ -7141,6 +7141,10 @@ Company | https://company.com</translation>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</translation>
         </message>
+        <message id="genycaster.stats.share_results">
+            <source>Share results</source>
+            <translation>Share results</translation>
+        </message>
         <message id="genycaster.stats.range_week">
             <source>7 days</source>
             <translation>7 days</translation>

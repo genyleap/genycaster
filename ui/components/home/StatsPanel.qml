@@ -41,6 +41,43 @@ ColumnLayout {
     readonly property bool loaded: fetchState === "ready" || fetchState === "partial"
     readonly property bool partial: fetchState === "partial"
     readonly property var metrics: statsController.summary
+    readonly property var rangeDays: [7, 30, 90, 365]
+
+    function rangeLabel(days) {
+        if (days === 7) return qsTrId("genycaster.stats.range_week")
+        if (days === 30) return qsTrId("genycaster.stats.range_month")
+        if (days === 90) return qsTrId("genycaster.stats.range_quarter")
+        return qsTrId("genycaster.stats.range_year")
+    }
+    function rangeIndex(days) {
+        return Math.max(0, rangeDays.indexOf(days))
+    }
+    // Provider-scoped facts only. Sharing creates an editable draft in the
+    // existing Composer; nothing is automatically published or signed.
+    function buildShareText() {
+        if (section !== "social" || !loaded) return ""
+        const lines = [
+            "GenyCaster · " + rangeLabel(periodDays),
+            "",
+            qsTrId("genycaster.stats.casts") + ": "
+                + LocaleFormat.formatInteger(Number(metrics.casts || 0)),
+            qsTrId("genycaster.stats.replies") + ": "
+                + LocaleFormat.formatInteger(Number(metrics.replies || 0))
+        ]
+        if (Boolean(metrics.hasEngagement)) {
+            lines.push(
+                qsTrId("genycaster.stats.engagement") + ": "
+                    + LocaleFormat.formatInteger(Number(metrics.engagement || 0)),
+                qsTrId("genycaster.stats.likes") + ": "
+                    + LocaleFormat.formatInteger(Number(metrics.likes || 0)),
+                qsTrId("genycaster.stats.recasts") + ": "
+                    + LocaleFormat.formatInteger(Number(metrics.recasts || 0)),
+                qsTrId("genycaster.stats.received_replies") + ": "
+                    + LocaleFormat.formatInteger(Number(metrics.receivedReplies || 0))
+            )
+        }
+        return lines.join("\n")
+    }
 
     // Only the FID-bound OpenProof connection list can establish GitHub ownership.
     // Bio links and manually entered profile fields are not identity proof.
@@ -175,6 +212,7 @@ ColumnLayout {
 
     signal periodRequested(int days)
     signal refreshRequested()
+    signal shareRequested(string text)
     signal castRequested(string hash)
 
     RowLayout {
@@ -202,6 +240,27 @@ ColumnLayout {
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.textSecondary
                 wrapMode: Text.Wrap
+            }
+        }
+
+        ActionButton {
+            objectName: "statsShareResultsButton"
+            visible: root.section === "social"
+            enabled: root.loaded && !root.loading
+            Layout.preferredWidth: iconOnly ? 42 : implicitWidth
+            Layout.preferredHeight: 42
+            Layout.alignment: Qt.AlignVCenter
+            compact: true
+            quiet: true
+            elevated: false
+            iconOnly: root.compact || root.width < 750
+            iconSize: Theme.iconSizeLarge
+            iconGlyph: Theme.iconShare
+            text: qsTrId("genycaster.stats.share_results")
+            onClicked: {
+                const draft = root.buildShareText()
+                if (draft.length > 0)
+                    root.shareRequested(draft)
             }
         }
 
@@ -265,10 +324,15 @@ ColumnLayout {
         }
     }
 
+    // A bounded segmented control on desktop; the phone gets a single
+    // compact dropdown instead of four full-width rows of navigation.
     Superellipse {
-        visible: root.section === "social"
-        Layout.fillWidth: true
-        Layout.preferredHeight: 44
+        objectName: "statsDesktopPeriodFilter"
+        visible: root.section === "social" && !root.compact
+        Layout.preferredWidth: Math.min(440, root.width)
+        Layout.maximumWidth: 440
+        Layout.preferredHeight: 42
+        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
         fillColor: Theme.surfaceMuted
         borderWidth: 1
         borderColor: Theme.borderMuted
@@ -281,7 +345,7 @@ ColumnLayout {
             layoutDirection: Theme.uiDirection
 
             Repeater {
-                model: [7, 30, 90, 365]
+                model: root.rangeDays
                 delegate: GenyTabButton {
                     required property var modelData
                     Layout.fillWidth: true
@@ -290,15 +354,37 @@ ColumnLayout {
                     minimumWidth: 0
                     dense: true
                     selected: root.periodDays === modelData
-                    text: modelData === 7 ? qsTrId("genycaster.stats.range_week")
-                        : modelData === 30 ? qsTrId("genycaster.stats.range_month")
-                        : modelData === 90 ? qsTrId("genycaster.stats.range_quarter")
-                                           : qsTrId("genycaster.stats.range_year")
-                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(LocaleFormat.formatInteger(modelData))
+                    text: root.rangeLabel(modelData)
+                    Accessible.name: qsTrId("genycaster.stats.last_n_days")
+                                     .arg(LocaleFormat.formatInteger(modelData))
                     onClicked: if (root.periodDays !== modelData)
                                    root.periodRequested(modelData)
                 }
             }
+        }
+    }
+
+    GenyComboBox {
+        id: mobilePeriodFilter
+        objectName: "statsMobilePeriodFilter"
+        visible: root.section === "social" && root.compact
+        Layout.preferredWidth: Math.min(210, Math.max(152, root.width * 0.52))
+        Layout.maximumWidth: 210
+        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+        implicitWidth: 184
+        model: [
+            root.rangeLabel(7),
+            root.rangeLabel(30),
+            root.rangeLabel(90),
+            root.rangeLabel(365)
+        ]
+        currentIndex: root.rangeIndex(root.periodDays)
+        Accessible.name: qsTrId("genycaster.stats.last_n_days")
+                         .arg(LocaleFormat.formatInteger(root.periodDays))
+        onActivated: index => {
+            const days = root.rangeDays[index]
+            if (days !== undefined && days !== root.periodDays)
+                root.periodRequested(days)
         }
     }
 
@@ -404,6 +490,7 @@ ColumnLayout {
         StatsBreakdown {
             visible: Boolean(root.metrics.hasEngagement)
             Layout.fillWidth: true
+            compact: root.compact
             metrics: root.metrics
             // Same provider-scoped date buckets as the publishing chart.
             // Engagement in a bucket is the current response count on
@@ -576,6 +663,7 @@ ColumnLayout {
 
         StatsChart {
             Layout.fillWidth: true
+            compact: root.compact
             bars: statsController.activity
             periodDays: root.periodDays
         }

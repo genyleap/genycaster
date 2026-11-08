@@ -13,6 +13,8 @@ Superellipse {
 
     property var metrics: ({})
     property var activity: []
+    // Only the actual mobile shell stacks rings below the trend chart.
+    property bool compact: false
     property int hoveredIndex: -1
     property int selectedIndex: -1
     // Legend selection persists; hovering a line temporarily inspects it.
@@ -58,9 +60,13 @@ Superellipse {
         return Qt.rgba(ink.r, ink.g, ink.b, amount)
     }
     function lineWidth(key) {
+        const smallPlot = root.compact || plot.width < 440
         const emphasized = focusedSeriesKey === "" || focusedSeriesKey === key
-        return key === "likes" ? (emphasized ? 2.1 : 1.45)
-                               : (emphasized ? 1.8 : 1.3)
+        if (key === "likes")
+            return smallPlot ? (emphasized ? 1.55 : 1.1)
+                             : (emphasized ? 2.1 : 1.45)
+        return smallPlot ? (emphasized ? 1.25 : 0.95)
+                         : (emphasized ? 1.8 : 1.3)
     }
     function nearestSeriesAt(x, y, w, h) {
         const index = indexAt(x, w)
@@ -181,6 +187,12 @@ Superellipse {
         hoveredSeriesKey = ""
         Qt.callLater(animateChart)
     }
+    onVisibleChanged: {
+        if (!visible) {
+            hoveredIndex = -1
+            hoveredSeriesKey = ""
+        }
+    }
     Component.onCompleted: animateChart()
 
     NumberAnimation {
@@ -251,14 +263,15 @@ Superellipse {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             layoutDirection: Theme.uiDirection
-            columns: root.width >= 980 ? 2 : 1
+            columns: root.compact ? 1 : 2
             columnSpacing: Theme.space4
             rowSpacing: Theme.space3
 
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                Layout.preferredWidth: root.width >= 980 ? 650 : 1
+                Layout.preferredWidth: root.compact ? 1
+                                       : Math.max(180, root.width - (root.width < 850 ? 220 : 265))
                 spacing: Theme.space2
 
                 GridLayout {
@@ -475,7 +488,12 @@ Superellipse {
                         Superellipse {
                             id: inspectCard
                             z: 5
-                            visible: root.inspectedBucket !== null && plot.width >= 270
+                            // Touch/keyboard selection is kept in the summary
+                            // below. A floating tooltip only belongs to live
+                            // pointer hover, never to a persisted selection.
+                            visible: root.hoveredIndex >= 0 && plotHover.hovered
+                                     && plot.width >= 270 && !root.compact
+                            enabled: false
                             width: Math.min(218, plot.width - 8)
                             height: inspectContent.implicitHeight + Theme.space3 * 2
                             fillColor: Theme.surfaceRaised
@@ -611,11 +629,11 @@ Superellipse {
             }
 
             StatsDistributionRings {
-                Layout.fillWidth: true
+                Layout.fillWidth: root.compact
                 Layout.minimumWidth: 0
-                Layout.preferredWidth: root.width >= 980 ? 232 : 1
-                Layout.alignment: Qt.AlignVCenter
-                compact: root.width < 980
+                Layout.preferredWidth: root.compact ? 1 : (root.width < 850 ? 204 : 248)
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                compact: root.compact || root.width < 850
                 likes: Number(root.metrics.likes || 0)
                 recasts: Number(root.metrics.recasts || 0)
                 receivedReplies: Number(root.metrics.receivedReplies || 0)

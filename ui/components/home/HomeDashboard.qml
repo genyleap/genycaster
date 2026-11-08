@@ -516,6 +516,7 @@ GenyTokenBanner {
                         periodDays: root.statsDays
                         onPeriodRequested: days => root.statsDays = days
                         onRefreshRequested: root.requestStats(true)
+                        onShareRequested: text => root.composeRequested(text)
                         onCastRequested: hash => root.castRequested(hash)
                     }
                 }
@@ -679,6 +680,7 @@ GenyTokenBanner {
                 periodDays: root.statsDays
                 onPeriodRequested: days => root.statsDays = days
                 onRefreshRequested: root.requestStats(true)
+                onShareRequested: text => root.composeRequested(text)
                 onCastRequested: hash => root.castRequested(hash)
             }
 

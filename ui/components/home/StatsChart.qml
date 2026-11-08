@@ -8,6 +8,7 @@ Superellipse {
     objectName: "statsPublishingChart"
     property var bars: []
     property int periodDays: 30
+    property bool compact: false
     property int selectedIndex: -1
     property int hoveredIndex: -1
     readonly property int activeIndex: hoveredIndex >= 0 ? hoveredIndex : selectedIndex
@@ -37,6 +38,8 @@ Superellipse {
         if (!row.endDate || row.endDate === row.startDate) return first
         return first + " – " + localizedDay(row.endDate, row.label)
     }
+
+    onVisibleChanged: if (!visible) hoveredIndex = -1
 
     onBarsChanged: {
         selectedIndex = -1
@@ -262,13 +265,23 @@ Superellipse {
                     }
                 }
 
+                HoverHandler {
+                    id: plotHover
+                    onHoveredChanged: {
+                        if (!hovered)
+                            root.hoveredIndex = -1
+                    }
+                }
+
                 // Non-intercepting inspection bubble stays within the plot.
                 // The guide below remains available for touch/narrow widths.
                 Superellipse {
                     id: barInspectCard
                     z: 8
                     enabled: false
-                    visible: root.selected !== null && plot.width >= 290
+                    visible: root.hoveredIndex >= 0 && plotHover.hovered
+                             && root.selected !== null && plot.width >= 290
+                             && !root.compact
                     width: Math.min(204, plot.width - 8)
                     height: barInspectContent.implicitHeight + Theme.space3 * 2
                     fillColor: Theme.surfaceRaised
