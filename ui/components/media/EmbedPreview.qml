@@ -16,6 +16,7 @@ Item {
     property var embed: ({})
     property string castCaption: ""
     property bool compact: false
+    property bool flatLinkCard: false
     property bool suppressArtwork: false
     readonly property string rawKind: String(root.embed.kind || "").toLowerCase()
     readonly property string targetUrl: String(root.embed.url || root.embed.value || "")
@@ -437,6 +438,7 @@ Item {
     Component {
         id: linkComponent
         LinkPreview {
+            embeddedInCard: root.flatLinkCard
             embed: root.embed
             castCaption: root.castCaption
             compact: root.compact

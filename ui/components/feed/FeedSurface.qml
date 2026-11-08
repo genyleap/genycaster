@@ -12,6 +12,21 @@ Item {
     property bool supplementalBusy: false
     property bool runtimeReady: false
     property bool socialMode: false
+    property bool explorerLayoutAvailable: false
+    property string explorerLayout: "magazine"
+    property int explorerCardWidth: 500
+    readonly property bool magazineEnabled: explorerLayoutAvailable && !compact
+        && !socialMode && explorerLayout !== "timeline"
+    readonly property var readList: magazineEnabled ? magazineView : timelineList
+    onMagazineEnabledChanged: layoutSwitchTimer.restart()
+    Timer {
+        id: layoutSwitchTimer
+        interval: 0
+        onTriggered: {
+            root.cancelViewportCorrections()
+            root.readList.positionViewAtBeginning()
+        }
+    }
     property bool busy: false
     property bool hasMore: false
     // Cached local rows may continue even while the provider is offline.
@@ -678,8 +693,9 @@ Item {
         if (root.socialMode || presentationKind === "profile")
             return 68
 
-        const rowWidth = Math.max(root.compact ? 320 : 480, Number(availableWidth || 0))
-        const horizontalInset = root.compact ? Theme.mobileGutter * 2
+        const compactCard = root.compact || root.magazineEnabled
+        const rowWidth = Math.max(compactCard ? 320 : 480, Number(availableWidth || 0))
+        const horizontalInset = compactCard ? Theme.mobileGutter * 2
                                              : Theme.space3 * 2 + 42 + Theme.space3
         const contentWidth = Math.max(180, rowWidth - horizontalInset)
         const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
@@ -713,20 +729,20 @@ Item {
                 }
             }
             aspect = Math.max(0.45, Math.min(2.8, aspect))
-            const maximumHeight = root.compact ? Math.max(720, contentWidth * 1.6) : 860
-            reservation += Math.max(root.compact ? 120 : 140,
+            const maximumHeight = compactCard ? Math.max(720, contentWidth * 1.6) : 860
+            reservation += Math.max(compactCard ? 120 : 140,
                                     Math.min(maximumHeight, contentWidth / aspect)) + Theme.space2
         } else if (layoutKind === "gallery") {
             const visibleCount = Math.min(6, embeds.length)
             const gap = Theme.space2
-            if (contentWidth < (root.compact ? 360 : 430)) {
-                const tileHeight = Math.max(root.compact ? 118 : 138,
-                    Math.min(root.compact ? 350 : 470, contentWidth / (4 / 3)))
+            if (contentWidth < (compactCard ? 360 : 430)) {
+                const tileHeight = Math.max(compactCard ? 118 : 138,
+                    Math.min(compactCard ? 350 : 470, contentWidth / (4 / 3)))
                 reservation += visibleCount * tileHeight + Math.max(0, visibleCount - 1) * gap
             } else {
                 const columnWidth = (contentWidth - gap) / 2
-                const tileHeight = Math.max(root.compact ? 118 : 138,
-                    Math.min(root.compact ? 350 : 470, columnWidth / (4 / 3)))
+                const tileHeight = Math.max(compactCard ? 118 : 138,
+                    Math.min(compactCard ? 350 : 470, columnWidth / (4 / 3)))
                 const rows = Math.ceil(visibleCount / 2)
                 reservation += rows * tileHeight + Math.max(0, rows - 1) * gap
             }
@@ -735,7 +751,8 @@ Item {
             // the protocol embed list is empty. Reserve that card before the
             // async supporting subtree is admitted so a cold link row does not
             // change ListView geometry underneath the scroll gesture.
-            reservation += root.compact ? 210 : 230
+            reservation += root.magazineEnabled
+                ? Math.min(300, contentWidth / (16 / 9)) + 132 : compactCard ? 210 : 230
         }
 
         if ((layoutKind === "single-image" || layoutKind === "gallery")
@@ -744,11 +761,11 @@ Item {
             // cards too. Capping at two avoids pathological reservation while
             // keeping the common image+destination case geometry-stable.
             reservation += Math.min(2, supportingEmbedCount)
-                         * (root.compact ? 132 : 152)
+                         * (compactCard ? 132 : 152)
         }
 
         if (presentationKind === "visual")
-            reservation += root.compact ? Theme.space2 : Theme.space5
+            reservation += compactCard ? Theme.space2 : Theme.space5
         else if (presentationKind === "developer")
             reservation += Theme.space7
         return Math.max(68, Math.ceil(reservation))
@@ -789,6 +806,7 @@ Item {
     }
 
     function rememberVisibleGeometry() {
+        if (root.magazineEnabled) return
         if (readList.moving || !root.presentationActive || readList.count === 0
                 || root.applyingGeometryAnchor || root.applyingViewportRestore
                 || geometryRestoreTimer.running
@@ -1394,14 +1412,15 @@ Item {
     }
 
     ListView {
-        id: readList
+        id: timelineList
         objectName: "readList"
+        visible: !root.magazineEnabled
         anchors.fill: parent
         clip: true
         // The mobile dock is an overlay, not an opaque reserved footer.
         // Allow the final cast to scroll clear of its touch targets.
         bottomMargin: root.compact ? 96 : 0
-        model: stableRows
+        model: root.magazineEnabled ? null : stableRows
         spacing: 0
         // Pulling past the top is a deliberate refresh gesture; the content
         // remains bounded during ordinary wheel/flick movement.
@@ -1422,8 +1441,32 @@ Item {
                                   : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
-        onMovementStarted: root.cancelViewportCorrections()
-        onMovementEnded: {
+        header: root.magazineEnabled ? null : feedHeaderComponent
+        footer: root.magazineEnabled ? null : feedFooterComponent
+
+        // Pool structurally similar rows separately. Reusing an image row for
+        // a link (and back) synchronously tears down/rebuilds its media subtree
+        // inside the Flickable animation step.
+        delegate: DelegateModels.DelegateChooser {
+            role: "mediaLayoutKind"
+            DelegateModels.DelegateChoice {
+                roleValue: "single-image"
+                delegate: FeedRow {}
+            }
+            DelegateModels.DelegateChoice {
+                roleValue: "gallery"
+                delegate: FeedRow {}
+            }
+            DelegateModels.DelegateChoice {
+                delegate: FeedRow {}
+            }
+        }
+    }
+
+    Connections {
+        target: root.readList
+        function onMovementStarted() { root.cancelViewportCorrections() }
+        function onMovementEnded() {
             geometryAnchorDebounce.restart()
             // A genuine scroll gesture is explicit user intent, unlike geometry
             // updates from an empty/duplicate continuation page.
@@ -1441,13 +1484,13 @@ Item {
         // is the single scroll-triggered admission point; geometry/viewport changes
         // only schedule work while the view is already at rest. This removes a
         // periodic JavaScript timer from every active flick.
-        onContentHeightChanged: {
+        function onContentHeightChanged() {
             if (!readList.moving) {
                 if (!scrollWorkThrottle.running)
                     scrollWorkThrottle.start()
             }
         }
-        onContentYChanged: {
+        function onContentYChanged() {
             // Wheel/browser fallback/scrollbar input can change contentY without
             // moving. It must cancel corrections even while their timer is queued.
             if (!readList.moving && !root.applyingGeometryAnchor
@@ -1456,13 +1499,44 @@ Item {
                 geometryAnchorDebounce.restart()
             }
         }
-        onHeightChanged: {
+        function onHeightChanged() {
             if (!readList.moving && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
+    }
 
+    FeedMasonryView {
+        id: magazineView
+        objectName: "explorerMagazine"
+        anchors.fill: parent
+        visible: root.magazineEnabled
+        model: root.magazineEnabled ? stableRows : null
+        header: root.magazineEnabled ? feedHeaderComponent : null
+        footer: root.magazineEnabled ? feedFooterComponent : null
+        targetCardWidth: Theme.scaleUi(root.explorerCardWidth)
+        maximumColumns: root.explorerCardWidth < 500 ? 3 : 2
+        onLayoutStarted: root.applyingGeometryAnchor = true
+        onLayoutFinished: root.applyingGeometryAnchor = false
+        estimateHeight: function(key, kind, media, width) {
+            return root.rowIncubationHeight(root.payloadForStableKey(key), kind, media, width)
+        }
+        delegate: Component {
+            FeedRow {
+                magazineRow: true
+                viewportY: parent.slotY
+                width: parent.width
+                index: parent.rowIndex
+                stableKey: parent.stableKey
+                revisionKey: parent.revisionKey
+                presentationKind: parent.presentationKind
+                mediaLayoutKind: parent.mediaLayoutKind
+            }
+        }
+    }
 
-        header: Item {
+    Component {
+        id: feedHeaderComponent
+        Item {
             id: pinnedHeader
             width: readList.width
             // Reserve the new-post affordance in the list header itself so the
@@ -1671,173 +1745,162 @@ Item {
                 visible: height > 0
             }
         }
+    }
 
-        // Pool structurally similar rows separately. Reusing an image row for
-        // a link (and back) synchronously tears down/rebuilds its media subtree
-        // inside the Flickable animation step.
-        delegate: DelegateModels.DelegateChooser {
-            role: "mediaLayoutKind"
-            DelegateModels.DelegateChoice {
-                roleValue: "single-image"
-                delegate: FeedRow {}
-            }
-            DelegateModels.DelegateChoice {
-                roleValue: "gallery"
-                delegate: FeedRow {}
-            }
-            DelegateModels.DelegateChoice {
-                delegate: FeedRow {}
-            }
+    component FeedRow: Loader {
+        id: rowDelegate
+        objectName: "feedRow"
+        required property string presentationKind
+        required property string mediaLayoutKind
+        required property string stableKey
+        required property string revisionKey
+        required property int index
+        property bool magazineRow: false
+        readonly property var payload: {
+            const revision = rowDelegate.revisionKey
+            return root.payloadForStableKey(rowDelegate.stableKey)
+        }
+        readonly property bool sectionRow: Boolean(payload && payload._genySection)
+        readonly property bool incubating: status === Loader.Loading || item === null
+        readonly property real reservedHeight: root.rowIncubationHeight(
+                                                   payload, presentationKind,
+                                                   mediaLayoutKind, width)
+        readonly property real resolvedHeight: item && item.implicitHeight > 0
+                                               ? item.implicitHeight : 0
+        property real committedHeight: reservedHeight
+
+        function synchronizeHeight() {
+            // A reservation belongs only to an incubating row. Once its
+            // content exists, ListView must see its real height even during
+            // motion; freezing estimates creates holes or overlapping casts.
+            // Qt owns continuity while moving; idle changes can be anchored.
+            const nextHeight = !rowDelegate.incubating && rowDelegate.resolvedHeight > 0
+                               ? rowDelegate.resolvedHeight : rowDelegate.reservedHeight
+            if (Math.abs(rowDelegate.committedHeight - nextHeight) < 1) return
+            // Capture immediately before a real geometry mutation, never
+            // in response to ListView's fluctuating contentHeight estimate.
+            root.rememberVisibleGeometry()
+            rowDelegate.committedHeight = nextHeight
+            if (!readList.moving && root.geometryAnchorKey.length > 0)
+                geometryRestoreTimer.restart()
         }
 
-        component FeedRow: Loader {
-            id: rowDelegate
-            objectName: "feedRow"
-            required property string presentationKind
-            required property string mediaLayoutKind
-            required property string stableKey
-            required property string revisionKey
-            required property int index
-            readonly property var payload: {
-                const revision = rowDelegate.revisionKey
-                return root.payloadForStableKey(rowDelegate.stableKey)
-            }
-            readonly property bool sectionRow: Boolean(payload && payload._genySection)
-            readonly property bool incubating: status === Loader.Loading || item === null
-            readonly property real reservedHeight: root.rowIncubationHeight(
-                                                       payload, presentationKind,
-                                                       mediaLayoutKind, width)
-            readonly property real resolvedHeight: item && item.implicitHeight > 0
-                                                   ? item.implicitHeight : 0
-            property real committedHeight: reservedHeight
+        property real viewportY: y
+        width: readList.width
+        // Reused delegates stay alive in ListView's pool. Explicitly hide
+        // pooled rows so inherited visibility pauses animated emoji, spinners,
+        // and other presentation-only work until the row is reused.
+        ListView.onPooled: rowDelegate.visible = false
+        ListView.onReused: {
+            rowDelegate.visible = true
+            rowDelegate.synchronizeHeight()
+        }
+        // ListView must never see a zero-height row while Qt spreads the
+        // expensive Cast subtree construction across multiple frames.
+        // The placeholder is replaced by measured geometry as soon as the
+        // loaded content is ready, including on reuse during a flick.
+        implicitHeight: Math.max(1, committedHeight)
+        height: implicitHeight
+        // Keep large cast delegates asynchronously incubated: disabling
+        // this blocks scrolling during rapid navigation. Qt may emit a
+        // harmless teardown diagnostic if a pending row is recycled.
+        asynchronous: !sectionRow
+        sourceComponent: rowDelegate.sectionRow ? sectionRowComponent
+                       : root.socialMode ? profileRowComponent : castRowComponent
+        onReservedHeightChanged: rowDelegate.synchronizeHeight()
+        onResolvedHeightChanged: rowDelegate.synchronizeHeight()
+        onLoaded: rowDelegate.synchronizeHeight()
+        onStableKeyChanged: rowDelegate.committedHeight = rowDelegate.reservedHeight
 
-            function synchronizeHeight() {
-                // A reservation belongs only to an incubating row. Once its
-                // content exists, ListView must see its real height even during
-                // motion; freezing estimates creates holes or overlapping casts.
-                // Qt owns continuity while moving; idle changes can be anchored.
-                const nextHeight = !rowDelegate.incubating && rowDelegate.resolvedHeight > 0
-                                   ? rowDelegate.resolvedHeight : rowDelegate.reservedHeight
-                if (Math.abs(rowDelegate.committedHeight - nextHeight) < 1) return
-                // Capture immediately before a real geometry mutation, never
-                // in response to ListView's fluctuating contentHeight estimate.
-                root.rememberVisibleGeometry()
-                rowDelegate.committedHeight = nextHeight
-                if (!readList.moving && root.geometryAnchorKey.length > 0)
-                    geometryRestoreTimer.restart()
-            }
+        // An asynchronous delegate may still be incubating when a fast
+        // flick brings its slot on screen. Show a real cast-shaped loading
+        // state rather than a vacant patch of the feed.
+        CastSkeleton {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            visible: rowDelegate.incubating && !rowDelegate.sectionRow
+            mediaPreview: rowDelegate.mediaLayoutKind !== "other"
+            animate: !readList.moving
+        }
 
-            width: readList.width
-            // Reused delegates stay alive in ListView's pool. Explicitly hide
-            // pooled rows so inherited visibility pauses animated emoji, spinners,
-            // and other presentation-only work until the row is reused.
-            ListView.onPooled: rowDelegate.visible = false
-            ListView.onReused: {
-                rowDelegate.visible = true
-                rowDelegate.synchronizeHeight()
-            }
-            // ListView must never see a zero-height row while Qt spreads the
-            // expensive Cast subtree construction across multiple frames.
-            // The placeholder is replaced by measured geometry as soon as the
-            // loaded content is ready, including on reuse during a flick.
-            height: Math.max(1, committedHeight)
-            // Keep large cast delegates asynchronously incubated: disabling
-            // this blocks scrolling during rapid navigation. Qt may emit a
-            // harmless teardown diagnostic if a pending row is recycled.
-            asynchronous: !sectionRow
-            sourceComponent: rowDelegate.sectionRow ? sectionRowComponent
-                           : root.socialMode ? profileRowComponent : castRowComponent
-            onReservedHeightChanged: rowDelegate.synchronizeHeight()
-            onResolvedHeightChanged: rowDelegate.synchronizeHeight()
-            onLoaded: rowDelegate.synchronizeHeight()
-            onStableKeyChanged: rowDelegate.committedHeight = rowDelegate.reservedHeight
-
-            // An asynchronous delegate may still be incubating when a fast
-            // flick brings its slot on screen. Show a real cast-shaped loading
-            // state rather than a vacant patch of the feed.
-            CastSkeleton {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                visible: rowDelegate.incubating && !rowDelegate.sectionRow
-                mediaPreview: rowDelegate.mediaLayoutKind !== "other"
-                animate: !readList.moving
-            }
-
-            Connections {
-                target: readList
-                function onMovingChanged() {
-                    if (!readList.moving) {
-                        // Capture the visible cast before deferred video/card
-                        // heights settle, then keep that anchor in view.
-                        if (root.geometryAnchorKey.length === 0)
-                            root.rememberVisibleGeometry()
-                        rowDelegate.synchronizeHeight()
-                    }
-                }
-            }
-
-            Component {
-                id: sectionRowComponent
-                Item {
-                    implicitHeight: semanticSection.implicitHeight + Theme.space4
-
-                    DirectionAwareLabel {
-                        id: semanticSection
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.leftMargin: root.compact ? Theme.mobileGutter : Theme.space3
-                        anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space3
-                        anchors.top: parent.top
-                        anchors.topMargin: Theme.space4
-                        text: root.sectionTitle(String(rowDelegate.payload._genySection || ""))
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.typeTitle3Size
-                        font.weight: Theme.weightDemiBold
-                    }
-                }
-            }
-
-            Component {
-                id: castRowComponent
-                SemanticFeedItem {
-                    implicitWidth: rowDelegate.width
-                    modelData: rowDelegate.payload
-                    rowIndex: rowDelegate.index
-                    presentationKind: rowDelegate.presentationKind
-                    compact: root.compact
-                    interactionsAvailable: root.interactionsAvailable
-                    // Keep only a small near-viewport margin subscribed.
-                    enrichmentActive: root.presentationActive && rowDelegate.visible
-                        && rowDelegate.y + rowDelegate.height >= readList.contentY - 320
-                        && rowDelegate.y <= readList.contentY + readList.height + 320
-                    accountFid: root.accountFid
-                    onOpenRequested: castId => {
-                        root.rememberCastForReturn(castId)
-                        root.castRequested(castId)
-                    }
-                    onProfileRequested: fid => root.profileRequested(fid)
-                    onReplyRequested: cast => root.replyRequested(cast)
-                    onQuoteRequested: cast => root.quoteRequested(cast)
-                    onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
-                    onRemoveRequested: cast => root.removeCastRequested(cast)
-                    onExternalRequested: url => root.externalRequested(url)
-                    onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
-                    onAuthenticationRequested: root.authenticationRequested()
-                }
-            }
-
-            Component {
-                id: profileRowComponent
-                ProfileListItem {
-                    implicitWidth: rowDelegate.width
-                    modelData: rowDelegate.payload
-                    onOpenRequested: fid => root.profileRequested(fid)
+        Connections {
+            target: readList
+            function onMovingChanged() {
+                if (!readList.moving) {
+                    // Capture the visible cast before deferred video/card
+                    // heights settle, then keep that anchor in view.
+                    if (root.geometryAnchorKey.length === 0)
+                        root.rememberVisibleGeometry()
+                    rowDelegate.synchronizeHeight()
                 }
             }
         }
 
-        footer: Item {
+        Component {
+            id: sectionRowComponent
+            Item {
+                implicitHeight: semanticSection.implicitHeight + Theme.space4
+
+                DirectionAwareLabel {
+                    id: semanticSection
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: root.compact ? Theme.mobileGutter : Theme.space3
+                    anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space3
+                    anchors.top: parent.top
+                    anchors.topMargin: Theme.space4
+                    text: root.sectionTitle(String(rowDelegate.payload._genySection || ""))
+                    color: Theme.textPrimary
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightDemiBold
+                }
+            }
+        }
+
+        Component {
+            id: castRowComponent
+            SemanticFeedItem {
+                implicitWidth: rowDelegate.width
+                modelData: rowDelegate.payload
+                rowIndex: rowDelegate.index
+                presentationKind: rowDelegate.presentationKind
+                compact: root.compact || rowDelegate.magazineRow
+                magazineCard: rowDelegate.magazineRow
+                interactionsAvailable: root.interactionsAvailable
+                // Keep only a small near-viewport margin subscribed.
+                enrichmentActive: root.presentationActive && rowDelegate.visible
+                    && rowDelegate.viewportY + rowDelegate.height >= readList.contentY - 320
+                    && rowDelegate.viewportY <= readList.contentY + readList.height + 320
+                accountFid: root.accountFid
+                onOpenRequested: castId => {
+                    root.rememberCastForReturn(castId)
+                    root.castRequested(castId)
+                }
+                onProfileRequested: fid => root.profileRequested(fid)
+                onReplyRequested: cast => root.replyRequested(cast)
+                onQuoteRequested: cast => root.quoteRequested(cast)
+                onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
+                onRemoveRequested: cast => root.removeCastRequested(cast)
+                onExternalRequested: url => root.externalRequested(url)
+                onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                onAuthenticationRequested: root.authenticationRequested()
+            }
+        }
+
+        Component {
+            id: profileRowComponent
+            ProfileListItem {
+                implicitWidth: rowDelegate.width
+                modelData: rowDelegate.payload
+                onOpenRequested: fid => root.profileRequested(fid)
+            }
+        }
+    }
+
+    Component {
+        id: feedFooterComponent
+        Item {
             width: readList.width
             // The empty state is part of the ListView content, AFTER the
             // inline header, so filters/tabs never overlap its title or CTA.
@@ -1905,9 +1968,9 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        // Keep the back-to-top control above the independent compose FAB.
+        // The mobile inset already includes the dock and its compose button.
         anchors.bottomMargin: Math.max(Theme.space4, root.bottomOverlayInset
-                                      + (root.compact ? 56 : 0) + Theme.space3)
+                                      + Theme.space3)
     }
 
     Item {

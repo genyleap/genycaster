@@ -182,10 +182,14 @@ Item {
     }
     property var selectedChannelInfo: ({})
     property string explorerAudience: "all"
+    property string explorerDisplayLayout: "magazine"
+    property int explorerCardWidth: 500
     Settings {
         id: explorerAudiencePreferences
         category: "explorer-feed"
         property alias audience: root.explorerAudience
+        property alias displayLayout: root.explorerDisplayLayout
+        property alias cardWidth: root.explorerCardWidth
     }
     function chooseExplorerAudience(audience) {
         const chosen = audience === "following"
@@ -1035,6 +1039,15 @@ Item {
             width: parent ? parent.width : 0
             spacing: 0
 
+            ExplorerLayoutControls {
+                width: parent.width
+                visible: !root.compact
+                layoutMode: root.explorerDisplayLayout
+                cardWidth: root.explorerCardWidth
+                onLayoutRequested: mode => root.explorerDisplayLayout = mode
+                onCardWidthRequested: width => root.explorerCardWidth = width
+            }
+
             // Explorer's brand/action bar is fixed by the shell. Everything from
             // the greeting downward belongs to the scrolling/pullable feed.
             HomeFeedHeader {
@@ -1674,6 +1687,11 @@ Item {
 
                                         sourceComponent: Component {
                                             FeedSurface {
+                                                explorerLayoutAvailable: root.primaryDestination === "explorer"
+                                                    && presentationBridge.activeFeed !== "channel"
+                                                explorerLayout: root.explorerDisplayLayout
+                                                explorerCardWidth: [420, 500, 640].includes(root.explorerCardWidth)
+                                                    ? root.explorerCardWidth : 500
                                                 bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                                 presentationActive: feedSurfaceLoader.surfaceRequested
                                                 rows: root.withoutMutedActors(

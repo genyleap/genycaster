@@ -1,6 +1,30 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="pt_BR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.explorer.layout">
+            <source>View</source>
+            <translation>Visualização</translation>
+        </message>
+        <message id="genycaster.explorer.magazine">
+            <source>Magazine</source>
+            <translation>Revista</translation>
+        </message>
+        <message id="genycaster.explorer.timeline">
+            <source>Timeline</source>
+            <translation>Linha do tempo</translation>
+        </message>
+        <message id="genycaster.explorer.small_cards">
+            <source>Small cards</source>
+            <translation>Cartões pequenos</translation>
+        </message>
+        <message id="genycaster.explorer.medium_cards">
+            <source>Medium cards</source>
+            <translation>Cartões médios</translation>
+        </message>
+        <message id="genycaster.explorer.large_cards">
+            <source>Large cards</source>
+            <translation>Cartões grandes</translation>
+        </message>
         <message id="genycaster.market.last_checked">
             <source>Last checked: %1</source>
             <translation>Última verificação: %1</translation>

@@ -8,6 +8,7 @@ Item {
 
     property var modelData
     property bool compact: false
+    property bool magazineCard: false
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -274,7 +275,7 @@ Item {
     // Keep rich mentions, long text, galleries, mint pages and other media
     // on the existing interactive Cast renderer.
     readonly property bool combinedLinkCast: {
-        if (root.mediaFirst || root.supportingEmbeds.length !== 1
+        if (root.magazineCard || root.mediaFirst || root.supportingEmbeds.length !== 1
                 || root.displayText.length === 0 || root.displayText.length > 180)
             return false
         const embed = root.supportingEmbeds[0]
@@ -379,7 +380,7 @@ Item {
         onTriggered: root.parentHydrationTimedOut = true
     }
 
-    implicitHeight: messageRow.implicitHeight + Theme.space3
+    implicitHeight: messageRow.implicitHeight + (root.magazineCard ? 0 : Theme.space3)
     Accessible.description: (root.modelData.castId !== undefined ? qsTrId("genycaster.cast.view_conversation") : "")
                             + (Number(root.modelData.embedCount || 0) > 1
                                ? " · " + qsTrId("genycaster.cast.value_embeds").arg(LocaleFormat.formatInteger(Number(root.modelData.embedCount || 0))) : "")
@@ -389,9 +390,9 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: root.compact ? Theme.space2 : Theme.space3
-        anchors.rightMargin: root.compact ? Theme.space2 : Theme.space3
-        anchors.topMargin: Theme.space2
+        anchors.leftMargin: root.magazineCard ? 0 : root.compact ? Theme.space2 : Theme.space3
+        anchors.rightMargin: root.magazineCard ? 0 : root.compact ? Theme.space2 : Theme.space3
+        anchors.topMargin: root.magazineCard ? 0 : Theme.space2
         anchors.bottomMargin: Theme.space1
         spacing: root.compact ? Theme.space1 : Theme.space3
         layoutDirection: Theme.uiDirection
@@ -421,13 +422,13 @@ Item {
             id: messageSurface
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            implicitHeight: messageContent.implicitHeight + (root.compact ? Theme.space2 : Theme.space4) * 2
+            implicitHeight: messageContent.implicitHeight + (root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4) * 2
 
             // All feed families share one soft superellipse surface. Keeping
             // the wrapper outside media Loaders preserves delegate reuse.
             Superellipse {
                 anchors.fill: parent
-                fillColor: Theme.backgroundPrimary
+                fillColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
                 borderWidth: 0
                 borderColor: "transparent"
                 curveDepth: Theme.curveContainer
@@ -438,10 +439,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: root.compact ? Theme.space2 : Theme.space4
-                anchors.rightMargin: root.compact ? Theme.space2 : Theme.space4
-                anchors.topMargin: root.compact ? Theme.space2 : Theme.space4
-                anchors.bottomMargin: root.compact ? Theme.space2 : Theme.space4
+                anchors.leftMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
+                anchors.rightMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
+                anchors.topMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
+                anchors.bottomMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
                 spacing: Theme.space2
                 layoutDirection: Theme.uiDirection
 
@@ -877,6 +878,7 @@ Item {
                     Layout.rightMargin: root.mediaContentInset
                     sourceComponent: Component {
                         CastEmbedsPanel {
+                            magazineCard: root.magazineCard
                             visualEmbeds: root.visualEmbeds
                             supportingEmbeds: []
                             compact: root.compact
@@ -888,7 +890,7 @@ Item {
                 }
 
                 RowLayout {
-                    visible: root.mediaFirst
+                    visible: root.mediaFirst && !root.magazineCard
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -943,6 +945,7 @@ Item {
                     Layout.rightMargin: root.mediaContentInset
                     sourceComponent: Component {
                         CastEmbedsPanel {
+                            magazineCard: root.magazineCard
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
                             castCaption: root.combinedLinkCast ? root.displayText : ""
@@ -961,6 +964,7 @@ Item {
                     Layout.fillWidth: true
                     sourceComponent: Component {
                         CastEmbedsPanel {
+                            magazineCard: root.magazineCard
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
                             castCaption: root.combinedLinkCast ? root.displayText : ""
@@ -973,7 +977,7 @@ Item {
                 }
 
                 RowLayout {
-                    visible: !root.mediaFirst
+                    visible: !root.mediaFirst || root.magazineCard
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     layoutDirection: root.contentRtl ? Qt.RightToLeft : Qt.LeftToRight

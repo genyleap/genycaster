@@ -8,6 +8,7 @@ Item {
     property int rowIndex: 0
     property string presentationKind: "conversation"
     property bool compact: false
+    property bool magazineCard: false
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -32,8 +33,30 @@ Item {
         id: loader
         anchors.left: parent.left
         anchors.right: parent.right
-        sourceComponent: root.resolvedKind === "visual" ? visualComponent
+        sourceComponent: root.magazineCard ? magazineComponent
+                       : root.resolvedKind === "visual" ? visualComponent
                        : root.resolvedKind === "developer" ? developerComponent : conversationComponent
+    }
+
+    Component {
+        id: magazineComponent
+        CastItem {
+            magazineCard: true
+            modelData: root.modelData
+            compact: true
+            interactionsAvailable: root.interactionsAvailable
+            accountFid: root.accountFid
+            enrichmentActive: root.enrichmentActive
+            onOpenRequested: castId => root.openRequested(castId)
+            onProfileRequested: fid => root.profileRequested(fid)
+            onReplyRequested: data => root.replyRequested(data)
+            onQuoteRequested: data => root.quoteRequested(data)
+            onReactionRequested: (kind, data, active) => root.reactionRequested(kind, data, active)
+            onRemoveRequested: data => root.removeRequested(data)
+            onExternalRequested: url => root.externalRequested(url)
+            onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+            onAuthenticationRequested: root.authenticationRequested()
+        }
     }
 
     Component {

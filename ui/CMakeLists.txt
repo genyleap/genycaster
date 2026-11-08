@@ -96,6 +96,8 @@ set(farcasterQmlFiles
     components/feed/ExplorerFeedHeader.qml
     components/feed/FeedHeader.qml
     components/feed/FeedSurface.qml
+    components/feed/FeedMasonryView.qml
+    components/feed/ExplorerLayoutControls.qml
     components/controls/FilterDropdown.qml
     components/media/FilePreview.qml
     components/home/HomeComposer.qml

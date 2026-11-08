@@ -10,6 +10,7 @@ ColumnLayout {
     property var supportingEmbeds: []
     property string castCaption: ""
     property bool compact: false
+    property bool magazineCard: false
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
@@ -320,7 +321,8 @@ ColumnLayout {
                                 embed: tile.embedData
                                 castCaption: root.supportingCount === 1 && root.visualCount === 0
                                              ? root.castCaption : ""
-                                compact: tile.width < 520
+                                compact: root.magazineCard || tile.width < 520
+                                flatLinkCard: root.magazineCard
                                 suppressArtwork: root.visualCount > 0
                                 onOpenRequested: url => root.externalRequested(url)
                                 onMediaRequested: (mediaItems, itemIndex) => root.mediaRequested(mediaItems, itemIndex)

@@ -55,6 +55,8 @@
   "FarcasterPreview.qml": "media/FarcasterPreview.qml",
   "FeedHeader.qml": "feed/FeedHeader.qml",
   "FeedPulseCard.qml": "feed/FeedPulseCard.qml",
+  "FeedMasonryView.qml": "feed/FeedMasonryView.qml",
+  "ExplorerLayoutControls.qml": "feed/ExplorerLayoutControls.qml",
   "FeedSurface.qml": "feed/FeedSurface.qml",
   "FeedbackDialog.qml": "settings/FeedbackDialog.qml",
   "FilePreview.qml": "media/FilePreview.qml",

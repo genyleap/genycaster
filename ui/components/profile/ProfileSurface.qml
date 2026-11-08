@@ -3855,9 +3855,9 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        // Keep the back-to-top control above the independent compose FAB.
+        // The mobile inset already includes the dock and its compose button.
         anchors.bottomMargin: Math.max(Theme.space4, root.bottomOverlayInset
-                                      + (root.compact ? 56 : 0) + Theme.space3)
+                                      + Theme.space3)
     }
     ContentRefreshIndicator {
         anchors.left: parent.left

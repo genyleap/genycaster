@@ -447,6 +447,95 @@ int main(int argc, char** argv)
     // in that dead context, even when the visual object still exists.
     QSignalSpy qmlWarnings{&engine, &QQmlEngine::warnings};
 
+    // Magazine geometry is independent from live media/providers. Exercise
+    // variable heights, bounded delegate admission, reflow and append with a
+    // deterministic local model before the full feed integration fixtures.
+    {
+        auto magazineModel = createInline(engine, R"(
+            import QtQuick
+            import QtQml.Models
+            Item {
+                property alias rows: entries
+                ListModel { id: entries }
+                function appendRow() {
+                    const index = entries.count
+                    entries.append({stableKey: "fixture:" + index, revisionKey: "1",
+                                    presentationKind: "conversation", mediaLayoutKind: "other"})
+                }
+                Component.onCompleted: {
+                    for (let index = 0; index < 60; ++index) appendRow()
+                }
+            }
+        )");
+        if (!magazineModel) { return 1; }
+        QQmlComponent magazineDelegate{&engine};
+        magazineDelegate.setData(R"(
+            import QtQuick
+            Rectangle {
+                objectName: "masonryFixtureCard"
+                property real extraHeight: 0
+                height: (parent.rowIndex % 2 === 0 ? 140 : 260) + extraHeight
+            }
+        )", QUrl{QStringLiteral("qrc:/magazine-delegate.qml")});
+        expect(magazineDelegate.isReady(), qPrintable(magazineDelegate.errorString()));
+        auto magazine = createSurface(engine, QStringLiteral("FeedMasonryView"), *scroll,
+            {{QStringLiteral("model"), magazineModel->property("rows")},
+             {QStringLiteral("delegate"), QVariant::fromValue(&magazineDelegate)},
+             {QStringLiteral("estimateHeight"), QVariant::fromValue(engine.evaluate(
+                 "(function(key, kind, media, width) { return Number(key.split(':')[1]) % 2 === 0 ? 140 : 260; })"))}});
+        if (!magazine) { return 1; }
+        auto* wall = qobject_cast<QQuickItem*>(magazine.get());
+        wall->setSize(QSizeF{1040, 600});
+        expect(QTest::qWaitFor([&] {
+            return visualItemsNamed(*wall, QStringLiteral("masonrySlot")).size() == 60
+                && visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() >= 4;
+        }), "magazine creates slots and admits visible cards");
+        auto slots = visualItemsNamed(*wall, QStringLiteral("masonrySlot"));
+        std::sort(slots.begin(), slots.end(), [](const auto* left, const auto* right) {
+            return left->property("index").toInt() < right->property("index").toInt();
+        });
+        expect(magazine->property("columns").toInt() == 2,
+            "default magazine uses two columns at desktop reading width");
+        const double gap = magazine->property("gutter").toDouble();
+        expect(slots.size() == 60, "magazine preserves every source row");
+        if (slots.size() != 60) { return 1; }
+        expect(qAbs(slots[0]->y() - slots[1]->y()) < 1 && slots[0]->x() != slots[1]->x(),
+            "first cards share a top edge in separate columns");
+        expect(qAbs(slots[2]->y() - slots[0]->y() - slots[0]->height() - gap) < 1,
+            "short card's lane continues without waiting for the taller neighbor");
+        expect(visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() < 16,
+            "offscreen rows do not instantiate expensive card content");
+        auto firstCards = visualItemsNamed(*slots[0], QStringLiteral("masonryFixtureCard"));
+        if (firstCards.empty()) { return 1; }
+        const double lane = slots[2]->x();
+        firstCards.front()->setProperty("extraHeight", 100);
+        expect(QTest::qWaitFor([&] {
+            return qAbs(slots[2]->y() - slots[0]->y() - slots[0]->height() - gap) < 1;
+        }), "late media height pushes the next card without overlap");
+        expect(slots[2]->x() == lane, "late metadata preserves assigned columns");
+        expect(QMetaObject::invokeMethod(wall, "positionViewAtIndex",
+            Q_ARG(QVariant, 40), Q_ARG(QVariant, 0)), "magazine accepts indexed navigation");
+        expect(QTest::qWaitFor([&] {
+            return !visualItemsNamed(*slots[40], QStringLiteral("masonryFixtureCard")).empty()
+                && visualItemsNamed(*slots[0], QStringLiteral("masonryFixtureCard")).empty();
+        }), "scrolling admits the destination and releases distant card trees");
+        wall->setWidth(500);
+        expect(QTest::qWaitFor([&] { return magazine->property("columns").toInt() == 1; }),
+            "narrow magazine reflows into one column");
+        QMetaObject::invokeMethod(wall, "forceLayout");
+        for (std::size_t index = 1; index < slots.size(); ++index) {
+            expect(slots[index]->y() >= slots[index - 1]->y() + slots[index - 1]->height(),
+                "single-column reflow never overlaps adjacent cards");
+            expect(slots[index]->x() >= 0 && slots[index]->x() + slots[index]->width() <= wall->width(),
+                "magazine cards remain inside their viewport");
+        }
+        expect(QMetaObject::invokeMethod(magazineModel.get(), "appendRow"), "local pagination appends a row");
+        expect(QTest::qWaitFor([&] { return magazine->property("count").toInt() == 61; }),
+            "magazine observes appended rows without replacing the view");
+        QMetaObject::invokeMethod(wall, "positionViewAtBeginning");
+        expect(magazine->property("contentY").toDouble() == 0, "magazine return-to-top reaches the header");
+    }
+
     // The mobile footer must render as a full-width edge-to-edge surface,
     // not as a rounded floating panel with pale gutters at phone corners.
     // Instantiate the real QML component so property/geometry regressions

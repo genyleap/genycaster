@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import Farcaster.Client
 
 /**
@@ -14,6 +15,7 @@ Superellipse {
     // Optional short Cast body folded into the same semantic web card.
     property string castCaption: ""
     property bool compact: false
+    property bool embeddedInCard: false
     property bool suppressArtwork: false
     property var externalPreview: ({})
     property var browserMiniAppPreview: ({})
@@ -491,21 +493,18 @@ Superellipse {
     // The preview is a visual boundary. Its layout must shrink inside
     // the Cast card on narrow native and WASM windows alike.
     clip: true
-    // A generic link can acquire title, summary and attribution *after* its
-    // lightweight Loader has become visible. Reserve all three bounded text
-    // lines upfront so asynchronous metadata never grows an existing feed row.
-    // Use semantic line metrics instead of a fixed pixel size for text scaling.
-    // Only reserve a compact text baseline while metadata is pending.
-    // The old fixed 150–186px floor produced empty cards for text-only links.
+    // Pending metadata gets a small baseline; resolved text owns its natural
+    // height instead of reserving empty lines between every metadata field.
     readonly property real genericReservedHeight: root.compact ? 72 : 92
+    readonly property real cardInset: root.embeddedInCard ? 0 : root.layoutMiniApp ? Theme.space4
+        : root.compact ? Theme.space2 : root.preferPosterLayout ? Theme.space3 : Theme.space5
     // Keep the height contract identical to the actual inner gutter.
     // The Mini App poster previously needed 16px on each side but the card
     // only reserved 8px, clipping the launch footer in long feed rows.
-    implicitHeight: content.implicitHeight
-                    + (root.layoutMiniApp ? Theme.space4
-                       : root.compact ? Theme.space2 : Theme.space3) * 2
-    fillColor: !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
-    borderWidth: Theme.strokeHairline
+    implicitHeight: content.implicitHeight + root.cardInset * 2
+    fillColor: root.embeddedInCard ? "transparent"
+               : !root.scrollMoving && hover.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+    borderWidth: root.embeddedInCard ? 0 : Theme.strokeHairline
     borderColor: !root.scrollMoving && hover.hovered ? Theme.borderDefault : Theme.borderSubtle
     curveDepth: Theme.shapeMedia
 
@@ -539,9 +538,8 @@ Superellipse {
         anchors.fill: parent
         // Mini App artwork and its action row must breathe on all four
         // sides, without the poster touching the surrounding cast card.
-        // Ordinary web links keep their denser editorial gutter.
-        anchors.margins: root.layoutMiniApp ? Theme.space4
-                        : root.compact ? Theme.space2 : Theme.space3
+        // Generic desktop cards use a wider gutter around both columns.
+        anchors.margins: root.cardInset
         spacing: Theme.space2
 
         // Poster/Mini App cards also retain the Cast sentence within the card;
@@ -1074,11 +1072,10 @@ Superellipse {
                                - content.anchors.rightMargin)
             Layout.minimumWidth: 0
             clip: true
-            // Full-width art on phones: a wide OpenGraph image must not be
-            // squeezed into a square thumbnail with empty letterboxing.
-            // Desktop keeps the compact editorial two-column card.
+            // Keep one image/text boundary across desktop cards. Artwork fills
+            // the row; phone cards retain their full-width image above the text.
             columns: root.compact ? 1 : 2
-            columnSpacing: Theme.space2
+            columnSpacing: Theme.space5
             rowSpacing: Theme.space2
             layoutDirection: root.castCaption.length > 0
                              && localizationController.isRightToLeftText(root.castCaption)
@@ -1091,19 +1088,24 @@ Superellipse {
                                                     && !root.genericArtworkUnavailable
                 visible: shouldReserve
                 clip: true
-                // A phone gets a full-bleed 16:9-class preview; preserve the
-                // entire OG image instead of fitting a landscape screenshot
-                // inside a 116x116 square. Keep size stable while it loads.
+                Layout.alignment: Qt.AlignTop
+                Layout.fillHeight: !root.compact
+                // Phone geometry stays stable; crop within the reserved frame
+                // instead of leaving side bands around square/portrait images.
                 Layout.fillWidth: root.compact && shouldReserve
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: !shouldReserve ? 0 : root.compact
                     ? Math.max(0, root.width - content.anchors.leftMargin
                                   - content.anchors.rightMargin)
-                    : Math.min(184, Math.max(64, (root.width - Theme.space3 * 2) * 0.38))
+                    : Math.min(Theme.scaleUi(240),
+                               Math.max(0, root.width - root.cardInset * 2) * 0.30)
                 Layout.preferredHeight: !shouldReserve ? 0
-                    : Math.min(root.compact ? 300 : 180,
+                    : Math.min(root.compact ? 300 : Theme.scaleUi(192),
                                Layout.preferredWidth / Math.max(0.8,
                                    Math.min(3.0, root.previewImageAspect)))
+                Layout.maximumWidth: root.compact ? Number.POSITIVE_INFINITY : Layout.preferredWidth
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: root.compact ? Layout.preferredHeight : Number.POSITIVE_INFINITY
 
                 AmbientMediaBackdrop {
                     anchors.fill: parent
@@ -1137,7 +1139,7 @@ Superellipse {
                     forceAutomaticDownload: true
                     requestedSourceWidth: Math.max(320, Math.round(width))
                     requestedSourceHeight: Math.max(240, Math.round(height))
-                    fillMode: Image.PreserveAspectFit
+                    fillMode: Image.PreserveAspectCrop
                     fillColor: Theme.backgroundSecondary
                     borderWidth: 0
                     clipToSuperellipse: true
@@ -1168,22 +1170,30 @@ Superellipse {
                 }
             }
 
-            ColumnLayout {
+            Column {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                layoutDirection: root.castCaption.length > 0
-                                 && localizationController.isRightToLeftText(root.castCaption)
-                                 ? Qt.RightToLeft : Qt.LeftToRight
-                spacing: Theme.space1
+                // The grid owns wrapping width; the positioner owns height.
+                // Do not feed the children's assigned width back as a size hint.
+                Layout.preferredWidth: 0
+                Layout.fillHeight: false
+                Layout.alignment: Qt.AlignTop
+                Layout.minimumHeight: root.metadataLoading ? root.genericReservedHeight : 0
+                // Keep the phone artwork in its existing slot while moving
+                // all text and destination details onto a shared inner edge.
+                Layout.leftMargin: root.compact && !root.embeddedInCard ? Theme.space2 : 0
+                Layout.rightMargin: root.compact && !root.embeddedInCard ? Theme.space2 : 0
+                Layout.topMargin: root.compact ? Theme.space1 : 0
+                Layout.bottomMargin: root.compact && !root.embeddedInCard ? Theme.space2 : 0
+                spacing: Theme.space2
 
                 DirectionAwareLabel {
                     visible: root.castCaption.length > 0
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? root.bodyLineHeight * 2 : 0
-                    Layout.minimumHeight: Layout.preferredHeight
-                    Layout.maximumHeight: Layout.preferredHeight
+                    width: parent.width
                     verticalAlignment: Text.AlignTop
-                    text: root.castCaption
+                    // A folded caption is a short excerpt. Paragraph breaks
+                    // must not reserve blank lines above the destination header.
+                    text: root.castCaption.replace(/\s+/g, " ").trim()
                     font.pixelSize: Theme.typeBodySize
                     font.weight: Theme.weightDemiBold
                     color: Theme.textPrimary
@@ -1194,48 +1204,43 @@ Superellipse {
                 }
 
                 RowLayout {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: 0
-                    Layout.preferredHeight: Math.max(20, root.captionLineHeight)
-                    Layout.minimumHeight: Layout.preferredHeight
-                    Layout.maximumHeight: Layout.preferredHeight
+                    width: parent.width
                     layoutDirection: Theme.uiDirection
-                    spacing: Theme.space1
-
-                    SuperellipseImage {
-                        visible: root.faviconSource.length > 0
-                        Layout.preferredWidth: visible ? 20 : 0
-                        Layout.preferredHeight: visible ? 20 : 0
-                        source: root.faviconSource
-                        mediaCategory: "link-previews"
-                        requestedSourceWidth: 48
-                        requestedSourceHeight: 48
-                        fillMode: Image.PreserveAspectFit
-                        fillColor: Theme.surfacePrimary
-                        borderWidth: 0
-                        curveDepth: Theme.shapeControlSmall
-                        showLoadingIndicator: false
-                        showFailureIndicator: false
-                    }
+                    spacing: Theme.space2
 
                     Superellipse {
-                        visible: root.faviconSource.length === 0
-                        Layout.preferredWidth: 20
-                        Layout.preferredHeight: 20
-                        fillColor: Qt.rgba(root.providerColor.r, root.providerColor.g, root.providerColor.b, 0.12)
-                        borderWidth: 0
-                        curveDepth: 10
-                        exponent: 2.01
+                        Layout.preferredWidth: Theme.iconSizeLarge + Theme.space2
+                        Layout.preferredHeight: Layout.preferredWidth
+                        fillColor: Theme.surfacePrimary
+                        borderWidth: Theme.strokeHairline
+                        borderColor: Theme.borderSubtle
+                        curveDepth: Theme.shapeControlSmall
 
                         Icon {
                             anchors.centerIn: parent
-                            text: root.providerKind === "youtube" ? Theme.iconPlay
-                                  : root.providerKind === "spotify" ? Theme.iconPlay
-                                  : root.providerKind === "apple-music" ? Theme.iconPlay
-                                  : root.providerKind === "github" ? Theme.iconCode
-                                  : Theme.iconLink
+                            visible: !siteFavicon.ready
+                            text: root.providerKind === "github" ? Theme.iconCode : Theme.iconLink
                             color: root.providerColor
-                            preferredSize: Theme.typeCaptionSize
+                            preferredSize: Theme.iconSizeSmall
+                        }
+
+                        SuperellipseImage {
+                            id: siteFavicon
+                            anchors.centerIn: parent
+                            width: Theme.iconSizeNavigation
+                            height: width
+                            visible: ready
+                            source: root.faviconSource
+                            mediaCategory: "link-previews"
+                            requestedSourceWidth: Math.ceil(width * Math.max(1, Screen.devicePixelRatio))
+                            requestedSourceHeight: requestedSourceWidth
+                            fillMode: Image.PreserveAspectFit
+                            fillColor: "transparent"
+                            borderWidth: 0
+                            curveDepth: Theme.shapeControlSmall
+                            showLoadingIndicator: false
+                            showFailureIndicator: false
+                            showManualLoadIndicator: false
                         }
                     }
 
@@ -1243,32 +1248,31 @@ Superellipse {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         forceLeftToRight: true
-                        text: root.siteName.length > 0 ? root.siteName : root.domainText
-                        color: root.providerColor
+                        text: root.siteName.length > 0 ? root.siteName
+                              : root.domainText.length > 0 ? root.domainText : root.targetUrl
+                        color: Theme.textSecondary
                         font.pixelSize: Theme.typeCaptionSize
                         font.weight: Theme.weightDemiBold
                         elide: Text.ElideRight
+                        textFormat: Text.PlainText
                     }
 
                     Icon {
                         text: Theme.iconArrowUpRight
-                        color: Theme.textTertiary
-                        preferredSize: Theme.typeCaptionSize
+                        color: Theme.textSecondary
+                        preferredSize: Theme.iconSizeSmall
                     }
                 }
 
                 DirectionAwareLabel {
                     visible: root.titleText.length > 0
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? root.bodyLineHeight * (root.compact ? 1 : 2) : 0
-                    Layout.minimumHeight: Layout.preferredHeight
-                    Layout.maximumHeight: Layout.preferredHeight
+                    width: parent.width
                     verticalAlignment: Text.AlignTop
                     text: root.titleText
                     color: Theme.textPrimary
-                    font.pixelSize: Theme.typeBodySize
+                    font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightDemiBold
-                    maximumLineCount: root.compact ? 1 : 2
+                    maximumLineCount: 2
                     wrapMode: Text.Wrap
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
@@ -1276,60 +1280,55 @@ Superellipse {
 
                 DirectionAwareLabel {
                     visible: root.summaryText.length > 0
-                    Layout.preferredHeight: visible ? root.metaLineHeight * (root.compact ? 1 : 2) : 0
-                    Layout.minimumHeight: Layout.preferredHeight
-                    Layout.maximumHeight: Layout.preferredHeight
+                    width: parent.width
                     verticalAlignment: Text.AlignTop
-                    Layout.fillWidth: true
                     text: root.summaryText
                     color: Theme.textSecondary
                     font.pixelSize: Theme.typeMetaSize
-                    maximumLineCount: root.compact ? 1 : 2
+                    maximumLineCount: 2
                     wrapMode: Text.Wrap
                     elide: Text.ElideRight
+                    textFormat: Text.PlainText
                 }
 
-                RowLayout {
+                Flow {
                     visible: root.authorText.length > 0 || root.dateText.length > 0
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: visible ? root.captionLineHeight : 0
-                    Layout.minimumHeight: Layout.preferredHeight
-                    Layout.maximumHeight: Layout.preferredHeight
+                             || root.domainText.length > 0
+                    width: parent.width
                     layoutDirection: Theme.uiDirection
-                    spacing: Theme.space1
+                    spacing: Theme.space2
 
                     DirectionAwareLabel {
                         visible: root.authorText.length > 0
-                        Layout.minimumWidth: 0
-                        Layout.maximumWidth: root.compact ? 120 : 180
+                        width: Math.min(implicitWidth, parent.width, root.compact ? 180 : 240)
                         text: root.authorText
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
+                        textFormat: Text.PlainText
                     }
 
                     DirectionAwareLabel {
                         visible: root.dateText.length > 0
-                        Layout.minimumWidth: 0
-                        Layout.maximumWidth: root.compact ? 100 : 150
+                        width: Math.min(implicitWidth, parent.width)
                         text: root.dateText
                         color: Theme.textTertiary
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideRight
+                        textFormat: Text.PlainText
                     }
 
-                    Item { Layout.fillWidth: true }
-
                     Label {
+                        visible: root.domainText.length > 0
                         LayoutMirroring.enabled: false
-                        Layout.minimumWidth: 0
-                        Layout.maximumWidth: root.compact ? 140 : 240
+                        width: Math.min(implicitWidth, parent.width)
                         text: root.domainText
                         color: Theme.textTertiary
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize
-                        horizontalAlignment: Text.AlignRight
+                        horizontalAlignment: Text.AlignLeft
                         elide: Text.ElideMiddle
+                        textFormat: Text.PlainText
                     }
                 }
             }

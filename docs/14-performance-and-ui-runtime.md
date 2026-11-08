@@ -170,6 +170,35 @@ Never perform on the UI thread:
 
 ## Deterministic timeline layout
 
+### Explorer magazine presentation
+
+Responsibility: the Explorer presentation can arrange existing cast rows in
+independent, variable-height columns. Capability origin: Local; optional visual
+composition, with the existing timeline available. Public contract: a saved
+magazine/timeline choice and target card width (420, 500 or 640 logical pixels).
+The default targets two roughly 500-pixel columns; small cards may use three.
+Narrow windows fall back to one column. Home and both shell rails retain their
+existing composition.
+
+Canonical data/invariants: casts, provider ordering, pagination, actions and
+stable identities remain owned by the existing feed. New cards are assigned in
+source order to the shortest estimated column; their assignment stays fixed
+while metadata loads. Reordering or changing the column count recomputes lanes.
+Dependencies: existing QML cast presentation and feed model only. Expected
+failures: missing metadata/images keep the existing fallback; pending delegates
+use estimated heights. Local state: display preferences in the existing
+Explorer QSettings category; measured heights are transient per item/width.
+Offline behavior, provider policy/disablement and failover semantics are
+unchanged: this presentation consumes cached rows and introduces no requests.
+
+Only near-viewport cast trees are instantiated; offscreen slots retain measured
+geometry. Layout work is coalesced, and idle geometry changes preserve a visible
+cast anchor. Required coverage: mixed heights, column containment, bounded live
+delegates, append/reorder/reuse, resize, return from detail, RTL, keyboard scroll
+and existing pagination/interaction paths. Source implementation is separate
+from Qt runtime qualification; do not infer rendering or frame-time results
+from a source review.
+
 Feed/chat should avoid viewport instability caused by late media/reaction layout changes.
 
 Long-term layout engine should support:
