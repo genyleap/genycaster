@@ -65,6 +65,22 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn('QT_RESOURCE_ALIAS "components/' + public + '"',
                               cmake, public)
 
+    def test_explorer_masonry_uses_supported_qt_keyboard_signals(self) -> None:
+        """Unsupported Keys signals must not break Main.qml at application startup."""
+        import re
+
+        component = Path("ui/components/feed/FeedMasonryView.qml")
+        source = component.read_text(encoding="utf-8")
+        self.assertIn("Keys.onPressed: function(event)", source)
+        self.assertIn("event.accepted = true", source)
+        for key in ("PageDown", "PageUp", "Home", "End", "Down", "Up"):
+            self.assertIn(f"case Qt.Key_{key}:", source)
+
+        unsupported = re.compile(r"\\bKeys\\.on(?:PageDown|PageUp|Home|End)Pressed\\s*:")
+        for qml in Path("ui").rglob("*.qml"):
+            with self.subTest(qml=qml.as_posix()):
+                self.assertNotRegex(qml.read_text(encoding="utf-8"), unsupported)
+
     def test_native_qml_smoke_uses_public_alias_fixture(self) -> None:
         """Native QML smoke must load public component names after file moves."""
         cmake = Path("tests/ui/CMakeLists.txt").read_text(encoding="utf-8")

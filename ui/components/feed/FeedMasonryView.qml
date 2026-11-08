@@ -122,12 +122,34 @@ Flickable {
         contentY = Math.max(0, Math.min(contentY + distance, Math.max(0, contentHeight - height)))
     }
 
-    Keys.onPageDownPressed: scrollBy(height * 0.85)
-    Keys.onPageUpPressed: scrollBy(-height * 0.85)
-    Keys.onHomePressed: positionViewAtBeginning()
-    Keys.onEndPressed: scrollBy(contentHeight)
-    Keys.onDownPressed: scrollBy(48)
-    Keys.onUpPressed: scrollBy(-48)
+    // Qt Quick Keys exposes generic pressed/released handlers, not dedicated
+    // PageUp/PageDown/Home/End signals. Handle all navigation keys here so a
+    // missing attached signal cannot prevent the entire QML module loading.
+    Keys.onPressed: function(event) {
+        switch (event.key) {
+        case Qt.Key_PageDown:
+            view.scrollBy(view.height * 0.85)
+            break
+        case Qt.Key_PageUp:
+            view.scrollBy(-view.height * 0.85)
+            break
+        case Qt.Key_Home:
+            view.positionViewAtBeginning()
+            break
+        case Qt.Key_End:
+            view.scrollBy(view.contentHeight)
+            break
+        case Qt.Key_Down:
+            view.scrollBy(48)
+            break
+        case Qt.Key_Up:
+            view.scrollBy(-48)
+            break
+        default:
+            return
+        }
+        event.accepted = true
+    }
     onWidthChanged: scheduleLayout()
     onColumnsChanged: scheduleLayout()
     onCardWidthChanged: scheduleLayout()
