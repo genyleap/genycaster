@@ -101,6 +101,11 @@ set(farcasterQmlFiles
     components/home/HomeComposer.qml
     components/home/HomeDashboard.qml
     components/home/StatsPanel.qml
+    components/home/StatsKpi.qml
+    components/home/StatsSkeleton.qml
+    components/home/StatsChart.qml
+    components/home/StatsBreakdown.qml
+    components/home/StatsTopCasts.qml
     components/home/HomeFeedHeader.qml
     components/setup/InitialSetup.qml
     components/media/LinkPreview.qml

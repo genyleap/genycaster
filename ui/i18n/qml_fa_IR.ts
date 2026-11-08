@@ -2,6 +2,38 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.stats.subtitle_short">
+            <source>Your publishing activity and engagement</source>
+            <translation>فعالیت انتشار و تعاملات محتوای شما</translation>
+        </message>
+        <message id="genycaster.stats.engagement_breakdown">
+            <source>Engagement breakdown</source>
+            <translation>جزئیات تعاملات</translation>
+        </message>
+        <message id="genycaster.stats.likes">
+            <source>Likes</source>
+            <translation>لایک‌ها</translation>
+        </message>
+        <message id="genycaster.stats.recasts">
+            <source>Recasts</source>
+            <translation>ریکست‌ها</translation>
+        </message>
+        <message id="genycaster.stats.received_replies">
+            <source>Replies received</source>
+            <translation>پاسخ‌های دریافتی</translation>
+        </message>
+        <message id="genycaster.stats.chart_hint">
+            <source>Tap a bar to inspect activity</source>
+            <translation>برای مشاهدهٔ جزئیات، ستونی را لمس کنید</translation>
+        </message>
+        <message id="genycaster.stats.chart_point">
+            <source>%1 · %2 casts · %3 replies</source>
+            <translation>%1 · %2 کست · %3 پاسخ</translation>
+        </message>
+        <message id="genycaster.stats.engagement_scope">
+            <source>Engagement is counted to date, on posts in this period</source>
+            <translation>تعاملات تا امروز، روی پست‌های منتشرشده در این بازه</translation>
+        </message>
         <message id="genycaster.stats.overview">
             <source>Overview</source>
             <translation>نمای کلی</translation>
@@ -43,8 +75,8 @@
             <translation>برای دریافت آمار، زبانهٔ آمار را انتخاب کنید.</translation>
         </message>
         <message id="genycaster.stats.partial">
-            <source>Partial data — the node did not provide complete history. Values cover only the casts fetched.</source>
-            <translation>داده‌ها ناقص‌اند؛ نود تمام تاریخچه را برنگردانده است. اعداد فقط کست‌های دریافت‌شده را شامل می‌شوند.</translation>
+            <source>Partial coverage · totals include fetched posts only.</source>
+            <translation>پوشش آمار کامل نیست؛ فقط پست‌های واکشی‌شده در محاسبه لحاظ شده‌اند.</translation>
         </message>
         <message id="genycaster.stats.period_note">
             <source>Content published in the selected period · engagement counted to date</source>

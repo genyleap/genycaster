@@ -515,6 +515,7 @@ GenyTokenBanner {
                         id: desktopStats
                         width: parent.width
                         compact: false
+                        tabActive: root.activeTab === "stats"
                         periodDays: root.statsDays
                         onPeriodRequested: days => root.statsDays = days
                         onRefreshRequested: root.requestStats(true)
@@ -675,6 +676,7 @@ GenyTokenBanner {
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3
                 compact: true
+                tabActive: root.activeTab === "stats"
                 periodDays: root.statsDays
                 onPeriodRequested: days => root.statsDays = days
                 onRefreshRequested: root.requestStats(true)

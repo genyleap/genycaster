@@ -3,8 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Read-only presentation. The controller owns provider requests, aggregation,
-// cancellation and completeness semantics; this component renders no sample data.
+// Stats is a presentation surface. All provider requests and calculations
+// remain in StatsController; no fake deltas, impression counts or snapshot history.
 ColumnLayout {
     id: root
     objectName: "homeStatsPanel"
@@ -12,67 +12,88 @@ ColumnLayout {
 
     property int periodDays: 30
     property bool compact: false
-    readonly property var metrics: statsController.summary
-    readonly property bool loaded: statsController.state === "ready"
-                                    || statsController.state === "partial"
-    readonly property bool partial: statsController.state === "partial"
-    readonly property var bars: statsController.activity
-    readonly property int maxCount: {
-        let high = 1
-        for (let i = 0; i < bars.length; ++i) {
-            const sum = Number(bars[i].casts || 0) + Number(bars[i].replies || 0)
-            high = Math.max(high, sum)
-        }
-        return high
+    property bool tabActive: false
+    opacity: tabActive ? 1 : 0
+    Behavior on opacity {
+        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis; easing.type: Easing.OutCubic }
     }
+    transform: Translate {
+        y: root.tabActive ? 0 : 7
+        Behavior on y {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis; easing.type: Easing.OutCubic }
+        }
+    }
+    readonly property string fetchState: statsController.state
+    readonly property bool loading: fetchState === "loading"
+    readonly property bool loaded: fetchState === "ready" || fetchState === "partial"
+    readonly property bool partial: fetchState === "partial"
+    readonly property var metrics: statsController.summary
+
     signal periodRequested(int days)
     signal refreshRequested()
     signal castRequested(string hash)
 
     RowLayout {
         Layout.fillWidth: true
+        spacing: Theme.space3
         layoutDirection: Theme.uiDirection
-        spacing: Theme.space2
 
         ColumnLayout {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             spacing: Theme.space1
+
             DirectionAwareLabel {
+                Layout.fillWidth: true
                 text: qsTrId("genycaster.stats.your_stats")
-                color: Theme.textPrimary
                 font.pixelSize: Theme.typeTitle2Size
                 font.weight: Theme.weightBold
+                color: Theme.textPrimary
             }
+
             DirectionAwareLabel {
-                text: qsTrId("genycaster.stats.subtitle")
-                color: Theme.textSecondary
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.stats.subtitle_short")
                 font.pixelSize: Theme.typeCaptionSize
+                color: Theme.textSecondary
                 wrapMode: Text.Wrap
             }
         }
+
         ActionButton {
+            id: refreshButton
+            objectName: "statsRefreshButton"
+            Layout.preferredWidth: 42
+            Layout.preferredHeight: 42
+            Layout.alignment: Qt.AlignTop
             compact: true
             quiet: true
+            elevated: false
             iconOnly: true
+            iconSize: Theme.iconSize
             iconGlyph: Theme.iconRefresh
             text: qsTrId("genycaster.stats.refresh")
-            enabled: statsController.state !== "loading"
+            busy: root.loading
+            spinIconWhileBusy: !Theme.reduceMotion
+            enabled: !root.loading
             onClicked: root.refreshRequested()
         }
     }
 
     Superellipse {
         Layout.fillWidth: true
-        Layout.preferredHeight: 49
+        Layout.preferredHeight: 44
         fillColor: Theme.surfaceMuted
         borderWidth: 1
         borderColor: Theme.borderMuted
         curveDepth: Theme.curveControl
+
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 4
-            spacing: 2
+            anchors.margins: 3
+            spacing: Theme.space1
             layoutDirection: Theme.uiDirection
+
             Repeater {
                 model: [
                     {days: 7, title: "7D"},
@@ -84,12 +105,16 @@ ColumnLayout {
                     required property var modelData
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
+                    Layout.fillHeight: true
                     minimumWidth: 0
                     dense: true
                     selected: root.periodDays === modelData.days
                     text: modelData.title
-                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(modelData.days)
-                    onClicked: root.periodRequested(modelData.days)
+                    Accessible.name: modelData.days === 0
+                                     ? qsTrId("genycaster.stats.all")
+                                     : qsTrId("genycaster.stats.last_n_days").arg(modelData.days)
+                    onClicked: if (root.periodDays !== modelData.days)
+                                   root.periodRequested(modelData.days)
                 }
             }
         }
@@ -97,24 +122,31 @@ ColumnLayout {
 
     DirectionAwareLabel {
         Layout.fillWidth: true
-        visible: statsController.state === "loading"
+        visible: root.loading
         text: qsTrId("genycaster.stats.loading").arg(statsController.loadedCount)
         color: Theme.textSecondary
         font.pixelSize: Theme.typeCaptionSize
     }
-    Superellipse {
-        visible: statsController.state === "error" || statsController.state === "idle"
+
+    StatsSkeleton {
+        visible: root.loading
         Layout.fillWidth: true
-        Layout.preferredHeight: message.implicitHeight + Theme.space4 * 2
+    }
+
+    Superellipse {
+        visible: root.fetchState === "error" || root.fetchState === "idle"
+        Layout.fillWidth: true
+        Layout.preferredHeight: errorLabel.implicitHeight + Theme.space4 * 2
         fillColor: Theme.surface
         borderColor: Theme.borderMuted
         borderWidth: 1
         curveDepth: Theme.curveContainer
+
         DirectionAwareLabel {
-            id: message
+            id: errorLabel
             anchors.fill: parent
             anchors.margins: Theme.space4
-            text: statsController.state === "error"
+            text: root.fetchState === "error"
                   ? qsTrId("genycaster.stats.node_unavailable")
                     .arg(String(root.metrics.error || ""))
                   : qsTrId("genycaster.stats.select_to_load")
@@ -123,277 +155,104 @@ ColumnLayout {
             wrapMode: Text.Wrap
         }
     }
-    DirectionAwareLabel {
-        visible: root.partial
-        Layout.fillWidth: true
-        text: qsTrId("genycaster.stats.partial")
-        color: Theme.textSecondary
-        font.pixelSize: Theme.typeCaptionSize
-        wrapMode: Text.Wrap
-    }
-    DirectionAwareLabel {
-        visible: root.loaded
-        Layout.fillWidth: true
-        text: qsTrId("genycaster.stats.period_note")
-        color: Theme.textSecondary
-        font.pixelSize: Theme.typeCaptionSize
-        wrapMode: Text.Wrap
-    }
 
-    component StatTile: Superellipse {
-        property string title: ""
-        property string value: "—"
-        property string footnote: ""
-        Layout.fillWidth: true
-        Layout.preferredWidth: 0
-        Layout.preferredHeight: 108
-        fillColor: Theme.surface
-        borderWidth: 1
-        borderColor: Theme.borderMuted
-        curveDepth: Theme.curveContainer
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Theme.space3
-            spacing: Theme.space1
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: parent.parent.title
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeCaptionSize
-                elide: Text.ElideRight
-            }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: parent.parent.value
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeTitle1Size
-                font.weight: Theme.weightBold
-                elide: Text.ElideRight
-            }
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: parent.parent.footnote
-                color: Theme.textTertiary
-                font.pixelSize: Theme.typeCaptionSize
-                elide: Text.ElideRight
-            }
-        }
-    }
-    GridLayout {
+    // Loaded components fade in once per response. Refresh falls back to a
+    // lightweight skeleton; no old FID's statistics can leak into a new FID.
+    ColumnLayout {
+        id: content
         Layout.fillWidth: true
         visible: root.loaded
-        columns: root.compact || root.width < 600 ? 2 : 4
-        columnSpacing: Theme.space2
-        rowSpacing: Theme.space2
-        StatTile {
-            title: qsTrId("genycaster.stats.casts")
-            value: String(root.metrics.casts ?? "—")
-            footnote: qsTrId("genycaster.stats.published_posts")
+        spacing: Theme.space3
+        opacity: root.loaded ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionEmphasis }
         }
-        StatTile {
-            title: qsTrId("genycaster.stats.replies")
-            value: String(root.metrics.replies ?? "—")
-            footnote: qsTrId("genycaster.stats.written_replies")
-        }
-        StatTile {
-            title: qsTrId("genycaster.stats.engagement")
-            value: root.metrics.hasEngagement ? Number(root.metrics.engagement).toLocaleString(Qt.locale()) : "—"
-            footnote: qsTrId("genycaster.stats.received_on_posts")
-        }
-        StatTile {
-            title: qsTrId("genycaster.stats.followers")
-            value: root.metrics.hasAudience ? Number(root.metrics.followers).toLocaleString(Qt.locale()) : "—"
-            footnote: qsTrId("genycaster.stats.current_total")
-        }
-    }
 
-    Superellipse {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 244
-        visible: root.loaded
-        fillColor: Theme.surface
-        borderWidth: 1
-        borderColor: Theme.borderMuted
-        curveDepth: Theme.curveContainer
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Theme.space3
-            spacing: Theme.space2
-            RowLayout {
-                Layout.fillWidth: true
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.stats.publishing_activity")
-                    color: Theme.textPrimary
-                    font.pixelSize: Theme.typeLabelSize
-                    font.weight: Theme.weightDemiBold
-                }
-                Rectangle { width: 8; height: 8; radius: 4; color: Theme.accent }
-                DirectionAwareLabel {
-                    text: qsTrId("genycaster.stats.casts")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeCaptionSize
-                }
-                Rectangle { width: 8; height: 8; radius: 4; color: Theme.textTertiary }
-                DirectionAwareLabel {
-                    text: qsTrId("genycaster.stats.replies")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeCaptionSize
-                }
-            }
-            Item {
-                id: chartArea
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                Row {
-                    anchors.fill: parent
-                    spacing: 3
-                    Repeater {
-                        model: root.bars
-                        delegate: Item {
-                            required property var modelData
-                            width: Math.max(1, (chartArea.width - 3 * Math.max(0, root.bars.length - 1))
-                                              / Math.max(1, root.bars.length))
-                            height: chartArea.height
-                            readonly property real total: Number(modelData.casts || 0)
-                                                           + Number(modelData.replies || 0)
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: Math.max(2, parent.width - 1)
-                                height: Math.max(0, parent.height * parent.total / root.maxCount)
-                                radius: Math.min(3, width / 2)
-                                color: Theme.textTertiary
-                            }
-                            Rectangle {
-                                anchors.bottom: parent.bottom
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: Math.max(2, parent.width - 1)
-                                height: Math.max(0, parent.height * Number(parent.modelData.casts || 0)
-                                                          / root.maxCount)
-                                radius: Math.min(3, width / 2)
-                                color: Theme.accent
-                            }
-                        }
-                    }
-                }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: root.bars.length > 0 ? root.bars[0].label : ""
-                    color: Theme.textTertiary
-                    font.pixelSize: Theme.typeCaptionSize
-                }
-                DirectionAwareLabel {
-                    text: root.periodDays === 0 ? qsTrId("genycaster.stats.last_90_days") : qsTrId("genycaster.stats.today")
-                    color: Theme.textTertiary
-                    font.pixelSize: Theme.typeCaptionSize
-                }
-            }
-        }
-    }
-
-    Superellipse {
-        Layout.fillWidth: true
-        Layout.preferredHeight: topColumn.implicitHeight + Theme.space4 * 2
-        visible: root.loaded && root.metrics.hasEngagement
-        fillColor: Theme.surface
-        borderWidth: 1
-        borderColor: Theme.borderMuted
-        curveDepth: Theme.curveContainer
-
-        ColumnLayout {
-            id: topColumn
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: Theme.space4
-            spacing: Theme.space3
-            DirectionAwareLabel {
-                Layout.fillWidth: true
-                text: qsTrId("genycaster.stats.top_casts")
-                color: Theme.textPrimary
-                font.pixelSize: Theme.typeLabelSize
-                font.weight: Theme.weightDemiBold
-            }
-            DirectionAwareLabel {
-                visible: statsController.topCasts.length === 0
-                text: qsTrId("genycaster.stats.no_posts")
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeCaptionSize
-            }
-            Repeater {
-                model: statsController.topCasts
-                delegate: Item {
-                    id: bestCast
-                    required property var modelData
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Math.max(58, bestContent.implicitHeight + Theme.space2 * 2)
-                    activeFocusOnTab: true
-                    Accessible.role: Accessible.Button
-                    Accessible.name: String(modelData.text || qsTrId("genycaster.stats.open_cast"))
-                    Accessible.onPressAction: root.castRequested(modelData.hash)
-                    Keys.onReturnPressed: root.castRequested(modelData.hash)
-                    Keys.onSpacePressed: root.castRequested(modelData.hash)
-
-                    ColumnLayout {
-                        id: bestContent
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: Theme.space1
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: String(bestCast.modelData.text || qsTrId("genycaster.stats.media_cast"))
-                            elide: Text.ElideRight
-                            maximumLineCount: 2
-                            wrapMode: Text.Wrap
-                            color: castHover.hovered ? Theme.accent : Theme.textPrimary
-                            font.pixelSize: Theme.typeMetaSize
-                        }
-                        DirectionAwareLabel {
-                            text: qsTrId("genycaster.stats.cast_engagement").arg(
-                                bestCast.modelData.likes).arg(bestCast.modelData.recasts)
-                                .arg(bestCast.modelData.replies)
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                    }
-                    HoverHandler { id: castHover; cursorShape: Qt.PointingHandCursor }
-                    TapHandler { onTapped: root.castRequested(bestCast.modelData.hash) }
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        width: parent.width
-                        height: 1
-                        color: Theme.borderMuted
-                    }
-                }
-            }
-        }
-    }
-
-    RowLayout {
-        Layout.fillWidth: true
-        visible: root.loaded
-        spacing: Theme.space2
         DirectionAwareLabel {
             Layout.fillWidth: true
-            text: root.metrics.hasEngagement
-                ? qsTrId("genycaster.stats.average").arg(
-                    Number(root.metrics.average || 0).toLocaleString(Qt.locale(), "f", 1))
-                : qsTrId("genycaster.stats.engagement_unavailable")
-            color: Theme.textSecondary
+            visible: root.partial
+            text: qsTrId("genycaster.stats.partial")
             font.pixelSize: Theme.typeCaptionSize
+            color: Theme.textSecondary
             wrapMode: Text.Wrap
         }
+
         DirectionAwareLabel {
-            text: statsController.updatedAt
-            color: Theme.textTertiary
+            Layout.fillWidth: true
+            text: qsTrId("genycaster.stats.period_note")
             font.pixelSize: Theme.typeCaptionSize
+            color: Theme.textSecondary
+            wrapMode: Text.Wrap
+        }
+
+        GridLayout {
+            Layout.fillWidth: true
+            columns: root.compact || root.width < 660 ? 2 : 4
+            columnSpacing: Theme.space2
+            rowSpacing: Theme.space2
+
+            StatsKpi {
+                title: qsTrId("genycaster.stats.casts")
+                amount: Number(root.metrics.casts || 0)
+                footnote: qsTrId("genycaster.stats.published_posts")
+            }
+            StatsKpi {
+                title: qsTrId("genycaster.stats.replies")
+                amount: Number(root.metrics.replies || 0)
+                footnote: qsTrId("genycaster.stats.written_replies")
+            }
+            StatsKpi {
+                title: qsTrId("genycaster.stats.engagement")
+                amount: Number(root.metrics.engagement || 0)
+                available: Boolean(root.metrics.hasEngagement)
+                footnote: qsTrId("genycaster.stats.received_on_posts")
+            }
+            StatsKpi {
+                title: qsTrId("genycaster.stats.followers")
+                amount: Number(root.metrics.followers || 0)
+                available: Boolean(root.metrics.hasAudience)
+                footnote: qsTrId("genycaster.stats.current_total")
+            }
+        }
+
+        StatsBreakdown {
+            visible: Boolean(root.metrics.hasEngagement)
+            Layout.fillWidth: true
+            metrics: root.metrics
+        }
+
+        StatsChart {
+            Layout.fillWidth: true
+            bars: statsController.activity
+            periodDays: root.periodDays
+        }
+
+        StatsTopCasts {
+            visible: Boolean(root.metrics.hasEngagement)
+            Layout.fillWidth: true
+            casts: statsController.topCasts
+            onCastRequested: hash => root.castRequested(hash)
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.space2
+
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.metrics.hasEngagement
+                    ? qsTrId("genycaster.stats.engagement_scope")
+                    : qsTrId("genycaster.stats.engagement_unavailable")
+                color: Theme.textTertiary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareLabel {
+                Layout.alignment: Qt.AlignBottom
+                text: statsController.updatedAt
+                color: Theme.textTertiary
+                font.pixelSize: Theme.typeCaptionSize
+            }
         }
     }
 }

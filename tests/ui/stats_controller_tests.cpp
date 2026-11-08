@@ -29,7 +29,8 @@ QJsonObject cast(const int daysOld, const bool reply, const int likes) {
     const QJsonObject replies{{QStringLiteral("count"), likes / 3}};
     QJsonObject cast{
         {QStringLiteral("hash"), QString(40, reply ? QLatin1Char('b') :
-                                      (daysOld == 12 ? QLatin1Char('c') : QLatin1Char('a')))},
+                        (daysOld == 12 ? QLatin1Char('c') :
+                         daysOld == 40 ? QLatin1Char('d') : QLatin1Char('a')))},
         {QStringLiteral("author"), QJsonObject{{QStringLiteral("fid"), 42}}},
         {QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc()
             .addDays(-daysOld).toString(Qt::ISODateWithMs)},
@@ -144,6 +145,18 @@ int main(int argc, char** argv) {
     check(summary.value(QStringLiteral("engagement")).toLongLong() == 25,
           "30-day published cast engagement");
     check(stats.topCasts().size() == 2, "Top casts are period scoped");
+
+    // All includes the older cast; a fully exhausted pagination response is
+    // complete, not automatically "partial" just because All was selected.
+    stats.load(QStringLiteral("42"), QStringLiteral("hypersnap-v2"), origin, 0);
+    waitFor(stats);
+    check(stats.state() == QLatin1String("ready"), "Exhaustive All window is complete");
+    check(stats.summary().value(QStringLiteral("casts")).toInt() == 3,
+          "All-period post count");
+    check(stats.summary().value(QStringLiteral("engagement")).toLongLong() == 91,
+          "All-period content engagement");
+    check(stats.activity().size() == 13,
+          "All-period activity chart summarizes the latest 90 days");
 
     stats.load(QStringLiteral("43"), QStringLiteral("hypersnap-v2"), origin, 30);
     waitFor(stats);

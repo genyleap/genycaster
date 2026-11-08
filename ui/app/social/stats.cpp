@@ -365,8 +365,9 @@ void StatsController::complete() {
             {QStringLiteral("replies"), replies}
         });
     }
-    // "All" is capped to a recent scan; its graph explicitly covers only 90 days.
-    if (m_days == 0) m_partial = true;
+    // The All-period graph is a 90-day summary; maxPages explicitly marks
+    // partial only if a larger history was actually truncated.
+
     m_state = m_partial ? QStringLiteral("partial") : QStringLiteral("ready");
     m_updatedAt = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
     m_cachedAtMs = QDateTime::currentMSecsSinceEpoch();

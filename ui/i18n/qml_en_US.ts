@@ -2,6 +2,38 @@
 <TS version="2.1" language="en_US" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.stats.subtitle_short">
+            <source>Your publishing activity and engagement</source>
+            <translation>Your publishing activity and engagement</translation>
+        </message>
+        <message id="genycaster.stats.engagement_breakdown">
+            <source>Engagement breakdown</source>
+            <translation>Engagement breakdown</translation>
+        </message>
+        <message id="genycaster.stats.likes">
+            <source>Likes</source>
+            <translation>Likes</translation>
+        </message>
+        <message id="genycaster.stats.recasts">
+            <source>Recasts</source>
+            <translation>Recasts</translation>
+        </message>
+        <message id="genycaster.stats.received_replies">
+            <source>Replies received</source>
+            <translation>Replies received</translation>
+        </message>
+        <message id="genycaster.stats.chart_hint">
+            <source>Tap a bar to inspect activity</source>
+            <translation>Tap a bar to inspect activity</translation>
+        </message>
+        <message id="genycaster.stats.chart_point">
+            <source>%1 · %2 casts · %3 replies</source>
+            <translation>%1 · %2 casts · %3 replies</translation>
+        </message>
+        <message id="genycaster.stats.engagement_scope">
+            <source>Engagement is counted to date, on posts in this period</source>
+            <translation>Engagement is counted to date, on posts in this period</translation>
+        </message>
         <message id="genycaster.stats.overview">
             <source>Overview</source>
             <translation>Overview</translation>
@@ -43,8 +75,8 @@
             <translation>Select Stats to load your activity.</translation>
         </message>
         <message id="genycaster.stats.partial">
-            <source>Partial data — the node did not provide complete history. Values cover only the casts fetched.</source>
-            <translation>Partial data — the node did not provide complete history. Values cover only the casts fetched.</translation>
+            <source>Partial coverage · totals include fetched posts only.</source>
+            <translation>Partial coverage · totals include fetched posts only.</translation>
         </message>
         <message id="genycaster.stats.period_note">
             <source>Content published in the selected period · engagement counted to date</source>
