@@ -58,6 +58,10 @@ GenyDrawer {
         attachedMediaCount + root.pendingMediaFiles.length < maxMediaUploads
     property int initialFocusAttempts: 0
     property string suggestedText: ""
+    // Stats reports are generated from localized, app-owned text. Only these
+    // drafts use the paragraph-aware Markdown importer; ordinary quick
+    // composer handoffs still retain their exact literal characters.
+    property bool structuredReport: false
     property var suggestedEmbeds: []
     property bool transientDraft: false
     property string editorMode: "visual"
@@ -640,7 +644,10 @@ GenyDrawer {
             // must remain exactly what the user typed).
             richComposer.newDocument()
             restoredDraft = false
-            richComposer.setBlockText(0, root.suggestedText)
+            if (root.structuredReport)
+                richComposer.markdownSource = root.suggestedText
+            else
+                richComposer.setBlockText(0, root.suggestedText)
         }
         if (root.initialAction === "quote" && root.quotedCast) {
             richComposer.insertCastReference(String(root.quotedCast.castId || ""),

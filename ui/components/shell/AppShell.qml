@@ -462,7 +462,8 @@ Item {
         Qt.callLater(function() {
             if (presentationBridge.isAuthenticated && presentationBridge.writeReady)
                 root.openComposer(intent.parentCast, intent.initialAction,
-                                  intent.suggestedText, intent.quoteCast)
+                                  intent.suggestedText, intent.quoteCast,
+                                  intent.structuredReport)
         })
     }
 
@@ -769,7 +770,7 @@ Item {
                             { castId: hash, authorFid: authorFid }))
     }
 
-    function openComposer(parentCast, initialAction, suggestedText, quoteCast) {
+    function openComposer(parentCast, initialAction, suggestedText, quoteCast, structuredReport) {
         if (!presentationBridge.isAuthenticated || !presentationBridge.writeReady) {
             if (presentationBridge.isAuthenticated && presentationBridge.signerBusy
                     && presentationBridge.signerPhase === "checking") {
@@ -777,7 +778,8 @@ Item {
                     "parentCast": parentCast || null,
                     "initialAction": initialAction || "",
                     "suggestedText": suggestedText || "",
-                    "quoteCast": quoteCast || null
+                    "quoteCast": quoteCast || null,
+                    "structuredReport": Boolean(structuredReport)
                 }
                 return
             }
@@ -819,6 +821,7 @@ Item {
         composerDrawer.initialAction = String(initialAction || "")
         composerDrawer.transientDraft = false
         composerDrawer.suggestedText = String(suggestedText || "")
+        composerDrawer.structuredReport = Boolean(structuredReport)
         // Clear the Home quick draft only after a confirmed Cast, never
         // when the full editor is opened or dismissed without publishing.
         root.homeDraftForCast = !composerParent && composerDrawer.suggestedText.length > 0
@@ -863,6 +866,7 @@ Item {
         composerDrawer.quotedCast = null
         composerDrawer.initialAction = ""
         composerDrawer.transientDraft = true
+        composerDrawer.structuredReport = false
         composerDrawer.suggestedText = root.pendingMiniAppComposeText
         composerDrawer.suggestedEmbeds = root.pendingMiniAppComposeEmbeds
         composerDrawer.open()
@@ -1610,6 +1614,7 @@ Item {
                                         bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                         onExploreRequested: root.openExplorer()
                                         onComposeRequested: text => root.openComposer(null, "", text)
+                                        onStatsReportRequested: text => root.openComposer(null, "", text, null, true)
                                         onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
                                         onSearchRequested: searchPalette.open()
                                         onNotificationsRequested: root.openShellRoute("notifications")

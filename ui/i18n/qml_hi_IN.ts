@@ -7144,6 +7144,30 @@ Company | https://company.com</source>
             <source>Choose period</source>
             <translation>अवधि चुनें</translation>
         </message>
+        <message id="genycaster.stats.share_report_title">
+            <source>GenyCaster · Social activity report (%1)</source>
+            <translation>GenyCaster · सोशल गतिविधि रिपोर्ट (%1)</translation>
+        </message>
+        <message id="genycaster.stats.share_publishing_line">
+            <source>Casts published: %1 · Replies written: %2</source>
+            <translation>प्रकाशित कास्ट: %1 · लिखे गए जवाब: %2</translation>
+        </message>
+        <message id="genycaster.stats.share_engagement_line">
+            <source>Engagement received: %1</source>
+            <translation>प्राप्त इंटरैक्शन: %1</translation>
+        </message>
+        <message id="genycaster.stats.share_reactions_line">
+            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
+            <translation>लाइक: %1 · रीकास्ट: %2 · प्राप्त जवाब: %3</translation>
+        </message>
+        <message id="genycaster.stats.share_scope_note">
+            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
+            <translation>इंटरैक्शन में इस अवधि में प्रकाशित पोस्ट पर रिपोर्ट बनने तक दर्ज प्रतिक्रियाएँ शामिल हैं।</translation>
+        </message>
+        <message id="genycaster.stats.share_prepared">
+            <source>Report prepared: %1</source>
+            <translation>रिपोर्ट तैयार की गई: %1</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>परिणाम साझा करें</translation>

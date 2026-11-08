@@ -519,9 +519,11 @@ test("sharing statistics opens the authentic composer with only verified loaded 
     assert.match(panel, /if \(section !== "social" \|\| !loaded\) return ""/);
     assert.match(panel, /if \(Boolean\(metrics\.hasEngagement\)\)/);
     assert.match(panel, /root\.shareRequested\(draft\)/);
-    assert.equal((home.match(/onShareRequested: text => root\.composeRequested\(text\)/g) || []).length, 2);
-    assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
+    assert.equal((home.match(/onShareRequested: text => root\.statsReportRequested\(text\)/g) || []).length, 2);
+    assert.match(home, /signal statsReportRequested\(string text\)/);
+    assert.match(shell, /onStatsReportRequested: text => root\.openComposer\(null, "", text, null, true\)/);
     assert.match(shell, /composerDrawer\.suggestedText = String\(suggestedText \|\| ""\)/);
+    assert.match(shell, /composerDrawer\.structuredReport = Boolean\(structuredReport\)/);
     assert.doesNotMatch(panel, /publishCast|submitCast|sendCast|writeCast/);
     for (const locale of [
         "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
@@ -548,4 +550,104 @@ test("stats popover selection is inset like native action menus, not painted aga
     assert.match(choices, /background: Superellipse \{/);
     assert.match(choices, /curveDepth: Theme\.curveCompact/);
     assert.doesNotMatch(menu, /padding: 2/);
+});
+
+
+test("localized stats report has a precise scope note, a dated source and stable brand footer", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const composer = read("ui/components/composer/ComposerDrawer.qml");
+    const shell = read("ui/components/shell/AppShell.qml");
+    const keys = [
+        "share_report_title", "share_publishing_line", "share_engagement_line",
+        "share_reactions_line", "share_scope_note", "share_prepared"
+    ];
+    const expectedArgCounts = [1, 2, 1, 3, 0, 1];
+    const locales = [
+        "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
+        "hi_IN", "ja_JP", "ko_KR", "pt_BR", "ru_RU", "zh_CN"
+    ];
+    const stringsFor = locale => {
+        const doc = read("ui/i18n/qml_" + locale + ".ts");
+        const entries = {};
+        for (let i = 0; i < keys.length; ++i) {
+            const id = "genycaster.stats." + keys[i];
+            const marker = '<message id="' + id + '">';
+            assert.equal(doc.split(marker).length - 1, 1, locale + ": " + id);
+            const start = doc.indexOf(marker);
+            const block = doc.slice(start, doc.indexOf("</message>", start));
+            assert.doesNotMatch(block, /type="unfinished"/);
+            const translated = block.match(/<translation>([\s\S]*?)<\/translation>/)?.[1];
+            assert.ok(translated && translated.trim().length > 0, locale + ": " + id);
+            const placeholders = translated.match(/%[1-9]/g) || [];
+            assert.deepEqual(
+                placeholders.sort(),
+                Array.from({length: expectedArgCounts[i]}, (_, x) => "%" + (x + 1)).sort(),
+                locale + ": " + id
+            );
+            entries[id] = translated;
+        }
+        return entries;
+    };
+    class QmlText extends String {
+        arg(value) {
+            return new QmlText(String(this).replace(/%[1-9]/, String(value)));
+        }
+    }
+    const textStart = panel.indexOf("    function buildShareText() {");
+    const textEnd = panel.indexOf("\n    // Only the FID-bound", textStart);
+    assert.ok(textStart >= 0 && textEnd > textStart);
+    const fn = panel.slice(textStart, textEnd);
+    const format = (locale, hasEngagement = true) => {
+        const catalogue = stringsFor(locale);
+        const values = {
+            section: "social", loaded: true, periodDays: 90,
+            metrics: {
+                casts: 105, replies: 206, hasEngagement,
+                engagement: 4118, likes: 3156, recasts: 508,
+                receivedReplies: 454
+            },
+            rangeLabel: () => locale === "fa_IR" ? "سه‌ماهه" : "90 days",
+            qsTrId: id => new QmlText(catalogue[id] || id),
+            LocaleFormat: {
+                formatInteger: x => locale === "fa_IR"
+                    ? String(x).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
+                    : String(x),
+                formatDateTime: () => locale === "fa_IR" ? "۱۸ آبان ۱۴۰۵" : "November 8, 2026"
+            },
+            Date: {now: () => 1794100000000}
+        };
+        const ctx = vm.createContext(values);
+        vm.runInContext(fn + "\nresult = buildShareText();", ctx);
+        return String(ctx.result);
+    };
+    for (const locale of locales) {
+        const report = format(locale);
+        assert.match(report, /\n\nPowered by Genycaster$/);
+        assert.equal(report.split("\n\n").length, 7, locale + ": report paragraphs");
+        assert.ok(!report.includes("genycaster.stats."), locale + ": unresolved ID");
+        assert.ok(Buffer.byteLength(report, "utf8") <= 1024, locale + ": exceeds ordinary Cast budget");
+    }
+    const english = format("en_US");
+    assert.match(english, /105 casts|Casts published: 105/);
+    assert.match(english, /Engagement received: 4118/);
+    assert.match(english, /Likes: 3156/);
+    assert.match(english, /Report prepared: November 8, 2026/);
+    const persian = format("fa_IR");
+    assert.match(persian, /کست‌های منتشرشده: ۱۰۵/);
+    assert.match(persian, /تعاملات دریافتی: ۴۱۱۸/);
+    assert.match(persian, /۱۸ آبان ۱۴۰۵/);
+    assert.ok(!persian.includes("Casts published"));
+    const partial = format("fa_IR", false);
+    assert.ok(!partial.includes("تعاملات دریافتی:"));
+    assert.ok(!partial.includes("پسندها:"));
+    assert.equal(partial.split("\n\n").length, 4);
+    assert.match(panel, /if \(section !== "social" \|\| !loaded\) return ""/);
+    assert.match(panel, /LocaleFormat\.formatDateTime\(Date\.now\(\)\)/);
+    assert.match(shell, /"structuredReport": Boolean\(structuredReport\)/);
+    assert.match(shell, /intent\.structuredReport/);
+    assert.match(composer, /property bool structuredReport: false/);
+    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.markdownSource = root\.suggestedText\s*\n\s*else\s*\n\s*richComposer\.setBlockText\(0, root\.suggestedText\)/);
+    assert.match(shell, /composerDrawer\.structuredReport = false/);
+    // Ordinary compose uses literal text, so user-supplied Markdown is not reinterpreted.
+    assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
 });

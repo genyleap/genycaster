@@ -79,6 +79,7 @@ Item {
 
     signal exploreRequested()
     signal composeRequested(string text)
+    signal statsReportRequested(string text)
     signal photoRequested()
     signal searchRequested()
     signal notificationsRequested()
@@ -521,7 +522,7 @@ GenyTokenBanner {
                         periodDays: root.statsDays
                         onPeriodRequested: days => root.statsDays = days
                         onRefreshRequested: root.requestStats(true)
-                        onShareRequested: text => root.composeRequested(text)
+                        onShareRequested: text => root.statsReportRequested(text)
                         onCastRequested: hash => root.castRequested(hash)
                     }
                 }
@@ -685,7 +686,7 @@ GenyTokenBanner {
                 periodDays: root.statsDays
                 onPeriodRequested: days => root.statsDays = days
                 onRefreshRequested: root.requestStats(true)
-                onShareRequested: text => root.composeRequested(text)
+                onShareRequested: text => root.statsReportRequested(text)
                 onCastRequested: hash => root.castRequested(hash)
             }
 

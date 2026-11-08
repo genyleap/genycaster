@@ -7144,6 +7144,30 @@ Company | https://company.com</source>
             <source>Choose period</source>
             <translation>选择时间范围</translation>
         </message>
+        <message id="genycaster.stats.share_report_title">
+            <source>GenyCaster · Social activity report (%1)</source>
+            <translation>GenyCaster · 社交活动报告（%1）</translation>
+        </message>
+        <message id="genycaster.stats.share_publishing_line">
+            <source>Casts published: %1 · Replies written: %2</source>
+            <translation>已发布 Cast：%1 · 已撰写回复：%2</translation>
+        </message>
+        <message id="genycaster.stats.share_engagement_line">
+            <source>Engagement received: %1</source>
+            <translation>收到的互动：%1</translation>
+        </message>
+        <message id="genycaster.stats.share_reactions_line">
+            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
+            <translation>点赞：%1 · 转发：%2 · 收到的回复：%3</translation>
+        </message>
+        <message id="genycaster.stats.share_scope_note">
+            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
+            <translation>互动数据统计的是此期间发布的内容截至报告生成时收到的回应。</translation>
+        </message>
+        <message id="genycaster.stats.share_prepared">
+            <source>Report prepared: %1</source>
+            <translation>报告生成时间：%1</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>分享结果</translation>

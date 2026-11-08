@@ -7144,6 +7144,30 @@ Company | https://company.com</source>
             <source>Choose period</source>
             <translation>Zeitraum wählen</translation>
         </message>
+        <message id="genycaster.stats.share_report_title">
+            <source>GenyCaster · Social activity report (%1)</source>
+            <translation>GenyCaster · Bericht zur sozialen Aktivität (%1)</translation>
+        </message>
+        <message id="genycaster.stats.share_publishing_line">
+            <source>Casts published: %1 · Replies written: %2</source>
+            <translation>Veröffentlichte Casts: %1 · Verfasste Antworten: %2</translation>
+        </message>
+        <message id="genycaster.stats.share_engagement_line">
+            <source>Engagement received: %1</source>
+            <translation>Erhaltene Interaktionen: %1</translation>
+        </message>
+        <message id="genycaster.stats.share_reactions_line">
+            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
+            <translation>Likes: %1 · Recasts: %2 · Erhaltene Antworten: %3</translation>
+        </message>
+        <message id="genycaster.stats.share_scope_note">
+            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
+            <translation>Die Interaktionen umfassen bisher erfasste Reaktionen auf Beiträge, die im gewählten Zeitraum veröffentlicht wurden.</translation>
+        </message>
+        <message id="genycaster.stats.share_prepared">
+            <source>Report prepared: %1</source>
+            <translation>Bericht erstellt: %1</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>Ergebnisse teilen</translation>

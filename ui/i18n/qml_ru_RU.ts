@@ -7144,6 +7144,30 @@ Company | https://company.com</source>
             <source>Choose period</source>
             <translation>Выбрать период</translation>
         </message>
+        <message id="genycaster.stats.share_report_title">
+            <source>GenyCaster · Social activity report (%1)</source>
+            <translation>GenyCaster · Отчёт о социальной активности (%1)</translation>
+        </message>
+        <message id="genycaster.stats.share_publishing_line">
+            <source>Casts published: %1 · Replies written: %2</source>
+            <translation>Опубликовано кастов: %1 · Написано ответов: %2</translation>
+        </message>
+        <message id="genycaster.stats.share_engagement_line">
+            <source>Engagement received: %1</source>
+            <translation>Получено взаимодействий: %1</translation>
+        </message>
+        <message id="genycaster.stats.share_reactions_line">
+            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
+            <translation>Лайки: %1 · Репосты: %2 · Полученные ответы: %3</translation>
+        </message>
+        <message id="genycaster.stats.share_scope_note">
+            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
+            <translation>Учитываются реакции, зарегистрированные к моменту создания отчёта, на публикации за выбранный период.</translation>
+        </message>
+        <message id="genycaster.stats.share_prepared">
+            <source>Report prepared: %1</source>
+            <translation>Отчёт подготовлен: %1</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>Поделиться результатами</translation>

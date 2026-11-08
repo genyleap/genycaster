@@ -7144,6 +7144,30 @@ Company | https://company.com</source>
             <source>Choose period</source>
             <translation>期間を選択</translation>
         </message>
+        <message id="genycaster.stats.share_report_title">
+            <source>GenyCaster · Social activity report (%1)</source>
+            <translation>GenyCaster · ソーシャル活動レポート（%1）</translation>
+        </message>
+        <message id="genycaster.stats.share_publishing_line">
+            <source>Casts published: %1 · Replies written: %2</source>
+            <translation>投稿したキャスト: %1 · 送信した返信: %2</translation>
+        </message>
+        <message id="genycaster.stats.share_engagement_line">
+            <source>Engagement received: %1</source>
+            <translation>受け取ったエンゲージメント: %1</translation>
+        </message>
+        <message id="genycaster.stats.share_reactions_line">
+            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
+            <translation>いいね: %1 · リキャスト: %2 · 受信した返信: %3</translation>
+        </message>
+        <message id="genycaster.stats.share_scope_note">
+            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
+            <translation>エンゲージメントは、この期間に公開された投稿に対し、レポート作成時点までに記録された反応の合計です。</translation>
+        </message>
+        <message id="genycaster.stats.share_prepared">
+            <source>Report prepared: %1</source>
+            <translation>レポート作成日時: %1</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>結果を共有</translation>

@@ -73,31 +73,38 @@ ColumnLayout {
     function rangeIndex(days) {
         return Math.max(0, rangeDays.indexOf(days))
     }
-    // Provider-scoped facts only. Sharing creates an editable draft in the
-    // existing Composer; nothing is automatically published or signed.
+    // A concise, locale-aware report from the selected account and period.
+    // This uses measured data only: the period filters publication dates,
+    // while engagement reflects interactions observed to date. The fixed
+    // English footer is a brand signature, not a second language setting.
+    // Blank lines are intentional Markdown paragraph boundaries so the
+    // dedicated report handoff renders cleanly in the visual Composer.
     function buildShareText() {
         if (section !== "social" || !loaded) return ""
-        const lines = [
-            "GenyCaster · " + rangeLabel(periodDays),
-            "",
-            qsTrId("genycaster.stats.casts") + ": "
-                + LocaleFormat.formatInteger(Number(metrics.casts || 0)),
-            qsTrId("genycaster.stats.replies") + ": "
-                + LocaleFormat.formatInteger(Number(metrics.replies || 0))
+        const integer = value => LocaleFormat.formatInteger(Number(value || 0))
+        const paragraphs = [
+            qsTrId("genycaster.stats.share_report_title").arg(rangeLabel(periodDays)),
+            qsTrId("genycaster.stats.share_publishing_line")
+                .arg(integer(metrics.casts))
+                .arg(integer(metrics.replies))
         ]
         if (Boolean(metrics.hasEngagement)) {
-            lines.push(
-                qsTrId("genycaster.stats.engagement") + ": "
-                    + LocaleFormat.formatInteger(Number(metrics.engagement || 0)),
-                qsTrId("genycaster.stats.likes") + ": "
-                    + LocaleFormat.formatInteger(Number(metrics.likes || 0)),
-                qsTrId("genycaster.stats.recasts") + ": "
-                    + LocaleFormat.formatInteger(Number(metrics.recasts || 0)),
-                qsTrId("genycaster.stats.received_replies") + ": "
-                    + LocaleFormat.formatInteger(Number(metrics.receivedReplies || 0))
+            paragraphs.push(
+                qsTrId("genycaster.stats.share_engagement_line")
+                    .arg(integer(metrics.engagement)),
+                qsTrId("genycaster.stats.share_reactions_line")
+                    .arg(integer(metrics.likes))
+                    .arg(integer(metrics.recasts))
+                    .arg(integer(metrics.receivedReplies)),
+                qsTrId("genycaster.stats.share_scope_note")
             )
         }
-        return lines.join("\n")
+        paragraphs.push(
+            qsTrId("genycaster.stats.share_prepared")
+                .arg(LocaleFormat.formatDateTime(Date.now())),
+            "Powered by Genycaster"
+        )
+        return paragraphs.join("\n\n")
     }
 
     // Only the FID-bound OpenProof connection list can establish GitHub ownership.
