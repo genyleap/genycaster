@@ -63,6 +63,11 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.market.asset_bitcoin",
     "genycaster.market.asset_ethereum",
     "genycaster.market.asset_solana",
+    # Some canonical market units and cognates are already correctly spelled
+    # in multiple supported languages. Do not force artificial translations.
+    "genycaster.market.neutral",
+    "genycaster.market.social",
+    "genycaster.market.unit_million",
 }
 
 INTENTIONALLY_IDENTICAL_BY_LOCALE = {

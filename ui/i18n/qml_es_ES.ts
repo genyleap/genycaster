@@ -168,7 +168,7 @@
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
-            <translation>Recasts</translation>
+            <translation>Republicaciones</translation>
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>

@@ -42,6 +42,9 @@ genycaster.home.ideas_hint
 genycaster.home.ideas_refresh
 genycaster.home.ideas_title
 genycaster.home.prompt
+genycaster.market.altseason
+genycaster.market.title
+genycaster.market.unconfigured
 genycaster.nodes.advanced
 genycaster.nodes.counts_external
 genycaster.nodes.health_explain
@@ -179,6 +182,10 @@ genycaster.setup.workspace_label
 genycaster.setup.world_conversations
 genycaster.shell.publishing
 genycaster.shell.replying
+genycaster.stats.all
+genycaster.stats.cast_engagement
+genycaster.stats.last_90_days
+genycaster.stats.subtitle
 genycaster.status.available
 genycaster.status.away
 genycaster.status.busy

@@ -164,11 +164,11 @@
         </message>
         <message id="genycaster.stats.likes">
             <source>Likes</source>
-            <translation>Likes</translation>
+            <translation>Gefällt mir</translation>
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
-            <translation>Recasts</translation>
+            <translation>Weiterverbreitungen</translation>
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>
