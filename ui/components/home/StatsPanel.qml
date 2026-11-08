@@ -400,8 +400,10 @@ ColumnLayout {
                 parent: periodMenuButton
                 x: Theme.rtl ? 0 : parent.width - width
                 y: parent.height + Theme.space1
-                width: Math.min(200, Math.max(152, root.width - Theme.space4))
-                padding: 2
+                width: Math.min(208, Math.max(152, root.width - Theme.space4))
+                // Match other contextual menus: keep selected/hover paint
+                // inset from the popover's rounded border on every edge.
+                padding: Theme.space2
                 implicitHeight: contentItem.implicitHeight + topPadding + bottomPadding
                 modal: false
                 focus: true

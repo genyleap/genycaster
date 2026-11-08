@@ -459,8 +459,11 @@ test("Stats only reduces OUTER shell gutters and restores original card spacing"
     assert.match(shell, /root\.homeStatsWorkspace \? Theme\.space1 : Theme\.space3/);
     assert.match(shell, /Layout\.leftMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
     assert.match(shell, /Layout\.rightMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
-    assert.match(home, /anchors\.margins: root\.activeTab === "stats" \? Theme\.space1 : Theme\.space3/);
+    assert.match(home, /anchors\.margins: Theme\.space3/);
     assert.match(home, /width: root\.activeTab === "stats"\s*\n\s*\? Math\.max\(1, parent\.width\)/);
+    const rail = read("ui/components/navigation/ContextRail.qml");
+    assert.match(rail, /Layout\.leftMargin: Theme\.space3/);
+    assert.match(rail, /Layout\.rightMargin: Theme\.space3/);
     // Inner card padding and chart/ring spacing must stay at the former values.
     assert.match(breakdown, /anchors\.margins: Theme\.space4/);
     assert.match(breakdown, /columnSpacing: Theme\.space4/);
@@ -528,4 +531,21 @@ test("sharing statistics opens the authentic composer with only verified loaded 
         assert.equal(catalog.split('<message id="genycaster.stats.share_results">').length - 1,
                      1, "share label not localized in " + locale);
     }
+});
+
+
+test("stats popover selection is inset like native action menus, not painted against its frame", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const menuStart = panel.indexOf('id: periodMenu\n');
+    assert.ok(menuStart >= 0);
+    const menu = panel.slice(menuStart, panel.indexOf('id: periodChoice', menuStart) + 900);
+    assert.match(menu, /padding: Theme\.space2/);
+    assert.match(menu, /width: periodMenu\.width - periodMenu\.leftPadding\s*\n\s*- periodMenu\.rightPadding/);
+    assert.match(menu, /height: 38/);
+    assert.match(menu, /background: PopupSurface \{/);
+    assert.match(menu, /fillColor: Theme\.surfaceElevated/);
+    const choices = panel.slice(panel.indexOf('id: periodChoice', menuStart));
+    assert.match(choices, /background: Superellipse \{/);
+    assert.match(choices, /curveDepth: Theme\.curveCompact/);
+    assert.doesNotMatch(menu, /padding: 2/);
 });
