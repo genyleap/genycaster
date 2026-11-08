@@ -42,9 +42,15 @@ Item {
 
             Shape {
                 anchors.fill: parent
-                preferredRendererType: Shape.CurveRenderer
+                // Keep the arc tessellation static and antialias the combined
+                // semicircle once. Rendering separate unfiltered curve
+                // fragments can leave visible stripes around rounded caps.
+                preferredRendererType: Shape.GeometryRenderer
                 asynchronous: false
                 antialiasing: true
+                layer.enabled: true
+                layer.smooth: true
+                layer.samples: 4
 
                 ShapePath {
                     fillColor: "transparent"

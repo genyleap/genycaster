@@ -9,6 +9,8 @@ Superellipse {
     property var bars: []
     property int periodDays: 30
     property int selectedIndex: -1
+    property int hoveredIndex: -1
+    readonly property int activeIndex: hoveredIndex >= 0 ? hoveredIndex : selectedIndex
     property real reveal: 1
     readonly property int maxCount: {
         let n = 1
@@ -16,8 +18,8 @@ Superellipse {
             n = Math.max(n, Number(bars[i].casts || 0) + Number(bars[i].replies || 0))
         return n
     }
-    readonly property var selected: selectedIndex >= 0 && selectedIndex < bars.length
-                                    ? bars[selectedIndex] : null
+    readonly property var selected: activeIndex >= 0 && activeIndex < bars.length
+                                    ? bars[activeIndex] : null
 
     function localizedDay(iso, fallback) {
         const canonical = String(iso || "")
@@ -37,6 +39,7 @@ Superellipse {
 
     onBarsChanged: {
         selectedIndex = -1
+        hoveredIndex = -1
         revealTween.stop()
         if (Theme.reduceMotion) {
             reveal = 1
@@ -187,8 +190,9 @@ Superellipse {
                                 height: Math.max(0, column.castHeight + column.replyHeight)
                                 radius: Math.min(3, width / 2, height / 2)
                                 color: Theme.accent
-                                opacity: root.selectedIndex === -1
-                                    || root.selectedIndex === column.index ? 1 : 0.52
+                                // Never desaturate nonselected data; hover is a
+                                // transient inspection state, not a disabled state.
+                                opacity: 1
                                 antialiasing: true
 
                                 Rectangle {
@@ -214,7 +218,8 @@ Superellipse {
                             TapHandler { onTapped: root.selectedIndex = column.index }
                             HoverHandler {
                                 cursorShape: Qt.PointingHandCursor
-                                onHoveredChanged: if (hovered) root.selectedIndex = column.index
+                                onHoveredChanged: root.hoveredIndex = hovered
+                                    ? column.index : -1
                             }
                         }
                     }

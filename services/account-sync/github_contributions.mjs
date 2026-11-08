@@ -11,33 +11,42 @@ export function parseGithubCalendar(html,{login,year,now=Date.now()}={}) {
     throw new Error('github_calendar_too_large');
   if(!LOGIN.test(login) || !Number.isInteger(year) || year<MIN_YEAR)
     throw new Error('invalid_calendar_identity');
+  // GitHub publishes explicit daily counts either in matching tool-tip
+  // elements or as accessible cell labels. The color level is *not* a count.
+  // Allow whitespace and nested span content inside calendar cells.
+  function decodeCount(text) {
+    const plain=String(text || '').replace(/<[^>]*>/g,'')
+      .replace(/&nbsp;|&#160;/gi,' ').replace(/&amp;/gi,'&').trim();
+    const positive=/^([\d,]+)\s+contributions?\b/i.exec(plain);
+    if(positive) {
+      const value=Number(positive[1].replaceAll(',',''));
+      return Number.isSafeInteger(value)&&value>=0&&value<=100_000 ? value : null;
+    }
+    return /^No contributions\b/i.test(plain) ? 0 : null;
+  }
   const tips=new Map();
-  // GitHub's public calendar embeds counts in tool-tip elements, not data-level.
-  // Do not infer exact counts from the five color intensity levels.
   for(const match of html.matchAll(/<tool-tip\b([^>]*)>([\s\S]*?)<\/tool-tip>/gi)) {
     const id=/\bfor="([^"]{1,100})"/.exec(match[1])?.[1];
-    if(!id)continue;
-    const value=match[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();
-    const number=/^\s*([\d,]+)\s+contributions?\b/i.exec(value);
-    if(number) {
-      const count=Number(number[1].replaceAll(',',''));
-      if(Number.isSafeInteger(count)&&count>=0&&count<=100_000)tips.set(id,count);
-    } else if(/^No contributions\b/i.test(value)) tips.set(id,0);
+    const count=decodeCount(match[2]);
+    if(id && count!==null)tips.set(id,count);
   }
   const days=[];
   const seen=new Set();
   const cutoff=new Date(now).toISOString().slice(0,10);
-  for(const match of html.matchAll(/<td\b([^>]*)><\/td>/gi)) {
-    const attributes=match[1];
-    if(!attributes.includes('ContributionCalendar-day'))continue;
-    const date=/\bdata-date="([^"]+)"/.exec(attributes)?.[1];
-    const id=/\bid="([^"]+)"/.exec(attributes)?.[1];
-    const level=Number(/\bdata-level="([0-4])"/.exec(attributes)?.[1]);
-    if(!DATE.test(date||'') || !id || !Number.isInteger(level) ||
-       !tips.has(id) || seen.has(date) || !date.startsWith(String(year)+'-') ||
-       date>cutoff)continue;
+  for(const match of html.matchAll(/<td\b([^>]*)>([\s\S]*?)<\/td>/gi)) {
+    const attrs=match[1];
+    if(!/\bContributionCalendar-day\b/.test(attrs))continue;
+    const date=/\bdata-date="([^"]+)"/.exec(attrs)?.[1];
+    const id=/\bid="([^"]+)"/.exec(attrs)?.[1];
+    const levelMatch=/\bdata-level="([0-4])"/.exec(attrs);
+    if(!DATE.test(date||'') || !levelMatch || seen.has(date) ||
+       !date.startsWith(String(year)+'-') || date>cutoff)continue;
+    const accessible=/\baria-label="([^"]{1,256})"/.exec(attrs)?.[1];
+    const explicitCount=id && tips.has(id) ? tips.get(id)
+      : decodeCount(accessible || match[2]);
+    if(explicitCount===null || explicitCount===undefined)continue;
     seen.add(date);
-    days.push({date,count:tips.get(id),level});
+    days.push({date,count:explicitCount,level:Number(levelMatch[1])});
   }
   days.sort((a,b)=>a.date.localeCompare(b.date));
   // Do not silently publish a plausible-looking but incomplete history.

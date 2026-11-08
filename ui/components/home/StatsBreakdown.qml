@@ -2,48 +2,37 @@ import QtQuick
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Five real, period-scoped counters use one shared linear scale.
-// The radar visualizes their relative magnitudes; exact counts remain in
-// accessible, localized legend rows. It never invents historical values.
+// Engagement is received feedback, while authored casts and replies are
+// publishing activity. These two populations are intentionally separate.
+// A percentage-of-total breakdown is more accurate than a shared-scale radar.
 Superellipse {
     id: root
     objectName: "statsEngagementBreakdown"
     property var metrics: ({})
-    readonly property real total: Number(metrics.engagement || 0)
-    readonly property var categories: [
-        {label: qsTrId("genycaster.stats.likes"), count: Math.max(0, Number(metrics.likes || 0))},
-        {label: qsTrId("genycaster.stats.recasts"), count: Math.max(0, Number(metrics.recasts || 0))},
-        {label: qsTrId("genycaster.stats.received_replies"), count: Math.max(0, Number(metrics.receivedReplies || 0))},
-        {label: qsTrId("genycaster.stats.casts"), count: Math.max(0, Number(metrics.casts || 0))},
-        {label: qsTrId("genycaster.stats.replies"), count: Math.max(0, Number(metrics.replies || 0))}
-    ]
-    readonly property real highestCount: {
-        let maximum = 1
-        for (const category of categories)
-            maximum = Math.max(maximum, category.count)
-        return maximum
-    }
-    property real drawProgress: 1
-    onCategoriesChanged: {
-        radarTween.stop()
-        if (Theme.reduceMotion) drawProgress = 1
-        else {
-            drawProgress = 0
-            radarTween.start()
-        }
-    }
-    onDrawProgressChanged: radar.requestPaint()
 
-    NumberAnimation {
-        id: radarTween
-        target: root
-        property: "drawProgress"
-        to: 1
-        duration: Theme.reduceMotion ? 0 : 430
-        easing.type: Easing.OutCubic
+    readonly property var engagementRows: [
+        { label: qsTrId("genycaster.stats.likes"), count: Math.max(0, Number(metrics.likes || 0)) },
+        { label: qsTrId("genycaster.stats.recasts"), count: Math.max(0, Number(metrics.recasts || 0)) },
+        { label: qsTrId("genycaster.stats.received_replies"), count: Math.max(0, Number(metrics.receivedReplies || 0)) }
+    ]
+    readonly property var publishingRows: [
+        { label: qsTrId("genycaster.stats.casts"), count: Math.max(0, Number(metrics.casts || 0)) },
+        { label: qsTrId("genycaster.stats.replies"), count: Math.max(0, Number(metrics.replies || 0)) }
+    ]
+    readonly property real receivedTotal: engagementRows.reduce(
+        (sum, entry) => sum + entry.count, 0)
+    readonly property string percentSign: Theme.rtl ? "٪" : "%"
+    readonly property var segmentColors: [
+        Theme.accent, Qt.lighter(Theme.accent, Theme.dark ? 1.38 : 1.48),
+        Qt.lighter(Theme.accent, Theme.dark ? 1.76 : 1.92)
+    ]
+
+    function share(count) {
+        return receivedTotal > 0 ? Math.max(0, Math.min(1, count / receivedTotal)) : 0
     }
 
     Layout.fillWidth: true
+    Layout.minimumWidth: 0
     Layout.preferredHeight: content.implicitHeight + Theme.space4 * 2
     fillColor: Theme.surface
     borderWidth: 1
@@ -56,7 +45,7 @@ Superellipse {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: Theme.space4
-        spacing: Theme.space2
+        spacing: Theme.space3
 
         RowLayout {
             Layout.fillWidth: true
@@ -69,130 +58,161 @@ Superellipse {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 alignToUi: true
                 text: qsTrId("genycaster.stats.engagement_breakdown")
                 color: Theme.textPrimary
                 font.pixelSize: Theme.typeLabelSize
                 font.weight: Theme.weightDemiBold
+                elide: Text.ElideRight
             }
             DirectionAwareLabel {
-                text: LocaleFormat.formatInteger(root.total)
-                color: Theme.textSecondary
-                font.pixelSize: Theme.typeMetaSize
+                text: LocaleFormat.formatInteger(root.receivedTotal)
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeLabelSize
+                font.weight: Theme.weightBold
+                Accessible.name: qsTrId("genycaster.stats.engagement") + ": "
+                                 + LocaleFormat.formatInteger(root.receivedTotal)
             }
         }
 
+        // A single proportionally segmented strip gives the composition at a
+        // glance. No overlap or translucent stacking, even with one category
+        // much larger than the others.
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 218
-            Canvas {
-                id: radar
-                width: Math.min(parent.width, 280)
-                height: parent.height
-                anchors.horizontalCenter: parent.horizontalCenter
-                readonly property color accent: Theme.accent
-                readonly property color gridColor: Theme.borderMuted
-                readonly property color pointColor: Theme.textPrimary
-                readonly property bool rightToLeft: Theme.rtl
-                onRightToLeftChanged: requestPaint()
-                onAccentChanged: requestPaint()
-                onGridColorChanged: requestPaint()
-                onPointColorChanged: requestPaint()
-                onWidthChanged: requestPaint()
-                onHeightChanged: requestPaint()
-                Component.onCompleted: requestPaint()
+            Layout.preferredHeight: 12
+            Rectangle {
+                id: distributionTrack
+                anchors.fill: parent
+                radius: height / 2
+                color: Theme.surfaceMuted
+                clip: true
 
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    const count = root.categories.length
-                    if (count < 3 || width < 20 || height < 20) return
-                    const cx = width / 2
-                    const cy = height / 2
-                    const radius = Math.max(0, Math.min(width, height) / 2 - 15)
-                    function point(index, fraction) {
-                        const angle = index * 2 * Math.PI / count - Math.PI / 2
-                        return {
-                            x: cx + (radar.rightToLeft ? -1 : 1) * radius * fraction * Math.cos(angle),
-                            y: cy + radius * fraction * Math.sin(angle)
+                Row {
+                    anchors.fill: parent
+                    layoutDirection: Theme.uiDirection
+                    spacing: 0
+                    Repeater {
+                        model: root.engagementRows
+                        delegate: Rectangle {
+                            required property int index
+                            required property var modelData
+                            height: distributionTrack.height
+                            width: distributionTrack.width * root.share(modelData.count)
+                            color: root.segmentColors[index]
+                            antialiasing: true
+                            Accessible.role: Accessible.Indicator
+                            Accessible.name: modelData.label + ": "
+                                             + LocaleFormat.formatInteger(modelData.count)
                         }
                     }
-                    function polygon(fractions) {
-                        ctx.beginPath()
-                        for (let i = 0; i < count; ++i) {
-                            const p = point(i, fractions[i])
-                            if (i === 0) ctx.moveTo(p.x, p.y)
-                            else ctx.lineTo(p.x, p.y)
-                        }
-                        ctx.closePath()
-                    }
-                    ctx.lineWidth = 1
-                    ctx.strokeStyle = String(gridColor)
-                    ctx.globalAlpha = 0.75
-                    for (let level = 1; level <= 4; ++level) {
-                        polygon(Array(count).fill(level / 4))
-                        ctx.stroke()
-                    }
-                    for (let i = 0; i < count; ++i) {
-                        const p = point(i, 1)
-                        ctx.beginPath()
-                        ctx.moveTo(cx, cy)
-                        ctx.lineTo(p.x, p.y)
-                        ctx.stroke()
-                    }
-                    const fractions = root.categories.map(category =>
-                        Math.min(1, category.count / root.highestCount) * root.drawProgress)
-                    polygon(fractions)
-                    ctx.fillStyle = String(accent)
-                    ctx.globalAlpha = 0.16
-                    ctx.fill()
-                    ctx.globalAlpha = 1
-                    ctx.strokeStyle = String(accent)
-                    ctx.lineWidth = 2.4
-                    ctx.lineJoin = "round"
-                    ctx.stroke()
-                    for (let i = 0; i < count; ++i) {
-                        const p = point(i, fractions[i])
-                        ctx.beginPath()
-                        ctx.arc(p.x, p.y, 3.5, 0, 2 * Math.PI)
-                        ctx.fillStyle = String(accent)
-                        ctx.fill()
-                    }
-                    ctx.globalAlpha = 1
                 }
             }
+        }
+
+        Repeater {
+            model: root.engagementRows
+            delegate: ColumnLayout {
+                id: engagementRow
+                required property int index
+                required property var modelData
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: Theme.space1
+
+                readonly property real fraction: root.share(modelData.count)
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    Rectangle {
+                        width: 8
+                        height: width
+                        radius: width / 2
+                        color: root.segmentColors[engagementRow.index]
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        alignToUi: true
+                        text: engagementRow.modelData.label
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeMetaSize
+                        elide: Text.ElideRight
+                    }
+                    DirectionAwareLabel {
+                        text: LocaleFormat.formatInteger(engagementRow.modelData.count)
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeMetaSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    DirectionAwareLabel {
+                        Layout.preferredWidth: 54
+                        horizontalAlignment: Text.AlignRight
+                        forceLeftToRight: true
+                        text: LocaleFormat.formatNumber(engagementRow.fraction * 100, 1) + root.percentSign
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                }
+
+                Rectangle {
+                    id: rowTrack
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 6
+                    radius: height / 2
+                    color: Theme.surfaceMuted
+
+                    Rectangle {
+                        width: rowTrack.width * engagementRow.fraction
+                        height: parent.height
+                        x: Theme.rtl ? rowTrack.width - width : 0
+                        radius: Math.min(width / 2, height / 2)
+                        color: root.segmentColors[engagementRow.index]
+                        visible: width > 0
+                        Behavior on width {
+                            enabled: !Theme.reduceMotion
+                            NumberAnimation { duration: 360; easing.type: Easing.OutCubic }
+                        }
+                    }
+                }
+                Accessible.role: Accessible.StaticText
+                Accessible.name: engagementRow.modelData.label + ": "
+                                 + LocaleFormat.formatInteger(engagementRow.modelData.count)
+                                 + " (" + LocaleFormat.formatNumber(engagementRow.fraction * 100, 1) + "%)"
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.borderMuted
         }
 
         DirectionAwareLabel {
             Layout.fillWidth: true
             alignToUi: true
-            text: qsTrId("genycaster.stats.radar_explainer").arg(
-                LocaleFormat.formatInteger(root.highestCount))
-            color: Theme.textTertiary
+            text: qsTrId("genycaster.stats.publishing_activity")
+            color: Theme.textSecondary
             font.pixelSize: Theme.typeCaptionSize
-            wrapMode: Text.Wrap
+            font.weight: Theme.weightDemiBold
         }
-
         GridLayout {
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection
-            columns: root.width < 430 ? 1 : 2
-            columnSpacing: Theme.space4
+            columns: root.width < 360 ? 1 : 2
+            columnSpacing: Theme.space3
             rowSpacing: Theme.space2
             Repeater {
-                model: root.categories
+                model: root.publishingRows
                 delegate: RowLayout {
                     required property var modelData
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
                     layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
-                    Rectangle {
-                        width: 7
-                        height: 7
-                        radius: width / 2
-                        color: Theme.accent
-                    }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
@@ -200,7 +220,7 @@ Superellipse {
                         text: modelData.label
                         color: Theme.textSecondary
                         font.pixelSize: Theme.typeMetaSize
-                        wrapMode: Text.Wrap
+                        elide: Text.ElideRight
                     }
                     DirectionAwareLabel {
                         text: LocaleFormat.formatInteger(modelData.count)
@@ -212,11 +232,6 @@ Superellipse {
             }
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: Theme.borderMuted
-        }
         DirectionAwareLabel {
             Layout.fillWidth: true
             alignToUi: true

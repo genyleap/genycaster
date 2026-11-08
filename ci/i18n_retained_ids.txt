@@ -185,6 +185,7 @@ genycaster.shell.replying
 genycaster.stats.all
 genycaster.stats.cast_engagement
 genycaster.stats.last_90_days
+genycaster.stats.radar_explainer
 genycaster.stats.subtitle
 genycaster.status.available
 genycaster.status.away

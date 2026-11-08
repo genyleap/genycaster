@@ -67,11 +67,18 @@ ColumnLayout {
     }
     readonly property int githubYear: new Date().getUTCFullYear()
     readonly property var githubCalendar: genyPulseActivity.githubContributions || ({})
-    readonly property bool githubReady: githubCalendar.status === "ok"
-        && Number(githubCalendar.year) === githubYear
+    readonly property bool githubSnapshotMatches: Number(githubCalendar.year) === githubYear
+        && verifiedGithubLogin.length > 0
         && String(githubCalendar.username || "").toLowerCase() === verifiedGithubLogin.toLowerCase()
-    function refreshGithub() {
-        if (tabActive && section === "social" && verifiedGithubLogin.length > 0)
+    readonly property string githubStatus: githubSnapshotMatches
+        ? String(githubCalendar.status || "idle") : "idle"
+    readonly property bool githubReady: githubStatus === "ok"
+    function refreshGithub(force) {
+        if (!tabActive || section !== "social" || verifiedGithubLogin.length === 0)
+            return
+        if (force)
+            genyPulseActivity.refreshGitHubContributions(verifiedGithubLogin, githubYear)
+        else
             genyPulseActivity.requestGitHubContributions(verifiedGithubLogin, githubYear)
     }
     onVerifiedGithubLoginChanged: refreshGithub()
@@ -185,7 +192,10 @@ ColumnLayout {
             enabled: !busy
             onClicked: {
                 if (root.section === "market") root.requestMarketRefresh()
-                else root.refreshRequested()
+                else {
+                    root.refreshGithub(true)
+                    root.refreshRequested()
+                }
             }
         }
     }
@@ -412,6 +422,16 @@ ColumnLayout {
                         font.pixelSize: Theme.typeCaptionSize
                         elide: Text.ElideMiddle
                     }
+                    ActionButton {
+                        visible: !root.githubReady && root.githubStatus !== "loading"
+                        compact: true
+                        quiet: true
+                        elevated: false
+                        iconOnly: true
+                        iconGlyph: Theme.iconRefresh
+                        text: qsTrId("genycaster.stats.refresh")
+                        onClicked: root.refreshGithub(true)
+                    }
                 }
 
                 DirectionAwareLabel {
@@ -420,11 +440,14 @@ ColumnLayout {
                     text: root.githubReady
                         ? qsTrId("genycaster.activity.contributions_count").arg(
                             LocaleFormat.formatInteger(Number(root.githubCalendar.count || 0)))
-                        : root.githubCalendar.status === "loading"
+                        : root.githubStatus === "idle" || root.githubStatus === "loading"
                           ? qsTrId("genycaster.activity.loading")
-                          : root.githubCalendar.status === "authorization-required"
+                          : root.githubStatus === "authorization-required"
+                            || root.githubStatus === "identity-unconfirmed"
                             ? qsTrId("genycaster.activity.github_session_required")
-                            : qsTrId("genycaster.activity.unavailable")
+                          : root.githubStatus === "rate-limited"
+                            ? qsTrId("genycaster.activity.rate_limited")
+                            : qsTrId("genycaster.activity.fetch_error")
                     font.pixelSize: root.githubReady ? Theme.typeTitle2Size : Theme.typeCaptionSize
                     font.weight: root.githubReady ? Theme.weightBold : Font.Normal
                     color: root.githubReady ? Theme.textPrimary : Theme.textSecondary

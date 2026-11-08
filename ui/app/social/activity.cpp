@@ -365,12 +365,18 @@ void GenyPulseActivityController::fetchGitHubPage(const QString& username,const 
     });
 }
 
+void GenyPulseActivityController::refreshGitHubContributions(const QString& username,
+                                                              const int year) {
+    m_githubCalendarFetchedAt = 0;
+    requestGitHubContributions(username, year);
+}
+
 void GenyPulseActivityController::requestGitHubContributions(const QString& username,
                                                               const int year) {
     static const QRegularExpression validLogin{
         QStringLiteral("^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")};
     const auto login=username.trimmed();
-    const int currentYear=QDate::currentDate().year();
+    const int currentYear=QDateTime::currentDateTimeUtc().date().year();
     const bool valid=validLogin.match(login).hasMatch() &&
         year>=2014 && year<=currentYear;
     if(valid && login.compare(m_githubCalendarLogin,Qt::CaseInsensitive)==0
@@ -434,9 +440,19 @@ void GenyPulseActivityController::requestGitHubContributions(const QString& user
                .compare(login,Qt::CaseInsensitive)!=0 ||
            object.value(QStringLiteral("year")).toInt()!=year ||
            list.size()<20 || list.size()>366) {
-            m_githubContributions=statusMap(http==401 || http==403
-                ?QStringLiteral("authorization-required")
-                :QStringLiteral("error"),QStringLiteral("github-public-contributions"));
+            // Distinguish account proof, upstream failure, and malformed
+            // source data. Keep response bodies and credentials out of QML.
+            const auto errorCode=object.value(QStringLiteral("error")).toString();
+            const QString status=http==401
+                ? QStringLiteral("authorization-required")
+                : http==403 && errorCode==QStringLiteral("github_identity_unconfirmed")
+                  ? QStringLiteral("identity-unconfirmed")
+                  : http==403 ? QStringLiteral("authorization-required")
+                  : http==429 ? QStringLiteral("rate-limited")
+                  : http==503 && errorCode==QStringLiteral("github_calendar_incomplete")
+                    ? QStringLiteral("incomplete") : QStringLiteral("error");
+            m_githubContributions=statusMap(
+                status,QStringLiteral("github-public-contributions"));
             m_githubContributions.insert(QStringLiteral("username"),login);
             m_githubContributions.insert(QStringLiteral("year"),year);
             emit githubContributionsChanged();

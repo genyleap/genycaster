@@ -42,15 +42,18 @@ test("every bundled locale contains the new stats and market names", () => {
     assert.match(fa, /جنی‌کستر/);
 });
 
-test("radar uses real counters and a consistent scale", () => {
-    const radar = read("ui/components/home/StatsBreakdown.qml");
+test("engagement distribution never compares authored activity as received feedback", () => {
+    const component = read("ui/components/home/StatsBreakdown.qml");
     for (const key of ["likes", "recasts", "receivedReplies", "casts", "replies"])
-        assert.ok(radar.includes("metrics." + key), "missing real counter " + key);
-    assert.match(radar, /category\.count \/ root\.highestCount/);
-    assert.match(radar, /Canvas\s*\{/);
-    assert.match(radar, /Theme\.rtl/);
-    assert.match(radar, /Theme\.reduceMotion/);
-    assert.match(radar, /LocaleFormat\.formatInteger\(modelData\.count\)/);
+        assert.ok(component.includes("metrics." + key), "missing real counter " + key);
+    assert.match(component, /readonly property var engagementRows/);
+    assert.match(component, /readonly property var publishingRows/);
+    assert.match(component, /receivedTotal: engagementRows\.reduce/);
+    assert.match(component, /count \/ receivedTotal/);
+    assert.match(component, /root\.share\(modelData\.count\)/);
+    assert.match(component, /Theme\.rtl/);
+    assert.match(component, /Theme\.reduceMotion/);
+    assert.doesNotMatch(component, /Canvas\s*\{|radarTween|highestCount/);
 });
 
 test("publishing stacks round only the outer silhouette", () => {
@@ -58,7 +61,9 @@ test("publishing stacks round only the outer silhouette", () => {
     assert.match(chart, /id:\s*stack/);
     assert.match(chart, /height:\s*Math\.max\(0,\s*column\.castHeight \+ column\.replyHeight\)/);
     assert.match(chart, /visible:\s*column\.castHeight > 0/);
-    assert.equal((chart.match(/opacity:\s*root\.selectedIndex/g) || []).length, 1);
+    assert.match(chart, /opacity:\s*1/);
+    assert.match(chart, /onHoveredChanged:\s*root\.hoveredIndex = hovered/);
+    assert.doesNotMatch(chart, /0\.52/);
 });
 
 test("GitHub insights are gated on verified owner identity, not public profile links", () => {
@@ -66,7 +71,10 @@ test("GitHub insights are gated on verified owner identity, not public profile l
     assert.match(panel, /openProofConnections\.cloudAuthorizationReady/);
     assert.match(panel, /openProofConnections\.connections/);
     assert.match(panel, /genyPulseActivity\.requestGitHubContributions/);
-    assert.match(panel, /githubCalendar\.status === "ok"/);
+    assert.match(panel, /githubStatus === "ok"/);
+    assert.match(panel, /refreshGitHubContributions/);
+    assert.match(panel, /identity-unconfirmed/);
+    assert.match(panel, /rate-limited/);
     assert.match(panel, /githubCalendar\.username/);
     assert.match(panel, /githubCalendar\.year/);
 });
@@ -78,4 +86,15 @@ test("market names translate independently of immutable ticker symbols", () => {
     for (const symbol of ["BTC", "ETH", "SOL"])
         assert.ok(market.includes('case "' + symbol + '"'));
     assert.match(market, /forceLeftToRight:\s*true/);
+});
+
+test("local MSAA improves native market lines and fear gauge on low-MSAA windows", () => {
+    const trend = read("ui/components/content/TokenSparkline.qml");
+    const gauge = read("ui/components/home/MarketFearGauge.qml");
+    for (const component of [trend, gauge]) {
+        assert.match(component, /preferredRendererType:\s*Shape\.GeometryRenderer/);
+        assert.match(component, /layer\.samples:\s*4/);
+        assert.match(component, /layer\.smooth:\s*true/);
+    }
+    assert.match(trend, /TokenSparklineGeometry\.computeSmooth/);
 });

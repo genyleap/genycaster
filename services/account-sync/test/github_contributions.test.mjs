@@ -72,3 +72,77 @@ test('public calendar endpoint requires authenticated owner and confirmed GitHub
     assert.equal(hits,1);
   }finally{api.close();}
 });
+
+test('current-year calendar accepts explicit accessible counts and whitespace inside cells',()=>{
+  const now=Date.parse('2026-11-08T10:00:00Z');
+  const today='2026-11-08';
+  const days=(Date.parse(today+'T00:00:00Z')-Date.UTC(2026,0,1))/86400000+1;
+  let html='<div class="js-yearly-contributions">';
+  let expected=0;
+  for(let i=0;i<days;i++){
+    const date=new Date(Date.UTC(2026,0,i+1)).toISOString().slice(0,10);
+    const n=i%9===0?5:0;
+    expected+=n;
+    const id='github-day-'+i;
+    const label=n? n+' contributions on '+date : 'No contributions on '+date;
+    html+='<td class="ContributionCalendar-day" data-level="'+(n?2:0)+
+      '" data-date="'+date+'" id="'+id+'" aria-label="'+label+'">\n'+
+      (i%2 ? '<span class="sr-only">'+label+'</span>' : '')+'\n</td>';
+    if(i%3===0)html+='<tool-tip for="'+id+'">'+label+'</tool-tip>';
+  }
+  html+='</div>';
+  const result=parseGithubCalendar(html,{login:'thecompez',year:2026,now});
+  assert.equal(result.days.length,days);
+  assert.equal(result.count,expected);
+  assert.equal(result.observedDays,Math.ceil(days/9));
+  assert.throws(()=>parseGithubCalendar(html.replace(/aria-label="[^"]+"/g,'')
+    .replace(/<span class="sr-only">[^<]+<\/span>/g,'')
+    .replace(/<tool-tip\b[^>]*>[\s\S]*?<\/tool-tip>/g,''),{
+      login:'thecompez',year:2026,now}),/incomplete/);
+});
+test('owner-verified GitHub profile URL survives refresh and resolves absent username',async()=>{
+  const issuer='https://openproof.example.test';
+  let confirmed=[];
+  let profileUrl='https://github.com/thecompez';
+  const fetchImpl=async url=>{
+    if(url.includes('github.com/users'))
+      return new Response(fixture(),{headers:{'content-type':'text/html'}});
+    if(url.endsWith('/account/profile'))
+      return new Response(JSON.stringify({identity_id:'farcaster:42'}));
+    if(url.endsWith('/account/connections'))
+      return new Response(JSON.stringify({connections:[{
+        provider:'github',preferred_username:'',profile_url:profileUrl
+      }]}));
+    throw new Error('unexpected upstream '+url);
+  };
+  const store={
+    async refreshConnections(_principal,rows){
+      confirmed=rows.map(row=>({...row,last_confirmed_at:'2026-11-08T00:00:00Z'}));
+    },
+    async list(entity){
+      assert.equal(entity,'connections');
+      return confirmed;
+    }
+  };
+  const api=createAccountApi({catalogUrl:issuer+'/catalog',issuer,store,fetchImpl});
+  await new Promise(resolve=>api.listen(0,'127.0.0.1',resolve));
+  const base='http://127.0.0.1:'+api.address().port+'/api/v1/cloud/';
+  const headers={authorization:'Bearer good'};
+  try {
+    assert.equal((await fetch(base+'connections/refresh',{method:'POST',headers})).status,200);
+    assert.equal(confirmed[0].preferred_username,'thecompez');
+    assert.equal(confirmed[0].provider_profile_url,'https://github.com/thecompez');
+    assert.equal((await fetch(base+'github_contributions?username=thecompez&year=2025',
+      {headers})).status,200);
+
+    // An arbitrary host/profile path never establishes a provider identity.
+    profileUrl='https://github.com.evil.example/thecompez';
+    assert.equal((await fetch(base+'connections/refresh',{method:'POST',headers})).status,200);
+    assert.equal(confirmed[0].preferred_username,'');
+    assert.equal(confirmed[0].provider_profile_url,null);
+    const rejected=await fetch(base+'github_contributions?username=thecompez&year=2025',
+      {headers});
+    assert.equal(rejected.status,403);
+    assert.equal((await rejected.json()).error,'github_identity_unconfirmed');
+  }finally{api.close();}
+});

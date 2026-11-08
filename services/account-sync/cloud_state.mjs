@@ -54,7 +54,20 @@ export function validPersonalLink(value) {
       && !/\s/.test(value) && url.hash.length < 128 && url.search.length < 256;
   } catch {return false;}
 }
-export function validLinkedInUrl(value) {
+export function verifiedGitHubProfile(value) {
+  // Only consume this on a server-to-server OpenProof verified connection
+  // response. Never elevate owner-authored portable profile labels.
+  if(typeof value!=='string' || value.length>160)return null;
+  try {
+    const url=new URL(value);
+    if(url.protocol!=='https:' || url.hostname!=='github.com' ||
+       url.port || url.username || url.password || url.search || url.hash)
+      return null;
+    const match=/^\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?)\/?$/.exec(url.pathname);
+    return match ? {login:match[1],url:'https://github.com/'+match[1]} : null;
+  }catch {return null;}
+}
+function validLinkedInUrl(value) {
   if (typeof value !== 'string' || value.length > 2048) return false;
   try {
     const url = new URL(value);
@@ -770,8 +783,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         try {
           respond(response,200,await readGithubCalendar(login,Number(yearText)));
-        }catch {
-          respond(response,503,{error:'github_calendar_unavailable'});
+        }catch(error) {
+          // Preserve actionable states without exposing upstream HTML, URLs
+          // or authorization/session data to the client.
+          const reason=String(error?.message||'');
+          respond(response,503,{error:reason==='incomplete_github_calendar'
+            ? 'github_calendar_incomplete' : 'github_calendar_unavailable'});
         }
         return true;
       }
@@ -995,13 +1012,23 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,502,{error:'invalid_connections'});return true;
         }
         const cleaned=payload.connections.filter(c=>c && PROVIDER.test(c.provider||''))
-          .map(c=>({
-            provider:c.provider,
-            display_name:String(c.display_name||'').slice(0,256),
-            preferred_username:String(c.preferred_username||'').slice(0,128),
-            provider_profile_url:c.provider==='linkedin' && validLinkedInUrl(c.profile_url)
-              ? c.profile_url : null,
-          }));
+          .map(c=>{
+            const confirmedGitHub=c.provider==='github'
+              ? verifiedGitHubProfile(c.profile_url) : null;
+            const preferred=String(c.preferred_username||'').trim();
+            const githubLogin=/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(preferred)
+              ? preferred : confirmedGitHub?.login||'';
+            return {
+              provider:c.provider,
+              display_name:String(c.display_name||'').slice(0,256),
+              preferred_username:(c.provider==='github' ? githubLogin : preferred).slice(0,128),
+              // Verified OpenProof provenance only. Portable/user-entered URLs
+              // never satisfy the GitHub contribution ownership check.
+              provider_profile_url:c.provider==='github' ? confirmedGitHub?.url||null
+                : c.provider==='linkedin' && validLinkedInUrl(c.profile_url)
+                  ? c.profile_url : null,
+            };
+          });
         await store.refreshConnections(owner,cleaned);
         respond(response,200,{refreshed:cleaned.length});return true;
       }

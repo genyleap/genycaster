@@ -24,9 +24,16 @@ Item {
 
     Shape {
         anchors.fill: parent
-        preferredRendererType: root.smoothCurve ? Shape.CurveRenderer : Shape.GeometryRenderer
+        // C++ has already sampled a monotone smooth path. Re-tessellating its
+        // dense PathPolyline with CurveRenderer can create faceted edge bands.
+        // A local 4x-MSAA layer covers the stroke and translucent fill
+        // together, independent of the window's global MSAA setting.
+        preferredRendererType: Shape.GeometryRenderer
         asynchronous: false
         antialiasing: true
+        layer.enabled: root.smoothCurve
+        layer.smooth: true
+        layer.samples: 4
 
         ShapePath {
             strokeColor: "transparent"
