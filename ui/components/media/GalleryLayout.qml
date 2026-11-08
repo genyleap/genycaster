@@ -6,6 +6,9 @@ Item {
 
     property var embeds: []
     property bool compact: false
+    // Timeline keeps staged incubation; viewport-bounded Magazine cards own
+    // their nested tiles synchronously to avoid canceled incubator warnings.
+    property bool asynchronousTiles: true
     // A link promoted to direct media keeps its already-visible feed slot.
     property real singleImageHeight: 0
     // Feed geometry must not change after an image finishes decoding. Provider
@@ -287,7 +290,7 @@ Item {
                 objectName: "galleryTileLoader"
                 anchors.fill: parent
                 active: tileSlot.admitted
-                asynchronous: true
+                asynchronous: root.asynchronousTiles
 
                 sourceComponent: Component {
                     GalleryTile {

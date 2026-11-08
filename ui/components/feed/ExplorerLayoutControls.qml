@@ -6,6 +6,7 @@ import Farcaster.Client
 Item {
     id: root
     property string layoutMode: "magazine"
+    property bool condensed: false
     signal layoutRequested(string mode)
 
     // Inline next to Everyone / Following, not a separate filter toolbar.
@@ -22,6 +23,7 @@ Item {
             objectName: "explorerMagazineChoice"
             compact: true
             quiet: true
+            iconOnly: root.condensed
             selected: root.layoutMode !== "timeline"
             iconGlyph: Theme.iconApps
             text: qsTrId("genycaster.explorer.magazine")
@@ -32,6 +34,7 @@ Item {
             objectName: "explorerTimelineChoice"
             compact: true
             quiet: true
+            iconOnly: root.condensed
             selected: root.layoutMode === "timeline"
             iconGlyph: Theme.iconList
             text: qsTrId("genycaster.explorer.timeline")

@@ -131,6 +131,29 @@ Item {
     // the bridge reports busy. Reserve the loading surface for that handoff
     // so no empty-state flash appears between selection and real data.
     property bool selectionSettling: false
+    // Sparse semantic searches can remain pending or keep prefetching without
+    // ever producing a matching cast. Never leave the user staring at an
+    // indefinite skeleton: expose a retryable state after a bounded interval
+    // while allowing a late successful provider response to populate the feed.
+    property bool semanticWaitExpired: false
+    function restartSemanticDeadline() {
+        semanticLoadDeadline.stop()
+        root.semanticWaitExpired = false
+        if (root.runtimeReady && root.presentationActive
+                && root.presentationMode !== "for-you"
+                && root.presentationMode !== "following")
+            semanticLoadDeadline.start()
+    }
+    readonly property bool waitingForFirstRows: root.runtimeReady
+        && !root.semanticWaitExpired
+        && (root.busy || root.supplementalBusy || root.selectionSettling
+            || root.needsFilteredPrefetch() || filterPrefetchDebounce.running)
+    Timer {
+        id: semanticLoadDeadline
+        interval: 12000
+        repeat: false
+        onTriggered: root.semanticWaitExpired = true
+    }
     Timer {
         id: selectionSettleTimer
         interval: 165
@@ -1179,6 +1202,7 @@ Item {
         root.deferFeedWork(true, false, false)
     }
     onActiveFeedChanged: {
+        root.restartSemanticDeadline()
         root.beginSelectionHandoff()
         if (root.activeFeed === "channel" && root.presentationActive)
             channelScrollTopTimer.restart()
@@ -1188,6 +1212,7 @@ Item {
         root.resetAllFilterPrefetchBudgets()
     }
     onPresentationModeChanged: {
+        root.restartSemanticDeadline()
         root.beginSelectionHandoff()
         stableViewportRestoreTimer.stop()
         root.pendingViewportKey = ""
@@ -1228,8 +1253,12 @@ Item {
             root.deferFeedWork(true, false, true)
         }
     }
+    onRuntimeReadyChanged: {
+        if (root.runtimeReady) root.restartSemanticDeadline()
+    }
     onPresentationActiveChanged: {
         if (!root.presentationActive) {
+            semanticLoadDeadline.stop()
             previewSyncDebounce.stop()
             filterPrefetchDebounce.stop()
             loadMoreDebounce.stop()
@@ -1240,6 +1269,7 @@ Item {
             root.stableModelSyncPending = true
             return
         }
+        root.restartSemanticDeadline()
         root.deferFeedWork(true, root.presentationMode === "visuals", true)
         primaryScrollRequestTimer.restart()
     }
@@ -1927,15 +1957,14 @@ Item {
                     // tab switching itself never resets the shared source-pressure budget.
                     root.resetCurrentFilterPrefetchBudget()
                     root.resetAutomaticPageBudget()
+                    root.restartSemanticDeadline()
                     root.scheduleLoadMore()
                 }
                 anchors.fill: parent
-                visible: stableRows.count === 0
-                         && !(root.runtimeReady && (root.busy || root.supplementalBusy
-                                                       || root.selectionSettling
-                                                       || root.needsFilteredPrefetch() || filterPrefetchDebounce.running))
+                visible: stableRows.count === 0 && !root.waitingForFirstRows
                 runtimeReady: root.runtimeReady
-                busy: root.busy
+                timedOut: root.semanticWaitExpired && stableRows.count === 0
+                busy: root.busy && !root.semanticWaitExpired
                 offline: root.offline
                 sourceUnavailable: root.sourceUnavailable
                 errorText: root.errorText
@@ -1944,6 +1973,7 @@ Item {
                 feedStarted: root.feedStarted
                 onRetryRequested: {
                     root.resetAllFilterPrefetchBudgets()
+                    root.restartSemanticDeadline()
                     root.retryRequested()
                 }
                 onIdentityRequested: root.identityRequested()
@@ -2036,9 +2066,7 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.topMargin: readList.headerItem ? readList.headerItem.implicitHeight : 0
-        visible: stableRows.count === 0 && root.runtimeReady
-                 && (root.busy || root.supplementalBusy || root.selectionSettling
-                     || root.needsFilteredPrefetch() || filterPrefetchDebounce.running)
+        visible: stableRows.count === 0 && root.waitingForFirstRows
         Repeater {
             model: root.presentationMode === "visuals" ? 2 : 3
             delegate: CastSkeleton {

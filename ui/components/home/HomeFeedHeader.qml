@@ -36,6 +36,9 @@ Item {
     implicitHeight: column.implicitHeight + (root.compact ? Theme.space2 : Theme.space3)
 
     readonly property int gutter: Theme.gutter(root.width)
+    // In a narrow desktop reading pane, collapse the view labels instead of
+    // letting two independent fixed-width groups push into each other.
+    readonly property bool condensedFeedActions: !root.compact && root.width < 690
 
     Timer {
         interval: 60000
@@ -174,20 +177,25 @@ Item {
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection
 
+            ExplorerLayoutControls {
+                id: explorerViewChoices
+                // First item in the feed actions row, aligned with the reading
+                // pane's leading gutter instead of floating beside Following.
+                visible: !root.compact
+                Layout.preferredWidth: visible ? implicitWidth : 0
+                Layout.preferredHeight: Theme.compactControlHeight
+                condensed: root.condensedFeedActions
+                layoutMode: root.explorerLayout
+                onLayoutRequested: mode => root.layoutRequested(mode)
+            }
+
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.home.scope_feed")
+                Layout.minimumWidth: 0
+                text: root.condensedFeedActions ? "" : qsTrId("genycaster.home.scope_feed")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight
-            }
-
-            ExplorerLayoutControls {
-                visible: !root.compact
-                Layout.preferredWidth: implicitWidth
-                Layout.preferredHeight: Theme.compactControlHeight
-                layoutMode: root.explorerLayout
-                onLayoutRequested: mode => root.layoutRequested(mode)
             }
 
             Rectangle {
@@ -195,7 +203,8 @@ Item {
                 objectName: "explorerAudienceSelector"
                 // Persian labels need real width; do not let the Buttons'
                 // implicit minima push them across their segment boundary.
-                Layout.preferredWidth: root.compact ? 228 : 240
+                Layout.preferredWidth: root.compact ? 228
+                                     : root.condensedFeedActions ? 198 : 240
                 Layout.minimumWidth: Layout.preferredWidth
                 Layout.preferredHeight: 38
                 radius: 13

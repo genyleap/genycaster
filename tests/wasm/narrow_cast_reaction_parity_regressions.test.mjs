@@ -78,7 +78,7 @@ test('generic link cards constrain thumbnail and metadata to available width',()
   const panel=read('ui/components/media/CastEmbedsPanel.qml');
   assert.match(link,/clip: true/);
   assert.match(link,/Layout.minimumWidth: 0/);
-  assert.match(link,/Math\.min\(184, Math\.max\(64, \(root\.width - Theme\.space3 \* 2\) \* 0\.38\)/);
+  assert.match(link,/Math\.min\(Theme\.scaleUi\(240\),\s+Math\.max\(0, root\.width - root\.cardInset \* 2\) \* 0\.30\)/);
   assert.match(link,/Math.max\(0, root.width - content.anchors.leftMargin/);
   assert.match(embed,/Layout.minimumWidth: 0/);
   assert.match(panel,/Layout.minimumWidth: 0/);

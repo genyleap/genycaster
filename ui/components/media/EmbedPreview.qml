@@ -16,6 +16,9 @@ Item {
     property var embed: ({})
     property string castCaption: ""
     property bool compact: false
+    // Magazine rows are already viewport-admitted; avoid canceling a nested
+    // incubator when the parent card is recycled or the view switches.
+    property bool magazineCard: false
     property bool flatLinkCard: false
     property bool suppressArtwork: false
     readonly property string rawKind: String(root.embed.kind || "").toLowerCase()
@@ -343,9 +346,9 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         active: root.classificationReady
-        // Rich preview incubation stays asynchronous to protect feed frame times.
-        // A recycled delegate may be destroyed while Qt cancels its incubator.
-        asynchronous: true
+        // Preserve asynchronous previews in Timeline/detail, but construct
+        // nested Magazine previews synchronously inside admitted cards.
+        asynchronous: !root.magazineCard
         sourceComponent: root.resolvedKind === "cast-reference" ? castReferenceComponent
                        : root.resolvedKind === "token-address" ? tokenAddressComponent
                        : root.resolvedKind === "collectible" ? collectibleComponent
@@ -403,6 +406,7 @@ Item {
                 height: Number(root.embed.height || 0)
             }]
             compact: root.compact
+            asynchronousTiles: !root.magazineCard
             dynamicAspectDiscovery: false
             onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }

@@ -15,6 +15,9 @@ Item {
     property bool identityAvailable: false
     property bool feedStarted: false
     property bool filtered: false
+    // A semantic feed is still allowed to complete in the background; this
+    // indicates only that its first visible match exceeded the UI deadline.
+    property bool timedOut: false
     property bool moreFilteredAvailable: false
     signal moreFilteredRequested()
 
@@ -41,7 +44,7 @@ Item {
     readonly property bool discoveryUnavailable: root.recoverableSourceFailure
                                                && (root.activeFeed === "trending" || root.activeFeed === "recent"
                                                    || root.activeFeed === "conversations")
-    readonly property string stateIcon: root.setupFailure || root.sourceUnavailable ? Theme.iconWarning
+    readonly property string stateIcon: root.setupFailure || root.sourceUnavailable || root.timedOut ? Theme.iconWarning
                                         : root.offline ? Theme.iconWifi
                                         : root.idleHome ? Theme.iconProfile
                                         : Theme.iconLeaf
@@ -56,14 +59,15 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.preferredWidth: 44
             Layout.preferredHeight: 44
-            fillColor: root.setupFailure || root.offline || root.sourceUnavailable
+            fillColor: root.setupFailure || root.offline || root.sourceUnavailable || root.timedOut
                        ? Theme.warningSurface : Theme.primarySurface
             curveDepth: Theme.curveControl
 
             Icon {
                 anchors.centerIn: parent
                 text: root.stateIcon
-                color: root.setupFailure || root.offline || root.sourceUnavailable ? Theme.warning : Theme.accent
+                color: root.setupFailure || root.offline || root.sourceUnavailable || root.timedOut
+                    ? Theme.warning : Theme.accent
                 preferredSize: Theme.typeTitle3Size
             }
         }
@@ -76,7 +80,7 @@ Item {
                     ? qsTrId("genycaster.empty.open_your_farcaster_home")
                     : root.offline
                       ? qsTrId("genycaster.empty.no_saved_posts_for_offline_reading")
-                    : root.sourceUnavailable
+                    : root.sourceUnavailable || root.timedOut
                       ? (root.activeFeed === "trending"
                          ? qsTrId("genycaster.empty.trending_is_unavailable_from_this_source")
                          : qsTrId("genycaster.empty.the_live_source_did_not_return_this_feed"))
@@ -107,7 +111,7 @@ Item {
                          : qsTrId("genycaster.empty.explore_is_temporarily_unavailable_open_an_identity_fo"))
                       : root.errorText.length > 0
                         ? root.errorText
-                        : root.sourceUnavailable
+                        : root.sourceUnavailable || root.timedOut
                           ? qsTrId("genycaster.empty.your_device_may_still_be_online_retry_or_use_another_a")
                           : root.filtered ? qsTrId("genycaster.feed.filtered_description")
                                           : qsTrId("genycaster.empty.open_an_identity_choose_another_feed_or_refresh_this_s")
@@ -120,7 +124,8 @@ Item {
 
         RowLayout {
             visible: root.runtimeReady
-                     && (root.idleHome || root.sourceUnavailable || root.offline || root.errorText.length > 0)
+                     && (root.idleHome || root.sourceUnavailable || root.timedOut
+                         || root.offline || root.errorText.length > 0)
             layoutDirection: Theme.uiDirection
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: Theme.space2
@@ -150,7 +155,7 @@ Item {
         }
         ActionButton {
             visible: root.filtered && root.moreFilteredAvailable && !root.sourceUnavailable
-                     && !root.offline && root.errorText.length === 0
+                     && !root.timedOut && !root.offline && root.errorText.length === 0
             Layout.alignment: Qt.AlignHCenter
             text: qsTrId("genycaster.feed.more_filtered")
             enabled: !root.busy

@@ -54,7 +54,7 @@ test('Feed and detail reveal source channel as metadata without a hardcoded prov
 test('Cast surfaces blend into theme, including the detail header',()=>{
  const cast=read('ui/components/feed/CastItem.qml');
  const detail=read('ui/components/feed/DetailSurface.qml');
- assert.match(cast,/fillColor: Theme\.backgroundPrimary/);
+ assert.match(cast,/fillColor: root\.magazineCard \? Theme\.surfaceRaised : Theme\.backgroundPrimary/);
  assert.match(cast,/id: messageSurface[\s\S]*?borderWidth: 0/);
  assert.match(detail,/root\.activeView === "cast" \? Theme\.backgroundPrimary/);
 });

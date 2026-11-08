@@ -256,6 +256,7 @@ ColumnLayout {
         Layout.fillWidth: true
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
+        asynchronousTiles: !root.magazineCard
         // A decoded image must not resize a scrolling timeline, even between
         // gestures: replies and previously visited feed rows share this panel.
         // The full image still fits inside the metadata/fallback reservation.
@@ -322,6 +323,7 @@ ColumnLayout {
                                 castCaption: root.supportingCount === 1 && root.visualCount === 0
                                              ? root.castCaption : ""
                                 compact: root.magazineCard || tile.width < 520
+                                magazineCard: root.magazineCard
                                 flatLinkCard: root.magazineCard
                                 suppressArtwork: root.visualCount > 0
                                 onOpenRequested: url => root.externalRequested(url)

@@ -129,3 +129,77 @@ test("Magazine avoids partial asynchronous cast incubation without disabling tim
     assert.match(wall, /function updateAdmissions\(\)/);
     assert.doesNotMatch(wall, /active: .*slot\.height/);
 });
+
+
+test("windowed Explorer keeps view actions at leading edge and collapses crowded labels", () => {
+    const header = read("ui/components/home/HomeFeedHeader.qml");
+    const controls = read("ui/components/feed/ExplorerLayoutControls.qml");
+    const cast = read("ui/components/feed/CastItem.qml");
+    const row = header.split("        RowLayout {\n            Layout.fillWidth: true\n            Layout.topMargin: Theme.space1")[1]
+        .split("\n        RowLayout {")[0];
+    assert.ok(row, "Feed toolbar row exists");
+    assert.ok(row.indexOf("ExplorerLayoutControls {") < row.indexOf('text: root.condensedFeedActions')
+        && row.indexOf('text: root.condensedFeedActions') < row.indexOf("id: audienceSelector"),
+        "View buttons sit at the leading edge, and Everyone/Following remain at trailing edge");
+    assert.match(header, /readonly property bool condensedFeedActions: !root\.compact && root\.width < 690/);
+    assert.match(header, /root\.condensedFeedActions \? 198 : 240/);
+    assert.match(controls, /property bool condensed: false/);
+    assert.equal((controls.match(/iconOnly: root\.condensed/g) || []).length, 2);
+    assert.match(cast, /objectName: "magazineCastTime"/);
+    assert.match(cast, /visible: root\.compact && !root\.magazineCard/);
+    assert.match(cast, /visible: root\.magazineCard\s+&& Number\(root\.modelData\.createdAtMs/);
+    assert.match(cast, /root\.magazineCard \? Math\.max\(76, root\.width \* 0\.53\)/);
+    assert.match(cast, /!\s*root\.magazineCard \|\| root\.width >= 390/);
+});
+
+test("semantic tabs leave skeleton state after a bounded deadline and offer retry", () => {
+    const surface = read("ui/components/feed/FeedSurface.qml");
+    const empty = read("ui/components/controls/EmptyState.qml");
+    assert.match(surface, /property bool semanticWaitExpired: false/);
+    assert.match(surface, /readonly property bool waitingForFirstRows: root\.runtimeReady\s+&& !root\.semanticWaitExpired/);
+    assert.match(surface, /id: semanticLoadDeadline\s+interval: 12000\s+repeat: false\s+onTriggered: root\.semanticWaitExpired = true/);
+    assert.match(surface, /onPresentationModeChanged: \{\s*root\.restartSemanticDeadline\(\)/);
+    assert.match(surface, /onActiveFeedChanged: \{\s*root\.restartSemanticDeadline\(\)/);
+    assert.match(surface, /onRuntimeReadyChanged: \{\s*if \(root\.runtimeReady\) root\.restartSemanticDeadline\(\)/);
+    assert.match(surface, /visible: stableRows\.count === 0 && root\.waitingForFirstRows/);
+    assert.match(surface, /visible: stableRows\.count === 0 && !root\.waitingForFirstRows/);
+    assert.match(surface, /timedOut: root\.semanticWaitExpired && stableRows\.count === 0/);
+    assert.match(empty, /property bool timedOut: false/);
+    assert.match(empty, /root\.sourceUnavailable \|\| root\.timedOut/);
+    assert.match(empty, /onClicked: root\.retryRequested\(\)/);
+
+    // Test the actual deadline predicate, not a duplicated hand-written rule.
+    const excerpt = surface.match(/readonly property bool waitingForFirstRows: ([\s\S]*?)\n    Timer \{/);
+    assert.ok(excerpt);
+    const predicate = excerpt[1].trim();
+    const calculate = (expired, loading = true) => {
+        const ctx = vm.createContext({
+            root: {
+                runtimeReady: true, semanticWaitExpired: expired, busy: loading,
+                supplementalBusy: false, selectionSettling: false,
+                needsFilteredPrefetch: () => false
+            },
+            filterPrefetchDebounce: {running: false}
+        });
+        return vm.runInContext(predicate, ctx);
+    };
+    assert.equal(calculate(false), true, "live first-page loading uses placeholders");
+    assert.equal(calculate(true), false, "expired request no longer hides empty/retry state");
+    assert.equal(calculate(false, false), false, "settled empty feed shows empty state");
+});
+
+test("Magazine nested EmbedPreview and GalleryLayout never abandon incubation", () => {
+    const cast = read("ui/components/feed/CastItem.qml");
+    const panel = read("ui/components/media/CastEmbedsPanel.qml");
+    const rich = read("ui/components/content/RichCastRenderer.qml");
+    const preview = read("ui/components/media/EmbedPreview.qml");
+    const gallery = read("ui/components/media/GalleryLayout.qml");
+    assert.match(cast, /magazineCard: root\.magazineCard\s+suppressedEmbedUrls:/);
+    assert.match(panel, /asynchronousTiles: !root\.magazineCard/);
+    assert.match(panel, /magazineCard: root\.magazineCard\s+flatLinkCard:/);
+    assert.match(rich, /magazineCard: root\.magazineCard/);
+    assert.match(preview, /asynchronous: !root\.magazineCard/);
+    assert.match(preview, /asynchronousTiles: !root\.magazineCard/);
+    assert.match(gallery, /property bool asynchronousTiles: true/);
+    assert.match(gallery, /asynchronous: root\.asynchronousTiles/);
+});

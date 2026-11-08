@@ -497,7 +497,8 @@ Item {
                                 // Never bind a child width to the arranging RowLayout width.
                                 // This caused Qt 6 recursive rearrange warnings.
                                 Layout.preferredWidth: Math.min(implicitWidth,
-                                    root.castChannel.length > 0
+                                    root.magazineCard ? Math.max(76, root.width * 0.53)
+                                    : root.castChannel.length > 0
                                         ? Math.max(78, root.width * 0.52)
                                         : Math.max(78, root.width * 0.76))
                                 text: root.authorName
@@ -515,7 +516,10 @@ Item {
 
                             RowLayout {
                                 id: castInlineChannel
+                                // At 300-360dp, an inline channel plus timestamp
+                                // can push the author across the card gutter.
                                 visible: root.castChannel.length > 0
+                                         && (!root.magazineCard || root.width >= 390)
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 spacing: Theme.space1
@@ -559,7 +563,8 @@ Item {
                             // the bottom edge of the overflow action.
                             DirectionAwareLabel {
                                 objectName: "compactCastAuthorMetadata"
-                                visible: root.compact && Number(root.modelData.createdAtMs || 0) > 0
+                                visible: root.compact && !root.magazineCard
+                                         && Number(root.modelData.createdAtMs || 0) > 0
                                 Layout.alignment: Qt.AlignVCenter
                                 Layout.maximumWidth: Math.min(104, root.width * 0.25)
                                 text: visible ? LocaleFormat.formatRelativeTime(
@@ -598,6 +603,23 @@ Item {
                             SourceClientBadge {
                                 objectName: "castSourceClientBadge"
                                 clientName: String(root.modelData.sourceClient || "")
+                                visible: !root.magazineCard || root.width >= 390
+                            }
+
+                            // Keep relative time on the secondary metadata row
+                            // in compact Magazine cards; never compete with
+                            // the author's name for the first-row width.
+                            DirectionAwareLabel {
+                                objectName: "magazineCastTime"
+                                visible: root.magazineCard
+                                         && Number(root.modelData.createdAtMs || 0) > 0
+                                text: visible ? LocaleFormat.formatRelativeTime(
+                                    Number(root.modelData.createdAtMs)) : ""
+                                Layout.maximumWidth: Math.min(100, root.width * 0.28)
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.inkSubtle
+                                elide: Text.ElideRight
+                                forceLeftToRight: true
                             }
 
                         }
@@ -855,6 +877,7 @@ Item {
                             castId: String(root.modelData.castId || "")
                             plainText: root.displayText
                             compact: root.compact
+                            magazineCard: root.magazineCard
                             suppressedEmbedUrls: root.protocolEmbedUrls
                             onExternalRequested: url => root.externalRequested(url)
                             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
