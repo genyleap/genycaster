@@ -1010,106 +1010,28 @@ Item {
 
     function synchronizeStableModel() {
         const source = root.sourceRows()
-        if (source.length === 0) {
-            // A temporary empty refresh must not collapse the ListView's
-            // scroll extent. Keep its current page until loading finishes.
-            if (root.busy && stableRows.count > 0)
-                return
-            stableRows.clear()
-            root.stablePayloads = ({})
+        // A temporary empty refresh is not an authoritative removal.
+        if (source.length === 0 && root.busy && stableRows.count > 0)
             return
-        }
-        // One native-ListModel read per retained stable ID constructs an
-        // ephemeral position index. Searching the model from every mismatch
-        // was quadratic on a heavily reordered cached timeline.
-        const currentOrder = []
-        const positions = Object.create(null)
-        for (let index = 0; index < stableRows.count; ++index) {
-            const key = String(stableRows.get(index).stableKey)
-            currentOrder.push(key)
-            positions[key] = index
-        }
-        if (stableRows.count > 0) {
-            // Cross-tab changes and first-page refreshes may replace nearly
-            // every cast. A mostly unrelated new timeline is cheaper to
-            // replace than to insert every element at the beginning.
-            let retained = 0
-            for (let index = 0; index < source.length; ++index) {
-                const entry = source[index] || ({})
-                if (positions[root.rowKey(entry.payload || ({}), index)] !== undefined)
-                    ++retained
-            }
-            if (retained * 4 < Math.min(stableRows.count, source.length)) {
-                root.rebuildStableModel(source)
-                return
-            }
-        }
 
-        // Keep the model incremental. Tail pagination should only append rows;
-        // in-place payload revisions update the existing delegate and never
-        // reposition the ListView. Qt ListView owns viewport continuity.
-        // Side-store ownership follows the current stable IDs. Without this
-        // sweep, deleted or replaced casts retain all of their media/embed
-        // metadata across long browsing sessions.
-        const liveKeys = ({})
+        // One transfer of primitive roles into the native model. Every move,
+        // insertion, revision and removal is reconciled inside C++ instead
+        // of thousands of individual QML -> QObject method calls.
+        const next = []
+        const liveKeys = Object.create(null)
         for (let index = 0; index < source.length; ++index) {
             const entry = source[index] || ({})
             const payload = entry.payload || ({})
-            const presentationKind = String(entry.presentationKind || "conversation")
             const key = root.rowKey(payload, index)
             liveKeys[key] = true
-            const revision = root.rowRevision(payload)
-            // Mutate the side store before changing revisionKey. Delegates bind
-            // through revisionKey, so only the affected row re-reads its payload.
+            // Mutate the side-store first: role notifications read from it.
             root.stablePayloads[key] = payload
-            if (index < stableRows.count && currentOrder[index] === key) {
-                const existing = stableRows.get(index)
-                const revisionChanged = String(existing.revisionKey || "") !== revision
-                const presentationChanged = String(existing.presentationKind || "") !== presentationKind
-                if (revisionChanged)
-                    stableRows.setProperty(index, "revisionKey", revision)
-                if (presentationChanged)
-                    stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged) {
-                    const layoutKind = root.mediaLayoutKind(payload)
-                    if (String(existing.mediaLayoutKind || "") !== layoutKind)
-                        stableRows.setProperty(index, "mediaLayoutKind", layoutKind)
-                }
-                continue
-            }
-
-            const existingIndex = positions[key] === undefined ? -1 : positions[key]
-            if (existingIndex > index) {
-                stableRows.move(existingIndex, index, 1)
-                currentOrder.splice(existingIndex, 1)
-                currentOrder.splice(index, 0, key)
-                for (let shifted = index; shifted <= existingIndex; ++shifted)
-                    positions[currentOrder[shifted]] = shifted
-                const existing = stableRows.get(index)
-                const revisionChanged = String(existing.revisionKey || "") !== revision
-                const presentationChanged = String(existing.presentationKind || "") !== presentationKind
-                if (revisionChanged)
-                    stableRows.setProperty(index, "revisionKey", revision)
-                if (presentationChanged)
-                    stableRows.setProperty(index, "presentationKind", presentationKind)
-                if (revisionChanged) {
-                    const layoutKind = root.mediaLayoutKind(payload)
-                    if (String(existing.mediaLayoutKind || "") !== layoutKind)
-                        stableRows.setProperty(index, "mediaLayoutKind", layoutKind)
-                }
-            } else {
-                stableRows.insert(index, { stableKey: key, revisionKey: revision,
-                                           presentationKind: presentationKind,
-                                           mediaLayoutKind: root.mediaLayoutKind(payload) })
-                currentOrder.splice(index, 0, key)
-                for (let offset = index; offset < currentOrder.length; ++offset)
-                    positions[currentOrder[offset]] = offset
-            }
+            next.push({stableKey: key,
+                       revisionKey: root.rowRevision(payload),
+                       presentationKind: String(entry.presentationKind || "conversation"),
+                       mediaLayoutKind: root.mediaLayoutKind(payload)})
         }
-
-        while (stableRows.count > source.length)
-            stableRows.remove(stableRows.count - 1)
-
+        stableRows.reconcile(next)
         for (const key of Object.keys(root.stablePayloads)) {
             if (!liveKeys[key])
                 delete root.stablePayloads[key]
@@ -1478,8 +1400,8 @@ Item {
                                   : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
-        header: root.magazineEnabled ? null : feedHeaderComponent
-        footer: root.magazineEnabled ? null : feedFooterComponent
+        header: feedHeaderComponent
+        footer: feedFooterComponent
 
         // Pool structurally similar rows separately. Reusing an image row for
         // a link (and back) synchronously tears down/rebuilds its media subtree
@@ -1547,9 +1469,10 @@ Item {
         objectName: "explorerMagazine"
         anchors.fill: parent
         visible: root.magazineEnabled
-        model: root.magazineEnabled ? stableRows : null
-        header: root.magazineEnabled ? feedHeaderComponent : null
-        footer: root.magazineEnabled ? feedFooterComponent : null
+        // Keep numeric Magazine geometry warm, but no visual cards while hidden.
+        model: stableRows
+        header: feedHeaderComponent
+        footer: feedFooterComponent
         // The compact editorial card width is the stable Explorer default.
         // Columns reflow automatically as the central reading pane resizes.
         targetCardWidth: Theme.scaleUi(420)

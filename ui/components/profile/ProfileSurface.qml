@@ -1086,73 +1086,42 @@ Item {
 
     function synchronizeStableModel() {
         const source = root.displayRows
-        // A refreshing provider can temporarily expose an empty list. Keep
-        // the last page and its scroll range until the refresh completes.
         if (root.busy && source.length === 0 && profileRowsModel.count > 0)
             return
+
+        const headerHeight = root.readList.headerItem
+                ? root.readList.headerItem.implicitHeight : 0
+        const probeY = Math.max(headerHeight + 1, root.readList.contentY + 1)
+        const anchorIndex = root.readList.indexAt(
+            Math.max(1, root.readList.width / 2), probeY)
         let anchorKey = ""
         let anchorOffset = 0
-        let structureChanged = false
-        const retainedKeys = Object.create(null)
-        const headerHeight = root.readList.headerItem ? root.readList.headerItem.implicitHeight : 0
-        // indexAt() takes *content* coordinates, not viewport coordinates.
-        // Probing near y=0 while scrolled past the header never finds a row.
-        const probeY = Math.max(headerHeight + 1, root.readList.contentY + 1)
-        const anchorIndex = root.readList.indexAt(Math.max(1, root.readList.width / 2), probeY)
         if (anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
             const anchorItem = root.readList.itemAtIndex(anchorIndex)
             anchorKey = String(profileRowsModel.get(anchorIndex).stableKey)
             anchorOffset = anchorItem ? anchorItem.y - root.readList.contentY : 0
         }
 
+        const next = []
+        const retainedKeys = Object.create(null)
+        let structureChanged = profileRowsModel.count !== source.length
         for (let index = 0; index < source.length; ++index) {
             const key = root.rowKey(source[index], index)
             const revision = root.rowRevision(source[index])
             retainedKeys[key] = true
             root.stablePayloads[key] = source[index]
-            if (index < profileRowsModel.count
-                    && String(profileRowsModel.get(index).stableKey) === key) {
-                if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
-                    profileRowsModel.setProperty(index, "revisionKey", revision)
-                }
-                continue
-            }
-
-            let existingIndex = -1
-            for (let probe = index + 1; probe < profileRowsModel.count; ++probe) {
-                if (String(profileRowsModel.get(probe).stableKey) === key) {
-                    existingIndex = probe
-                    break
-                }
-            }
-            if (existingIndex >= 0) {
-                profileRowsModel.move(existingIndex, index, 1)
+            next.push({stableKey: key, revisionKey: revision,
+                       presentationKind: "conversation", mediaLayoutKind: "other"})
+            if (!structureChanged && String(profileRowsModel.get(index).stableKey) !== key)
                 structureChanged = true
-                if (String(profileRowsModel.get(index).revisionKey || "") !== revision) {
-                    profileRowsModel.setProperty(index, "revisionKey", revision)
-                }
-            } else {
-                profileRowsModel.insert(index, {
-                    stableKey: key, revisionKey: revision,
-                    presentationKind: "conversation", mediaLayoutKind: "other"
-                })
-                structureChanged = true
-            }
         }
-
-        while (profileRowsModel.count > source.length) {
-            profileRowsModel.remove(profileRowsModel.count - 1)
-            structureChanged = true
-        }
-
-        // ProfileSurface can stay instantiated while navigating between
-        // identities. Release former casts' large media/embed payloads after
-        // their stable delegate keys have left this one authoritative model.
+        // Reconcile once; the native adapter keeps stable delegates intact
+        // for unchanged rows and batches large identity replacements.
+        profileRowsModel.reconcile(next)
         for (const key in root.stablePayloads) {
             if (!retainedKeys[key])
                 delete root.stablePayloads[key]
         }
-
         if (structureChanged && anchorKey.length > 0)
             root.scheduleViewportRestore(anchorKey, anchorOffset, false)
     }
@@ -1382,7 +1351,9 @@ Item {
             }
         }
 
-        header: root.profileMagazineEnabled ? null : profileHeaderComponent
+        // Retain the cover/bio header across Magazine/Timeline switches.
+        // Recreating its image/text tree on each toggle caused a visible flash.
+        header: profileHeaderComponent
         Component {
           id: profileHeaderComponent
           ColumnLayout {
@@ -2839,7 +2810,7 @@ Item {
             }
         }
 
-        footer: root.profileMagazineEnabled ? null : profileFooterComponent
+        footer: profileFooterComponent
         Component {
           id: profileFooterComponent
           Item {
@@ -2900,9 +2871,10 @@ Item {
         objectName: "profileMagazine"
         anchors.fill: parent
         visible: root.profileMagazineEnabled
-        model: root.profileMagazineEnabled ? profileRowsModel : null
-        header: root.profileMagazineEnabled ? profileHeaderComponent : null
-        footer: root.profileMagazineEnabled ? profileFooterComponent : null
+        // The native window model keeps only viewport cards alive when shown.
+        model: profileRowsModel
+        header: profileHeaderComponent
+        footer: profileFooterComponent
         targetCardWidth: Theme.scaleUi(420)
         maximumColumns: 3
         outsideInset: root.profileContentX

@@ -15,7 +15,7 @@ function section(start, end) {
 
 test('a resolved magazine card replaces an oversized reservation with its actual height', () => {
     const code = section('            function recordHeight() {',
-                         '\n            Loader {\n                id: visiblePlaceholder');
+                         '\n            Component.onCompleted: offerEstimate()');
     const sample = [];
     const context = vm.createContext({
         cardLoader: {item: {height: 850, implicitHeight: 230}},
@@ -36,49 +36,25 @@ test('a resolved magazine card replaces an oversized reservation with its actual
     assert.match(wall, /function onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
 });
 
-test('late image dimensions only move subsequent cards vertically in the same lane', () => {
+test('the magazine uses a viewport-bounded native layout model instead of one QML Item per cast', () => {
     const code = section('    function forceLayout() {',
-                         '\n    function positionViewAtBeginning()');
-    const heights = [480, 260, 310, 180, 220, 400, 120, 200, 145];
-    const elements = heights.map(height => ({
-        height, assignedColumn: -1, assignmentColumns: 0, x: 0, y: 0, placed: false
-    }));
-    const root = {
-        arranging: false, positioned: false, moving: false, flicking: false,
-        relayoutPending: false, columns: 3, layoutDirection: 0, leadingInset: 12,
-        cardWidth: 310, gutter: 12, width: 978, height: 680,
-        contentY: 0, contentHeight: 2000, rowsBottom: 0,
-        slots: {count: elements.length, itemAt: i => elements[i]},
-        headerLoader: {height: 0},
-        layoutTimer: {stop() {}},
-        layoutStarted() {}, layoutFinished() {},
-        scheduleAdmission() {}, scheduleLayout() {},
-        indexAt() {return -1;},
-        Qt: {RightToLeft: 1}
-    };
-    const context = vm.createContext(root);
-    vm.runInContext(code.trim(), context);
-    vm.runInContext('forceLayout()', context);
-    const originalColumns = elements.map(slot => slot.assignedColumn);
-    const originalX = elements.map(slot => slot.x);
-
-    // A portrait whose placeholder was much taller is decoded. The new
-    // height must close that hole, with no horizontal shuffle or overlap.
-    elements[0].height = 185;
-    elements[1].height = 380;
-    vm.runInContext('forceLayout()', context);
-    assert.deepEqual(elements.map(slot => slot.assignedColumn), originalColumns);
-    assert.deepEqual(elements.map(slot => slot.x), originalX);
-    const lastBottom = Array(3).fill(12);
-    for (const slot of elements) {
-        assert.equal(slot.y, lastBottom[slot.assignedColumn],
-            'each slot begins exactly at previous card bottom plus gutter');
-        lastBottom[slot.assignedColumn] += slot.height + 12;
-    }
-    assert.equal(context.rowsBottom, Math.max(...lastBottom));
-    assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
-    assert.doesNotMatch(code, /const repack = !moving && !flicking/,
-        'idle scroll must never repack cards sideways on media completion');
+                         '    function positionViewAtBeginning()');
+    const native = read('ui/app/social/feed_rows.cpp');
+    const header = read('ui/app/social/feed_rows.hpp');
+    assert.match(wall, /MasonryWindowModel \{/);
+    assert.match(wall, /Repeater \{[\s\S]*?model: layoutModel/);
+    assert.match(wall, /layoutModel\.setViewport\(contentY, height, cacheBuffer, retentionBuffer/);
+    assert.doesNotMatch(wall, /model: view\.model\s*\n\s*delegate:/,
+        'never build an offscreen QQuickItem for every source row');
+    assert.match(code, /layoutModel\.relayout\(/);
+    assert.match(code, /layoutModel\.geometryForKey\(anchor\.stableKey\)/);
+    assert.doesNotMatch(code, /slots\.count/, 'per-frame layout does not walk visual delegates');
+    assert.match(native, /std::lower_bound\(lane\.cbegin\(\), lane\.cend\(\)/);
+    assert.match(native, /beginInsertRows\(\{\}, index, index\)/);
+    assert.match(native, /beginRemoveRows\(\{\}, index, m_window\.size\(\) - 1\)/);
+    assert.match(header, /class MasonryWindowModel : public QAbstractListModel/);
+    // The real C++ layout geometry and model signal invariants are exercised
+    // by ui.feed_rows_model; this source guard covers QML integration.
 });
 
 test('shared view/filter controls follow the compact rounded reference in Explorer and Profile', () => {

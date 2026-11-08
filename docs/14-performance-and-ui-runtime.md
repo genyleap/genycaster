@@ -199,6 +199,47 @@ and existing pagination/interaction paths. Source implementation is separate
 from Qt runtime qualification; do not infer rendering or frame-time results
 from a source review.
 
+### Native viewport-window Magazine (November 2026)
+
+`FeedRowsModel::reconcile()` accepts an ordered snapshot of primitive, stable
+roles from Explorer and Profile, then emits Qt model insert/move/remove/change
+notifications in C++; changes with almost no shared IDs use one bounded reset.
+Heavy cast payloads stay keyed in the presentation surface and never become
+variable-typed `QAbstractItemModel` roles. The Qt model is GUI-thread-owned;
+network, decode and persistence still execute through the existing read workers.
+
+`MasonryWindowModel` in `ui/app/social/feed_rows.{hpp,cpp}` owns numeric
+heights, lane assignments, RTL coordinates, stable-ID lookup, cached samples
+and per-lane source indexes. Its `QAbstractListModel` exposes **only** the
+viewport and adjacent retention range to `FeedMasonryView.qml`. A Repeater
+over that *windowed model* is intentional; using the full source model in a
+Repeater is forbidden because that would instantiate one QML slot per cast.
+Viewport admission is found by per-lane binary search, and adjacent delegate
+identity is reconciled incrementally instead of resetting the whole window on
+each scroll event. Gallery text and media remain Qt Quick delegates; only
+layout geometry and stable-window indexing are native.
+
+Source updates and geometry measurement are coalesced, and a same-cast viewer
+reaction revision retains the previous painted height until new content
+provides a real measurement. The cover/header instances are retained across
+Magazine/Timeline toggles so the banner is not re-incubated on every switch.
+Geometry estimates are width-bucketed; actual measured content always wins.
+
+Conversation replies use the same native primitive-role reconciliation rather
+than a per-hydration global revision counter. Only a cast whose visible text,
+metadata, context, reaction, or engagement fields change invalidates its
+delegate; unchanged sibling replies keep their QML item and measured height.
+Opening another conversation explicitly clears the old conversation scope.
+
+Verification: `tests/ui/feed_rows_model_tests.cpp` exercises real Qt model
+signals and 600-row numeric geometry; `tests/ui/masonry_view_runtime_tests.cpp`
+loads the production QML with a native 800-row model and checks viewport
+admission and reverse scrolling; `tests/ui/feed_geometry_runtime.mjs`
+tests real `ListView` delegate reuse and changing heights with Qt Quick.
+These tests are **not** evidence of achieved frame-rate, production media
+decode performance, or cross-device qualification. Record such metrics with
+the benchmark methodology in `docs/PERFORMANCE.md`.
+
 Feed/chat should avoid viewport instability caused by late media/reaction layout changes.
 
 Long-term layout engine should support:

@@ -9,8 +9,8 @@ import assert from 'node:assert/strict';
 const runner = process.argv[2];
 assert.ok(runner, 'Pass the installed Qt qmltestrunner path');
 const source = readFileSync(new URL('../../ui/components/feed/FeedSurface.qml', import.meta.url), 'utf8');
-const start = source.indexOf('        component FeedRow: Loader {');
-const end = source.indexOf('\n\n        footer: Item {', start);
+const start = source.indexOf('    component FeedRow: Loader {');
+const end = source.indexOf('\n\n    Component {\n        id: feedFooterComponent', start);
 assert.ok(start >= 0 && end > start);
 const feedRow = source.slice(start, end);
 const directory = mkdtempSync(join(tmpdir(), 'genycaster-feed-geometry-'));
@@ -36,6 +36,8 @@ Item {
     property var modelData: ({})
     property int rowIndex: 0
     property string presentationKind: "conversation"
+    property var sharedMediaGeometry: null
+    property bool magazineCard: false
     property bool compact: false
     property bool interactionsAvailable: false
     property bool enrichmentActive: false

@@ -18,6 +18,10 @@
 
 #include <QAbstractListModel>
 #include <QList>
+#include <QHash>
+#include <QPointer>
+#include <QVector>
+#include <QVariantList>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
@@ -69,10 +73,14 @@ public:
     /** @brief Updates one mutable role only if its primitive value changes. */
     Q_INVOKABLE void setProperty(int index, const QString& role, const QVariant& value);
 
+    /** @brief Reconciles a snapshot by stable identity with batched native mutations. */
+    Q_INVOKABLE void reconcile(const QVariantList& rows);
+
 signals:
     void countChanged();
 
 private:
+    friend class MasonryWindowModel;
     struct Row {
         QString stableKey{};
         QString revisionKey{};
@@ -83,4 +91,115 @@ private:
     [[nodiscard]] static QVariantMap toMap(const Row& row);
 
     QList<Row> m_rows{};
+};
+
+/*!
+ * @brief Virtualized, measured multi-column projection of a stable feed model.
+ *
+ * The source preserves canonical row identity/order. This GUI-thread adapter
+ * owns only lightweight layout slots and exposes a bounded window of delegates.
+ * Offscreen slots remain numeric geometry, never QQuickItems.
+ */
+class MasonryWindowModel : public QAbstractListModel {
+    Q_OBJECT
+    QML_NAMED_ELEMENT(MasonryWindowModel)
+    Q_PROPERTY(FeedRowsModel* sourceModel READ sourceModel WRITE setSourceModel NOTIFY sourceModelChanged)
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(qreal rowsBottom READ rowsBottom NOTIFY geometryChanged)
+    Q_PROPERTY(qreal shortestColumnBottom READ shortestColumnBottom NOTIFY geometryChanged)
+
+public:
+    explicit MasonryWindowModel(QObject* parent = nullptr);
+
+    enum Role : int {
+        SourceIndexRole = Qt::UserRole + 1,
+        StableKeyRole,
+        RevisionKeyRole,
+        PresentationKindRole,
+        MediaLayoutKindRole,
+        CardXRole,
+        CardYRole,
+        CardHeightRole
+    };
+    [[nodiscard]] int count() const noexcept;
+    [[nodiscard]] int rowCount(const QModelIndex& parent = {}) const override;
+    [[nodiscard]] QVariant data(const QModelIndex& index, int role) const override;
+    [[nodiscard]] QHash<int, QByteArray> roleNames() const override;
+    [[nodiscard]] FeedRowsModel* sourceModel() const noexcept;
+    void setSourceModel(FeedRowsModel* model);
+    [[nodiscard]] qreal rowsBottom() const noexcept;
+    [[nodiscard]] qreal shortestColumnBottom() const noexcept;
+
+    /** @brief Rebuilds numeric geometry; never instantiates visual delegates. */
+    Q_INVOKABLE void relayout(int columns, qreal cardWidth, qreal gap, qreal top,
+                            qreal leadingInset, bool rtl);
+
+    /** @brief Updates the bounded visible window by per-lane binary search. */
+    Q_INVOKABLE void setViewport(qreal top, qreal height, qreal enteringBuffer,
+                                 qreal retentionBuffer, bool active);
+
+    /** @brief Records a width/revision-specific estimate or exact painted height. */
+    Q_INVOKABLE bool retainHeight(const QString& key, const QString& revision,
+                                 qreal width, qreal height, bool measured);
+
+    /** @brief Returns the source row at a content-space coordinate or -1. */
+    Q_INVOKABLE [[nodiscard]] int indexAt(qreal x, qreal y) const;
+
+    /** @brief Returns layout coordinates for any source row, visible or not. */
+    Q_INVOKABLE [[nodiscard]] QVariantMap geometryAt(int sourceIndex) const;
+
+    /** @brief Finds a cast by stable identity after a source insertion or move. */
+    Q_INVOKABLE [[nodiscard]] QVariantMap geometryForKey(const QString& key) const;
+
+    /** @brief Returns the current viewport delegate row for a source index. */
+    Q_INVOKABLE [[nodiscard]] int windowIndexForSource(int sourceIndex) const;
+
+signals:
+    void sourceModelChanged();
+    void countChanged();
+    void geometryChanged();
+    void geometryInvalidated();
+
+private:
+    struct Slot {
+        QString key{};
+        QString revision{};
+        QString kind{};
+        QString media{};
+        int sourceIndex{-1};
+        int column{-1};
+        qreal x{0};
+        qreal y{0};
+        qreal height{0};
+    };
+    void scheduleRelayout();
+    void synchronizeWindow();
+    [[nodiscard]] QString heightKey(const QString& key, const QString& revision,
+                                    qreal width) const;
+    [[nodiscard]] qreal fallbackHeight(const Slot& slot) const;
+    [[nodiscard]] int laneAt(qreal x) const noexcept;
+
+    QPointer<FeedRowsModel> m_source{};
+    QVector<Slot> m_geometry{};
+    QHash<QString, int> m_indexByKey{};
+    QVector<Slot> m_window{};
+    QVector<QVector<int>> m_lanes{};
+    QHash<QString, qreal> m_heightSamples{};
+    QHash<QString, bool> m_exactSamples{};
+    QList<QString> m_sampleOrder{};
+    int m_columns{1};
+    qreal m_cardWidth{400};
+    qreal m_gap{12};
+    qreal m_top{12};
+    qreal m_inset{12};
+    qreal m_bottom{0};
+    qreal m_shortestBottom{0};
+    qreal m_viewportTop{0};
+    qreal m_viewportHeight{0};
+    qreal m_buffer{0};
+    qreal m_enterBuffer{0};
+    bool m_rtl{false};
+    bool m_active{false};
+    bool m_relayoutScheduled{false};
+    bool m_forceRepack{false};
 };

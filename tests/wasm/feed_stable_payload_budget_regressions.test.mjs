@@ -13,6 +13,7 @@ function fixture() {
     const stableRows = {
         items: [],
         get count() { return this.items.length; },
+        reconcile(next) { this.items = next.map(item => ({...item})); },
         clear() { this.items.length = 0; },
         get(index) { return this.items[index]; },
         append(item) { this.items.push(item); },

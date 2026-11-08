@@ -2,12 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import Farcaster.Client
 
-// Variable-height Explorer columns. The model owns identity and order; this
-// view owns only geometry and bounded admission of expensive cast subtrees.
+// Numeric layout lives in the native model. Repeater receives only the
+// viewport-window rows: offscreen casts are not QQuickItems or QML Loaders.
 Flickable {
     id: view
 
-    property alias model: slots.model
+    property var model: null
     property Component delegate
     property Component header
     property Component footer
@@ -16,17 +16,12 @@ Flickable {
     property int maximumColumns: 2
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
-    // Profile's header uses a measured symmetric reading gutter. Its cards
-    // must use the same gutter; Explorer keeps its own compact gutter.
     property real outsideInset: gutter
     property real cacheBuffer: Math.min(height * 0.8, 720)
-    // Keep recently displayed cards mounted through ordinary reverse scrolls.
-    // Churn from destroying/recreating image trees on every scroll reversal
-    // costs substantially more than retaining a small adjacent runway.
     readonly property real retentionBuffer: cacheBuffer + Math.min(1200, Math.max(420, height * 1.15))
-    // A recycled delegate must not forget its confirmed height. Store a
-    // bounded, width-bucketed sample per cast revision; otherwise readmission
-    // jumps from real height back to a text/image placeholder estimate.
+
+    // Exact painted heights survive viewport eviction and reverse scrolling.
+    // The native window model holds the same width/revision-specific samples.
     property var measuredHeights: ({})
     property var measuredOrder: []
     property var aspectMemory: ({})
@@ -60,33 +55,24 @@ Flickable {
                 delete measuredHeights[measuredOrder.shift()]
         }
         measuredHeights[id] = height
+        if (layoutModel.retainHeight(key, revision, width, height, true))
+            scheduleLayout()
     }
-    readonly property int count: slots.count
+
+    readonly property int count: model ? model.count : 0
     readonly property Item headerItem: headerLoader.item
     readonly property Item footerItem: footerLoader.item
-    // targetCardWidth is a comfortable card size, not a hard minimum.
-    // The former 85% cutoff collapsed a ~700dp reading pane to one narrow
-    // centered card even though two compact cards fit comfortably.
-    // 76% keeps a legible minimum while allowing 2 columns in a windowed
-    // desktop and 3 columns in the wider full-screen workspace.
     readonly property real minimumCardWidth: Math.max(1, targetCardWidth * 0.76)
     readonly property real usableWidth: Math.max(1, width - outsideInset * 2)
     readonly property int columns: Math.max(1, Math.min(maximumColumns,
         Math.floor((usableWidth + gutter) / (minimumCardWidth + gutter))))
-    // Allocate the entire usable reading width while matching the profile
-    // banner/bio boundaries, including when the window is resized.
     readonly property real cardWidth: Math.max(1,
         (usableWidth - gutter * (columns - 1)) / columns)
     readonly property real leadingInset: outsideInset
-    property real rowsBottom: 0
-    // The tallest lane defines scroll length, but the shortest lane tells us
-    // when an editorial grid is visibly starved for more cards. This matters
-    // when a page contains only 5 or 10 posts with very different heights.
-    property real shortestColumnBottom: 0
+    readonly property real rowsBottom: layoutModel.rowsBottom
+    readonly property real shortestColumnBottom: layoutModel.shortestColumnBottom
     property bool arranging: false
     property bool positioned: false
-    // Layout changes made while we are positioning delegates must never be
-    // discarded. A nested Loader can finish measuring within this same turn.
     property bool relayoutPending: false
 
     signal layoutStarted()
@@ -100,22 +86,18 @@ Flickable {
     boundsMovement: Flickable.FollowBoundsBehavior
     activeFocusOnTab: true
 
-    function itemAtIndex(index) { return slots.itemAt(index) }
-
-    function indexAt(x, y) {
-        let nearest = -1
-        let distance = Number.POSITIVE_INFINITY
-        for (let index = 0; index < slots.count; ++index) {
-            const slot = slots.itemAt(index)
-            if (!slot) continue
-            if (y >= slot.y && y < slot.y + slot.height) {
-                // A probe in a column gutter still needs a real cast anchor.
-                const delta = Math.abs(x - slot.x - slot.width / 2)
-                if (delta < distance) { nearest = index; distance = delta }
-            }
-        }
-        return nearest
+    MasonryWindowModel {
+        id: layoutModel
+        objectName: "masonryWindowModel"
+        sourceModel: view.model
+        onGeometryInvalidated: view.scheduleLayout()
     }
+
+    function itemAtIndex(index) {
+        const windowIndex = layoutModel.windowIndexForSource(index)
+        return windowIndex >= 0 ? slots.itemAt(windowIndex) : null
+    }
+    function indexAt(x, y) { return layoutModel.indexAt(x, y) }
 
     function scheduleLayout() {
         if (arranging) {
@@ -124,75 +106,34 @@ Flickable {
         }
         if (!layoutTimer.running) layoutTimer.start()
     }
-
-    // Admission must be a one-way update, NOT a binding on slot.height/y:
-    // activating a Loader changes its measured height and the masonry
-    // position, which formerly fed straight back into Loader.active.
     function scheduleAdmission() {
         if (!admissionTimer.running) admissionTimer.start()
     }
-
     function updateAdmissions() {
-        const canDisplay = visible && positioned && height > 0
-        const enteringTop = contentY - cacheBuffer
-        const enteringBottom = contentY + height + cacheBuffer
-        const retainedTop = contentY - retentionBuffer
-        const retainedBottom = contentY + height + retentionBuffer
-        for (let index = 0; index < slots.count; ++index) {
-            const slot = slots.itemAt(index)
-            if (!slot) continue
-            const eligible = canDisplay && slot.placed
-            const entering = eligible && slot.y + slot.height >= enteringTop
-                && slot.y <= enteringBottom
-            const retaining = eligible && slot.y + slot.height >= retainedTop
-                && slot.y <= retainedBottom
-            const nextAdmitted = slot.admitted ? retaining : entering
-            if (slot.admitted !== nextAdmitted)
-                slot.admitted = nextAdmitted
-        }
+        layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
+                                view.visible && positioned && height > 0)
     }
-
     function forceLayout() {
-        if (arranging) return
+        if (arranging) {
+            relayoutPending = true
+            return
+        }
         layoutTimer.stop()
         arranging = true
         layoutStarted()
         const anchorIndex = positioned && !moving && contentY > 0
             ? indexAt(width / 2, contentY + Math.min(80, height / 4)) : -1
-        const anchor = anchorIndex >= 0 ? slots.itemAt(anchorIndex) : null
-        const offset = anchor ? anchor.y - contentY : 0
-        const start = headerLoader.height + gutter
-        const bottoms = Array(columns).fill(start)
-        // Lane assignment is stable for an existing card. Reassigning every
-        // time a late image finishes (or a flick ends) moves cards sideways
-        // and breaks users' visual tracking, even if the new packing is dense.
-        // Only new rows, reordered rows, or a column-count change pick a lane.
-        // Measured heights always update the positions below the card.
-        for (let index = 0; index < slots.count; ++index) {
-            const slot = slots.itemAt(index)
-            if (!slot) continue
-            // Each lane is stacked from the previous measured bottom, so
-            // no older size estimate can leave gaps or cause overlap.
-            if (slot.assignedColumn < 0 || slot.assignmentColumns !== columns) {
-                let shortest = 0
-                for (let candidate = 1; candidate < columns; ++candidate) {
-                    if (bottoms[candidate] < bottoms[shortest]) shortest = candidate
-                }
-                slot.assignedColumn = shortest
-                slot.assignmentColumns = columns
-            }
-            const column = slot.assignedColumn
-            const visualColumn = layoutDirection === Qt.RightToLeft ? columns - column - 1 : column
-            slot.x = leadingInset + visualColumn * (cardWidth + gutter)
-            slot.y = bottoms[column]
-            slot.placed = true
-            bottoms[column] += slot.height + gutter
+        const anchor = anchorIndex >= 0 ? layoutModel.geometryAt(anchorIndex) : null
+        const offset = anchor && anchor.stableKey ? anchor.y - contentY : 0
+        layoutModel.relayout(columns, cardWidth, gutter, headerLoader.height + gutter,
+                             leadingInset, layoutDirection === Qt.RightToLeft)
+        if (anchor && anchor.stableKey && !moving) {
+            // A source-index is not identity when rows insert above the reader.
+            const restored = layoutModel.geometryForKey(anchor.stableKey)
+            if (restored && restored.stableKey)
+                contentY = Math.max(0, Math.min(restored.y - offset,
+                    Math.max(0, contentHeight - height)))
         }
-        rowsBottom = slots.count > 0 ? Math.max(...bottoms) : headerLoader.height
-        shortestColumnBottom = slots.count >= columns
-            ? Math.min(...bottoms) : headerLoader.height
-        if (anchor) contentY = Math.max(0, Math.min(anchor.y - offset,
-            Math.max(0, contentHeight - height)))
         positioned = true
         arranging = false
         scheduleAdmission()
@@ -202,55 +143,36 @@ Flickable {
             scheduleLayout()
         }
     }
-
     function positionViewAtBeginning() {
         cancelFlick()
         forceLayout()
         contentY = 0
     }
-
     function positionViewAtIndex(index, mode) {
         cancelFlick()
         forceLayout()
-        const slot = slots.itemAt(index)
-        if (!slot) return
+        const slot = layoutModel.geometryAt(index)
+        if (!slot || !slot.stableKey) return
         const offset = mode === ListView.Center ? (height - slot.height) / 2 : 0
         contentY = Math.max(0, Math.min(slot.y - offset, Math.max(0, contentHeight - height)))
     }
-
     function scrollBy(distance) {
         cancelFlick()
         contentY = Math.max(0, Math.min(contentY + distance, Math.max(0, contentHeight - height)))
     }
-
-    // Qt Quick Keys exposes generic pressed/released handlers, not dedicated
-    // PageUp/PageDown/Home/End signals. Handle all navigation keys here so a
-    // missing attached signal cannot prevent the entire QML module loading.
     Keys.onPressed: function(event) {
         switch (event.key) {
-        case Qt.Key_PageDown:
-            view.scrollBy(view.height * 0.85)
-            break
-        case Qt.Key_PageUp:
-            view.scrollBy(-view.height * 0.85)
-            break
-        case Qt.Key_Home:
-            view.positionViewAtBeginning()
-            break
-        case Qt.Key_End:
-            view.scrollBy(view.contentHeight)
-            break
-        case Qt.Key_Down:
-            view.scrollBy(48)
-            break
-        case Qt.Key_Up:
-            view.scrollBy(-48)
-            break
-        default:
-            return
+        case Qt.Key_PageDown: view.scrollBy(view.height * 0.85); break
+        case Qt.Key_PageUp: view.scrollBy(-view.height * 0.85); break
+        case Qt.Key_Home: view.positionViewAtBeginning(); break
+        case Qt.Key_End: view.scrollBy(view.contentHeight); break
+        case Qt.Key_Down: view.scrollBy(48); break
+        case Qt.Key_Up: view.scrollBy(-48); break
+        default: return
         }
         event.accepted = true
     }
+    onModelChanged: scheduleLayout()
     onWidthChanged: scheduleLayout()
     onHeightChanged: scheduleAdmission()
     onContentYChanged: scheduleAdmission()
@@ -264,17 +186,8 @@ Flickable {
     onMovingChanged: if (!moving) scheduleLayout()
     Component.onCompleted: scheduleLayout()
 
-    Timer {
-        id: layoutTimer
-        interval: 0
-        onTriggered: view.forceLayout()
-    }
-
-    Timer {
-        id: admissionTimer
-        interval: 0
-        onTriggered: view.updateAdmissions()
-    }
+    Timer { id: layoutTimer; interval: 0; onTriggered: view.forceLayout() }
+    Timer { id: admissionTimer; interval: 0; onTriggered: view.updateAdmissions() }
 
     Loader {
         id: headerLoader
@@ -285,66 +198,38 @@ Flickable {
 
     Repeater {
         id: slots
-        onItemAdded: view.scheduleLayout()
-        onItemRemoved: view.scheduleLayout()
-
+        model: layoutModel
         delegate: Item {
             id: slot
             objectName: "masonrySlot"
-            required property int index
+            required property int sourceIndex
             required property string stableKey
             required property string revisionKey
             required property string presentationKind
             required property string mediaLayoutKind
-            property real measuredHeight: 0
-            property real previousWidth: 0
-            property bool placed: false
-            property bool admitted: false
-            property int assignedColumn: -1
-            property int assignmentColumns: 0
-            readonly property real estimatedHeight: view.estimateHeight
-                ? view.estimateHeight(stableKey, presentationKind, mediaLayoutKind, width) : 320
+            required property real cardX
+            required property real cardY
+            required property real cardHeight
+            property real measuredHeight: view.recalledHeight(stableKey, revisionKey, width)
+            property bool placed: true
+            property bool admitted: true
+            x: cardX
+            y: cardY
             width: view.cardWidth
-            height: Math.max(1, measuredHeight > 0 ? measuredHeight : estimatedHeight)
-            // The measured height follows the cast's real paint geometry.
-            // Clipping the slot itself hid the final lines of Markdown and
-            // media while nested Loaders updated their size; the card's own
-            // rounded media surfaces handle their visual clipping.
+            height: Math.max(1, cardHeight)
             clip: cardLoader.item === null
-            onHeightChanged: view.scheduleLayout()
-            onIndexChanged: {
-                assignedColumn = -1
-                view.scheduleLayout()
-            }
-            onWidthChanged: {
-                const recalled = view.recalledHeight(stableKey, revisionKey, width)
-                if (recalled > 0)
-                    measuredHeight = recalled
-                else if (previousWidth > 0 && measuredHeight > 0)
-                    measuredHeight = Math.max(96, measuredHeight * width / previousWidth)
-                previousWidth = width
-            }
-            onStableKeyChanged: {
-                admitted = false
-                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
-                assignedColumn = -1
-                view.scheduleLayout()
-            }
-            onRevisionKeyChanged: {
-                // A changed cast payload can alter text/media height. Never
-                // apply a sample from an earlier revision of that cast.
-                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
-            }
 
+            function offerEstimate() {
+                if (!view.estimateHeight || view.recalledHeight(stableKey, revisionKey, width) > 0)
+                    return
+                const hint = Number(view.estimateHeight(stableKey, presentationKind,
+                                                        mediaLayoutKind, width))
+                if (hint > 0 && isFinite(hint)
+                        && layoutModel.retainHeight(stableKey, revisionKey, width, hint, false))
+                    view.scheduleLayout()
+            }
             function recordHeight() {
                 const content = cardLoader.item
-                // FeedRow.height holds the *estimated* reservation while
-                // its nested delegate is loading. Using max(height,
-                // implicitHeight) kept the obsolete (often very tall)
-                // estimate even after an image/text card resolved shorter,
-                // leaving permanent empty slabs between cards. Prefer the
-                // actual implicit size; height is fallback for geometry-only
-                // delegates with no implicit size.
                 const implicit = content ? Number(content.implicitHeight || 0) : 0
                 const next = implicit > 0
                     ? implicit : content ? Number(content.height || 0) : 0
@@ -355,13 +240,20 @@ Flickable {
                     view.retainHeight(stableKey, revisionKey, width, resolved)
                 }
             }
+            Component.onCompleted: offerEstimate()
+            onStableKeyChanged: offerEstimate()
+            onRevisionKeyChanged: {
+                const previousPaintedHeight = measuredHeight
+                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
+                // A like/recast changes the row revision but not the cast's
+                // text/media geometry. Retain its old painted height until
+                // the updated content reports its own implicitHeight.
+                if (!(previousPaintedHeight > 0)) offerEstimate()
+            }
+            onWidthChanged: offerEstimate()
 
             Loader {
                 id: visiblePlaceholder
-                // Only construct a skeleton for an actually visible empty
-                // reservation. Otherwise a just-admitted card can leave a
-                // black hole while its nested QML/media finishes loading.
-                // An independent placeholder must never drive slot geometry.
                 anchors.fill: parent
                 active: view.visible && slot.placed
                         && slot.y + slot.height > view.contentY
@@ -372,9 +264,6 @@ Flickable {
                 asynchronous: false
                 sourceComponent: Component {
                     Item {
-                        // The placeholder fills the entire estimated card, not
-                        // just the 142px text bars; that formerly appeared as
-                        // a giant blank strip beneath a short skeleton.
                         Superellipse {
                             anchors.fill: parent
                             fillColor: Theme.surfaceRaised
@@ -390,26 +279,21 @@ Flickable {
                     }
                 }
             }
-
             Loader {
                 id: cardLoader
-                // Explicitly forward every model role to the component created
-                // in FeedSurface's scope; Loader does not inject model roles.
-                readonly property int rowIndex: slot.index
+                readonly property int rowIndex: slot.sourceIndex
                 readonly property string stableKey: slot.stableKey
                 readonly property string revisionKey: slot.revisionKey
                 readonly property string presentationKind: slot.presentationKind
                 readonly property string mediaLayoutKind: slot.mediaLayoutKind
                 readonly property real slotY: slot.y
                 width: slot.width
-                // A sampled boolean is independent of the loaded item's
-                // geometry. Never bind active to slot.height or slot.y.
                 active: slot.admitted
-                asynchronous: false
+                // Incubate costly CastItem trees over multiple frames.
+                asynchronous: true
                 sourceComponent: view.delegate
                 onLoaded: slot.recordHeight()
             }
-
             Connections {
                 target: cardLoader.item
                 function onHeightChanged() { slot.recordHeight() }

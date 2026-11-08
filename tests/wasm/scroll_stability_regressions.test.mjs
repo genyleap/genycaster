@@ -106,6 +106,22 @@ function repliesHarness() {
         remove(i) { rows.splice(i, 1); },
         move(from, to) { rows.splice(to, 0, rows.splice(from, 1)[0]); },
         setProperty(i, key, value) { rows[i][key] = value; },
+        reconcile(next) {
+            let index = 0;
+            for (const entry of next) {
+                if (!rows[index] || rows[index].stableKey !== entry.stableKey) {
+                    const found = rows.findIndex((row, at) =>
+                        at > index && row.stableKey === entry.stableKey);
+                    if (found >= 0)
+                        this.move(found, index, 1);
+                    else
+                        this.insert(index, entry);
+                }
+                rows[index].revisionKey = entry.revisionKey;
+                ++index;
+            }
+            rows.splice(index);
+        },
     };
     const root = {
         moving: false, visible: true, busy: false, activeView: 'cast',
@@ -116,7 +132,7 @@ function repliesHarness() {
         positionViewAtBeginning() { ++calls.top; },
     };
     const context = { root, replyRows, geometryRestoreTimer: timer(), confirmedReplyFocusTimer: timer() };
-    for (const name of ['normalizedCastHash', 'cancelViewportCorrections', 'focusConfirmedReply', 'synchronizeReplies'])
+    for (const name of ['normalizedCastHash', 'cancelViewportCorrections', 'focusConfirmedReply', 'replyContentRevision', 'synchronizeReplies'])
         root[name] = method(detail, name, context);
     return { ...context, rows, calls };
 }
@@ -135,6 +151,20 @@ test('thread hydration, reactions and appending replies preserve row identities 
     assert.equal(h.calls.resets, 0);
     assert.equal(h.calls.top, 0);
     assert.equal(h.calls.insertions, 3);
+});
+
+test('unchanged replies retain the same revision while a reaction updates only its cast', () => {
+    const h = repliesHarness();
+    h.root.prioritizedReplies = [reply('a', 'first'), reply('b', 'second')];
+    h.root.synchronizeReplies();
+    const previousA = h.rows[0].revisionKey;
+    const previousB = h.rows[1].revisionKey;
+    h.root.prioritizedReplies = [reply('a', 'first'), {...reply('b', 'second'), likedByMe: true}];
+    h.root.synchronizeReplies();
+    assert.equal(h.rows[0].revisionKey, previousA);
+    assert.notEqual(h.rows[1].revisionKey, previousB);
+    assert.equal(h.calls.resets, 0);
+    assert.equal(h.calls.insertions, 2);
 });
 
 test('reply reordering, duplicate IDs, deletion and cast navigation stay scoped', () => {

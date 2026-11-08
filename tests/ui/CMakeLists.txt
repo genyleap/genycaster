@@ -422,6 +422,24 @@ add_test(NAME ui.feed_rows_model COMMAND farcaster_feed_rows_model_tests)
 set_tests_properties(ui.feed_rows_model PROPERTIES
     TIMEOUT 30 LABELS "ui;qt;model;read-pipeline")
 
+# Real Qt 6.12 viewport fixture: renders the production Magazine QML with
+# its native model and verifies that hundreds of source casts never create
+# hundreds of QML card objects during scroll and reverse scroll.
+qt_add_executable(farcaster_masonry_view_runtime_tests
+    masonry_view_runtime_tests.cpp
+    "${genycasterUiSourceDir}/app/social/feed_rows.cpp"
+    "${genycasterUiSourceDir}/app/social/feed_rows.hpp")
+target_compile_features(farcaster_masonry_view_runtime_tests PRIVATE cxx_std_26)
+target_compile_definitions(farcaster_masonry_view_runtime_tests PRIVATE
+    GENYCASTER_MASONRY_QML_DIR="${genycasterUiSourceDir}/components/feed")
+target_link_libraries(farcaster_masonry_view_runtime_tests PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+farcaster_enable_warnings(farcaster_masonry_view_runtime_tests)
+add_test(NAME ui.masonry_window_runtime COMMAND farcaster_masonry_view_runtime_tests)
+set_tests_properties(ui.masonry_window_runtime PROPERTIES
+    TIMEOUT 20 LABELS "ui;qt;scroll;magazine"
+    ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
+
 add_executable(farcaster_media_scroll_tests
     media_scroll_tests.cpp
     "${genycasterUiSourceDir}/app/social/feed_rows.cpp"

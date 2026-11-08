@@ -45,7 +45,12 @@ test('Magazine shows a bounded skeleton for truly visible slots awaiting their d
     assert.match(placeholder, /CastSkeleton \{[\s\S]*?height: Math\.min\(parent\.height, implicitHeight\)/);
     assert.match(placeholder, /animate: !view\.moving/);
     assert.match(wall, /active: slot\.admitted/, 'the real card uses sampled admission, not geometry bindings');
-    assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
+    assert.match(wall, /clip: cardLoader\.item === null/);
+    assert.match(wall, /height: Math\.max\(1, cardHeight\)/);
+    const slotSource = wall.slice(wall.indexOf('required property real cardHeight'),
+        wall.indexOf('id: visiblePlaceholder'));
+    assert.doesNotMatch(slotSource, /onHeightChanged: view\.scheduleLayout\(\)/,
+        'native numeric geometry owns each card slot height');
 });
 
 test('Rich text and animated sprite fallback cannot abandon nested asynchronous incubators', () => {

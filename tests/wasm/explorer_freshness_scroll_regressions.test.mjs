@@ -100,8 +100,10 @@ test('changing Explorer semantic tabs avoids immediate full ListModel destructio
     const qml = read('ui/components/feed/FeedSurface.qml');
     const modes = qml.split('onPresentationModeChanged: {')[1].split('onVisualFilterChanged: {')[0];
     assert.doesNotMatch(modes, /stableRows.clear\(\)/);
-    assert.match(qml, /if \(retained \* 4 < Math.min\(stableRows.count, source.length\)\)/);
-    assert.match(qml, /root.rebuildStableModel\(source\)/);
+    assert.match(qml, /stableRows\.reconcile\(next\)/);
+    const native = read('ui/app/social/feed_rows.cpp');
+    assert.match(native, /retained \* 4 < std::min\(m_rows\.size\(\), incoming\.size\(\)\)/);
+    assert.match(native, /beginResetModel\(\)/);
 });
 
 test('reply intent always reaches the composer gate and failed canonical targets show feedback', () => {

@@ -20,7 +20,8 @@ test('Magazine stores measured card sizes and image aspect for reverse scroll wi
   const source = wall.slice(wall.indexOf('    function aspectForKey('),
                             wall.indexOf('    readonly property int count:'));
   const context = vm.createContext({
-    measuredHeights: {}, measuredOrder: [], aspectMemory: {}, aspectOrder: []
+    measuredHeights: {}, measuredOrder: [], aspectMemory: {}, aspectOrder: [],
+    layoutModel: { retainHeight: () => false }
   });
   vm.runInContext(source, context);
   context.retainHeight('cast-4', 'r1', 336, 715);
@@ -107,10 +108,10 @@ test('Profile shares its one header, footer and native identity model between tw
   assert.match(profile, /readonly property var readList: root\.profileMagazineEnabled \? profileMagazineView : profileList/);
   assert.match(profile, /id: profileHeaderComponent/);
   assert.match(profile, /id: profileFooterComponent/);
-  assert.match(profile, /header: root\.profileMagazineEnabled \? null : profileHeaderComponent/);
-  assert.match(profile, /header: root\.profileMagazineEnabled \? profileHeaderComponent : null/);
-  assert.match(profile, /footer: root\.profileMagazineEnabled \? profileFooterComponent : null/);
-  assert.match(profile, /model: root\.profileMagazineEnabled \? profileRowsModel : null/);
+  assert.equal((profile.match(/header: profileHeaderComponent/g) || []).length, 2,
+    'both reading modes keep their profile cover mounted');
+  assert.equal((profile.match(/footer: profileFooterComponent/g) || []).length, 2);
+  assert.match(profile, /model: profileRowsModel/);
   assert.match(profile, /model: root\.profileMagazineEnabled \? null : profileRowsModel/);
   assert.match(profile, /modelData: \{\s*\/\/ Native role notification[\s\S]*?const revision = parent\.revisionKey/);
   assert.match(profile, /presentationKind: "conversation", mediaLayoutKind: "other"/);

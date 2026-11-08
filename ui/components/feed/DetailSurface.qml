@@ -69,6 +69,28 @@ ListView {
         replySyncTimer.restart()
     }
 
+    function replyContentRevision(payload) {
+        const value = payload || ({})
+        const parent = value.parentPreview || ({})
+        // A hydration/reaction snapshot must not invalidate every reply
+        // delegate. Only a visible change to this exact cast changes its role.
+        const embeds = value.embeds || []
+        return [
+            String(value._revision || value.castId || ""),
+            String(value._referencedRevision || ""),
+            String(value.text || ""), String(embeds.length),
+            String(value.displayName || ""), String(value.author || ""),
+            String(value.avatarUrl || ""), String(value.sourceClient || ""),
+            String(value.likeCount || 0), String(value.recastCount || 0),
+            String(value.replyCount || 0), String(value.viewCount || ""),
+            String(value.likedByMe === undefined ? "unknown" : Boolean(value.likedByMe)),
+            String(value.recastedByMe === undefined ? "unknown" : Boolean(value.recastedByMe)),
+            String(value.writeState || ""), String(value.depth || 1),
+            String(parent.resolved || false), String(parent.text || ""),
+            String(parent.avatarUrl || "")
+        ].join("\u001f")
+    }
+
     function synchronizeReplies() {
         if (root.moving || !root.visible) return
         const scopeChanged = root.replyScope !== root.detailScope
@@ -85,40 +107,18 @@ ListView {
         }
         root.rememberVisibleGeometry()
         const retained = Object.create(null)
-        const order = []
-        const positions = Object.create(null)
-        for (let index = 0; index < replyRows.count; ++index) {
-            const key = String(replyRows.get(index).stableKey)
-            order.push(key)
-            positions[key] = index
-        }
-        const revision = String(++root.replyRevision)
-        let target = 0
+        const next = []
         for (let index = 0; index < source.length; ++index) {
             const payload = source[index] || ({})
             const key = root.normalizedCastHash(payload.castId)
-            if (key.length === 0 || retained[key]) continue
+            if (!key || retained[key]) continue
             retained[key] = true
             root.replyPayloads[key] = payload
-            const previous = positions[key]
-            if (previous === undefined) {
-                replyRows.insert(target, { stableKey: key, revisionKey: revision })
-                order.splice(target, 0, key)
-            } else {
-                if (previous !== target) {
-                    replyRows.move(previous, target, 1)
-                    order.splice(previous, 1)
-                    order.splice(target, 0, key)
-                }
-                replyRows.setProperty(target, "revisionKey", revision)
-            }
-            if (previous !== target) {
-                for (let shifted = target; shifted < order.length; ++shifted)
-                    positions[order[shifted]] = shifted
-            }
-            ++target
+            next.push({stableKey: key,
+                       revisionKey: root.replyContentRevision(payload),
+                       presentationKind: "conversation", mediaLayoutKind: "other"})
         }
-        while (replyRows.count > target) replyRows.remove(replyRows.count - 1)
+        replyRows.reconcile(next)
         for (const key of Object.keys(root.replyPayloads)) {
             if (!retained[key]) delete root.replyPayloads[key]
         }
