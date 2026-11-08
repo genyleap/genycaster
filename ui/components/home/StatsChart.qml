@@ -175,43 +175,40 @@ Superellipse {
                                 .arg(LocaleFormat.formatInteger(Number(modelData.replies)))
                             Accessible.onPressAction: root.selectedIndex = index
 
-                            // The stack has rounded OUTER corners only. Flatten both
-                            // touching faces to avoid the visible notch between segments.
-                            // No Canvas or offscreen layer: this remains cheap in WASM.
+                            // One opacity group with a single rounded silhouette.
+                            // Opaque interior segments meet at pixel-snapped edges;
+                            // only the outer silhouette is rounded, eliminating
+                            // antialias seams when an unselected bar is dimmed.
                             Rectangle {
-                                id: repliesSegment
+                                id: stack
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 y: plot.height - column.castHeight - column.replyHeight
                                 width: column.barWidth
-                                height: Math.max(0, column.replyHeight)
-                                radius: Math.min(3, width / 2)
-                                color: Theme.textTertiary
-                                opacity: root.selectedIndex === -1 || root.selectedIndex === column.index ? 1 : 0.55
-                                Rectangle {
-                                    anchors.bottom: parent.bottom
-                                    width: parent.width
-                                    height: Math.min(parent.radius, parent.height)
-                                    visible: column.castHeight > 0
-                                    radius: 0
-                                    color: repliesSegment.color
-                                }
-                            }
-                            Rectangle {
-                                id: castsSegment
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottom: parent.bottom
-                                width: column.barWidth
-                                height: Math.max(0, column.castHeight)
-                                radius: Math.min(3, width / 2)
+                                height: Math.max(0, column.castHeight + column.replyHeight)
+                                radius: Math.min(3, width / 2, height / 2)
                                 color: Theme.accent
-                                opacity: root.selectedIndex === -1 || root.selectedIndex === column.index ? 1 : 0.55
+                                opacity: root.selectedIndex === -1
+                                    || root.selectedIndex === column.index ? 1 : 0.52
+                                antialiasing: true
+
                                 Rectangle {
-                                    anchors.top: parent.top
-                                    width: parent.width
-                                    height: Math.min(parent.radius, parent.height)
+                                    id: repliesSegment
                                     visible: column.replyHeight > 0
-                                    radius: 0
-                                    color: castsSegment.color
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    width: parent.width
+                                    height: column.replyHeight
+                                    radius: stack.radius
+                                    color: Theme.textTertiary
+                                    antialiasing: true
+                                    // Flatten only the internal joining edge.
+                                    Rectangle {
+                                        visible: column.castHeight > 0
+                                        anchors.bottom: parent.bottom
+                                        width: parent.width
+                                        height: Math.min(parent.radius, parent.height)
+                                        color: parent.color
+                                    }
                                 }
                             }
                             TapHandler { onTapped: root.selectedIndex = column.index }

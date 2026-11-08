@@ -7140,5 +7140,41 @@ Company | https://company.com</source>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>GenyCaster 3D 로고. 드래그하여 회전하고 스크롤하여 확대/축소하세요. R을 누르면 초기화됩니다.</translation>
         </message>
+        <message id="genycaster.stats.range_week">
+            <source>7 days</source>
+            <translation>7일</translation>
+        </message>
+        <message id="genycaster.stats.range_month">
+            <source>30 days</source>
+            <translation>30일</translation>
+        </message>
+        <message id="genycaster.stats.range_quarter">
+            <source>90 days</source>
+            <translation>90일</translation>
+        </message>
+        <message id="genycaster.stats.range_year">
+            <source>1 year</source>
+            <translation>1년</translation>
+        </message>
+        <message id="genycaster.stats.radar_explainer">
+            <source>All axes share one scale (highest count: %1).</source>
+            <translation>모든 축은 같은 척도를 사용합니다(최댓값: %1).</translation>
+        </message>
+        <message id="genycaster.stats.github_active_days">
+            <source>Active days: %1</source>
+            <translation>활동 일수: %1</translation>
+        </message>
+        <message id="genycaster.market.asset_bitcoin">
+            <source>Bitcoin</source>
+            <translation>비트코인</translation>
+        </message>
+        <message id="genycaster.market.asset_ethereum">
+            <source>Ethereum</source>
+            <translation>이더리움</translation>
+        </message>
+        <message id="genycaster.market.asset_solana">
+            <source>Solana</source>
+            <translation>솔라나</translation>
+        </message>
     </context>
 </TS>

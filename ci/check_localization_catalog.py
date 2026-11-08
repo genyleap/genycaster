@@ -58,6 +58,11 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.streak.badge_eternal_flame",
     # Bronze is the same named metal/achievement tier in all supported locales.
     "genycaster.streak.badge_ignition",
+    # International asset proper names may retain Latin spelling in languages
+    # that use it. Their symbols remain independent, immutable market IDs.
+    "genycaster.market.asset_bitcoin",
+    "genycaster.market.asset_ethereum",
+    "genycaster.market.asset_solana",
 }
 
 INTENTIONALLY_IDENTICAL_BY_LOCALE = {

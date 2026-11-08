@@ -7141,5 +7141,41 @@ Entreprise | https://company.com</translation>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>Logo GenyCaster en 3D. Faites glisser pour faire pivoter, défilez pour zoomer. Appuyez sur R pour réinitialiser.</translation>
         </message>
+        <message id="genycaster.stats.range_week">
+            <source>7 days</source>
+            <translation>7 jours</translation>
+        </message>
+        <message id="genycaster.stats.range_month">
+            <source>30 days</source>
+            <translation>30 jours</translation>
+        </message>
+        <message id="genycaster.stats.range_quarter">
+            <source>90 days</source>
+            <translation>90 jours</translation>
+        </message>
+        <message id="genycaster.stats.range_year">
+            <source>1 year</source>
+            <translation>1 an</translation>
+        </message>
+        <message id="genycaster.stats.radar_explainer">
+            <source>All axes share one scale (highest count: %1).</source>
+            <translation>Tous les axes utilisent la même échelle (maximum : %1).</translation>
+        </message>
+        <message id="genycaster.stats.github_active_days">
+            <source>Active days: %1</source>
+            <translation>Jours actifs : %1</translation>
+        </message>
+        <message id="genycaster.market.asset_bitcoin">
+            <source>Bitcoin</source>
+            <translation>Bitcoin</translation>
+        </message>
+        <message id="genycaster.market.asset_ethereum">
+            <source>Ethereum</source>
+            <translation>Ethereum</translation>
+        </message>
+        <message id="genycaster.market.asset_solana">
+            <source>Solana</source>
+            <translation>Solana</translation>
+        </message>
     </context>
 </TS>

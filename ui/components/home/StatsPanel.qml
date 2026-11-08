@@ -14,10 +14,16 @@ ColumnLayout {
     property bool compact: false
     property string section: "social"
     onSectionChanged: {
-        if (section === "market" && tabActive) marketController.refresh(false)
+        if (tabActive) {
+            if (section === "market") marketController.refresh(false)
+            else refreshGithub()
+        }
     }
     onTabActiveChanged: {
-        if (tabActive && section === "market") marketController.refresh(false)
+        if (tabActive) {
+            if (section === "market") marketController.refresh(false)
+            else refreshGithub()
+        }
     }
     property bool tabActive: false
     opacity: tabActive ? 1 : 0
@@ -35,6 +41,42 @@ ColumnLayout {
     readonly property bool loaded: fetchState === "ready" || fetchState === "partial"
     readonly property bool partial: fetchState === "partial"
     readonly property var metrics: statsController.summary
+
+    // Only the FID-bound OpenProof connection list can establish GitHub ownership.
+    // Bio links and manually entered profile fields are not identity proof.
+    readonly property string verifiedGithubLogin: {
+        if (typeof openProofConnections === "undefined" || !openProofConnections
+                || !openProofConnections.cloudAuthorizationReady)
+            return ""
+        const entries = openProofConnections.connections || []
+        for (let i = 0; i < entries.length && i < 50; ++i) {
+            const entry = entries[i] || ({})
+            if (String(entry.provider || "").toLowerCase() !== "github")
+                continue
+            const names = [entry.username, entry.preferred_username, entry.login, entry.handle]
+            const profile = String(entry.profileUrl || entry.provider_profile_url || "")
+            const match = /^https:\/\/github\.com\/([A-Za-z0-9-]{1,39})\/?$/.exec(profile)
+            if (match) names.push(match[1])
+            for (const name of names) {
+                const login = String(name || "").replace(/^@/, "").trim()
+                if (/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(login))
+                    return login
+            }
+        }
+        return ""
+    }
+    readonly property int githubYear: new Date().getUTCFullYear()
+    readonly property var githubCalendar: genyPulseActivity.githubContributions || ({})
+    readonly property bool githubReady: githubCalendar.status === "ok"
+        && Number(githubCalendar.year) === githubYear
+        && String(githubCalendar.username || "").toLowerCase() === verifiedGithubLogin.toLowerCase()
+    function refreshGithub() {
+        if (tabActive && section === "social" && verifiedGithubLogin.length > 0)
+            genyPulseActivity.requestGitHubContributions(verifiedGithubLogin, githubYear)
+    }
+    onVerifiedGithubLoginChanged: refreshGithub()
+    Component.onCompleted: refreshGithub()
+
     property bool manualMarketRefresh: false
     property string marketRefreshFeedback: ""
     readonly property bool marketRequestBusy: marketController.state === "loading"
@@ -198,12 +240,7 @@ ColumnLayout {
             layoutDirection: Theme.uiDirection
 
             Repeater {
-                model: [
-                    {days: 7, title: "7D"},
-                    {days: 30, title: "30D"},
-                    {days: 90, title: "90D"},
-                    {days: 365, title: "1Y"}
-                ]
+                model: [7, 30, 90, 365]
                 delegate: GenyTabButton {
                     required property var modelData
                     Layout.fillWidth: true
@@ -211,11 +248,14 @@ ColumnLayout {
                     Layout.fillHeight: true
                     minimumWidth: 0
                     dense: true
-                    selected: root.periodDays === modelData.days
-                    text: LocaleFormat.localizeDigits(modelData.title)
-                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(LocaleFormat.formatInteger(modelData.days))
-                    onClicked: if (root.periodDays !== modelData.days)
-                                   root.periodRequested(modelData.days)
+                    selected: root.periodDays === modelData
+                    text: modelData === 7 ? qsTrId("genycaster.stats.range_week")
+                        : modelData === 30 ? qsTrId("genycaster.stats.range_month")
+                        : modelData === 90 ? qsTrId("genycaster.stats.range_quarter")
+                                           : qsTrId("genycaster.stats.range_year")
+                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(LocaleFormat.formatInteger(modelData))
+                    onClicked: if (root.periodDays !== modelData)
+                                   root.periodRequested(modelData)
                 }
             }
         }
@@ -324,6 +364,82 @@ ColumnLayout {
             visible: Boolean(root.metrics.hasEngagement)
             Layout.fillWidth: true
             metrics: root.metrics
+        }
+
+        // Optional, verified account-derived insight. An unrelated public profile
+        // or a failed service response must never be displayed as this user's data.
+        Superellipse {
+            visible: root.verifiedGithubLogin.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: githubContent.implicitHeight + Theme.space4 * 2
+            fillColor: Theme.surface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
+            curveDepth: Theme.curveContainer
+
+            ColumnLayout {
+                id: githubContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Theme.space4
+                spacing: Theme.space2
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    Image {
+                        source: "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/providers/github.svg"
+                        Layout.preferredWidth: Theme.iconSizeLarge
+                        Layout.preferredHeight: Theme.iconSizeLarge
+                        sourceSize.width: 48
+                        sourceSize.height: 48
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: "GitHub"
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                        color: Theme.textPrimary
+                    }
+                    DirectionAwareLabel {
+                        forceLeftToRight: true
+                        text: "@" + root.verifiedGithubLogin
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideMiddle
+                    }
+                }
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    alignToUi: true
+                    text: root.githubReady
+                        ? qsTrId("genycaster.activity.contributions_count").arg(
+                            LocaleFormat.formatInteger(Number(root.githubCalendar.count || 0)))
+                        : root.githubCalendar.status === "loading"
+                          ? qsTrId("genycaster.activity.loading")
+                          : root.githubCalendar.status === "authorization-required"
+                            ? qsTrId("genycaster.activity.github_session_required")
+                            : qsTrId("genycaster.activity.unavailable")
+                    font.pixelSize: root.githubReady ? Theme.typeTitle2Size : Theme.typeCaptionSize
+                    font.weight: root.githubReady ? Theme.weightBold : Font.Normal
+                    color: root.githubReady ? Theme.textPrimary : Theme.textSecondary
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.githubReady
+                    alignToUi: true
+                    text: qsTrId("genycaster.stats.github_active_days").arg(
+                        LocaleFormat.formatInteger(Number(root.githubCalendar.observedDays || 0)))
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.textSecondary
+                }
+            }
         }
 
         StatsChart {

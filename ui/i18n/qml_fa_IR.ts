@@ -168,7 +168,7 @@
         </message>
         <message id="genycaster.stats.recasts">
             <source>Recasts</source>
-            <translation>ریکست‌ها</translation>
+            <translation>بازنشرها</translation>
         </message>
         <message id="genycaster.stats.received_replies">
             <source>Replies received</source>
@@ -180,7 +180,7 @@
         </message>
         <message id="genycaster.stats.chart_point">
             <source>%1 · %2 casts · %3 replies</source>
-            <translation>%1 · %2 کست · %3 پاسخ</translation>
+            <translation>%1 · %2 نشر · %3 پاسخ</translation>
         </message>
         <message id="genycaster.stats.engagement_scope">
             <source>Engagement is counted to date, on posts in this period</source>
@@ -216,7 +216,7 @@
         </message>
         <message id="genycaster.stats.loading">
             <source>Loading account statistics… %1 casts checked</source>
-            <translation>در حال دریافت آمار… %1 کست بررسی شد</translation>
+            <translation>در حال دریافت آمار… %1 نشر بررسی شد</translation>
         </message>
         <message id="genycaster.stats.node_unavailable">
             <source>Statistics unavailable for the selected node. %1</source>
@@ -236,7 +236,7 @@
         </message>
         <message id="genycaster.stats.casts">
             <source>Casts</source>
-            <translation>کست‌ها</translation>
+            <translation>نشرها</translation>
         </message>
         <message id="genycaster.stats.replies">
             <source>Replies</source>
@@ -280,7 +280,7 @@
         </message>
         <message id="genycaster.stats.top_casts">
             <source>Top casts</source>
-            <translation>برترین کست‌ها</translation>
+            <translation>برترین نشرها</translation>
         </message>
         <message id="genycaster.stats.no_posts">
             <source>No posts in this period.</source>
@@ -288,19 +288,19 @@
         </message>
         <message id="genycaster.stats.open_cast">
             <source>Open cast</source>
-            <translation>بازکردن کست</translation>
+            <translation>بازکردن نشر</translation>
         </message>
         <message id="genycaster.stats.media_cast">
             <source>Media cast</source>
-            <translation>کست رسانه‌ای</translation>
+            <translation>نشر رسانه‌ای</translation>
         </message>
         <message id="genycaster.stats.cast_engagement">
             <source>%1 likes · %2 recasts · %3 replies</source>
-            <translation>%1 لایک · %2 ریکست · %3 پاسخ</translation>
+            <translation>%1 لایک · %2 بازنشر · %3 پاسخ</translation>
         </message>
         <message id="genycaster.stats.average">
             <source>Average engagement per cast: %1</source>
-            <translation>میانگین تعامل هر کست: %1</translation>
+            <translation>میانگین تعامل هر نشر: %1</translation>
         </message>
         <message id="genycaster.stats.engagement_unavailable">
             <source>Engagement counts are not provided by this node.</source>
@@ -428,11 +428,11 @@
         </message>
         <message id="genycaster.streak.creator_rule">
             <source>One verified original Cast per day counts.</source>
-            <translation>هر روز یک کست اصلیِ تأییدشده محاسبه می‌شود.</translation>
+            <translation>هر روز یک نشر اصلیِ تأییدشده محاسبه می‌شود.</translation>
         </message>
         <message id="genycaster.streak.activity_rule">
             <source>A verified Cast or Reply counts once per day.</source>
-            <translation>هر روز یک کست یا پاسخ تأییدشده محاسبه می‌شود.</translation>
+            <translation>هر روز یک نشر یا پاسخ تأییدشده محاسبه می‌شود.</translation>
         </message>
         <message id="genycaster.streak.badges">
             <source>Badges · %1/%2</source>
@@ -504,23 +504,23 @@
         </message>
         <message id="genycaster.topic_browser.empty">
             <source>No GenyCaster casts are tagged with this topic yet.</source>
-            <translation>هنوز هیچ کستی در جنی‌کستر با این موضوع ثبت نشده است.</translation>
+            <translation>هنوز هیچ نشری در جنی‌کستر با این موضوع ثبت نشده است.</translation>
         </message>
         <message id="genycaster.topic_browser.cast_author_fid">
             <source>Cast · FID %1</source>
-            <translation>کست · شناسه FID: %1</translation>
+            <translation>نشر · شناسه FID: %1</translation>
         </message>
         <message id="genycaster.topic_browser.view_cast">
             <source>View cast</source>
-            <translation>نمایش کست</translation>
+            <translation>نمایش نشر</translation>
         </message>
         <message id="genycaster.topic_browser.load_more">
             <source>Load more casts</source>
-            <translation>بارگذاری کست‌های بیشتر</translation>
+            <translation>بارگذاری نشرهای بیشتر</translation>
         </message>
         <message id="genycaster.topic_browser.filter_accessible">
             <source>Filter casts by topic</source>
-            <translation>فیلتر کست‌ها بر اساس موضوع</translation>
+            <translation>فیلتر نشرها بر اساس موضوع</translation>
         </message>
         <message id="genycaster.topic.trading">
             <source>Trading</source>
@@ -593,7 +593,7 @@
         </message>
         <message id="genycaster.filters.profile">
             <source>Profile cast filters</source>
-            <translation>فیلتر کست‌های پروفایل</translation>
+            <translation>فیلتر نشرهای پروفایل</translation>
         </message>
         <message id="genycaster.filters.bookmarks">
             <source>Bookmark filters</source>
@@ -705,7 +705,7 @@
         </message>
         <message id="genycaster.topics.hint">
             <source>Choose up to three topics describing your content. Topics are independent of channels.</source>
-            <translation>حداکثر سه موضوع برای محتوای کست انتخاب کنید. موضوعات مستقل از کانال هستند.</translation>
+            <translation>حداکثر سه موضوع برای محتوای نشر انتخاب کنید. موضوعات مستقل از کانال هستند.</translation>
         </message>
         <message id="genycaster.topics.search">
             <source>Search topics</source>
@@ -1243,7 +1243,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.share.cast">
             <source>Share cast</source>
-            <translation>اشتراک‌گذاری کست</translation>
+            <translation>اشتراک‌گذاری نشر</translation>
         </message>
         <message id="genycaster.share.share_action">
             <source>Share…</source>
@@ -1267,7 +1267,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bookmarks.description">
             <source>Your saved casts, available on your signed-in devices</source>
-            <translation>کست‌های ذخیره‌شدهٔ شما، در تمام دستگاه‌هایی که وارد حساب شده‌اید</translation>
+            <translation>نشرهای ذخیره‌شدهٔ شما، در تمام دستگاه‌هایی که وارد حساب شده‌اید</translation>
         </message>
         <message id="genycaster.bookmarks.sort_priority">
             <source>Priority</source>
@@ -1283,7 +1283,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bookmarks.refresh">
             <source>Refresh saved casts</source>
-            <translation>تازه‌سازی کست‌های ذخیره‌شده</translation>
+            <translation>تازه‌سازی نشرهای ذخیره‌شده</translation>
         </message>
         <message id="genycaster.bookmarks.pending">
             <source>Saving %1 bookmark changes to your account…</source>
@@ -1291,7 +1291,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bookmarks.saved_cast">
             <source>Saved cast</source>
-            <translation>کست ذخیره‌شده</translation>
+            <translation>نشر ذخیره‌شده</translation>
         </message>
         <message id="genycaster.bookmarks.unpin">
             <source>Remove priority</source>
@@ -1307,7 +1307,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bookmarks.open_saved_cast">
             <source>Open saved cast</source>
-            <translation>بازکردن کست ذخیره‌شده</translation>
+            <translation>بازکردن نشر ذخیره‌شده</translation>
         </message>
         <message id="genycaster.profile.link_number">
             <source>Link %1</source>
@@ -1559,7 +1559,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.nodes.raw_brief">
             <source>Raw Snapchain · posts, profile and follows; no aggregate counts or global Explorer.</source>
-            <translation>اسنپ‌چین خام · کست‌ها، پروفایل و دنبال‌کردن‌ها؛ بدون آمار تجمیعی یا اکسپلورر سراسری.</translation>
+            <translation>اسنپ‌چین خام · نشرها، پروفایل و دنبال‌کردن‌ها؛ بدون آمار تجمیعی یا اکسپلورر سراسری.</translation>
         </message>
         <message id="genycaster.nodes.indexed_brief">
             <source>Indexed API · extra features depend on the service.</source>
@@ -1887,7 +1887,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.providers.write_description">
             <source>Choose a write-capable node for signed casts, reactions, links and signer operations. A read-only node cannot publish.</source>
-            <translation>برای کست‌ها، واکنش‌ها، پیوندها و عملیات کلید امضاکننده، نودی با قابلیت نوشتن انتخاب کنید. نود فقط‌خواندنی نمی‌تواند منتشر کند.</translation>
+            <translation>برای نشرها، واکنش‌ها، پیوندها و عملیات کلید امضاکننده، نودی با قابلیت نوشتن انتخاب کنید. نود فقط‌خواندنی نمی‌تواند منتشر کند.</translation>
         </message>
         <message id="genycaster.providers.write_endpoint">
             <source>Validator / write endpoint</source>
@@ -1903,7 +1903,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.validator_write_description">
             <source>A read-only node cannot publish messages. Choose a validator or write-capable endpoint for casts, reactions, follows and signer keys.</source>
-            <translation>نود فقط‌خواندنی نمی‌تواند پیام منتشر کند. برای کست‌ها، واکنش‌ها، دنبال‌کردن و کلیدهای امضا، نشانی یک اعتبارسنج یا سرویس‌دهندهٔ دارای قابلیت نوشتن را انتخاب کنید.</translation>
+            <translation>نود فقط‌خواندنی نمی‌تواند پیام منتشر کند. برای نشرها، واکنش‌ها، دنبال‌کردن و کلیدهای امضا، نشانی یک اعتبارسنج یا سرویس‌دهندهٔ دارای قابلیت نوشتن را انتخاب کنید.</translation>
         </message>
         <message id="genycaster.settings.validator_write_invalid">
             <source>Enter a valid HTTP(S) URL without credentials.</source>
@@ -2051,7 +2051,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.choose_a_canonical_cast_before_publishing_a_reply">
             <source>Choose a canonical cast before publishing a reply.</source>
-            <translation>پیش از انتشار پاسخ، یک کست مرجع انتخاب کنید.</translation>
+            <translation>پیش از انتشار پاسخ، یک نشر مرجع انتخاب کنید.</translation>
         </message>
         <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_changing_follows">
             <source>Enable a verified Farcaster signer before changing follows.</source>
@@ -2059,7 +2059,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_deleting_a_cast">
             <source>Enable a verified Farcaster signer before deleting a cast.</source>
-            <translation>پیش از حذف کست، یک امضاکنندهٔ تأییدشدهٔ فارکستر فعال کنید.</translation>
+            <translation>پیش از حذف نشر، یک امضاکنندهٔ تأییدشدهٔ فارکستر فعال کنید.</translation>
         </message>
         <message id="genycaster.bridge.enable_a_verified_farcaster_signer_before_interacting">
             <source>Enable a verified Farcaster signer before interacting.</source>
@@ -2087,11 +2087,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.farcaster_casts_are_limited_to_1024_utf_8_bytes">
             <source>Farcaster cast output is limited to 1024 UTF-8 bytes.</source>
-            <translation>خروجی کست فارکستر به ۱۰۲۴ بایت UTF-8 محدود است.</translation>
+            <translation>خروجی نشر فارکستر به ۱۰۲۴ بایت UTF-8 محدود است.</translation>
         </message>
         <message id="genycaster.bridge.invalid_cast_embeds">
             <source>The cast embed layout is invalid.</source>
-            <translation>ساختار امبدهای کست معتبر نیست.</translation>
+            <translation>ساختار امبدهای نشر معتبر نیست.</translation>
         </message>
         <message id="genycaster.bridge.invalid_semantic_mentions">
             <source>The semantic mention layout is invalid.</source>
@@ -2111,7 +2111,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.only_your_own_canonical_farcaster_cast_can_be_deleted">
             <source>Only your own canonical Farcaster cast can be deleted.</source>
-            <translation>فقط کست مرجع متعلق به خودتان را می‌توانید حذف کنید.</translation>
+            <translation>فقط نشر مرجع متعلق به خودتان را می‌توانید حذف کنید.</translation>
         </message>
         <message id="genycaster.bridge.open_a_profile_before_loading_profile_posts">
             <source>Open a profile before loading profile posts.</source>
@@ -2127,7 +2127,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.preparing_a_canonical_farcaster_cast">
             <source>Preparing a canonical Farcaster cast…</source>
-            <translation>در حال آماده‌سازی کست مرجع فارکستر…</translation>
+            <translation>در حال آماده‌سازی نشر مرجع فارکستر…</translation>
         </message>
         <message id="genycaster.bridge.preparing_a_canonical_farcaster_reply">
             <source>Preparing a canonical Farcaster reply…</source>
@@ -2139,7 +2139,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.preparing_the_farcaster_cast_deletion">
             <source>Preparing the Farcaster cast deletion…</source>
-            <translation>در حال آماده‌سازی حذف کست فارکستر…</translation>
+            <translation>در حال آماده‌سازی حذف نشر فارکستر…</translation>
         </message>
         <message id="genycaster.bridge.preparing_the_farcaster_follow">
             <source>Preparing the Farcaster follow…</source>
@@ -2159,7 +2159,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.reading_cached_cast">
             <source>Reading cached cast…</source>
-            <translation>در حال خواندن کست ذخیره‌شده…</translation>
+            <translation>در حال خواندن نشر ذخیره‌شده…</translation>
         </message>
         <message id="genycaster.bridge.reading_cached_channel">
             <source>Reading cached channel…</source>
@@ -2183,7 +2183,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.reading_cached_popular_casts">
             <source>Reading cached popular casts…</source>
-            <translation>در حال خواندن کست‌های محبوب ذخیره‌شده…</translation>
+            <translation>در حال خواندن نشرهای محبوب ذخیره‌شده…</translation>
         </message>
         <message id="genycaster.bridge.reading_cached_posts">
             <source>Reading cached posts…</source>
@@ -2207,7 +2207,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.reply_target_not_available_as_canonical_cast">
             <source>The reply target is not available as a canonical cast in the current presentation state.</source>
-            <translation>هدف پاسخ به‌عنوان یک کست معتبر در وضعیت فعلی رابط در دسترس نیست.</translation>
+            <translation>هدف پاسخ به‌عنوان یک نشر معتبر در وضعیت فعلی رابط در دسترس نیست.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_before_changing_follows">
             <source>Sign in before changing follows.</source>
@@ -2215,7 +2215,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.sign_in_before_deleting_a_cast">
             <source>Sign in before deleting a cast.</source>
-            <translation>پیش از حذف کست وارد شوید.</translation>
+            <translation>پیش از حذف نشر وارد شوید.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_before_enabling_interactions">
             <source>Sign in before enabling interactions.</source>
@@ -2223,7 +2223,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.sign_in_before_interacting_with_a_cast">
             <source>Sign in before interacting with a cast.</source>
-            <translation>پیش از تعامل با کست وارد شوید.</translation>
+            <translation>پیش از تعامل با نشر وارد شوید.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_before_opening_your_account_profile">
             <source>Sign in before opening your account profile.</source>
@@ -2231,11 +2231,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.sign_in_before_publishing_a_cast">
             <source>Sign in before publishing a cast.</source>
-            <translation>پیش از انتشار کست وارد شوید.</translation>
+            <translation>پیش از انتشار نشر وارد شوید.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_before_replying_to_a_cast">
             <source>Sign in before replying to a cast.</source>
-            <translation>پیش از پاسخ به کست وارد شوید.</translation>
+            <translation>پیش از پاسخ به نشر وارد شوید.</translation>
         </message>
         <message id="genycaster.bridge.sign_in_is_not_configured_guest_reading_remains_available">
             <source>Sign in is not configured in this build. A verified account is required to continue.</source>
@@ -2247,7 +2247,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.that_cast_identifier_is_empty">
             <source>That cast identifier is empty.</source>
-            <translation>شناسهٔ کست خالی است.</translation>
+            <translation>شناسهٔ نشر خالی است.</translation>
         </message>
         <message id="genycaster.bridge.that_farcaster_follow_target_is_invalid">
             <source>That Farcaster follow target is invalid.</source>
@@ -2263,7 +2263,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.that_reply_target_has_an_empty_cast_identifier">
             <source>That reply target has an empty cast identifier.</source>
-            <translation>هدف پاسخ شناسهٔ کست خالی دارد.</translation>
+            <translation>هدف پاسخ شناسهٔ نشر خالی دارد.</translation>
         </message>
         <message id="genycaster.bridge.the_authentication_approval_link_is_invalid">
             <source>The authentication approval link is invalid.</source>
@@ -2287,15 +2287,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bridge.thread_cast_count_invalid">
             <source>A thread must contain between 2 and 12 casts.</source>
-            <translation>یک رشته باید بین ۲ تا ۱۲ کست داشته باشد.</translation>
+            <translation>یک رشته باید بین ۲ تا ۱۲ نشر داشته باشد.</translation>
         </message>
         <message id="genycaster.bridge.thread_cast_empty">
             <source>Every cast in a thread must contain text or an embed.</source>
-            <translation>هر کست در یک رشته باید متن یا محتوای جاسازی‌شده داشته باشد.</translation>
+            <translation>هر نشر در یک رشته باید متن یا محتوای جاسازی‌شده داشته باشد.</translation>
         </message>
         <message id="genycaster.bridge.too_many_cast_embeds">
             <source>This cast contains too many protocol embeds. Farcaster accepts at most two.</source>
-            <translation>این کست تعداد زیادی امبد پروتکلی دارد. فارکستر حداکثر دو امبد می‌پذیرد.</translation>
+            <translation>این نشر تعداد زیادی امبد پروتکلی دارد. فارکستر حداکثر دو امبد می‌پذیرد.</translation>
         </message>
         <message id="genycaster.bridge.write_something_before_publishing">
             <source>Write something before publishing.</source>
@@ -2307,7 +2307,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.copy_cast_id">
             <source>Copy cast ID</source>
-            <translation>کپی شناسهٔ کست</translation>
+            <translation>کپی شناسهٔ نشر</translation>
         </message>
         <message id="genycaster.cast.copy_link">
             <source>Copy link</source>
@@ -2331,7 +2331,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.open_original_cast">
             <source>Open original cast</source>
-            <translation>بازکردن کست اصلی</translation>
+            <translation>بازکردن نشر اصلی</translation>
         </message>
         <message id="genycaster.cast.publish_failed_saved_locally">
             <source>Publish failed · saved locally</source>
@@ -2367,7 +2367,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.replying_to_another_cast">
             <source>Replying to another cast</source>
-            <translation>در پاسخ به یک کست دیگر</translation>
+            <translation>در پاسخ به یک نشر دیگر</translation>
         </message>
         <message id="genycaster.cast.replying_to_value">
             <source>Replying to %1</source>
@@ -2395,7 +2395,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.add_cast">
             <source>Add cast</source>
-            <translation>افزودن کست</translation>
+            <translation>افزودن نشر</translation>
         </message>
         <message id="genycaster.composer.apply">
             <source>Apply</source>
@@ -2455,7 +2455,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.emoji_subtitle">
             <source>Add an emoji to the current cast.</source>
-            <translation>یک ایموجی به کست فعلی اضافه کنید.</translation>
+            <translation>یک ایموجی به نشر فعلی اضافه کنید.</translation>
         </message>
         <message id="genycaster.composer.farcaster_preview">
             <source>Farcaster Preview</source>
@@ -2503,7 +2503,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.long_cast_notice">
             <source>This will publish as a Farcaster long cast.</source>
-            <translation>این محتوا به‌صورت کست بلند فارکستر منتشر می‌شود.</translation>
+            <translation>این محتوا به‌صورت نشر بلند فارکستر منتشر می‌شود.</translation>
         </message>
         <message id="genycaster.composer.markdown">
             <source>Markdown</source>
@@ -2563,7 +2563,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.remove_thread_cast">
             <source>Remove this cast</source>
-            <translation>حذف این کست</translation>
+            <translation>حذف این نشر</translation>
         </message>
         <message id="genycaster.composer.rich_engine_subtitle">
             <source>Structured rich document · safe Farcaster output</source>
@@ -2579,15 +2579,15 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.thread_hint">
             <source>Add another cast to turn this into a Farcaster thread.</source>
-            <translation>یک کست دیگر اضافه کنید تا این نوشته به یک رشتهٔ Farcaster تبدیل شود.</translation>
+            <translation>یک نشر دیگر اضافه کنید تا این نوشته به یک رشتهٔ Farcaster تبدیل شود.</translation>
         </message>
         <message id="genycaster.composer.thread_placeholder">
             <source>Continue the thread · Cast %1</source>
-            <translation>ادامهٔ رشته · کست %1</translation>
+            <translation>ادامهٔ رشته · نشر %1</translation>
         </message>
         <message id="genycaster.composer.thread_protocol_hint">
             <source>Each cast is a normal Farcaster CastAdd linked to the previous cast as its parent.</source>
-            <translation>هر کست یک CastAdd معمولی Farcaster است که کست قبلی را به‌عنوان والد خود دارد.</translation>
+            <translation>هر نشر یک CastAdd معمولی Farcaster است که نشر قبلی را به‌عنوان والد خود دارد.</translation>
         </message>
         <message id="genycaster.composer.thread_title">
             <source>New thread</source>
@@ -2639,7 +2639,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.context.community_casts_loaded">
             <source>Casts loaded</source>
-            <translation>کست‌های بارگذاری‌شده</translation>
+            <translation>نشرهای بارگذاری‌شده</translation>
         </message>
         <message id="genycaster.context.community_last_7_days">
             <source>Last 7 days</source>
@@ -2735,7 +2735,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.detail.delete_cast">
             <source>Delete cast</source>
-            <translation>حذف کست</translation>
+            <translation>حذف نشر</translation>
         </message>
         <message id="genycaster.detail.fid_value">
             <source>FID %1</source>
@@ -2799,7 +2799,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.embed.open_quoted_cast">
             <source>Open quoted cast</source>
-            <translation>بازکردن کست نقل‌شده</translation>
+            <translation>بازکردن نشر نقل‌شده</translation>
         </message>
         <message id="genycaster.embed.open_safely_in_your_default_app_external">
             <source>Open in your default app</source>
@@ -2811,7 +2811,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.embed.quoted_cast">
             <source>Quoted cast</source>
-            <translation>کست نقل‌شده</translation>
+            <translation>نشر نقل‌شده</translation>
         </message>
         <message id="genycaster.embed.video">
             <source>Video</source>
@@ -2819,7 +2819,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.embed.view_quoted_cast_next">
             <source>View quoted cast</source>
-            <translation>مشاهدهٔ کست نقل‌شده</translation>
+            <translation>مشاهدهٔ نشر نقل‌شده</translation>
         </message>
         <message id="genycaster.emoji.classic">
             <source>Classic</source>
@@ -2991,7 +2991,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.feed_header.casts_scoped_to_the_channel_you_opened">
             <source>Casts scoped to the channel you opened</source>
-            <translation>کست‌های مربوط به کانالی که باز کرده‌اید</translation>
+            <translation>نشرهای مربوط به کانالی که باز کرده‌اید</translation>
         </message>
         <message id="genycaster.feed_header.channel">
             <source>Channel</source>
@@ -2999,7 +2999,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.feed_header.discover_people_channels_and_casts">
             <source>Discover people, channels, and casts</source>
-            <translation>آدم‌ها، کانال‌ها و کست‌ها را پیدا کنید</translation>
+            <translation>آدم‌ها، کانال‌ها و نشرها را پیدا کنید</translation>
         </message>
         <message id="genycaster.feed_header.explore">
             <source>Explore</source>
@@ -3015,7 +3015,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.feed_header.recent_casts_from_the_people_this_identity_follows">
             <source>Recent casts from the people this identity follows</source>
-            <translation>کست‌های اخیر افرادی که این هویت دنبال می‌کند</translation>
+            <translation>نشرهای اخیر افرادی که این هویت دنبال می‌کند</translation>
         </message>
         <message id="genycaster.feed_header.refresh">
             <source>Refresh</source>
@@ -3027,11 +3027,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.feed_header.search_hint">
             <source>Use @ for profiles, / for channels, or paste a cast id.</source>
-            <translation>برای نمایه از @، برای کانال از / یا از شناسهٔ کست استفاده کنید.</translation>
+            <translation>برای نمایه از @، برای کانال از / یا از شناسهٔ نشر استفاده کنید.</translation>
         </message>
         <message id="genycaster.feed_header.search_people_channels_casts">
             <source>Search people, @user, /channel, or cast id</source>
-            <translation>جست‌وجوی افراد، @کاربر، /کانال یا کست‌ها</translation>
+            <translation>جست‌وجوی افراد، @کاربر، /کانال یا نشرها</translation>
         </message>
         <message id="genycaster.feed_header.universal_search">
             <source>Explore search</source>
@@ -3159,7 +3159,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.header.new_cast">
             <source>New cast</source>
-            <translation>کست جدید</translation>
+            <translation>نشر جدید</translation>
         </message>
         <message id="genycaster.header.open_your_signed_in_account_session">
             <source>Open your signed-in account session</source>
@@ -3215,7 +3215,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.ideas_title">
             <source>Ideas for your next cast</source>
-            <translation>ایده‌هایی برای کست بعدی</translation>
+            <translation>ایده‌هایی برای نشر بعدی</translation>
         </message>
         <message id="genycaster.home.ideas_refresh">
             <source>More ideas</source>
@@ -3223,7 +3223,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.ideas_hint">
             <source>Open this idea in the cast editor</source>
-            <translation>باز کردن این ایده در ویرایشگر کست</translation>
+            <translation>باز کردن این ایده در ویرایشگر نشر</translation>
         </message>
         <message id="genycaster.home.idea_dev_topic">
             <source>Development</source>
@@ -3343,7 +3343,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.channel_picker_hint">
             <source>Choose a channel from the network. Your cast will be published to its verified parent URL.</source>
-            <translation>یک کانال از شبکه انتخاب کنید تا کست با آدرس معتبر همان کانال منتشر شود.</translation>
+            <translation>یک کانال از شبکه انتخاب کنید تا نشر با آدرس معتبر همان کانال منتشر شود.</translation>
         </message>
         <message id="genycaster.composer.channel_search">
             <source>Search channels by name or ID</source>
@@ -3371,7 +3371,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.composer.clear_all_title">
             <source>Clear this cast?</source>
-            <translation>محتوای کست پاک شود؟</translation>
+            <translation>محتوای نشر پاک شود؟</translation>
         </message>
         <message id="genycaster.composer.clear_all_confirmation">
             <source>Delete the text, attachments and additional casts in this draft? This cannot be undone. The reply destination stays unchanged.</source>
@@ -3471,7 +3471,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.share_cast">
             <source>Share a cast</source>
-            <translation>اشتراک‌گذاری کست</translation>
+            <translation>اشتراک‌گذاری نشر</translation>
         </message>
         <message id="genycaster.home.view_profile">
             <source>View Profile</source>
@@ -3711,7 +3711,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.media.choose_file_hint">
             <source>Select an image or video from your device. It uploads before the cast is published.</source>
-            <translation>یک عکس یا ویدیو از دستگاه خود انتخاب کنید. فایل پیش از انتشار کست آپلود می‌شود.</translation>
+            <translation>یک عکس یا ویدیو از دستگاه خود انتخاب کنید. فایل پیش از انتشار نشر آپلود می‌شود.</translation>
         </message>
         <message id="genycaster.media.completed">
             <source>Upload complete</source>
@@ -3731,7 +3731,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.media.insert_failed">
             <source>The uploaded media could not be inserted into this cast.</source>
-            <translation>رسانهٔ آپلودشده نتوانست به این کست افزوده شود.</translation>
+            <translation>رسانهٔ آپلودشده نتوانست به این نشر افزوده شود.</translation>
         </message>
         <message id="genycaster.media.preparing">
             <source>Preparing media…</source>
@@ -3791,11 +3791,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.notifications.content_unavailable">
             <source>Mentioned cast content is unavailable</source>
-            <translation>محتوای کست منشن‌شده در دسترس نیست</translation>
+            <translation>محتوای نشر منشن‌شده در دسترس نیست</translation>
         </message>
         <message id="genycaster.notifications.in_reply_to_your_cast">
             <source>In reply to your cast</source>
-            <translation>در پاسخ به کست شما</translation>
+            <translation>در پاسخ به نشر شما</translation>
         </message>
         <message id="genycaster.notifications.mentioned">
             <source>%1 mentioned you</source>
@@ -3803,19 +3803,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.notifications.reacted">
             <source>%1 reacted to your cast</source>
-            <translation>%1 به کست شما واکنش نشان داد</translation>
+            <translation>%1 به نشر شما واکنش نشان داد</translation>
         </message>
         <message id="genycaster.notifications.reacted_many">
             <source>%1 and %2 people reacted to your cast</source>
-            <translation>%1 و %2 نفر به کست شما واکنش نشان دادند</translation>
+            <translation>%1 و %2 نفر به نشر شما واکنش نشان دادند</translation>
         </message>
         <message id="genycaster.notifications.recasted">
             <source>%1 recast your cast</source>
-            <translation>%1 کست شما را بازنشر کرد</translation>
+            <translation>%1 نشر شما را بازنشر کرد</translation>
         </message>
         <message id="genycaster.notifications.recasted_many">
             <source>%1 and %2 people recast your cast</source>
-            <translation>%1 و %2 نفر کست شما را بازنشر کردند</translation>
+            <translation>%1 و %2 نفر نشر شما را بازنشر کردند</translation>
         </message>
         <message id="genycaster.notifications.replied">
             <source>%1 replied to you</source>
@@ -3991,11 +3991,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.no_liked_casts_here_yet">
             <source>No liked casts here yet</source>
-            <translation>هنوز کست پسندیده‌ای اینجا نیست</translation>
+            <translation>هنوز نشر پسندیده‌ای اینجا نیست</translation>
         </message>
         <message id="genycaster.profile.no_popular_casts_available_yet">
             <source>No popular casts available yet</source>
-            <translation>هنوز کست محبوبی در دسترس نیست</translation>
+            <translation>هنوز نشر محبوبی در دسترس نیست</translation>
         </message>
         <message id="genycaster.profile.no_posts_here_yet">
             <source>No posts here yet</source>
@@ -4059,7 +4059,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.profile.sort_recasts">
             <source>Most recast</source>
-            <translation>بیشترین ریکست</translation>
+            <translation>بیشترین بازنشر</translation>
         </message>
         <message id="genycaster.profile.sort_replies">
             <source>Most replies</source>
@@ -4167,7 +4167,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.roadmap.bookmarks_description">
             <source>Save casts, threads, profiles, and collections into a fast local library.</source>
-            <translation>کست‌ها، گفتگوها، نمایه‌ها و مجموعه‌ها را در یک کتابخانهٔ محلی و سریع نگه دارید.</translation>
+            <translation>نشرها، گفتگوها، نمایه‌ها و مجموعه‌ها را در یک کتابخانهٔ محلی و سریع نگه دارید.</translation>
         </message>
         <message id="genycaster.roadmap.bookmarks_title">
             <source>Bookmarks</source>
@@ -4231,19 +4231,19 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.runtime.cast">
             <source>Cast</source>
-            <translation>کست</translation>
+            <translation>نشر</translation>
         </message>
         <message id="genycaster.runtime.cast_deletion">
             <source>Cast deletion</source>
-            <translation>حذف کست</translation>
+            <translation>حذف نشر</translation>
         </message>
         <message id="genycaster.runtime.cast_deletion_could_not_be_scheduled">
             <source>Cast deletion could not be scheduled.</source>
-            <translation>حذف کست قابل زمان‌بندی نبود.</translation>
+            <translation>حذف نشر قابل زمان‌بندی نبود.</translation>
         </message>
         <message id="genycaster.runtime.cast_deletion_is_unavailable_in_this_runtime">
             <source>Cast deletion is unavailable in this runtime.</source>
-            <translation>حذف کست در این محیط اجرا در دسترس نیست.</translation>
+            <translation>حذف نشر در این محیط اجرا در دسترس نیست.</translation>
         </message>
         <message id="genycaster.runtime.checking_the_protocol_signer_against_the_network">
             <source>Checking the protocol signer against the network…</source>
@@ -4603,7 +4603,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.search.cast">
             <source>Cast</source>
-            <translation>کست</translation>
+            <translation>نشر</translation>
         </message>
         <message id="genycaster.search.channel">
             <source>Channel</source>
@@ -4639,7 +4639,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.text_selection_description">
             <source>Choose how you select and copy text in casts and the composer.</source>
-            <translation>نحوهٔ انتخاب و کپی متن در کست‌ها و ویرایشگر را مشخص کنید.</translation>
+            <translation>نحوهٔ انتخاب و کپی متن در نشرها و ویرایشگر را مشخص کنید.</translation>
         </message>
         <message id="genycaster.settings.selection_genycaster">
             <source>Genycaster</source>
@@ -4859,7 +4859,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.shell.new_cast">
             <source>New cast</source>
-            <translation>کست جدید</translation>
+            <translation>نشر جدید</translation>
         </message>
         <message id="genycaster.shell.open_farcaster">
             <source>Open Farcaster</source>
@@ -4915,7 +4915,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.shell.this_cast">
             <source>this cast</source>
-            <translation>این کست</translation>
+            <translation>این نشر</translation>
         </message>
         <message id="genycaster.shell.this_verified_session_identifies_your_account_protocol">
             <source>This verified session identifies your account. Protocol writes remain locked until Genycaster has a valid Farcaster signer for this FID.</source>
@@ -5183,7 +5183,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.content_loading_description">
             <source>Control how GenyCaster requests, hydrates, previews, and reveals casts. These settings apply to future requests.</source>
-            <translation>نحوهٔ درخواست، تکمیل زمینه، پیش‌نمایش و نمایش کست‌ها توسط GenyCaster را کنترل کنید. این تنظیمات روی درخواست‌های بعدی اعمال می‌شوند.</translation>
+            <translation>نحوهٔ درخواست، تکمیل زمینه، پیش‌نمایش و نمایش نشرها توسط GenyCaster را کنترل کنید. این تنظیمات روی درخواست‌های بعدی اعمال می‌شوند.</translation>
         </message>
         <message id="genycaster.settings.posts_per_refresh">
             <source>Posts per refresh</source>
@@ -5191,7 +5191,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.posts_per_refresh_description">
             <source>Number of casts requested for each refresh or page. Range: 1–100.</source>
-            <translation>تعداد کست‌هایی که در هر تازه‌سازی یا صفحه درخواست می‌شوند. بازه: ۱ تا ۱۰۰.</translation>
+            <translation>تعداد نشرهایی که در هر تازه‌سازی یا صفحه درخواست می‌شوند. بازه: ۱ تا ۱۰۰.</translation>
         </message>
         <message id="genycaster.settings.context_hydration_limit">
             <source>Reply / quote context</source>
@@ -5199,7 +5199,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.context_hydration_limit_description">
             <source>Maximum referenced parent or quoted casts hydrated per page. Range: 1–100.</source>
-            <translation>حداکثر تعداد کست‌های والد یا نقل‌قول‌شده که در هر صفحه تکمیل می‌شوند. بازه: ۱ تا ۱۰۰.</translation>
+            <translation>حداکثر تعداد نشرهای والد یا نقل‌قول‌شده که در هر صفحه تکمیل می‌شوند. بازه: ۱ تا ۱۰۰.</translation>
         </message>
         <message id="genycaster.settings.buffer_new_posts">
             <source>Buffer new posts</source>
@@ -5207,7 +5207,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.settings.buffer_new_posts_description">
             <source>Keep the current timeline stable and show a “Show N posts” banner when a refresh finds newer casts.</source>
-            <translation>تایم‌لاین فعلی را ثابت نگه می‌دارد و وقتی تازه‌سازی کست‌های جدید پیدا کند، نوار «نمایش N پست» را نشان می‌دهد.</translation>
+            <translation>تایم‌لاین فعلی را ثابت نگه می‌دارد و وقتی تازه‌سازی نشرهای جدید پیدا کند، نوار «نمایش N پست» را نشان می‌دهد.</translation>
         </message>
         <message id="genycaster.settings.link_preview_prefetch">
             <source>Prefetch link previews</source>
@@ -5227,11 +5227,11 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.loading_original_cast">
             <source>Loading original cast…</source>
-            <translation>در حال بارگذاری کست اصلی…</translation>
+            <translation>در حال بارگذاری نشر اصلی…</translation>
         </message>
         <message id="genycaster.embed.loading_quoted_cast">
             <source>Loading quoted cast…</source>
-            <translation>در حال بارگذاری کست نقل‌قول‌شده…</translation>
+            <translation>در حال بارگذاری نشر نقل‌قول‌شده…</translation>
         </message>
         <message id="genycaster.storage.title">
             <source>Data &amp; Storage</source>
@@ -5531,7 +5531,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.home.composer_placeholder">
             <source>Write a new cast or message…</source>
-            <translation>یک کست یا پیام جدید بنویسید…</translation>
+            <translation>یک نشر یا پیام جدید بنویسید…</translation>
         </message>
         <message id="genycaster.settings.social_workspace">
             <source>Social workspace</source>
@@ -6067,7 +6067,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.browser_preview_runs_in_guest_read_only_mode_reading">
             <source>Browser preview runs in guest/read-only mode. Reading casts and profiles is available where providers allow CORS.</source>
-            <translation>پیش‌نمایش مرورگر در حالت مهمان/فقط خواندنی اجرا می‌شود. خواندن کست‌ها و پروفایل‌ها در مواردی که ارائه‌دهندگان CORS را مجاز می‌دانند، در دسترس است.</translation>
+            <translation>پیش‌نمایش مرورگر در حالت مهمان/فقط خواندنی اجرا می‌شود. خواندن نشرها و پروفایل‌ها در مواردی که ارائه‌دهندگان CORS را مجاز می‌دانند، در دسترس است.</translation>
         </message>
         <message id="genycaster.setup.browser_sign_in_verifies_your_genyleap_openproof_account_and">
             <source>Browser sign-in verifies your Genyleap/OpenProof account and linked Farcaster FID. Publishing still requires a secure protocol signer and is unavailable in the browser.</source>
@@ -6323,7 +6323,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.preview_post_one">
             <source>Every conversation starts with a hello.</source>
-            <translation>هر گفتگو با یک سلام آغاز می‌شود.</translation>
+            <translation>هر گفتگو با یک درود آغاز می‌شود.</translation>
         </message>
         <message id="genycaster.setup.preview_post_two">
             <source>Ideas connect us across languages.</source>
@@ -6679,7 +6679,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.activity.day_summary">
             <source>%1 · %2 loaded casts</source>
-            <translation>%1 · %2 کست بارگذاری‌شده</translation>
+            <translation>%1 · %2 نشر بارگذاری‌شده</translation>
         </message>
         <message id="genycaster.activity.not_linked">
             <source>Not linked</source>
@@ -6711,7 +6711,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.activity.indexed_count">
             <source>%1 casts · %2 replies</source>
-            <translation>%1 کست · %2 پاسخ</translation>
+            <translation>%1 نشر · %2 پاسخ</translation>
         </message>
         <message id="genycaster.activity.wallet_pending">
             <source>Verified wallet · chain indexer not connected</source>
@@ -6831,7 +6831,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.activity.casts">
             <source>Casts</source>
-            <translation>کست‌ها</translation>
+            <translation>نشرها</translation>
         </message>
         <message id="genycaster.activity.range_year">
             <source>1Y</source>
@@ -6871,7 +6871,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.bookmarks.delete_confirmation">
             <source>Delete this collection? Saved casts will remain in Bookmarks.</source>
-            <translation>این مجموعه حذف شود؟ کست‌های ذخیره‌شده همچنان در نشان‌شده‌ها باقی می‌مانند.</translation>
+            <translation>این مجموعه حذف شود؟ نشرهای ذخیره‌شده همچنان در نشان‌شده‌ها باقی می‌مانند.</translation>
         </message>
         <message id="genycaster.bookmarks.confirm_delete">
             <source>Confirm delete</source>
@@ -6951,7 +6951,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.cast.quote_reference_unavailable">
             <source>This cast cannot be quoted because its canonical reference is unavailable.</source>
-            <translation>این کست به‌دلیل در دسترس نبودن ارجاع معتبر، قابل نقل‌قول نیست.</translation>
+            <translation>این نشر به‌دلیل در دسترس نبودن ارجاع معتبر، قابل نقل‌قول نیست.</translation>
         </message>
         <message id="genycaster.brand.geny_ticker">
             <source>GENY</source>
@@ -6999,7 +6999,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.pro.feature_collections_desc">
             <source>Create custom collections for saved casts. Bookmarks remain available on Basic.</source>
-            <translation>برای کست‌های ذخیره‌شده مجموعه‌های دلخواه بسازید. نشانک‌های معمولی در نسخه عادی هم در دسترس‌اند.</translation>
+            <translation>برای نشرهای ذخیره‌شده مجموعه‌های دلخواه بسازید. نشانک‌های معمولی در نسخه عادی هم در دسترس‌اند.</translation>
         </message>
         <message id="genycaster.pro.feature_connections_desc">
             <source>Add account connections with Pro. Existing links remain viewable and removable.</source>
@@ -7023,7 +7023,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.pro.thread_explanation">
             <source>This draft exceeds the limits of a single Farcaster cast. It will be published as %1 connected casts, only after you confirm.</source>
-            <translation>این پیش‌نویس از محدودیت یک کست فراتر است. تنها با تأیید شما به‌صورت %1 کست متصل منتشر می‌شود.</translation>
+            <translation>این پیش‌نویس از محدودیت یک نشر فراتر است. تنها با تأیید شما به‌صورت %1 نشر متصل منتشر می‌شود.</translation>
         </message>
         <message id="genycaster.pro.publish_thread">
             <source>Publish thread</source>
@@ -7140,6 +7140,42 @@ Company | https://company.com</source>
         <message id="genycaster.setup.logo_3d_accessible">
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>لوگوی سه‌بعدی GenyCaster. برای چرخاندن بکشید، برای بزرگ‌نمایی پیمایش کنید و برای بازنشانی کلید R را فشار دهید.</translation>
+        </message>
+        <message id="genycaster.stats.range_week">
+            <source>7 days</source>
+            <translation>۷ روزه</translation>
+        </message>
+        <message id="genycaster.stats.range_month">
+            <source>30 days</source>
+            <translation>ماهانه</translation>
+        </message>
+        <message id="genycaster.stats.range_quarter">
+            <source>90 days</source>
+            <translation>سه‌ماهه</translation>
+        </message>
+        <message id="genycaster.stats.range_year">
+            <source>1 year</source>
+            <translation>سالانه</translation>
+        </message>
+        <message id="genycaster.stats.radar_explainer">
+            <source>All axes share one scale (highest count: %1).</source>
+            <translation>همهٔ محورها مقیاس یکسان دارند (بیشترین مقدار: %1).</translation>
+        </message>
+        <message id="genycaster.stats.github_active_days">
+            <source>Active days: %1</source>
+            <translation>روزهای فعال: %1</translation>
+        </message>
+        <message id="genycaster.market.asset_bitcoin">
+            <source>Bitcoin</source>
+            <translation>بیت‌کوین</translation>
+        </message>
+        <message id="genycaster.market.asset_ethereum">
+            <source>Ethereum</source>
+            <translation>اتریوم</translation>
+        </message>
+        <message id="genycaster.market.asset_solana">
+            <source>Solana</source>
+            <translation>سولانا</translation>
         </message>
     </context>
 </TS>

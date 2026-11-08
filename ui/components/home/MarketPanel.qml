@@ -39,6 +39,15 @@ ColumnLayout {
         default: return String(root.sentiment.label || "")
         }
     }
+    // Human-readable asset names are localized; ticker symbols stay canonical.
+    function assetName(symbol) {
+        switch (String(symbol || "").toUpperCase()) {
+        case "BTC": return qsTrId("genycaster.market.asset_bitcoin")
+        case "ETH": return qsTrId("genycaster.market.asset_ethereum")
+        case "SOL": return qsTrId("genycaster.market.asset_solana")
+        default: return String(symbol || "")
+        }
+    }
     function compact(value) {
         const n = Number(value)
         if (!Number.isFinite(n) || n < 0) return "—"
@@ -141,6 +150,7 @@ ColumnLayout {
                             Layout.fillWidth: true
                             alignToUi: true
                             text: String(assetCard.modelData.symbol)
+                            forceLeftToRight: true
                             font.pixelSize: Theme.typeMetaSize
                             font.weight: Theme.weightDemiBold
                             color: Theme.textSecondary
@@ -152,6 +162,15 @@ ColumnLayout {
                                 ? (Theme.dark ? "#FF9EA4" : "#DB4853")
                                 : (Theme.dark ? "#6FDEA4" : "#168F6A")
                         }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        alignToUi: true
+                        text: root.assetName(assetCard.modelData.symbol)
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.textSecondary
+                        elide: Text.ElideRight
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -351,8 +370,8 @@ ColumnLayout {
                     }
                     Repeater {
                         model: [
-                            {name:"Bitcoin (BTC)",percentage:root.globalData.btc_dominance,fill:Theme.accent},
-                            {name:"Ethereum (ETH)",percentage:root.globalData.eth_dominance,fill:Theme.textSecondary}
+                            {name:root.assetName("BTC") + " (\u2066BTC\u2069)",percentage:root.globalData.btc_dominance,fill:Theme.accent},
+                            {name:root.assetName("ETH") + " (\u2066ETH\u2069)",percentage:root.globalData.eth_dominance,fill:Theme.textSecondary}
                         ]
                         delegate: ColumnLayout {
                             id: dominanceRow
