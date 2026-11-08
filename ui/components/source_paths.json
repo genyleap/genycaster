@@ -92,6 +92,8 @@
   "LocaleSettingsPopup.qml": "settings/SettingsPopup.qml",
   "LocalizedPrice.qml": "content/LocalizedPrice.qml",
   "MarketAssetIcon.qml": "content/MarketAssetIcon.qml",
+  "MarketKpi.qml": "home/MarketKpi.qml",
+  "MarketPanel.qml": "home/MarketPanel.qml",
   "MediaGallery.qml": "media/MediaGallery.qml",
   "MediaPreview.qml": "media/MediaPreview.qml",
   "MediaUploadPanel.qml": "composer/MediaUploadPanel.qml",

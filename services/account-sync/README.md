@@ -274,3 +274,26 @@ Data is persisted as a reserved GenyCaster-owned `notifications` row
 (ID `00000000-0000-4000-8000-000000000003`). Generic notification
 reads and writes exclude that row and cannot impersonate the internal
 record. This needs no new database role, schema privileges, or migrations.
+
+
+### Market snapshot (read-only)
+
+The Stats → Market dashboard reads `GET /api/v1/cloud/market` through the
+existing first-party HTTPS API proxy. This endpoint is intentionally **public,
+read-only**, unlike authenticated account state; no account cookie, FID, or
+wallet information is needed. Each market metric is fetched **once per server
+cache interval** across every connected desktop, mobile and WASM client.
+
+For production CoinMarketCap market indicators configure
+`GENYCASTER_CMC_API_KEY` in the account API process environment (for example
+`/etc/genycaster/account-api.env`, never a shipped QML/WASM asset), using
+a plan whose terms permit GenyCaster's application use. Restart the
+`genycaster-account-api` PM2 service after configuration. The implementation
+uses the authenticated CMC Pro API, not the rate-limited keyless evaluation API.
+
+Without a key, the endpoint returns an honestly **partial** snapshot: the
+Fear & Greed indicator from Alternative.me, credited and linked in the UI;
+CMC-specific cards show unavailable, never fabricated values. Each indicator
+has independent TTL/single-flight caching and stale-data fallback; upstream
+exceptions and credentials are not forwarded to clients. Add provider-supplied
+attribution and respect CMC API subscription and redistribution restrictions.

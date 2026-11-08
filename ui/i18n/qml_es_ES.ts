@@ -2,6 +2,78 @@
 <TS version="2.1" language="es_ES" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.market.social">
+            <source>Social</source>
+            <translation>Social</translation>
+        </message>
+        <message id="genycaster.market.market">
+            <source>Market</source>
+            <translation>Market</translation>
+        </message>
+        <message id="genycaster.market.title">
+            <source>Crypto market</source>
+            <translation>Crypto market</translation>
+        </message>
+        <message id="genycaster.market.subtitle">
+            <source>Market trends and key indicators</source>
+            <translation>Market trends and key indicators</translation>
+        </message>
+        <message id="genycaster.market.partial">
+            <source>Some market indicators are temporarily unavailable.</source>
+            <translation>Some market indicators are temporarily unavailable.</translation>
+        </message>
+        <message id="genycaster.market.unconfigured">
+            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
+            <translation>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</translation>
+        </message>
+        <message id="genycaster.market.unavailable">
+            <source>Unavailable</source>
+            <translation>Unavailable</translation>
+        </message>
+        <message id="genycaster.market.marketcap">
+            <source>Market cap</source>
+            <translation>Market cap</translation>
+        </message>
+        <message id="genycaster.market.total_market">
+            <source>Total crypto market</source>
+            <translation>Total crypto market</translation>
+        </message>
+        <message id="genycaster.market.volume">
+            <source>Trading volume</source>
+            <translation>Trading volume</translation>
+        </message>
+        <message id="genycaster.market.last_24h">
+            <source>Last 24 hours</source>
+            <translation>Last 24 hours</translation>
+        </message>
+        <message id="genycaster.market.dominance">
+            <source>Market dominance</source>
+            <translation>Market dominance</translation>
+        </message>
+        <message id="genycaster.market.fear">
+            <source>Fear &amp; Greed</source>
+            <translation>Fear &amp; Greed</translation>
+        </message>
+        <message id="genycaster.market.season">
+            <source>Altcoin season</source>
+            <translation>Altcoin season</translation>
+        </message>
+        <message id="genycaster.market.altseason">
+            <source>Altcoin Season Index</source>
+            <translation>Altcoin Season Index</translation>
+        </message>
+        <message id="genycaster.market.cmc100">
+            <source>CMC100 Index</source>
+            <translation>CMC100 Index</translation>
+        </message>
+        <message id="genycaster.market.source_cmc">
+            <source>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</source>
+            <translation>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</translation>
+        </message>
+        <message id="genycaster.market.source_alternative">
+            <source>Fear &amp; Greed data: Alternative.me</source>
+            <translation>Fear &amp; Greed data: Alternative.me</translation>
+        </message>
         <message id="genycaster.stats.subtitle_short">
             <source>Your publishing activity and engagement</source>
             <translation>Your publishing activity and engagement</translation>

@@ -101,6 +101,8 @@ set(farcasterQmlFiles
     components/home/HomeComposer.qml
     components/home/HomeDashboard.qml
     components/home/StatsPanel.qml
+    components/home/MarketPanel.qml
+    components/home/MarketKpi.qml
     components/home/StatsKpi.qml
     components/home/StatsSkeleton.qml
     components/home/StatsChart.qml
@@ -389,6 +391,8 @@ qt_add_executable(genycaster
     app/social/cast_views.hpp
     app/social/stats.cpp
     app/social/stats.hpp
+    app/data/market.cpp
+    app/data/market.hpp
     app/browser/reactions.cpp
     app/browser/reactions.hpp
     app/browser/link_metadata.cpp

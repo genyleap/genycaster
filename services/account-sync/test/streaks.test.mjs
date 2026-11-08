@@ -10,6 +10,7 @@ test('Streak days are unique, UTC, badge thresholds respect longest and grace ye
   const rows=['2026-11-02','2026-11-03','2026-11-04'].map(day=>({day,kind:'cast'}));
   rows.push({day:'2026-11-04',kind:'cast'},{day:'2026-11-05',kind:'reply'});
   const summary=calculateStreaks(rows,now);
+  assert.equal(summary.as_of_utc_day,'2026-11-05');
   assert.equal(summary.activity.current,4);
   assert.equal(summary.creator.current,3);
   assert.deepEqual(summary.creator.badges,[1,3]);
@@ -143,7 +144,7 @@ test('Streak API cannot award anonymous, invalid, unconfirmed or duplicate casts
  },{kind:'reply',day:'2026-11-01'});
 });
 
-test('read-side reconciliation credits the exact confirmed November 3 cast without client PUT',async()=>{
+test('read-side reconciliation retains historical verified runs without pretending they are current',async()=>{
  const castHash='0x55c129f6fa06ecf4a974fd5bcd432a8b3e4640c5';
  const yesterday='0x2993e01d2d83560c3209322e3f49d75b891bb8ab';
  const feed = async url => {
@@ -198,8 +199,16 @@ test('read-side reconciliation credits the exact confirmed November 3 cast witho
    const before=await fetch(url,{headers:{authorization:'Bearer wrong'}});
    assert.equal(before.status,401);
    const result=await (await fetch(url,options)).json();
-   assert.equal(result.streak.creator.current,2);
-   assert.equal(result.streak.activity.current,2);
+   // A verified historical two-day run remains the longest, but must not
+   // count as active once the account has missed recent UTC days.
+   assert.equal(result.streak.creator.longest,2);
+   assert.equal(result.streak.activity.longest,2);
+   const today=new Date().toISOString().slice(0,10);
+   if(today>'2026-11-04'){
+     assert.equal(result.streak.creator.current,0);
+     assert.equal(result.streak.activity.current,0);
+   }
+   assert.equal(result.streak.as_of_utc_day,today);
    assert.equal(feedReads,1);
    const second=await (await fetch(url,options)).json();
    assert.equal(second.streak.activity.total_days,2);

@@ -384,6 +384,7 @@ private:
     QPointer<QNetworkReply> m_streakWrite{};
     QStringList m_pendingStreakCasts{};
     int m_streakRetryDelayMs{10'000};
+    qint64 m_streakFetchedAtMs{};
     void pumpStreakWrites();
     QPointer<QNetworkReply> m_publicActivityRead{};
     qulonglong m_publicActivityFid{};

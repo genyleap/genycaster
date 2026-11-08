@@ -1,5 +1,6 @@
 import http from 'node:http';
 import {createCloudHandler} from './cloud_state.mjs';
+import {createMarketReader} from './market.mjs';
 
 const MAX_RESPONSE_BYTES = 16 * 1024;
 const DISCOVERY_TTL_MS = 5 * 60_000;
@@ -19,6 +20,7 @@ export function createAccountApi({
   store = null, issuer = null, topicVerifier = undefined,
   proResolver = undefined,
   assetsResolver = undefined,
+  marketReader = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -29,6 +31,7 @@ export function createAccountApi({
     ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {}),
     ...(proResolver ? {resolvePro:proResolver} : {}),
     ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {})}) : null;
+  const market = marketReader || createMarketReader({fetchImpl});
   let cached = null;
   let pending = null;
   async function catalog() {
@@ -64,6 +67,26 @@ export function createAccountApi({
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Type','application/json; charset=utf-8');
     const path = new URL(req.url, 'http://localhost').pathname;
+    // Market data is public, read-only and cached across every user and FID.
+    // Existing Nginx cloud proxy routes this endpoint; no new public host is
+    // introduced and account authorization cookies are neither needed nor read.
+    if(path==='/api/v1/cloud/market') {
+      if(req.method!=='GET') {
+        res.writeHead(405,{'Allow':'GET'}).end(JSON.stringify({error:'method_not_allowed'}));
+        return;
+      }
+      try {
+        const data=await market();
+        const status=Object.keys(data.metrics||{}).length?200:503;
+        res.setHeader('Cache-Control','public, max-age=60');
+        if(status!==200)res.setHeader('Retry-After','60');
+        res.writeHead(status).end(JSON.stringify(data));
+      }catch {
+        res.writeHead(503,{'Retry-After':'60'}).end(
+          JSON.stringify({error:'market_temporarily_unavailable'}));
+      }
+      return;
+    }
     if (path.startsWith('/api/v1/cloud/')) {
       if (!cloud) {
         res.writeHead(503).end(JSON.stringify({error:'cloud_not_configured'}));

@@ -162,7 +162,9 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
             pumpStreakWrites();
             // Rehydration may have raced the initial account view. Retry a
             // missing server snapshot on the normal account-data poll.
-            if (m_streak.isEmpty() && !m_streakRead && !m_streakWrite)
+            if ((!m_streakFetchedAtMs ||
+                 QDateTime::currentMSecsSinceEpoch()-m_streakFetchedAtMs > 120'000)
+                && !m_streakRead && !m_streakWrite)
                 fetchStreak();
         }
     });
@@ -499,7 +501,9 @@ void OpenProofConnectionsController::checkCloudService()
             pumpStreakWrites();
             // Rehydration may have raced the initial account view. Retry a
             // missing server snapshot on the normal account-data poll.
-            if (m_streak.isEmpty() && !m_streakRead && !m_streakWrite)
+            if ((!m_streakFetchedAtMs ||
+                 QDateTime::currentMSecsSinceEpoch()-m_streakFetchedAtMs > 120'000)
+                && !m_streakRead && !m_streakWrite)
                 fetchStreak();
         }
     });
@@ -1729,6 +1733,7 @@ void OpenProofConnectionsController::fetchStreak()
     authorizeCloudRequest(request);
     auto* reply=m_network.get(request);
     m_streakRead=reply;
+    m_streakFetchedAtMs=QDateTime::currentMSecsSinceEpoch();
     m_streakError.clear();
     emit streakChanged();
     const auto viewer=m_viewerFid;
@@ -3070,6 +3075,7 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
         ? m_settings->value(QStringLiteral("streak/outbox/%1").arg(fid)).toStringList()
         : QStringList{};
     m_streakRetryDelayMs=10'000;
+    m_streakFetchedAtMs=0;
     cancelNetworkReply(m_publicActivityRead, this);
     m_publicActivityFid=0;
     m_publicActivitySource=QStringLiteral("casts");
@@ -3090,6 +3096,11 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     m_streak = m_settings && fid
         ? m_settings->value(QStringLiteral("streak/snapshot/%1").arg(fid)).toMap()
         : QVariantMap{};
+    // Current run is tied to the UTC calendar day. Never display a cached
+    // current value as today's count if the snapshot was saved yesterday.
+    if (m_streak.value(QStringLiteral("as_of_utc_day")).toString()
+        != QDateTime::currentDateTimeUtc().date().toString(Qt::ISODate))
+        m_streak.clear();
     m_streakError.clear();
     emit streakChanged();
     cancelNetworkReply(m_bookmarkCollectionRequest, this);

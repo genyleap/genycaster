@@ -2,6 +2,78 @@
 <TS version="2.1" language="fa_IR" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.market.social">
+            <source>Social</source>
+            <translation>اجتماعی</translation>
+        </message>
+        <message id="genycaster.market.market">
+            <source>Market</source>
+            <translation>بازار</translation>
+        </message>
+        <message id="genycaster.market.title">
+            <source>Crypto market</source>
+            <translation>بازار رمزارزها</translation>
+        </message>
+        <message id="genycaster.market.subtitle">
+            <source>Market trends and key indicators</source>
+            <translation>روند بازار و شاخص‌های کلیدی</translation>
+        </message>
+        <message id="genycaster.market.partial">
+            <source>Some market indicators are temporarily unavailable.</source>
+            <translation>بخشی از شاخص‌های بازار موقتاً در دسترس نیست.</translation>
+        </message>
+        <message id="genycaster.market.unconfigured">
+            <source>Market indicators require a server-side CoinMarketCap API plan. Fear &amp; Greed remains available from Alternative.me.</source>
+            <translation>شاخص‌های بازار به کلید سروری CoinMarketCap نیاز دارند. ترس و طمع از Alternative.me در دسترس است.</translation>
+        </message>
+        <message id="genycaster.market.unavailable">
+            <source>Unavailable</source>
+            <translation>در دسترس نیست</translation>
+        </message>
+        <message id="genycaster.market.marketcap">
+            <source>Market cap</source>
+            <translation>ارزش بازار</translation>
+        </message>
+        <message id="genycaster.market.total_market">
+            <source>Total crypto market</source>
+            <translation>کل بازار رمزارزها</translation>
+        </message>
+        <message id="genycaster.market.volume">
+            <source>Trading volume</source>
+            <translation>حجم معاملات</translation>
+        </message>
+        <message id="genycaster.market.last_24h">
+            <source>Last 24 hours</source>
+            <translation>۲۴ ساعت گذشته</translation>
+        </message>
+        <message id="genycaster.market.dominance">
+            <source>Market dominance</source>
+            <translation>تسلط بر بازار</translation>
+        </message>
+        <message id="genycaster.market.fear">
+            <source>Fear &amp; Greed</source>
+            <translation>ترس و طمع</translation>
+        </message>
+        <message id="genycaster.market.season">
+            <source>Altcoin season</source>
+            <translation>فصل آلت‌کوین‌ها</translation>
+        </message>
+        <message id="genycaster.market.altseason">
+            <source>Altcoin Season Index</source>
+            <translation>شاخص فصل آلت‌کوین‌ها</translation>
+        </message>
+        <message id="genycaster.market.cmc100">
+            <source>CMC100 Index</source>
+            <translation>شاخص CMC100</translation>
+        </message>
+        <message id="genycaster.market.source_cmc">
+            <source>Data provided by CoinMarketCap.com; Fear &amp; Greed may also use Alternative.me.</source>
+            <translation>داده‌ها از CoinMarketCap.com؛ شاخص ترس و طمع ممکن است از Alternative.me باشد.</translation>
+        </message>
+        <message id="genycaster.market.source_alternative">
+            <source>Fear &amp; Greed data: Alternative.me</source>
+            <translation>منبع شاخص ترس و طمع: Alternative.me</translation>
+        </message>
         <message id="genycaster.stats.subtitle_short">
             <source>Your publishing activity and engagement</source>
             <translation>فعالیت انتشار و تعاملات محتوای شما</translation>

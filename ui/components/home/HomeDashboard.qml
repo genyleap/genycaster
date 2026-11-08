@@ -378,14 +378,10 @@ Item {
                 anchors.bottomMargin: Theme.space3
                 spacing: Theme.space3
 
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.space2
-                }
                 HomeTabs {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.fillWidth: true
-                    Layout.maximumWidth: root.homeContentMaxWidth
+                    Layout.maximumWidth: Math.min(root.homeContentMaxWidth, 420)
                 }
 
                 ColumnLayout {
@@ -603,6 +599,8 @@ GenyTokenBanner {
 
             HomeTabs {
                 visible: !root.composerFocused
+                Layout.alignment: Qt.AlignHCenter
+                Layout.maximumWidth: 420
                 Layout.fillWidth: true
                 Layout.leftMargin: Theme.space3
                 Layout.rightMargin: Theme.space3

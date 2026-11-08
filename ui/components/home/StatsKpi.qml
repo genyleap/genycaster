@@ -73,7 +73,7 @@ Superellipse {
                 visible: root.iconName.length > 0
                 text: root.iconName
                 color: Theme.textTertiary
-                preferredSize: Theme.iconSizeSmall
+                preferredSize: Theme.iconSizeLarge
             }
         }
 

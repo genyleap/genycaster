@@ -69,6 +69,8 @@ export function calculateStreaks(rows,now=new Date()) {
     const next=STREAK_MILESTONES.find(n=>n>longest)||null;
     return {current,longest,total_days:all.length,badges,next_milestone:next,milestone_definitions,week,week_saturday};
   };
-  return {time_zone:'UTC',activity:summarize(unique.activity),
-    creator:summarize(unique.creator)};
+  // Snapshot values are date-dependent. Client caches from a previous UTC
+  // day must be invalidated before showing today's active run.
+  return {time_zone:'UTC',as_of_utc_day:new Date(today*DAY_MS).toISOString().slice(0,10),
+    activity:summarize(unique.activity),creator:summarize(unique.creator)};
 }

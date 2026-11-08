@@ -12,6 +12,13 @@ ColumnLayout {
 
     property int periodDays: 30
     property bool compact: false
+    property string section: "social"
+    onSectionChanged: {
+        if (section === "market" && tabActive) marketController.refresh(false)
+    }
+    onTabActiveChanged: {
+        if (tabActive && section === "market") marketController.refresh(false)
+    }
     property bool tabActive: false
     opacity: tabActive ? 1 : 0
     Behavior on opacity {
@@ -43,26 +50,18 @@ ColumnLayout {
             Layout.minimumWidth: 0
             spacing: Theme.space1
 
-            RowLayout {
+            DirectionAwareLabel {
                 Layout.fillWidth: true
-                spacing: Theme.space2
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    text: qsTrId("genycaster.stats.your_stats")
-                    font.pixelSize: Theme.typeTitle2Size
-                    font.weight: Theme.weightBold
-                    color: Theme.textPrimary
-                }
-                Icon {
-                    text: Theme.iconChart
-                    color: Theme.textTertiary
-                    preferredSize: Theme.iconSize
-                }
+                text: qsTrId("genycaster.stats.your_stats")
+                font.pixelSize: Theme.typeTitle2Size
+                font.weight: Theme.weightBold
+                color: Theme.textPrimary
             }
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.stats.subtitle_short")
+                text: root.section === "market" ? qsTrId("genycaster.market.subtitle")
+                    : qsTrId("genycaster.stats.subtitle_short")
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.textSecondary
                 wrapMode: Text.Wrap
@@ -74,22 +73,46 @@ ColumnLayout {
             objectName: "statsRefreshButton"
             Layout.preferredWidth: 42
             Layout.preferredHeight: 42
-            Layout.alignment: Qt.AlignTop
+            Layout.alignment: Qt.AlignVCenter
             compact: true
             quiet: true
             elevated: false
             iconOnly: true
-            iconSize: Theme.iconSize
+            iconSize: Theme.iconSizeLarge
             iconGlyph: Theme.iconRefresh
             text: qsTrId("genycaster.stats.refresh")
-            busy: root.loading
+            busy: root.section === "market" ? marketController.state === "loading" : root.loading
             spinIconWhileBusy: !Theme.reduceMotion
-            enabled: !root.loading
-            onClicked: root.refreshRequested()
+            enabled: !busy
+            onClicked: {
+                if (root.section === "market") marketController.refresh(true)
+                else root.refreshRequested()
+            }
+        }
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Theme.space2
+        layoutDirection: Theme.uiDirection
+        GenyTabButton {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            selected: root.section === "social"
+            text: qsTrId("genycaster.market.social")
+            onClicked: root.section = "social"
+        }
+        GenyTabButton {
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            selected: root.section === "market"
+            text: qsTrId("genycaster.market.market")
+            onClicked: root.section = "market"
         }
     }
 
     Superellipse {
+        visible: root.section === "social"
         Layout.fillWidth: true
         Layout.preferredHeight: 44
         fillColor: Theme.surfaceMuted
@@ -129,19 +152,19 @@ ColumnLayout {
 
     DirectionAwareLabel {
         Layout.fillWidth: true
-        visible: root.loading
+        visible: root.section === "social" && root.loading
         text: qsTrId("genycaster.stats.loading").arg(statsController.loadedCount)
         color: Theme.textSecondary
         font.pixelSize: Theme.typeCaptionSize
     }
 
     StatsSkeleton {
-        visible: root.loading
+        visible: root.section === "social" && root.loading
         Layout.fillWidth: true
     }
 
     Superellipse {
-        visible: root.fetchState === "error" || root.fetchState === "idle"
+        visible: root.section === "social" && (root.fetchState === "error" || root.fetchState === "idle")
         Layout.fillWidth: true
         Layout.preferredHeight: errorLabel.implicitHeight + Theme.space4 * 2
         fillColor: Theme.surface
@@ -168,7 +191,7 @@ ColumnLayout {
     ColumnLayout {
         id: content
         Layout.fillWidth: true
-        visible: root.loaded
+        visible: root.section === "social" && root.loaded
         spacing: Theme.space3
         opacity: root.loaded ? 1 : 0
         Behavior on opacity {
@@ -265,5 +288,9 @@ ColumnLayout {
                 font.pixelSize: Theme.typeCaptionSize
             }
         }
+    }
+    MarketPanel {
+        visible: root.section === "market"
+        Layout.fillWidth: true
     }
 }
