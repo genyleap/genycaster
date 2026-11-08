@@ -7145,28 +7145,28 @@ Company | https://company.com</source>
             <translation>اختيار الفترة</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>جيني كاستر · تقرير النشاط الاجتماعي (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>جيني كاستر · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>المنشورات: %1 · الردود المكتوبة: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>%1 منشور · %2 رد مكتوب</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>التفاعلات المستلمة: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>%1 تفاعل مستلم</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>الإعجابات: %1 · إعادات النشر: %2 · الردود المستلمة: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 إعجاب · %2 إعادة نشر · %3 رد مستلم</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>تشمل التفاعلات ردود الفعل المسجلة حتى إعداد التقرير على المنشورات المنشورة خلال هذه الفترة.</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>التفاعلات على منشورات هذه الفترة، محسوبة حتى إعداد التقرير.</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>أُعد التقرير في: %1</translation>
+            <source>As of %1</source>
+            <translation>حتى %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

@@ -629,18 +629,18 @@ test("localized stats report has a precise scope note, a dated source and stable
         assert.ok(Buffer.byteLength(report, "utf8") <= 1024, locale + ": exceeds ordinary Cast budget");
     }
     const english = format("en_US");
-    assert.match(english, /105 casts|Casts published: 105/);
-    assert.match(english, /Engagement received: 4118/);
-    assert.match(english, /Likes: 3156/);
-    assert.match(english, /Report prepared: November 8, 2026/);
+    assert.match(english, /105 casts · 206 replies written/);
+    assert.match(english, /4118 interactions received/);
+    assert.match(english, /3156 likes · 508 recasts/);
+    assert.match(english, /As of November 8, 2026/);
     const persian = format("fa_IR");
-    assert.match(persian, /کست‌های منتشرشده: ۱۰۵/);
-    assert.match(persian, /تعاملات دریافتی: ۴۱۱۸/);
+    assert.match(persian, /۱۰۵ کست · ۲۰۶ پاسخ نوشته‌شده/);
+    assert.match(persian, /۴۱۱۸ تعامل دریافتی/);
     assert.match(persian, /۱۸ آبان ۱۴۰۵/);
     assert.ok(!persian.includes("Casts published"));
     const partial = format("fa_IR", false);
-    assert.ok(!partial.includes("تعاملات دریافتی:"));
-    assert.ok(!partial.includes("پسندها:"));
+    assert.ok(!partial.includes("تعامل دریافتی"));
+    assert.ok(!partial.includes("پسند ·"));
     assert.equal(partial.split("\n").length, 4);
     assert.match(panel, /if \(section !== "social" \|\| !loaded\) return ""/);
     assert.match(panel, /LocaleFormat\.formatDateTime\(Date\.now\(\)\)/);
@@ -699,4 +699,57 @@ test("Profile and Explorer share Stats desktop outer gutters without changing ph
     assert.match(profile, /readonly property int profileContentLimit: root\.compact \? 760 : 1280/);
     assert.match(explorer, /readonly property int gutter: root\.compact \? Theme\.gutter\(root\.width\) : Theme\.space3/);
     assert.doesNotMatch(shell, /readonly property bool expandedSocialWorkspace: root\.mobile/);
+});
+
+
+test("long localized stats reports expand the visual editor to measured text and scroll the outer composer", () => {
+    const editor = read("ui/components/composer/RichTextEditor.qml");
+    const composer = read("ui/components/composer/ComposerDrawer.qml");
+    const panel = read("ui/components/home/StatsPanel.qml");
+
+    assert.match(editor, /property real singleParagraphContentHeight: 0/);
+    assert.match(editor, /naturalSingleParagraphHeight: singleParagraphContentHeight/);
+    assert.match(editor, /onContentHeightChanged:\s*\{\s*if \(root\.blockModel\.length === 1\)/);
+    assert.match(editor, /singleParagraphContentHeight = Math\.max\(0, contentHeight\)/);
+    assert.match(editor, /Component\.onCompleted:\s*\{\s*if \(root\.blockModel\.length === 1\)/);
+    assert.match(composer, /root\.structuredReport && root\.editorMode === "visual"/);
+    assert.match(composer, /Math\.max\(255, visualEditor\.naturalSingleParagraphHeight\)/);
+    assert.match(composer, /id: composerScroll/);
+    assert.match(composer, /Layout\.minimumHeight: 0\s*\n\s*clip: true/);
+    assert.match(composer, /contentHeight: composerContent\.implicitHeight/);
+    assert.match(composer, /ScrollBar\.vertical: GenyScrollBar \{\}/);
+    assert.match(panel, /return paragraphs\.join\("\\n"\)/);
+    assert.match(panel, /qsTrId\("genycaster\.stats\.share_engagement_line"\)/);
+    assert.match(panel, /Powered by Genycaster/);
+});
+
+test("the shared report uses short, localized and accurately scoped lines", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const keys = [
+        "share_report_title", "share_engagement_line", "share_publishing_line",
+        "share_reactions_line", "share_scope_note", "share_prepared"
+    ];
+    const langs = [
+        "en_US","fa_IR","ar_SA","de_DE","es_ES","fr_FR",
+        "hi_IN","ja_JP","ko_KR","pt_BR","ru_RU","zh_CN"
+    ];
+    for (const lang of langs) {
+        const catalogue = read("ui/i18n/qml_" + lang + ".ts");
+        for (const key of keys) {
+            const id = "genycaster.stats." + key;
+            const start = catalogue.indexOf('<message id="' + id + '">');
+            assert.ok(start >= 0, lang + " missing " + key);
+            const segment = catalogue.slice(start, catalogue.indexOf("</message>", start));
+            const tr = segment.match(/<translation>([\s\S]*?)<\/translation>/)?.[1] || "";
+            assert.ok(tr.length > 3, lang + " empty " + key);
+            assert.ok(!tr.includes("genycaster.stats."), lang + " unresolved id");
+            assert.ok(tr.length <= 105, lang + " excessively long " + key);
+        }
+    }
+    assert.match(panel, /const heading = qsTrId\("genycaster.stats.share_report_title"\)/);
+    assert.match(panel, /const paragraphs = \["\*\*" \+ heading \+ "\*\*"\]/);
+    assert.match(panel, /if \(Boolean\(metrics\.hasEngagement\)\)\s*paragraphs\.push\("\*\*" \+ qsTrId\("genycaster.stats.share_engagement_line"\)/);
+    assert.match(panel, /paragraphs\.push\(qsTrId\("genycaster.stats.share_publishing_line"\)/);
+    assert.match(panel, /qsTrId\("genycaster.stats.share_scope_note"\)/);
+    assert.match(panel, /LocaleFormat\.formatDateTime\(Date\.now\(\)\)/);
 });

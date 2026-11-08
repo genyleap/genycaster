@@ -7145,28 +7145,28 @@ Company | https://company.com</source>
             <translation>기간 선택</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>GenyCaster · 소셜 활동 보고서 (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>GenyCaster · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>게시한 캐스트: %1 · 작성한 답글: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>캐스트 %1건 · 작성한 답글 %2건</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>받은 참여: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>받은 참여 %1건</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>좋아요: %1 · 리캐스트: %2 · 받은 답글: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>좋아요 %1 · 리캐스트 %2 · 받은 답글 %3</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>참여 수치는 해당 기간에 게시한 글에 대해 보고서 작성 시점까지 집계된 반응입니다.</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>이 기간에 게시한 글의 반응을 보고서 작성 시점까지 집계했습니다.</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>보고서 작성: %1</translation>
+            <source>As of %1</source>
+            <translation>집계 기준: %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

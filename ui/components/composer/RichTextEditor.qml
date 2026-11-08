@@ -19,6 +19,12 @@ Item {
     }
     readonly property bool hasLiveContent: root.activeText.replace(/[\s\u200B-\u200D\u2060\uFEFF]/g, "").length > 0
     property var blockModel: []
+    // The visual Composer may contain a single long, wrapped report. Expose
+    // its measured QTextDocument height so the parent can grow instead of
+    // clipping the last line in a fixed-height editor.
+    property real singleParagraphContentHeight: 0
+    readonly property real naturalSingleParagraphHeight: singleParagraphContentHeight
+                                                     + Theme.space5 * 3
     property bool blockRefreshPending: false
     signal activeEditorChangedExternally(int blockIndex, var editor)
 
@@ -462,6 +468,16 @@ Item {
                 selectByMouse: true
                 persistentSelection: true
                 wrapMode: TextEdit.Wrap
+                // Independent of the editor viewport height; contentHeight
+                // includes all wrapped lines in RTL and LTR paragraphs.
+                onContentHeightChanged: {
+                    if (root.blockModel.length === 1)
+                        root.singleParagraphContentHeight = Math.max(0, contentHeight)
+                }
+                Component.onCompleted: {
+                    if (root.blockModel.length === 1)
+                        root.singleParagraphContentHeight = Math.max(0, contentHeight)
+                }
                 font.pixelSize: String(blockSurface.parent.blockData.kind || "") === "heading" ? Theme.typeTitle3Size : Theme.typeBodySize
                 font.weight: String(blockSurface.parent.blockData.kind || "") === "heading" ? Theme.weightBold : Theme.weightRegular
                 onActiveFocusChanged: {

@@ -7146,28 +7146,28 @@ Empresa | https://company.com</translation>
             <translation>Elegir período</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>GenyCaster · Informe de actividad social (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>GenyCaster · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>Casts publicados: %1 · Respuestas escritas: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>%1 casts · %2 respuestas escritas</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>Interacciones recibidas: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>%1 interacciones recibidas</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>Me gusta: %1 · Recasts: %2 · Respuestas recibidas: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 me gusta · %2 recasts · %3 respuestas recibidas</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>Las interacciones incluyen las reacciones registradas hasta ahora en publicaciones hechas durante este período.</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>Reacciones a publicaciones de este período, acumuladas hasta hoy.</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>Informe generado: %1</translation>
+            <source>As of %1</source>
+            <translation>Al %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

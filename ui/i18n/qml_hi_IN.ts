@@ -7145,28 +7145,28 @@ Company | https://company.com</source>
             <translation>अवधि चुनें</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>GenyCaster · सोशल गतिविधि रिपोर्ट (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>GenyCaster · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>प्रकाशित कास्ट: %1 · लिखे गए जवाब: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>%1 कास्ट · %2 लिखे गए जवाब</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>प्राप्त इंटरैक्शन: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>%1 इंटरैक्शन प्राप्त</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>लाइक: %1 · रीकास्ट: %2 · प्राप्त जवाब: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 लाइक · %2 रीकास्ट · %3 प्राप्त जवाब</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>इंटरैक्शन में इस अवधि में प्रकाशित पोस्ट पर रिपोर्ट बनने तक दर्ज प्रतिक्रियाएँ शामिल हैं।</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>इस अवधि की पोस्ट पर रिपोर्ट बनते समय तक दर्ज प्रतिक्रियाएँ।</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>रिपोर्ट तैयार की गई: %1</translation>
+            <source>As of %1</source>
+            <translation>%1 तक</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

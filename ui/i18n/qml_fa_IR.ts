@@ -7146,28 +7146,28 @@ Company | https://company.com</source>
             <translation>انتخاب بازهٔ زمانی</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>جنی‌کستر · گزارش فعالیت اجتماعی (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>جنی‌کستر · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>کست‌های منتشرشده: %1 · پاسخ‌های نوشته‌شده: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>%1 کست · %2 پاسخ نوشته‌شده</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>تعاملات دریافتی: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>%1 تعامل دریافتی</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>پسندها: %1 · بازنشرها: %2 · پاسخ‌های دریافتی: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 پسند · %2 بازنشر · %3 پاسخ دریافتی</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>تعاملات، واکنش‌های ثبت‌شده تا زمان تهیهٔ گزارش به پست‌های منتشرشده در این بازه را نشان می‌دهد.</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>واکنش‌های ثبت‌شده تا زمان گزارش به پست‌های این بازه.</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>زمان تهیهٔ گزارش: %1</translation>
+            <source>As of %1</source>
+            <translation>تا %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

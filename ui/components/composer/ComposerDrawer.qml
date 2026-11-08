@@ -1939,7 +1939,11 @@ GenyDrawer {
                                                     ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
                                                     : Math.max(135, composerScroll.height
                                                         - (root.keyboardVisible ? 84 : 126)))
-                                                 : Math.max(128, Math.min(255, root.height * 0.4)))
+                                                 : root.structuredReport && root.editorMode === "visual"
+                                                   // Use the wrapped text's actual height. Content
+                                                   // exceeding the viewport scrolls in composerScroll.
+                                                   ? Math.max(255, visualEditor.naturalSingleParagraphHeight)
+                                                   : Math.max(128, Math.min(255, root.height * 0.4)))
                 Layout.minimumHeight: root.editorMode === "preview"
                                       ? Math.min(farcasterPreview.implicitHeight, root.compact ? 210 : 230)
                                       : root.threadMode

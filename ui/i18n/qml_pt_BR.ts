@@ -7145,28 +7145,28 @@ Company | https://company.com</source>
             <translation>Selecionar período</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>GenyCaster · Relatório de atividade social (%1)</translation>
+            <source>GenyCaster · %1</source>
+            <translation>GenyCaster · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>Casts publicados: %1 · Respostas escritas: %2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>%1 casts · %2 respostas escritas</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>Interações recebidas: %1</translation>
+            <source>%1 interactions received</source>
+            <translation>%1 interações recebidas</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>Curtidas: %1 · Recasts: %2 · Respostas recebidas: %3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 curtidas · %2 recasts · %3 respostas recebidas</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>As interações incluem as reações registradas até agora em publicações feitas neste período.</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>Reações a posts desse período, contabilizadas até agora.</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>Relatório gerado em: %1</translation>
+            <source>As of %1</source>
+            <translation>Até %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

@@ -7145,28 +7145,28 @@ Company | https://company.com</source>
             <translation>选择时间范围</translation>
         </message>
         <message id="genycaster.stats.share_report_title">
-            <source>GenyCaster · Social activity report (%1)</source>
-            <translation>GenyCaster · 社交活动报告（%1）</translation>
+            <source>GenyCaster · %1</source>
+            <translation>GenyCaster · %1</translation>
         </message>
         <message id="genycaster.stats.share_publishing_line">
-            <source>Casts published: %1 · Replies written: %2</source>
-            <translation>已发布 Cast：%1 · 已撰写回复：%2</translation>
+            <source>%1 casts · %2 replies written</source>
+            <translation>发布 %1 条 Cast · 撰写 %2 条回复</translation>
         </message>
         <message id="genycaster.stats.share_engagement_line">
-            <source>Engagement received: %1</source>
-            <translation>收到的互动：%1</translation>
+            <source>%1 interactions received</source>
+            <translation>收到 %1 次互动</translation>
         </message>
         <message id="genycaster.stats.share_reactions_line">
-            <source>Likes: %1 · Recasts: %2 · Replies received: %3</source>
-            <translation>点赞：%1 · 转发：%2 · 收到的回复：%3</translation>
+            <source>%1 likes · %2 recasts · %3 replies received</source>
+            <translation>%1 次点赞 · %2 次转发 · %3 条收到的回复</translation>
         </message>
         <message id="genycaster.stats.share_scope_note">
-            <source>Engagement counts reactions recorded to date on posts published in this period.</source>
-            <translation>互动数据统计的是此期间发布的内容截至报告生成时收到的回应。</translation>
+            <source>Reactions to posts from this period, counted to date.</source>
+            <translation>统计此期间发布内容截至报告生成时收到的互动。</translation>
         </message>
         <message id="genycaster.stats.share_prepared">
-            <source>Report prepared: %1</source>
-            <translation>报告生成时间：%1</translation>
+            <source>As of %1</source>
+            <translation>截至 %1</translation>
         </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>

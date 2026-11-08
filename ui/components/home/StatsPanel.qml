@@ -83,16 +83,18 @@ ColumnLayout {
     function buildShareText() {
         if (section !== "social" || !loaded) return ""
         const integer = value => LocaleFormat.formatInteger(Number(value || 0))
-        const paragraphs = [
-            qsTrId("genycaster.stats.share_report_title").arg(rangeLabel(periodDays)),
-            qsTrId("genycaster.stats.share_publishing_line")
-                .arg(integer(metrics.casts))
-                .arg(integer(metrics.replies))
-        ]
+        const heading = qsTrId("genycaster.stats.share_report_title").arg(rangeLabel(periodDays))
+        const paragraphs = ["**" + heading + "**"]
+        // Only the heading and lead metric use inline Markdown emphasis.
+        // They remain in a single paragraph rather than becoming separate
+        // full-height editable cards. Published plain text stays readable.
+        if (Boolean(metrics.hasEngagement))
+            paragraphs.push("**" + qsTrId("genycaster.stats.share_engagement_line")
+                .arg(integer(metrics.engagement)) + "**")
+        paragraphs.push(qsTrId("genycaster.stats.share_publishing_line")
+            .arg(integer(metrics.casts)).arg(integer(metrics.replies)))
         if (Boolean(metrics.hasEngagement)) {
             paragraphs.push(
-                qsTrId("genycaster.stats.share_engagement_line")
-                    .arg(integer(metrics.engagement)),
                 qsTrId("genycaster.stats.share_reactions_line")
                     .arg(integer(metrics.likes))
                     .arg(integer(metrics.recasts))
