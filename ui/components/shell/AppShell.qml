@@ -69,6 +69,10 @@ Item {
                                                        + root.socialMinimumReadingWidth
                                                        + Theme.space6
     readonly property bool showHomeContextRail: root.contextRailFits && root.homeSurfaceActive
+    // Only the Stats workspace reduces the OUTER shell gutters. Other
+    // destinations retain their established reading margins.
+    readonly property bool homeStatsWorkspace: root.homeSurfaceActive
+                                               && homeDashboard.activeTab === "stats"
     readonly property bool showSocialContextRail: root.contextRailFits && root.socialSurfaceActive
     readonly property bool showContextRail: root.showHomeContextRail || root.showSocialContextRail
     readonly property bool identityAvailable: presentationBridge.identityFid > 0
@@ -1227,10 +1231,10 @@ Item {
                     RowLayout {
                         anchors.fill: parent
                         layoutDirection: Theme.uiDirection
-                        anchors.leftMargin: root.wide ? Theme.space2 : 0
-                        anchors.rightMargin: root.wide ? Theme.space2 : 0
+                        anchors.leftMargin: root.wide && !root.homeStatsWorkspace ? Theme.space2 : 0
+                        anchors.rightMargin: root.wide && !root.homeStatsWorkspace ? Theme.space2 : 0
                         anchors.topMargin: root.wide ? Theme.space3 : 0
-                        spacing: root.wide ? Theme.space3 : 0
+                        spacing: root.wide ? (root.homeStatsWorkspace ? Theme.space1 : Theme.space3) : 0
 
                         Item {
                             id: readingPane
@@ -1587,8 +1591,10 @@ Item {
                                         Layout.preferredHeight: root.mobile ? 0 : -1
                                         Layout.maximumWidth: 16777215
                                         Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                                        Layout.leftMargin: root.compact ? Theme.mobileGutter : Theme.space2
-                                        Layout.rightMargin: root.compact ? Theme.mobileGutter : Theme.space2
+                                        Layout.leftMargin: root.compact ? Theme.mobileGutter
+                                                           : root.homeStatsWorkspace ? 0 : Theme.space2
+                                        Layout.rightMargin: root.compact ? Theme.mobileGutter
+                                                            : root.homeStatsWorkspace ? 0 : Theme.space2
                                         displayName: presentationBridge.accountName.length > 0 ? presentationBridge.accountName : presentationBridge.identityName
                                         username: presentationBridge.accountUsername
                                         avatarUrl: presentationBridge.accountAvatarUrl

@@ -16,9 +16,6 @@ Item {
     property color recastsColor: Theme.analyticsRecasts
     property color repliesColor: Theme.analyticsReplies
     property bool compact: false
-    // A slim desktop insight rail preserves most of the trend-chart width.
-    // Full-size rings remain available when the true mobile layout stacks.
-    property bool sidebarMode: false
     property real reveal: 1
     // Selecting an arc/legend item persists; hover temporarily overrides it.
     property int hoveredSeriesIndex: -1
@@ -29,7 +26,7 @@ Item {
     readonly property real likesShare: sum > 0 ? Math.max(0, likes) / sum : 0
     readonly property real recastsShare: sum > 0 ? Math.max(0, recasts) / sum : 0
     readonly property real repliesShare: sum > 0 ? Math.max(0, receivedReplies) / sum : 0
-    readonly property int ringSize: sidebarMode ? 156 : compact ? 196 : 226
+    readonly property int ringSize: compact ? 196 : 226
     readonly property var segments: [
         {label: qsTrId("genycaster.stats.likes"), count: likes, share: likesShare, color: likesColor},
         {label: qsTrId("genycaster.stats.recasts"), count: recasts, share: recastsShare, color: recastsColor},
@@ -105,7 +102,7 @@ Item {
         width: parent.width
         columns: 1
         columnSpacing: Theme.space4
-        rowSpacing: root.sidebarMode ? Theme.space1 : Theme.space2
+        rowSpacing: Theme.space2
         layoutDirection: Theme.uiDirection
 
         Item {
@@ -127,10 +124,10 @@ Item {
                 event.accepted = true
             }
             readonly property real center: width / 2
-            readonly property real stroke: root.sidebarMode ? 4.8 : root.compact ? 4.5 : 5.8
+            readonly property real stroke: root.compact ? 4.5 : 5.8
             readonly property real outerRadius: width / 2 - stroke / 2 - 4
-            readonly property real middleRadius: outerRadius - (root.sidebarMode ? 16 : root.compact ? 22 : 26)
-            readonly property real innerRadius: middleRadius - (root.sidebarMode ? 16 : root.compact ? 22 : 26)
+            readonly property real middleRadius: outerRadius - (root.compact ? 22 : 26)
+            readonly property real innerRadius: middleRadius - (root.compact ? 22 : 26)
 
             Item {
                 anchors.fill: parent
@@ -260,7 +257,7 @@ Item {
             Layout.preferredWidth: Math.min(300, root.width)
             Layout.maximumWidth: 320
             Layout.alignment: Qt.AlignHCenter
-            spacing: root.sidebarMode ? Theme.space1 : Theme.space2
+            spacing: Theme.space2
 
             Repeater {
                 model: root.segments

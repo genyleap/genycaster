@@ -387,7 +387,12 @@ ColumnLayout {
             iconOnly: true
             iconGlyph: Theme.iconMore
             text: qsTrId("genycaster.stats.choose_period")
-            onClicked: periodMenu.open()
+            onClicked: {
+                if (periodMenu.visible)
+                    periodMenu.close()
+                else
+                    periodMenu.open()
+            }
 
             Popup {
                 id: periodMenu

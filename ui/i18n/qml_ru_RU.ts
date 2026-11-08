@@ -7140,6 +7140,10 @@ Company | https://company.com</source>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>Трёхмерный логотип GenyCaster. Перетаскивайте для вращения, прокручивайте для масштабирования. Нажмите R для сброса.</translation>
         </message>
+        <message id="genycaster.stats.choose_period">
+            <source>Choose period</source>
+            <translation>Выбрать период</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>Поделиться результатами</translation>

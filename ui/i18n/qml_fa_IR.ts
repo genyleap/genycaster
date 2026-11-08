@@ -7141,6 +7141,10 @@ Company | https://company.com</source>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>لوگوی سه‌بعدی GenyCaster. برای چرخاندن بکشید، برای بزرگ‌نمایی پیمایش کنید و برای بازنشانی کلید R را فشار دهید.</translation>
         </message>
+        <message id="genycaster.stats.choose_period">
+            <source>Choose period</source>
+            <translation>انتخاب بازهٔ زمانی</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>اشتراک‌گذاری نتایج</translation>

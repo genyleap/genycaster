@@ -354,7 +354,9 @@ Item {
         id: desktopLayout
         visible: !root.compact
         anchors.fill: parent
-        anchors.margins: Theme.space3
+        // The Stats pane has its own card padding. Keep only the small outer
+        // shell gutter; do not compress spacing INSIDE dashboard cards.
+        anchors.margins: root.activeTab === "stats" ? Theme.space1 : Theme.space3
         spacing: Theme.space3
         layoutDirection: Theme.uiDirection
 

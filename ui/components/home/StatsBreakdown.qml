@@ -217,7 +217,7 @@ Superellipse {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: Theme.space3
+        anchors.margins: Theme.space4
         spacing: Theme.space3
 
         RowLayout {
@@ -264,22 +264,20 @@ Superellipse {
             Layout.minimumWidth: 0
             layoutDirection: Theme.uiDirection
             columns: root.compact ? 1 : 2
-            columnSpacing: Theme.space2
+            columnSpacing: Theme.space4
             rowSpacing: Theme.space3
 
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: root.compact ? 1
-                                       : Math.max(220, root.width - 186)
+                                       : Math.max(180, root.width - (root.width < 850 ? 220 : 265))
                 spacing: Theme.space2
 
                 GridLayout {
                     Layout.fillWidth: true
                     layoutDirection: Theme.uiDirection
-                    columns: root.compact
-                             ? (root.width >= 460 ? 2 : 1)
-                             : (root.width >= 550 ? 3 : 2)
+                    columns: root.width >= 720 ? 3 : root.width >= 460 ? 2 : 1
                     columnSpacing: Theme.space3
                     rowSpacing: Theme.space1
                     Repeater {
@@ -633,11 +631,9 @@ Superellipse {
             StatsDistributionRings {
                 Layout.fillWidth: root.compact
                 Layout.minimumWidth: 0
-                Layout.preferredWidth: root.compact ? 1 : 164
-                Layout.maximumWidth: root.compact ? 10000 : 164
+                Layout.preferredWidth: root.compact ? 1 : (root.width < 850 ? 204 : 248)
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-                sidebarMode: !root.compact
-                compact: root.compact
+                compact: root.compact || root.width < 850
                 likes: Number(root.metrics.likes || 0)
                 recasts: Number(root.metrics.recasts || 0)
                 receivedReplies: Number(root.metrics.receivedReplies || 0)

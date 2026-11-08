@@ -7140,6 +7140,10 @@ Company | https://company.com</source>
             <source>3D GenyCaster logo. Drag to rotate, scroll to zoom. Press R to reset.</source>
             <translation>GenyCasterの3Dロゴ。ドラッグで回転、スクロールで拡大縮小、Rキーでリセットします。</translation>
         </message>
+        <message id="genycaster.stats.choose_period">
+            <source>Choose period</source>
+            <translation>期間を選択</translation>
+        </message>
         <message id="genycaster.stats.share_results">
             <source>Share results</source>
             <translation>結果を共有</translation>

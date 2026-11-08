@@ -312,7 +312,7 @@ test("social chart palette is subdued and scaled strokes stay thin", () => {
     assert.match(breakdown, /strokeColor:\s*root\.lineInk\("receivedReplies", root\.repliesInk\)/);
     assert.match(breakdown, /strokeStyle:\s*ShapePath\.DashLine/);
     assert.match(breakdown, /const dx = \(b\.x - a\.x\) \* 0\.16/);
-    assert.match(rings, /root\.sidebarMode \? 4\.8 : root\.compact \? 4\.5 : 5\.8/);
+    assert.match(rings, /readonly property real stroke: root\.compact \? 4\.5 : 5\.8/);
 });
 
 test("publishing bar stacks have a square baseline and overlap at shared edges", () => {
@@ -430,6 +430,16 @@ test("stats filter uses a contextual three-dot menu beside the period note", () 
     assert.match(panel, /model: root.rangeDays/);
     assert.match(panel, /root.periodRequested\(modelData\)/);
     assert.match(panel, /periodMenu.close\(\)/);
+    assert.match(panel, /if \(periodMenu.visible\)\s*\n\s*periodMenu.close\(\)\s*\n\s*else\s*\n\s*periodMenu.open\(\)/);
+    assert.match(panel, /text: qsTrId\("genycaster.stats.choose_period"\)/);
+    for (const locale of [
+        "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
+        "hi_IN", "ja_JP", "ko_KR", "pt_BR", "ru_RU", "zh_CN"
+    ]) {
+        const catalog = read("ui/i18n/qml_" + locale + ".ts");
+        assert.equal(catalog.split('<message id="genycaster.stats.choose_period">').length - 1,
+                     1, "missing translated menu label: " + locale);
+    }
     assert.doesNotMatch(panel, /statsDesktopPeriodFilter|statsMobilePeriodFilter/);
     assert.match(panel, /compact: root.compact\s*\n\s*metrics: root.metrics/);
     assert.match(panel, /compact: root.compact\s*\n\s*bars: statsController.activity/);
@@ -437,18 +447,27 @@ test("stats filter uses a contextual three-dot menu beside the period note", () 
     assert.match(breakdown, /columns: root.compact \? 1 : 2/);
 });
 
-test("desktop analytics uses all available width with a slim beside-chart insight rail", () => {
+test("Stats only reduces OUTER shell gutters and restores original card spacing", () => {
+    const shell = read("ui/components/shell/AppShell.qml");
     const home = read("ui/components/home/HomeDashboard.qml");
     const breakdown = read("ui/components/home/StatsBreakdown.qml");
     const rings = read("ui/components/home/StatsDistributionRings.qml");
-    assert.match(home, /width: root.activeTab === "stats"\s*\n\s*\? Math.max\(1, parent.width\)/);
-    assert.match(breakdown, /columnSpacing: Theme.space2/);
-    assert.match(breakdown, /Layout.preferredWidth: root.compact \? 1 : 164/);
-    assert.match(breakdown, /sidebarMode: !root.compact/);
-    assert.match(breakdown, /compact: root.compact/);
-    assert.match(rings, /property bool sidebarMode: false/);
-    assert.match(rings, /ringSize: sidebarMode \? 156 : compact \? 196 : 226/);
-    assert.match(rings, /root.sidebarMode \? 16 : root.compact \? 22 : 26/);
+    assert.match(shell, /readonly property bool homeStatsWorkspace: root\.homeSurfaceActive/);
+    assert.match(shell, /homeDashboard\.activeTab === "stats"/);
+    assert.match(shell, /anchors\.leftMargin: root\.wide && !root\.homeStatsWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /anchors\.rightMargin: root\.wide && !root\.homeStatsWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /root\.homeStatsWorkspace \? Theme\.space1 : Theme\.space3/);
+    assert.match(shell, /Layout\.leftMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
+    assert.match(shell, /Layout\.rightMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
+    assert.match(home, /anchors\.margins: root\.activeTab === "stats" \? Theme\.space1 : Theme\.space3/);
+    assert.match(home, /width: root\.activeTab === "stats"\s*\n\s*\? Math\.max\(1, parent\.width\)/);
+    // Inner card padding and chart/ring spacing must stay at the former values.
+    assert.match(breakdown, /anchors\.margins: Theme\.space4/);
+    assert.match(breakdown, /columnSpacing: Theme\.space4/);
+    assert.match(breakdown, /Layout\.preferredWidth: root\.compact \? 1\s*\n\s*: Math\.max\(180, root\.width - \(root\.width < 850 \? 220 : 265\)\)/);
+    assert.match(breakdown, /Layout\.preferredWidth: root\.compact \? 1 : \(root\.width < 850 \? 204 : 248\)/);
+    assert.match(rings, /readonly property int ringSize: compact \? 196 : 226/);
+    assert.doesNotMatch(rings, /sidebarMode/);
 });
 
 test("social and market tabs reveal content with reduced-motion-aware entrance", () => {
@@ -485,7 +504,7 @@ test("chart lines and engagement rings reduce stroke width only in dense layouts
     assert.match(line, /const smallPlot = root\.compact \|\| plot\.width < 440/);
     assert.match(line, /emphasized \? 1\.55 : 1\.1/);
     assert.match(line, /emphasized \? 1\.25 : 0\.95/);
-    assert.match(rings, /root\.sidebarMode \? 4\.8 : root\.compact \? 4\.5 : 5\.8/);
+    assert.match(rings, /readonly property real stroke: root\.compact \? 4\.5 : 5\.8/);
 });
 
 test("sharing statistics opens the authentic composer with only verified loaded values", () => {
