@@ -539,6 +539,37 @@ int main(int argc, char** argv)
             "magazine observes appended rows without replacing the view");
         QMetaObject::invokeMethod(wall, "positionViewAtBeginning");
         expect(magazine->property("contentY").toDouble() == 0, "magazine return-to-top reaches the header");
+
+        // The desktop Explorer intentionally uses ~420dp cards and up to
+        // three columns. A non-maximized window must not strand a lone
+        // centered card inside a pane wide enough for two compact cards.
+        magazine->setProperty("targetCardWidth", 420.0);
+        magazine->setProperty("maximumColumns", 3);
+        wall->setWidth(740);
+        expect(QTest::qWaitFor([&] {
+            return magazine->property("columns").toInt() == 2;
+        }), "windowed Explorer fits two compact cards");
+        QMetaObject::invokeMethod(wall, "forceLayout");
+        const double windowedCard = magazine->property("cardWidth").toDouble();
+        expect(qAbs(windowedCard * 2 + gap * 3 - wall->width()) < 1,
+            "two-column windowed Explorer uses its entire reading pane");
+        wall->setWidth(1040);
+        expect(QTest::qWaitFor([&] {
+            return magazine->property("columns").toInt() == 3;
+        }), "wide Explorer fits three compact cards");
+        QMetaObject::invokeMethod(wall, "forceLayout");
+        const double wideCard = magazine->property("cardWidth").toDouble();
+        expect(qAbs(wideCard * 3 + gap * 4 - wall->width()) < 1,
+            "three-column Explorer uses its entire reading pane");
+        wall->setWidth(590);
+        expect(QTest::qWaitFor([&] {
+            return magazine->property("columns").toInt() == 1;
+        }), "narrow Explorer reflows to one readable card");
+        QMetaObject::invokeMethod(wall, "forceLayout");
+        expect(qAbs(magazine->property("cardWidth").toDouble() + gap * 2
+                    - wall->width()) < 1,
+            "single-column Explorer does not center a width-capped card");
+
         // Repeated layout, pagination and viewport admission must never
         // produce the Loader.active binding loop seen on macOS with media.
         expect(qmlWarnings.empty(),

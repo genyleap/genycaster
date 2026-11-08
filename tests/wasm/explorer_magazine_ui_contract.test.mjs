@@ -19,6 +19,51 @@ test("Explorer Magazine has one compact responsive card size and keeps Home unch
     assert.match(masonry, /readonly property int columns: Math\.max\(1, Math\.min\(maximumColumns/);
 });
 
+test("windowed Explorer fills the reading pane with two columns instead of a centered card", () => {
+    const qml = read("ui/components/feed/FeedMasonryView.qml");
+    // Execute the actual QML geometry expressions, not a duplicate formula
+    // in the test. This catches regressions in cutoff and unused outside space.
+    const minimum = qml.match(/readonly property real minimumCardWidth: ([^\n]+)/)?.[1];
+    const columnFormula = qml.match(/readonly property int columns: ([\s\S]*?)\n    \/\/ Allocate/)?.[1];
+    const widthFormula = qml.match(/readonly property real cardWidth: ([\s\S]*?)\n    readonly property real leadingInset:/)?.[1];
+    const insetFormula = qml.match(/readonly property real leadingInset: ([^\n]+)/)?.[1];
+    assert.ok(minimum && columnFormula && widthFormula && insetFormula);
+
+    const evaluate = (width, targetCardWidth = 420) => {
+        const values = {width, targetCardWidth, gutter: 12, maximumColumns: 3};
+        const context = vm.createContext(values);
+        for (const [property, expr] of [
+            ["minimumCardWidth", minimum],
+            ["columns", columnFormula],
+            ["cardWidth", widthFormula],
+            ["leadingInset", insetFormula]
+        ]) {
+            context[property] = vm.runInContext(expr, context);
+        }
+        return context;
+    };
+
+    for (const [viewportWidth, expectedColumns] of [
+        [590, 1],
+        [740, 2],
+        [960, 2],
+        [1040, 3],
+        [1340, 3]
+    ]) {
+        const actual = evaluate(viewportWidth);
+        assert.equal(actual.columns, expectedColumns, `${viewportWidth}dp column count`);
+        assert.ok(actual.cardWidth > 0, "cards have a positive width");
+        assert.ok(actual.cardWidth >= actual.minimumCardWidth || expectedColumns === 1);
+        const occupied = 2 * actual.leadingInset
+            + actual.columns * actual.cardWidth
+            + (actual.columns - 1) * actual.gutter;
+        assert.ok(Math.abs(viewportWidth - occupied) < 0.01,
+            `No unused horizontal slabs at ${viewportWidth}dp`);
+    }
+    const scaled = evaluate(740, 357);
+    assert.equal(scaled.columns, 2, "column count respects UI scale");
+});
+
 test("Magazine / Timeline view actions sit next to Everyone / Following, without size filter", () => {
     const shell = read("ui/components/shell/AppShell.qml");
     const header = read("ui/components/home/HomeFeedHeader.qml");

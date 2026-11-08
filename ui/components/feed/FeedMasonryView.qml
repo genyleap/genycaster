@@ -23,12 +23,19 @@ Flickable {
     readonly property int count: slots.count
     readonly property Item headerItem: headerLoader.item
     readonly property Item footerItem: footerLoader.item
+    // targetCardWidth is a comfortable card size, not a hard minimum.
+    // The former 85% cutoff collapsed a ~700dp reading pane to one narrow
+    // centered card even though two compact cards fit comfortably.
+    // 76% keeps a legible minimum while allowing 2 columns in a windowed
+    // desktop and 3 columns in the wider full-screen workspace.
+    readonly property real minimumCardWidth: Math.max(1, targetCardWidth * 0.76)
     readonly property int columns: Math.max(1, Math.min(maximumColumns,
-        Math.floor((width - gutter) / (targetCardWidth * 0.85 + gutter))))
-    readonly property real cardWidth: Math.max(1, Math.min(targetCardWidth * 1.15,
-        (width - gutter * (columns + 1)) / columns))
-    readonly property real leadingInset: Math.max(gutter,
-        (width - columns * cardWidth - (columns - 1) * gutter) / 2)
+        Math.floor((Math.max(0, width) - gutter) / (minimumCardWidth + gutter))))
+    // Allocate the entire reading-pane width to the chosen columns. Do not
+    // cap a lone card at 115% and leave unused outside slabs on either side.
+    readonly property real cardWidth: Math.max(1,
+        (width - gutter * (columns + 1)) / columns)
+    readonly property real leadingInset: gutter
     property real rowsBottom: 0
     property bool arranging: false
     property bool positioned: false
