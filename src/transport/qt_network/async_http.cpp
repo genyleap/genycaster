@@ -346,10 +346,23 @@ public:
         }
     }
 
-    void shutdown()
+    [[nodiscard]] std::vector<Completion> shutdown()
     {
         m_isStopping = true;
-        auto contexts = m_contexts;
+        // In-flight completion closures may borrow read services, gateways and
+        // Qt presentation state that the owner is already tearing down.
+        // Never invoke application callbacks from transport destruction.
+        // Move them back to the owning thread for destruction after the
+        // network reactor has stopped; this also prevents a captured final
+        // shared_ptr from destroying the runtime on its own reactor thread.
+        std::vector<Completion> abandoned{};
+        abandoned.reserve(m_contexts.size());
+        for (auto& [id, context] : m_contexts) {
+            static_cast<void>(id);
+            if (context && context->completion) {
+                abandoned.push_back(std::move(context->completion));
+            }
+        }
         for (auto& [id, active] : m_active) {
             static_cast<void>(id);
             if (active.reply) {
@@ -370,24 +383,8 @@ public:
         m_activeBackground = 0U;
         m_bufferedResponseBytes = 0U;
         m_acceptedRequestBodyBytes = 0U;
-        for (auto& [id, context] : contexts) {
-            static_cast<void>(id);
-            if (context && context->completion) {
-                auto completion = std::move(context->completion);
-#if defined(__cpp_exceptions)
-                try {
-#endif
-                    completion(std::unexpected(makeError(
-                        ErrorCode::Unavailable,
-                        "Qt asynchronous network reactor shut down before completion.")));
-#if defined(__cpp_exceptions)
-                } catch (...) {
-                    // Shutdown must not unwind past Qt thread ownership.
-                }
-#endif
-            }
-        }
         m_manager.reset();
+        return abandoned;
     }
 
 private:
@@ -928,15 +925,18 @@ public:
             std::scoped_lock lock{m_shared->mutex};
             m_shared->isAccepting = false;
         }
+        // Keep pending closures alive on the owner thread until after the
+        // reactor thread is joined. They must not run during teardown.
+        std::vector<Completion> abandoned{};
 #if defined(__EMSCRIPTEN__)
         if (m_worker) {
-            m_worker->shutdown();
+            abandoned = m_worker->shutdown();
         }
 #else
         if (m_worker && m_thread && m_thread->isRunning()) {
             QMetaObject::invokeMethod(
                 m_worker,
-                [worker = m_worker] { worker->shutdown(); },
+                [worker = m_worker, &abandoned] { abandoned = worker->shutdown(); },
                 Qt::BlockingQueuedConnection);
         }
 #endif

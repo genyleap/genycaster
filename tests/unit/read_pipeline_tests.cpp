@@ -101,7 +101,9 @@ public:
     bool holdProfile{};
     bool includeReply{};
     bool failFeedCompletion{};
+    bool holdFeedCompletion{};
     bool failSearchCompletion{};
+    application::read::async_gateway::FeedCompletion pendingFeed{};
     std::optional<capability::search::SearchPage> servedSearch{};
     application::read::async_gateway::ProfileCompletion pendingProfile{};
     int profileCalls{};
@@ -157,6 +159,10 @@ public:
         application::read::async_gateway::FeedCompletion completion,
         Options) override
     {
+        if (holdFeedCompletion) {
+            pendingFeed = std::move(completion);
+            return Request{};
+        }
         if (failFeedCompletion) {
             completion(std::unexpected(foundation::error::Error::make(
                 foundation::error::ErrorCode::Unavailable,
@@ -1907,6 +1913,40 @@ void rejectedAsyncCacheCompletionIsTerminal()
     assert(phases.back() == application::read::model::ReadPhase::Failed);
 }
 
+void cancelledLateFeedCompletionCannotResurrectReadService()
+{
+    using namespace farcaster;
+    DatabaseFixture database{};
+    auto store = storage::read::openReadStore(database.path);
+    assert(store);
+    ImmediateExecutor executor{};
+    FakeAsyncCastGateway gateway{};
+    gateway.holdFeedCompletion = true;
+    std::size_t deliveries{};
+    {
+        auto service = std::make_unique<application::read::async_service::ReadService>(
+            executor, **store, gateway);
+        auto request = service->openFeed(
+            application::read::model::FeedQuery{
+                .kind = application::read::model::FeedQuery::Kind::Recent,
+                .limit = 10U,
+            },
+            [&deliveries](auto) { ++deliveries; });
+        assert(request && gateway.pendingFeed);
+        request->cancel();
+        // Mimic Runtime::~Runtime(): the surface is canceled, then its
+        // ReadService is destroyed while the network still owns a callback.
+    }
+    const auto before = deliveries;
+    // The old feed callback dereferenced the destroyed service at line 739,
+    // posting through a dangling m_cacheExecutor. Canceled completions must
+    // return solely through the shared cancellation token.
+    gateway.pendingFeed(std::unexpected(foundation::error::Error::make(
+        foundation::error::ErrorCode::Unavailable,
+        "Late network completion after closing a feed.")));
+    assert(deliveries == before);
+}
+
 void asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn()
 {
     using namespace farcaster;
@@ -2386,6 +2426,7 @@ int main()
     largeConversationEmbedsRemainDistinctAfterBatchPersistence();
     overBudgetConversationFailsAtomically();
     rejectedAsyncCacheCompletionIsTerminal();
+    cancelledLateFeedCompletionCannotResurrectReadService();
     asyncPaginationPublishesOnlyNewPageWhenPresentationOptsIn();
     pageOnlyContinuationFailuresPreserveViewportWithoutFullRead();
     lightweightCastPreviewSkipsOptionalProfileNetwork();

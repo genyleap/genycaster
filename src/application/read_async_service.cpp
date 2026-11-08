@@ -482,6 +482,7 @@ foundation::result::Result<ReadRequest> ReadService::openProfile(
             auto request = m_gateway.profile(
                 fid,
                 [this, fid, observer, control](foundation::result::Result<domain::profile::Profile> fresh) mutable {
+                    if (control->cancelled.load(std::memory_order_acquire)) return;
                     auto status = m_cacheExecutor.post(
                         [this, fid, observer, control, fresh = std::move(fresh)]() mutable {
                             if (control->cancelled.load(std::memory_order_acquire)) {
@@ -576,6 +577,7 @@ foundation::result::Result<ReadRequest> ReadService::openCast(
                 castId,
                 [this, castId, observer, options, control](
                     foundation::result::Result<domain::cast::Cast> fresh) mutable {
+                    if (control->cancelled.load(std::memory_order_acquire)) return;
                     if (!fresh) {
                         auto error = std::move(fresh.error());
                         auto status = m_cacheExecutor.post(
@@ -736,6 +738,9 @@ foundation::result::Result<ReadRequest> ReadService::openFeed(
                 query,
                 [this, query, localKey, observer, options, control](
                     foundation::result::Result<capability::feed::FeedPage> fresh) mutable {
+                    // A canceled surface may finish on the reactor during
+                    // shutdown; never dereference the borrowed service then.
+                    if (control->cancelled.load(std::memory_order_acquire)) return;
                     auto status = m_cacheExecutor.post(
                         [this, query, localKey, observer, options, control,
                          fresh = std::move(fresh)]() mutable {
@@ -992,6 +997,7 @@ foundation::result::Result<ReadRequest> ReadService::openSearch(
                 query,
                 [this, query, observer, control, cached, cachedChannels, hasCache](
                     foundation::result::Result<capability::search::SearchPage> fresh) mutable {
+                    if (control->cancelled.load(std::memory_order_acquire)) return;
                     model::SearchState state{.query = query};
                     if (!fresh) {
                         // Offline and unavailable indexed services must not
@@ -1115,6 +1121,7 @@ foundation::result::Result<ReadRequest> ReadService::openSocial(
                 query,
                 [this, query, localKey, observer, control](
                     foundation::result::Result<capability::social::SocialGraphPage> fresh) mutable {
+                    if (control->cancelled.load(std::memory_order_acquire)) return;
                     auto status = m_cacheExecutor.post(
                         [this, query, localKey, observer, control,
                          fresh = std::move(fresh)]() mutable {

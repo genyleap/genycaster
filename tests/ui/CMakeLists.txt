@@ -28,6 +28,20 @@ if(NOT EMSCRIPTEN)
             TIMEOUT 8 LABELS "ui;network;shutdown"
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FATAL_WARNINGS=1")
     endforeach()
+    # Do not dispatch queued HTTP completions during reactor destruction:
+    # this reproduces the ARM64 macOS exit crash with one active and two
+    # admitted queued requests, without requiring any external provider.
+    add_executable(genycaster_async_reactor_shutdown_tests
+        async_reactor_shutdown_tests.cpp)
+    target_link_libraries(genycaster_async_reactor_shutdown_tests PRIVATE
+        farcaster::transport_qt_network Qt6::Core Qt6::Network)
+    target_compile_features(genycaster_async_reactor_shutdown_tests PRIVATE cxx_std_26)
+    set_property(TARGET genycaster_async_reactor_shutdown_tests
+        PROPERTY CXX_SCAN_FOR_MODULES ON)
+    add_test(NAME ui.async_reactor_shutdown
+        COMMAND genycaster_async_reactor_shutdown_tests)
+    set_tests_properties(ui.async_reactor_shutdown PROPERTIES
+        TIMEOUT 8 LABELS "ui;network;shutdown;cross-platform")
 endif()
 
 # Validate startup provider precedence and credential containment with real

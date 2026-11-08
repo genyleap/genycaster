@@ -130,6 +130,16 @@ Runtime::~Runtime()
     signerExecutor.reset();
     writeService.reset();
     signerService.reset();
+    // Join the network reactor while every asynchronous observer's service,
+    // gateway and cache executor still exists. Its shutdown discards pending
+    // completions instead of dispatching into half-destroyed application state.
+    // This ownership order applies to desktop, mobile and single-thread WASM.
+    asyncTransport.reset();
+    // Drain in-flight decode and cache jobs before their borrowed ReadService
+    // and storage dependencies are released. A canceled job may still be
+    // completing on another worker after its UI surface has disappeared.
+    decodeExecutor.reset();
+    cacheExecutor.reset();
     service.reset();
     routedAsyncGateway.reset();
     rawReadGateways.clear();
@@ -137,9 +147,6 @@ Runtime::~Runtime()
     farcasterReadGateway.reset();
     asyncGateway.reset();
 #endif
-    asyncTransport.reset();
-    decodeExecutor.reset();
-    cacheExecutor.reset();
     executor.reset();
 }
 
