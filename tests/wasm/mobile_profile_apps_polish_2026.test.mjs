@@ -33,7 +33,7 @@ test('every locale includes user-visible share and option keys; Persian strings 
   assert.match(persian, /<translation>و %1 لینک دیگر<\/translation>/);
   assert.match(persian, /<translation>جنی‌لیپ<\/translation>/);
   assert.match(persian, /<translation>فناوری<\/translation>/);
-  assert.match(persian, /جست‌وجوی افراد، @کاربر، \/کانال یا کست‌ها/);
+  assert.match(persian, /جست‌وجوی افراد، @کاربر، \/کانال یا نشرها/);
 });
 
 test('desktop app details open from the right in a bounded inspector', () => {

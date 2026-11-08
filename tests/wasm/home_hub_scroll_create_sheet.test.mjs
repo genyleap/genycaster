@@ -15,7 +15,7 @@ test('all primary destinations provide explicit scroll-to-start without wiping d
 
     assert.match(home, /function scrollToBeginning\(\) \{[\s\S]*?mobileFlick\.contentY = 0/);
     assert.match(feed, /function scrollToBeginning\(\) \{[\s\S]*?readList\.positionViewAtBeginning\(\)/);
-    assert.match(profile, /function scrollToBeginning\(\) \{[\s\S]*?viewportRestoreTimer\.stop\(\)[\s\S]*?profileList\.positionViewAtBeginning\(\)/);
+    assert.match(profile, /function scrollToBeginning\(\) \{[\s\S]*?viewportRestoreTimer\.stop\(\)[\s\S]*?root\.readList\.positionViewAtBeginning\(\)/);
     assert.match(apps, /function scrollToBeginning\(\) \{[\s\S]*?appsScroller\.contentY = 0[\s\S]*?appGrid\.positionViewAtBeginning\(\)/);
     assert.match(settings, /function scrollToBeginning\(\) \{[\s\S]*?mobileSettingsIndex[\s\S]*?recoverySettingsScroll/);
     for (const destination of ['homeDashboard', 'feedSurfaceLoader.item', 'profileSurfaceLoader.item', 'appsSurfaceLoader.item'])

@@ -9,6 +9,7 @@ Item {
     property var modelData
     property bool compact: false
     property bool magazineCard: false
+    property var sharedMediaGeometry: null
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -420,6 +421,9 @@ Item {
 
         Item {
             id: messageSurface
+            // Long URLs, nested quotes and external previews must stay inside
+            // their own card when Magazine columns become narrow.
+            clip: root.magazineCard
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             implicitHeight: messageContent.implicitHeight + (root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4) * 2
@@ -675,7 +679,12 @@ Item {
 
                 Superellipse {
                     visible: root.hasContext
+                    // Nested quote/reply excerpts must shrink within narrow
+                    // Magazine cards without allowing long names or artwork to
+                    // intrude into the next column.
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    clip: true
                     implicitHeight: contextLayout.implicitHeight + Theme.space2 * 2
                     // Muted inset with a narrow accent rail: reply context stays
                     // quieter than the cast body itself.
@@ -708,6 +717,7 @@ Item {
                         ColumnLayout {
                             id: contextContent
                             Layout.fillWidth: true
+                            Layout.minimumWidth: 0
                             spacing: 1
 
                             DirectionAwareLabel {
@@ -808,6 +818,7 @@ Item {
 
                         Item {
                             visible: String(root.parentMediaPreview.source || "").length > 0
+                            Layout.minimumWidth: 0
                             Layout.preferredWidth: visible ? (root.compact ? 64 : 78) : 0
                             Layout.preferredHeight: visible ? (root.compact ? 48 : 58) : 0
                             Layout.alignment: Qt.AlignVCenter
@@ -878,6 +889,7 @@ Item {
                             plainText: root.displayText
                             compact: root.compact
                             magazineCard: root.magazineCard
+                            sharedMediaGeometry: root.sharedMediaGeometry
                             suppressedEmbedUrls: root.protocolEmbedUrls
                             onExternalRequested: url => root.externalRequested(url)
                             onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
@@ -908,6 +920,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: root.visualEmbeds
                             supportingEmbeds: []
                             compact: root.compact
@@ -978,6 +991,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
                             castCaption: root.combinedLinkCast ? root.displayText : ""
@@ -1000,6 +1014,7 @@ Item {
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard
+                            sharedMediaGeometry: root.sharedMediaGeometry
                             visualEmbeds: []
                             supportingEmbeds: root.supportingEmbeds
                             castCaption: root.combinedLinkCast ? root.displayText : ""

@@ -10,7 +10,8 @@ test('Home routes Explorer, Search, Apps and keeps Wallet disabled', () => {
  const home=qml('HomeDashboard');
  const shell=qml('AppShell');
  const actions=['explorer','search','apps'];
- const block=home.slice(home.indexOf('function activateHubShortcut'),home.indexOf('component HubWorkspace'));
+ const block=home.match(/function activateHubShortcut\(destination\) \{[\s\S]*?\n    \}/)?.[0];
+ assert.ok(block, 'shortcut dispatcher is present');
  const calls=[];
  const root={exploreRequested:()=>calls.push('explorer'),searchRequested:()=>calls.push('search'),appsRequested:()=>calls.push('apps')};
  const dispatch=runInNewContext('('+block.trim()+')',{root});

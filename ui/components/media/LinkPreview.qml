@@ -15,6 +15,7 @@ Superellipse {
     // Optional short Cast body folded into the same semantic web card.
     property string castCaption: ""
     property bool compact: false
+    property bool magazineCard: false
     property bool embeddedInCard: false
     property bool suppressArtwork: false
     property var externalPreview: ({})
@@ -781,8 +782,10 @@ Superellipse {
             id: webPreviewLoader
             visible: !root.layoutMiniApp
             Layout.fillWidth: true
-            // Large link cards incubate off the frame-critical path.
-            asynchronous: true
+            // Magazine's outer view already admits cards near the viewport.
+            // A second asynchronous boundary gets canceled during reverse
+            // scrolling and presents a flash/empty card on readmission.
+            asynchronous: !root.magazineCard
             sourceComponent: root.preferPosterLayout ? richMediaLinkCard : genericLinkCard
         }
     }

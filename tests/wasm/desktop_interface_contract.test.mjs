@@ -31,7 +31,7 @@ test('desktop Home presents one bounded content column', () => {
     assert.match(home, /Math\.min\(root\.homeContentMaxWidth,/);
     assert.match(home, /anchors\.horizontalCenter: parent\.horizontalCenter/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
-    assert.match(home, /GenyTokenBanner \{\}/);
+    assert.equal((home.match(/GenyTokenBanner \{/g) || []).length, 2);
 });
 
 test('desktop store uses borderless app rows and compact Open buttons', () => {
@@ -114,7 +114,7 @@ test('cast backgrounds and floating compose use page canvas and physical right e
     const cast = read('ui/components/feed/CastItem.qml');
     const reply = read('ui/components/feed/ThreadReplyItem.qml');
     const shell = read('ui/components/shell/AppShell.qml');
-    assert.match(cast, /fillColor: Theme\.backgroundPrimary\s*borderWidth: 0/);
+    assert.match(cast, /fillColor: root\.magazineCard \? Theme\.surfaceRaised : Theme\.backgroundPrimary\s*borderWidth: 0/);
     assert.match(reply, /fillColor: Theme\.backgroundPrimary/);
     assert.match(shell, /root\.width - Theme\.space5 - width/);
     assert.doesNotMatch(shell, /root\.width - root\.railReservation - Theme\.space5 - width/);

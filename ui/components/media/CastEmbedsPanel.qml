@@ -11,6 +11,7 @@ ColumnLayout {
     property string castCaption: ""
     property bool compact: false
     property bool magazineCard: false
+    property var sharedMediaGeometry: null
     property var scrollHost: null
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
@@ -257,10 +258,12 @@ ColumnLayout {
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
         asynchronousTiles: !root.magazineCard
+        sharedMediaGeometry: root.sharedMediaGeometry
         // A decoded image must not resize a scrolling timeline, even between
         // gestures: replies and previously visited feed rows share this panel.
         // The full image still fits inside the metadata/fallback reservation.
-        dynamicAspectDiscovery: root.scrollHost === null && root.visualCount === 1
+        dynamicAspectDiscovery: root.magazineCard
+                                || (root.scrollHost === null && root.visualCount === 1)
         onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
     }
 
@@ -324,6 +327,7 @@ ColumnLayout {
                                              ? root.castCaption : ""
                                 compact: root.magazineCard || tile.width < 520
                                 magazineCard: root.magazineCard
+                                sharedMediaGeometry: root.sharedMediaGeometry
                                 flatLinkCard: root.magazineCard
                                 suppressArtwork: root.visualCount > 0
                                 onOpenRequested: url => root.externalRequested(url)

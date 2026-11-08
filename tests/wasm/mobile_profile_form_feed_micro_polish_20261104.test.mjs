@@ -44,7 +44,7 @@ test('profile filter uses shared center sheet header and keeps the controls anch
 test('RTL Explorer audience buttons have bounded widths with correct 2-segment mirrored selection',()=>{
  const qml=source('HomeFeedHeader');
  const control=qml.slice(qml.indexOf('id: audienceSelector'),qml.indexOf('ContentTabs {'));
- assert.match(control,/Layout\.preferredWidth: root\.compact \? 228 : 240/);
+ assert.match(control,/Layout\.preferredWidth: root\.compact \? 228\s*: root\.condensedFeedActions \? 198 : 240/);
  assert.match(control,/Layout\.minimumWidth: Layout\.preferredWidth/);
  assert.match(control,/clip: true/);
  assert.match(control,/Layout\.minimumWidth: 0/);
@@ -69,8 +69,9 @@ test('mobile media bar keeps GIF separate from emoji and does not overflow on Pe
 
 test('Mini App card height includes exactly its artwork gutters and one-line captions do not reserve two lines',()=>{
  const qml=source('LinkPreview');
- assert.match(qml,/implicitHeight: content\.implicitHeight\s*\+ \(root\.layoutMiniApp \? Theme\.space4/);
- assert.match(qml,/anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
+ assert.match(qml,/implicitHeight: content\.implicitHeight \+ root\.cardInset \* 2/);
+ assert.match(qml,/cardInset: root\.embeddedInCard \? 0 : root\.layoutMiniApp \? Theme\.space4/);
+ assert.match(qml,/anchors\.margins: root\.cardInset/);
  assert.match(qml,/Layout\.preferredHeight: visible\s*\? Math\.min\(root\.bodyLineHeight \* 2, implicitHeight\) : 0/);
  assert.match(qml,/root\.layoutMiniApp\s*Layout\.fillWidth: true\s*spacing: Theme\.space2/);
  assert.match(qml,/alignToUi: true\s*text: root\.siteName\.length/);

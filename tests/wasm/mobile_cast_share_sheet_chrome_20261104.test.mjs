@@ -32,7 +32,8 @@ test('all GenyDrawer sheets have coordinated eased movement with reduced-motion 
 
 test('miniapp poster is uniformly inset rather than touching card edges', () => {
   const qml = source('ui/components/media/LinkPreview.qml');
-  assert.match(qml, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4\s*: root\.compact \? Theme\.space2 : Theme\.space3/);
+  assert.match(qml, /cardInset: root\.embeddedInCard \? 0 : root\.layoutMiniApp \? Theme\.space4/);
+  assert.match(qml, /anchors\.margins: root\.cardInset/);
   assert.match(qml, /id: miniAppPosterFrame[\s\S]*?clip: true/);
   assert.match(qml, /id: miniAppPoster[\s\S]*?clipToSuperellipse: true/);
   assert.match(qml, /fillMode: Image\.PreserveAspectFit/);

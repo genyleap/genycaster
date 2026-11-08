@@ -73,7 +73,7 @@ test("Feed and profile allow only drag-triggered top refresh; empty state scroll
         assert.match(source,/boundsMovement: Flickable\.FollowBoundsBehavior/);
         assert.match(source,/PullToRefresh \{/);
     }
-    const footer=feed.split("footer: Item {")[1].split("id: newPostsBanner")[0];
+    const footer=feed.split("id: feedFooterComponent")[1].split("id: newPostsBanner")[0];
     assert.match(footer,/id: feedEmptyState/);
     assert.match(footer,/height: stableRows\.count === 0/);
     assert.match(footer,/anchors\.fill: parent/);

@@ -192,7 +192,10 @@ Item {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                text: root.condensedFeedActions ? "" : qsTrId("genycaster.home.scope_feed")
+                // Magazine/Timeline already identifies the Feed on desktop.
+                // Retain the section label only on mobile, where view
+                // controls are intentionally hidden.
+                text: root.compact ? qsTrId("genycaster.home.scope_feed") : ""
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight

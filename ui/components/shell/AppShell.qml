@@ -183,6 +183,12 @@ Item {
     property var selectedChannelInfo: ({})
     property string explorerAudience: "all"
     property string explorerDisplayLayout: "magazine"
+    property string profileDisplayLayout: "timeline"
+    Settings {
+        id: profileLayoutPreferences
+        category: "profile-feed"
+        property alias displayLayout: root.profileDisplayLayout
+    }
     Settings {
         id: explorerAudiencePreferences
         category: "explorer-feed"
@@ -1868,6 +1874,8 @@ Item {
                                                 topicFilterBusy: (openProofConnections ? openProofConnections.topicCastsBusy : false)
                                                 topicFilterHasMore: (openProofConnections ? openProofConnections.topicCastsHasMore : false)
                                                 profileFeed: presentationBridge.profileFeed
+                                                displayLayout: root.profileDisplayLayout
+                                                onLayoutRequested: mode => root.profileDisplayLayout = mode
                                                 topicCatalog: (openProofConnections ? openProofConnections.topicCatalog : [])
                                                 onTopicRequested: (slug,fid) => {
                                                     if(slug) root.openTopicBrowser(slug,"profile",fid)

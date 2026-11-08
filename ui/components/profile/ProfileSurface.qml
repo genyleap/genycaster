@@ -25,6 +25,26 @@ Item {
         if (root.visible) root.scrollToBeginning()
     }
     property string profileFeed: "user-posts"
+    property string displayLayout: "timeline"
+    readonly property bool profileMagazineEnabled: !root.compact && displayLayout !== "timeline"
+    readonly property var readList: root.profileMagazineEnabled ? profileMagazineView : profileList
+    // ListView exposes originY, but the masonry Flickable may not. An
+    // undefined origin must never turn pagination and anchor math into NaN.
+    function readOriginY() {
+        const origin = Number(root.readList.originY)
+        return isFinite(origin) ? origin : 0
+    }
+    // Both modes use the same stable-keyed model, header and media renderer.
+    onProfileMagazineEnabledChanged: profileLayoutSwitch.restart()
+    Timer {
+        id: profileLayoutSwitch
+        interval: 0
+        onTriggered: {
+            root.viewportAnchorKey = ""
+            root.pendingRestoreKey = ""
+            root.readList.positionViewAtBeginning()
+        }
+    }
     property string profileSortMode: "newest"
     property string popularMetric: "all"
     property var topicCatalog: []
@@ -665,6 +685,7 @@ Item {
     signal followingRequested()
     signal refreshRequested()
     signal profileFeedRequested(string feed)
+    signal layoutRequested(string layout)
     signal topicRequested(string slug, double authorFid)
     signal castRequested(string castId)
     signal profileRequested(double fid)
@@ -976,24 +997,24 @@ Item {
     // while the heavyweight content remains in our keyed payload store.
     function captureViewportAnchor() {
         if (root.restoringViewport || profileRowsModel.count === 0) return
-        const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
+        const headerHeight = root.readList.headerItem ? root.readList.headerItem.implicitHeight : 0
         // indexAt() takes *content* coordinates, not viewport coordinates.
         // Probing near y=0 while scrolled past the header never finds a row.
-        const probeY = Math.max(headerHeight + 1, profileList.contentY + 1)
-        const index = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
+        const probeY = Math.max(headerHeight + 1, root.readList.contentY + 1)
+        const index = root.readList.indexAt(Math.max(1, root.readList.width / 2), probeY)
         if (index < 0 || index >= profileRowsModel.count) {
             // An empty incubation slot is not evidence that the old anchor
             // is still visible. Retaining it could teleport the view later.
             root.viewportAnchorKey = ""
             return
         }
-        const item = profileList.itemAtIndex(index)
+        const item = root.readList.itemAtIndex(index)
         if (!item) {
             root.viewportAnchorKey = ""
             return
         }
         root.viewportAnchorKey = String(profileRowsModel.get(index).stableKey || "")
-        root.viewportAnchorOffset = item.y - profileList.contentY
+        root.viewportAnchorOffset = item.y - root.readList.contentY
     }
 
     function scheduleViewportRestore(key, offset, captureAfter) {
@@ -1006,7 +1027,7 @@ Item {
     }
 
     function stabilizeViewportAfterGeometryChange() {
-        if (profileList.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
+        if (root.readList.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
         root.restoringViewport = true
         root.scheduleViewportRestore(root.viewportAnchorKey, root.viewportAnchorOffset, true)
     }
@@ -1023,7 +1044,7 @@ Item {
         }
         if (targetIndex < 0)
             return
-        const item = profileList.itemAtIndex(targetIndex)
+        const item = root.readList.itemAtIndex(targetIndex)
         if (!item) {
             // The old row is no longer instantiated. Forcing it back into view
             // during a late image/layout update is an unwanted scroll jump.
@@ -1032,12 +1053,12 @@ Item {
         }
         // A cached-but-offscreen delegate is as stale as a pooled one. Never
         // drag the reader multiple viewports to satisfy an obsolete anchor.
-        const currentOffset = item.y - profileList.contentY
-        if (Math.abs(currentOffset - anchorOffset) > Math.max(320, profileList.height))
+        const currentOffset = item.y - root.readList.contentY
+        if (Math.abs(currentOffset - anchorOffset) > Math.max(320, root.readList.height))
             return
-        const minimum = profileList.originY
-        const maximum = Math.max(minimum, profileList.contentHeight - profileList.height)
-        profileList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
+        const minimum = root.readOriginY()
+        const maximum = Math.max(minimum, root.readList.contentHeight - root.readList.height)
+        root.readList.contentY = Math.max(minimum, Math.min(maximum, item.y - anchorOffset))
     }
 
     function payloadForStableKey(key) {
@@ -1045,7 +1066,7 @@ Item {
     }
 
     function requestStableModelSync() {
-        if (profileList.moving) {
+        if (root.readList.moving) {
             root.stableModelSyncPending = true
             return
         }
@@ -1063,15 +1084,15 @@ Item {
         let anchorOffset = 0
         let structureChanged = false
         const retainedKeys = Object.create(null)
-        const headerHeight = profileList.headerItem ? profileList.headerItem.implicitHeight : 0
+        const headerHeight = root.readList.headerItem ? root.readList.headerItem.implicitHeight : 0
         // indexAt() takes *content* coordinates, not viewport coordinates.
         // Probing near y=0 while scrolled past the header never finds a row.
-        const probeY = Math.max(headerHeight + 1, profileList.contentY + 1)
-        const anchorIndex = profileList.indexAt(Math.max(1, profileList.width / 2), probeY)
+        const probeY = Math.max(headerHeight + 1, root.readList.contentY + 1)
+        const anchorIndex = root.readList.indexAt(Math.max(1, root.readList.width / 2), probeY)
         if (anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
-            const anchorItem = profileList.itemAtIndex(anchorIndex)
+            const anchorItem = root.readList.itemAtIndex(anchorIndex)
             anchorKey = String(profileRowsModel.get(anchorIndex).stableKey)
-            anchorOffset = anchorItem ? anchorItem.y - profileList.contentY : 0
+            anchorOffset = anchorItem ? anchorItem.y - root.readList.contentY : 0
         }
 
         for (let index = 0; index < source.length; ++index) {
@@ -1101,7 +1122,10 @@ Item {
                     profileRowsModel.setProperty(index, "revisionKey", revision)
                 }
             } else {
-                profileRowsModel.insert(index, { stableKey: key, revisionKey: revision })
+                profileRowsModel.insert(index, {
+                    stableKey: key, revisionKey: revision,
+                    presentationKind: "conversation", mediaLayoutKind: "other"
+                })
                 structureChanged = true
             }
         }
@@ -1124,18 +1148,18 @@ Item {
     }
 
     function isNearEnd() {
-        if (profileList.count === 0 || profileList.contentHeight <= 0)
+        if (root.readList.count === 0 || root.readList.contentHeight <= 0)
             return false
-        const normalizedY = Math.max(0, profileList.contentY - profileList.originY)
-        const preloadDistance = Math.max(520, profileList.height * 0.7)
-        return profileList.atYEnd
-                || normalizedY + profileList.height >= profileList.contentHeight - preloadDistance
+        const normalizedY = Math.max(0, root.readList.contentY - root.readOriginY())
+        const preloadDistance = Math.max(520, root.readList.height * 0.7)
+        return root.readList.atYEnd
+                || normalizedY + root.readList.height >= root.readList.contentHeight - preloadDistance
     }
 
     function scheduleLoadMore() {
         // Never append while kinetic scrolling is active. Variable-height cast
         // delegates can otherwise move under the pointer when the model grows.
-        if (profileList.moving || root.loadMorePending || root.busy || !root.hasMore
+        if (root.readList.moving || root.loadMorePending || root.busy || !root.hasMore
                 || !root.isNearEnd())
             return
         root.loadMorePending = true
@@ -1144,7 +1168,7 @@ Item {
 
     function requestScheduledLoadMore() {
         root.loadMorePending = false
-        if (!root.busy && root.hasMore && profileList.count > 0)
+        if (!root.busy && root.hasMore && root.readList.count > 0)
             root.loadMoreRequested()
     }
 
@@ -1154,8 +1178,8 @@ Item {
         root.pendingRestoreKey = ""
         root.viewportAnchorKey = ""
         root.restoringViewport = false
-        profileList.cancelFlick()
-        profileList.positionViewAtBeginning()
+        root.readList.cancelFlick()
+        root.readList.positionViewAtBeginning()
         root.resetPositionPasses = 1
         resetPositionTimer.restart()
     }
@@ -1171,7 +1195,7 @@ Item {
         root.resetPositionPasses = 2
         // A real identity navigation resets immediately. Only the follow-up
         // layout pass is deferred and may be cancelled by a user scroll.
-        profileList.positionViewAtBeginning()
+        root.readList.positionViewAtBeginning()
         resetPositionTimer.restart()
     }
 
@@ -1205,7 +1229,7 @@ Item {
         root.resetPositionPasses = 1
         // A selected profile tab is an explicit route change, unlike metadata
         // reflow. Reset synchronously before any new wheel event can intervene.
-        profileList.positionViewAtBeginning()
+        root.readList.positionViewAtBeginning()
         resetPositionTimer.restart()
     }
     onProfileSortModeChanged: stableModelSyncTimer.restart()
@@ -1265,13 +1289,13 @@ Item {
             // A queued reset belongs to navigation, never to the next wheel
             // frame. Desktop wheel input can change contentY without entering
             // ListView.moving; do not override a reader already scrolling.
-            if (profileList.moving
-                    || profileList.contentY - profileList.originY
-                        > Math.max(100, profileList.height * 0.4)) {
+            if (root.readList.moving
+                    || root.readList.contentY - root.readOriginY()
+                        > Math.max(100, root.readList.height * 0.4)) {
                 root.resetPositionPasses = 0
                 return
             }
-            profileList.positionViewAtBeginning()
+            root.readList.positionViewAtBeginning()
             --root.resetPositionPasses
             if (root.resetPositionPasses > 0)
                 resetPositionTimer.restart()
@@ -1300,7 +1324,8 @@ Item {
         clip: true
         // Preserve trailing scroll clearance beneath the floating nav.
         bottomMargin: root.compact ? 96 : 0
-        model: profileRowsModel
+        visible: !root.profileMagazineEnabled
+        model: root.profileMagazineEnabled ? null : profileRowsModel
         spacing: 0
         // Only a deliberate pull is allowed past the top; wheel scrolling
         // stays bounded and the shared indicator requests real profile reload.
@@ -1347,8 +1372,11 @@ Item {
             }
         }
 
-        header: ColumnLayout {
-            width: profileList.width
+        header: root.profileMagazineEnabled ? null : profileHeaderComponent
+        Component {
+          id: profileHeaderComponent
+          ColumnLayout {
+            width: root.readList.width
             spacing: Theme.space2
 
             RowLayout {
@@ -2566,6 +2594,25 @@ Item {
                 onConnectionsRequested: root.openConnections()
             }
 
+            // Profile cards use the same display modes and layout engine as
+            // Explorer. Keep the selector independent of profile category tabs
+            // so five translated tab labels remain legible at desktop widths.
+            RowLayout {
+                visible: !root.compact
+                Layout.fillWidth: true
+                Layout.leftMargin: root.profileContentX
+                Layout.rightMargin: root.profileContentX
+                Layout.preferredHeight: visible ? Theme.compactControlHeight : 0
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+                ExplorerLayoutControls {
+                    layoutMode: root.displayLayout
+                    condensed: root.profileContentWidth < 620
+                    onLayoutRequested: mode => root.layoutRequested(mode)
+                }
+                Item { Layout.fillWidth: true }
+            }
+
             // One compact navigation row, like the X profile timeline:
             // the sort/filter action lives alongside the content tabs rather
             // than occupying an otherwise empty second row above the casts.
@@ -2695,6 +2742,8 @@ Item {
             }
         }
 
+        }
+
         delegate: Item {
             id: profileCastDelegate
             required property string stableKey
@@ -2776,8 +2825,11 @@ Item {
             }
         }
 
-        footer: Item {
-            width: profileList.width
+        footer: root.profileMagazineEnabled ? null : profileFooterComponent
+        Component {
+          id: profileFooterComponent
+          Item {
+            width: root.readList.width
             height: emptyProfileState.visible ? 176 : (root.busy ? 72 : (root.compact ? 112 : 52))
 
             ColumnLayout {
@@ -2822,9 +2874,66 @@ Item {
             GenySpinner {
                 anchors.centerIn: parent
                 visible: root.busy
-                running: visible && !profileList.moving
+                running: visible && !root.readList.moving
                 Accessible.name: qsTrId("genycaster.profile.loading_more_profile_posts")
             }
+          }
+        }
+    }
+
+    FeedMasonryView {
+        id: profileMagazineView
+        objectName: "profileMagazine"
+        anchors.fill: parent
+        visible: root.profileMagazineEnabled
+        model: root.profileMagazineEnabled ? profileRowsModel : null
+        header: root.profileMagazineEnabled ? profileHeaderComponent : null
+        footer: root.profileMagazineEnabled ? profileFooterComponent : null
+        targetCardWidth: Theme.scaleUi(420)
+        maximumColumns: 3
+        layoutDirection: Theme.uiDirection
+        estimateHeight: function(key, kind, media, width) {
+            return root.rowIncubationHeight(root.payloadForStableKey(key), width)
+        }
+        delegate: Component {
+            CastItem {
+                width: parent.width
+                modelData: {
+                    // Native role notification rebinds payload changes even
+                    // though the QML stablePayloads map mutates in place.
+                    const revision = parent.revisionKey
+                    return root.payloadForStableKey(parent.stableKey)
+                }
+                compact: true
+                magazineCard: true
+                sharedMediaGeometry: profileMagazineView
+                interactionsAvailable: root.interactionsAvailable
+                accountFid: root.accountFid
+                onOpenRequested: castId => root.castRequested(castId)
+                onProfileRequested: fid => root.profileRequested(fid)
+                onReplyRequested: cast => root.replyRequested(cast)
+                onQuoteRequested: cast => root.quoteRequested(cast)
+                onReactionRequested: (kind, cast, active) => root.reactionRequested(kind, cast, active)
+                onRemoveRequested: cast => root.removeCastRequested(cast)
+                onExternalRequested: url => root.externalRequested(url)
+                onMediaRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
+                onAuthenticationRequested: root.authenticationRequested()
+            }
+        }
+        onMovementStarted: {
+            resetPositionTimer.stop()
+            viewportRestoreTimer.stop()
+            root.resetPositionPasses = 0
+            root.pendingRestoreKey = ""
+            root.viewportAnchorKey = ""
+        }
+        onMovementEnded: {
+            if (root.stableModelSyncPending) root.requestStableModelSync()
+            root.scheduleLoadMore()
+        }
+        onContentYChanged: {
+            if (!profileMagazineView.moving && !scrollWorkThrottle.running)
+                scrollWorkThrottle.start()
         }
     }
 
@@ -3844,14 +3953,14 @@ Item {
         }
     }
     PullToRefresh {
-        flickable: profileList
+        flickable: root.readList
         busy: root.busy
         refreshEnabled: Number(root.activeDetail.fid || 0) > 0
         onRefreshRequested: root.refreshProfileAndAccount()
     }
 
     ScrollToTopButton {
-        flickable: profileList
+        flickable: root.readList
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5

@@ -138,8 +138,8 @@ test("windowed Explorer keeps view actions at leading edge and collapses crowded
     const row = header.split("        RowLayout {\n            Layout.fillWidth: true\n            Layout.topMargin: Theme.space1")[1]
         .split("\n        RowLayout {")[0];
     assert.ok(row, "Feed toolbar row exists");
-    assert.ok(row.indexOf("ExplorerLayoutControls {") < row.indexOf('text: root.condensedFeedActions')
-        && row.indexOf('text: root.condensedFeedActions') < row.indexOf("id: audienceSelector"),
+    assert.ok(row.indexOf("ExplorerLayoutControls {") < row.indexOf('text: root.compact ? qsTrId')
+        && row.indexOf('text: root.compact ? qsTrId') < row.indexOf("id: audienceSelector"),
         "View buttons sit at the leading edge, and Everyone/Following remain at trailing edge");
     assert.match(header, /readonly property bool condensedFeedActions: !root\.compact && root\.width < 690/);
     assert.match(header, /root\.condensedFeedActions \? 198 : 240/);
@@ -194,9 +194,9 @@ test("Magazine nested EmbedPreview and GalleryLayout never abandon incubation", 
     const rich = read("ui/components/content/RichCastRenderer.qml");
     const preview = read("ui/components/media/EmbedPreview.qml");
     const gallery = read("ui/components/media/GalleryLayout.qml");
-    assert.match(cast, /magazineCard: root\.magazineCard\s+suppressedEmbedUrls:/);
+    assert.match(cast, /magazineCard: root\.magazineCard\s+sharedMediaGeometry: root\.sharedMediaGeometry\s+suppressedEmbedUrls:/);
     assert.match(panel, /asynchronousTiles: !root\.magazineCard/);
-    assert.match(panel, /magazineCard: root\.magazineCard\s+flatLinkCard:/);
+    assert.match(panel, /magazineCard: root\.magazineCard\s+sharedMediaGeometry: root\.sharedMediaGeometry\s+flatLinkCard:/);
     assert.match(rich, /magazineCard: root\.magazineCard/);
     assert.match(preview, /asynchronous: !root\.magazineCard/);
     assert.match(preview, /asynchronousTiles: !root\.magazineCard/);

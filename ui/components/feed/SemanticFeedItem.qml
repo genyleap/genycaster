@@ -9,6 +9,7 @@ Item {
     property string presentationKind: "conversation"
     property bool compact: false
     property bool magazineCard: false
+    property var sharedMediaGeometry: null
     property bool interactionsAvailable: false
     property bool enrichmentActive: true
     property double accountFid: 0
@@ -42,6 +43,7 @@ Item {
         id: magazineComponent
         CastItem {
             magazineCard: true
+            sharedMediaGeometry: root.sharedMediaGeometry
             modelData: root.modelData
             compact: true
             interactionsAvailable: root.interactionsAvailable

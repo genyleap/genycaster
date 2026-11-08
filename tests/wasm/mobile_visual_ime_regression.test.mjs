@@ -53,8 +53,8 @@ test('discovery covers share a superellipse shape and Save action is visible', (
 test('mobile reading surface reduces double insets without changing desktop geometry', () => {
   const cast = read('ui/components/feed/CastItem.qml');
   const detail = read('ui/components/feed/DetailSurface.qml');
-  assert.match(cast, /anchors\.leftMargin: root\.compact \? Theme\.space2 : Theme\.space3/);
-  assert.match(cast, /anchors\.leftMargin: root\.compact \? Theme\.space2 : Theme\.space4/);
+  assert.match(cast, /anchors\.leftMargin: root\.magazineCard \? 0 : root\.compact \? Theme\.space2 : Theme\.space3/);
+  assert.match(cast, /anchors\.leftMargin: root\.magazineCard \? Theme\.space4 : root\.compact \? Theme\.space2 : Theme\.space4/);
   assert.match(detail, /anchors\.margins: root\.compact \? Theme\.space2 : Theme\.space5/);
 });
 

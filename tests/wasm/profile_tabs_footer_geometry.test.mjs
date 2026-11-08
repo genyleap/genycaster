@@ -7,7 +7,7 @@ const read = name => readFileSync(new URL('../../ui/components/' + componentPath
 
 test('profile sort/filter shares the existing tab row instead of reserving an empty row', () => {
     const profile = read('ProfileSurface.qml');
-    const headerStart = profile.indexOf('header: ColumnLayout {');
+    const headerStart = profile.indexOf('id: profileHeaderComponent');
     const delegateStart = profile.indexOf('delegate: Item {', headerStart);
     assert.ok(headerStart >= 0 && delegateStart > headerStart);
     const header = profile.slice(headerStart, delegateStart);

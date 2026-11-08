@@ -37,10 +37,11 @@ function feedHarness() {
     };
     for (const name of ['cancelViewportCorrections', 'stabilizeGeometryAnchor', 'restoreViewportAfterRebuild'])
         root[name] = method(feed, name, context);
-    const start = feed.indexOf('        onContentYChanged: {');
-    const end = feed.indexOf('\n        onHeightChanged:', start);
-    const handler = feed.slice(start, end).replace('        onContentYChanged:', 'function changed()');
-    const contentYChanged = runInNewContext('(' + handler.trim() + ')', context);
+    const start = feed.indexOf('        function onContentYChanged() {');
+    const end = feed.indexOf('\n        function onHeightChanged()', start);
+    assert.ok(start >= 0 && end > start, 'shared readList scroll handler exists');
+    const handler = feed.slice(start, end).trim().replace('function onContentYChanged()', 'function changed()');
+    const contentYChanged = runInNewContext('(' + handler + ')', context);
     return { ...context, item, contentYChanged };
 }
 
@@ -188,12 +189,14 @@ test('cancelled confirmed-reply focus is not rearmed by hydration or media geome
 
 test('scrolling image panels reserve geometry instead of adopting late decode dimensions', () => {
     const panel = read('CastEmbedsPanel');
-    const expression = panel.match(/dynamicAspectDiscovery:\s*([^\n]+)/)[1];
+    const expression = panel.match(/dynamicAspectDiscovery:\s*([^\n]+\n\s*\|\|[^\n]+)/)[1];
     const enabled = root => runInNewContext(expression, { root });
-    assert.equal(enabled({ scrollHost: { moving: false }, visualCount: 1 }), false);
-    assert.equal(enabled({ scrollHost: { moving: true }, visualCount: 1 }), false);
-    assert.equal(enabled({ scrollHost: null, visualCount: 1 }), true);
-    const contentHeightHandler = feed.slice(feed.indexOf('        onContentHeightChanged:'), feed.indexOf('        onContentYChanged:'));
+    assert.equal(enabled({ magazineCard: false, scrollHost: { moving: false }, visualCount: 1 }), false);
+    assert.equal(enabled({ magazineCard: false, scrollHost: { moving: true }, visualCount: 1 }), false);
+    assert.equal(enabled({ magazineCard: false, scrollHost: null, visualCount: 1 }), true);
+    assert.equal(enabled({ magazineCard: true, scrollHost: { moving: true }, visualCount: 1 }), true,
+        'Magazine caches aspect through scrolling; Timeline keeps frozen reservation');
+    const contentHeightHandler = feed.slice(feed.indexOf('        function onContentHeightChanged()'), feed.indexOf('        function onContentYChanged()'));
     assert.doesNotMatch(contentHeightHandler, /geometryRestoreTimer/, 'estimated extent cannot trigger correction');
 });
 

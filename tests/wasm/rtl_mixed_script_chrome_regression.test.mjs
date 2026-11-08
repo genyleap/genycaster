@@ -34,6 +34,6 @@ test('homepage promotions and greetings preserve mixed-script chrome', () => {
   assert.match(home, /genycaster\.home\.geny_token_title/);
   assert.match(home, /"\\u2066" \+ root\.welcomeName \+ "\\u2069"/);
   assert.match(profile, /objectName: "profileProfessionalCategory"[\s\S]*?layoutDirection: Theme\.uiDirection/);
-  assert.match(fa, /<translation>یک کست یا پیام جدید بنویسید…<\/translation>/);
+  assert.match(fa, /<translation>یک نشر یا پیام جدید بنویسید…<\/translation>/);
   assert.match(fa, /<translation>حساب‌های متصل خود را در جنی‌کستر/);
 });

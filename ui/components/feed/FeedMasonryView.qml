@@ -16,10 +16,48 @@ Flickable {
     property int maximumColumns: 2
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
-    property real cacheBuffer: Math.min(height * 0.5, 480)
-    // Keep already-admitted cards somewhat longer than newly admitted ones.
-    // This prevents media teardown/reincubation when a card is near a boundary.
-    readonly property real retentionBuffer: cacheBuffer + Math.max(180, height * 0.35)
+    property real cacheBuffer: Math.min(height * 0.8, 720)
+    // Keep recently displayed cards mounted through ordinary reverse scrolls.
+    // Churn from destroying/recreating image trees on every scroll reversal
+    // costs substantially more than retaining a small adjacent runway.
+    readonly property real retentionBuffer: cacheBuffer + Math.min(1200, Math.max(420, height * 1.15))
+    // A recycled delegate must not forget its confirmed height. Store a
+    // bounded, width-bucketed sample per cast revision; otherwise readmission
+    // jumps from real height back to a text/image placeholder estimate.
+    property var measuredHeights: ({})
+    property var measuredOrder: []
+    property var aspectMemory: ({})
+    property var aspectOrder: []
+    function aspectForKey(key) {
+        return Number(aspectMemory[String(key)] || 0)
+    }
+    function rememberAspect(key, ratio) {
+        const id = String(key || "")
+        const value = Number(ratio || 0)
+        if (!id || !(value > 0)) return
+        if (!Object.prototype.hasOwnProperty.call(aspectMemory, id)) {
+            aspectOrder.push(id)
+            if (aspectOrder.length > 600)
+                delete aspectMemory[aspectOrder.shift()]
+        }
+        aspectMemory[id] = value
+    }
+    function heightKey(key, revision, width) {
+        return String(key) + "|" + String(revision) + "|" + Math.round(width / 24)
+    }
+    function recalledHeight(key, revision, width) {
+        return Number(measuredHeights[heightKey(key, revision, width)] || 0)
+    }
+    function retainHeight(key, revision, width, height) {
+        if (!(height > 0) || !key) return
+        const id = heightKey(key, revision, width)
+        if (!Object.prototype.hasOwnProperty.call(measuredHeights, id)) {
+            measuredOrder.push(id)
+            if (measuredOrder.length > 400)
+                delete measuredHeights[measuredOrder.shift()]
+        }
+        measuredHeights[id] = height
+    }
     readonly property int count: slots.count
     readonly property Item headerItem: headerLoader.item
     readonly property Item footerItem: footerLoader.item
@@ -232,6 +270,7 @@ Flickable {
             required property string presentationKind
             required property string mediaLayoutKind
             property real measuredHeight: 0
+            property real previousWidth: 0
             property bool placed: false
             property bool admitted: false
             property int assignedColumn: -1
@@ -245,18 +284,33 @@ Flickable {
                 assignedColumn = -1
                 view.scheduleLayout()
             }
-            onWidthChanged: measuredHeight = 0
+            onWidthChanged: {
+                const recalled = view.recalledHeight(stableKey, revisionKey, width)
+                if (recalled > 0)
+                    measuredHeight = recalled
+                else if (previousWidth > 0 && measuredHeight > 0)
+                    measuredHeight = Math.max(96, measuredHeight * width / previousWidth)
+                previousWidth = width
+            }
             onStableKeyChanged: {
                 admitted = false
-                measuredHeight = 0
+                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
                 assignedColumn = -1
                 view.scheduleLayout()
+            }
+            onRevisionKeyChanged: {
+                // A changed cast payload can alter text/media height. Never
+                // apply a sample from an earlier revision of that cast.
+                measuredHeight = view.recalledHeight(stableKey, revisionKey, width)
             }
 
             function recordHeight() {
                 const next = cardLoader.item ? cardLoader.item.height : 0
-                if (next > 0 && Math.abs(next - measuredHeight) >= 1)
-                    measuredHeight = next
+                if (next > 0) {
+                    if (Math.abs(next - measuredHeight) >= 1)
+                        measuredHeight = next
+                    view.retainHeight(stableKey, revisionKey, width, next)
+                }
             }
 
             Loader {

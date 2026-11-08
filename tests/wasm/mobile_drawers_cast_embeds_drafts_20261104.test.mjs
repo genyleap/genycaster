@@ -67,7 +67,8 @@ test('drawer headers use the same centered title and close-button layout',()=>{
 
 test('Cast URL and Mini App embeds share gutters, rounded artwork and failure collapse',()=>{
  const card=read('ui/components/media/LinkPreview.qml');
- assert.match(card,/anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
+ assert.match(card,/cardInset: root\.embeddedInCard \? 0 : root\.layoutMiniApp \? Theme\.space4/);
+ assert.match(card,/anchors\.margins: root\.cardInset/);
  assert.match(card,/spacing: Theme\.space2/);
  assert.match(card,/&& !root\.miniAppArtworkUnavailable \? readyHeight : 0/);
  assert.match(card,/&& !root\.richArtworkUnavailable \? readyHeight : 0/);

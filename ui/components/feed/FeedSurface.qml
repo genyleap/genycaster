@@ -1554,6 +1554,7 @@ Item {
         delegate: Component {
             FeedRow {
                 magazineRow: true
+                sharedMediaGeometry: magazineView
                 viewportY: parent.slotY
                 width: parent.width
                 index: parent.rowIndex
@@ -1787,6 +1788,7 @@ Item {
         required property string revisionKey
         required property int index
         property bool magazineRow: false
+        property var sharedMediaGeometry: null
         readonly property var payload: {
             const revision = rowDelegate.revisionKey
             return root.payloadForStableKey(rowDelegate.stableKey)
@@ -1900,6 +1902,7 @@ Item {
                 presentationKind: rowDelegate.presentationKind
                 compact: root.compact || rowDelegate.magazineRow
                 magazineCard: rowDelegate.magazineRow
+                sharedMediaGeometry: rowDelegate.sharedMediaGeometry
                 interactionsAvailable: root.interactionsAvailable
                 // Keep only a small near-viewport margin subscribed.
                 enrichmentActive: root.presentationActive && rowDelegate.visible

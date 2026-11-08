@@ -11,6 +11,7 @@ ColumnLayout {
     property string plainText: ""
     property bool compact: false
     property bool magazineCard: false
+    property var sharedMediaGeometry: null
     property int emojiSurface: 1
     // Protocol embeds are rendered by CastEmbedsPanel. Rich sidecar embed/media
     // blocks with the same URL are suppressed so a locally published cast does
@@ -219,6 +220,7 @@ ColumnLayout {
         EmbedPreview {
             compact: root.compact
             magazineCard: root.magazineCard
+            sharedMediaGeometry: root.sharedMediaGeometry
             readonly property string richKind: String(parent.blockData.kind || "")
             readonly property string mediaType: String(parent.blockData.mediaType || "").toLowerCase()
             embed: {

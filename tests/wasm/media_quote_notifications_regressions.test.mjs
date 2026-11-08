@@ -79,8 +79,8 @@ test('marketplace artwork retries through the CORS-safe browser metadata provide
 test('miniapp posters keep useful original artwork size with better inset spacing', () => {
     const link = read('ui/components/media/LinkPreview.qml');
     assert.match(link, /Math\.min\(root\.compact \? 420 : 640,/);
-    assert.match(link, /anchors\.margins: root\.layoutMiniApp \? Theme\.space4/);
-    assert.match(link, /implicitHeight: content\.implicitHeight\s*\+ \(root\.layoutMiniApp \? Theme\.space4/);
+    assert.match(link, /readonly property real cardInset: root\.embeddedInCard \? 0 : root\.layoutMiniApp \? Theme\.space4/);
+    assert.match(link, /implicitHeight: content\.implicitHeight \+ root\.cardInset \* 2/);
 });
 
 test('search text fields use the themed editor context menu', () => {

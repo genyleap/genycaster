@@ -8,7 +8,7 @@ test('Home desktop uses one aligned measured rail; mobile keeps matching side gu
  const home=source('ui/components/home/HomeDashboard.qml');
  assert.match(home,/readonly property real homeContentMaxWidth: Theme.scaleUi\(760\)/);
  assert.match(home,/objectName: "homeAlignedContentRail"/);
- assert.match(home,/width: Math.max\(1, Math.min\(root.homeContentMaxWidth,/);
+ assert.match(home,/width: root\.activeTab === "stats"\s*\? Math\.max\(1, parent\.width\)\s*: Math\.max\(1, Math\.min\(parent\.width - Theme\.space4 \* 2,/);
  assert.match(home,/Layout.leftMargin: root.compact \? Theme.space3 : 0/);
  assert.match(home,/Layout.rightMargin: root.compact \? Theme.space3 : 0/);
  assert.match(home,/Layout.maximumWidth: root.homeContentMaxWidth/);

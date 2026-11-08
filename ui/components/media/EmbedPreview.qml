@@ -19,6 +19,7 @@ Item {
     // Magazine rows are already viewport-admitted; avoid canceling a nested
     // incubator when the parent card is recycled or the view switches.
     property bool magazineCard: false
+    property var sharedMediaGeometry: null
     property bool flatLinkCard: false
     property bool suppressArtwork: false
     readonly property string rawKind: String(root.embed.kind || "").toLowerCase()
@@ -407,7 +408,8 @@ Item {
             }]
             compact: root.compact
             asynchronousTiles: !root.magazineCard
-            dynamicAspectDiscovery: false
+            sharedMediaGeometry: root.sharedMediaGeometry
+            dynamicAspectDiscovery: root.magazineCard
             onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }
     }
@@ -442,6 +444,7 @@ Item {
     Component {
         id: linkComponent
         LinkPreview {
+            magazineCard: root.magazineCard
             embeddedInCard: root.flatLinkCard
             embed: root.embed
             castCaption: root.castCaption

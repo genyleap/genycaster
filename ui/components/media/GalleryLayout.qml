@@ -9,6 +9,7 @@ Item {
     // Timeline keeps staged incubation; viewport-bounded Magazine cards own
     // their nested tiles synchronously to avoid canceled incubator warnings.
     property bool asynchronousTiles: true
+    property var sharedMediaGeometry: null
     // A link promoted to direct media keeps its already-visible feed slot.
     property real singleImageHeight: 0
     // Feed geometry must not change after an image finishes decoding. Provider
@@ -79,7 +80,13 @@ Item {
         const discovered = Number(root.discoveredAspects[root.mediaKey(index)] || 0)
         if (root.dynamicAspectDiscovery && discovered > 0)
             return root.clampAspect(discovered)
-        return Number(root.reservedAspects[root.mediaKey(index)] || root.initialAspect(item))
+        // A confirmed decoded aspect from a prior visit wins over the
+        // first incarnation's fallback reservation (normally 4:3).
+        // Otherwise a recycled card briefly letterboxes again.
+        return Number((root.sharedMediaGeometry
+                          ? root.sharedMediaGeometry.aspectForKey(root.mediaKey(index)) : 0)
+                      || root.reservedAspects[root.mediaKey(index)]
+                      || root.initialAspect(item))
     }
 
     function initialAspect(item) {
@@ -99,7 +106,10 @@ Item {
         const next = ({})
         for (let index = 0; index < root.visibleCount; ++index) {
             const key = root.mediaKey(index)
-            next[key] = root.reservedAspects[key] || root.initialAspect(root.embedAt(index))
+            next[key] = (root.sharedMediaGeometry
+                             ? root.sharedMediaGeometry.aspectForKey(key) : 0)
+                || root.reservedAspects[key]
+                || root.initialAspect(root.embedAt(index))
         }
         root.reservedAspects = next
     }
@@ -125,6 +135,8 @@ Item {
             return
         const nextPending = Object.assign({}, root.pendingAspects)
         nextPending[key] = root.clampAspect(value)
+        if (root.sharedMediaGeometry)
+            root.sharedMediaGeometry.rememberAspect(key, root.clampAspect(value))
         root.pendingAspects = nextPending
         aspectCommit.restart()
     }
@@ -170,10 +182,14 @@ Item {
             const contentOffset = Math.max(0, (outerWidth - contentWidth) / 2)
             const aspect = root.declaredAspect(0)
 
-            // Fit the complete image inside the reserved frame. Decoding cannot
-            // change this plan in the feed, even after a gesture has settled.
-            const maximumHeight = root.compact ? Math.max(720, contentWidth * 1.6) : 860
-            const minimumHeight = root.compact ? 120 : 140
+            // Full-width, aspect-proportional photo cards: once the image's
+            // actual ratio is known, reserve its correct height rather than
+            // letterboxing a narrow portrait inside a wide fixed frame.
+            // Restrict extreme panoramas and tall scans, not normal portraits.
+            const maximumHeight = root.dynamicAspectDiscovery
+                ? Math.max(900, contentWidth * 2.35)
+                : root.compact ? Math.max(720, contentWidth * 1.6) : 860
+            const minimumHeight = root.dynamicAspectDiscovery ? 64 : root.compact ? 120 : 140
             const heightValue = root.singleImageHeight > 0 ? root.singleImageHeight
                               : root.boundedHeight(contentWidth / aspect, minimumHeight, maximumHeight)
             plan.push({ x: Math.round(contentOffset), y: 0,
@@ -304,8 +320,12 @@ Item {
                         // mask because its vector corner cover can show seams at
                         // fractional DPR. Retain Metal's mask for single photos.
                         useLayeredMask: Qt.platform.os === "wasm"
-                                        || (Qt.platform.os === "osx" && root.visibleCount === 1)
-                        ambientEnabled: root.visibleCount === 1
+                                        || (Qt.platform.os === "osx" && root.visibleCount === 1
+                                            && !root.dynamicAspectDiscovery)
+                        cornerCoverColor: root.dynamicAspectDiscovery ? Theme.surfaceRaised : Theme.background
+                        // A full-width, aspect-correct Magazine photo does not
+                        // need an additional blurred GPU render pass.
+                        ambientEnabled: root.visibleCount === 1 && !root.dynamicAspectDiscovery
                         loadDelayMs: tileSlot.index * 48
                         continuationText: tileSlot.index === root.visibleCount - 1
                                           && root.itemCount > root.visibleCount

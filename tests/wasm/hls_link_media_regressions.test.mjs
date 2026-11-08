@@ -50,7 +50,7 @@ test('editorial link artwork and focus rings on both home composers',()=>{
  const link=read('ui/components/media/LinkPreview.qml');
  const home=read('ui/components/home/HomeDashboard.qml');
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
- assert.match(link,/Layout\.fillWidth: root\.compact && shouldReserve[\s\S]*?Math\.min\(root\.compact \? 300 : 180/);
+ assert.match(link,/Layout\.fillWidth: root\.compact && shouldReserve[\s\S]*?Math\.min\(root\.compact \? 300 : Theme\.scaleUi\(192\)/);
  assert.match(link,/visible: root\.authorText\.length > 0 \|\| root\.dateText\.length > 0/);
  assert.match(home,/desktopDraftEditor\.activeFocus \? Theme\.accent/);
  assert.match(home,/objectName: "homeComposerLauncher"/);
