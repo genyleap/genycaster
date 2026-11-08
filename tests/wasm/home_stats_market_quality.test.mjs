@@ -42,18 +42,48 @@ test("every bundled locale contains the new stats and market names", () => {
     assert.match(fa, /جنی‌کستر/);
 });
 
-test("engagement distribution never compares authored activity as received feedback", () => {
-    const component = read("ui/components/home/StatsBreakdown.qml");
-    for (const key of ["likes", "recasts", "receivedReplies", "casts", "replies"])
-        assert.ok(component.includes("metrics." + key), "missing real counter " + key);
-    assert.match(component, /readonly property var engagementRows/);
-    assert.match(component, /readonly property var publishingRows/);
-    assert.match(component, /receivedTotal: engagementRows\.reduce/);
-    assert.match(component, /count \/ receivedTotal/);
-    assert.match(component, /root\.share\(modelData\.count\)/);
-    assert.match(component, /Theme\.rtl/);
-    assert.match(component, /Theme\.reduceMotion/);
-    assert.doesNotMatch(component, /Canvas\s*\{|radarTween|highestCount/);
+test("received engagement uses real cohort-based line series with independent axes", () => {
+    const view = read("ui/components/home/StatsBreakdown.qml");
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const aggregate = read("ui/app/social/stats.cpp");
+    const header = read("ui/app/social/stats.hpp");
+    assert.match(view, /readonly property real likesMax/);
+    assert.match(view, /readonly property real secondaryMax/);
+    assert.match(view, /axis: 0/);
+    assert.match(view, /axis: 1/);
+    assert.match(view, /PathPolyline\s*\{/);
+    assert.match(view, /Shape\.GeometryRenderer/);
+    assert.match(view, /layer\.samples:\s*4/);
+    assert.match(view, /indexAt\(/);
+    assert.match(view, /Theme\.rtl/);
+    assert.doesNotMatch(view, /distributionTrack|radarTween/);
+    assert.match(view, /received_by_publish_date/);
+    assert.match(view, /publish_date_snapshot/);
+    assert.match(panel, /activity: statsController\.activity/);
+    assert.match(header, /m_receivedByPublishedDay/);
+    for(const key of ["likes", "recasts", "receivedReplies"]) {
+        assert.match(aggregate, new RegExp("perDay\\." + key + "\\s*\\+="));
+        assert.ok(aggregate.includes('QStringLiteral("' + key + '")'));
+    }
+    const nativeTest=read("tests/ui/stats_controller_tests.cpp");
+    assert.match(nativeTest,/yearlyLikes == 55 && yearlyRecasts == 18/);
+});
+
+test("large desktop statistics fill the workspace without stretching the home composer", () => {
+    const home=read("ui/components/home/HomeDashboard.qml");
+    assert.match(home, /root\.activeTab === "stats" \? parent\.width : root\.homeContentMaxWidth/);
+    assert.match(home, /Layout\.maximumWidth: root\.homeContentMaxWidth/);
+    assert.match(home, /width: parent\.width[\s\S]*?tabActive: root\.activeTab === "stats"/);
+});
+
+test("market insight grid pairs Fear and CMC on desktop and stacks on phones", () => {
+    const market=read("ui/components/home/MarketPanel.qml");
+    assert.match(market, /id: marketInsightGrid/);
+    assert.match(market, /columns: root\.wideLayout \? 2 : 1/);
+    assert.match(market, /readonly property bool wideLayout: width >= 720/);
+    assert.match(market, /id: fearCard[\s\S]*?Layout\.row: root\.wideLayout \? 0 : 2/);
+    assert.match(market, /Layout\.row: root\.wideLayout \? 1 : 3/);
+    assert.match(market, /layoutDirection: Theme\.uiDirection/);
 });
 
 test("publishing stacks round only the outer silhouette", () => {

@@ -374,6 +374,10 @@ ColumnLayout {
             visible: Boolean(root.metrics.hasEngagement)
             Layout.fillWidth: true
             metrics: root.metrics
+            // Same provider-scoped date buckets as the publishing chart.
+            // Engagement in a bucket is the current response count on
+            // posts authored then, never a fabricated interaction timeline.
+            activity: statsController.activity
         }
 
         // Optional, verified account-derived insight. An unrelated public profile

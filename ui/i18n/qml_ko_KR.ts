@@ -7176,5 +7176,13 @@ Company | https://company.com</source>
             <source>Solana</source>
             <translation>솔라나</translation>
         </message>
+        <message id="genycaster.stats.received_by_publish_date">
+            <source>Interactions on posts by publication date</source>
+            <translation>게시일별 게시물 반응</translation>
+        </message>
+        <message id="genycaster.stats.publish_date_snapshot">
+            <source>Current reactions on posts published in each period, not when reactions happened.</source>
+            <translation>각 기간에 게시된 글의 현재 반응 수이며, 반응이 발생한 날짜가 아닙니다.</translation>
+        </message>
     </context>
 </TS>

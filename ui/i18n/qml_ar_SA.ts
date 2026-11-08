@@ -7176,5 +7176,13 @@ Company | https://company.com</source>
             <source>Solana</source>
             <translation>سولانا</translation>
         </message>
+        <message id="genycaster.stats.received_by_publish_date">
+            <source>Interactions on posts by publication date</source>
+            <translation>التفاعلات على المنشورات حسب تاريخ النشر</translation>
+        </message>
+        <message id="genycaster.stats.publish_date_snapshot">
+            <source>Current reactions on posts published in each period, not when reactions happened.</source>
+            <translation>التفاعلات الحالية على المنشورات المنشورة في كل فترة، وليس وقت حدوث التفاعل.</translation>
+        </message>
     </context>
 </TS>

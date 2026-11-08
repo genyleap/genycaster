@@ -7176,5 +7176,13 @@ Company | https://company.com</source>
             <source>Solana</source>
             <translation>索拉纳</translation>
         </message>
+        <message id="genycaster.stats.received_by_publish_date">
+            <source>Interactions on posts by publication date</source>
+            <translation>按发布日期统计的帖子互动</translation>
+        </message>
+        <message id="genycaster.stats.publish_date_snapshot">
+            <source>Current reactions on posts published in each period, not when reactions happened.</source>
+            <translation>统计各时间段发布帖子的当前互动量，而非互动实际发生的时间。</translation>
+        </message>
     </context>
 </TS>

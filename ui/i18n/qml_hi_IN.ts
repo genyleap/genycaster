@@ -7176,5 +7176,13 @@ Company | https://company.com</source>
             <source>Solana</source>
             <translation>सोलाना</translation>
         </message>
+        <message id="genycaster.stats.received_by_publish_date">
+            <source>Interactions on posts by publication date</source>
+            <translation>प्रकाशन तिथि के अनुसार पोस्ट पर प्रतिक्रियाएँ</translation>
+        </message>
+        <message id="genycaster.stats.publish_date_snapshot">
+            <source>Current reactions on posts published in each period, not when reactions happened.</source>
+            <translation>प्रत्येक अवधि में प्रकाशित पोस्ट पर वर्तमान प्रतिक्रियाएँ, न कि प्रतिक्रियाओं का समय।</translation>
+        </message>
     </context>
 </TS>

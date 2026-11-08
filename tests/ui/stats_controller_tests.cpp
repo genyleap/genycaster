@@ -161,12 +161,26 @@ int main(int argc, char** argv) {
           "One-year activity chart uses exactly twelve date ranges");
     int yearlyCasts = 0;
     int yearlyReplies = 0;
+    qint64 yearlyLikes = 0;
+    qint64 yearlyRecasts = 0;
+    qint64 yearlyReceivedReplies = 0;
     for (const auto& value : stats.activity()) {
-        yearlyCasts += value.toMap().value(QStringLiteral("casts")).toInt();
-        yearlyReplies += value.toMap().value(QStringLiteral("replies")).toInt();
+        const auto bucket = value.toMap();
+        yearlyCasts += bucket.value(QStringLiteral("casts")).toInt();
+        yearlyReplies += bucket.value(QStringLiteral("replies")).toInt();
+        yearlyLikes += bucket.value(QStringLiteral("likes")).toLongLong();
+        yearlyRecasts += bucket.value(QStringLiteral("recasts")).toLongLong();
+        yearlyReceivedReplies += bucket.value(QStringLiteral("receivedReplies")).toLongLong();
     }
     check(yearlyCasts == 3 && yearlyReplies == 1,
-          "Annual chart buckets must exactly reconcile with totals");
+          "Annual chart buckets must exactly reconcile with publishing totals");
+    check(yearlyLikes == 55 && yearlyRecasts == 18 && yearlyReceivedReplies == 18,
+          "Real per-publication-date reactions must reconcile with received totals");
+    check(yearlyLikes == stats.summary().value(QStringLiteral("likes")).toLongLong()
+          && yearlyRecasts == stats.summary().value(QStringLiteral("recasts")).toLongLong()
+          && yearlyReceivedReplies ==
+              stats.summary().value(QStringLiteral("receivedReplies")).toLongLong(),
+          "Both plotted axes must reconcile with the authenticated provider summary");
     check(stats.topCasts().size() == 3,
           "Top casts must exclude historical posts outside one-year window");
 

@@ -66,7 +66,15 @@ private:
     QVariantList m_activity{};
     QVariantList m_topCasts{};
     QSet<QString> m_seenHashes{};
+    // Responses are snapshot totals on posts authored on each date. This
+    // series is NOT an event-by-event history of when likes arrived.
+    struct ReceivedOnPublishedPosts {
+        qint64 likes{};
+        qint64 recasts{};
+        qint64 receivedReplies{};
+    };
     QHash<QString, QPair<int, int>> m_dayCounts{};
+    QHash<QString, ReceivedOnPublishedPosts> m_receivedByPublishedDay{};
     QDateTime m_cutoff{};
     qint64 m_likes{0};
     qint64 m_recasts{0};

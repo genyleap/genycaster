@@ -66,6 +66,7 @@ void StatsController::clear() {
     m_updatedAt.clear();
     m_seenHashes.clear();
     m_dayCounts.clear();
+    m_receivedByPublishedDay.clear();
     m_loadedCount = 0;
     emitChanges();
 }
@@ -126,6 +127,7 @@ void StatsController::load(QString fid, QString contract, QString endpoint,
     m_updatedAt.clear();
     m_seenHashes.clear();
     m_dayCounts.clear();
+    m_receivedByPublishedDay.clear();
     m_likes = m_recasts = m_receivedReplies = 0;
     m_followers = m_following = -1;
     m_casts = m_replies = m_loadedCount = m_pages = 0;
@@ -290,6 +292,10 @@ void StatsController::processPage(const QJsonObject& data) {
         m_likes += likes;
         m_recasts += recasts;
         m_receivedReplies += responseCount;
+        auto& perDay = m_receivedByPublishedDay[day];
+        perDay.likes += likes;
+        perDay.recasts += recasts;
+        perDay.receivedReplies += responseCount;
         const QVariantMap entry{
             {QStringLiteral("hash"), hash.startsWith(QLatin1String("0x"))
                 ? hash : QStringLiteral("0x") + hash},
@@ -363,10 +369,18 @@ void StatsController::complete() {
         const QDate end = today.addDays(1 - chartDays + endOffset - 1);
         int casts = 0;
         int replies = 0;
+        qint64 likes = 0;
+        qint64 recasts = 0;
+        qint64 receivedReplies = 0;
         for (int day = 0; day < endOffset - firstOffset; ++day) {
-            const auto counts = m_dayCounts.value(start.addDays(day).toString(Qt::ISODate));
+            const QString key = start.addDays(day).toString(Qt::ISODate);
+            const auto counts = m_dayCounts.value(key);
+            const auto engagement = m_receivedByPublishedDay.value(key);
             casts += counts.first;
             replies += counts.second;
+            likes += engagement.likes;
+            recasts += engagement.recasts;
+            receivedReplies += engagement.receivedReplies;
         }
         m_activity.append(QVariantMap{
             // Canonical dates let every client render locale-specific month/day
@@ -379,7 +393,10 @@ void StatsController::complete() {
                 : start.toString(QStringLiteral("MMM d"))
                     + QStringLiteral(" – ") + end.toString(QStringLiteral("MMM d"))},
             {QStringLiteral("casts"), casts},
-            {QStringLiteral("replies"), replies}
+            {QStringLiteral("replies"), replies},
+            {QStringLiteral("likes"), likes},
+            {QStringLiteral("recasts"), recasts},
+            {QStringLiteral("receivedReplies"), receivedReplies}
         });
     }
     // The fetch cap marks partial whenever a provider has more pages; never

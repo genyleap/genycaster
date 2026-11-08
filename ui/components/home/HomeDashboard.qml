@@ -366,11 +366,12 @@ Item {
             ColumnLayout {
                 id: desktopHomeContent
                 objectName: "homeAlignedContentRail"
-                // The same 760 logical-pixel grid is used by every Home
-                // section; title, composer, GENY banner and tiles align
-                // without a second competing side margin.
-                width: Math.max(1, Math.min(root.homeContentMaxWidth,
-                    parent.width - Theme.space4 * 2))
+                // Overview is a comfortable reading/composing rail, but
+                // analytics is a workspace: do not cap it at 760 logical px.
+                // Reflow charts against the real available width, including
+                // resized windows and large desktop monitors.
+                width: Math.max(1, Math.min(parent.width - Theme.space4 * 2,
+                    root.activeTab === "stats" ? parent.width : root.homeContentMaxWidth))
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom

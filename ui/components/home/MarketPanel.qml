@@ -26,7 +26,7 @@ ColumnLayout {
     readonly property bool hasBenchmark: benchmark.value !== undefined
     readonly property bool initialLoading: marketController.state === "loading"
                                            && !hasGlobal && !hasSentiment
-    readonly property bool wideLayout: width >= 770
+    readonly property bool wideLayout: width >= 720
 
     function sentimentLabel() {
         const classification = String(root.sentiment.label || "").trim().toLowerCase()
@@ -224,7 +224,10 @@ ColumnLayout {
         }
     }
 
+    // Desktop: sentiment and CMC100 share the first row. Phone: cards
+    // stack at a readable width; RTL reverses columns, not time-series data.
     GridLayout {
+        id: marketInsightGrid
         visible: !root.initialLoading
         Layout.fillWidth: true
         layoutDirection: Theme.uiDirection
@@ -232,187 +235,191 @@ ColumnLayout {
         columnSpacing: Theme.space3
         rowSpacing: Theme.space3
 
-        ColumnLayout {
-            Layout.fillWidth: true
+        Superellipse {
+            Layout.row: 0
+            Layout.column: 0
+            Layout.minimumWidth: 0
             Layout.preferredWidth: 0
-            spacing: Theme.space3
+            id: fearCard
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(root.wideLayout ? 262 : 228, fearContent.implicitHeight + Theme.space4 * 2)
+            fillColor: Theme.surface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
+            curveDepth: Theme.curveContainer
 
-            Superellipse {
-                id: fearCard
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(228, fearContent.implicitHeight + Theme.space4 * 2)
-                fillColor: Theme.surface
-                borderColor: Theme.borderMuted
-                borderWidth: 1
-                curveDepth: Theme.curveContainer
-
-                ColumnLayout {
-                    id: fearContent
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
+            ColumnLayout {
+                id: fearContent
+                anchors.fill: parent
+                anchors.margins: Theme.space4
+                spacing: Theme.space2
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
                     spacing: Theme.space2
-                    RowLayout {
-                        Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        spacing: Theme.space2
-                        Icon {
-                            text: Theme.iconHeart
-                            preferredSize: Theme.iconSizeLarge
-                            color: Theme.textSecondary
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.market.fear")
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            color: Theme.textPrimary
-                        }
-                        DirectionAwareLabel {
-                            text: LocaleFormat.formatInteger(0) + "–" + LocaleFormat.formatInteger(100)
-                            color: Theme.textTertiary
-                            font.pixelSize: Theme.typeCaptionSize
-                        }
-                    }
-                    MarketFearGauge {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        index: root.hasSentiment ? Number(root.sentiment.value) : -1
-                        classification: root.sentimentLabel()
-                    }
-                }
-            }
-
-            Superellipse {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(196, seasonContent.implicitHeight + Theme.space4 * 2)
-                fillColor: Theme.surface
-                borderColor: Theme.borderMuted
-                borderWidth: 1
-                curveDepth: Theme.curveContainer
-
-                ColumnLayout {
-                    id: seasonContent
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space2
-                    RowLayout {
-                        Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        Icon { text: Theme.iconEnergy; preferredSize: Theme.iconSizeLarge; color: Theme.textSecondary }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.market.season")
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                            color: Theme.textPrimary
-                        }
+                    Icon {
+                        text: Theme.iconHeart
+                        preferredSize: Theme.iconSizeLarge
+                        color: Theme.textSecondary
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: root.hasSeason
-                            ? LocaleFormat.formatInteger(Math.round(Number(root.season.value)))
-                              + "/" + LocaleFormat.formatInteger(100) : "—"
-                        font.pixelSize: Theme.typeTitle1Size
-                        font.weight: Theme.weightBold
+                        text: qsTrId("genycaster.market.fear")
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
                         color: Theme.textPrimary
                     }
-                    MarketSeasonMeter {
-                        Layout.fillWidth: true
-                        index: root.hasSeason ? Number(root.season.value) : -1
+                    DirectionAwareLabel {
+                        text: LocaleFormat.formatInteger(0) + "–" + LocaleFormat.formatInteger(100)
+                        color: Theme.textTertiary
+                        font.pixelSize: Theme.typeCaptionSize
                     }
+                }
+                MarketFearGauge {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    index: root.hasSentiment ? Number(root.sentiment.value) : -1
+                    classification: root.sentimentLabel()
                 }
             }
         }
 
-        ColumnLayout {
-            Layout.fillWidth: true
+        MarketTrend {
+            Layout.row: root.wideLayout ? 0 : 2
+            Layout.column: root.wideLayout ? 1 : 0
+            Layout.minimumWidth: 0
             Layout.preferredWidth: 0
-            spacing: Theme.space3
+            Layout.fillWidth: true
+            Layout.preferredHeight: 262
+            series: root.trend.values || []
+            startLabel: root.dateLabel(root.trend.from)
+            endLabel: root.dateLabel(root.trend.to)
+            latest: root.hasBenchmark ? Number(root.benchmark.value) : -1
+            change: root.hasBenchmark ? Number(root.benchmark.change_24h_percent) : 0
+        }
 
-            MarketTrend {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 262
-                series: root.trend.values || []
-                startLabel: root.dateLabel(root.trend.from)
-                endLabel: root.dateLabel(root.trend.to)
-                latest: root.hasBenchmark ? Number(root.benchmark.value) : -1
-                change: root.hasBenchmark ? Number(root.benchmark.change_24h_percent) : 0
-            }
+        Superellipse {
+            Layout.row: 1
+            Layout.column: 0
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(196, seasonContent.implicitHeight + Theme.space4 * 2)
+            fillColor: Theme.surface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
+            curveDepth: Theme.curveContainer
 
-            Superellipse {
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(165, dominanceContent.implicitHeight + Theme.space4 * 2)
-                fillColor: Theme.surface
-                borderColor: Theme.borderMuted
-                borderWidth: 1
-                curveDepth: Theme.curveContainer
-
-                ColumnLayout {
-                    id: dominanceContent
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space3
-                    RowLayout {
+            ColumnLayout {
+                id: seasonContent
+                anchors.fill: parent
+                anchors.margins: Theme.space4
+                spacing: Theme.space2
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    Icon { text: Theme.iconEnergy; preferredSize: Theme.iconSizeLarge; color: Theme.textSecondary }
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
-                        layoutDirection: Theme.uiDirection
-                        Icon {
-                            text: Theme.iconChart
-                            color: Theme.textSecondary
-                            preferredSize: Theme.iconSizeLarge
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.market.dominance")
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightDemiBold
-                        }
+                        text: qsTrId("genycaster.market.season")
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                        color: Theme.textPrimary
                     }
-                    Repeater {
-                        model: [
-                            {name:root.assetName("BTC") + " (\u2066BTC\u2069)",percentage:root.globalData.btc_dominance,fill:Theme.accent},
-                            {name:root.assetName("ETH") + " (\u2066ETH\u2069)",percentage:root.globalData.eth_dominance,fill:Theme.textSecondary}
-                        ]
-                        delegate: ColumnLayout {
-                            id: dominanceRow
-                            required property var modelData
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: root.hasSeason
+                        ? LocaleFormat.formatInteger(Math.round(Number(root.season.value)))
+                          + "/" + LocaleFormat.formatInteger(100) : "—"
+                    font.pixelSize: Theme.typeTitle1Size
+                    font.weight: Theme.weightBold
+                    color: Theme.textPrimary
+                }
+                MarketSeasonMeter {
+                    Layout.fillWidth: true
+                    index: root.hasSeason ? Number(root.season.value) : -1
+                }
+            }
+        }
+
+        Superellipse {
+            Layout.row: root.wideLayout ? 1 : 3
+            Layout.column: root.wideLayout ? 1 : 0
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(196, dominanceContent.implicitHeight + Theme.space4 * 2)
+            fillColor: Theme.surface
+            borderColor: Theme.borderMuted
+            borderWidth: 1
+            curveDepth: Theme.curveContainer
+
+            ColumnLayout {
+                id: dominanceContent
+                anchors.fill: parent
+                anchors.margins: Theme.space4
+                spacing: Theme.space3
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    Icon {
+                        text: Theme.iconChart
+                        color: Theme.textSecondary
+                        preferredSize: Theme.iconSizeLarge
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.market.dominance")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                }
+                Repeater {
+                    model: [
+                        {name:root.assetName("BTC") + " (\u2066BTC\u2069)",percentage:root.globalData.btc_dominance,fill:Theme.accent},
+                        {name:root.assetName("ETH") + " (\u2066ETH\u2069)",percentage:root.globalData.eth_dominance,fill:Theme.textSecondary}
+                    ]
+                    delegate: ColumnLayout {
+                        id: dominanceRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: 4
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 4
-                            RowLayout {
+                            layoutDirection: Theme.uiDirection
+                            DirectionAwareLabel {
                                 Layout.fillWidth: true
-                                layoutDirection: Theme.uiDirection
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    alignToUi: true
-                                    text: dominanceRow.modelData.name
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                }
-                                DirectionAwareLabel {
-                                    text: root.hasGlobal ? root.percentage(dominanceRow.modelData.percentage) : "—"
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    color: Theme.textPrimary
-                                    font.weight: Theme.weightDemiBold
-                                }
+                                alignToUi: true
+                                text: dominanceRow.modelData.name
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
                             }
+                            DirectionAwareLabel {
+                                text: root.hasGlobal ? root.percentage(dominanceRow.modelData.percentage) : "—"
+                                font.pixelSize: Theme.typeCaptionSize
+                                color: Theme.textPrimary
+                                font.weight: Theme.weightDemiBold
+                            }
+                        }
+                        Rectangle {
+                            id: dominanceTrack
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 6
+                            radius: 3
+                            color: Theme.surfaceMuted
                             Rectangle {
-                                id: dominanceTrack
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 6
-                                radius: 3
-                                color: Theme.surfaceMuted
-                                Rectangle {
-                                    anchors.left: Theme.rtl ? undefined : parent.left
-                                    anchors.right: Theme.rtl ? parent.right : undefined
-                                    height: parent.height
-                                    width: root.hasGlobal ? dominanceTrack.width
-                                        * Math.max(0, Math.min(100,Number(dominanceRow.modelData.percentage))) / 100 : 0
-                                    radius: parent.radius
-                                    color: dominanceRow.modelData.fill
-                                    Behavior on width {
-                                        enabled: !Theme.reduceMotion
-                                        NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
-                                    }
+                                anchors.left: Theme.rtl ? undefined : parent.left
+                                anchors.right: Theme.rtl ? parent.right : undefined
+                                height: parent.height
+                                width: root.hasGlobal ? dominanceTrack.width
+                                    * Math.max(0, Math.min(100,Number(dominanceRow.modelData.percentage))) / 100 : 0
+                                radius: parent.radius
+                                color: dominanceRow.modelData.fill
+                                Behavior on width {
+                                    enabled: !Theme.reduceMotion
+                                    NumberAnimation { duration: 420; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
