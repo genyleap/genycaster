@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <QtTest/QTest>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -16,6 +17,8 @@ private slots:
     void sampleOrderAndShapeArePreserved();
     void largeSeriesIsBounded();
     void constantSeriesRemainsCentered();
+    void smoothCurvePreservesSampleExtrema();
+    void smoothCurveBoundsPointCountAndArea();
 };
 
 void TokenSparklineGeometryTests::emptyAndInvalidInputProducesNoGeometry()
@@ -65,6 +68,53 @@ void TokenSparklineGeometryTests::constantSeriesRemainsCentered()
     for (const QVariant& point : line) {
         QVERIFY(std::abs(point.toPointF().y() - 40.0) < 1e-8);
     }
+}
+
+
+void TokenSparklineGeometryTests::smoothCurvePreservesSampleExtrema()
+{
+    TokenSparklineGeometry geometry{};
+    const QVariantList values{10.0, 18.0, 20.0, 7.0, 12.0};
+    const QVariantList source = geometry.compute(values, 360, 100, 3, 2.0).value("linePoints").toList();
+    const QVariantList curve = geometry.computeSmooth(values, 360, 100, 3, 2.0).value("linePoints").toList();
+    QVERIFY(curve.size() > source.size());
+    QCOMPARE(curve.first().toPointF(), source.first().toPointF());
+    QCOMPARE(curve.last().toPointF(), source.last().toPointF());
+
+    for (qsizetype index = 0; index + 1 < source.size(); ++index) {
+        const QPointF left = source[index].toPointF();
+        const QPointF right = source[index + 1].toPointF();
+        const qreal low = std::min(left.y(), right.y()) - 0.0001;
+        const qreal high = std::max(left.y(), right.y()) + 0.0001;
+        for (const QVariant& sample : curve) {
+            const QPointF point = sample.toPointF();
+            QVERIFY(std::isfinite(point.x()));
+            QVERIFY(std::isfinite(point.y()));
+            if (point.x() < left.x() || point.x() > right.x()) {
+                continue;
+            }
+            QVERIFY(point.y() >= low);
+            QVERIFY(point.y() <= high);
+        }
+    }
+}
+
+void TokenSparklineGeometryTests::smoothCurveBoundsPointCountAndArea()
+{
+    TokenSparklineGeometry geometry{};
+    QVariantList values{};
+    for (int index = 0; index < 1000; ++index) {
+        values.append(static_cast<double>(index % 17));
+    }
+    const QVariantMap shape = geometry.computeSmooth(values, 800, 88, 3, 2);
+    const QVariantList curve = shape.value("linePoints").toList();
+    const QVariantList area = shape.value("areaPoints").toList();
+    QVERIFY(curve.size() <= 96 * 8);
+    QCOMPARE(area.size(), curve.size() + 2);
+    QCOMPARE(area.first().toPointF().x(), curve.first().toPointF().x());
+    QCOMPARE(area.last().toPointF().x(), curve.last().toPointF().x());
+    QCOMPARE(geometry.computeSmooth({}, 0, 20, 3, 2)
+             .value("linePoints").toList().size(), 0);
 }
 
 QTEST_APPLESS_MAIN(TokenSparklineGeometryTests)

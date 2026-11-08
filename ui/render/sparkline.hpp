@@ -49,4 +49,16 @@ public:
         qreal height,
         qreal contentPadding,
         qreal strokeWidth) const;
+
+    /** @brief Shape-preserving cubic interpolation for large market charts.
+     * Interpolates already observed data, without creating false extrema or
+     * labeling interpolation coordinates as independently observed prices.
+     * Output remains bounded and is computed only for opt-in charts.
+     */
+    Q_INVOKABLE QVariantMap computeSmooth(
+        const QVariantList& samples,
+        qreal width,
+        qreal height,
+        qreal contentPadding,
+        qreal strokeWidth) const;
 };

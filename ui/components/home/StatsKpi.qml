@@ -3,7 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Reusable integer KPI with locale-aware exact/compact formatting.
+// Responsive locale-aware KPI. All rows take their actual implicit height,
+// including multi-line footnotes in Arabic/Persian or large accessibility type.
 Superellipse {
     id: root
     property string title: ""
@@ -13,22 +14,14 @@ Superellipse {
     property bool available: true
     property real animatedAmount: 0
     readonly property string exactValue: LocaleFormat.formatInteger(Math.max(0, Math.round(amount)))
-    readonly property string currentValue: {
-        if (!available) return "—"
-        const number = Math.max(0, animatedAmount)
-        if (number >= 1000000)
-            return LocaleFormat.formatNumber(number / 1000000, 1) + "M"
-        if (number >= 10000)
-            return LocaleFormat.formatNumber(number / 1000, 1) + "K"
-        return LocaleFormat.formatInteger(Math.round(number))
-    }
+    readonly property string currentValue: available
+        ? LocaleFormat.formatCompactNumber(Math.max(0, animatedAmount)) : "—"
+
     function updateAnimatedValue() {
         numberTween.stop()
-        if (!available) {
-            animatedAmount = 0
-        } else if (Theme.reduceMotion) {
-            animatedAmount = Math.max(0, amount)
-        } else {
+        if (!available) animatedAmount = 0
+        else if (Theme.reduceMotion) animatedAmount = Math.max(0, amount)
+        else {
             numberTween.from = 0
             numberTween.to = Math.max(0, amount)
             numberTween.start()
@@ -39,8 +32,9 @@ Superellipse {
     Component.onCompleted: updateAnimatedValue()
 
     Layout.fillWidth: true
+    Layout.minimumWidth: 0
     Layout.preferredWidth: 0
-    Layout.preferredHeight: 104
+    Layout.preferredHeight: Math.max(140, cardContent.implicitHeight + Theme.space3 * 2)
     fillColor: Theme.surface
     borderWidth: 1
     borderColor: Theme.borderMuted
@@ -55,19 +49,23 @@ Superellipse {
     }
 
     ColumnLayout {
+        id: cardContent
         anchors.fill: parent
         anchors.margins: Theme.space3
-        spacing: Theme.space1
+        spacing: Theme.space2
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space1
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                alignToUi: true
                 text: root.title
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.textSecondary
-                elide: Text.ElideRight
+                wrapMode: Text.Wrap
             }
             Icon {
                 visible: root.iconName.length > 0
@@ -79,22 +77,27 @@ Superellipse {
 
         DirectionAwareLabel {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            alignToUi: true
             text: root.currentValue
-            font.pixelSize: Theme.typeTitle1Size
+            font.pixelSize: root.width < 220 ? Math.max(Theme.typeMetaSize+5, Theme.typeTitle1Size-5)
+                                             : Theme.typeTitle1Size
             font.weight: Theme.weightBold
             color: Theme.textPrimary
-            elide: Text.ElideRight
+            wrapMode: Text.WordWrap
             Accessible.name: root.title + ": " + (root.available ? root.exactValue : "—")
         }
 
         DirectionAwareLabel {
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            alignToUi: true
             text: root.available && root.amount >= 10000
                   ? root.exactValue : root.footnote
             Accessible.description: root.footnote
             color: Theme.textTertiary
             font.pixelSize: Theme.typeCaptionSize
-            elide: Text.ElideRight
+            wrapMode: Text.Wrap
         }
     }
 }

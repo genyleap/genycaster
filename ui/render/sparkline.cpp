@@ -137,3 +137,78 @@ QVariantMap TokenSparklineGeometry::compute(
 
     return {{"linePoints", linePoints}, {"areaPoints", areaPoints}};
 }
+
+QVariantMap TokenSparklineGeometry::computeSmooth(
+    const QVariantList& samples,
+    const qreal width,
+    const qreal height,
+    const qreal contentPadding,
+    const qreal strokeWidth) const
+{
+    QVariantMap geometry = compute(samples, width, height, contentPadding, strokeWidth);
+    const QVariantList original = geometry.value(QStringLiteral("linePoints")).toList();
+    if (original.size() < 3) {
+        return geometry;
+    }
+
+    const auto count = static_cast<std::size_t>(original.size());
+    std::vector<QPointF> points{};
+    points.reserve(count);
+    for (const QVariant& sample : original) {
+        points.push_back(sample.toPointF());
+    }
+    // Monotone cubic Hermite slopes: avoid inventing peaks or troughs between
+    // actual observations, unlike an unconstrained Catmull-Rom interpolation.
+    std::vector<qreal> differences{};
+    differences.reserve(count - 1U);
+    for (std::size_t index = 0; index + 1U < count; ++index) {
+        differences.push_back(points[index + 1U].y() - points[index].y());
+    }
+
+    std::vector<qreal> tangents(count);
+    tangents.front() = differences.front();
+    tangents.back() = differences.back();
+    for (std::size_t index = 1; index + 1U < count; ++index) {
+        const qreal before = differences[index - 1U];
+        const qreal after = differences[index];
+        tangents[index] = before * after <= 0.0 || before + after == 0.0
+            ? 0.0 : 2.0 * before * after / (before + after);
+    }
+
+    QVariantList line{};
+    line.reserve(static_cast<qsizetype>(count * 8U));
+    line.append(points.front());
+    for (std::size_t index = 0; index + 1U < count; ++index) {
+        const QPointF left = points[index];
+        const QPointF right = points[index + 1U];
+        const qreal dx = right.x() - left.x();
+        const int steps = static_cast<int>(std::clamp(std::round(dx / 3.0), 2.0, 8.0));
+        for (int step = 1; step <= steps; ++step) {
+            const qreal t = static_cast<qreal>(step) / static_cast<qreal>(steps);
+            const qreal t2 = t * t;
+            const qreal t3 = t2 * t;
+            const qreal h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+            const qreal h10 = t3 - 2.0 * t2 + t;
+            const qreal h01 = -2.0 * t3 + 3.0 * t2;
+            const qreal h11 = t3 - t2;
+            const qreal y = h00 * left.y() + h10 * tangents[index]
+                          + h01 * right.y() + h11 * tangents[index + 1U];
+            const qreal boundedY = std::clamp(y, std::min(left.y(), right.y()),
+                                             std::max(left.y(), right.y()));
+            line.append(QPointF(left.x() + dx * t, boundedY));
+        }
+    }
+
+    const QVariantList oldArea = geometry.value(QStringLiteral("areaPoints")).toList();
+    const qreal baseline = oldArea.first().toPointF().y();
+    QVariantList area{};
+    area.reserve(line.size() + 2);
+    area.append(QPointF(points.front().x(), baseline));
+    for (const QVariant& point : line) {
+        area.append(point);
+    }
+    area.append(QPointF(points.back().x(), baseline));
+    geometry.insert(QStringLiteral("linePoints"), line);
+    geometry.insert(QStringLiteral("areaPoints"), area);
+    return geometry;
+}

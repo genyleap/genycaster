@@ -26,7 +26,7 @@ ColumnLayout {
     readonly property bool hasBenchmark: benchmark.value !== undefined
     readonly property bool initialLoading: marketController.state === "loading"
                                            && !hasGlobal && !hasSentiment
-    readonly property bool wideLayout: width >= 790
+    readonly property bool wideLayout: width >= 770
 
     function sentimentLabel() {
         const classification = String(root.sentiment.label || "").trim().toLowerCase()
@@ -42,10 +42,12 @@ ColumnLayout {
     function compact(value) {
         const n = Number(value)
         if (!Number.isFinite(n) || n < 0) return "—"
-        if (n >= 1e12) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e12,2)) + qsTrId("genycaster.market.unit_trillion")
-        if (n >= 1e9) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e9,2)) + qsTrId("genycaster.market.unit_billion")
-        if (n >= 1e6) return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n/1e6,2)) + qsTrId("genycaster.market.unit_million")
-        return "$" + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(n,2))
+        // Isolate currency glyphs and digits from the surrounding RTL unit.
+        // A word boundary permits a natural second line on narrow cards.
+        if (n >= 1e12) return "\u2066$" + LocaleFormat.formatNumber(n/1e12,2) + "\u2069 " + qsTrId("genycaster.market.unit_trillion")
+        if (n >= 1e9) return "\u2066$" + LocaleFormat.formatNumber(n/1e9,2) + "\u2069 " + qsTrId("genycaster.market.unit_billion")
+        if (n >= 1e6) return "\u2066$" + LocaleFormat.formatNumber(n/1e6,2) + "\u2069 " + qsTrId("genycaster.market.unit_million")
+        return "\u2066$" + LocaleFormat.formatNumber(n,2) + "\u2069"
     }
     function percentage(value) {
         const n = Number(value)
@@ -101,80 +103,80 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
-    Flickable {
-        id: tokenStrip
+    // Flexible cards replace a fixed-width scrolling strip. All three assets
+    // remain visible at normal desktop width; they stack at phone widths.
+    GridLayout {
+        id: tokenGrid
         visible: root.assets.length > 0
         Layout.fillWidth: true
-        Layout.preferredHeight: visible ? 86 : 0
-        contentWidth: tokensRow.implicitWidth
-        contentHeight: height
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
-        flickableDirection: Flickable.HorizontalFlick
-        interactive: contentWidth > width
+        layoutDirection: Theme.uiDirection
+        columns: root.width >= 680 ? 3 : root.width >= 420 ? 2 : 1
+        columnSpacing: Theme.space2
+        rowSpacing: Theme.space2
 
-        Row {
-            id: tokensRow
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-            height: parent.height
+        Repeater {
+            model: root.assets
+            delegate: Superellipse {
+                id: assetCard
+                required property var modelData
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: 0
+                Layout.preferredHeight: Math.max(106, tokenContent.implicitHeight + Theme.space3 * 2)
+                fillColor: Theme.surface
+                borderWidth: 1
+                borderColor: Theme.borderMuted
+                curveDepth: Theme.curveContainer
 
-            Repeater {
-                model: root.assets
-                delegate: Superellipse {
-                    id: assetCard
-                    required property var modelData
-                    width: 172
-                    height: tokenStrip.height - 2
-                    fillColor: Theme.surface
-                    borderWidth: 1
-                    borderColor: Theme.borderMuted
-                    curveDepth: Theme.curveContainer
+                ColumnLayout {
+                    id: tokenContent
+                    anchors.fill: parent
+                    anchors.margins: Theme.space3
+                    spacing: Theme.space1
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space1
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            layoutDirection: Theme.uiDirection
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: String(assetCard.modelData.symbol)
-                                font.pixelSize: Theme.typeMetaSize
-                                font.weight: Theme.weightDemiBold
-                                color: Theme.textSecondary
-                            }
-                            DirectionAwareLabel {
-                                text: Number(assetCard.modelData.change_24h_percent) < 0 ? "▼" : "▲"
-                                font.pixelSize: Theme.typeCaptionSize
-                                color: Number(assetCard.modelData.change_24h_percent) < 0
-                                    ? (Theme.dark ? "#FF9EA4" : "#DB4853")
-                                    : (Theme.dark ? "#6FDEA4" : "#168F6A")
-                            }
-                        }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        layoutDirection: Theme.uiDirection
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            forceLeftToRight: true
-                            text: root.price(assetCard.modelData.price_usd)
-                            font.pixelSize: Theme.typeLabelSize
-                            font.weight: Theme.weightBold
-                            color: Theme.textPrimary
-                            elide: Text.ElideRight
+                            alignToUi: true
+                            text: String(assetCard.modelData.symbol)
+                            font.pixelSize: Theme.typeMetaSize
+                            font.weight: Theme.weightDemiBold
+                            color: Theme.textSecondary
                         }
                         DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            forceLeftToRight: true
-                            text: qsTrId("genycaster.market.change_24h").arg(
-                                (Number(assetCard.modelData.change_24h_percent) >= 0 ? "+" : "−")
-                                + LocaleFormat.localizeDigits(LocaleFormat.formatNumber(
-                                    Math.abs(Number(assetCard.modelData.change_24h_percent)),2)))
+                            text: Number(assetCard.modelData.change_24h_percent) < 0 ? "▼" : "▲"
                             font.pixelSize: Theme.typeCaptionSize
                             color: Number(assetCard.modelData.change_24h_percent) < 0
                                 ? (Theme.dark ? "#FF9EA4" : "#DB4853")
                                 : (Theme.dark ? "#6FDEA4" : "#168F6A")
                         }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        alignToUi: true
+                        forceLeftToRight: true
+                        text: root.price(assetCard.modelData.price_usd)
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightBold
+                        color: Theme.textPrimary
+                        elide: Text.ElideRight
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        alignToUi: true
+                        text: qsTrId("genycaster.market.change_24h").arg(
+                            (Number(assetCard.modelData.change_24h_percent) >= 0 ? "+" : "−")
+                            + LocaleFormat.formatNumber(
+                                Math.abs(Number(assetCard.modelData.change_24h_percent)), 2))
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                        color: Number(assetCard.modelData.change_24h_percent) < 0
+                            ? (Theme.dark ? "#FF9EA4" : "#DB4853")
+                            : (Theme.dark ? "#6FDEA4" : "#168F6A")
                     }
                 }
             }
@@ -185,7 +187,7 @@ ColumnLayout {
         visible: !root.initialLoading
         Layout.fillWidth: true
         layoutDirection: Theme.uiDirection
-        columns: 2
+        columns: root.width >= 450 ? 2 : 1
         columnSpacing: Theme.space2
         rowSpacing: Theme.space2
 
@@ -219,13 +221,14 @@ ColumnLayout {
             Superellipse {
                 id: fearCard
                 Layout.fillWidth: true
-                Layout.preferredHeight: 208
+                Layout.preferredHeight: Math.max(228, fearContent.implicitHeight + Theme.space4 * 2)
                 fillColor: Theme.surface
                 borderColor: Theme.borderMuted
                 borderWidth: 1
                 curveDepth: Theme.curveContainer
 
                 ColumnLayout {
+                    id: fearContent
                     anchors.fill: parent
                     anchors.margins: Theme.space4
                     spacing: Theme.space2
@@ -262,13 +265,14 @@ ColumnLayout {
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 162
+                Layout.preferredHeight: Math.max(196, seasonContent.implicitHeight + Theme.space4 * 2)
                 fillColor: Theme.surface
                 borderColor: Theme.borderMuted
                 borderWidth: 1
                 curveDepth: Theme.curveContainer
 
                 ColumnLayout {
+                    id: seasonContent
                     anchors.fill: parent
                     anchors.margins: Theme.space4
                     spacing: Theme.space2
@@ -318,13 +322,14 @@ ColumnLayout {
 
             Superellipse {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 130
+                Layout.preferredHeight: Math.max(165, dominanceContent.implicitHeight + Theme.space4 * 2)
                 fillColor: Theme.surface
                 borderColor: Theme.borderMuted
                 borderWidth: 1
                 curveDepth: Theme.curveContainer
 
                 ColumnLayout {
+                    id: dominanceContent
                     anchors.fill: parent
                     anchors.margins: Theme.space4
                     spacing: Theme.space3
@@ -356,8 +361,10 @@ ColumnLayout {
                             spacing: 4
                             RowLayout {
                                 Layout.fillWidth: true
+                                layoutDirection: Theme.uiDirection
                                 DirectionAwareLabel {
                                     Layout.fillWidth: true
+                                    alignToUi: true
                                     text: dominanceRow.modelData.name
                                     color: Theme.textSecondary
                                     font.pixelSize: Theme.typeCaptionSize
@@ -376,6 +383,8 @@ ColumnLayout {
                                 radius: 3
                                 color: Theme.surfaceMuted
                                 Rectangle {
+                                    anchors.left: Theme.rtl ? undefined : parent.left
+                                    anchors.right: Theme.rtl ? parent.right : undefined
                                     height: parent.height
                                     width: root.hasGlobal ? dominanceTrack.width
                                         * Math.max(0, Math.min(100,Number(dominanceRow.modelData.percentage))) / 100 : 0

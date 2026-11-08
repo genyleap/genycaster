@@ -21,7 +21,7 @@ Superellipse {
 
     function localizedDay(iso, fallback) {
         const canonical = String(iso || "")
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(canonical))
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(canonical))
             return LocaleFormat.localizeDigits(String(fallback || ""))
         // Local noon prevents a UTC-midnight date shift in western time zones.
         const day = new Date(canonical + "T12:00:00")
@@ -69,6 +69,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             Icon {
                 text: Theme.iconChart
@@ -99,6 +100,7 @@ Superellipse {
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
 
             Item {
@@ -131,6 +133,7 @@ Superellipse {
                 id: plot
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                readonly property real columnGap: Math.min(2, Math.max(0, width / Math.max(1, root.bars.length) / 4))
                 clip: true
 
                 Repeater {
@@ -148,7 +151,8 @@ Superellipse {
 
                 Row {
                     anchors.fill: parent
-                    spacing: 2
+                    layoutDirection: Theme.uiDirection
+                    spacing: plot.columnGap
                     Repeater {
                         model: root.bars
                         delegate: Item {
@@ -157,11 +161,12 @@ Superellipse {
                             required property var modelData
                             readonly property int casts: Number(modelData.casts || 0)
                             readonly property int replies: Number(modelData.replies || 0)
-                            readonly property real barWidth: Math.max(2, Math.min(26, width - 2))
-                            readonly property real castHeight: plot.height * casts / root.maxCount * root.reveal
-                            readonly property real replyHeight: plot.height * replies / root.maxCount * root.reveal
-                            width: Math.max(1, (plot.width - 2 * Math.max(0, root.bars.length - 1))
-                                              / Math.max(1, root.bars.length))
+                            readonly property real barWidth: Math.min(26, Math.max(0.75, width - Math.min(2, width * 0.22)))
+                            // Pixel-snapped segment joins avoid subpixel seams.
+                            readonly property real castHeight: Math.round(plot.height * casts / root.maxCount * root.reveal)
+                            readonly property real replyHeight: Math.round(plot.height * replies / root.maxCount * root.reveal)
+                            width: Math.max(0.75, (plot.width - plot.columnGap * Math.max(0, root.bars.length - 1))
+                                                / Math.max(1, root.bars.length))
                             height: plot.height
                             Accessible.role: Accessible.Button
                             Accessible.name: qsTrId("genycaster.stats.chart_point")
@@ -221,14 +226,17 @@ Superellipse {
         }
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.bars.length ? LocaleFormat.localizeDigits(String(root.bars[0].label)) : ""
+                alignToUi: true
+                text: root.bars.length ? root.localizedDay(root.bars[0].startDate, root.bars[0].label) : ""
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
             }
             DirectionAwareLabel {
+                alignToUi: true
                 text: qsTrId("genycaster.stats.today")
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
@@ -236,9 +244,10 @@ Superellipse {
         }
         DirectionAwareLabel {
             Layout.fillWidth: true
+            alignToUi: true
             text: root.selected
                 ? qsTrId("genycaster.stats.chart_point")
-                    .arg(LocaleFormat.localizeDigits(String(root.selected.range || root.selected.label)))
+                    .arg(root.localizedRange(root.selected))
                     .arg(LocaleFormat.formatInteger(Number(root.selected.casts)))
                     .arg(LocaleFormat.formatInteger(Number(root.selected.replies)))
                 : qsTrId("genycaster.stats.chart_hint")

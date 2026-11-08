@@ -10,18 +10,21 @@ Item {
     property real strokeWidth: 1.9
     property real contentPadding: 2
     property bool fillArea: true
+    property bool smoothCurve: false
 
     // Market sampling, smoothing and coordinate math are owned by C++.
     // QML retains reactive item geometry, palette and native Shape rendering.
-    readonly property var sparklineGeometry: TokenSparklineGeometry.compute(
-        root.samples, root.width, root.height,
-        root.contentPadding, root.strokeWidth)
+    readonly property var sparklineGeometry: root.smoothCurve
+        ? TokenSparklineGeometry.computeSmooth(root.samples, root.width, root.height,
+                                               root.contentPadding, root.strokeWidth)
+        : TokenSparklineGeometry.compute(root.samples, root.width, root.height,
+                                         root.contentPadding, root.strokeWidth)
     readonly property var normalizedPoints: root.sparklineGeometry.linePoints
     readonly property var areaPoints: root.sparklineGeometry.areaPoints
 
     Shape {
         anchors.fill: parent
-        preferredRendererType: Shape.GeometryRenderer
+        preferredRendererType: root.smoothCurve ? Shape.CurveRenderer : Shape.GeometryRenderer
         asynchronous: false
         antialiasing: true
 

@@ -369,6 +369,10 @@ void StatsController::complete() {
             replies += counts.second;
         }
         m_activity.append(QVariantMap{
+            // Canonical dates let every client render locale-specific month/day
+            // names without changing the provider-independent bucket boundaries.
+            {QStringLiteral("startDate"), start.toString(Qt::ISODate)},
+            {QStringLiteral("endDate"), end.toString(Qt::ISODate)},
             {QStringLiteral("label"), start.toString(QStringLiteral("MMM d"))},
             {QStringLiteral("range"), start == end
                 ? start.toString(QStringLiteral("MMM d"))

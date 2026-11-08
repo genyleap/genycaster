@@ -30,6 +30,7 @@ Superellipse {
 
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             Icon {
                 text: Theme.iconHeart
@@ -38,6 +39,7 @@ Superellipse {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                alignToUi: true
                 text: qsTrId("genycaster.stats.engagement_breakdown")
                 color: Theme.textPrimary
                 font.pixelSize: Theme.typeLabelSize
@@ -58,8 +60,10 @@ Superellipse {
                 spacing: 5
                 RowLayout {
                     Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        alignToUi: true
                         text: categoryRow.modelData.label
                         font.pixelSize: Theme.typeMetaSize
                         color: Theme.textSecondary
@@ -79,6 +83,8 @@ Superellipse {
                     radius: 3
                     Rectangle {
                         id: fill
+                        anchors.left: Theme.rtl ? undefined : parent.left
+                        anchors.right: Theme.rtl ? parent.right : undefined
                         width: root.total > 0
                             ? track.width * Math.min(1, categoryRow.modelData.count / root.total) : 0
                         height: track.height
@@ -99,6 +105,7 @@ Superellipse {
         }
         DirectionAwareLabel {
             Layout.fillWidth: true
+            alignToUi: true
             text: qsTrId("genycaster.stats.average").arg(
                 LocaleFormat.formatNumber(Number(root.metrics.average || 0), 1))
             font.pixelSize: Theme.typeCaptionSize

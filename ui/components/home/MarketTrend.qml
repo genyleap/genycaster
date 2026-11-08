@@ -97,8 +97,14 @@ Superellipse {
             }
 
             TokenSparkline {
+                id: marketLine
                 anchors.fill: parent
                 visible: root.validSeries
+                smoothCurve: true
+                transform: Scale {
+                    origin.x: marketLine.width / 2
+                    xScale: Theme.rtl ? -1 : 1
+                }
                 samples: root.series
                 strokeWidth: 2.4
                 strokeColor: root.trendColor
@@ -121,11 +127,13 @@ Superellipse {
             layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
+                alignToUi: true
                 text: root.validSeries ? root.startLabel : ""
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
             }
             DirectionAwareLabel {
+                alignToUi: true
                 text: root.validSeries ? root.endLabel : ""
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
