@@ -85,7 +85,7 @@ void StatsController::load(QString fid, QString contract, QString endpoint,
                            const int days, const bool force) {
     fid = fid.trimmed();
     endpoint = endpoint.trimmed();
-    if (days != 0 && days != 7 && days != 30 && days != 90) return;
+    if (days != 7 && days != 30 && days != 90 && days != 365) return;
     bool goodFid = false;
     const qulonglong parsedFid = fid.toULongLong(&goodFid);
     QUrl source{endpoint};
@@ -346,27 +346,40 @@ void StatsController::complete() {
         {QStringLiteral("days"), m_days}
     };
     const QDate today = QDate::currentDate();
-    const int chartDays = m_days == 0 ? 90 : m_days;
+    const int chartDays = m_days;
     const int bucketSize = chartDays <= 30 ? 1 : 7;
-    const int bucketCount = (chartDays + bucketSize - 1) / bucketSize;
+    // Use twelve balanced date ranges over the actual 365-day period.
+    // An arbitrary 30/31-day fixed bucket can extend into the future.
+    const int bucketCount = chartDays == 365 ? 12
+        : (chartDays + bucketSize - 1) / bucketSize;
     m_activity.clear();
     for (int bucket = 0; bucket < bucketCount; ++bucket) {
-        const QDate start = today.addDays(1 - chartDays + bucket * bucketSize);
+        const int firstOffset = chartDays == 365
+            ? (chartDays * bucket) / bucketCount : bucket * bucketSize;
+        const int endOffset = chartDays == 365
+            ? (chartDays * (bucket + 1)) / bucketCount
+            : std::min(chartDays, (bucket + 1) * bucketSize);
+        const QDate start = today.addDays(1 - chartDays + firstOffset);
+        const QDate end = today.addDays(1 - chartDays + endOffset - 1);
         int casts = 0;
         int replies = 0;
-        for (int day = 0; day < bucketSize; ++day) {
+        for (int day = 0; day < endOffset - firstOffset; ++day) {
             const auto counts = m_dayCounts.value(start.addDays(day).toString(Qt::ISODate));
             casts += counts.first;
             replies += counts.second;
         }
         m_activity.append(QVariantMap{
             {QStringLiteral("label"), start.toString(QStringLiteral("MMM d"))},
+            {QStringLiteral("range"), start == end
+                ? start.toString(QStringLiteral("MMM d"))
+                : start.toString(QStringLiteral("MMM d"))
+                    + QStringLiteral(" – ") + end.toString(QStringLiteral("MMM d"))},
             {QStringLiteral("casts"), casts},
             {QStringLiteral("replies"), replies}
         });
     }
-    // The All-period graph is a 90-day summary; maxPages explicitly marks
-    // partial only if a larger history was actually truncated.
+    // The fetch cap marks partial whenever a provider has more pages; never
+    // present a truncated one-year scan as a complete account history.
 
     m_state = m_partial ? QStringLiteral("partial") : QStringLiteral("ready");
     m_updatedAt = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));

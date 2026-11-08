@@ -30,7 +30,8 @@ QJsonObject cast(const int daysOld, const bool reply, const int likes) {
     QJsonObject cast{
         {QStringLiteral("hash"), QString(40, reply ? QLatin1Char('b') :
                         (daysOld == 12 ? QLatin1Char('c') :
-                         daysOld == 40 ? QLatin1Char('d') : QLatin1Char('a')))},
+                         daysOld == 40 ? QLatin1Char('d') :
+                         daysOld == 400 ? QLatin1Char('e') : QLatin1Char('a')))},
         {QStringLiteral("author"), QJsonObject{{QStringLiteral("fid"), 42}}},
         {QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc()
             .addDays(-daysOld).toString(Qt::ISODateWithMs)},
@@ -92,7 +93,8 @@ int main(int argc, char** argv) {
                         output = QJsonObject{
                             {QStringLiteral("casts"), fid == 42
                                 ? QJsonArray{cast(2, false, 6), cast(5, true, 20),
-                                             cast(12, false, 9), cast(40, false, 40)}
+                                             cast(12, false, 9), cast(40, false, 40),
+                                             cast(400, false, 100)}
                                 : QJsonArray{}},
                             {QStringLiteral("next"), QJsonObject{}}
                         };
@@ -146,17 +148,27 @@ int main(int argc, char** argv) {
           "30-day published cast engagement");
     check(stats.topCasts().size() == 2, "Top casts are period scoped");
 
-    // All includes the older cast; a fully exhausted pagination response is
-    // complete, not automatically "partial" just because All was selected.
-    stats.load(QStringLiteral("42"), QStringLiteral("hypersnap-v2"), origin, 0);
+    // One year excludes messages outside the 365-day interval. All totals,
+    // activity buckets and Top Casts must use the same time boundary.
+    stats.load(QStringLiteral("42"), QStringLiteral("hypersnap-v2"), origin, 365);
     waitFor(stats);
-    check(stats.state() == QLatin1String("ready"), "Exhaustive All window is complete");
+    check(stats.state() == QLatin1String("ready"), "Exhaustive 1Y window is complete");
     check(stats.summary().value(QStringLiteral("casts")).toInt() == 3,
-          "All-period post count");
+          "One-year post count excludes >365-day casts");
     check(stats.summary().value(QStringLiteral("engagement")).toLongLong() == 91,
-          "All-period content engagement");
-    check(stats.activity().size() == 13,
-          "All-period activity chart summarizes the latest 90 days");
+          "One-year content engagement excludes older casts");
+    check(stats.activity().size() == 12,
+          "One-year activity chart uses exactly twelve date ranges");
+    int yearlyCasts = 0;
+    int yearlyReplies = 0;
+    for (const auto& value : stats.activity()) {
+        yearlyCasts += value.toMap().value(QStringLiteral("casts")).toInt();
+        yearlyReplies += value.toMap().value(QStringLiteral("replies")).toInt();
+    }
+    check(yearlyCasts == 3 && yearlyReplies == 1,
+          "Annual chart buckets must exactly reconcile with totals");
+    check(stats.topCasts().size() == 3,
+          "Top casts must exclude historical posts outside one-year window");
 
     stats.load(QStringLiteral("43"), QStringLiteral("hypersnap-v2"), origin, 30);
     waitFor(stats);

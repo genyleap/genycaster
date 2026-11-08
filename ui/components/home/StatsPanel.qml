@@ -43,12 +43,21 @@ ColumnLayout {
             Layout.minimumWidth: 0
             spacing: Theme.space1
 
-            DirectionAwareLabel {
+            RowLayout {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.stats.your_stats")
-                font.pixelSize: Theme.typeTitle2Size
-                font.weight: Theme.weightBold
-                color: Theme.textPrimary
+                spacing: Theme.space2
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.stats.your_stats")
+                    font.pixelSize: Theme.typeTitle2Size
+                    font.weight: Theme.weightBold
+                    color: Theme.textPrimary
+                }
+                Icon {
+                    text: Theme.iconChart
+                    color: Theme.textTertiary
+                    preferredSize: Theme.iconSize
+                }
             }
 
             DirectionAwareLabel {
@@ -99,7 +108,7 @@ ColumnLayout {
                     {days: 7, title: "7D"},
                     {days: 30, title: "30D"},
                     {days: 90, title: "90D"},
-                    {days: 0, title: qsTrId("genycaster.stats.all")}
+                    {days: 365, title: "1Y"}
                 ]
                 delegate: GenyTabButton {
                     required property var modelData
@@ -110,9 +119,7 @@ ColumnLayout {
                     dense: true
                     selected: root.periodDays === modelData.days
                     text: modelData.title
-                    Accessible.name: modelData.days === 0
-                                     ? qsTrId("genycaster.stats.all")
-                                     : qsTrId("genycaster.stats.last_n_days").arg(modelData.days)
+                    Accessible.name: qsTrId("genycaster.stats.last_n_days").arg(modelData.days)
                     onClicked: if (root.periodDays !== modelData.days)
                                    root.periodRequested(modelData.days)
                 }
@@ -193,22 +200,26 @@ ColumnLayout {
 
             StatsKpi {
                 title: qsTrId("genycaster.stats.casts")
+                iconName: Theme.iconCompose
                 amount: Number(root.metrics.casts || 0)
                 footnote: qsTrId("genycaster.stats.published_posts")
             }
             StatsKpi {
                 title: qsTrId("genycaster.stats.replies")
+                iconName: Theme.iconReply
                 amount: Number(root.metrics.replies || 0)
                 footnote: qsTrId("genycaster.stats.written_replies")
             }
             StatsKpi {
                 title: qsTrId("genycaster.stats.engagement")
+                iconName: Theme.iconHeart
                 amount: Number(root.metrics.engagement || 0)
                 available: Boolean(root.metrics.hasEngagement)
                 footnote: qsTrId("genycaster.stats.received_on_posts")
             }
             StatsKpi {
                 title: qsTrId("genycaster.stats.followers")
+                iconName: Theme.iconProfile
                 amount: Number(root.metrics.followers || 0)
                 available: Boolean(root.metrics.hasAudience)
                 footnote: qsTrId("genycaster.stats.current_total")

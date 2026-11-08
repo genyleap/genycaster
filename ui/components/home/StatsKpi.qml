@@ -7,6 +7,7 @@ import Farcaster.Client
 Superellipse {
     id: root
     property string title: ""
+    property string iconName: ""
     property string footnote: ""
     property real amount: 0
     property bool available: true
@@ -58,12 +59,22 @@ Superellipse {
         anchors.margins: Theme.space3
         spacing: Theme.space1
 
-        DirectionAwareLabel {
+        RowLayout {
             Layout.fillWidth: true
-            text: root.title
-            font.pixelSize: Theme.typeCaptionSize
-            color: Theme.textSecondary
-            elide: Text.ElideRight
+            spacing: Theme.space1
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.title
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.textSecondary
+                elide: Text.ElideRight
+            }
+            Icon {
+                visible: root.iconName.length > 0
+                text: root.iconName
+                color: Theme.textTertiary
+                preferredSize: Theme.iconSizeSmall
+            }
         }
 
         DirectionAwareLabel {
@@ -79,7 +90,8 @@ Superellipse {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: root.available && root.amount >= 10000
-                  ? root.exactValue + " · " + root.footnote : root.footnote
+                  ? root.exactValue : root.footnote
+            Accessible.description: root.footnote
             color: Theme.textTertiary
             font.pixelSize: Theme.typeCaptionSize
             elide: Text.ElideRight

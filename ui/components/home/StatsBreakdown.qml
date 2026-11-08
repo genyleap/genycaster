@@ -31,6 +31,11 @@ Superellipse {
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space2
+            Icon {
+                text: Theme.iconHeart
+                color: Theme.textSecondary
+                preferredSize: Theme.iconSizeSmall
+            }
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.stats.engagement_breakdown")

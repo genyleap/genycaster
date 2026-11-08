@@ -54,6 +54,11 @@ Superellipse {
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space2
+            Icon {
+                text: Theme.iconChart
+                color: Theme.textSecondary
+                preferredSize: Theme.iconSizeSmall
+            }
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.stats.publishing_activity")
@@ -144,12 +149,16 @@ Superellipse {
                             height: plot.height
                             Accessible.role: Accessible.Button
                             Accessible.name: qsTrId("genycaster.stats.chart_point")
-                                .arg(String(modelData.label))
+                                .arg(String(modelData.range || modelData.label))
                                 .arg(Number(modelData.casts).toLocaleString(Qt.locale(), "f", 0))
                                 .arg(Number(modelData.replies).toLocaleString(Qt.locale(), "f", 0))
                             Accessible.onPressAction: root.selectedIndex = index
 
+                            // The stack has rounded OUTER corners only. Flatten both
+                            // touching faces to avoid the visible notch between segments.
+                            // No Canvas or offscreen layer: this remains cheap in WASM.
                             Rectangle {
+                                id: repliesSegment
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 y: plot.height - column.castHeight - column.replyHeight
                                 width: column.barWidth
@@ -157,8 +166,17 @@ Superellipse {
                                 radius: Math.min(3, width / 2)
                                 color: Theme.textTertiary
                                 opacity: root.selectedIndex === -1 || root.selectedIndex === column.index ? 1 : 0.55
+                                Rectangle {
+                                    anchors.bottom: parent.bottom
+                                    width: parent.width
+                                    height: Math.min(parent.radius, parent.height)
+                                    visible: column.castHeight > 0
+                                    radius: 0
+                                    color: repliesSegment.color
+                                }
                             }
                             Rectangle {
+                                id: castsSegment
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.bottom: parent.bottom
                                 width: column.barWidth
@@ -166,6 +184,14 @@ Superellipse {
                                 radius: Math.min(3, width / 2)
                                 color: Theme.accent
                                 opacity: root.selectedIndex === -1 || root.selectedIndex === column.index ? 1 : 0.55
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    width: parent.width
+                                    height: Math.min(parent.radius, parent.height)
+                                    visible: column.replyHeight > 0
+                                    radius: 0
+                                    color: castsSegment.color
+                                }
                             }
                             TapHandler { onTapped: root.selectedIndex = column.index }
                             HoverHandler {
@@ -187,9 +213,7 @@ Superellipse {
                 font.pixelSize: Theme.typeCaptionSize
             }
             DirectionAwareLabel {
-                text: root.periodDays === 0
-                    ? qsTrId("genycaster.stats.last_90_days")
-                    : qsTrId("genycaster.stats.today")
+                text: qsTrId("genycaster.stats.today")
                 color: Theme.textTertiary
                 font.pixelSize: Theme.typeCaptionSize
             }
@@ -198,7 +222,7 @@ Superellipse {
             Layout.fillWidth: true
             text: root.selected
                 ? qsTrId("genycaster.stats.chart_point")
-                    .arg(String(root.selected.label))
+                    .arg(String(root.selected.range || root.selected.label))
                     .arg(Number(root.selected.casts).toLocaleString(Qt.locale(), "f", 0))
                     .arg(Number(root.selected.replies).toLocaleString(Qt.locale(), "f", 0))
                 : qsTrId("genycaster.stats.chart_hint")
