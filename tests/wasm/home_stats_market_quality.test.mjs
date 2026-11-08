@@ -59,8 +59,8 @@ test("received engagement uses real cohort-based line series with independent ax
     assert.doesNotMatch(view, /PathPolyline\s*\{/);
     assert.match(view, /id: inspectCard/);
     assert.match(view, /onPointChanged/);
-    assert.match(view, /Shape\.GeometryRenderer/);
-    assert.match(view, /layer\.samples:\s*4/);
+    assert.match(view, /Shape\.CurveRenderer/);
+    assert.doesNotMatch(view, /layer\.samples/);
     assert.match(view, /indexAt\(/);
     assert.match(view, /Theme\.rtl/);
     assert.doesNotMatch(view, /distributionTrack|radarTween/);
@@ -93,12 +93,16 @@ test("market insight grid pairs Fear and CMC on desktop and stacks on phones", (
     assert.match(market, /layoutDirection: Theme\.uiDirection/);
 });
 
-test("publishing stacks round only the outer silhouette", () => {
+test("publishing stacks share a square baseline, a rounded top and native Feed Pulse rendering", () => {
     const chart = read("ui/components/home/StatsChart.qml");
     assert.match(chart, /id:\s*stack/);
     assert.match(chart, /height:\s*Math\.max\(0,\s*column\.castHeight \+ column\.replyHeight\)/);
     assert.match(chart, /visible:\s*column\.castHeight > 0/);
-    assert.match(chart, /opacity:\s*1/);
+    assert.match(chart, /opacity:\s*column\.highlighted \? 0\.78 : 1/);
+    assert.match(chart, /curveTopLeft:\s*column\.replyHeight <= 0/);
+    assert.match(chart, /curveBottomLeft:\s*false/);
+    assert.match(chart, /curveBottomRight:\s*false/);
+    assert.match(chart, /borderWidth:\s*0/);
     assert.match(chart, /onHoveredChanged:\s*root\.hoveredIndex = hovered/);
     assert.doesNotMatch(chart, /0\.52/);
 });
@@ -212,7 +216,10 @@ test("engagement rings use measured shares, theme colors and an adaptive layout"
     for (const key of ["likesShare", "recastsShare", "repliesShare"])
         assert.match(rings, new RegExp(key + ": sum > 0"));
     assert.match(rings, /PathAngleArc\s*\{/);
-    assert.match(rings, /layer\.samples:\s*4/);
+    assert.match(rings, /preferredRendererType:\s*Shape\.CurveRenderer/);
+    assert.doesNotMatch(rings, /layer\.samples/);
+    assert.match(rings, /readonly property var leadingSeries:/);
+    assert.match(rings, /columns:\s*1/);
     assert.match(rings, /onSumChanged:\s*Qt\.callLater\(animate\)/);
     assert.match(rings, /Theme\.reduceMotion/);
     assert.match(rings, /Theme\.rtl/);
@@ -228,9 +235,25 @@ test("engagement chart animates actual paths and publishing hover is paint-only"
     assert.match(breakdown, /Theme\.rtl \? plot\.width \* \(1 - root\.chartReveal\)/);
     assert.doesNotMatch(breakdown, /color:\s*Theme\.warning,\s*axis: 1/);
     assert.match(publishing, /readonly property bool highlighted:/);
-    assert.match(publishing, /scale:\s*column\.highlighted \? 1\.08 : 1/);
+    assert.match(publishing, /opacity:\s*column\.highlighted \? 0\.78 : 1/);
     assert.match(publishing, /Behavior on opacity/);
-    assert.match(publishing, /Behavior on scale/);
-    assert.match(publishing, /Behavior on color/);
+    assert.doesNotMatch(publishing, /Behavior on scale/);
+    assert.doesNotMatch(publishing, /Behavior on color/);
     assert.match(publishing, /Theme\.reduceMotion/);
+});
+
+test("analytics uses categorical theme tokens instead of three blue accent shades", () => {
+    const theme = read("ui/theme/Theme.qml");
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    const publishing = read("ui/components/home/StatsChart.qml");
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    assert.match(theme, /readonly property color analyticsRecasts:/);
+    assert.match(theme, /readonly property color analyticsReplies:/);
+    assert.match(breakdown, /readonly property color recastsInk: Theme\.analyticsRecasts/);
+    assert.match(breakdown, /readonly property color repliesInk: Theme\.analyticsReplies/);
+    assert.match(publishing, /readonly property color replyInk: Theme\.analyticsReplies/);
+    assert.match(rings, /property color recastsColor: Theme\.analyticsRecasts/);
+    assert.match(rings, /property color repliesColor: Theme\.analyticsReplies/);
+    assert.match(rings, /root\.leadingSeries\.share \* 100/);
+    assert.doesNotMatch(rings, /LocaleFormat\.formatInteger\(root\.sum\)\s*\n\s*color: Theme\.textPrimary/);
 });

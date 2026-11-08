@@ -234,6 +234,16 @@ QtObject {
         ? Qt.rgba(presetAccent.r, presetAccent.g, presetAccent.b, 0.34)
         : Qt.rgba(presetAccent.r, presetAccent.g, presetAccent.b, 0.20)
     readonly property color focusOnAccent: accentInk
+
+    // Categorical analytics colors must stay distinguishable from the user's
+    // chosen accent. The primary series always inherits Theme.accent.
+    // Reuse the existing Light/Dark palette rather than shifting the accent
+    // hue towards pale blue for every series.
+    readonly property color analyticsRecasts: colorThemeId === "mint" || colorThemeId === "ocean"
+        ? swatchViolet : swatchMint
+    readonly property color analyticsReplies: colorThemeId === "rose" || colorThemeId === "violet"
+        ? swatchOcean : swatchRose
+
     readonly property color warning: dark ? "#F2B75E" : "#A76208"
     readonly property color warningSurface: dark ? "#2E281E" : "#FFF4E5"
     // Verified achievements use a distinct ember-orange palette, not the

@@ -19,8 +19,8 @@ Superellipse {
     readonly property var inspectedBucket: inspectedIndex >= 0 && inspectedIndex < activity.length
                                             ? activity[inspectedIndex] : null
     readonly property real receivedTotal: Math.max(0, Number(metrics.engagement || 0))
-    readonly property color recastsInk: Qt.lighter(Theme.accent, Theme.dark ? 1.35 : 1.32)
-    readonly property color repliesInk: Qt.lighter(Theme.accent, Theme.dark ? 1.85 : 1.65)
+    readonly property color recastsInk: Theme.analyticsRecasts
+    readonly property color repliesInk: Theme.analyticsReplies
     property real chartReveal: 1
     readonly property var receivedSeries: [
         {key: "likes", label: qsTrId("genycaster.stats.likes"), color: Theme.accent, axis: 0},
@@ -296,10 +296,8 @@ Superellipse {
                             }
                         }
 
-                        // One offscreen MSAA surface avoids multiple translucent
-                        // layers and their visible compositing seams.
-                        // Clip the complete antialiased paths from the chronological
-                        // start. RTL reveals from the right without rebuilding the SVG.
+                        // Reveal the native curve geometry chronologically in
+                        // either reading direction without rebuilding its data.
                         Item {
                             id: curveRevealMask
                             x: Theme.rtl ? plot.width * (1 - root.chartReveal) : 0
@@ -314,12 +312,11 @@ Superellipse {
                             width: plot.width
                             height: plot.height
                             visible: root.hasTimeSeries
-                            preferredRendererType: Shape.GeometryRenderer
+                            // GPU curves stay smooth on HiDPI and fractional
+                            // scaling; CurveRenderer owns antialiasing directly.
+                            preferredRendererType: Shape.CurveRenderer
                             asynchronous: false
                             antialiasing: true
-                            layer.enabled: true
-                            layer.smooth: true
-                            layer.samples: 4
 
                             ShapePath {
                                 strokeColor: "transparent"

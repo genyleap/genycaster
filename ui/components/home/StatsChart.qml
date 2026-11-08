@@ -12,7 +12,7 @@ Superellipse {
     property int hoveredIndex: -1
     readonly property int activeIndex: hoveredIndex >= 0 ? hoveredIndex : selectedIndex
     property real reveal: 1
-    readonly property color replyInk: Qt.lighter(Theme.accent, Theme.dark ? 1.65 : 1.6)
+    readonly property color replyInk: Theme.analyticsReplies
     readonly property int maxCount: {
         let n = 1
         for (let i = 0; i < bars.length; ++i)
@@ -180,72 +180,54 @@ Superellipse {
                                 .arg(LocaleFormat.formatInteger(Number(modelData.replies)))
                             Accessible.onPressAction: root.selectedIndex = index
 
-                            // A restrained full-column wash and paint-only
-                            // emphasis make pointer inspection visible without
-                            // reflowing the bars or hiding neighboring data.
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 7
-                                color: Theme.accent
-                                opacity: column.highlighted ? (Theme.dark ? 0.13 : 0.075) : 0
+                            // The same retained QSG Superellipse used by Feed
+                            // Pulse draws each segment. Only the exposed TOP
+                            // corners curve; the shared edge and baseline stay
+                            // square, with no outline or stacked rounded seams.
+                            // Hover changes opacity only, never geometry.
+                            Item {
+                                id: stack
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                y: plot.height - column.castHeight - column.replyHeight
+                                width: column.barWidth
+                                height: Math.max(0, column.castHeight + column.replyHeight)
+                                opacity: column.highlighted ? 0.78 : 1
                                 Behavior on opacity {
                                     NumberAnimation {
                                         duration: Theme.reduceMotion ? 0 : Theme.motionFast
                                         easing.type: Easing.OutCubic
                                     }
                                 }
-                            }
 
-                            // One opacity group with a single rounded silhouette.
-                            // Opaque interior segments meet at pixel-snapped edges;
-                            // only the outer silhouette is rounded, eliminating
-                            // antialias seams when an unselected bar is dimmed.
-                            Rectangle {
-                                id: stack
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                y: plot.height - column.castHeight - column.replyHeight
-                                width: column.barWidth
-                                height: Math.max(0, column.castHeight + column.replyHeight)
-                                radius: Math.min(7, width / 2, height / 2)
-                                color: column.highlighted ? Qt.lighter(Theme.accent, 1.12) : Theme.accent
-                                transformOrigin: Item.Bottom
-                                scale: column.highlighted ? 1.08 : 1
-                                Behavior on color {
-                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                Superellipse {
+                                    id: castsSegment
+                                    visible: column.castHeight > 0
+                                    x: 0
+                                    y: column.replyHeight
+                                    width: stack.width
+                                    height: column.castHeight
+                                    fillColor: Theme.accent
+                                    borderWidth: 0
+                                    curveDepth: Math.min(5, width / 2, height / 2)
+                                    curveTopLeft: column.replyHeight <= 0
+                                    curveTopRight: column.replyHeight <= 0
+                                    curveBottomLeft: false
+                                    curveBottomRight: false
                                 }
-                                Behavior on scale {
-                                    NumberAnimation {
-                                        duration: Theme.reduceMotion ? 0 : Theme.motionFast
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                                // Never desaturate nonselected data; hover is a
-                                // transient inspection state, not a disabled state.
-                                opacity: 1
-                                antialiasing: true
-
-                                Rectangle {
+                                Superellipse {
                                     id: repliesSegment
                                     visible: column.replyHeight > 0
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    width: parent.width
+                                    x: 0
+                                    y: 0
+                                    width: stack.width
                                     height: column.replyHeight
-                                    radius: stack.radius
-                                    color: column.highlighted
-                                        ? Qt.lighter(root.replyInk, 1.12) : root.replyInk
-                                    Behavior on color {
-                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                    }
-                                    antialiasing: true
-                                    // Flatten only the internal joining edge.
-                                    Rectangle {
-                                        visible: column.castHeight > 0
-                                        anchors.bottom: parent.bottom
-                                        width: parent.width
-                                        height: Math.min(parent.radius, parent.height)
-                                        color: parent.color
-                                    }
+                                    fillColor: root.replyInk
+                                    borderWidth: 0
+                                    curveDepth: Math.min(5, width / 2, height / 2)
+                                    curveTopLeft: true
+                                    curveTopRight: true
+                                    curveBottomLeft: false
+                                    curveBottomRight: false
                                 }
                             }
                             TapHandler { onTapped: root.selectedIndex = column.index }

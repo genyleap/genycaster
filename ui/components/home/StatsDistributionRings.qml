@@ -13,8 +13,8 @@ Item {
     property real recasts: 0
     property real receivedReplies: 0
     property color likesColor: Theme.accent
-    property color recastsColor: Qt.lighter(Theme.accent, Theme.dark ? 1.35 : 1.32)
-    property color repliesColor: Qt.lighter(Theme.accent, Theme.dark ? 1.85 : 1.65)
+    property color recastsColor: Theme.analyticsRecasts
+    property color repliesColor: Theme.analyticsReplies
     property bool compact: false
     property real reveal: 1
 
@@ -23,14 +23,25 @@ Item {
     readonly property real likesShare: sum > 0 ? Math.max(0, likes) / sum : 0
     readonly property real recastsShare: sum > 0 ? Math.max(0, recasts) / sum : 0
     readonly property real repliesShare: sum > 0 ? Math.max(0, receivedReplies) / sum : 0
-    readonly property int ringSize: compact ? 156 : 192
-    readonly property bool sideBySide: compact && width >= 425
+    readonly property int ringSize: compact ? 196 : 226
     readonly property var segments: [
         {label: qsTrId("genycaster.stats.likes"), count: likes, share: likesShare, color: likesColor},
         {label: qsTrId("genycaster.stats.recasts"), count: recasts, share: recastsShare, color: recastsColor},
         {label: qsTrId("genycaster.stats.received_replies"), count: receivedReplies,
          share: repliesShare, color: repliesColor}
     ]
+
+    // The centre communicates the largest measured share, not a fictitious
+    // completion goal. The absolute total is still shown in the parent header.
+    readonly property var leadingSeries: {
+        const rows = segments
+        let leading = rows[0]
+        for (let i = 1; i < rows.length; ++i) {
+            if (rows[i].count > leading.count)
+                leading = rows[i]
+        }
+        return leading
+    }
 
     function animate() {
         revealAnimation.stop()
@@ -56,12 +67,14 @@ Item {
     implicitHeight: distribution.implicitHeight
     Accessible.role: Accessible.StaticText
     Accessible.name: qsTrId("genycaster.stats.engagement") + ": "
-                     + LocaleFormat.formatInteger(root.sum)
+                     + LocaleFormat.formatInteger(root.sum) + " · "
+                     + root.leadingSeries.label + ": "
+                     + LocaleFormat.formatInteger(Math.round(root.leadingSeries.share * 100)) + "%"
 
     GridLayout {
         id: distribution
         width: parent.width
-        columns: root.sideBySide ? 2 : 1
+        columns: 1
         columnSpacing: Theme.space4
         rowSpacing: Theme.space2
         layoutDirection: Theme.uiDirection
@@ -72,10 +85,10 @@ Item {
             Layout.preferredHeight: root.ringSize
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             readonly property real center: width / 2
-            readonly property real stroke: root.compact ? 9 : 10
-            readonly property real outerRadius: width / 2 - stroke / 2 - 3
-            readonly property real middleRadius: outerRadius - (root.compact ? 20 : 24)
-            readonly property real innerRadius: middleRadius - (root.compact ? 20 : 24)
+            readonly property real stroke: root.compact ? 6.5 : 7
+            readonly property real outerRadius: width / 2 - stroke / 2 - 4
+            readonly property real middleRadius: outerRadius - (root.compact ? 22 : 26)
+            readonly property real innerRadius: middleRadius - (root.compact ? 22 : 26)
 
             Item {
                 anchors.fill: parent
@@ -85,66 +98,65 @@ Item {
                 }
                 Shape {
                     anchors.fill: parent
-                    preferredRendererType: Shape.GeometryRenderer
+                    // Native GPU curves preserve circular edges and round caps
+                    // without polygon tessellation or another MSAA texture pass.
+                    preferredRendererType: Shape.CurveRenderer
                     asynchronous: false
                     antialiasing: true
-                    layer.enabled: true
-                    layer.smooth: true
-                    layer.samples: 4
 
                     ShapePath {
                         strokeColor: Theme.borderMuted
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
+                        capStyle: ShapePath.FlatCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.outerRadius; radiusY: ring.outerRadius
-                            startAngle: -90; sweepAngle: 359.9 }
+                            startAngle: -90; sweepAngle: 359.8 }
                     }
                     ShapePath {
                         strokeColor: Theme.borderMuted
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
+                        capStyle: ShapePath.FlatCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.middleRadius; radiusY: ring.middleRadius
-                            startAngle: -90; sweepAngle: 359.9 }
+                            startAngle: -90; sweepAngle: 359.8 }
                     }
                     ShapePath {
                         strokeColor: Theme.borderMuted
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
+                        capStyle: ShapePath.FlatCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.innerRadius; radiusY: ring.innerRadius
-                            startAngle: -90; sweepAngle: 359.9 }
+                            startAngle: -90; sweepAngle: 359.8 }
                     }
                     ShapePath {
-                        strokeColor: root.sum > 0 ? root.likesColor : "transparent"
+                        strokeColor: root.likesShare > 0 ? root.likesColor : "transparent"
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
                         capStyle: ShapePath.RoundCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.outerRadius; radiusY: ring.outerRadius
-                            startAngle: -90; sweepAngle: 359.9 * root.likesShare * root.reveal }
+                            startAngle: -90; sweepAngle: Math.min(359.8, 360 * root.likesShare * root.reveal) }
                     }
                     ShapePath {
-                        strokeColor: root.sum > 0 ? root.recastsColor : "transparent"
+                        strokeColor: root.recastsShare > 0 ? root.recastsColor : "transparent"
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
                         capStyle: ShapePath.RoundCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.middleRadius; radiusY: ring.middleRadius
-                            startAngle: -90; sweepAngle: 359.9 * root.recastsShare * root.reveal }
+                            startAngle: -90; sweepAngle: Math.min(359.8, 360 * root.recastsShare * root.reveal) }
                     }
                     ShapePath {
-                        strokeColor: root.sum > 0 ? root.repliesColor : "transparent"
+                        strokeColor: root.repliesShare > 0 ? root.repliesColor : "transparent"
                         strokeWidth: ring.stroke
                         fillColor: "transparent"
                         capStyle: ShapePath.RoundCap
                         PathAngleArc { centerX: ring.center; centerY: ring.center
                             radiusX: ring.innerRadius; radiusY: ring.innerRadius
-                            startAngle: -90; sweepAngle: 359.9 * root.repliesShare * root.reveal }
+                            startAngle: -90; sweepAngle: Math.min(359.8, 360 * root.repliesShare * root.reveal) }
                     }
                 }
             }
@@ -154,15 +166,21 @@ Item {
                 spacing: 1
                 DirectionAwareLabel {
                     Layout.alignment: Qt.AlignHCenter
-                    text: LocaleFormat.formatInteger(root.sum)
+                    Layout.preferredWidth: Math.max(64, ring.innerRadius * 1.8)
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    text: root.sum > 0 ? LocaleFormat.formatInteger(Math.round(root.leadingSeries.share * 100)) + "%" : "—"
                     color: Theme.textPrimary
-                    font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
+                    font.pixelSize: Theme.typeTitle2Size
                     font.weight: Theme.weightBold
                     horizontalAlignment: Text.AlignHCenter
                 }
                 DirectionAwareLabel {
                     Layout.alignment: Qt.AlignHCenter
-                    text: qsTrId("genycaster.stats.engagement")
+                    Layout.preferredWidth: Math.max(64, ring.innerRadius * 1.8)
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    text: root.sum > 0 ? root.leadingSeries.label : qsTrId("genycaster.stats.engagement")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.typeCaptionSize
                     horizontalAlignment: Text.AlignHCenter
@@ -173,7 +191,9 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: Math.min(300, root.width)
+            Layout.maximumWidth: 320
+            Layout.alignment: Qt.AlignHCenter
             spacing: Theme.space2
 
             Repeater {
