@@ -1799,8 +1799,9 @@ Item {
         // expensive Cast subtree construction across multiple frames.
         // The placeholder is replaced by measured geometry as soon as the
         // loaded content is ready, including on reuse during a flick.
-        implicitHeight: Math.max(1, committedHeight)
-        height: implicitHeight
+        // Loader computes implicitHeight from its loaded item and exposes it
+        // read-only. Reserve the row using the writable height instead.
+        height: Math.max(1, committedHeight)
         // Keep large cast delegates asynchronously incubated: disabling
         // this blocks scrolling during rapid navigation. Qt may emit a
         // harmless teardown diagnostic if a pending row is recycled.

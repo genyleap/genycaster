@@ -385,6 +385,11 @@ int main(int argc, char** argv)
             QStringLiteral("CastItem"),
             QStringLiteral("ConversationRow"),
             QStringLiteral("SemanticFeedItem"),
+            // Explicitly validate the entire Explorer magazine hierarchy.
+            // A read-only Loader assignment in FeedSurface or an unknown Keys
+            // signal in FeedMasonryView must fail before the app is shipped.
+            QStringLiteral("FeedMasonryView"),
+            QStringLiteral("ExplorerLayoutControls"),
             QStringLiteral("FeedSurface"),
             QStringLiteral("AccountConnectionsPopup"),
             QStringLiteral("AppShell"),

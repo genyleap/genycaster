@@ -81,6 +81,22 @@ class PipelineTests(unittest.TestCase):
             with self.subTest(qml=qml.as_posix()):
                 self.assertNotRegex(qml.read_text(encoding="utf-8"), unsupported)
 
+    def test_explorer_feed_row_does_not_assign_loader_readonly_implicit_height(self) -> None:
+        """Qt Loader derives implicitHeight from the item; only height is writable."""
+        source = Path("ui/components/feed/FeedSurface.qml").read_text(encoding="utf-8")
+        marker = "component FeedRow: Loader {"
+        self.assertIn(marker, source)
+        row = source.split(marker, 1)[1].split("        CastSkeleton {", 1)[0]
+        self.assertNotRegex(row, r"(?m)^\s*implicitHeight\s*:")
+        self.assertRegex(row, r"(?m)^\s*height: Math\.max\(1, committedHeight\)")
+        self.assertIn("onResolvedHeightChanged: rowDelegate.synchronizeHeight()", source)
+        self.assertIn("onReservedHeightChanged: rowDelegate.synchronizeHeight()", source)
+        # The dedicated native Qt test must load the real type chain, not
+        # merely scan QML as C++-generated source.
+        smoke = Path("tests/ui/media_scroll_tests.cpp").read_text(encoding="utf-8")
+        for type_name in ("FeedMasonryView", "ExplorerLayoutControls", "FeedSurface", "AppShell"):
+            self.assertIn(f'QStringLiteral("{type_name}")', smoke)
+
     def test_native_qml_smoke_uses_public_alias_fixture(self) -> None:
         """Native QML smoke must load public component names after file moves."""
         cmake = Path("tests/ui/CMakeLists.txt").read_text(encoding="utf-8")
