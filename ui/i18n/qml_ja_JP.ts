@@ -7184,5 +7184,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>各期間に投稿された内容への現在の反応数です。反応が発生した日時ではありません。</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>過去%1週間のアクティビティ</translation>
+        </message>
     </context>
 </TS>

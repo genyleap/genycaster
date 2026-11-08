@@ -73,6 +73,37 @@ ColumnLayout {
     readonly property string githubStatus: githubSnapshotMatches
         ? String(githubCalendar.status || "idle") : "idle"
     readonly property bool githubReady: githubStatus === "ok"
+    readonly property int githubWeekCount: width >= 760 ? 18 : width >= 460 ? 12 : 7
+    property int hoveredGithubCell: -1
+    readonly property var githubDayMap: {
+        const map = ({})
+        if (!githubReady) return map
+        const days = githubCalendar.days || []
+        for (let i = 0; i < days.length && i < 366; ++i) {
+            const day = days[i] || ({})
+            const date = String(day.date || "")
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date))
+                map[date] = day
+        }
+        return map
+    }
+    function githubDateAt(index) {
+        const now = new Date()
+        const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(),
+                               now.getUTCDate()) / 86400000
+        return new Date((today - githubWeekCount * 7 + index + 1) * 86400000)
+            .toISOString().slice(0, 10)
+    }
+    function githubColor(level) {
+        const value = Math.max(0, Math.min(4, Number(level || 0)))
+        if (value === 0) return Theme.surfaceMuted
+        // Palette derives from the user's current accent and light/dark
+        // scheme; levels come from the verified GitHub daily calendar.
+        return Qt.lighter(Theme.accent, Theme.dark
+            ? [1, 1.95, 1.55, 1.25, 1][value]
+            : [1, 2.25, 1.7, 1.28, 1][value])
+    }
+
     function refreshGithub(force) {
         if (!tabActive || section !== "social" || verifiedGithubLogin.length === 0)
             return
@@ -438,34 +469,108 @@ ColumnLayout {
                     }
                 }
 
-                DirectionAwareLabel {
+                // On a wide statistics workspace, the year summary and
+                // recent verified calendar occupy one balanced row. Compact
+                // layouts stack them without shrinking the individual cells.
+                GridLayout {
                     Layout.fillWidth: true
-                    alignToUi: true
-                    text: root.githubReady
-                        ? qsTrId("genycaster.activity.contributions_count").arg(
-                            LocaleFormat.formatInteger(Number(root.githubCalendar.count || 0)))
-                        : root.githubStatus === "idle" || root.githubStatus === "loading"
-                          ? qsTrId("genycaster.activity.loading")
-                          : root.githubStatus === "authorization-required"
-                            || root.githubStatus === "identity-unconfirmed"
-                            ? qsTrId("genycaster.activity.github_session_required")
-                          : root.githubStatus === "rate-limited"
-                            ? qsTrId("genycaster.activity.rate_limited")
-                            : qsTrId("genycaster.activity.fetch_error")
-                    font.pixelSize: root.githubReady ? Theme.typeTitle2Size : Theme.typeCaptionSize
-                    font.weight: root.githubReady ? Theme.weightBold : Font.Normal
-                    color: root.githubReady ? Theme.textPrimary : Theme.textSecondary
-                    wrapMode: Text.Wrap
+                    layoutDirection: Theme.uiDirection
+                    columns: root.width >= 740 ? 2 : 1
+                    columnSpacing: Theme.space6
+                    rowSpacing: Theme.space3
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.preferredWidth: 1
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            alignToUi: true
+                            text: root.githubReady
+                                ? qsTrId("genycaster.activity.contributions_count").arg(
+                                    LocaleFormat.formatInteger(Number(root.githubCalendar.count || 0)))
+                                : root.githubStatus === "idle" || root.githubStatus === "loading"
+                                  ? qsTrId("genycaster.activity.loading")
+                                  : root.githubStatus === "authorization-required"
+                                    || root.githubStatus === "identity-unconfirmed"
+                                    ? qsTrId("genycaster.activity.github_session_required")
+                                  : root.githubStatus === "rate-limited"
+                                    ? qsTrId("genycaster.activity.rate_limited")
+                                    : qsTrId("genycaster.activity.fetch_error")
+                            font.pixelSize: root.githubReady ? Theme.typeTitle2Size : Theme.typeCaptionSize
+                            font.weight: root.githubReady ? Theme.weightBold : Font.Normal
+                            color: root.githubReady ? Theme.textPrimary : Theme.textSecondary
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.githubReady
+                            alignToUi: true
+                            text: qsTrId("genycaster.stats.github_active_days").arg(
+                                LocaleFormat.formatInteger(Number(root.githubCalendar.observedDays || 0)))
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.textSecondary
+                        }
+                    }
+
+                    // Verified server-side calendar, not inferred from public
+                    // events or a guessed contribution count. This adds useful
+                    // temporal context without inventing a comparison percentage.
+                    ColumnLayout {
+                        visible: root.githubReady && (root.githubCalendar.days || []).length > 0
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+
+                        Grid {
+                            id: githubHeatmap
+                            Layout.alignment: Qt.AlignHCenter
+                            rows: 7
+                            columns: root.githubWeekCount
+                            flow: Grid.TopToBottom
+                            columnSpacing: 3
+                            rowSpacing: 3
+                            Repeater {
+                                model: root.githubWeekCount * 7
+                                delegate: Rectangle {
+                                    required property int index
+                                    readonly property string dayDate: root.githubDateAt(index)
+                                    readonly property var dayData: root.githubDayMap[dayDate] || ({})
+                                    width: 11
+                                    height: 11
+                                    radius: 3
+                                    color: root.githubColor(dayData.level)
+                                    antialiasing: true
+                                    Accessible.role: Accessible.StaticText
+                                    Accessible.name: LocaleFormat.localizeDigits(dayDate) + ": "
+                                        + LocaleFormat.formatInteger(Number(dayData.count || 0))
+                                    HoverHandler {
+                                        onHoveredChanged: {
+                                            if (hovered) root.hoveredGithubCell = index
+                                            else if (root.hoveredGithubCell === index)
+                                                root.hoveredGithubCell = -1
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            alignToUi: true
+                            text: root.hoveredGithubCell >= 0
+                                  ? LocaleFormat.localizeDigits(
+                                        root.githubDateAt(root.hoveredGithubCell)) + " · "
+                                      + LocaleFormat.formatInteger(Number(
+                                          (root.githubDayMap[root.githubDateAt(
+                                              root.hoveredGithubCell)] || {}).count || 0))
+                                  : qsTrId("genycaster.stats.github_recent_weeks").arg(
+                                        LocaleFormat.formatInteger(root.githubWeekCount))
+                            color: Theme.textTertiary
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                    }
                 }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: root.githubReady
-                    alignToUi: true
-                    text: qsTrId("genycaster.stats.github_active_days").arg(
-                        LocaleFormat.formatInteger(Number(root.githubCalendar.observedDays || 0)))
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.textSecondary
-                }
+
             }
         }
 

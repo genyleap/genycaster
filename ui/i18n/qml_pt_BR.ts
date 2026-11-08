@@ -7184,5 +7184,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>Reações atuais às publicações de cada período, não a data em que ocorreram.</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>Atividade nas últimas %1 semanas</translation>
+        </message>
     </context>
 </TS>

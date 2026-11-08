@@ -7184,5 +7184,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>각 기간에 게시된 글의 현재 반응 수이며, 반응이 발생한 날짜가 아닙니다.</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>최근 %1주 활동</translation>
+        </message>
     </context>
 </TS>

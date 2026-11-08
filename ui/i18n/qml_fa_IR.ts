@@ -7185,5 +7185,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>تعاملات فعلی نشرهای هر بازه نمایش داده می‌شوند، نه زمان وقوع تعاملات.</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>فعالیت در %1 هفتهٔ اخیر</translation>
+        </message>
     </context>
 </TS>

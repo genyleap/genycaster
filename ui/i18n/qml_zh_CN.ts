@@ -7184,5 +7184,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>统计各时间段发布帖子的当前互动量，而非互动实际发生的时间。</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>最近%1周的活动</translation>
+        </message>
     </context>
 </TS>

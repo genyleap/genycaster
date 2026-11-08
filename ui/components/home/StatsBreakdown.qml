@@ -61,6 +61,51 @@ Superellipse {
             points.push(pointFor(i, key, maximum, width, height))
         return points
     }
+    // Monotone cubic Hermite interpolation. The control-point slopes are
+    // bounded by neighboring secants, so smoothing never invents a higher
+    // peak, a negative count, or a nonzero valley between two zero buckets.
+    // Plot points stay exact and remain in chronological order in both LTR
+    // and RTL; only their physical x coordinates are mirrored.
+    function smoothPath(key, maximum, w, h, fillArea) {
+        const points = pointsFor(key, maximum, w, h)
+        if (points.length < 2) return ""
+        const secants = []
+        for (let i = 0; i < points.length - 1; ++i) {
+            const dx = points[i + 1].x - points[i].x
+            secants.push(dx === 0 ? 0 : (points[i + 1].y - points[i].y) / dx)
+        }
+        const slopes = []
+        for (let i = 0; i < points.length; ++i) {
+            if (i === 0) slopes.push(secants[0])
+            else if (i === points.length - 1) slopes.push(secants[secants.length - 1])
+            else {
+                const a = secants[i - 1]
+                const b = secants[i]
+                slopes.push(a * b <= 0 ? 0 : 2 * a * b / (a + b))
+            }
+        }
+        function n(value) { return Number(value).toFixed(2) }
+        let svg = "M " + n(points[0].x) + " " + n(points[0].y)
+        for (let i = 0; i < points.length - 1; ++i) {
+            const a = points[i]
+            const b = points[i + 1]
+            const dx = (b.x - a.x) / 3
+            svg += " C " + n(a.x + dx) + " " + n(a.y + slopes[i] * dx)
+                + " " + n(b.x - dx) + " " + n(b.y - slopes[i + 1] * dx)
+                + " " + n(b.x) + " " + n(b.y)
+        }
+        if (fillArea) {
+            const baseline = n(h - plotInset)
+            svg += " L " + n(points[points.length - 1].x) + " " + baseline
+                + " L " + n(points[0].x) + " " + baseline + " Z"
+        }
+        return svg
+    }
+    function activePoint(key, maximum, w, h) {
+        return inspectedIndex < 0 || inspectedIndex >= activity.length
+            ? Qt.point(0, 0) : pointFor(inspectedIndex, key, maximum, w, h)
+    }
+
     function indexAt(x, width) {
         if (!hasTimeSeries || width <= 2 * plotInset)
             return -1
@@ -213,31 +258,59 @@ Superellipse {
                     }
                 }
 
-                Repeater {
-                    model: root.receivedSeries
-                    delegate: Shape {
-                        id: curve
-                        required property var modelData
-                        anchors.fill: parent
-                        visible: root.hasTimeSeries
-                        preferredRendererType: Shape.GeometryRenderer
-                        asynchronous: false
-                        antialiasing: true
-                        layer.enabled: true
-                        layer.smooth: true
-                        layer.samples: 4
+                // One offscreen MSAA surface avoids multiple translucent
+                // layers and their visible compositing seams.
+                Shape {
+                    id: engagementShape
+                    anchors.fill: parent
+                    visible: root.hasTimeSeries
+                    preferredRendererType: Shape.GeometryRenderer
+                    asynchronous: false
+                    antialiasing: true
+                    layer.enabled: true
+                    layer.smooth: true
+                    layer.samples: 4
 
-                        ShapePath {
-                            strokeColor: curve.modelData.color
-                            strokeWidth: 2.4
-                            fillColor: "transparent"
-                            capStyle: ShapePath.RoundCap
-                            joinStyle: ShapePath.RoundJoin
-                            PathPolyline {
-                                path: root.pointsFor(curve.modelData.key,
-                                    curve.modelData.axis === 0 ? root.likesMax : root.secondaryMax,
-                                    plot.width, plot.height)
-                            }
+                    ShapePath {
+                        strokeColor: "transparent"
+                        fillColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                           Theme.accent.b, Theme.dark ? 0.13 : 0.075)
+                        PathSvg {
+                            path: root.smoothPath("likes", root.likesMax,
+                                                  plot.width, plot.height, true)
+                        }
+                    }
+                    ShapePath {
+                        strokeColor: Theme.accent
+                        strokeWidth: 2.8
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        joinStyle: ShapePath.RoundJoin
+                        PathSvg {
+                            path: root.smoothPath("likes", root.likesMax,
+                                                  plot.width, plot.height, false)
+                        }
+                    }
+                    ShapePath {
+                        strokeColor: Theme.warning
+                        strokeWidth: 2.3
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        joinStyle: ShapePath.RoundJoin
+                        PathSvg {
+                            path: root.smoothPath("recasts", root.secondaryMax,
+                                                  plot.width, plot.height, false)
+                        }
+                    }
+                    ShapePath {
+                        strokeColor: Theme.textSecondary
+                        strokeWidth: 2.3
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        joinStyle: ShapePath.RoundJoin
+                        PathSvg {
+                            path: root.smoothPath("receivedReplies", root.secondaryMax,
+                                                  plot.width, plot.height, false)
                         }
                     }
                 }
@@ -268,6 +341,77 @@ Superellipse {
                         y: point.y - height / 2
                     }
                 }
+                // A compact inspection popover is clamped to the plot bounds.
+                // The always-visible description below remains the touch and
+                // accessibility fallback on narrow screens.
+                Superellipse {
+                    id: inspectCard
+                    z: 5
+                    visible: root.inspectedBucket !== null && plot.width >= 270
+                    width: Math.min(218, plot.width - 8)
+                    height: inspectContent.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.surfaceRaised
+                    borderColor: Theme.borderMuted
+                    borderWidth: 1
+                    curveDepth: Theme.curveContainer
+                    readonly property point selectedPosition: root.activePoint(
+                        "likes", root.likesMax, plot.width, plot.height)
+                    x: Math.max(2, Math.min(plot.width - width - 2,
+                        selectedPosition.x - width / 2))
+                    y: selectedPosition.y >= height + 14
+                       ? selectedPosition.y - height - 12
+                       : Math.min(plot.height - height - 2, selectedPosition.y + 12)
+
+                    ColumnLayout {
+                        id: inspectContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space1
+
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            alignToUi: true
+                            text: root.bucketLabel(root.inspectedBucket)
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeMetaSize
+                            font.weight: Theme.weightDemiBold
+                        }
+                        Repeater {
+                            model: root.receivedSeries
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                layoutDirection: Theme.uiDirection
+                                spacing: Theme.space2
+                                Rectangle {
+                                    width: 7
+                                    height: width
+                                    radius: width / 2
+                                    color: modelData.color
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    text: modelData.label
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    elide: Text.ElideRight
+                                }
+                                DirectionAwareLabel {
+                                    text: root.inspectedBucket
+                                        ? LocaleFormat.formatInteger(Number(
+                                            root.inspectedBucket[modelData.key] || 0)) : ""
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                            }
+                        }
+                    }
+                }
+
                 HoverHandler {
                     id: plotHover
                     onPointChanged: {

@@ -7184,5 +7184,9 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>प्रत्येक अवधि में प्रकाशित पोस्ट पर वर्तमान प्रतिक्रियाएँ, न कि प्रतिक्रियाओं का समय।</translation>
         </message>
+        <message id="genycaster.stats.github_recent_weeks">
+            <source>Activity over the last %1 weeks</source>
+            <translation>पिछले %1 सप्ताह की गतिविधि</translation>
+        </message>
     </context>
 </TS>

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {resolve, dirname} from "node:path";
+import vm from "node:vm";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = path => readFileSync(resolve(root, path), "utf8");
@@ -21,7 +22,7 @@ test("every bundled locale contains the new stats and market names", () => {
         "genycaster.stats.range_quarter", "genycaster.stats.range_year",
         "genycaster.stats.radar_explainer", "genycaster.stats.github_active_days",
         "genycaster.market.asset_bitcoin", "genycaster.market.asset_ethereum",
-        "genycaster.market.asset_solana"
+        "genycaster.market.asset_solana", "genycaster.stats.github_recent_weeks"
     ];
     for (const locale of [
         "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
@@ -51,7 +52,13 @@ test("received engagement uses real cohort-based line series with independent ax
     assert.match(view, /readonly property real secondaryMax/);
     assert.match(view, /axis: 0/);
     assert.match(view, /axis: 1/);
-    assert.match(view, /PathPolyline\s*\{/);
+    assert.match(view, /PathSvg\s*\{/);
+    assert.match(view, /function smoothPath\(/);
+    assert.match(view, /ShapePath\.RoundCap/);
+    assert.match(view, /fillArea\) \{/);
+    assert.doesNotMatch(view, /PathPolyline\s*\{/);
+    assert.match(view, /id: inspectCard/);
+    assert.match(view, /onPointChanged/);
     assert.match(view, /Shape\.GeometryRenderer/);
     assert.match(view, /layer\.samples:\s*4/);
     assert.match(view, /indexAt\(/);
@@ -127,4 +134,68 @@ test("local MSAA improves native market lines and fear gauge on low-MSAA windows
         assert.match(component, /layer\.smooth:\s*true/);
     }
     assert.match(trend, /TokenSparklineGeometry\.computeSmooth/);
+});
+
+test("monotone SVG Bezier geometry is rounded without overshooting verified daily counts", () => {
+    const source = read("ui/components/home/StatsBreakdown.qml");
+    const start = source.indexOf("    function smoothPath(");
+    assert.notEqual(start, -1);
+    const brace = source.indexOf("{", start);
+    let depth = 0, end = -1;
+    for (let i = brace; i < source.length; ++i) {
+        if (source[i] === "{") ++depth;
+        if (source[i] === "}" && --depth === 0) {
+            end = i + 1;
+            break;
+        }
+    }
+    assert.ok(end > brace, "QML interpolation function is complete");
+    const js = source.slice(start, end);
+    const values = [0, 0, 4, 40, 143, 3, 0, 0, 7, 0];
+    const baseline = 172;
+    for (const rtl of [false, true]) {
+        const positions = values.map((v, i) => ({
+            x: rtl ? 400 - i * 40 : i * 40,
+            y: baseline - v
+        }));
+        const ctx = vm.createContext({
+            pointsFor: () => positions,
+            plotInset: 5
+        });
+        vm.runInContext(js, ctx);
+        const path = ctx.smoothPath("likes", 143, 405, 178, false);
+        const cubicSegments = [...path.matchAll(
+            /C\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)/g)];
+        assert.equal(cubicSegments.length, positions.length - 1);
+        for (let i = 0; i < cubicSegments.length; ++i) {
+            const [c1x,c1y,c2x,c2y,endX,endY] = cubicSegments[i].slice(1).map(Number);
+            const [a,b] = [positions[i],positions[i + 1]];
+            assert.ok([c1x,c1y,c2x,c2y,endX,endY].every(Number.isFinite));
+            assert.ok(Math.abs(endX - b.x) < 0.01);
+            assert.ok(Math.abs(endY - b.y) < 0.01);
+            for (const control of [c1y,c2y]) {
+                assert.ok(control >= Math.min(a.y,b.y) - 0.011,
+                    "the curve must never create a new daily minimum");
+                assert.ok(control <= Math.max(a.y,b.y) + 0.011,
+                    "the curve must never create a new daily maximum");
+            }
+            for (const control of [c1x,c2x]) {
+                assert.ok(control >= Math.min(a.x,b.x) - 0.01);
+                assert.ok(control <= Math.max(a.x,b.x) + 0.01);
+            }
+        }
+        assert.match(ctx.smoothPath("likes",143,405,178,true), / Z$/);
+    }
+});
+
+test("GitHub contribution heatmap is backed by verified calendar days, not fabricated progress", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    assert.match(panel, /readonly property var githubDayMap/);
+    assert.match(panel, /if \(!githubReady\) return map/);
+    assert.match(panel, /githubCalendar\.days \|\| \[\]/);
+    assert.match(panel, /root\.githubWeekCount \* 7/);
+    assert.match(panel, /root\.githubColor\(dayData\.level\)/);
+    assert.match(panel, /root\.githubDateAt\(index\)/);
+    assert.match(panel, /github_recent_weeks/);
+    assert.doesNotMatch(panel, /githubGrowthPercentage|fakeGithubDays/);
 });
