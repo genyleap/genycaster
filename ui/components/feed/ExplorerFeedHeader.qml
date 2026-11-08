@@ -17,7 +17,9 @@ Item {
 
     implicitHeight: column.implicitHeight + Theme.space4
 
-    readonly property int gutter: Theme.gutter(root.width)
+    // Keep the Explorer header aligned with the Stats/Profile card edges
+    // on desktop. Preserve the established touch-safe phone gutter.
+    readonly property int gutter: root.compact ? Theme.gutter(root.width) : Theme.space3
 
     ColumnLayout {
         id: column

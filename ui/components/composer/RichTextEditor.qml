@@ -26,14 +26,21 @@ Item {
         return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
     }
 
+    // An inline's literal line breaks are content, not HTML whitespace.
+    // Render them as soft breaks within ONE editable paragraph; otherwise
+    // Qt RichText collapses them and the report becomes unreadable.
+    function escapeInlineHtml(value) {
+        return root.escapeHtml(value).replace(/\r\n?/g, "\n").replace(/\n/g, "<br/>")
+    }
+
     function formattedMarkup(data) {
         const values = data && data.inlines ? data.inlines : []
-        if (!values.length) return root.escapeHtml(String(data && data.text ? data.text : ""))
+        if (!values.length) return root.escapeInlineHtml(String(data && data.text ? data.text : ""))
         let html = ""
         for (let i = 0; i < values.length; ++i) {
             const span = values[i] || ({})
             const raw = span.kind === "mention" && span.username ? "@" + span.username : String(span.text || "")
-            const body = root.escapeHtml(raw)
+            const body = root.escapeInlineHtml(raw)
             if (span.kind === "strong") html += "<b>" + body + "</b>"
             else if (span.kind === "emphasis") html += "<i>" + body + "</i>"
             else if (span.kind === "inline-code") html += "<span style='font-family:" + Theme.codeFontFamily + ";background-color:" + Theme.codeInlineSurface + "'>" + body + "</span>"

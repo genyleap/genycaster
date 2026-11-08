@@ -69,10 +69,19 @@ Item {
                                                        + root.socialMinimumReadingWidth
                                                        + Theme.space6
     readonly property bool showHomeContextRail: root.contextRailFits && root.homeSurfaceActive
-    // Only the Stats workspace reduces the OUTER shell gutters. Other
-    // destinations retain their established reading margins.
+    // Stats uses the full reading pane while keeping card-level gutters;
+    // unrelated destinations retain their original margins.
     readonly property bool homeStatsWorkspace: root.homeSurfaceActive
                                                && homeDashboard.activeTab === "stats"
+    // Explorer and Profile are also full desktop workspaces. Their content
+    // should use the same outside gutters as Stats, not a centred 880px
+    // island surrounded by extra shell padding.
+    readonly property bool expandedSocialWorkspace: root.desktop
+        && root.shellRoute.length === 0
+        && (presentationBridge.activeView === "profile"
+            || (presentationBridge.activeView === "feed"
+                && root.primaryDestination === "explorer"))
+    readonly property bool expandedWorkspace: root.homeStatsWorkspace || root.expandedSocialWorkspace
     readonly property bool showSocialContextRail: root.contextRailFits && root.socialSurfaceActive
     readonly property bool showContextRail: root.showHomeContextRail || root.showSocialContextRail
     readonly property bool identityAvailable: presentationBridge.identityFid > 0
@@ -1235,10 +1244,10 @@ Item {
                     RowLayout {
                         anchors.fill: parent
                         layoutDirection: Theme.uiDirection
-                        anchors.leftMargin: root.wide && !root.homeStatsWorkspace ? Theme.space2 : 0
-                        anchors.rightMargin: root.wide && !root.homeStatsWorkspace ? Theme.space2 : 0
+                        anchors.leftMargin: root.wide && !root.expandedWorkspace ? Theme.space2 : 0
+                        anchors.rightMargin: root.wide && !root.expandedWorkspace ? Theme.space2 : 0
                         anchors.topMargin: root.wide ? Theme.space3 : 0
-                        spacing: root.wide ? (root.homeStatsWorkspace ? Theme.space1 : Theme.space3) : 0
+                        spacing: root.wide ? (root.expandedWorkspace ? Theme.space1 : Theme.space3) : 0
 
                         Item {
                             id: readingPane
@@ -1655,7 +1664,12 @@ Item {
                                         }
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        Layout.maximumWidth: presentationBridge.activeView === "feed" ? root.adaptiveFeedWidth : root.adaptiveDetailWidth
+                                        Layout.maximumWidth: root.expandedSocialWorkspace
+                                                             && presentationBridge.activeView === "feed"
+                                                             ? root.availableSocialWidth
+                                                             : presentationBridge.activeView === "feed"
+                                                               ? root.adaptiveFeedWidth
+                                                               : root.adaptiveDetailWidth
                                         Layout.alignment: Qt.AlignHCenter
 
                                         sourceComponent: Component {
@@ -1824,7 +1838,8 @@ Item {
                                         }
                                         Layout.fillWidth: true
                                         Layout.fillHeight: true
-                                        Layout.maximumWidth: root.adaptiveProfileWidth
+                                        Layout.maximumWidth: root.expandedSocialWorkspace
+                                                             ? root.availableSocialWidth : root.adaptiveProfileWidth
                                         Layout.alignment: Qt.AlignHCenter
 
                                         sourceComponent: Component {

@@ -77,8 +77,9 @@ ColumnLayout {
     // This uses measured data only: the period filters publication dates,
     // while engagement reflects interactions observed to date. The fixed
     // English footer is a brand signature, not a second language setting.
-    // Blank lines are intentional Markdown paragraph boundaries so the
-    // dedicated report handoff renders cleanly in the visual Composer.
+    // Single line breaks keep the entire report in ONE rich paragraph.
+    // Blank-line Markdown paragraphs created multiple full-height editors
+    // with huge gaps between statistics in the visual Composer.
     function buildShareText() {
         if (section !== "social" || !loaded) return ""
         const integer = value => LocaleFormat.formatInteger(Number(value || 0))
@@ -104,7 +105,7 @@ ColumnLayout {
                 .arg(LocaleFormat.formatDateTime(Date.now())),
             "Powered by Genycaster"
         )
-        return paragraphs.join("\n\n")
+        return paragraphs.join("\n")
     }
 
     // Only the FID-bound OpenProof connection list can establish GitHub ownership.

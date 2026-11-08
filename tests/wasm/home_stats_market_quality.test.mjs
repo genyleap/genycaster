@@ -454,9 +454,9 @@ test("Stats only reduces OUTER shell gutters and restores original card spacing"
     const rings = read("ui/components/home/StatsDistributionRings.qml");
     assert.match(shell, /readonly property bool homeStatsWorkspace: root\.homeSurfaceActive/);
     assert.match(shell, /homeDashboard\.activeTab === "stats"/);
-    assert.match(shell, /anchors\.leftMargin: root\.wide && !root\.homeStatsWorkspace \? Theme\.space2 : 0/);
-    assert.match(shell, /anchors\.rightMargin: root\.wide && !root\.homeStatsWorkspace \? Theme\.space2 : 0/);
-    assert.match(shell, /root\.homeStatsWorkspace \? Theme\.space1 : Theme\.space3/);
+    assert.match(shell, /anchors\.leftMargin: root\.wide && !root\.expandedWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /anchors\.rightMargin: root\.wide && !root\.expandedWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /root\.expandedWorkspace \? Theme\.space1 : Theme\.space3/);
     assert.match(shell, /Layout\.leftMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
     assert.match(shell, /Layout\.rightMargin: root\.compact \? Theme\.mobileGutter\s*\n\s*: root\.homeStatsWorkspace \? 0 : Theme\.space2/);
     assert.match(home, /anchors\.margins: Theme\.space3/);
@@ -622,8 +622,9 @@ test("localized stats report has a precise scope note, a dated source and stable
     };
     for (const locale of locales) {
         const report = format(locale);
-        assert.match(report, /\n\nPowered by Genycaster$/);
-        assert.equal(report.split("\n\n").length, 7, locale + ": report paragraphs");
+        assert.match(report, /\nPowered by Genycaster$/);
+        assert.doesNotMatch(report, /\n\n/, locale + ": no full-height split blocks");
+        assert.equal(report.split("\n").length, 7, locale + ": one multiline editor block");
         assert.ok(!report.includes("genycaster.stats."), locale + ": unresolved ID");
         assert.ok(Buffer.byteLength(report, "utf8") <= 1024, locale + ": exceeds ordinary Cast budget");
     }
@@ -640,7 +641,7 @@ test("localized stats report has a precise scope note, a dated source and stable
     const partial = format("fa_IR", false);
     assert.ok(!partial.includes("تعاملات دریافتی:"));
     assert.ok(!partial.includes("پسندها:"));
-    assert.equal(partial.split("\n\n").length, 4);
+    assert.equal(partial.split("\n").length, 4);
     assert.match(panel, /if \(section !== "social" \|\| !loaded\) return ""/);
     assert.match(panel, /LocaleFormat\.formatDateTime\(Date\.now\(\)\)/);
     assert.match(shell, /"structuredReport": Boolean\(structuredReport\)/);
@@ -650,4 +651,52 @@ test("localized stats report has a precise scope note, a dated source and stable
     assert.match(shell, /composerDrawer\.structuredReport = false/);
     // Ordinary compose uses literal text, so user-supplied Markdown is not reinterpreted.
     assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
+});
+
+
+test("shared stats reports render as one multiline rich-text block without giant gaps", () => {
+    const panel = read("ui/components/home/StatsPanel.qml");
+    const composer = read("ui/components/composer/ComposerDrawer.qml");
+    const richEditor = read("ui/components/composer/RichTextEditor.qml");
+    const importer = read("src/application/rich_format.cpp");
+    assert.match(panel, /return paragraphs\.join\("\\n"\)/);
+    assert.doesNotMatch(panel, /return paragraphs\.join\("\\n\\n"\)/);
+    assert.match(composer, /if \(root\.structuredReport\)\s*\n\s*richComposer\.markdownSource = root\.suggestedText/);
+    // A paragraph is the maximal run of nonblank lines. This is what keeps
+    // the visual ListView at one editor item instead of one 86px+ card per KPI.
+    assert.match(importer, /if \(!paragraph\.empty\(\)\) paragraph\.push_back\('\\n'\)/);
+    assert.match(importer, /document\.blocks\.push_back\(textBlock\(BlockKind::Paragraph, \+\+ordinal, paragraph\)\)/);
+    assert.match(richEditor, /function escapeInlineHtml\(value\)/);
+    assert.match(richEditor, /replace\(\/\\n\/g, "<br\/>"\)/);
+    assert.match(richEditor, /if \(!values\.length\) return root\.escapeInlineHtml/);
+    assert.match(richEditor, /const body = root\.escapeInlineHtml\(raw\)/);
+    const mark = richEditor.match(/    function escapeHtml\(value\) \{([\s\S]*?)\n    \}/);
+    const inline = richEditor.match(/    function escapeInlineHtml\(value\) \{([\s\S]*?)\n    \}/);
+    assert.ok(mark && inline, "both HTML encoders must exist");
+    const ctx = vm.createContext({root: {}});
+    vm.runInContext("function escapeHtml(value) {" + mark[1] + "\n}" +
+                    "\nfunction escapeInlineHtml(value) {" + inline[1] + "\n}" +
+                    "\nroot.escapeHtml = escapeHtml;", ctx);
+    assert.equal(ctx.escapeInlineHtml("A & B\nC < D"), "A &amp; B<br/>C &lt; D");
+    assert.equal(ctx.escapeInlineHtml("First\r\nSecond"), "First<br/>Second");
+    assert.equal(ctx.escapeInlineHtml("Line 1"), "Line 1");
+});
+
+test("Profile and Explorer share Stats desktop outer gutters without changing phone layout", () => {
+    const shell = read("ui/components/shell/AppShell.qml");
+    const profile = read("ui/components/profile/ProfileSurface.qml");
+    const explorer = read("ui/components/feed/ExplorerFeedHeader.qml");
+    assert.match(shell, /readonly property bool expandedSocialWorkspace: root\.desktop/);
+    assert.match(shell, /presentationBridge\.activeView === "profile"/);
+    assert.match(shell, /root\.primaryDestination === "explorer"/);
+    assert.match(shell, /readonly property bool expandedWorkspace: root\.homeStatsWorkspace \|\| root\.expandedSocialWorkspace/);
+    assert.match(shell, /anchors\.leftMargin: root\.wide && !root\.expandedWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /anchors\.rightMargin: root\.wide && !root\.expandedWorkspace \? Theme\.space2 : 0/);
+    assert.match(shell, /spacing: root\.wide \? \(root\.expandedWorkspace \? Theme\.space1 : Theme\.space3\) : 0/);
+    assert.match(shell, /Layout\.maximumWidth: root\.expandedSocialWorkspace\s*\n\s*&& presentationBridge\.activeView === "feed"\s*\n\s*\? root\.availableSocialWidth/);
+    assert.match(shell, /Layout\.maximumWidth: root\.expandedSocialWorkspace\s*\n\s*\? root\.availableSocialWidth : root\.adaptiveProfileWidth/);
+    assert.match(profile, /readonly property int profileMargin: root\.compact \? Theme\.mobileGutter : Theme\.space3/);
+    assert.match(profile, /readonly property int profileContentLimit: root\.compact \? 760 : 1280/);
+    assert.match(explorer, /readonly property int gutter: root\.compact \? Theme\.gutter\(root\.width\) : Theme\.space3/);
+    assert.doesNotMatch(shell, /readonly property bool expandedSocialWorkspace: root\.mobile/);
 });

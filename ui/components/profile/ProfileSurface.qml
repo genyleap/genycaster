@@ -686,8 +686,10 @@ Item {
     readonly property bool isOwnProfile: Number(root.activeDetail.fid || 0) > 0
                                          && Number(root.activeDetail.fid || 0) === Number(root.accountFid)
     readonly property int profileAvatarSize: root.compact ? 84 : 96
-    readonly property int profileMargin: root.compact ? Theme.mobileGutter : Theme.space5
-    readonly property int profileContentLimit: root.compact ? 760 : 880
+    // Match the Stats/ContextRail outside gutter without shrinking card
+    // padding. The profile is responsive across the full desktop workspace.
+    readonly property int profileMargin: root.compact ? Theme.mobileGutter : Theme.space3
+    readonly property int profileContentLimit: root.compact ? 760 : 1280
     readonly property int profileContentWidth: Math.max(0, Math.min(root.profileContentLimit, width - root.profileMargin * 2))
     readonly property int profileContentX: Math.max(root.profileMargin, Math.round((width - root.profileContentWidth) / 2))
     readonly property bool profileContentRtl: Theme.rtl
