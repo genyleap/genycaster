@@ -77,6 +77,9 @@ Flickable {
     property real rowsBottom: 0
     property bool arranging: false
     property bool positioned: false
+    // Layout changes made while we are positioning delegates must never be
+    // discarded. A nested Loader can finish measuring within this same turn.
+    property bool relayoutPending: false
 
     signal layoutStarted()
     signal layoutFinished()
@@ -107,7 +110,11 @@ Flickable {
     }
 
     function scheduleLayout() {
-        if (!arranging && !layoutTimer.running) layoutTimer.start()
+        if (arranging) {
+            relayoutPending = true
+            return
+        }
+        if (!layoutTimer.running) layoutTimer.start()
     }
 
     // Admission must be a one-way update, NOT a binding on slot.height/y:
@@ -148,12 +155,16 @@ Flickable {
         const offset = anchor ? anchor.y - contentY : 0
         const start = headerLoader.height + gutter
         const bottoms = Array(columns).fill(start)
+        // Lane assignment is stable for an existing card. Reassigning every
+        // time a late image finishes (or a flick ends) moves cards sideways
+        // and breaks users' visual tracking, even if the new packing is dense.
+        // Only new rows, reordered rows, or a column-count change pick a lane.
+        // Measured heights always update the positions below the card.
         for (let index = 0; index < slots.count; ++index) {
             const slot = slots.itemAt(index)
             if (!slot) continue
-            // Place new rows in source order into the shortest lane. Keep that
-            // assignment while metadata settles; only reordering or a column
-            // count change can move an existing card horizontally.
+            // Each lane is stacked from the previous measured bottom, so
+            // no older size estimate can leave gaps or cause overlap.
             if (slot.assignedColumn < 0 || slot.assignmentColumns !== columns) {
                 let shortest = 0
                 for (let candidate = 1; candidate < columns; ++candidate) {
@@ -176,6 +187,10 @@ Flickable {
         arranging = false
         scheduleAdmission()
         layoutFinished()
+        if (relayoutPending) {
+            relayoutPending = false
+            scheduleLayout()
+        }
     }
 
     function positionViewAtBeginning() {
@@ -235,6 +250,7 @@ Flickable {
     onCardWidthChanged: scheduleLayout()
     onLayoutDirectionChanged: scheduleLayout()
     onGutterChanged: scheduleLayout()
+    onMovingChanged: if (!moving) scheduleLayout()
     Component.onCompleted: scheduleLayout()
 
     Timer {
@@ -279,6 +295,10 @@ Flickable {
                 ? view.estimateHeight(stableKey, presentationKind, mediaLayoutKind, width) : 320
             width: view.cardWidth
             height: Math.max(1, measuredHeight > 0 ? measuredHeight : estimatedHeight)
+            // A nested preview may update before its new implicit height
+            // reaches this slot. Clip transient overdraw rather than let the
+            // preceding card paint across the following card.
+            clip: true
             onHeightChanged: view.scheduleLayout()
             onIndexChanged: {
                 assignedColumn = -1
@@ -305,11 +325,22 @@ Flickable {
             }
 
             function recordHeight() {
-                const next = cardLoader.item ? cardLoader.item.height : 0
-                if (next > 0) {
-                    if (Math.abs(next - measuredHeight) >= 1)
-                        measuredHeight = next
-                    view.retainHeight(stableKey, revisionKey, width, next)
+                const content = cardLoader.item
+                // FeedRow.height holds the *estimated* reservation while
+                // its nested delegate is loading. Using max(height,
+                // implicitHeight) kept the obsolete (often very tall)
+                // estimate even after an image/text card resolved shorter,
+                // leaving permanent empty slabs between cards. Prefer the
+                // actual implicit size; height is fallback for geometry-only
+                // delegates with no implicit size.
+                const implicit = content ? Number(content.implicitHeight || 0) : 0
+                const next = implicit > 0
+                    ? implicit : content ? Number(content.height || 0) : 0
+                if (next > 0 && isFinite(next)) {
+                    const resolved = Math.ceil(next)
+                    if (Math.abs(resolved - measuredHeight) >= 1)
+                        measuredHeight = resolved
+                    view.retainHeight(stableKey, revisionKey, width, resolved)
                 }
             }
 
@@ -335,6 +366,7 @@ Flickable {
             Connections {
                 target: cardLoader.item
                 function onHeightChanged() { slot.recordHeight() }
+                function onImplicitHeightChanged() { slot.recordHeight() }
             }
         }
     }

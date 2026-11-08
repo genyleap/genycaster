@@ -144,7 +144,7 @@ test("windowed Explorer keeps view actions at leading edge and collapses crowded
     assert.match(header, /readonly property bool condensedFeedActions: !root\.compact && root\.width < 690/);
     assert.match(header, /root\.condensedFeedActions \? 198 : 240/);
     assert.match(controls, /property bool condensed: false/);
-    assert.equal((controls.match(/iconOnly: root\.condensed/g) || []).length, 2);
+    assert.equal((controls.match(/iconOnly: root\.condensed/g) || []).length, 3);
     assert.match(cast, /objectName: "magazineCastTime"/);
     assert.match(cast, /visible: root\.compact && !root\.magazineCard/);
     assert.match(cast, /visible: root\.magazineCard\s+&& Number\(root\.modelData\.createdAtMs/);

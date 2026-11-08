@@ -610,28 +610,30 @@ Item {
                                 visible: !root.magazineCard || root.width >= 390
                             }
 
-                            // Keep relative time on the secondary metadata row
-                            // in compact Magazine cards; never compete with
-                            // the author's name for the first-row width.
-                            DirectionAwareLabel {
-                                objectName: "magazineCastTime"
-                                visible: root.magazineCard
-                                         && Number(root.modelData.createdAtMs || 0) > 0
-                                text: visible ? LocaleFormat.formatRelativeTime(
-                                    Number(root.modelData.createdAtMs)) : ""
-                                Layout.maximumWidth: Math.min(100, root.width * 0.28)
-                                font.pixelSize: Theme.typeCaptionSize
-                                color: Theme.inkSubtle
-                                elide: Text.ElideRight
-                                forceLeftToRight: true
-                            }
-
                         }
+                    }
+
+                    // The timestamp and overflow menu share one horizontal
+                    // axis. Putting time inside the author/handle column made
+                    // it drift down a row and sometimes clip into a neighbor.
+                    DirectionAwareLabel {
+                        objectName: "magazineCastTime"
+                        visible: root.magazineCard
+                                 && Number(root.modelData.createdAtMs || 0) > 0
+                        Layout.alignment: Qt.AlignVCenter
+                        Layout.maximumWidth: Math.min(104, root.width * 0.29)
+                        Layout.minimumWidth: 0
+                        text: visible ? LocaleFormat.formatRelativeTime(
+                            Number(root.modelData.createdAtMs)) : ""
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkSubtle
+                        elide: Text.ElideRight
+                        forceLeftToRight: true
                     }
 
                     ActionButton {
                         id: moreButton
-                        Layout.alignment: Qt.AlignTop
+                        Layout.alignment: root.magazineCard ? Qt.AlignVCenter : Qt.AlignTop
                         compact: true
                         quiet: true
                         iconOnly: true

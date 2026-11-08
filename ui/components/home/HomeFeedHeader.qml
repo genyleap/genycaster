@@ -183,10 +183,13 @@ Item {
                 // pane's leading gutter instead of floating beside Following.
                 visible: !root.compact
                 Layout.preferredWidth: visible ? implicitWidth : 0
-                Layout.preferredHeight: Theme.compactControlHeight
+                Layout.preferredHeight: implicitHeight
                 condensed: root.condensedFeedActions
                 layoutMode: root.explorerLayout
+                filterAvailable: root.filterAvailable
+                filterLabel: qsTrId("genycaster.filters.explorer")
                 onLayoutRequested: mode => root.layoutRequested(mode)
+                onFilterRequested: root.filterRequested()
             }
 
             DirectionAwareLabel {
@@ -312,9 +315,11 @@ Item {
             }
             ActionButton {
                 objectName: "explorerFilterTrigger"
-                visible: root.filterAvailable
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
+                // Desktop owns this action in the shared view/filter toolbar.
+                // Mobile keeps it beside the category tabs.
+                visible: root.compact && root.filterAvailable
+                Layout.preferredWidth: visible ? 44 : 0
+                Layout.preferredHeight: visible ? 44 : 0
                 compact: true
                 quiet: true
                 iconOnly: true

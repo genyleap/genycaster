@@ -932,16 +932,25 @@ Item {
 
     function rowIncubationHeight(row, availableWidth) {
         const value = row || ({})
-        const rowWidth = Math.max(root.compact ? 320 : 480, Number(availableWidth || 0))
-        const horizontalInset = root.compact ? Theme.mobileGutter * 2
-                                             : Theme.space3 * 2 + 42 + Theme.space3
+        // Magazine uses CastItem's compact in-card author layout, not the
+        // 42px desktop side-avatar. Estimating a 320px card as 480px caused
+        // incorrect line/image reservations until the Loader completed.
+        const compactCard = root.compact || root.profileMagazineEnabled
+        const rowWidth = Math.max(compactCard ? 260 : 480, Number(availableWidth || 0))
+        const horizontalInset = compactCard ? Theme.mobileGutter * 2
+                                           : Theme.space3 * 2 + 42 + Theme.space3
         const contentWidth = Math.max(180, rowWidth - horizontalInset)
         const lineHeight = Math.ceil(Theme.typeBodySize * Theme.typeBodyLineHeight)
         const charactersPerLine = Math.max(18,
             Math.floor(contentWidth / Math.max(7, Theme.typeBodySize * 0.55)))
-        const textLength = Math.min(600, String(value.text || "").length)
+        // Long text-only Magazine cards can wrap far beyond eight lines.
+        // Use a wider provisional line budget so later hydration does not
+        // position an adjacent card inside unresolved text.
+        const textLength = Math.min(root.profileMagazineEnabled ? 1200 : 600,
+                                    String(value.text || "").length)
         const textLines = textLength > 0
-            ? Math.max(1, Math.min(8, Math.ceil(textLength / charactersPerLine))) : 0
+            ? Math.max(1, Math.min(root.profileMagazineEnabled ? 28 : 8,
+                                   Math.ceil(textLength / charactersPerLine))) : 0
         const embeds = value.embeds || []
         let reservation = 112 + textLines * lineHeight
 
@@ -970,23 +979,24 @@ Item {
                 if (!(aspect > 0))
                     aspect = 16 / 9
                 aspect = Math.max(0.5, Math.min(2.8, aspect))
-                reservation += Math.max(root.compact ? 180 : 220,
-                                        Math.min(root.compact ? 420 : 520, contentWidth / aspect))
+                reservation += Math.max(compactCard ? 120 : 220,
+                                        Math.min(compactCard ? Math.max(720, contentWidth * 1.6) : 520,
+                                                 contentWidth / aspect))
             } else if (visualCount > 1) {
-                const columns = contentWidth < (root.compact ? 360 : 430) ? 1 : 2
+                const columns = contentWidth < (compactCard ? 360 : 430) ? 1 : 2
                 const tileWidth = columns === 1 ? contentWidth : (contentWidth - Theme.space2) / 2
                 const rows = Math.ceil(Math.min(6, visualCount) / columns)
                 reservation += rows * Math.max(120, Math.min(320, tileWidth / (4 / 3)))
                              + Math.max(0, rows - 1) * Theme.space2
             } else {
-                reservation += root.compact ? 132 : 152
+                reservation += compactCard ? 132 : 152
             }
             if (visualCount > 0 && supportingCount > 0)
-                reservation += Math.min(2, supportingCount) * (root.compact ? 132 : 152)
+                reservation += Math.min(2, supportingCount) * (compactCard ? 132 : 152)
         } else if (/https?:\/\//i.test(String(value.text || ""))) {
             // Match CastItem's inferred-link behavior even when protocol embeds
             // are absent so Profile rows reserve their preview geometry early.
-            reservation += root.compact ? 132 : 152
+            reservation += compactCard ? 132 : 152
         }
         return Math.max(88, Math.ceil(reservation))
     }
@@ -2602,13 +2612,16 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
                 Layout.rightMargin: root.profileContentX
-                Layout.preferredHeight: visible ? Theme.compactControlHeight : 0
+                Layout.preferredHeight: visible ? Theme.compactControlHeight + 8 : 0
                 layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
                 ExplorerLayoutControls {
                     layoutMode: root.displayLayout
                     condensed: root.profileContentWidth < 620
+                    filterAvailable: true
+                    filterLabel: qsTrId("genycaster.filters.profile")
                     onLayoutRequested: mode => root.layoutRequested(mode)
+                    onFilterRequested: profileFilterSheet.open()
                 }
                 Item { Layout.fillWidth: true }
             }
@@ -2661,10 +2674,11 @@ Item {
 
                         ActionButton {
                             objectName: "mobileProfileFilterTrigger"
-                            visible: true
+                            // The desktop filter lives next to Magazine/Timeline.
+                            visible: root.compact
                             Layout.alignment: Qt.AlignVCenter
-                            Layout.preferredWidth: 44
-                            Layout.preferredHeight: 44
+                            Layout.preferredWidth: visible ? 44 : 0
+                            Layout.preferredHeight: visible ? 44 : 0
                             iconOnly: true
                             quiet: true
                             iconGlyph: "filter"

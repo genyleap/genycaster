@@ -518,6 +518,16 @@ int main(int argc, char** argv)
             return qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - magazineSlots[0]->height() - gap) < 1;
         }), "late media height pushes the next card without overlap");
         expect(magazineSlots[2]->x() == lane, "late metadata preserves assigned columns");
+        // An oversize placeholder must contract to the actual decoded image
+        // height. Repacking the entire magazine would move this card to a
+        // different column, while keeping the placeholder leaves a blank gap.
+        firstCards.front()->setProperty("extraHeight", -50);
+        expect(QTest::qWaitFor([&] {
+            return qAbs(magazineSlots[0]->height() - 90) < 1
+                && qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - 90 - gap) < 1;
+        }), "decoded shorter media collapses its placeholder without gaps");
+        expect(qAbs(magazineSlots[2]->x() - lane) < 1,
+            "late media contraction does not move cards horizontally");
         expect(QMetaObject::invokeMethod(wall, "positionViewAtIndex",
             Q_ARG(QVariant, 40), Q_ARG(QVariant, 0)), "magazine accepts indexed navigation");
         expect(QTest::qWaitFor([&] {
