@@ -142,6 +142,7 @@
   "SpriteEmoji.qml": "media/SpriteEmoji.qml",
   "StatsBreakdown.qml": "home/StatsBreakdown.qml",
   "StatsChart.qml": "home/StatsChart.qml",
+  "StatsDistributionRings.qml": "home/StatsDistributionRings.qml",
   "StatsKpi.qml": "home/StatsKpi.qml",
   "StatsPanel.qml": "home/StatsPanel.qml",
   "StatsSkeleton.qml": "home/StatsSkeleton.qml",

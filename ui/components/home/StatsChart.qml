@@ -12,6 +12,7 @@ Superellipse {
     property int hoveredIndex: -1
     readonly property int activeIndex: hoveredIndex >= 0 ? hoveredIndex : selectedIndex
     property real reveal: 1
+    readonly property color replyInk: Qt.lighter(Theme.accent, Theme.dark ? 1.65 : 1.6)
     readonly property int maxCount: {
         let n = 1
         for (let i = 0; i < bars.length; ++i)
@@ -92,7 +93,7 @@ Superellipse {
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.textSecondary
             }
-            Rectangle { width: 7; height: 7; radius: 3.5; color: Theme.textTertiary }
+            Rectangle { width: 7; height: 7; radius: 3.5; color: root.replyInk }
             DirectionAwareLabel {
                 text: qsTrId("genycaster.stats.replies")
                 font.pixelSize: Theme.typeCaptionSize
@@ -164,6 +165,7 @@ Superellipse {
                             required property var modelData
                             readonly property int casts: Number(modelData.casts || 0)
                             readonly property int replies: Number(modelData.replies || 0)
+                            readonly property bool highlighted: root.activeIndex === index
                             readonly property real barWidth: Math.min(26, Math.max(0.75, width - Math.min(2, width * 0.22)))
                             // Pixel-snapped segment joins avoid subpixel seams.
                             readonly property real castHeight: Math.round(plot.height * casts / root.maxCount * root.reveal)
@@ -178,6 +180,22 @@ Superellipse {
                                 .arg(LocaleFormat.formatInteger(Number(modelData.replies)))
                             Accessible.onPressAction: root.selectedIndex = index
 
+                            // A restrained full-column wash and paint-only
+                            // emphasis make pointer inspection visible without
+                            // reflowing the bars or hiding neighboring data.
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 7
+                                color: Theme.accent
+                                opacity: column.highlighted ? (Theme.dark ? 0.13 : 0.075) : 0
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+
                             // One opacity group with a single rounded silhouette.
                             // Opaque interior segments meet at pixel-snapped edges;
                             // only the outer silhouette is rounded, eliminating
@@ -188,8 +206,19 @@ Superellipse {
                                 y: plot.height - column.castHeight - column.replyHeight
                                 width: column.barWidth
                                 height: Math.max(0, column.castHeight + column.replyHeight)
-                                radius: Math.min(3, width / 2, height / 2)
-                                color: Theme.accent
+                                radius: Math.min(7, width / 2, height / 2)
+                                color: column.highlighted ? Qt.lighter(Theme.accent, 1.12) : Theme.accent
+                                transformOrigin: Item.Bottom
+                                scale: column.highlighted ? 1.08 : 1
+                                Behavior on color {
+                                    ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                }
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: Theme.reduceMotion ? 0 : Theme.motionFast
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
                                 // Never desaturate nonselected data; hover is a
                                 // transient inspection state, not a disabled state.
                                 opacity: 1
@@ -203,7 +232,11 @@ Superellipse {
                                     width: parent.width
                                     height: column.replyHeight
                                     radius: stack.radius
-                                    color: Theme.textTertiary
+                                    color: column.highlighted
+                                        ? Qt.lighter(root.replyInk, 1.12) : root.replyInk
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                    }
                                     antialiasing: true
                                     // Flatten only the internal joining edge.
                                     Rectangle {

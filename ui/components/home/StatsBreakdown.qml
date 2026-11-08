@@ -19,10 +19,13 @@ Superellipse {
     readonly property var inspectedBucket: inspectedIndex >= 0 && inspectedIndex < activity.length
                                             ? activity[inspectedIndex] : null
     readonly property real receivedTotal: Math.max(0, Number(metrics.engagement || 0))
+    readonly property color recastsInk: Qt.lighter(Theme.accent, Theme.dark ? 1.35 : 1.32)
+    readonly property color repliesInk: Qt.lighter(Theme.accent, Theme.dark ? 1.85 : 1.65)
+    property real chartReveal: 1
     readonly property var receivedSeries: [
         {key: "likes", label: qsTrId("genycaster.stats.likes"), color: Theme.accent, axis: 0},
-        {key: "recasts", label: qsTrId("genycaster.stats.recasts"), color: Theme.warning, axis: 1},
-        {key: "receivedReplies", label: qsTrId("genycaster.stats.received_replies"), color: Theme.textSecondary, axis: 1}
+        {key: "recasts", label: qsTrId("genycaster.stats.recasts"), color: root.recastsInk, axis: 1},
+        {key: "receivedReplies", label: qsTrId("genycaster.stats.received_replies"), color: root.repliesInk, axis: 1}
     ]
     readonly property var publishingRows: [
         {label: qsTrId("genycaster.stats.casts"), count: Math.max(0, Number(metrics.casts || 0))},
@@ -128,9 +131,29 @@ Superellipse {
         return bucket.endDate && bucket.endDate !== bucket.startDate ? first + " – " + last : first
     }
 
+    function animateChart() {
+        curveRevealTween.stop()
+        if (Theme.reduceMotion || !hasTimeSeries) {
+            chartReveal = 1
+            return
+        }
+        chartReveal = 0
+        curveRevealTween.start()
+    }
     onActivityChanged: {
         selectedIndex = -1
         hoveredIndex = -1
+        Qt.callLater(animateChart)
+    }
+    Component.onCompleted: animateChart()
+
+    NumberAnimation {
+        id: curveRevealTween
+        target: root
+        property: "chartReveal"
+        to: 1
+        duration: Theme.reduceMotion ? 0 : 760
+        easing.type: Easing.OutCubic
     }
 
     Layout.fillWidth: true
@@ -188,282 +211,326 @@ Superellipse {
         }
 
         GridLayout {
+            id: engagementGrid
             Layout.fillWidth: true
+            Layout.minimumWidth: 0
             layoutDirection: Theme.uiDirection
-            columns: root.width >= 720 ? 3 : root.width >= 460 ? 2 : 1
-            columnSpacing: Theme.space3
-            rowSpacing: Theme.space1
-            Repeater {
-                model: root.receivedSeries
-                delegate: RowLayout {
-                    required property var modelData
-                    spacing: Theme.space1
-                    Rectangle {
-                        width: 10
-                        height: 3
-                        radius: height / 2
-                        color: modelData.color
-                    }
-                    DirectionAwareLabel {
-                        text: modelData.label
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeCaptionSize
-                        elide: Text.ElideRight
-                    }
-                }
-            }
-        }
+            columns: root.width >= 980 ? 2 : 1
+            columnSpacing: Theme.space4
+            rowSpacing: Theme.space3
 
-        RowLayout {
-            id: chartRow
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.narrow ? 154 : 198
-            layoutDirection: Theme.uiDirection
-            spacing: Theme.space2
-
-            // Primary axis (likes) follows the start side of the layout.
             ColumnLayout {
-                Layout.preferredWidth: root.narrow ? 28 : 38
-                Layout.fillHeight: true
-                spacing: 0
-                DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger(root.likesMax)
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.accent
-                    Layout.alignment: Qt.AlignTop
-                }
-                Item { Layout.fillHeight: true }
-                DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger(0)
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.textTertiary
-                }
-            }
-
-            Item {
-                id: plot
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
-                Layout.fillHeight: true
-                clip: true
+                Layout.preferredWidth: root.width >= 980 ? 650 : 1
+                spacing: Theme.space2
 
-                Repeater {
-                    model: 3
-                    delegate: Rectangle {
-                        required property int index
-                        y: root.plotInset + index * (plot.height - 2 * root.plotInset) / 2
-                        width: plot.width
-                        height: 1
-                        color: Theme.borderMuted
-                    }
-                }
-
-                // One offscreen MSAA surface avoids multiple translucent
-                // layers and their visible compositing seams.
-                Shape {
-                    id: engagementShape
-                    anchors.fill: parent
-                    visible: root.hasTimeSeries
-                    preferredRendererType: Shape.GeometryRenderer
-                    asynchronous: false
-                    antialiasing: true
-                    layer.enabled: true
-                    layer.smooth: true
-                    layer.samples: 4
-
-                    ShapePath {
-                        strokeColor: "transparent"
-                        fillColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                           Theme.accent.b, Theme.dark ? 0.13 : 0.075)
-                        PathSvg {
-                            path: root.smoothPath("likes", root.likesMax,
-                                                  plot.width, plot.height, true)
-                        }
-                    }
-                    ShapePath {
-                        strokeColor: Theme.accent
-                        strokeWidth: 2.8
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        joinStyle: ShapePath.RoundJoin
-                        PathSvg {
-                            path: root.smoothPath("likes", root.likesMax,
-                                                  plot.width, plot.height, false)
-                        }
-                    }
-                    ShapePath {
-                        strokeColor: Theme.warning
-                        strokeWidth: 2.3
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        joinStyle: ShapePath.RoundJoin
-                        PathSvg {
-                            path: root.smoothPath("recasts", root.secondaryMax,
-                                                  plot.width, plot.height, false)
-                        }
-                    }
-                    ShapePath {
-                        strokeColor: Theme.textSecondary
-                        strokeWidth: 2.3
-                        fillColor: "transparent"
-                        capStyle: ShapePath.RoundCap
-                        joinStyle: ShapePath.RoundJoin
-                        PathSvg {
-                            path: root.smoothPath("receivedReplies", root.secondaryMax,
-                                                  plot.width, plot.height, false)
-                        }
-                    }
-                }
-
-                Rectangle {
-                    visible: root.inspectedBucket !== null
-                    width: 1
-                    height: parent.height
-                    color: Theme.borderStrong
-                    x: root.inspectedIndex >= 0
-                       ? root.pointFor(root.inspectedIndex, "likes", root.likesMax,
-                                       plot.width, plot.height).x : 0
-                }
-                Repeater {
-                    model: root.inspectedBucket ? root.receivedSeries : []
-                    delegate: Rectangle {
-                        required property var modelData
-                        width: 7
-                        height: 7
-                        radius: width / 2
-                        color: modelData.color
-                        border.color: Theme.surface
-                        border.width: 1
-                        readonly property var point: root.pointFor(root.inspectedIndex,
-                            modelData.key, modelData.axis === 0 ? root.likesMax : root.secondaryMax,
-                            plot.width, plot.height)
-                        x: point.x - width / 2
-                        y: point.y - height / 2
-                    }
-                }
-                // A compact inspection popover is clamped to the plot bounds.
-                // The always-visible description below remains the touch and
-                // accessibility fallback on narrow screens.
-                Superellipse {
-                    id: inspectCard
-                    z: 5
-                    visible: root.inspectedBucket !== null && plot.width >= 270
-                    width: Math.min(218, plot.width - 8)
-                    height: inspectContent.implicitHeight + Theme.space3 * 2
-                    fillColor: Theme.surfaceRaised
-                    borderColor: Theme.borderMuted
-                    borderWidth: 1
-                    curveDepth: Theme.curveContainer
-                    readonly property point selectedPosition: root.activePoint(
-                        "likes", root.likesMax, plot.width, plot.height)
-                    x: Math.max(2, Math.min(plot.width - width - 2,
-                        selectedPosition.x - width / 2))
-                    y: selectedPosition.y >= height + 14
-                       ? selectedPosition.y - height - 12
-                       : Math.min(plot.height - height - 2, selectedPosition.y + 12)
-
-                    ColumnLayout {
-                        id: inspectContent
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space1
-
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            alignToUi: true
-                            text: root.bucketLabel(root.inspectedBucket)
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.typeMetaSize
-                            font.weight: Theme.weightDemiBold
-                        }
-                        Repeater {
-                            model: root.receivedSeries
-                            delegate: RowLayout {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                layoutDirection: Theme.uiDirection
-                                spacing: Theme.space2
-                                Rectangle {
-                                    width: 7
-                                    height: width
-                                    radius: width / 2
-                                    color: modelData.color
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                    text: modelData.label
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    elide: Text.ElideRight
-                                }
-                                DirectionAwareLabel {
-                                    text: root.inspectedBucket
-                                        ? LocaleFormat.formatInteger(Number(
-                                            root.inspectedBucket[modelData.key] || 0)) : ""
-                                    color: Theme.textPrimary
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
-                                }
+                GridLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    columns: root.width >= 720 ? 3 : root.width >= 460 ? 2 : 1
+                    columnSpacing: Theme.space3
+                    rowSpacing: Theme.space1
+                    Repeater {
+                        model: root.receivedSeries
+                        delegate: RowLayout {
+                            required property var modelData
+                            spacing: Theme.space1
+                            Rectangle {
+                                width: 10
+                                height: 3
+                                radius: height / 2
+                                color: modelData.color
+                            }
+                            DirectionAwareLabel {
+                                text: modelData.label
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
                             }
                         }
                     }
                 }
 
-                HoverHandler {
-                    id: plotHover
-                    onPointChanged: {
-                        if (hovered)
-                            root.hoveredIndex = root.indexAt(point.position.x, plot.width)
+                RowLayout {
+                    id: chartRow
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: root.narrow ? 154 : 198
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+
+                    // Primary axis (likes) follows the start side of the layout.
+                    ColumnLayout {
+                        Layout.preferredWidth: root.narrow ? 28 : 38
+                        Layout.fillHeight: true
+                        spacing: 0
+                        DirectionAwareLabel {
+                            text: LocaleFormat.formatInteger(root.likesMax)
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.accent
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        Item { Layout.fillHeight: true }
+                        DirectionAwareLabel {
+                            text: LocaleFormat.formatInteger(0)
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.textTertiary
+                        }
                     }
-                    onHoveredChanged: if (!hovered) root.hoveredIndex = -1
+
+                    Item {
+                        id: plot
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        Layout.fillHeight: true
+                        clip: true
+
+                        Repeater {
+                            model: 3
+                            delegate: Rectangle {
+                                required property int index
+                                y: root.plotInset + index * (plot.height - 2 * root.plotInset) / 2
+                                width: plot.width
+                                height: 1
+                                color: Theme.borderMuted
+                            }
+                        }
+
+                        // One offscreen MSAA surface avoids multiple translucent
+                        // layers and their visible compositing seams.
+                        // Clip the complete antialiased paths from the chronological
+                        // start. RTL reveals from the right without rebuilding the SVG.
+                        Item {
+                            id: curveRevealMask
+                            x: Theme.rtl ? plot.width * (1 - root.chartReveal) : 0
+                            width: plot.width * root.chartReveal
+                            height: plot.height
+                            clip: true
+
+                        Shape {
+                            id: engagementShape
+                            x: -curveRevealMask.x
+                            y: 0
+                            width: plot.width
+                            height: plot.height
+                            visible: root.hasTimeSeries
+                            preferredRendererType: Shape.GeometryRenderer
+                            asynchronous: false
+                            antialiasing: true
+                            layer.enabled: true
+                            layer.smooth: true
+                            layer.samples: 4
+
+                            ShapePath {
+                                strokeColor: "transparent"
+                                fillColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                                   Theme.accent.b, Theme.dark ? 0.13 : 0.075)
+                                PathSvg {
+                                    path: root.smoothPath("likes", root.likesMax,
+                                                          plot.width, plot.height, true)
+                                }
+                            }
+                            ShapePath {
+                                strokeColor: Theme.accent
+                                strokeWidth: 2.8
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+                                PathSvg {
+                                    path: root.smoothPath("likes", root.likesMax,
+                                                          plot.width, plot.height, false)
+                                }
+                            }
+                            ShapePath {
+                                strokeColor: root.recastsInk
+                                strokeWidth: 2.3
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+                                PathSvg {
+                                    path: root.smoothPath("recasts", root.secondaryMax,
+                                                          plot.width, plot.height, false)
+                                }
+                            }
+                            ShapePath {
+                                strokeColor: root.repliesInk
+                                strokeWidth: 2.3
+                                fillColor: "transparent"
+                                capStyle: ShapePath.RoundCap
+                                joinStyle: ShapePath.RoundJoin
+                                PathSvg {
+                                    path: root.smoothPath("receivedReplies", root.secondaryMax,
+                                                          plot.width, plot.height, false)
+                                }
+                            }
+                        }
+                        }
+
+                        Rectangle {
+                            visible: root.inspectedBucket !== null
+                            width: 1
+                            height: parent.height
+                            color: Theme.borderStrong
+                            x: root.inspectedIndex >= 0
+                               ? root.pointFor(root.inspectedIndex, "likes", root.likesMax,
+                                               plot.width, plot.height).x : 0
+                        }
+                        Repeater {
+                            model: root.inspectedBucket ? root.receivedSeries : []
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: 7
+                                height: 7
+                                radius: width / 2
+                                color: modelData.color
+                                border.color: Theme.surface
+                                border.width: 1
+                                readonly property var point: root.pointFor(root.inspectedIndex,
+                                    modelData.key, modelData.axis === 0 ? root.likesMax : root.secondaryMax,
+                                    plot.width, plot.height)
+                                x: point.x - width / 2
+                                y: point.y - height / 2
+                            }
+                        }
+                        // A compact inspection popover is clamped to the plot bounds.
+                        // The always-visible description below remains the touch and
+                        // accessibility fallback on narrow screens.
+                        Superellipse {
+                            id: inspectCard
+                            z: 5
+                            visible: root.inspectedBucket !== null && plot.width >= 270
+                            width: Math.min(218, plot.width - 8)
+                            height: inspectContent.implicitHeight + Theme.space3 * 2
+                            fillColor: Theme.surfaceRaised
+                            borderColor: Theme.borderMuted
+                            borderWidth: 1
+                            curveDepth: Theme.curveContainer
+                            readonly property point selectedPosition: root.activePoint(
+                                "likes", root.likesMax, plot.width, plot.height)
+                            x: Math.max(2, Math.min(plot.width - width - 2,
+                                selectedPosition.x - width / 2))
+                            y: selectedPosition.y >= height + 14
+                               ? selectedPosition.y - height - 12
+                               : Math.min(plot.height - height - 2, selectedPosition.y + 12)
+
+                            ColumnLayout {
+                                id: inspectContent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Theme.space3
+                                spacing: Theme.space1
+
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    alignToUi: true
+                                    text: root.bucketLabel(root.inspectedBucket)
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeMetaSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Repeater {
+                                    model: root.receivedSeries
+                                    delegate: RowLayout {
+                                        required property var modelData
+                                        Layout.fillWidth: true
+                                        layoutDirection: Theme.uiDirection
+                                        spacing: Theme.space2
+                                        Rectangle {
+                                            width: 7
+                                            height: width
+                                            radius: width / 2
+                                            color: modelData.color
+                                        }
+                                        DirectionAwareLabel {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
+                                            text: modelData.label
+                                            color: Theme.textSecondary
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            elide: Text.ElideRight
+                                        }
+                                        DirectionAwareLabel {
+                                            text: root.inspectedBucket
+                                                ? LocaleFormat.formatInteger(Number(
+                                                    root.inspectedBucket[modelData.key] || 0)) : ""
+                                            color: Theme.textPrimary
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            font.weight: Theme.weightDemiBold
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HoverHandler {
+                            id: plotHover
+                            onPointChanged: {
+                                if (hovered)
+                                    root.hoveredIndex = root.indexAt(point.position.x, plot.width)
+                            }
+                            onHoveredChanged: if (!hovered) root.hoveredIndex = -1
+                        }
+                        TapHandler {
+                            onTapped: eventPoint =>
+                                root.selectedIndex = root.indexAt(eventPoint.position.x, plot.width)
+                        }
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: qsTrId("genycaster.stats.received_by_publish_date")
+                    }
+
+                    // Independent scale for received recasts and replies.
+                    ColumnLayout {
+                        Layout.preferredWidth: root.narrow ? 28 : 38
+                        Layout.fillHeight: true
+                        spacing: 0
+                        DirectionAwareLabel {
+                            text: LocaleFormat.formatInteger(root.secondaryMax)
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: root.recastsInk
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        Item { Layout.fillHeight: true }
+                        DirectionAwareLabel {
+                            text: LocaleFormat.formatInteger(0)
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.textTertiary
+                        }
+                    }
                 }
-                TapHandler {
-                    onTapped: eventPoint =>
-                        root.selectedIndex = root.indexAt(eventPoint.position.x, plot.width)
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    layoutDirection: Theme.uiDirection
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        alignToUi: true
+                        text: root.hasTimeSeries ? root.bucketLabel(root.activity[0]) : ""
+                        color: Theme.textTertiary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareLabel {
+                        alignToUi: true
+                        text: root.hasTimeSeries
+                            ? root.bucketLabel(root.activity[root.activity.length - 1]) : ""
+                        color: Theme.textTertiary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
                 }
-                Accessible.role: Accessible.StaticText
-                Accessible.name: qsTrId("genycaster.stats.received_by_publish_date")
             }
 
-            // Independent scale for received recasts and replies.
-            ColumnLayout {
-                Layout.preferredWidth: root.narrow ? 28 : 38
-                Layout.fillHeight: true
-                spacing: 0
-                DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger(root.secondaryMax)
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.warning
-                    Layout.alignment: Qt.AlignTop
-                }
-                Item { Layout.fillHeight: true }
-                DirectionAwareLabel {
-                    text: LocaleFormat.formatInteger(0)
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.textTertiary
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            layoutDirection: Theme.uiDirection
-            DirectionAwareLabel {
+            StatsDistributionRings {
                 Layout.fillWidth: true
-                alignToUi: true
-                text: root.hasTimeSeries ? root.bucketLabel(root.activity[0]) : ""
-                color: Theme.textTertiary
-                font.pixelSize: Theme.typeCaptionSize
-            }
-            DirectionAwareLabel {
-                alignToUi: true
-                text: root.hasTimeSeries
-                    ? root.bucketLabel(root.activity[root.activity.length - 1]) : ""
-                color: Theme.textTertiary
-                font.pixelSize: Theme.typeCaptionSize
+                Layout.minimumWidth: 0
+                Layout.preferredWidth: root.width >= 980 ? 232 : 1
+                Layout.alignment: Qt.AlignVCenter
+                compact: root.width < 980
+                likes: Number(root.metrics.likes || 0)
+                recasts: Number(root.metrics.recasts || 0)
+                receivedReplies: Number(root.metrics.receivedReplies || 0)
+                likesColor: Theme.accent
+                recastsColor: root.recastsInk
+                repliesColor: root.repliesInk
             }
         }
 

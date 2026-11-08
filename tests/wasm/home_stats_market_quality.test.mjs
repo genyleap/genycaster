@@ -199,3 +199,38 @@ test("GitHub contribution heatmap is backed by verified calendar days, not fabri
     assert.match(panel, /github_recent_weeks/);
     assert.doesNotMatch(panel, /githubGrowthPercentage|fakeGithubDays/);
 });
+
+
+test("engagement rings use measured shares, theme colors and an adaptive layout", () => {
+    const rings = read("ui/components/home/StatsDistributionRings.qml");
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    const cmake = read("ui/CMakeLists.txt");
+    assert.match(cmake, /components\/home\/StatsDistributionRings\.qml/);
+    assert.match(breakdown, /StatsDistributionRings\s*\{/);
+    assert.match(breakdown, /columns:\s*root\.width >= 980 \? 2 : 1/);
+    assert.match(rings, /readonly property real sum:/);
+    for (const key of ["likesShare", "recastsShare", "repliesShare"])
+        assert.match(rings, new RegExp(key + ": sum > 0"));
+    assert.match(rings, /PathAngleArc\s*\{/);
+    assert.match(rings, /layer\.samples:\s*4/);
+    assert.match(rings, /onSumChanged:\s*Qt\.callLater\(animate\)/);
+    assert.match(rings, /Theme\.reduceMotion/);
+    assert.match(rings, /Theme\.rtl/);
+    assert.doesNotMatch(rings, /overallProgress|goalProgress|targetPercentage/);
+});
+
+test("engagement chart animates actual paths and publishing hover is paint-only", () => {
+    const breakdown = read("ui/components/home/StatsBreakdown.qml");
+    const publishing = read("ui/components/home/StatsChart.qml");
+    assert.match(breakdown, /id:\s*curveRevealMask/);
+    assert.match(breakdown, /property real chartReveal:/);
+    assert.match(breakdown, /Qt\.callLater\(animateChart\)/);
+    assert.match(breakdown, /Theme\.rtl \? plot\.width \* \(1 - root\.chartReveal\)/);
+    assert.doesNotMatch(breakdown, /color:\s*Theme\.warning,\s*axis: 1/);
+    assert.match(publishing, /readonly property bool highlighted:/);
+    assert.match(publishing, /scale:\s*column\.highlighted \? 1\.08 : 1/);
+    assert.match(publishing, /Behavior on opacity/);
+    assert.match(publishing, /Behavior on scale/);
+    assert.match(publishing, /Behavior on color/);
+    assert.match(publishing, /Theme\.reduceMotion/);
+});

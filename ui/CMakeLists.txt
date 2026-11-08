@@ -110,6 +110,7 @@ set(farcasterQmlFiles
     components/home/StatsSkeleton.qml
     components/home/StatsChart.qml
     components/home/StatsBreakdown.qml
+    components/home/StatsDistributionRings.qml
     components/home/StatsTopCasts.qml
     components/home/HomeFeedHeader.qml
     components/setup/InitialSetup.qml
