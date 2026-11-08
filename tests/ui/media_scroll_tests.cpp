@@ -539,6 +539,11 @@ int main(int argc, char** argv)
             "magazine observes appended rows without replacing the view");
         QMetaObject::invokeMethod(wall, "positionViewAtBeginning");
         expect(magazine->property("contentY").toDouble() == 0, "magazine return-to-top reaches the header");
+        // Repeated layout, pagination and viewport admission must never
+        // produce the Loader.active binding loop seen on macOS with media.
+        expect(qmlWarnings.empty(),
+            "magazine viewport admission emits no QML binding-loop or incubation warnings");
+        qmlWarnings.clear();
     }
 
     // The mobile footer must render as a full-width edge-to-edge surface,

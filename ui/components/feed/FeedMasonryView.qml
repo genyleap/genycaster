@@ -17,6 +17,9 @@ Flickable {
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
     property real cacheBuffer: Math.min(height * 0.5, 480)
+    // Keep already-admitted cards somewhat longer than newly admitted ones.
+    // This prevents media teardown/reincubation when a card is near a boundary.
+    readonly property real retentionBuffer: cacheBuffer + Math.max(180, height * 0.35)
     readonly property int count: slots.count
     readonly property Item headerItem: headerLoader.item
     readonly property Item footerItem: footerLoader.item
@@ -62,6 +65,33 @@ Flickable {
         if (!arranging && !layoutTimer.running) layoutTimer.start()
     }
 
+    // Admission must be a one-way update, NOT a binding on slot.height/y:
+    // activating a Loader changes its measured height and the masonry
+    // position, which formerly fed straight back into Loader.active.
+    function scheduleAdmission() {
+        if (!admissionTimer.running) admissionTimer.start()
+    }
+
+    function updateAdmissions() {
+        const canDisplay = visible && positioned && height > 0
+        const enteringTop = contentY - cacheBuffer
+        const enteringBottom = contentY + height + cacheBuffer
+        const retainedTop = contentY - retentionBuffer
+        const retainedBottom = contentY + height + retentionBuffer
+        for (let index = 0; index < slots.count; ++index) {
+            const slot = slots.itemAt(index)
+            if (!slot) continue
+            const eligible = canDisplay && slot.placed
+            const entering = eligible && slot.y + slot.height >= enteringTop
+                && slot.y <= enteringBottom
+            const retaining = eligible && slot.y + slot.height >= retainedTop
+                && slot.y <= retainedBottom
+            const nextAdmitted = slot.admitted ? retaining : entering
+            if (slot.admitted !== nextAdmitted)
+                slot.admitted = nextAdmitted
+        }
+    }
+
     function forceLayout() {
         if (arranging) return
         layoutTimer.stop()
@@ -99,6 +129,7 @@ Flickable {
             Math.max(0, contentHeight - height)))
         positioned = true
         arranging = false
+        scheduleAdmission()
         layoutFinished()
     }
 
@@ -151,6 +182,10 @@ Flickable {
         event.accepted = true
     }
     onWidthChanged: scheduleLayout()
+    onHeightChanged: scheduleAdmission()
+    onContentYChanged: scheduleAdmission()
+    onVisibleChanged: scheduleAdmission()
+    onCacheBufferChanged: scheduleAdmission()
     onColumnsChanged: scheduleLayout()
     onCardWidthChanged: scheduleLayout()
     onLayoutDirectionChanged: scheduleLayout()
@@ -161,6 +196,12 @@ Flickable {
         id: layoutTimer
         interval: 0
         onTriggered: view.forceLayout()
+    }
+
+    Timer {
+        id: admissionTimer
+        interval: 0
+        onTriggered: view.updateAdmissions()
     }
 
     Loader {
@@ -185,6 +226,7 @@ Flickable {
             required property string mediaLayoutKind
             property real measuredHeight: 0
             property bool placed: false
+            property bool admitted: false
             property int assignedColumn: -1
             property int assignmentColumns: 0
             readonly property real estimatedHeight: view.estimateHeight
@@ -198,6 +240,7 @@ Flickable {
             }
             onWidthChanged: measuredHeight = 0
             onStableKeyChanged: {
+                admitted = false
                 measuredHeight = 0
                 assignedColumn = -1
                 view.scheduleLayout()
@@ -220,9 +263,10 @@ Flickable {
                 readonly property string mediaLayoutKind: slot.mediaLayoutKind
                 readonly property real slotY: slot.y
                 width: slot.width
-                active: view.visible && view.positioned && slot.placed
-                    && slot.y + slot.height >= view.contentY - view.cacheBuffer
-                    && slot.y <= view.contentY + view.height + view.cacheBuffer
+                // A sampled boolean is independent of the loaded item's
+                // geometry. Never bind active to slot.height or slot.y.
+                active: slot.admitted
+                asynchronous: false
                 sourceComponent: view.delegate
                 onLoaded: slot.recordHeight()
             }

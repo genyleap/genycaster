@@ -839,7 +839,10 @@ Item {
                     objectName: "castTextBody"
                     active: root.displayText.length > 0 && !root.combinedLinkCast
                     visible: active
-                    asynchronous: true
+                    // Magazine cards are admitted only near the viewport; avoid
+                    // abandoning unfinished rich/embedded QML incubation on
+                    // rapid magazine scrolling or view changes.
+                    asynchronous: !root.magazineCard
                     Layout.fillWidth: true
 
                     // Inline text owns its pointer events. A broad parent
@@ -872,7 +875,10 @@ Item {
                     objectName: "castVisualMedia"
                     active: root.mediaFirst
                     visible: active
-                    asynchronous: true
+                    // Magazine cards are admitted only near the viewport; avoid
+                    // abandoning unfinished rich/embedded QML incubation on
+                    // rapid magazine scrolling or view changes.
+                    asynchronous: !root.magazineCard
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -939,7 +945,10 @@ Item {
                 Loader {
                     active: root.mediaFirst && root.supportingEmbeds.length > 0
                     visible: active
-                    asynchronous: true
+                    // Magazine cards are admitted only near the viewport; avoid
+                    // abandoning unfinished rich/embedded QML incubation on
+                    // rapid magazine scrolling or view changes.
+                    asynchronous: !root.magazineCard
                     Layout.fillWidth: true
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
@@ -960,7 +969,10 @@ Item {
                 Loader {
                     active: !root.mediaFirst && root.supportingEmbeds.length > 0
                     visible: active
-                    asynchronous: true
+                    // Magazine cards are admitted only near the viewport; avoid
+                    // abandoning unfinished rich/embedded QML incubation on
+                    // rapid magazine scrolling or view changes.
+                    asynchronous: !root.magazineCard
                     Layout.fillWidth: true
                     sourceComponent: Component {
                         CastEmbedsPanel {

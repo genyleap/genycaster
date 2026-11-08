@@ -73,7 +73,8 @@ test('single ordinary link Cast composes author sentence inside the responsive c
     assert.match(embed, /castCaption: root.castCaption/);
     assert.match(preview, /property string castCaption: ""/);
     assert.match(preview, /Layout.fillWidth: root.compact && shouldReserve/);
-    assert.match(preview, /Layout.preferredWidth: !shouldReserve \? 0 : root.compact[\s\S]*?: Math.min\(184/);
+    // Desktop artwork is responsive, not a hardcoded 184px slot.
+    assert.match(preview, /Layout.preferredWidth: !shouldReserve \? 0 : root.compact[\s\S]*?: Math.min\(Theme\.scaleUi\(240\)/);
     assert.match(preview, /localizationController.isRightToLeftText\(root.castCaption\)/);
 });
 

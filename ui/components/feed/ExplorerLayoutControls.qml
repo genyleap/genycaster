@@ -1,32 +1,22 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Farcaster.Client
 
 Item {
     id: root
     property string layoutMode: "magazine"
-    property int cardWidth: 500
     signal layoutRequested(string mode)
-    signal cardWidthRequested(int width)
 
-    implicitHeight: choices.implicitHeight + Theme.space2 * 2
+    // Inline next to Everyone / Following, not a separate filter toolbar.
+    implicitWidth: choices.implicitWidth
+    implicitHeight: choices.implicitHeight
 
-    Flow {
+    RowLayout {
         id: choices
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: Theme.space2
-        spacing: Theme.space2
+        anchors.fill: parent
+        spacing: Theme.space1
         layoutDirection: Theme.uiDirection
-
-        DirectionAwareLabel {
-            height: Theme.compactControlHeight
-            text: qsTrId("genycaster.explorer.layout")
-            color: Theme.textSecondary
-            font.pixelSize: Theme.typeCaptionSize
-            verticalAlignment: Text.AlignVCenter
-        }
 
         ActionButton {
             objectName: "explorerMagazineChoice"
@@ -48,17 +38,5 @@ Item {
             onClicked: root.layoutRequested("timeline")
         }
 
-        GenyComboBox {
-            objectName: "explorerCardSizeChoice"
-            width: Math.min(choices.width, Math.max(160, naturalWidth))
-            implicitHeight: Theme.compactControlHeight
-            enabled: root.layoutMode !== "timeline"
-            model: [qsTrId("genycaster.explorer.small_cards"),
-                    qsTrId("genycaster.explorer.medium_cards"),
-                    qsTrId("genycaster.explorer.large_cards")]
-            currentIndex: root.cardWidth === 420 ? 0 : root.cardWidth === 640 ? 2 : 1
-            onActivated: index => root.cardWidthRequested(index === 0 ? 420 : index === 2 ? 640 : 500)
-            Accessible.name: qsTrId("genycaster.explorer.layout") + " · " + currentText
-        }
     }
 }

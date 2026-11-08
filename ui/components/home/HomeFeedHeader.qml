@@ -9,9 +9,11 @@ Item {
     property string presentationMode: "for-you"
     property string visualFilter: "all"
     property string audience: "all"
+    property string explorerLayout: "magazine"
     property bool filterAvailable: false
     signal filterRequested()
     signal audienceRequested(string audience)
+    signal layoutRequested(string mode)
     property string displayName: ""
     property string avatarUrl: ""
     // Forward the signed-in account photo to the self-story delegate.
@@ -178,6 +180,14 @@ Item {
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
                 elide: Text.ElideRight
+            }
+
+            ExplorerLayoutControls {
+                visible: !root.compact
+                Layout.preferredWidth: implicitWidth
+                Layout.preferredHeight: Theme.compactControlHeight
+                layoutMode: root.explorerLayout
+                onLayoutRequested: mode => root.layoutRequested(mode)
             }
 
             Rectangle {

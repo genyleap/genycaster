@@ -14,7 +14,6 @@ Item {
     property bool socialMode: false
     property bool explorerLayoutAvailable: false
     property string explorerLayout: "magazine"
-    property int explorerCardWidth: 500
     readonly property bool magazineEnabled: explorerLayoutAvailable && !compact
         && !socialMode && explorerLayout !== "timeline"
     readonly property var readList: magazineEnabled ? magazineView : timelineList
@@ -1513,8 +1512,10 @@ Item {
         model: root.magazineEnabled ? stableRows : null
         header: root.magazineEnabled ? feedHeaderComponent : null
         footer: root.magazineEnabled ? feedFooterComponent : null
-        targetCardWidth: Theme.scaleUi(root.explorerCardWidth)
-        maximumColumns: root.explorerCardWidth < 500 ? 3 : 2
+        // The compact editorial card width is the stable Explorer default.
+        // Columns reflow automatically as the central reading pane resizes.
+        targetCardWidth: Theme.scaleUi(420)
+        maximumColumns: 3
         onLayoutStarted: root.applyingGeometryAnchor = true
         onLayoutFinished: root.applyingGeometryAnchor = false
         estimateHeight: function(key, kind, media, width) {
@@ -1802,10 +1803,11 @@ Item {
         // Loader computes implicitHeight from its loaded item and exposes it
         // read-only. Reserve the row using the writable height instead.
         height: Math.max(1, committedHeight)
-        // Keep large cast delegates asynchronously incubated: disabling
-        // this blocks scrolling during rapid navigation. Qt may emit a
-        // harmless teardown diagnostic if a pending row is recycled.
-        asynchronous: !sectionRow
+        // Timeline delegates can incubate asynchronously while flicking.
+        // Magazine admission is already viewport-bounded; constructing its
+        // row synchronously avoids destroying half-incubated delegates when
+        // a card leaves the viewport or the user switches views.
+        asynchronous: !sectionRow && !magazineRow
         sourceComponent: rowDelegate.sectionRow ? sectionRowComponent
                        : root.socialMode ? profileRowComponent : castRowComponent
         onReservedHeightChanged: rowDelegate.synchronizeHeight()
