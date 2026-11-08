@@ -110,9 +110,10 @@ test('owner-verified GitHub profile URL survives refresh and resolves absent use
     if(url.endsWith('/account/profile'))
       return new Response(JSON.stringify({identity_id:'farcaster:42'}));
     if(url.endsWith('/account/connections'))
-      return new Response(JSON.stringify({connections:[{
-        provider:'github',preferred_username:'',profile_url:profileUrl
-      }]}));
+      return new Response(JSON.stringify({connections:[
+        {provider:'farcaster',fid:'42'},
+        {provider:'github',preferred_username:'',profile_url:profileUrl}
+      ]}));
     throw new Error('unexpected upstream '+url);
   };
   const store={
@@ -130,16 +131,16 @@ test('owner-verified GitHub profile URL survives refresh and resolves absent use
   const headers={authorization:'Bearer good'};
   try {
     assert.equal((await fetch(base+'connections/refresh',{method:'POST',headers})).status,200);
-    assert.equal(confirmed[0].preferred_username,'thecompez');
-    assert.equal(confirmed[0].provider_profile_url,'https://github.com/thecompez');
+    assert.equal(confirmed.find(row=>row.provider==='github').preferred_username,'thecompez');
+    assert.equal(confirmed.find(row=>row.provider==='github').provider_profile_url,'https://github.com/thecompez');
     assert.equal((await fetch(base+'github_contributions?username=thecompez&year=2025',
       {headers})).status,200);
 
     // An arbitrary host/profile path never establishes a provider identity.
     profileUrl='https://github.com.evil.example/thecompez';
     assert.equal((await fetch(base+'connections/refresh',{method:'POST',headers})).status,200);
-    assert.equal(confirmed[0].preferred_username,'');
-    assert.equal(confirmed[0].provider_profile_url,null);
+    assert.equal(confirmed.find(row=>row.provider==='github').preferred_username,'');
+    assert.equal(confirmed.find(row=>row.provider==='github').provider_profile_url,null);
     const rejected=await fetch(base+'github_contributions?username=thecompez&year=2025',
       {headers});
     assert.equal(rejected.status,403);
