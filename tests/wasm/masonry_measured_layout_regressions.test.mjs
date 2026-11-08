@@ -105,6 +105,16 @@ test('shared view/filter controls follow the compact rounded reference in Explor
     }
 });
 
+test('Profile Magazine estimates dimensions using its actual narrow in-card geometry', () => {
+    const profile = read('ui/components/profile/ProfileSurface.qml');
+    const fn = profile.slice(profile.indexOf('    function rowIncubationHeight('),
+                             profile.indexOf('    // The profile reuses the same native stable-ID', profile.indexOf('    function rowIncubationHeight(')));
+    assert.match(fn, /const compactCard = root\.compact \|\| root\.profileMagazineEnabled/);
+    assert.match(fn, /Math\.max\(compactCard \? 260 : 480, Number\(availableWidth \|\| 0\)\)/);
+    assert.match(fn, /const horizontalInset = compactCard \? Theme\.mobileGutter \* 2/);
+    assert.doesNotMatch(fn, /const rowWidth = Math\.max\(root\.compact \? 320 : 480/);
+});
+
 test('magazine relative timestamp and the overflow action share one horizontal axis', () => {
     const cast = read('ui/components/feed/CastItem.qml');
     const authorEnd = cast.indexOf('id: castAuthorIdentity');
