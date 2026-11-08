@@ -2,6 +2,30 @@
 <TS version="2.1" language="ja_JP" sourcelanguage="en_US">
     <context>
         <name />
+        <message id="genycaster.market.overview_title">
+            <source>Crypto market overview</source>
+            <translation>Crypto market overview</translation>
+        </message>
+        <message id="genycaster.market.spot">
+            <source>Live market</source>
+            <translation>Live market</translation>
+        </message>
+        <message id="genycaster.market.bitcoin_season">
+            <source>Bitcoin season</source>
+            <translation>Bitcoin season</translation>
+        </message>
+        <message id="genycaster.market.altcoin_season">
+            <source>Altcoin season</source>
+            <translation>Altcoin season</translation>
+        </message>
+        <message id="genycaster.market.ten_day_trend">
+            <source>Last 10 days</source>
+            <translation>Last 10 days</translation>
+        </message>
+        <message id="genycaster.market.history_unavailable">
+            <source>Historical chart unavailable</source>
+            <translation>Historical chart unavailable</translation>
+        </message>
         <message id="genycaster.market.social">
             <source>Social</source>
             <translation>Social</translation>

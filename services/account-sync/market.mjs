@@ -7,11 +7,15 @@
 const SOURCE='https://pro-api.coinmarketcap.com';
 const PUBLIC_SOURCE=SOURCE+'/public-api';
 const ALTERNATIVE='https://api.alternative.me/fng/?limit=1';
+const CORE_METRICS=Object.freeze(['global','sentiment','season','cmc100']);
 const DEFINITIONS=Object.freeze({
   global:{path:'/v1/global-metrics/quotes/latest?convert=USD',ttl:600_000},
   sentiment:{path:'/v3/fear-and-greed/latest',ttl:3_600_000},
   season:{path:'/v1/altcoin-season-index/latest',ttl:3_600_000},
-  cmc100:{path:'/v3/index/cmc100-latest',ttl:1_800_000}
+  cmc100:{path:'/v3/index/cmc100-latest',ttl:1_800_000},
+  // Optional presentation data: bounded, real CMC observations only.
+  prices:{path:'/v3/cryptocurrency/quotes/latest?id=1,1027,5426&convert=USD',ttl:600_000},
+  cmc100Trend:{path:'/v3/index/cmc100-historical?count=10&interval=daily',ttl:1_800_000}
 });
 function finite(v,upper=Number.MAX_SAFE_INTEGER){
   const n=Number(v);
@@ -70,6 +74,35 @@ function parse(name,root){
     return {value,change_24h_percent:change,
       timestamp:String(d.last_update||'')};
   }
+  if(name==='prices'){
+    if(!Array.isArray(d))throw Error('invalid_prices');
+    const ids=new Map([[1,'BTC'],[1027,'ETH'],[5426,'SOL']]);
+    const byId=new Map();
+    for(const coin of d){
+      const symbol=ids.get(Number(coin?.id));
+      if(!symbol || coin?.is_active===0)continue;
+      const quote=Array.isArray(coin.quote)?coin.quote.find(q=>q.symbol==='USD'):null;
+      const price=finite(quote?.price);
+      const change=Number(quote?.percent_change_24h);
+      if(price===null||!Number.isFinite(change)||Math.abs(change)>1000)continue;
+      byId.set(Number(coin.id),{symbol,price_usd:price,change_24h_percent:change});
+    }
+    const assets=[...ids.keys()].map(id=>byId.get(id)).filter(Boolean);
+    if(assets.length<2)throw Error('incomplete_prices');
+    return {assets};
+  }
+  if(name==='cmc100Trend'){
+    if(!Array.isArray(d))throw Error('invalid_history');
+    const points=d.slice(-10).map(point=>({
+      value:finite(point?.value),
+      timestamp:String(point?.update_time||'')
+    })).filter(point=>point.value!==null && Number.isFinite(Date.parse(point.timestamp)))
+      .sort((a,b)=>Date.parse(a.timestamp)-Date.parse(b.timestamp));
+    if(points.length<2)throw Error('insufficient_history');
+    return {values:points.map(point=>point.value),
+      from:points[0].timestamp,to:points[points.length-1].timestamp,
+      days:points.length};
+  }
   throw Error('unsupported_metric');
 }
 function alternativeSentiment(root){
@@ -120,7 +153,8 @@ export function createMarketReader({
             : {Accept:'application/json'};
           const response=await fetchImpl(endpoint,{
             headers,redirect:'error',signal:AbortSignal.timeout(8000)});
-          value=parse(name,await jsonLimited(response));
+          value=parse(name,await jsonLimited(response,
+            name==='cmc100Trend' ? 512*1024 : name==='prices' ? 192*1024 : 96*1024));
           origin='CoinMarketCap';
         }
         const data={value,source:origin,fetchedAt:new Date(at).toISOString(),
@@ -152,8 +186,9 @@ export function createMarketReader({
       if(result)metrics[name]={...result.value,source:result.source,
         fetched_at:result.fetchedAt,stale:result.stale};
     return {
-      metrics,partial:Object.keys(metrics).length!==Object.keys(DEFINITIONS).length
-        ||Object.values(metrics).some(v=>v.stale),
+      // Missing optional price quotes / trend never makes the core dashboard
+      // misleadingly partial. They render independent unavailable states.
+      metrics,partial:CORE_METRICS.some(name=>!metrics[name] || metrics[name].stale),
       plan_configured:hasKey,
       access_mode:mode,
       updated_at:new Date(now()).toISOString()

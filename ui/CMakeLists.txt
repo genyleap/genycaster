@@ -103,6 +103,9 @@ set(farcasterQmlFiles
     components/home/StatsPanel.qml
     components/home/MarketPanel.qml
     components/home/MarketKpi.qml
+    components/home/MarketFearGauge.qml
+    components/home/MarketSeasonMeter.qml
+    components/home/MarketTrend.qml
     components/home/StatsKpi.qml
     components/home/StatsSkeleton.qml
     components/home/StatsChart.qml
