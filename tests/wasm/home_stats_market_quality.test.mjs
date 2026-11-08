@@ -257,3 +257,42 @@ test("analytics uses categorical theme tokens instead of three blue accent shade
     assert.match(rings, /root\.leadingSeries\.share \* 100/);
     assert.doesNotMatch(rings, /LocaleFormat\.formatInteger\(root\.sum\)\s*\n\s*color: Theme\.textPrimary/);
 });
+
+
+test("ring centre labels never set the same QML binding twice", () => {
+    const source = read("ui/components/home/StatsDistributionRings.qml");
+    const start = source.indexOf("ColumnLayout {\n                anchors.centerIn: parent");
+    assert.ok(start >= 0, "centre label group must exist");
+    const end = source.indexOf("\n        ColumnLayout {", start + 1);
+    assert.ok(end > start, "centre label group must remain bounded");
+    const centre = source.slice(start, end);
+
+    // Each centre label is a leaf QML object. Read only its own immediate
+    // bindings; siblings may legitimately use the same property names.
+    const labels = [...centre.matchAll(/DirectionAwareLabel\s*\{([\s\S]*?)\n {16}\}/g)];
+    assert.equal(labels.length, 2, "expected percentage and label");
+    function duplicateBindings(body) {
+        const seen = new Set();
+        const duplicates = [];
+        for (const line of body.split("\n")) {
+            const binding = /^ {20}([A-Za-z_][\w.]*)\s*:/.exec(line);
+            if (!binding) continue;
+            if (seen.has(binding[1])) duplicates.push(binding[1]);
+            seen.add(binding[1]);
+        }
+        return duplicates;
+    }
+    for (const [, body] of labels) {
+        assert.deepEqual(duplicateBindings(body), [], "a QML property can only be bound once");
+        assert.equal(
+            (body.match(/^ {20}horizontalAlignment\s*:/gm) || []).length, 1,
+            "centre alignment must have exactly one owner"
+        );
+    }
+    // Prove this guard catches the precise macOS qmlcachegen regression.
+    const broken = labels[0][1].replace(
+        /horizontalAlignment: Text.AlignHCenter/,
+        "horizontalAlignment: Text.AlignHCenter\n                    horizontalAlignment: Text.AlignHCenter"
+    );
+    assert.deepEqual(duplicateBindings(broken), ["horizontalAlignment"]);
+});

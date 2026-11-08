@@ -173,7 +173,6 @@ Item {
                     color: Theme.textPrimary
                     font.pixelSize: Theme.typeTitle2Size
                     font.weight: Theme.weightBold
-                    horizontalAlignment: Text.AlignHCenter
                 }
                 DirectionAwareLabel {
                     Layout.alignment: Qt.AlignHCenter
@@ -183,7 +182,6 @@ Item {
                     text: root.sum > 0 ? root.leadingSeries.label : qsTrId("genycaster.stats.engagement")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.typeCaptionSize
-                    horizontalAlignment: Text.AlignHCenter
                 }
             }
         }
