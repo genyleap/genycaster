@@ -42,6 +42,18 @@ int main()
     condition.notify_all();
 
 #if defined(__cpp_exceptions)
+    // An executor with one worker must survive a throwing callback, drain
+    // that job and execute the next callback on that same worker.
+    {
+        farcaster::execution::thread_pool::ThreadPoolExecutor guarded{1U, 4U};
+        std::promise<void> completed{};
+        auto observed = completed.get_future();
+        assert(guarded.post([] {
+            throw std::runtime_error{"test pooled callback failure"};
+        }));
+        assert(guarded.post([&completed] { completed.set_value(); }));
+        assert(observed.wait_for(2s) == std::future_status::ready);
+    }
     // A throwing user callback must not terminate the executor thread or
     // poison drain bookkeeping. The next admitted job still completes.
     {

@@ -53,7 +53,17 @@ struct ThreadPoolExecutor::Impl final {
                 ++activeJobs;
             }
 
+#if defined(__cpp_exceptions)
+            try {
+                job();
+            } catch (...) {
+                // User-supplied jobs must not terminate the entire process.
+                // As in the serial/weighted executors, restore drain
+                // bookkeeping and continue with subsequent admitted work.
+            }
+#else
             job();
+#endif
 
             {
                 std::scoped_lock lock{mutex};

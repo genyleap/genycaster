@@ -27,6 +27,7 @@ The project is organized around a small collection of maintained product and eng
 
 ## Technical runtime guides
 
+- [C++ undefined-behavior and lifetime safety audit](15-cpp-undefined-behavior-audit.md) — maintained evidence register, sanitizer coverage and unresolved risks
 - [Media upload lifecycle](44-media-upload-gateway.md)
 - [Direct protocol reads](44-raw-protocol-read-adapter.md)
 - [Browser/WebAssembly composition](webassembly.md), [startup/persistence](wasm-startup-persistence.md) and [static delivery](wasm-static-delivery.md)
