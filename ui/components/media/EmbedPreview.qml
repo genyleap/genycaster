@@ -20,6 +20,7 @@ Item {
     // incubator when the parent card is recycled or the view switches.
     property bool magazineCard: false
     property var sharedMediaGeometry: null
+    readonly property bool mobileViewport: root.compact && !root.magazineCard
     property bool flatLinkCard: false
     property bool suppressArtwork: false
     readonly property string rawKind: String(root.embed.kind || "").toLowerCase()
@@ -407,9 +408,10 @@ Item {
                 height: Number(root.embed.height || 0)
             }]
             compact: root.compact
+            mobilePresentation: root.mobileViewport
             asynchronousTiles: !root.magazineCard
             sharedMediaGeometry: root.sharedMediaGeometry
-            dynamicAspectDiscovery: root.magazineCard
+            dynamicAspectDiscovery: root.magazineCard || root.mobileViewport
             onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
         }
     }

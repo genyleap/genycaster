@@ -242,6 +242,30 @@ the benchmark methodology in `docs/PERFORMANCE.md`.
 
 Feed/chat should avoid viewport instability caused by late media/reaction layout changes.
 
+### Mobile single-image geometry
+
+On compact phone Timeline, Profile and conversation surfaces, single photos
+(including image links promoted to media) are laid out at the entire available
+card width with height `ceil(width / actual_image_aspect)`. Portrait screenshots
+must **not** inherit the desktop editorial 0.45 aspect clamp, the 720–900px
+photo-height ceiling, or the temporary link-to-image reservation.
+
+`CastEmbedsPanel` and `EmbedPreview` propagate the app's reactive compact
+presentation to `GalleryLayout`; the desktop Magazine's intentionally compact
+card styling alone must not trigger the phone mode. Provider metadata wins over
+a stale placeholder reservation, and decoded aspect is retained unmodified in
+the shared bounded feed cache. The heavy image still uses Qt Quick
+`PreserveAspectFit` and lazy tile admission. When source dimensions are only
+known after decoding, a debounced aspect commit waits until kinetic scrolling
+settles; the existing native/Timeline height tracking then updates card
+geometry without intentionally clipping or overlaying neighboring casts.
+
+Regression coverage includes `tests/ui/mobile_gallery_runtime_tests.cpp`
+(real Qt 6.12 QML layout and delayed aspect resolution), and
+`tests/wasm/explorer_profile_media_stability.test.mjs` plus
+`tests/wasm/scroll_stability_regressions.test.mjs`. Full mobile-browser
+scroll-performance qualification remains separate from geometry tests.
+
 Long-term layout engine should support:
 
 - cached text layout keyed by entity ID + width + font scale + theme-relevant parameters;

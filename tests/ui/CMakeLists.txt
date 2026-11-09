@@ -440,6 +440,21 @@ set_tests_properties(ui.masonry_window_runtime PROPERTIES
     TIMEOUT 20 LABELS "ui;qt;scroll;magazine"
     ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
 
+# Responsive single-image layouts use the *window* breakpoint, decode exact
+# portrait ratios after the flick and never cap an image to a shallow card.
+qt_add_executable(farcaster_mobile_gallery_runtime_tests
+    mobile_gallery_runtime_tests.cpp)
+target_compile_features(farcaster_mobile_gallery_runtime_tests PRIVATE cxx_std_26)
+target_compile_definitions(farcaster_mobile_gallery_runtime_tests PRIVATE
+    GENYCASTER_MEDIA_QML_DIR="${genycasterUiSourceDir}/components/media")
+target_link_libraries(farcaster_mobile_gallery_runtime_tests PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Test)
+farcaster_enable_warnings(farcaster_mobile_gallery_runtime_tests)
+add_test(NAME ui.mobile_portrait_gallery COMMAND farcaster_mobile_gallery_runtime_tests)
+set_tests_properties(ui.mobile_portrait_gallery PROPERTIES
+    TIMEOUT 20 LABELS "ui;qt;mobile;media;scroll"
+    ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
+
 add_executable(farcaster_media_scroll_tests
     media_scroll_tests.cpp
     "${genycasterUiSourceDir}/app/social/feed_rows.cpp"

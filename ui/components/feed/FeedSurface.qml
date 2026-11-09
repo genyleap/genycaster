@@ -1741,7 +1741,9 @@ Item {
         required property string revisionKey
         required property int index
         property bool magazineRow: false
-        property var sharedMediaGeometry: null
+        // Reuse the bounded per-feed aspect cache when ListView recycles a
+        // mobile portrait. The Magazine viewport need not be visible.
+        property var sharedMediaGeometry: magazineView
         readonly property var payload: {
             const revision = rowDelegate.revisionKey
             return root.payloadForStableKey(rowDelegate.stableKey)

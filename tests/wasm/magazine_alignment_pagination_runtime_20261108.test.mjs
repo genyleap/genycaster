@@ -86,7 +86,9 @@ test("5- or 10-post pages hydrate underfilled magazine columns without unbounded
     assert.equal(vm.runInContext("isNearEnd()", context), false,
         "timeline retains its original end-of-scroll behavior");
 
-    assert.match(wall, /shortestColumnBottom = slots\.count >= columns/);
+    const native = read("ui/app/social/feed_rows.cpp");
+    assert.match(native, /m_shortestBottom = m_geometry\.size\(\) >= m_columns/);
+    assert.match(wall, /readonly property real shortestColumnBottom: layoutModel\.shortestColumnBottom/);
     assert.match(feed, /if \(!magazineView\.moving && !scrollWorkThrottle\.running\)/);
     assert.match(feed, /readonly property int automaticPrefetchLimit: 16/);
     assert.match(feed, /readonly property int automaticNoProgressLimit: 2/);
@@ -101,6 +103,8 @@ test("Page size 5/10 is explicitly supported while 20 stays default, without for
     assert.match(settings, /value: presentationBridge\.feedPageSize\s*fromValue: 1\s*toValue: 100/);
     assert.match(runtime, /static_cast<std::size_t>\(bridge\.feedPageSize\(\)\)/);
     assert.match(wall, /active: slot\.admitted/);
-    assert.match(wall, /const enteringTop = contentY - cacheBuffer/);
-    assert.match(wall, /const retainedBottom = contentY \+ height \+ retentionBuffer/);
+    const native = read("ui/app/social/feed_rows.cpp");
+    assert.match(wall, /layoutModel\.setViewport\(contentY, height, cacheBuffer, retentionBuffer/);
+    assert.match(native, /const qreal enterTop = m_viewportTop - m_enterBuffer/);
+    assert.match(native, /const qreal maximum = m_viewportTop \+ m_viewportHeight \+ m_buffer/);
 });

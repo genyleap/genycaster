@@ -2786,6 +2786,7 @@ Item {
                         implicitWidth: profileCastDelegate.width
                         modelData: profileCastDelegate.modelData
                         compact: root.compact
+                        sharedMediaGeometry: profileMagazineView
                         interactionsAvailable: root.interactionsAvailable
                         accountFid: root.accountFid
                         onOpenRequested: castId => root.castRequested(castId)

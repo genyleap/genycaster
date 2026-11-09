@@ -13,6 +13,7 @@ ColumnLayout {
     property bool magazineCard: false
     property var sharedMediaGeometry: null
     property var scrollHost: null
+    readonly property bool mobileViewport: root.compact && !root.magazineCard
     readonly property bool scrollMoving: root.scrollHost !== null
                                          && Boolean(root.scrollHost.moving)
 
@@ -257,13 +258,16 @@ ColumnLayout {
         Layout.fillWidth: true
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
+        mobilePresentation: root.mobileViewport
         asynchronousTiles: !root.magazineCard
         sharedMediaGeometry: root.sharedMediaGeometry
-        // A decoded image must not resize a scrolling timeline, even between
-        // gestures: replies and previously visited feed rows share this panel.
-        // The full image still fits inside the metadata/fallback reservation.
+        // Desktop Timeline keeps its fixed media reservation. On phones a
+        // portrait screenshot must instead adopt the decoded natural ratio,
+        // after kinetic scrolling settles, so the full-width image is not
+        // shrunk inside a shallow rectangle.
         dynamicAspectDiscovery: root.magazineCard
-                                || (root.scrollHost === null && root.visualCount === 1)
+                                || (root.visualCount === 1
+                                    && (root.mobileViewport || root.scrollHost === null))
         onOpenRequested: (mediaItems, index) => root.mediaRequested(mediaItems, index)
     }
 

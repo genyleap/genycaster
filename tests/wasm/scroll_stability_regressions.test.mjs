@@ -217,15 +217,20 @@ test('cancelled confirmed-reply focus is not rearmed by hydration or media geome
     assert.doesNotMatch(detail, /onContentHeightChanged:.*focusConfirmedReply/);
 });
 
-test('scrolling image panels reserve geometry instead of adopting late decode dimensions', () => {
+test('desktop Timeline freezes image geometry while mobile single portraits settle to their actual ratio', () => {
     const panel = read('CastEmbedsPanel');
-    const expression = panel.match(/dynamicAspectDiscovery:\s*([^\n]+\n\s*\|\|[^\n]+)/)[1];
+    const start = panel.indexOf('        dynamicAspectDiscovery:');
+    const end = panel.indexOf('        onOpenRequested:', start);
+    assert.ok(start >= 0 && end > start);
+    const expression = panel.slice(start, end).split(':').slice(1).join(':').trim();
     const enabled = root => runInNewContext(expression, { root });
-    assert.equal(enabled({ magazineCard: false, scrollHost: { moving: false }, visualCount: 1 }), false);
-    assert.equal(enabled({ magazineCard: false, scrollHost: { moving: true }, visualCount: 1 }), false);
-    assert.equal(enabled({ magazineCard: false, scrollHost: null, visualCount: 1 }), true);
-    assert.equal(enabled({ magazineCard: true, scrollHost: { moving: true }, visualCount: 1 }), true,
-        'Magazine caches aspect through scrolling; Timeline keeps frozen reservation');
+    assert.equal(enabled({magazineCard: false, mobileViewport: false, scrollHost: {}, visualCount: 1}), false);
+    assert.equal(enabled({magazineCard: false, mobileViewport: false, scrollHost: null, visualCount: 1}), true);
+    assert.equal(enabled({magazineCard: true, mobileViewport: false, scrollHost: {}, visualCount: 2}), true);
+    assert.equal(enabled({magazineCard: false, mobileViewport: true, scrollHost: {moving: true}, visualCount: 1}), true,
+        'mobile portrait decodes exact aspect but is applied after the flick');
+    assert.equal(enabled({magazineCard: false, mobileViewport: true, scrollHost: {}, visualCount: 2}), false,
+        'multi-image mobile grids retain their stable mosaic layout');
     const contentHeightHandler = feed.slice(feed.indexOf('        function onContentHeightChanged()'), feed.indexOf('        function onContentYChanged()'));
     assert.doesNotMatch(contentHeightHandler, /geometryRestoreTimer/, 'estimated extent cannot trigger correction');
 });

@@ -65,7 +65,7 @@ test('an actual portrait aspect makes single-photo Magazine cards fill the card 
   const wide = vm.runInContext('buildLayout(320)', ctx);
   assert.equal(wide[0].height, 160);
   assert.match(gallery, /root\.sharedMediaGeometry\.aspectForKey\(key\)/);
-  assert.match(gallery, /root\.sharedMediaGeometry\.rememberAspect\(key, root\.clampAspect\(value\)\)/);
+  assert.match(gallery, /root\.sharedMediaGeometry\.rememberAspect\(key, value\)/);
   const declared = method(gallery, 'declaredAspect', 'initialAspect');
   const memory = vm.createContext({root: {
     embedAt: () => ({url: 'photo'}),
@@ -73,13 +73,52 @@ test('an actual portrait aspect makes single-photo Magazine cards fill the card 
     discoveredAspects: {}, reservedAspects: {photo: 4 / 3},
     sharedMediaGeometry: {aspectForKey: () => 0.5},
     dynamicAspectDiscovery: true,
-    clampAspect: v => v, initialAspect: () => 4 / 3
+    displayAspect: v => v, initialAspect: () => 4 / 3, rawAspect: () => 0
   }});
   vm.runInContext(declared, memory);
   assert.equal(vm.runInContext('declaredAspect(0)', memory), 0.5,
     'cached decoded ratio must override a prior 4:3 placeholder');
   assert.match(gallery, /if \(scroller && scroller\.moving\)/);
   assert.match(gallery, /ambientEnabled: root\.visibleCount === 1 && !root\.dynamicAspectDiscovery/);
+});
+
+test('phone portrait screenshots expand edge-to-edge to their full natural height without a crop ceiling', () => {
+  const calculate = method(gallery, 'buildLayout', 'layoutHeight');
+  const normalize = method(gallery, 'displayAspect', 'declaredAspect');
+  const initial = gallery.slice(gallery.indexOf('    function initialAspect('),
+                                gallery.indexOf('    onEmbedsChanged:', gallery.indexOf('    function initialAspect(')));
+  const raw = method(gallery, 'rawAspect', 'declaredAspect');
+  const base = {
+    visibleCount: 1, compact: true, dynamicAspectDiscovery: true,
+    mobileFullBleed: true, singleImageHeight: 180, gap: 8,
+    declaredAspect: () => 0.17,
+    boundedHeight: (h, lo, hi) => Math.max(lo, Math.min(hi, h)),
+    clampAspect: v => Math.max(0.45, Math.min(2.8, v))
+  };
+  const c = vm.createContext({root: base});
+  vm.runInContext(normalize + '\n' + raw + '\n' + initial + '\n' + calculate, c);
+  c.root.displayAspect = vm.runInContext('displayAspect', c);
+  c.root.rawAspect = vm.runInContext('rawAspect', c);
+  assert.equal(vm.runInContext('displayAspect(0.17)', c), 0.17);
+  assert.equal(vm.runInContext('initialAspect({width:170,height:1000})', c), 0.17);
+  const tall = vm.runInContext('buildLayout(360)', c);
+  assert.equal(tall.length, 1);
+  assert.equal(tall[0].width, 360);
+  assert.equal(tall[0].x, 0);
+  assert.equal(tall[0].height, Math.ceil(360 / 0.17),
+      'photo is full width and height is not capped at 720/860/900px');
+  c.root.mobileFullBleed = false;
+  assert.equal(vm.runInContext('displayAspect(0.17)', c), 0.45,
+      'desktop editorial mosaic keeps the bounded aspect policy');
+  const desktop = vm.runInContext('buildLayout(360)', c);
+  assert.equal(desktop[0].height, 180,
+      'desktop link-to-media promotion still retains its original slot');
+  assert.match(gallery, /root\.mobilePresentation/);
+  assert.match(read('ui/components/media/CastEmbedsPanel.qml'), /mobilePresentation: root\.mobileViewport/);
+  assert.match(read('ui/components/media/EmbedPreview.qml'), /mobilePresentation: root\.mobileViewport/);
+  assert.match(gallery, /if \(scroller && scroller\.moving\)/);
+  const preview = read('ui/components/media/GalleryTile.qml');
+  assert.match(preview, /fillMode: root\.preserveAspect \? Image\.PreserveAspectFit : Image\.PreserveAspectCrop/);
 });
 
 test('image ratio knowledge reaches Explorer and Profile through the same magazine media renderer', () => {
@@ -94,6 +133,8 @@ test('image ratio knowledge reaches Explorer and Profile through the same magazi
   assert.match(cast, /sharedMediaGeometry: root\.sharedMediaGeometry/);
   assert.match(profile, /sharedMediaGeometry: profileMagazineView/);
   assert.match(panel, /dynamicAspectDiscovery: root\.magazineCard/);
+  assert.match(panel, /root\.mobileViewport \|\| root\.scrollHost === null/);
+  assert.match(embed, /dynamicAspectDiscovery: root\.magazineCard \|\| root\.mobileViewport/);
   assert.match(panel, /sharedMediaGeometry: root\.sharedMediaGeometry/);
   assert.match(embed, /sharedMediaGeometry: root\.sharedMediaGeometry/);
   assert.match(rich, /sharedMediaGeometry: root\.sharedMediaGeometry/);

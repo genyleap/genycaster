@@ -27,6 +27,13 @@ Item {
                                          && Boolean(root.scrollHost.moving)
     readonly property int itemCount: root.embeds ? root.embeds.length : 0
     readonly property int visibleCount: Math.min(root.itemCount, 6)
+    // Use the enclosing feed's reactive mobile classification, not the
+    // narrow width of an ordinary desktop Magazine column. The parent
+    // supplies AppShell's compact state; attached Window.width is not
+    // reliably invalidated when the outer window resizes.
+    property bool mobilePresentation: false
+    readonly property bool mobileFullBleed: root.visibleCount === 1
+                                            && root.mobilePresentation
     readonly property real gap: Theme.space2
     readonly property var layoutPlan: root.buildLayout(Math.max(1, root.width))
     readonly property real planHeight: root.layoutHeight(root.layoutPlan)
@@ -73,31 +80,46 @@ Item {
         return Math.max(0.45, Math.min(2.8, ratio > 0 ? ratio : 4 / 3))
     }
 
+    function displayAspect(value) {
+        const ratio = Number(value || 0)
+        if (!isFinite(ratio) || ratio <= 0)
+            return 4 / 3
+        // The desktop mosaic can constrain extreme dimensions, but a portrait
+        // screenshot on a phone cannot be aspect-clamped without letterboxing.
+        return root.mobileFullBleed ? ratio : root.clampAspect(ratio)
+    }
+
+    function rawAspect(item) {
+        const ratio = Number(item.aspectRatio || 0)
+        if (ratio > 0 && isFinite(ratio))
+            return ratio
+        const sourceWidth = Number(item.width || 0)
+        const sourceHeight = Number(item.height || 0)
+        return sourceWidth > 0 && sourceHeight > 0
+               && isFinite(sourceWidth) && isFinite(sourceHeight)
+               ? sourceWidth / sourceHeight : 0
+    }
+
     function declaredAspect(index) {
         const item = root.embedAt(index)
-        // Only detail surfaces that explicitly opt in may use decoded ratios.
-        // Feed layouts retain their initial metadata/fallback reservation.
-        const discovered = Number(root.discoveredAspects[root.mediaKey(index)] || 0)
-        if (root.dynamicAspectDiscovery && discovered > 0)
-            return root.clampAspect(discovered)
-        // A confirmed decoded aspect from a prior visit wins over the
-        // first incarnation's fallback reservation (normally 4:3).
-        // Otherwise a recycled card briefly letterboxes again.
-        return Number((root.sharedMediaGeometry
-                          ? root.sharedMediaGeometry.aspectForKey(root.mediaKey(index)) : 0)
-                      || root.reservedAspects[root.mediaKey(index)]
-                      || root.initialAspect(item))
+        const key = root.mediaKey(index)
+        // Metadata may be reserved BEFORE this item enters a mobile window.
+        // That earlier desktop reservation can have an aspect clamped to 0.45.
+        // Prefer the real source dimensions when switching to full-height mode.
+        const decoded = Number(root.discoveredAspects[key] || 0)
+        if (root.dynamicAspectDiscovery && decoded > 0)
+            return root.displayAspect(decoded)
+        const cached = Number(root.sharedMediaGeometry
+                              ? root.sharedMediaGeometry.aspectForKey(key) : 0)
+        const nativeAspect = root.rawAspect(item)
+        return root.displayAspect(cached
+                                  || (root.mobileFullBleed ? nativeAspect : 0)
+                                  || root.reservedAspects[key]
+                                  || nativeAspect || 4 / 3)
     }
 
     function initialAspect(item) {
-        const ratio = Number(item.aspectRatio || 0)
-        if (ratio > 0)
-            return root.clampAspect(ratio)
-        const widthValue = Number(item.width || 0)
-        const heightValue = Number(item.height || 0)
-        if (widthValue > 0 && heightValue > 0)
-            return root.clampAspect(widthValue / heightValue)
-        return root.clampAspect(0)
+        return root.displayAspect(root.rawAspect(item))
     }
 
     onEmbedsChanged: {
@@ -134,9 +156,11 @@ Item {
         if (previous > 0 && Math.abs(previous - value) < 0.015)
             return
         const nextPending = Object.assign({}, root.pendingAspects)
-        nextPending[key] = root.clampAspect(value)
+        // Store the *raw* decoded ratio. A desktop-to-mobile transition
+        // must not resurrect the editorial clamp from an earlier viewport.
+        nextPending[key] = value
         if (root.sharedMediaGeometry)
-            root.sharedMediaGeometry.rememberAspect(key, root.clampAspect(value))
+            root.sharedMediaGeometry.rememberAspect(key, value)
         root.pendingAspects = nextPending
         aspectCommit.restart()
     }
@@ -190,7 +214,12 @@ Item {
                 ? Math.max(900, contentWidth * 2.35)
                 : root.compact ? Math.max(720, contentWidth * 1.6) : 860
             const minimumHeight = root.dynamicAspectDiscovery ? 64 : root.compact ? 120 : 140
-            const heightValue = root.singleImageHeight > 0 ? root.singleImageHeight
+            // On phones the original image must fill the available card width
+            // without a fixed-height letterbox or a portrait-height ceiling.
+            // Width and intrinsic ratio determine the exact natural height.
+            const heightValue = root.mobileFullBleed
+                              ? Math.max(1, Math.ceil(contentWidth / aspect))
+                              : root.singleImageHeight > 0 ? root.singleImageHeight
                               : root.boundedHeight(contentWidth / aspect, minimumHeight, maximumHeight)
             plan.push({ x: Math.round(contentOffset), y: 0,
                         width: Math.round(contentWidth), height: Math.round(heightValue) })
