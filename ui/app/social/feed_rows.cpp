@@ -152,6 +152,9 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
     QList<Row> incoming{};
     incoming.reserve(rows.size());
     QHash<QString, bool> seen{};
+    // Reconciliation always knows its upper bound. Reserving once avoids
+    // repeated hash-table reallocation as long feeds are hydrated.
+    seen.reserve(rows.size());
     for (const QVariant& value : rows) {
         Row row = fromMap(value.toMap());
         if (row.stableKey.isEmpty() || seen.contains(row.stableKey)) continue;
@@ -160,6 +163,38 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
     }
     if (incoming.isEmpty()) {
         clear();
+        return;
+    }
+
+    // When hydration or reaction updates preserve stable row order, avoid
+    // constructing the old-key hash and running the general
+    // insert/move search when only a few primitive roles changed. Notifications
+    // remain strictly per-role so a like cannot rebuild sibling media.
+    const auto updateRoles = [this](const int index, const Row& desired) {
+        Row& current = m_rows[index];
+        QList<int> changedRoles{};
+        if (current.revisionKey != desired.revisionKey) {
+            current.revisionKey = desired.revisionKey;
+            changedRoles.append(RevisionKeyRole);
+        }
+        if (current.presentationKind != desired.presentationKind) {
+            current.presentationKind = desired.presentationKind;
+            changedRoles.append(PresentationKindRole);
+        }
+        if (current.mediaLayoutKind != desired.mediaLayoutKind) {
+            current.mediaLayoutKind = desired.mediaLayoutKind;
+            changedRoles.append(MediaLayoutKindRole);
+        }
+        if (!changedRoles.isEmpty())
+            emit dataChanged(createIndex(index, 0), createIndex(index, 0), changedRoles);
+    };
+    if (incoming.size() == m_rows.size()
+        && std::equal(incoming.cbegin(), incoming.cend(), m_rows.cbegin(),
+                      [](const Row& next, const Row& current) {
+                          return next.stableKey == current.stableKey;
+                      })) {
+        for (int index = 0; index < incoming.size(); ++index)
+            updateRoles(index, incoming.at(index));
         return;
     }
 
@@ -209,22 +244,7 @@ void FeedRowsModel::reconcile(const QVariantList& rows)
                 continue;
             }
         }
-        Row& current = m_rows[i];
-        QList<int> changedRoles{};
-        if (current.revisionKey != desired.revisionKey) {
-            current.revisionKey = desired.revisionKey;
-            changedRoles.append(RevisionKeyRole);
-        }
-        if (current.presentationKind != desired.presentationKind) {
-            current.presentationKind = desired.presentationKind;
-            changedRoles.append(PresentationKindRole);
-        }
-        if (current.mediaLayoutKind != desired.mediaLayoutKind) {
-            current.mediaLayoutKind = desired.mediaLayoutKind;
-            changedRoles.append(MediaLayoutKindRole);
-        }
-        if (!changedRoles.isEmpty())
-            emit dataChanged(createIndex(i, 0), createIndex(i, 0), changedRoles);
+        updateRoles(i, desired);
     }
     if (m_rows.size() > incoming.size()) {
         beginRemoveRows({}, incoming.size(), m_rows.size() - 1);

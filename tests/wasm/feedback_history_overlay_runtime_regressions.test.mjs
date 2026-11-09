@@ -59,5 +59,8 @@ test('mobile blur uses an explicit texture-backed mask, not the desktop sidebar'
 test('embed previews only instantiate once a scrolling card is admitted', () => {
   const embeds = source('ui/components/media/CastEmbedsPanel.qml');
   assert.match(embeds, /active: tile\.admitted\s+\/\//);
-  assert.match(embeds, /asynchronous: false/);
+  assert.match(embeds, /active: tile\.admitted/);
+  assert.match(embeds, /asynchronous: true/);
+  assert.match(embeds, /interval: 24 \+ tile\.index \* 28/);
+  assert.match(embeds, /visible: status === Loader\.Ready/);
 });

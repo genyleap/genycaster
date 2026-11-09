@@ -25,7 +25,7 @@ test("windowed Explorer fills the reading pane with two columns instead of a cen
     // in the test. This catches regressions in cutoff and unused outside space.
     const minimum = qml.match(/readonly property real minimumCardWidth: ([^\n]+)/)?.[1];
     const usableFormula = qml.match(/readonly property real usableWidth: ([^\n]+)/)?.[1];
-    const columnFormula = qml.match(/readonly property int columns: ([\s\S]*?)\n    \/\/ Allocate/)?.[1];
+    const columnFormula = qml.match(/readonly property int columns: ([\s\S]*?)\n    readonly property real cardWidth:/)?.[1];
     const widthFormula = qml.match(/readonly property real cardWidth: ([\s\S]*?)\n    readonly property real leadingInset:/)?.[1];
     const insetFormula = qml.match(/readonly property real leadingInset: ([^\n]+)/)?.[1];
     assert.ok(minimum && usableFormula && columnFormula && widthFormula && insetFormula);
@@ -88,7 +88,7 @@ test("Magazine / Timeline view actions sit next to Everyone / Following, without
 
 test("Masonry viewport admission has no Loader.active geometry binding or loop", () => {
     const source = read("ui/components/feed/FeedMasonryView.qml");
-    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n\n    function forceLayout\(\)/);
+    const match = source.match(/    function updateAdmissions\(\) \{([\s\S]*?)\n    \}\n    function forceLayout\(\)/);
     assert.ok(match, "Viewport admission logic must be present");
     assert.match(source, /active: slot\.admitted/);
     assert.doesNotMatch(source, /active: view\.visible && view\.positioned && slot\.placed/);
@@ -97,31 +97,34 @@ test("Masonry viewport admission has no Loader.active geometry binding or loop",
     assert.match(source, /function scheduleAdmission\(\)/);
     assert.match(source, /onTriggered: view\.updateAdmissions\(\)/);
     assert.match(source, /readonly property real retentionBuffer: cacheBuffer \+/);
-    const elements = [
-        {y: 0, height: 140, admitted: false, placed: true},
-        {y: 320, height: 140, admitted: false, placed: true},
-        {y: 800, height: 140, admitted: false, placed: true}
-    ];
-    const vars = {
-        visible: true, positioned: true, height: 400, contentY: 0,
-        cacheBuffer: 100, retentionBuffer: 240,
-        slots: {count: elements.length, itemAt: i => elements[i]}
-    };
-    const context = vm.createContext(vars);
+    // Viewport admission is now a native QAbstractItemModel responsibility.
+    // Execute the production QML handoff and verify inactive readers release
+    // the window; native Qt runtime tests cover which slots are retained.
+    const calls = [];
+    const context = vm.createContext({
+        contentY: 0, height: 400, cacheBuffer: 100, retentionBuffer: 240,
+        view: {visible: true}, positioned: true,
+        layoutModel: {setViewport(...args) {calls.push(args)}}
+    });
     vm.runInContext("function updateAdmissions() {" + match[1] + "\n}", context);
-    const advance = (y, visible = true) => {
-        context.contentY = y;
-        context.visible = visible;
-        vm.runInContext("updateAdmissions()", context);
-        return elements.map(slot => slot.admitted);
-    };
-    assert.deepEqual(advance(0), [true, true, false], "Only near-viewport cards are admitted");
-    assert.deepEqual(advance(650), [false, true, true], "Retention buffer prevents thrashing at boundary");
-    assert.deepEqual(advance(650, false), [false, false, false], "Hidden Explorer releases its cards");
-    assert.deepEqual(advance(0), [true, true, false], "Magazine activates again when reopened");
+    vm.runInContext("updateAdmissions()", context);
+    assert.deepEqual([...calls.at(-1)], [0, 400, 100, 240, true]);
+    context.contentY = 650;
+    vm.runInContext("updateAdmissions()", context);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true]);
+    context.view.visible = false;
+    vm.runInContext("updateAdmissions()", context);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, false]);
+    context.view.visible = true;
+    vm.runInContext("updateAdmissions()", context);
+    assert.deepEqual([...calls.at(-1)], [650, 400, 100, 240, true]);
+    const native = read("ui/app/social/feed_rows.cpp");
+    assert.match(native, /void MasonryWindowModel::synchronizeWindow\(\)/);
+    assert.match(native, /std::lower_bound\(lane\.cbegin\(\), lane\.cend\(\), minimum/);
+    assert.match(native, /\|\| retained\.contains\(slot\.key\)/);
 });
 
-test("Magazine avoids partial asynchronous cast incubation without disabling timeline virtualization", () => {
+test("Magazine incubates only admitted casts asynchronously without disabling timeline virtualization", () => {
     const surface = read("ui/components/feed/FeedSurface.qml");
     const cast = read("ui/components/feed/CastItem.qml");
     const wall = read("ui/components/feed/FeedMasonryView.qml");
@@ -130,7 +133,7 @@ test("Magazine avoids partial asynchronous cast incubation without disabling tim
     // Rich text builds synchronously inside the already virtualized row,
     // preventing Qt from abandoning nested text incubators on scroll.
     assert.match(cast, /id: castTextBody[\s\S]*?asynchronous: false/);
-    assert.match(wall, /asynchronous: false\s*\n\s*sourceComponent: view\.delegate/);
+    assert.match(wall, /active: slot\.admitted\s*\/\/ Incubate costly CastItem trees over multiple frames\.\s*asynchronous: true\s*sourceComponent: view\.delegate/);
     assert.match(wall, /function updateAdmissions\(\)/);
     assert.doesNotMatch(wall, /active: .*slot\.height/);
 });

@@ -422,6 +422,17 @@ add_test(NAME ui.feed_rows_model COMMAND farcaster_feed_rows_model_tests)
 set_tests_properties(ui.feed_rows_model PROPERTIES
     TIMEOUT 30 LABELS "ui;qt;model;read-pipeline")
 
+# Manual native microbenchmark only. Do not gate CI on noisy wall-clock
+# thresholds or build this target as part of ordinary UI tests.
+add_executable(farcaster_feed_performance_benchmark EXCLUDE_FROM_ALL
+    feed_performance_benchmark.cpp
+    "${genycasterUiSourceDir}/app/social/feed_rows.cpp"
+    "${genycasterUiSourceDir}/app/social/feed_rows.hpp")
+target_compile_features(farcaster_feed_performance_benchmark PRIVATE cxx_std_26)
+target_link_libraries(farcaster_feed_performance_benchmark PRIVATE
+    Qt6::Core Qt6::Qml)
+farcaster_enable_warnings(farcaster_feed_performance_benchmark)
+
 # Real Qt 6.12 viewport fixture: renders the production Magazine QML with
 # its native model and verifies that hundreds of source casts never create
 # hundreds of QML card objects during scroll and reverse scroll.

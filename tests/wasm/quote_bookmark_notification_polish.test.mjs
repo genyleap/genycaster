@@ -54,7 +54,8 @@ test('cast detail keeps timestamp beside author and views in the same action foo
   assert.match(bar,/visible: root.showViews && root.resolvedViewCount/);
   assert.match(bar,/id: reactionActions[\s\S]*?iconGlyph: Theme.iconReply/);
   assert.match(bar,/id: utilityActions[\s\S]*?id: bookmarkButton/);
-  assert.match(bar,/Item \{ Layout.fillWidth: true; Layout.minimumWidth: 0 \}/);
+  assert.match(bar,/Layout\.minimumWidth: 0/);
+  assert.match(bar,/readonly property bool stackedActions: width < reactionRowWidth/);
   assert.match(bar,/id: reactionActions[\s\S]*?iconGlyph: Theme.iconRepost/);
   assert.match(bar,/metricText: root.likeCount > 0 \? LocaleFormat.formatCompactNumber\(root.likeCount\)/);
   assert.match(bar,/id: bookmarkButton/);
@@ -91,10 +92,11 @@ test('main casts and every threaded reply show views in a common footer at all w
   assert.doesNotMatch(cast,/compactViewsText/);
   assert.match(cast,/objectName: "compactCastAuthorMetadata"/);
   assert.match(cast,/Number\(root.modelData.createdAtMs \|\| 0\) > 0/);
-  assert.match(bar,/id: castViewsLabel[\s\S]*?Layout.fillWidth: true/);
+  assert.match(bar,/id: utilityActions[\s\S]*?id: castViewsLabel[\s\S]*?Layout\.minimumWidth: Theme\.iconSizeSmall \+ Theme\.space2/);
   assert.match(bar,/metricText: root.replyCount > 0 \? LocaleFormat.formatCompactNumber/);
   assert.match(bar,/objectName: "castBookmarkButton"/);
-  assert.match(button,/RowLayout \{[\s\S]*?Item \{ Layout.fillWidth: true/);
+  assert.match(button,/implicitWidth: Math\.max\(Theme\.touchTarget, content\.implicitWidth \+ Theme\.space2 \* 2\)/);
+  assert.match(button,/contentItem: Item \{[\s\S]*?RowLayout \{\s*id: content/);
 });
 
 test('quote notifications preserve a clickable reference when embedded cast details are absent',()=>{

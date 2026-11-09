@@ -46,7 +46,8 @@ test('cast replies clear the dock and channel toolbar separates narrow layouts',
  assert.match(detail,/bottomMargin: root\.compact \? root\.bottomOverlayInset/);
  assert.match(detail,/footer: Item \{/);
  assert.match(detail,/visible: root\.compact && root\.activeView === "cast"[\s\S]*?sourceUrl: root\.resolvedChannelImage/);
- assert.match(shell,/DetailSurface \{[\s\S]*?bottomOverlayInset: mobileBottomNavigation\.visible/);
+ assert.match(shell,/DetailSurface \{[\s\S]*?bottomOverlayInset: root\.readingOverlayInset\(castSurfaceLoader\)/);
+ assert.match(shell,/function readingOverlayInset\(surface\)/);
 });
 
 test('explorer and profile filter chips share the normal hairline stroke',()=>{

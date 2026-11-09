@@ -65,7 +65,9 @@ test('mobile footer has tightly grouped reactions and always-visible trailing bo
   assert.doesNotMatch(bar, /castShareUrl\(root\.castId\)/);
   assert.match(bar, /castShareUrl\(root\.normalizedCastId\)/);
   assert.match(bar, /openQuorumCast\(root\.normalizedCastId\)/);
-  assert.match(bar, /Item \{ Layout\.fillWidth: true; Layout\.minimumWidth: 0 \}/);
+  assert.match(bar, /Layout\.minimumWidth: 0/);
+  assert.match(bar, /id: utilityActions[\s\S]*?x: root\.layoutDirection === Qt\.RightToLeft \? 0 : root\.width - width/);
+  assert.match(bar, /readonly property bool stackedActions: width < reactionRowWidth/);
 });
 
 test('public Genycaster links use runtime hosting origin or native configuration', () => {

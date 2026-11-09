@@ -10,60 +10,26 @@ const toolbar = source('ui/components/feed/ExplorerLayoutControls.qml');
 const explorer = source('ui/components/home/HomeFeedHeader.qml');
 const profile = source('ui/components/profile/ProfileSurface.qml');
 
-test('late media height changes shift only following cards in their stable lane', () => {
-  const body = wall.match(/    function forceLayout\(\) \{([\s\S]*?)\n    \}\n\n    function positionViewAtBeginning/);
-  assert.ok(body, 'forceLayout is present');
-  const heights = [300, 120, 150, 420, 160, 180];
-  const items = heights.map(height => ({
-    height, assignedColumn: -1, assignmentColumns: 0,
-    placed: false, x: 0, y: 0
-  }));
-  const context = vm.createContext({
-    arranging: false, positioned: false, moving: false,
-    width: 720, height: 640, columns: 2, gutter: 12,
-    cardWidth: 342, leadingInset: 12, contentY: 0,
-    contentHeight: 4000, rowsBottom: 0, relayoutPending: false,
-    headerLoader: {height: 0}, layoutTimer: {stop() {}},
-    slots: {count: items.length, itemAt: i => items[i]},
-    layoutStarted() {}, layoutFinished() {}, scheduleAdmission() {}, scheduleLayout() {},
-    indexAt: () => -1, Qt: {RightToLeft: 1}, layoutDirection: 0
-  });
-  vm.runInContext('function forceLayout() {' + body[1] + '\n}', context);
-
-  const verify = () => {
-    const perColumn = [[], []];
-    for (const item of items) {
-      assert.ok(item.placed, 'every slot is positioned');
-      assert.ok(item.height > 0, 'slot has a positive reserved height');
-      assert.ok(item.assignedColumn >= 0 && item.assignedColumn < 2);
-      perColumn[item.assignedColumn].push(item);
-    }
-    for (const column of perColumn) {
-      column.sort((a, b) => a.y - b.y);
-      for (let i = 1; i < column.length; i++) {
-        assert.ok(Math.abs(column[i].y - (column[i - 1].y + column[i - 1].height + 12)) < 0.01,
-          'same-column cards stack exactly after prior measured height');
-      }
-    }
-  };
-  vm.runInContext('forceLayout()', context);
-  verify();
-  const before = items.map(item => item.assignedColumn);
-  const belowFirst = items.find((item, i) => i > 0 && item.assignedColumn === before[0]);
-  const originalY = belowFirst.y;
-  items[0].height += 270;
-  vm.runInContext('forceLayout()', context);
-  verify();
-  assert.deepEqual(items.map(item => item.assignedColumn), before,
-    'late image hydration must not move cards sideways');
-  assert.equal(belowFirst.y, originalY + 270, 'new media height moves lower slot, never overlaps it');
+test('measured media heights are routed to native stable-lane geometry instead of repainting offscreen delegates', () => {
+  // Per-lane card offsets are computed by MasonryWindowModel in native C++;
+  // attempting to simulate the deleted QML placement algorithm silently
+  // tested code that no longer ships. A real Qt runtime test checks mixed
+  // heights, geometry change, no overlap, and reverse viewport admission.
+  const native = source('ui/app/social/feed_rows.cpp');
+  const fixture = source('tests/ui/feed_rows_model_tests.cpp');
+  assert.match(wall, /layoutModel\.relayout\(columns, cardWidth, gutter,/);
+  assert.match(wall, /onHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  assert.match(wall, /view\.retainHeight\(stableKey, revisionKey, width, resolved\)/);
+  assert.match(native, /bottoms\[slot\.column\] \+= slot\.height \+ m_gap/);
+  assert.match(native, /slot\.y = bottoms\[slot\.column\]/);
+  assert.match(fixture, /grown\.value\(QStringLiteral\("y"\)\)\.toDouble\(\) > previousLaneY \+ 600\.0/);
+  assert.match(fixture, /magazine\.setViewport\(8000\.0/);
   assert.match(wall, /if \(relayoutPending\) \{\s*relayoutPending = false\s*scheduleLayout\(\)/);
-  assert.match(wall, /onHeightChanged: view\.scheduleLayout\(\)/);
-  assert.match(wall, /clip: cardLoader\.item === null\s+onHeightChanged: view\.scheduleLayout\(\)/);
 });
 
 test('measured QML implicit height replaces oversized provisional Loader height', () => {
-  const body = wall.match(/            function recordHeight\(\) \{([\s\S]*?)\n            \}\n\n            Loader/);
+  const body = wall.match(/            function recordHeight\(\) \{([\s\S]*?)\n            \}\n            Component\.onCompleted:/);
   assert.ok(body);
   const stored = [];
   const ctx = vm.createContext({

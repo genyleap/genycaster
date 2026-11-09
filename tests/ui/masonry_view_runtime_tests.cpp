@@ -11,10 +11,17 @@
 #include <QTest>
 #include <QtQml/qqml.h>
 
-#include <cassert>
 #include <memory>
+#include <source_location>
 
 namespace {
+
+void require(const bool condition,
+             const std::source_location location = std::source_location::current())
+{
+    if (!condition)
+        qFatal("Masonry runtime test failed at %s:%u", location.file_name(), location.line());
+}
 
 bool writeFile(const QString& path, const QByteArray& content)
 {
@@ -29,7 +36,7 @@ int main(int argc, char** argv)
 {
     QGuiApplication app{argc, argv};
     QTemporaryDir temp{};
-    assert(temp.isValid());
+    require(temp.isValid());
     const QString directory = temp.path();
 
     const QByteArray theme = R"(pragma Singleton
@@ -58,10 +65,10 @@ Item {
 })";
     const QByteArray scroll = R"(import QtQuick.Controls
 ScrollBar {})";
-    assert(writeFile(directory + QStringLiteral("/Theme.qml"), theme));
-    assert(writeFile(directory + QStringLiteral("/Superellipse.qml"), shape));
-    assert(writeFile(directory + QStringLiteral("/CastSkeleton.qml"), skeleton));
-    assert(writeFile(directory + QStringLiteral("/GenyScrollBar.qml"), scroll));
+    require(writeFile(directory + QStringLiteral("/Theme.qml"), theme));
+    require(writeFile(directory + QStringLiteral("/Superellipse.qml"), shape));
+    require(writeFile(directory + QStringLiteral("/CastSkeleton.qml"), skeleton));
+    require(writeFile(directory + QStringLiteral("/GenyScrollBar.qml"), scroll));
 
     qmlRegisterType<FeedRowsModel>("Farcaster.Client", 1, 0, "FeedRowsModel");
     qmlRegisterType<MasonryWindowModel>("Farcaster.Client", 1, 0, "MasonryWindowModel");
@@ -100,18 +107,18 @@ Feed.FeedMasonryView {
             })
     }
 })QML");
-    assert(writeFile(directory + QStringLiteral("/tst_Masonry.qml"), wrapper));
+    require(writeFile(directory + QStringLiteral("/tst_Masonry.qml"), wrapper));
     QQmlEngine engine{};
     QQmlComponent component{&engine,
         QUrl::fromLocalFile(directory + QStringLiteral("/tst_Masonry.qml"))};
     if (component.isError())
         qCritical() << component.errors();
-    assert(component.isReady());
+    require(component.isReady());
     std::unique_ptr<QObject> owned{component.create()};
     if (!owned) qCritical() << component.errors();
-    assert(owned);
+    require(owned != nullptr);
     auto* root = qobject_cast<QQuickItem*>(owned.get());
-    assert(root);
+    require(root);
     QQuickWindow window{};
     window.setWidth(960);
     window.setHeight(740);
@@ -121,10 +128,10 @@ Feed.FeedMasonryView {
 
     auto* layout = root->findChild<MasonryWindowModel*>(QStringLiteral("masonryWindowModel"));
     auto* source = root->findChild<FeedRowsModel*>();
-    assert(layout && source && source->count() == 800);
-    assert(layout->count() > 0 && layout->count() < 70);
+    require(layout && source && source->count() == 800);
+    require(layout->count() > 0 && layout->count() < 70);
     const QVariantMap first = layout->geometryAt(0);
-    assert(first.value(QStringLiteral("stableKey")).toString() == QStringLiteral("cast:0"));
+    require(first.value(QStringLiteral("stableKey")).toString() == QStringLiteral("cast:0"));
     // Column geometry must remain non-overlapping after asynchronous,
     // mixed-height delegates replace their initial reservations.
     QHash<int, qreal> previousBottom{};
@@ -133,17 +140,17 @@ Feed.FeedMasonryView {
         const int laneX = qRound(geometry.value(QStringLiteral("x")).toDouble());
         const qreal y = geometry.value(QStringLiteral("y")).toDouble();
         const qreal height = geometry.value(QStringLiteral("height")).toDouble();
-        assert(height > 0);
+        require(height > 0);
         if (previousBottom.contains(laneX))
-            assert(y + 0.5 >= previousBottom.value(laneX));
+            require(y + 0.5 >= previousBottom.value(laneX));
         previousBottom[laneX] = y + height + 12.0;
     }
     root->setProperty("contentY", 9000.0);
     QTest::qWait(90);
-    assert(layout->count() > 0 && layout->count() < 80);
+    require(layout->count() > 0 && layout->count() < 80);
     root->setProperty("contentY", 0.0);
     QTest::qWait(90);
-    assert(layout->windowIndexForSource(0) >= 0);
+    require(layout->windowIndexForSource(0) >= 0);
     window.hide();
     root->setParentItem(nullptr);
     owned.reset();

@@ -20,10 +20,12 @@ test('views are a reaction metric, not a centered flexible footer action', () =>
     const bar = read('ui/components/feed/EngagementBar.qml');
     const reactions = bar.indexOf('id: reactionActions');
     const views = bar.indexOf('id: castViewsLabel');
-    const reactionClose = bar.indexOf('// Flexible space keeps utility actions');
     const utilities = bar.indexOf('id: utilityActions');
-    assert.ok(reactions >= 0 && reactions < views && views < reactionClose && reactionClose < utilities);
-    assert.match(bar.slice(views, reactionClose), /Layout\.alignment: Qt\.AlignVCenter/);
+    const bookmarks = bar.indexOf('id: bookmarkButton');
+    assert.ok(reactions >= 0 && reactions < utilities && utilities < views && views < bookmarks,
+        'view metrics are a compact utility-row label, not a centered action');
+    assert.match(bar.slice(views, bookmarks), /Layout\.alignment: Qt\.AlignVCenter/);
+    assert.match(bar, /readonly property bool stackedActions: width < reactionRowWidth/);
 });
 
 test('desktop Home presents one bounded content column', () => {

@@ -35,7 +35,8 @@ test('cast delegates retain and release per-cast analytics interest without glob
   assert.match(bar,/LocaleFormat\.formatCompactNumber\(Number\(root\.resolvedViewCount\)\)/);
   assert.match(bar,/text: Theme\.iconPreview/);
   assert.match(bar,/Accessible\.role: Accessible\.StaticText/);
-  assert.match(bar,/spacing: root\.compact \? 0 : Theme\.space1/);
+  assert.match(bar,/readonly property real actionSpacing: root\.compact \? 0 : Theme\.space1/);
+  assert.match(bar,/spacing: root\.actionSpacing/);
   for(const name of ['CastItem.qml','ThreadReplyItem.qml','DetailSurface.qml']){
     const text=read('ui/components/' + componentPath(name));
     assert.match(text,/castId: String\(root\.(?:modelData|reply|detail)\.castId \|\| ""\)/,name);

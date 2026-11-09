@@ -79,7 +79,7 @@ test('reply counter has safe trailing spacing and scroll jump stays near bottom 
  const detail=read('ui/components/feed/DetailSurface.qml');
  const profile=read('ui/components/profile/ProfileSurface.qml');
  assert.match(detail,/id: repliesContainer[\s\S]*?Item \{ Layout.preferredHeight: Theme.space4 \}/);
- assert.match(detail,/anchors.bottomMargin: root.compact\s*\? root\.bottomOverlayInset \+ Theme\.space3 : Theme\.space4/);
+ assert.match(detail,/anchors\.bottomMargin: Math\.max\(Theme\.space4, root\.bottomOverlayInset \+ Theme\.space3\)/);
  assert.match(profile,/anchors.bottomMargin: Math\.max\(Theme\.space4, root\.bottomOverlayInset/);
 });
 test('channel metadata is optional and bound to the current deployment origin, not a hardcoded read node',()=>{
