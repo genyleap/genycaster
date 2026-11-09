@@ -1471,6 +1471,46 @@ GenyDrawer {
                         }
                     }
 
+                    // Persisted device preference for inline animated emoji. This
+                    // switch controls both Lottie and sprite playback, unlike
+                    // the separate avatar-GIF preference above.
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: emojiMotionRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        curveDepth: Theme.curveContainer
+                        RowLayout {
+                            id: emojiMotionRow
+                            anchors.fill: parent
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space3
+                            layoutDirection: Theme.uiDirection
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: Theme.space1
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.animate_emoji")
+                                    color: Theme.ink
+                                    font.pixelSize: Theme.typeLabelSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    text: qsTrId("genycaster.settings.animate_emoji_description")
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    wrapMode: Text.Wrap
+                                }
+                            }
+                            GenySwitch {
+                                checked: Theme.animateEmoji
+                                onToggled: Theme.setAnimateEmoji(checked)
+                                Accessible.name: qsTrId("genycaster.settings.animate_emoji")
+                            }
+                        }
+                    }
+
                     Superellipse {
                         Layout.fillWidth: true
                         implicitHeight: reduceMotionRow.implicitHeight + Theme.space3 * 2

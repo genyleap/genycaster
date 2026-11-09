@@ -23,6 +23,9 @@ Item {
     property int assetRevision: 0
     property bool requestFailed: false
     property bool rendererResident: false
+    property bool replayOnReturn: false
+    readonly property bool emojiPlaybackEnabled: Theme.animateEmoji
+                                               && !Theme.powerSave && !Theme.reduceMotion
     // Some lightweight/test QML contexts intentionally omit the optional emoji runtime.
     // Resolve it defensively so delayed bindings never throw ReferenceError.
     readonly property var controller: typeof emojiController !== "undefined" ? emojiController : null
@@ -39,6 +42,7 @@ Item {
                                          && root.insideViewport
                                          && !root.scrollMoving
                                          && Qt.application.state === Qt.ApplicationActive
+                                         && root.emojiPlaybackEnabled && !root.reducedMotion
 
     function resolveHosts() {
         let candidate = root.parent
@@ -78,9 +82,8 @@ Item {
         && root.GraphicsInfo.api !== GraphicsInfo.Unknown
         && root.GraphicsInfo.api !== GraphicsInfo.Software
         && root.GraphicsInfo.api !== GraphicsInfo.Null
-    // Motion preferences and lifecycle changes only pause playback. Changing
-    // an infinite animation to one iteration after it has looped can finish
-    // it immediately and replace healthy artwork with the Unicode fallback.
+    // Keep the policy's fixed one-cycle limit separate from visibility. Motion
+    // preferences pause the timeline without unloading the resident artwork.
     readonly property int configuredLoops: root.controller !== null ? root.controller.playbackLoops(
         root.surface, false, true, true) : 0
     readonly property int playbackLoops: root.motionActive && !root.reducedMotion
@@ -99,7 +102,6 @@ Item {
     }
     readonly property bool animationReady: lottie.status === Loader.Ready
         && lottie.item !== null && lottie.item.renderReady
-        && !lottie.item.playbackCompleted
     readonly property bool rendererFailed: lottie.status === Loader.Error
         || (lottie.item !== null && lottie.item.renderFailed)
     readonly property bool rendererRetained: root.retainLoadedRenderer
@@ -116,6 +118,14 @@ Item {
         }
     }
 
+    // Explicit feed/document refresh can replay a completed cycle without
+    // restarting network requests or affecting adjacent emoji delegates.
+    function requestReplay() {
+        root.replayOnReturn = true
+        if (root.motionActive)
+            replayTimer.restart()
+    }
+
     function syncRendererState() {
         if (lottie.item === null)
             return
@@ -123,6 +133,29 @@ Item {
         // VectorImage materializes the authored first frame.
         lottie.item.playCount = root.configuredLoops === 0 ? 1 : root.configuredLoops
         lottie.item.animationActive = root.playbackLoops !== 0
+    }
+
+    Timer {
+        id: replayTimer
+        interval: 150
+        repeat: false
+        onTriggered: {
+            if (!root.replayOnReturn || !root.motionActive)
+                return
+            root.replayOnReturn = false
+            if (!lottie.item || !lottie.item.playbackCompleted)
+                return
+            // Reuse the cached asset, never refetch it. A regenerated scene is
+            // necessary because generatedItem owns a completed value-source
+            // animation rather than an externally restartable QML Animation.
+            const expected = root.unicodeSequence
+            lottie.item.source = ""
+            Qt.callLater(function() {
+                if (lottie.item && root.motionActive
+                        && expected === root.unicodeSequence)
+                    lottie.item.source = root.assetSource
+            })
+        }
     }
 
     Timer {
@@ -157,6 +190,8 @@ Item {
     }
     onRendererUsableChanged: requestTimer.restart()
     onUnicodeSequenceChanged: {
+        root.replayOnReturn = false
+        replayTimer.stop()
         root.requestFailed = false
         root.rendererResident = false
         requestTimer.restart()
@@ -176,7 +211,20 @@ Item {
     onYChanged: viewportTimer.restart()
     onWidthChanged: viewportTimer.restart()
     onHeightChanged: viewportTimer.restart()
-    onInsideViewportChanged: requestTimer.restart()
+    onInsideViewportChanged: {
+        if (!root.insideViewport)
+            root.replayOnReturn = true
+        else if (root.replayOnReturn && root.motionActive)
+            replayTimer.restart()
+        requestTimer.restart()
+    }
+    onMotionActiveChanged: {
+        if (root.replayOnReturn && root.motionActive)
+            replayTimer.restart()
+        else
+            replayTimer.stop()
+        root.syncRendererState()
+    }
     onScrollMovingChanged: {
         root.syncRendererState()
         if (!root.scrollMoving) {

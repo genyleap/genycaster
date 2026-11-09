@@ -4768,6 +4768,14 @@ Company | https://company.com</source>
             <source>Open settings</source>
             <translation>打开设置</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>动态表情</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>表情出现时播放一次，然后保持静止以节省电量。</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>减少动态效果</translation>

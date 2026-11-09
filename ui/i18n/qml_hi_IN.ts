@@ -4768,6 +4768,14 @@ Company | https://company.com</source>
             <source>Open settings</source>
             <translation>सेटिंग्स खोलें</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>एनिमेटेड इमोजी</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>इमोजी दिखाई देने पर एक बार चलें और ऊर्जा बचाने के लिए फिर स्थिर रहें।</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>मोशन कम करें</translation>

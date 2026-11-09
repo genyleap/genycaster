@@ -346,6 +346,9 @@ Item {
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
+                        awaitFinalAspect: root.dynamicAspectDiscovery && root.visibleCount === 1
+                                          && root.singleImageHeight <= 0
+                        fullBleedAspect: root.mobileFullBleed
                         // Every fitted single image uses the same alpha mask,
                         // including Magazine cards and temporary letterboxing.
                         // Resizing or discovering its aspect must never switch

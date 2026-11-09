@@ -4769,6 +4769,14 @@ Entreprise | https://company.com</translation>
             <source>Open settings</source>
             <translation>Ouvrir les réglages</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>Émojis animés</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>Animer les émojis une seule fois lorsqu’ils apparaissent, puis les figer pour économiser l’énergie.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>Réduire les animations</translation>

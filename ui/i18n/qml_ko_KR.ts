@@ -4768,6 +4768,14 @@ Company | https://company.com</source>
             <source>Open settings</source>
             <translation>설정 열기</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>움직이는 이모지</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>이모지가 나타날 때 한 번만 재생하고 이후에는 멈춰서 전력을 절약합니다.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>동작 줄이기</translation>

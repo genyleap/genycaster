@@ -33,7 +33,7 @@ enum class Surface : std::uint8_t {
 enum class PlaybackMode : std::uint8_t {
     /** @brief Static first/representative frame; no animation. */
     Static,
-    /** @brief Play once; presentation restores a static glyph on completion. */
+    /** @brief Play once; presentation keeps an authored resting frame on completion. */
     PlayOnce,
     /** @brief Loop while the instance remains visible and interactive. */
     Loop,

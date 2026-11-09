@@ -47,5 +47,5 @@ test('owned Farcaster images fall back to their original HTTPS URL only after a 
   assert.match(tile,/onLoadFailedChanged: \{/);
   assert.match(tile,/dataStorage\.autoDownloadAllowed\("photos"\)/);
   assert.match(tile,/root\.originFallbackAttempted = true/);
-  assert.match(tile,/onEmbedChanged: root\.originFallbackAttempted = false/);
+  assert.match(tile,/onEmbedChanged: \{[\s\S]*?root\.originFallbackAttempted = false[\s\S]*?reportedMediaIdentity/);
 });

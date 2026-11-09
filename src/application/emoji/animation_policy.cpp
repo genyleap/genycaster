@@ -31,41 +31,21 @@ AnimationDecision MotionPolicy::decide(
 
     switch (surface) {
     case Surface::Composer:
-        // Composer emoji are few and inside an interactive editor; gentle loops
-        // keep them lively without a timer per glyph (visibility still gates).
-        return AnimationDecision{
-            .mode = PlaybackMode::Loop,
-            .loopCount = 0U, // infinite
-            .pauseWhenInvisible = true,
-        };
     case Surface::CastDetail:
-        // Detail view is the focus of attention; loop while visible.
-        return AnimationDecision{
-            .mode = PlaybackMode::Loop,
-            .loopCount = 0U,
-            .pauseWhenInvisible = true,
-        };
     case Surface::Feed:
-        // Timeline/profile casts use the same continuous artwork as detail.
-        // Presentation pauses offscreen/background instances without replacing
-        // their loaded artwork or changing the configured loop count.
+    case Surface::PickerPreview:
+        // One authored animation cycle per exposure, then a resting frame.
+        // A feed with many emoji must never hold unbounded frame timers.
         return AnimationDecision{
-            .mode = PlaybackMode::Loop,
-            .loopCount = 0U,
+            .mode = PlaybackMode::PlayOnce,
+            .loopCount = 1U,
             .pauseWhenInvisible = true,
         };
     case Surface::PickerCell:
-        // Visible animated-picker cells retain continuous playback too.
+        // Unfocused picker cells stay static; focused cells play one cycle.
         return AnimationDecision{
-            .mode = active ? PlaybackMode::Loop : PlaybackMode::Static,
-            .loopCount = active ? 0U : 1U,
-            .pauseWhenInvisible = true,
-        };
-    case Surface::PickerPreview:
-        // The dedicated preview cell may loop while the picker is open.
-        return AnimationDecision{
-            .mode = PlaybackMode::Loop,
-            .loopCount = 0U,
+            .mode = active ? PlaybackMode::PlayOnce : PlaybackMode::Static,
+            .loopCount = 1U,
             .pauseWhenInvisible = true,
         };
     }

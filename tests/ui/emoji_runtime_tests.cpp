@@ -87,12 +87,12 @@ int main(int argc, char** argv)
     expect(source.startsWith("qrc:/"), "bundled asset is a QML resource URL");
     expect(QFile::exists(QUrl{source}.toString().mid(3)), "bundled URL resolves");
     expect(controller.pendingFetches() == 0, "bundled asset requires no network");
-    expect(controller.playbackLoops(1, false, true, true) == -1, "visible feed loops like detail");
-    expect(controller.playbackLoops(2, false, true, true) == -1, "detail loops");
-    expect(controller.playbackLoops(0, false, true, true) == -1, "composer loops");
+    expect(controller.playbackLoops(1, false, true, true) == 1, "visible feed plays one cycle");
+    expect(controller.playbackLoops(2, false, true, true) == 1, "detail plays one cycle");
+    expect(controller.playbackLoops(0, false, true, true) == 1, "composer plays one cycle");
     expect(controller.playbackLoops(3, false, false, true) == 0, "inactive picker stays static");
-    expect(controller.playbackLoops(3, false, true, true) == -1, "active picker cells loop");
-    expect(controller.playbackLoops(4, false, true, true) == -1, "picker preview loops");
+    expect(controller.playbackLoops(3, false, true, true) == 1, "active picker cells play once");
+    expect(controller.playbackLoops(4, false, true, true) == 1, "picker preview plays once");
     expect(controller.playbackLoops(2, true, true, true) == 0, "reduced motion disables playback");
     expect(controller.playbackLoops(2, false, true, false) == 0, "invisible emoji disables playback");
 
@@ -231,7 +231,27 @@ int main(int argc, char** argv)
                "unloading current animation restores the native glyph");
     }
 
+    // The application embeds Farcaster.Client into the executable. A standalone
+    // test executable has no such resource module, so expose only the Theme
+    // singleton via a disposable QML import. The renderer and real Lottie
+    // assets under test still come directly from their canonical source paths.
+    QTemporaryDir themeModule{};
+    expect(themeModule.isValid(), "isolated QML Theme module");
+    const QDir importRoot{themeModule.path()};
+    expect(importRoot.mkpath(QStringLiteral("Farcaster/Client")), "test QML import directory");
+    {
+        QFile moduleFile{themeModule.filePath(QStringLiteral("Farcaster/Client/qmldir"))};
+        expect(moduleFile.open(QIODevice::WriteOnly), "test QML module metadata");
+        (void)moduleFile.write("module Farcaster.Client\nsingleton Theme 1.0 Theme.qml\n");
+        QFile themeFile{themeModule.filePath(QStringLiteral("Farcaster/Client/Theme.qml"))};
+        expect(themeFile.open(QIODevice::WriteOnly), "test QML Theme stub");
+        (void)themeFile.write("pragma Singleton\nimport QtQuick\nQtObject {"
+                             " property bool animateEmoji: true;"
+                             " property bool powerSave: false;"
+                             " property bool reduceMotion: false }\n");
+    }
     QQmlEngine engine;
+    engine.addImportPath(themeModule.path());
     engine.rootContext()->setContextProperty("emojiController", &controller);
     QQmlComponent component{&engine, QUrl::fromLocalFile(QStringLiteral(EMOJI_COMPONENT_DIRECTORY "/AnimatedEmoji.qml"))};
     expect(component.isReady(), qPrintable(component.errorString()));
@@ -361,10 +381,10 @@ int main(int argc, char** argv)
         object->setProperty("unicodeSequence", joy);
         object->setProperty("preserveArtwork", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("configuredLoops").toInt() == -1
-                && object->property("playbackLoops").toInt() == -1
+            return object->property("configuredLoops").toInt() == 1
+                && object->property("playbackLoops").toInt() == 1
                 && object->property("animationReady").toBool();
-        }, 5000), "visible feed starts continuous animated playback");
+        }, 5000), "visible feed starts one bounded playback cycle");
         // A short scroll must pause the in-flight animation without changing
         // its configured duration or sending the vector to its empty end.
         QTest::qWait(450);
@@ -372,8 +392,8 @@ int main(int argc, char** argv)
         expect(QTest::qWaitFor([&] {
             return object->property("playbackLoops").toInt() == 0;
         }), "scrolled feed pauses playback");
-        expect(object->property("configuredLoops").toInt() == -1,
-               "paused feed keeps its infinite loop count unchanged");
+        expect(object->property("configuredLoops").toInt() == 1,
+               "paused feed keeps one-cycle playback unchanged");
         const auto pausedFeedFrame = window.grabWindow();
         QTest::qWait(350);
         expect(object->property("animationReady").toBool(),
@@ -382,26 +402,30 @@ int main(int argc, char** argv)
                "pausing freezes the actual generated Lottie timeline");
         object->setProperty("active", true);
         expect(QTest::qWaitFor([&] {
-            return object->property("playbackLoops").toInt() == -1;
-        }), "feed resumes continuous playback");
+            return object->property("playbackLoops").toInt() == 1;
+        }), "feed resumes its current one-shot playback");
         const auto animationDocument = QJsonDocument::fromJson(data).object();
         const double frameRate = animationDocument.value("fr").toDouble();
         expect(frameRate > 0.0, "bundled animation declares a frame rate");
         const int loopDuration = frameRate > 0.0
             ? qRound(1000.0 * (animationDocument.value("op").toDouble()
                 - animationDocument.value("ip").toDouble()) / frameRate) : 6000;
-        QTest::qWait(2 * loopDuration + 100);
+        QTest::qWait(loopDuration + 300);
         expect(object->property("animationReady").toBool(),
-               "feed keeps animated artwork after multiple complete iterations");
-        const auto loopingFeedFrame = window.grabWindow();
+               "one-shot completion retains visible Lottie artwork");
+        const auto completedFrame = window.grabWindow();
+        QTest::qWait(350);
+        expect(window.grabWindow() == completedFrame,
+               "completed emoji keeps an identical resting frame without CPU animation");
+        const auto restingFrame = window.grabWindow();
         QTest::qWait(450);
-        expect(window.grabWindow() != loopingFeedFrame,
-               "feed pixels continue animating beyond the first iteration");
+        expect(window.grabWindow() == restingFrame,
+               "feed emoji stays still beyond the first iteration");
         expect(object->property("rendererResident").toBool(),
-               "looping source remains resident");
+               "completed source remains resident");
         object->setProperty("reducedMotion", true);
-        expect(object->property("configuredLoops").toInt() == -1,
-               "reduced motion pauses without shortening an already-looping animation");
+        expect(object->property("configuredLoops").toInt() == 1,
+               "reduced motion leaves the one-cycle policy intact");
         const auto reducedMotionFrame = window.grabWindow();
         QTest::qWait(350);
         expect(object->property("animationReady").toBool()
@@ -410,8 +434,8 @@ int main(int argc, char** argv)
         object->setProperty("reducedMotion", false);
         QTest::qWait(450);
         expect(object->property("animationReady").toBool()
-                   && window.grabWindow() != reducedMotionFrame,
-               "disabling reduced motion resumes the loaded animation");
+                   && window.grabWindow() == reducedMotionFrame,
+               "reenabling motion does not restart a finished emoji cycle");
         object->setProperty("preserveArtwork", false);
         object->setProperty("surface", 3);
         object->setProperty("active", false);

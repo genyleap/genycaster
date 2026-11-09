@@ -4789,6 +4789,14 @@ Company | https://company.com</source>
             <source>Keep GIF avatars moving while browsing and scrolling.</source>
             <translation>گیف‌های پروفایل هنگام مرور و پیمایش متحرک بمانند.</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>ایموجی‌های متحرک</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>ایموجی‌ها هنگام دیده‌شدن یک بار پخش شوند و سپس برای صرفه‌جویی در انرژی ثابت بمانند.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>کاهش حرکت</translation>

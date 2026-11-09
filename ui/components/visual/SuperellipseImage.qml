@@ -26,6 +26,9 @@ Item {
     // Large feed artwork can opt into a cheap image-node opacity reveal.
     // Avatars/thumbnails retain their immediate path by default.
     property bool smoothReveal: false
+    // Keep decoded pixels behind the placeholder until the parent has committed
+    // the final layout. Image.Ready alone does not guarantee stable geometry.
+    property bool presentationEnabled: true
     property bool showFailureIndicator: true
     property bool showManualLoadIndicator: true
     property bool retainPreviousWhileLoading: false
@@ -153,9 +156,10 @@ Item {
     readonly property bool loadFailed: imageSource.status === Image.Error || providerFallback
     readonly property bool loading: root.source.toString().length > 0
                                     && (imageSource.status === Image.Loading || root.waitingForAdmission
-                                        || (root.decodedReady && !root.presentationReady))
+                                        || (root.decodedReady && !root.ready))
     readonly property bool decodedReady: imageSource.status === Image.Ready && !root.providerFallback
     readonly property bool ready: root.decodedReady && root.presentationReady
+                                  && root.presentationEnabled
     readonly property bool hasRenderableGeometry: root.width >= 1 && root.height >= 1
     readonly property bool requiresFramePacedPresentation: root.framePacedPresentation
                                                             && root.width * root.height >= 160 * 160

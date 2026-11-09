@@ -9,6 +9,8 @@ QtObject {
         category: "MediaPowerSave"
         property bool enabled: false
         property bool animateAvatars: true
+        // Distinct from avatar GIFs and OS accessibility Reduce Motion.
+        property bool animateEmoji: true
     }
     // Device-local, user-customizable mobile Action Button.
     // Persist only allowlisted capabilities, never executable commands.
@@ -39,8 +41,10 @@ QtObject {
     }
     readonly property bool powerSave: energyPreferences.enabled
     readonly property bool animateAvatars: energyPreferences.animateAvatars
+    readonly property bool animateEmoji: energyPreferences.animateEmoji
     function setPowerSave(enabled) { energyPreferences.enabled = Boolean(enabled) }
     function setAnimateAvatars(enabled) { energyPreferences.animateAvatars = Boolean(enabled) }
+    function setAnimateEmoji(enabled) { energyPreferences.animateEmoji = Boolean(enabled) }
 
     readonly property bool dark: appearanceController.effectiveDark
     readonly property bool reduceMotion: appearanceController.reduceMotion

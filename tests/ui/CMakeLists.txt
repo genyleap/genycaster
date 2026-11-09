@@ -584,7 +584,7 @@ set_tests_properties(ui.link_preview_shutdown PROPERTIES TIMEOUT 8
 add_executable(farcaster_emoji_ui_tests emoji_runtime_tests.cpp)
 target_link_libraries(farcaster_emoji_ui_tests PRIVATE farcaster_emoji_runtime farcaster::provider_emoji Qt6::Test Qt6::Quick)
 target_compile_definitions(farcaster_emoji_ui_tests PRIVATE
-    EMOJI_COMPONENT_DIRECTORY="${genycasterUiSourceDir}/components"
+    EMOJI_COMPONENT_DIRECTORY="${genycasterUiSourceDir}/components/media"
     EMOJI_SOURCE_DIRECTORY="${genycasterUiSourceDir}/assets/emoji/lottie")
 qt_add_resources(farcaster_emoji_ui_tests emoji_test_assets
     PREFIX "/qt/qml/Farcaster/Client/assets/emoji/lottie"

@@ -4789,6 +4789,14 @@ Company | https://company.com</translation>
             <source>Keep GIF avatars moving while browsing and scrolling.</source>
             <translation>Keep GIF avatars moving while browsing and scrolling.</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>Animated emoji</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>Play emoji once when visible, then keep them still to save energy.</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>Reduce motion</translation>

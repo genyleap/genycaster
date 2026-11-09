@@ -4768,6 +4768,14 @@ Company | https://company.com</source>
             <source>Open settings</source>
             <translation>設定を開く</translation>
         </message>
+        <message id="genycaster.settings.animate_emoji">
+            <source>Animated emoji</source>
+            <translation>アニメーション絵文字</translation>
+        </message>
+        <message id="genycaster.settings.animate_emoji_description">
+            <source>Play emoji once when visible, then keep them still to save energy.</source>
+            <translation>絵文字が表示されたときに一度だけ再生し、その後は停止して電力を節約します。</translation>
+        </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
             <translation>モーションを減らす</translation>

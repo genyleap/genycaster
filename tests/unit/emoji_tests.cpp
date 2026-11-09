@@ -579,29 +579,29 @@ void testPolicy()
         MotionPolicy::decide(Surface::Feed, false, false, false).mode == PlaybackMode::Static,
         "invisible feed static");
     expect(
-        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::Loop,
-        "visible feed loops like cast detail without requiring hover");
+        MotionPolicy::decide(Surface::Feed, false, false, true).mode == PlaybackMode::PlayOnce,
+        "visible feed plays once without requiring hover");
     expect(
-        MotionPolicy::decide(Surface::Feed, false, false, true).loopCount == 0U,
-        "feed playback has no finite iteration limit");
+        MotionPolicy::decide(Surface::Feed, false, false, true).loopCount == 1U,
+        "feed playback has one bounded iteration");
     expect(
         MotionPolicy::decide(Surface::PickerCell, false, false, true).mode == PlaybackMode::Static,
         "inactive picker cell static");
     expect(
-        MotionPolicy::decide(Surface::PickerCell, false, true, true).mode == PlaybackMode::Loop,
-        "active picker cell loops");
+        MotionPolicy::decide(Surface::PickerCell, false, true, true).mode == PlaybackMode::PlayOnce,
+        "active picker cell plays once");
     expect(
-        MotionPolicy::decide(Surface::PickerCell, false, true, true).loopCount == 0U,
-        "active picker playback has no finite iteration limit");
+        MotionPolicy::decide(Surface::PickerCell, false, true, true).loopCount == 1U,
+        "active picker playback has one bounded iteration");
     expect(
-        MotionPolicy::decide(Surface::Composer, false, false, true).mode == PlaybackMode::Loop,
-        "composer loops");
+        MotionPolicy::decide(Surface::Composer, false, false, true).mode == PlaybackMode::PlayOnce,
+        "composer plays once");
     expect(
-        MotionPolicy::decide(Surface::CastDetail, false, false, true).mode == PlaybackMode::Loop,
-        "detail loops");
+        MotionPolicy::decide(Surface::CastDetail, false, false, true).mode == PlaybackMode::PlayOnce,
+        "detail plays once");
     expect(
-        MotionPolicy::decide(Surface::PickerPreview, false, false, true).mode == PlaybackMode::Loop,
-        "picker preview loops");
+        MotionPolicy::decide(Surface::PickerPreview, false, false, true).mode == PlaybackMode::PlayOnce,
+        "picker preview plays once");
 }
 
 void testCatalogAndRecents()

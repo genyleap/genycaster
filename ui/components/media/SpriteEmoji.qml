@@ -12,9 +12,8 @@ Item {
     property int surface: 3
     property bool viewportVisible: true
     property bool requestFailed: false
-    // An authored one-shot may terminate on a fully transparent frame.
-    // Return the inline Unicode/Qt color emoji when it finishes rather than
-    // continuing to mask the text with an empty sprite.
+    // A completed one-shot retains a visible resting sprite frame and stops
+    // its animation ticker until the next explicit viewport/refresh replay.
     property bool playbackFinished: false
     property string failureReason: ""
     property int retryCount: 0
@@ -33,14 +32,16 @@ Item {
         && root.width > 0 && root.height > 0 && root.unicodeSequence.length > 0
         // Deactivation pauses playback, but must not release the painted frame.
         && (root.active || root.preserveArtwork)
-    readonly property bool animationReady: !root.requestFailed && !root.playbackFinished
+    readonly property bool animationReady: !root.requestFailed
         && root.rendererUsable && atlas.status === Image.Ready
     readonly property bool loading: root.artworkWanted && !root.animationReady
         && !root.requestFailed && !root.playbackFinished
     // Configure the lifetime of a playback independently from pause/resume.
     readonly property int configuredLoops: root.controller !== null
         ? root.controller.playbackLoops(root.surface, false, true, true) : 0
+    property bool replayOnReturn: false
     readonly property bool motionActive: root.active && !root.reducedMotion
+        && Theme.animateEmoji && !Theme.powerSave && !Theme.reduceMotion
         && root.visible && root.viewportVisible
         && Qt.application.state === Qt.ApplicationActive
     readonly property int frameSize: Math.max(1, Number(root.spriteData.frameSize || 96))
@@ -134,6 +135,26 @@ Item {
     }
 
     onArtworkWantedChanged: Qt.callLater(root.syncInterest)
+    onViewportVisibleChanged: {
+        if (!root.viewportVisible)
+            root.replayOnReturn = true
+        else if (root.motionActive)
+            root.replayIfVisible()
+    }
+    onMotionActiveChanged: root.replayIfVisible()
+    function requestReplay() {
+        root.replayOnReturn = true
+        root.replayIfVisible()
+    }
+    function replayIfVisible() {
+        if (!root.replayOnReturn || !root.motionActive)
+            return
+        root.replayOnReturn = false
+        if (root.playbackFinished) {
+            root.framePosition = 0
+            root.playbackFinished = false
+        }
+    }
     onUnicodeSequenceChanged: {
         root.spriteData = ({})
         root.framePosition = 0
@@ -212,9 +233,14 @@ Item {
         from: 0
         to: root.frameCount
         duration: root.frameCount * root.frameDuration
-        loops: root.configuredLoops < 0 ? Animation.Infinite : 1
+        loops: 1
         running: root.rendererUsable && atlas.status === Image.Ready && !root.playbackFinished
         paused: running && !root.motionActive
-        onFinished: root.playbackFinished = true
+        onFinished: {
+            root.playbackFinished = true
+            // Keep a stable authored frame; do not swap to a different Unicode
+            // font after one cycle. No worker/ticker runs while finished.
+            root.framePosition = 0
+        }
     }
 }

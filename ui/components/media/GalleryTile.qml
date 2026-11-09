@@ -9,6 +9,30 @@ Item {
     property var embed: ({})
     property string continuationText: ""
     property bool preserveAspect: false
+    // A single editorial image whose height depends on decoded dimensions
+    // must remain masked until the parent's aspect commit updates its slot.
+    property bool awaitFinalAspect: false
+    property bool fullBleedAspect: false
+    readonly property bool finalAspectReady: {
+        if (!root.awaitFinalAspect || !root.preserveAspect)
+            return true
+        if (preview.status !== Image.Ready)
+            return false
+        const ratio = Number(root.reportedAspect || 0)
+        if (!(ratio > 0) || root.width <= 0 || root.height <= 0)
+            return false
+        // GalleryLayout rounds the height to whole device-independent pixels.
+        // The small tolerance handles a one-pixel layout rounding difference.
+        // Match GalleryLayout.displayAspect exactly: desktop Magazine uses an
+        // editorial clamp, whereas phones expose the unmodified source ratio.
+        const displayRatio = root.fullBleedAspect
+            ? ratio : Math.max(0.45, Math.min(2.8, ratio))
+        const naturalHeight = root.width / displayRatio
+        const expectedHeight = root.fullBleedAspect
+            ? Math.ceil(naturalHeight)
+            : Math.ceil(Math.max(64, Math.min(Math.max(900, root.width * 2.35), naturalHeight)))
+        return Math.abs(root.height - expectedHeight) <= 2
+    }
     // The performance-safe defaults avoid briefly constructing layer effects
     // before GalleryLayout applies its multi-image bindings. Single-image slots
     // opt into both features explicitly.
@@ -35,16 +59,15 @@ Item {
     signal aspectRatioResolved(real ratio)
 
     property real reportedAspect: 0
+    property string reportedMediaIdentity: ""
 
     function reportDecodedAspect() {
         if (preview.status !== Image.Ready)
             return
-        const paintedRatio = Number(preview.paintedAspectRatio || 0)
         const sourceWidth = Number(preview.sourceImplicitWidth || 0)
         const sourceHeight = Number(preview.sourceImplicitHeight || 0)
-        const ratio = paintedRatio > 0
-                      ? paintedRatio
-                      : (sourceWidth > 1 && sourceHeight > 1 ? sourceWidth / sourceHeight : 0)
+        const ratio = sourceWidth > 1 && sourceHeight > 1
+                      ? sourceWidth / sourceHeight : 0
         if (!(ratio > 0))
             return
         if (Math.abs(root.reportedAspect - ratio) < 0.015)
@@ -63,7 +86,16 @@ Item {
         return /^https:\/\/media-farcaster\.genyleap\.com\/m\/v1\/[a-z0-9/_-]+\.(?:jpe?g|png|webp|gif)(?:\?[^#]*)?$/i.test(target)
                ? target : ""
     }
-    onEmbedChanged: root.originFallbackAttempted = false
+    onEmbedChanged: {
+        root.originFallbackAttempted = false
+        // Refreshing metadata for the SAME source must not revoke a ready
+        // image's geometry. A genuinely recycled identity starts at zero.
+        const identity = String(root.embed.url || root.embed.imageSource || root.embed.value || "")
+        if (identity !== root.reportedMediaIdentity) {
+            root.reportedMediaIdentity = identity
+            root.reportedAspect = 0
+        }
+    }
     function resolvedSource() {
         if (root.originFallbackAttempted && root.ownMediaUrl.length > 0)
             return root.ownMediaUrl
@@ -111,6 +143,7 @@ Item {
         fillColor: !preview.ready ? Theme.surfaceMuted
                    : root.preserveAspect ? "transparent" : Theme.surface
         smoothReveal: true
+        presentationEnabled: root.finalAspectReady
         borderWidth: 0
         onLoadFailedChanged: {
             if (loadFailed && !root.originFallbackAttempted

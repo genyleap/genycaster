@@ -929,6 +929,10 @@ void registerTranslationSourceMetadata()
     (void)qtTrId("genycaster.settings.animate_avatars");
     //% "Keep GIF avatars moving while browsing and scrolling."
     (void)qtTrId("genycaster.settings.animate_avatars_description");
+    //% "Animated emoji"
+    (void)qtTrId("genycaster.settings.animate_emoji");
+    //% "Play emoji once when visible, then keep them still to save energy."
+    (void)qtTrId("genycaster.settings.animate_emoji_description");
     //% "Reduce motion"
     (void)qtTrId("genycaster.settings.reduce_motion");
     //% "Removes repeated and spatial animation while keeping status changes visible."

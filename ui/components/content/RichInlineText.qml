@@ -413,7 +413,15 @@ Item {
             // Only delegate lifetime and document generation control
             // QTextDocument glyph suppression. Lottie status transitions now
             // affect only the two locally co-located QML renderers.
-            onEmojiGenerationChanged: emojiOverlay.claimFallbackOwnership()
+            onEmojiGenerationChanged: {
+                emojiOverlay.claimFallbackOwnership()
+                // A new document generation (for example a refreshed cast)
+                // may reuse the same pooled QML emoji. Replay only that
+                // completed one-shot, not every timer/asset-ready notification.
+                lottieEmoji.requestReplay()
+                if (spriteEmojiLoader.item)
+                    spriteEmojiLoader.item.requestReplay()
+            }
 
             x: Number(emojiRect.x || 0)
             y: root.emojiVerticalInset + Number(emojiRect.y || 0)
