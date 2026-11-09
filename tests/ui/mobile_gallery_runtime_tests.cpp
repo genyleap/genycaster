@@ -67,6 +67,10 @@ Item {
     id: tile
     property var embed: ({})
     property bool preserveAspect: false
+    // Mirror properties added to the production GalleryTile contract. These
+    // flags only gate presentation; the stub still supplies the delayed ratio.
+    property bool awaitFinalAspect: false
+    property bool fullBleedAspect: false
     property bool useLayeredMask: false
     property bool ambientEnabled: false
     property color cornerCoverColor: "transparent"
@@ -100,14 +104,15 @@ Item {
     window.resize(390, 760);
     window.show();
 
-    const auto makeGallery = [&](const QVariantMap& embed, const bool discover) {
+    const auto makeGallery = [&](const QVariantMap& embed, const bool discover,
+                                 const qreal reservedHeight = 180.0) {
         const QVariantMap properties{
             {QStringLiteral("width"), 360},
             {QStringLiteral("compact"), true},
             {QStringLiteral("mobilePresentation"), true},
             {QStringLiteral("embeds"), QVariantList{embed}},
             {QStringLiteral("dynamicAspectDiscovery"), discover},
-            {QStringLiteral("singleImageHeight"), 180}
+            {QStringLiteral("singleImageHeight"), reservedHeight}
         };
         std::unique_ptr<QObject> owned{production.createWithInitialProperties(properties)};
         require(owned != nullptr);
@@ -152,6 +157,28 @@ Item {
     require(std::abs(decodedItem->implicitHeight() - (2000.0 + 8.0)) < 2.0);
     const qreal phoneHeight = decodedItem->implicitHeight();
 
+    // For a genuinely unknown image size, the dynamic one-shot gate must be
+    // enabled on the instantiated tile. Known pre-reserved heights must not
+    // wait unnecessarily for a second aspect-discovery round.
+    const auto unknownAspect = makeGallery({
+        {QStringLiteral("kind"), QStringLiteral("image")},
+        {QStringLiteral("url"), QStringLiteral("fixture://unknown-portrait")},
+        {QStringLiteral("fixtureRatio"), 0.26}}, true, 0.0);
+    auto* unknownItem = qobject_cast<QQuickItem*>(unknownAspect.get());
+    require(unknownItem);
+    QQuickItem* unknownLoader = nullptr;
+    require(QTest::qWaitFor([&] {
+        unknownLoader = findVisual(unknownItem, QStringLiteral("galleryTileLoader"));
+        return unknownLoader != nullptr
+            && unknownLoader->property("item").value<QObject*>() != nullptr;
+    }, 1800));
+    auto* loadedTile = unknownLoader->property("item").value<QObject*>();
+    require(loadedTile->property("awaitFinalAspect").toBool());
+    require(loadedTile->property("fullBleedAspect").toBool());
+    require(QTest::qWaitFor([&] {
+        return unknownItem->implicitHeight() > 1300;
+    }, 1800));
+
     // Desktop Magazine columns can be the exact same width as mobile cards.
     // The viewport breakpoint, not card width, owns the mobile full-height mode.
     // AppShell changes its compact presentation when the viewport crosses
@@ -173,5 +200,6 @@ Item {
     window.hide();
     metadataItem->setParentItem(nullptr);
     decodedItem->setParentItem(nullptr);
+    unknownItem->setParentItem(nullptr);
     return 0;
 }
