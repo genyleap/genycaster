@@ -230,9 +230,19 @@ Flickable {
             }
             function recordHeight() {
                 const content = cardLoader.item
-                const implicit = content ? Number(content.implicitHeight || 0) : 0
-                const next = implicit > 0
-                    ? implicit : content ? Number(content.height || 0) : 0
+                if (!content || content.incubating === true)
+                    return
+
+                // A nested FeedRow Loader paints a provisional, potentially
+                // much taller reservedHeight before SemanticFeedItem is ready.
+                // Loader.height is NOT evidence of painted content: caching it
+                // as an exact sample leaves a permanently empty 200-400px slot.
+                // Prefer the inner item's resolvedHeight, not the outer Loader
+                // reservation, even if the outer implicitHeight is nonzero.
+                const hasResolvedHeight = content.resolvedHeight !== undefined
+                const next = hasResolvedHeight
+                    ? Number(content.resolvedHeight || 0)
+                    : Number(content.implicitHeight || content.height || 0)
                 if (next > 0 && isFinite(next)) {
                     const resolved = Math.ceil(next)
                     if (Math.abs(resolved - measuredHeight) >= 1)
@@ -258,9 +268,10 @@ Flickable {
                 active: view.visible && slot.placed
                         && slot.y + slot.height > view.contentY
                         && slot.y < view.contentY + view.height
-                        && (cardLoader.item === null
-                            || Number(cardLoader.item.resolvedHeight
-                                      || cardLoader.item.implicitHeight || 0) <= 0)
+                        && (cardLoader.item === null || cardLoader.item.incubating === true
+                            || Number(cardLoader.item.resolvedHeight !== undefined
+                                      ? cardLoader.item.resolvedHeight
+                                      : cardLoader.item.implicitHeight || 0) <= 0)
                 asynchronous: false
                 sourceComponent: Component {
                     Item {
@@ -296,8 +307,13 @@ Flickable {
             }
             Connections {
                 target: cardLoader.item
+                // The nested Loader's resolvedHeight may change without an
+                // outer geometry signal (async previews and text hydration).
+                function onResolvedHeightChanged() { slot.recordHeight() }
+                function onIncubatingChanged() { slot.recordHeight() }
                 function onHeightChanged() { slot.recordHeight() }
                 function onImplicitHeightChanged() { slot.recordHeight() }
+                ignoreUnknownSignals: true
             }
         }
     }

@@ -28,23 +28,45 @@ test('measured media heights are routed to native stable-lane geometry instead o
   assert.match(wall, /if \(relayoutPending\) \{\s*relayoutPending = false\s*scheduleLayout\(\)/);
 });
 
-test('measured QML implicit height replaces oversized provisional Loader height', () => {
+test('Magazine never mistakes a provisional Loader reservation for a real painted height', () => {
   const body = wall.match(/            function recordHeight\(\) \{([\s\S]*?)\n            \}\n            Component\.onCompleted:/);
   assert.ok(body);
   const stored = [];
   const ctx = vm.createContext({
-    cardLoader: {item: {height: 850, implicitHeight: 210}},
-    measuredHeight: 850, stableKey: 'cast-1', revisionKey: 'rev-3', width: 330,
+    cardLoader: {item: {height: 850, implicitHeight: 850, resolvedHeight: 0, incubating: true}},
+    measuredHeight: 0, stableKey: 'cast-1', revisionKey: 'rev-3', width: 330,
     view: {retainHeight(...args) {stored.push(args);}}
   });
   vm.runInContext('function recordHeight(){' + body[1] + '\n}', ctx);
   vm.runInContext('recordHeight()', ctx);
-  assert.equal(ctx.measuredHeight, 210, 'a resolved cast releases its old 850px reservation');
-  assert.equal(stored[0][3], 210);
+  assert.equal(stored.length, 0, 'do not store an estimate while the nested Loader incubates');
+
+  ctx.cardLoader.item.incubating = false;
+  vm.runInContext('recordHeight()', ctx);
+  assert.equal(stored.length, 0, 'zero resolved height still means an unfinished card');
+
+  ctx.cardLoader.item.resolvedHeight = 210;
+  vm.runInContext('recordHeight()', ctx);
+  assert.equal(ctx.measuredHeight, 210, 'painted cast releases an 850px reservation');
+  assert.equal(stored.at(-1)[3], 210, 'native model receives only actual paint height');
+
+  ctx.cardLoader.item.resolvedHeight = 360;
+  vm.runInContext('recordHeight()', ctx);
+  assert.equal(stored.at(-1)[3], 360, 'later rich-preview height changes reflow the next card');
+
+  // Generic QML card delegates do not expose resolvedHeight; continue to
+  // support their intrinsic height without entering a zero-height state.
+  ctx.cardLoader.item = {height: 400, implicitHeight: 280};
+  vm.runInContext('recordHeight()', ctx);
+  assert.equal(ctx.measuredHeight, 280, 'ordinary implicit-height delegates remain supported');
   ctx.cardLoader.item = {height: 360, implicitHeight: 0};
   vm.runInContext('recordHeight()', ctx);
   assert.equal(ctx.measuredHeight, 360, 'height-only delegates retain a valid fallback');
+  assert.match(wall, /onResolvedHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  assert.match(wall, /onIncubatingChanged\(\) \{ slot\.recordHeight\(\) \}/);
   assert.match(wall, /onImplicitHeightChanged\(\) \{ slot\.recordHeight\(\) \}/);
+  const surface = source('ui/components/feed/FeedSurface.qml');
+  assert.match(surface, /width: magazineRow && parent \? parent\.width : readList\.width/);
 });
 
 test('Magazine view/filter toolbar matches one segmented surface across Explorer and Profile', () => {

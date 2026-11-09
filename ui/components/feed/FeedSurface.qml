@@ -1782,7 +1782,10 @@ Item {
         }
 
         property real viewportY: y
-        width: readList.width
+        // Magazine's source is a narrow per-lane Loader, not the full Flickable.
+        // Measuring the inner cast at full reader width overestimates rich
+        // quote/media geometry and leaves gaps between narrow visual cards.
+        width: magazineRow && parent ? parent.width : readList.width
         // Reused delegates stay alive in ListView's pool. Explicitly hide
         // pooled rows so inherited visibility pauses animated emoji, spinners,
         // and other presentation-only work until the row is reused.

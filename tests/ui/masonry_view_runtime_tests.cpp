@@ -11,6 +11,7 @@
 #include <QTest>
 #include <QtQml/qqml.h>
 
+#include <cmath>
 #include <memory>
 #include <source_location>
 
@@ -93,9 +94,22 @@ Feed.FeedMasonryView {
     model: castRows
     FeedRowsModel { id: castRows }
     delegate: Component {
-        Item {
-            implicitHeight: parent ? 140 + (parent.rowIndex % 4) * 90 : 240
-            height: implicitHeight
+        // Exercise the same nested Loader contract as FeedRow. Its reserved
+        // 850px height must never become an exact measurement while the real
+        // card is only 140px tall.
+        Loader {
+            id: nestedCast
+            readonly property bool incubating: status === Loader.Loading || item === null
+            readonly property real resolvedHeight: item ? item.implicitHeight : 0
+            readonly property int sourceRow: parent ? parent.rowIndex : -1
+            readonly property string sourceRevision: parent ? parent.revisionKey : ""
+            height: 850
+            sourceComponent: Component {
+                Item {
+                    implicitHeight: nestedCast.sourceRevision === "expanded"
+                        ? 790 : 140 + (nestedCast.sourceRow % 4) * 90
+                }
+            }
         }
     }
     Component.onCompleted: {
@@ -132,8 +146,19 @@ Feed.FeedMasonryView {
     require(layout->count() > 0 && layout->count() < 70);
     const QVariantMap first = layout->geometryAt(0);
     require(first.value(QStringLiteral("stableKey")).toString() == QStringLiteral("cast:0"));
-    // Column geometry must remain non-overlapping after asynchronous,
-    // mixed-height delegates replace their initial reservations.
+    require(std::abs(first.value(QStringLiteral("height")).toDouble() - 140.0) < 2.0);
+    // A painted card may expand and contract after a preview loads. The next
+    // card in its column must move with it, not retain the old 790px slot.
+    source->setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("expanded"));
+    QTest::qWait(85);
+    const QVariantMap grown = layout->geometryAt(0);
+    require(std::abs(grown.value(QStringLiteral("height")).toDouble() - 790.0) < 2.0);
+    source->setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("settled"));
+    QTest::qWait(85);
+    const QVariantMap settled = layout->geometryAt(0);
+    require(std::abs(settled.value(QStringLiteral("height")).toDouble() - 140.0) < 2.0);
+    // Column geometry must have no oversized holes or overlapping children,
+    // including after the delegate contracts from a larger reservation.
     QHash<int, qreal> previousBottom{};
     for (int i = 0; i < source->count(); ++i) {
         const QVariantMap geometry = layout->geometryAt(i);
@@ -142,7 +167,7 @@ Feed.FeedMasonryView {
         const qreal height = geometry.value(QStringLiteral("height")).toDouble();
         require(height > 0);
         if (previousBottom.contains(laneX))
-            require(y + 0.5 >= previousBottom.value(laneX));
+            require(std::abs(y - previousBottom.value(laneX)) <= 0.75);
         previousBottom[laneX] = y + height + 12.0;
     }
     root->setProperty("contentY", 9000.0);
