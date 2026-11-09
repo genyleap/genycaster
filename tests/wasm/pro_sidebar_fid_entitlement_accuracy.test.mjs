@@ -45,7 +45,7 @@ test('drawer describes backend-verified Pro capabilities without using cast thre
  assert.match(drawer,/genycaster\.pro\.status_verified/);
  assert.match(drawer,/genycaster\.pro\.monthly_price/);
  assert.match(drawer,/genycaster\.pro\.verify_payment/);
- assert.match(drawer,/openProofConnections\.requestProPaymentQuote\(\)/);
+ assert.match(drawer,/openProofConnections\.requestProPaymentQuote\(root\.selectedAsset\)/);
 });
 
 test('Pro checkout uses verified server quote and never grants itself locally',()=>{
@@ -56,9 +56,10 @@ test('Pro checkout uses verified server quote and never grants itself locally',(
  assert.match(header,/Q_PROPERTY\(bool proBillingBusy READ proBillingBusy NOTIFY proBillingChanged\)/);
  assert.match(header,/proBillingBusy\(\) const noexcept/);
  assert.match(header,/m_proBillingRequest != nullptr/);
- assert.match(drawer,/busy: openProofConnections \? openProofConnections\.proBillingBusy : false/);
- assert.match(drawer,/requestProPaymentQuote\(\)/);
+ assert.match(drawer,/readonly property bool busy: \(openProofConnections && openProofConnections\.proBillingBusy\)/);
+ assert.match(drawer,/requestProPaymentQuote\(root\.selectedAsset\)/);
  assert.match(drawer,/verifyProPayment\(root\.paymentHash\.trim\(\)\)/);
+ assert.match(drawer,/proCheckout\.pay\(\)/);
  assert.match(cpp,/authorizeCloudRequest\(request\)/);
  assert.match(cpp,/\/api\/v1\/cloud\/pro\/verify/);
  assert.match(cpp,/fetchProEntitlements\(true\)/);
@@ -67,8 +68,9 @@ test('Pro checkout uses verified server quote and never grants itself locally',(
 test('Pro descriptions are translated and contain no unfilled %1 in feature details',()=>{
  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR','hi_IN',
   'ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
- const keys=['status_verified','status_unavailable','monthly_price','manual_renewal',
-  'verify_payment','get_quote','payment_instructions',
+ const keys=['status_verified','monthly_price','manual_renewal',
+  'verify_payment','checkout_continue','checkout_open_wallet','checkout_usdc_hint',
+  'payment_instructions',
   'feature_miniapps_title','feature_miniapps_desc','feature_collections_desc',
   'feature_connections_desc','feature_market_desc','feature_composer_title',
   'feature_composer_desc'];
@@ -120,15 +122,30 @@ test('signed-in Pro checkout verifies its existing FID without reopening login',
  assert.match(drawer,/root\.startedVerification = true\s+openProofConnections\.authorizeAccount\(\)/);
  assert.match(drawer,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
  assert.match(drawer,/openProofConnections\.stopAuthorization\(\)/);
- assert.match(drawer,/else if \(!root\.appSignedIn\) \{\s+root\.accountRequested\(\)/);
+ assert.match(drawer,/if \(!root\.appSignedIn\) \{ root\.accountRequested\(\); return \}/);
  assert.match(drawer,/root\.restoringSession/);
  assert.match(implementation,/m_sessionRequest=reply;\s+emit stateChanged\(\);/);
  assert.doesNotMatch(drawer,/openProofConnections\.retryProEntitlements\(\)\s+root\.accountRequested\(\)/);
  for(const lang of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
    'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
   const ts=read('ui/i18n/qml_'+lang+'.ts');
-  for(const id of ['payment_identity_pending','restoring_payment_session',
+  for(const id of ['restoring_payment_session',
       'approve_payment_identity','verify_payment_identity','verify_with_farcaster'])
    assert.equal(ts.split('id="genycaster.pro.'+id+'"').length-1,1,lang+':'+id);
  }
+});
+
+test('WASM Pro uses an isolated browser EIP-1193 wallet without localhost listener',()=>{
+ const bridge=read('ui/app/identity/browser_pro_wallet.hpp');
+ const app=read('ui/app/main.cpp');
+ const checkout=read('ui/app/identity/pro_checkout.cpp');
+ assert.match(app,/genycaster::ui::identity::BrowserProWallet proBrowserWallet\{proCheckout\}/);
+ assert.match(bridge,/window\.ethereum\.request/);
+ for(const method of ['eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','eth_sendTransaction'])
+   assert.match(bridge,new RegExp(method));
+ assert.match(bridge,/state\.pending\.add\(id\)/);
+ assert.match(bridge,/completion\(object\.value/);
+ assert.doesNotMatch(bridge,/127\.0\.0\.1|localhost|privateKey|mnemonic|seedPhrase/);
+ assert.match(checkout,/emit transactionSubmitted\(m_quoteId,hash\)/);
+ assert.match(app,/ProCheckoutController::transactionSubmitted,[\s\S]*?OpenProofConnectionsController::verifyProPaymentForQuote/);
 });

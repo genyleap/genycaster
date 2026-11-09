@@ -6988,10 +6988,6 @@ Company | https://company.com</source>
             <source>Pro subscription active</source>
             <translation>Pro 구독 활성화됨</translation>
         </message>
-        <message id="genycaster.pro.status_unavailable">
-            <source>Status unavailable</source>
-            <translation>상태를 확인할 수 없음</translation>
-        </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
             <translation>Mini App 동시 실행</translation>
@@ -7236,10 +7232,6 @@ Company | https://company.com</source>
             <source>Refresh price</source>
             <translation>가격 새로고침</translation>
         </message>
-        <message id="genycaster.pro.payment_identity_pending">
-            <source>Payment account verification required</source>
-            <translation>결제 계정 인증이 필요합니다</translation>
-        </message>
         <message id="genycaster.pro.restoring_payment_session">
             <source>Restoring secure payment session…</source>
             <translation>보안 결제 세션 복원 중…</translation>
@@ -7256,6 +7248,110 @@ Company | https://company.com</source>
             <source>Verify with Farcaster</source>
             <translation>Farcaster로 인증</translation>
         </message>
+        <message id="genycaster.pro.checkout_done">
+            <source>Done</source>
+            <translation>완료</translation>
+        </message>
+        <message id="genycaster.pro.checkout_continue">
+            <source>Continue</source>
+            <translation>계속</translation>
+        </message>
+        <message id="genycaster.pro.checkout_membership">
+            <source>Membership · 30 days</source>
+            <translation>멤버십 · 30일</translation>
+        </message>
+        <message id="genycaster.pro.checkout_payment">
+            <source>Secure checkout · Base</source>
+            <translation>안전한 결제 · Base</translation>
+        </message>
+        <message id="genycaster.pro.checkout_choose_currency">
+            <source>Choose how to pay</source>
+            <translation>결제 방법 선택</translation>
+        </message>
+        <message id="genycaster.pro.checkout_selected">
+            <source>Selected</source>
+            <translation>선택됨</translation>
+        </message>
+        <message id="genycaster.pro.checkout_usdc_hint">
+            <source>Pay $2.99 in native USDC on Base. No GENY needed.</source>
+            <translation>Base의 네이티브 USDC로 결제하세요. GENY가 필요 없습니다.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_geny_hint">
+            <source>Pay the live USD equivalent in GENY on Base.</source>
+            <translation>Base에서 달러 상당액을 GENY로 결제합니다.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_benefits">
+            <source>What’s included in Pro</source>
+            <translation>Pro 혜택</translation>
+        </message>
+        <message id="genycaster.pro.checkout_pay_amount">
+            <source>You’ll pay</source>
+            <translation>결제 금액</translation>
+        </message>
+        <message id="genycaster.pro.checkout_expires_in">
+            <source>Quote expires in %1</source>
+            <translation>견적 만료까지 %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_expired">
+            <source>Quote expired. Get a fresh price before paying.</source>
+            <translation>견적이 만료되었습니다. 결제 전에 새 견적을 받으세요.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_sender">
+            <source>Use a verified wallet: %1</source>
+            <translation>인증된 지갑 사용: %1</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirming">
+            <source>Payment submitted. Confirming on Base…</source>
+            <translation>결제 전송됨. Base 확인 대기 중…</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirmation_hint">
+            <source>You can close this panel. Pro unlocks after on-chain confirmation.</source>
+            <translation>이 화면을 닫아도 됩니다. 체인 확인 후 Pro가 활성화됩니다.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_cancelled">
+            <source>Wallet request cancelled. No payment was sent.</source>
+            <translation>지갑 요청이 취소되었습니다. 결제는 전송되지 않았습니다.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_mismatch">
+            <source>Choose a wallet verified for this Farcaster account.</source>
+            <translation>이 Farcaster 계정에서 인증된 지갑을 선택하세요.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_base_required">
+            <source>Switch your wallet to Base and try again.</source>
+            <translation>지갑 네트워크를 Base로 바꾸고 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_failure">
+            <source>Unable to complete the wallet request. Try again or use manual transfer.</source>
+            <translation>지갑 요청을 완료할 수 없습니다. 다시 시도하거나 수동 전송하세요.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_fallback">
+            <source>Use manual transfer instead</source>
+            <translation>수동 전송 사용</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_only">
+            <source>Manual wallet transfer</source>
+            <translation>수동 전송</translation>
+        </message>
+        <message id="genycaster.pro.checkout_gas_note">
+            <source>Network: Base · Gas paid in ETH · No automatic renewal</source>
+            <translation>네트워크: Base · ETH 가스비 · 자동 갱신 없음</translation>
+        </message>
+        <message id="genycaster.pro.checkout_check_payment">
+            <source>Check payment</source>
+            <translation>결제 확인</translation>
+        </message>
+        <message id="genycaster.pro.checkout_new_quote">
+            <source>Get fresh quote</source>
+            <translation>새 견적 받기</translation>
+        </message>
+        <message id="genycaster.pro.checkout_open_wallet">
+            <source>Continue in wallet</source>
+            <translation>지갑에서 계속</translation>
+        </message>
+        <message id="genycaster.pro.checkout_change_method">
+            <source>Change method</source>
+            <translation>방법 변경</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1달러 / 월</translation>
@@ -7267,14 +7363,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.active_until">
             <source>Active until %1</source>
             <translation>%1까지 활성</translation>
-        </message>
-        <message id="genycaster.pro.quote_label">
-            <source>GENY payment quote · Base</source>
-            <translation>GENY 결제 견적 · Base</translation>
-        </message>
-        <message id="genycaster.pro.payer_wallet">
-            <source>Pay from verified wallet: %1</source>
-            <translation>인증된 지갑에서 결제: %1</translation>
         </message>
         <message id="genycaster.pro.receiving_address">
             <source>Receiving address on Base</source>
@@ -7288,10 +7376,6 @@ Company | https://company.com</source>
             <source>Copy recipient</source>
             <translation>수신인 복사</translation>
         </message>
-        <message id="genycaster.pro.quote_expiry">
-            <source>Quote valid until %1</source>
-            <translation>견적 유효 기간: %1</translation>
-        </message>
         <message id="genycaster.pro.payment_instructions">
             <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
             <translation>이 계정에 인증된 지갑에서 Base 네트워크로 견적에 표시된 정확한 GENY 수량을 전송하세요. 가스비는 ETH로 낸 뒤 거래 해시를 입력하세요. 견적 만료 후에는 전송하지 마세요.</translation>
@@ -7304,10 +7388,6 @@ Company | https://company.com</source>
             <source>Verify payment</source>
             <translation>결제 확인</translation>
         </message>
-        <message id="genycaster.pro.payment_pending">
-            <source>Waiting for Base confirmations. Check again shortly.</source>
-            <translation>Base 승인 대기 중입니다. 잠시 후 다시 확인하세요.</translation>
-        </message>
         <message id="genycaster.pro.billing_error">
             <source>Payment is not verified. No Pro access was granted.</source>
             <translation>결제가 확인되지 않아 Pro가 활성화되지 않았습니다.</translation>
@@ -7315,10 +7395,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.payment_unavailable">
             <source>GENY payments are not configured on the server yet.</source>
             <translation>서버에 GENY 결제가 아직 설정되지 않았습니다.</translation>
-        </message>
-        <message id="genycaster.pro.get_quote">
-            <source>Get GENY quote</source>
-            <translation>GENY 결제 견적 받기</translation>
         </message>
     </context>
 </TS>

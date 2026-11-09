@@ -276,6 +276,15 @@ int main(int argc, char** argv)
             property var bookmarkedCastIds: []
             property string errorText: ""
             property string launchUrl: ""
+            property bool walletBrowserPickerActive: false
+            property bool walletBrowserWaiting: false
+            property string walletBrowserAppName: ""
+            property string walletBrowserOrigin: ""
+            property string walletBrowserError: ""
+            property var walletBrowserOptions: []
+            signal walletBrowserPickerChanged()
+            function chooseWalletBrowser(id) {}
+            function cancelWalletBrowser() {}
             property var myApps: []
             property var explorerApps: []
             signal previewReady(string url, var preview)
@@ -294,6 +303,21 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("linkPreviewResolver"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppTaskManager"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppHost"), previewServices.get());
+    context->setContextProperty(QStringLiteral("proWalletHost"), previewServices.get());
+    auto proCheckout = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property bool walletAvailable: false
+            property bool busy: false
+            property string phase: ""
+            property string error: ""
+            property string txHash: ""
+            function pay() {}
+            function cancel() {}
+        }
+    )");
+    if (!proCheckout) return 1;
+    context->setContextProperty(QStringLiteral("proCheckout"), proCheckout.get());
     context->setContextProperty(QStringLiteral("miniAppCatalog"), previewServices.get());
     context->setContextProperty(QStringLiteral("presentationBridge"), previewServices.get());
     auto mediaUpload = createInline(engine, R"(
@@ -396,6 +420,15 @@ int main(int argc, char** argv)
             property string error: ""
             property string cloudError: ""
             property bool cloudAuthorizationReady: false
+            property bool cloudSessionBusy: false
+            property int activeAccountFid: 0
+            property var proPlan: ({})
+            property var proEntitlements: ({})
+            property var proPaymentQuote: ({})
+            property bool proBillingBusy: false
+            property bool proPlanBusy: false
+            property bool proEntitlementsBusy: false
+            property string proBillingError: ""
             property bool cloudServiceAvailable: false
             property bool cloudBusy: false
             property bool cachedSnapshot: false
@@ -416,6 +449,10 @@ int main(int argc, char** argv)
             function fetchStreak() {}
             function fetchStreakPreferences() {}
             function fetchProEntitlements() {}
+            function retryProEntitlements() {}
+            function fetchProPlan() {}
+            function requestProPaymentQuote(asset) {}
+            function verifyProPayment(hash) {}
             function openConsent() {}
             function refresh() {}
             function authorizeAccount() {}

@@ -6993,10 +6993,6 @@ Company | https://company.com</translation>
             <source>Pro subscription active</source>
             <translation>Pro subscription active</translation>
         </message>
-        <message id="genycaster.pro.status_unavailable">
-            <source>Status unavailable</source>
-            <translation>Status unavailable</translation>
-        </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
             <translation>Mini App multitasking</translation>
@@ -7237,10 +7233,6 @@ Company | https://company.com</translation>
             <source>Refresh price</source>
             <translation>Refresh price</translation>
         </message>
-        <message id="genycaster.pro.payment_identity_pending">
-            <source>Payment account verification required</source>
-            <translation>Payment account verification required</translation>
-        </message>
         <message id="genycaster.pro.restoring_payment_session">
             <source>Restoring secure payment session…</source>
             <translation>Restoring secure payment session…</translation>
@@ -7257,6 +7249,110 @@ Company | https://company.com</translation>
             <source>Verify with Farcaster</source>
             <translation>Verify with Farcaster</translation>
         </message>
+        <message id="genycaster.pro.checkout_done">
+            <source>Done</source>
+            <translation>Done</translation>
+        </message>
+        <message id="genycaster.pro.checkout_continue">
+            <source>Continue</source>
+            <translation>Continue</translation>
+        </message>
+        <message id="genycaster.pro.checkout_membership">
+            <source>Membership · 30 days</source>
+            <translation>Membership · 30 days</translation>
+        </message>
+        <message id="genycaster.pro.checkout_payment">
+            <source>Secure checkout · Base</source>
+            <translation>Secure checkout · Base</translation>
+        </message>
+        <message id="genycaster.pro.checkout_choose_currency">
+            <source>Choose how to pay</source>
+            <translation>Choose how to pay</translation>
+        </message>
+        <message id="genycaster.pro.checkout_selected">
+            <source>Selected</source>
+            <translation>Selected</translation>
+        </message>
+        <message id="genycaster.pro.checkout_usdc_hint">
+            <source>Pay $2.99 in native USDC on Base. No GENY needed.</source>
+            <translation>Pay $2.99 in native USDC on Base. No GENY needed.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_geny_hint">
+            <source>Pay the live USD equivalent in GENY on Base.</source>
+            <translation>Pay the live USD equivalent in GENY on Base.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_benefits">
+            <source>What’s included in Pro</source>
+            <translation>What’s included in Pro</translation>
+        </message>
+        <message id="genycaster.pro.checkout_pay_amount">
+            <source>You’ll pay</source>
+            <translation>You’ll pay</translation>
+        </message>
+        <message id="genycaster.pro.checkout_expires_in">
+            <source>Quote expires in %1</source>
+            <translation>Quote expires in %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_expired">
+            <source>Quote expired. Get a fresh price before paying.</source>
+            <translation>Quote expired. Get a fresh price before paying.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_sender">
+            <source>Use a verified wallet: %1</source>
+            <translation>Use a verified wallet: %1</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirming">
+            <source>Payment submitted. Confirming on Base…</source>
+            <translation>Payment submitted. Confirming on Base…</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirmation_hint">
+            <source>You can close this panel. Pro unlocks after on-chain confirmation.</source>
+            <translation>You can close this panel. Pro unlocks after on-chain confirmation.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_cancelled">
+            <source>Wallet request cancelled. No payment was sent.</source>
+            <translation>Wallet request cancelled. No payment was sent.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_mismatch">
+            <source>Choose a wallet verified for this Farcaster account.</source>
+            <translation>Choose a wallet verified for this Farcaster account.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_base_required">
+            <source>Switch your wallet to Base and try again.</source>
+            <translation>Switch your wallet to Base and try again.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_failure">
+            <source>Unable to complete the wallet request. Try again or use manual transfer.</source>
+            <translation>Unable to complete the wallet request. Try again or use manual transfer.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_fallback">
+            <source>Use manual transfer instead</source>
+            <translation>Use manual transfer instead</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_only">
+            <source>Manual wallet transfer</source>
+            <translation>Manual wallet transfer</translation>
+        </message>
+        <message id="genycaster.pro.checkout_gas_note">
+            <source>Network: Base · Gas paid in ETH · No automatic renewal</source>
+            <translation>Network: Base · Gas paid in ETH · No automatic renewal</translation>
+        </message>
+        <message id="genycaster.pro.checkout_check_payment">
+            <source>Check payment</source>
+            <translation>Check payment</translation>
+        </message>
+        <message id="genycaster.pro.checkout_new_quote">
+            <source>Get fresh quote</source>
+            <translation>Get fresh quote</translation>
+        </message>
+        <message id="genycaster.pro.checkout_open_wallet">
+            <source>Continue in wallet</source>
+            <translation>Continue in wallet</translation>
+        </message>
+        <message id="genycaster.pro.checkout_change_method">
+            <source>Change method</source>
+            <translation>Change method</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>$%1 / month</translation>
@@ -7268,14 +7364,6 @@ Company | https://company.com</translation>
         <message id="genycaster.pro.active_until">
             <source>Active until %1</source>
             <translation>Active until %1</translation>
-        </message>
-        <message id="genycaster.pro.quote_label">
-            <source>GENY payment quote · Base</source>
-            <translation>GENY payment quote · Base</translation>
-        </message>
-        <message id="genycaster.pro.payer_wallet">
-            <source>Pay from verified wallet: %1</source>
-            <translation>Pay from verified wallet: %1</translation>
         </message>
         <message id="genycaster.pro.receiving_address">
             <source>Receiving address on Base</source>
@@ -7289,10 +7377,6 @@ Company | https://company.com</translation>
             <source>Copy recipient</source>
             <translation>Copy recipient</translation>
         </message>
-        <message id="genycaster.pro.quote_expiry">
-            <source>Quote valid until %1</source>
-            <translation>Quote valid until %1</translation>
-        </message>
         <message id="genycaster.pro.payment_instructions">
             <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
             <translation>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</translation>
@@ -7305,10 +7389,6 @@ Company | https://company.com</translation>
             <source>Verify payment</source>
             <translation>Verify payment</translation>
         </message>
-        <message id="genycaster.pro.payment_pending">
-            <source>Waiting for Base confirmations. Check again shortly.</source>
-            <translation>Waiting for Base confirmations. Check again shortly.</translation>
-        </message>
         <message id="genycaster.pro.billing_error">
             <source>Payment is not verified. No Pro access was granted.</source>
             <translation>Payment is not verified. No Pro access was granted.</translation>
@@ -7316,10 +7396,6 @@ Company | https://company.com</translation>
         <message id="genycaster.pro.payment_unavailable">
             <source>GENY payments are not configured on the server yet.</source>
             <translation>GENY payments are not configured on the server yet.</translation>
-        </message>
-        <message id="genycaster.pro.get_quote">
-            <source>Get GENY quote</source>
-            <translation>Get GENY quote</translation>
         </message>
     </context>
 </TS>

@@ -8,6 +8,7 @@ import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
 import {createGenyAssetsPolicy,evaluateGenyAssets,verifiedFarcasterWallets} from './geny_assets.mjs';
 import {createProBillingPolicy,createProRateReader,createProTokenVerifier,createProQuote,
+  proPaymentAsset,quoteAsset,formatTokenAmount,
   formatGeny,subscriptionEntitlements,verifyProTransfer} from './pro_billing.mjs';
 import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
@@ -568,7 +569,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         price_usd_cents:billingPolicy.monthlyUsdCents,
         period_days:billingPolicy.periodDays,
         chain_id:billingPolicy.chainId,
-        token_symbol:'GENY',
+        token_symbol:'GENY',payment_assets:['GENY','USDC'],
         payment_available:Boolean(billingPolicy.enabled && store.proBillingReady?.()),
         billing_mode:'monthly_payment'
       }});
@@ -709,8 +710,12 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           respond(response,415,{error:'unsupported_media_type'});return true;
         }
         const input=await readBody(request,128);
-        if(!input || Array.isArray(input) || Object.keys(input).length!==0) {
+        if(!input || Array.isArray(input) || Object.keys(input).some(x=>x!=='asset')) {
           respond(response,400,{error:'invalid_quote_request'});return true;
+        }
+        const asset=input.asset===undefined?'GENY':input.asset;
+        if(asset!=='GENY' && asset!=='USDC') {
+          respond(response,400,{error:'unsupported_payment_asset'});return true;
         }
         let payerWallets;
         try {
@@ -723,9 +728,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         let quote;
         try {
-          await checkProToken(billingPolicy);
-          const rate=await readGenyRate();
-          quote=createProQuote({policy:billingPolicy,rate});
+          await checkProToken(billingPolicy,asset);
+          const rate=asset==='GENY'?await readGenyRate():null;
+          quote=createProQuote({policy:billingPolicy,rate,asset});
         }catch {
           respond(response,503,{error:'billing_rate_unavailable'});return true;
         }
@@ -733,9 +738,11 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(!stored) {respond(response,429,{error:'too_many_pending_quotes'});return true;}
         respond(response,201,{quote:{
           id:stored.id,price_usd_cents:stored.price_usd_cents,
+          asset:quoteAsset(stored),decimals:proPaymentAsset(quoteAsset(stored)).decimals,
           token:stored.token,treasury:stored.treasury,
           chain_id:stored.chain_id,amount_base_units:stored.amount_base_units,
-          amount_geny:formatGeny(BigInt(stored.amount_base_units)),
+          amount_geny:formatTokenAmount(BigInt(stored.amount_base_units),
+            proPaymentAsset(quoteAsset(stored)).decimals),
           geny_price_usd:stored.geny_price_usd,
           created_at:stored.created_at,expires_at:stored.expires_at,
           period_days:30,verified_payers:payerWallets.slice(0,100)
@@ -768,7 +775,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           }
           respond(response,409,{error:'quote_already_paid'});return true;
         }
-        if(quote.token!==billingPolicy.token || quote.chain_id!==billingPolicy.chainId
+        if(!['GENY','USDC'].some(asset=>quote.token===proPaymentAsset(asset).token)
+            || quote.chain_id!==billingPolicy.chainId
             || quote.treasury!==billingPolicy.treasury) {
           respond(response,409,{error:'billing_policy_changed'});return true;
         }

@@ -6988,10 +6988,6 @@ Company | https://company.com</source>
             <source>Pro subscription active</source>
             <translation>Pro 订阅已激活</translation>
         </message>
-        <message id="genycaster.pro.status_unavailable">
-            <source>Status unavailable</source>
-            <translation>状态暂不可用</translation>
-        </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
             <translation>同时运行多个 Mini App</translation>
@@ -7236,10 +7232,6 @@ Company | https://company.com</source>
             <source>Refresh price</source>
             <translation>刷新价格</translation>
         </message>
-        <message id="genycaster.pro.payment_identity_pending">
-            <source>Payment account verification required</source>
-            <translation>需要验证付款账户</translation>
-        </message>
         <message id="genycaster.pro.restoring_payment_session">
             <source>Restoring secure payment session…</source>
             <translation>正在恢复安全付款会话…</translation>
@@ -7256,6 +7248,110 @@ Company | https://company.com</source>
             <source>Verify with Farcaster</source>
             <translation>通过 Farcaster 验证</translation>
         </message>
+        <message id="genycaster.pro.checkout_done">
+            <source>Done</source>
+            <translation>完成</translation>
+        </message>
+        <message id="genycaster.pro.checkout_continue">
+            <source>Continue</source>
+            <translation>继续</translation>
+        </message>
+        <message id="genycaster.pro.checkout_membership">
+            <source>Membership · 30 days</source>
+            <translation>会员资格 · 30 天</translation>
+        </message>
+        <message id="genycaster.pro.checkout_payment">
+            <source>Secure checkout · Base</source>
+            <translation>安全支付 · Base</translation>
+        </message>
+        <message id="genycaster.pro.checkout_choose_currency">
+            <source>Choose how to pay</source>
+            <translation>选择付款方式</translation>
+        </message>
+        <message id="genycaster.pro.checkout_selected">
+            <source>Selected</source>
+            <translation>已选择</translation>
+        </message>
+        <message id="genycaster.pro.checkout_usdc_hint">
+            <source>Pay $2.99 in native USDC on Base. No GENY needed.</source>
+            <translation>使用 Base 原生 USDC 支付，无需持有 GENY。</translation>
+        </message>
+        <message id="genycaster.pro.checkout_geny_hint">
+            <source>Pay the live USD equivalent in GENY on Base.</source>
+            <translation>在 Base 上按当前美元等值使用 GENY 支付。</translation>
+        </message>
+        <message id="genycaster.pro.checkout_benefits">
+            <source>What’s included in Pro</source>
+            <translation>Pro 会员权益</translation>
+        </message>
+        <message id="genycaster.pro.checkout_pay_amount">
+            <source>You’ll pay</source>
+            <translation>应付金额</translation>
+        </message>
+        <message id="genycaster.pro.checkout_expires_in">
+            <source>Quote expires in %1</source>
+            <translation>报价还有 %1 过期</translation>
+        </message>
+        <message id="genycaster.pro.quote_expired">
+            <source>Quote expired. Get a fresh price before paying.</source>
+            <translation>报价已过期，请在付款前重新获取报价。</translation>
+        </message>
+        <message id="genycaster.pro.checkout_sender">
+            <source>Use a verified wallet: %1</source>
+            <translation>使用已验证钱包：%1</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirming">
+            <source>Payment submitted. Confirming on Base…</source>
+            <translation>交易已提交，正在 Base 上确认…</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirmation_hint">
+            <source>You can close this panel. Pro unlocks after on-chain confirmation.</source>
+            <translation>可以关闭此窗口，链上确认后会自动激活 Pro。</translation>
+        </message>
+        <message id="genycaster.pro.wallet_cancelled">
+            <source>Wallet request cancelled. No payment was sent.</source>
+            <translation>钱包请求已取消，未发送付款。</translation>
+        </message>
+        <message id="genycaster.pro.wallet_mismatch">
+            <source>Choose a wallet verified for this Farcaster account.</source>
+            <translation>请选择已关联到此 Farcaster 账户的钱包。</translation>
+        </message>
+        <message id="genycaster.pro.wallet_base_required">
+            <source>Switch your wallet to Base and try again.</source>
+            <translation>请将钱包切换到 Base 网络并重试。</translation>
+        </message>
+        <message id="genycaster.pro.wallet_failure">
+            <source>Unable to complete the wallet request. Try again or use manual transfer.</source>
+            <translation>钱包操作失败，请重试或手动转账。</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_fallback">
+            <source>Use manual transfer instead</source>
+            <translation>改用手动转账</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_only">
+            <source>Manual wallet transfer</source>
+            <translation>手动转账</translation>
+        </message>
+        <message id="genycaster.pro.checkout_gas_note">
+            <source>Network: Base · Gas paid in ETH · No automatic renewal</source>
+            <translation>网络：Base · ETH 燃气费 · 不自动续费</translation>
+        </message>
+        <message id="genycaster.pro.checkout_check_payment">
+            <source>Check payment</source>
+            <translation>检查付款</translation>
+        </message>
+        <message id="genycaster.pro.checkout_new_quote">
+            <source>Get fresh quote</source>
+            <translation>获取新报价</translation>
+        </message>
+        <message id="genycaster.pro.checkout_open_wallet">
+            <source>Continue in wallet</source>
+            <translation>在钱包中继续</translation>
+        </message>
+        <message id="genycaster.pro.checkout_change_method">
+            <source>Change method</source>
+            <translation>更改方式</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 美元 / 月</translation>
@@ -7267,14 +7363,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.active_until">
             <source>Active until %1</source>
             <translation>有效期至 %1</translation>
-        </message>
-        <message id="genycaster.pro.quote_label">
-            <source>GENY payment quote · Base</source>
-            <translation>GENY 支付报价 · Base</translation>
-        </message>
-        <message id="genycaster.pro.payer_wallet">
-            <source>Pay from verified wallet: %1</source>
-            <translation>使用已验证的钱包付款：%1</translation>
         </message>
         <message id="genycaster.pro.receiving_address">
             <source>Receiving address on Base</source>
@@ -7288,10 +7376,6 @@ Company | https://company.com</source>
             <source>Copy recipient</source>
             <translation>复制收款地址</translation>
         </message>
-        <message id="genycaster.pro.quote_expiry">
-            <source>Quote valid until %1</source>
-            <translation>报价有效期至 %1</translation>
-        </message>
         <message id="genycaster.pro.payment_instructions">
             <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
             <translation>请使用与此账户关联的已验证钱包，在 Base 网络转账报价所示的准确 GENY 数量。矿工费使用 ETH 支付，然后输入交易哈希。报价过期后请勿转账。</translation>
@@ -7304,10 +7388,6 @@ Company | https://company.com</source>
             <source>Verify payment</source>
             <translation>验证付款</translation>
         </message>
-        <message id="genycaster.pro.payment_pending">
-            <source>Waiting for Base confirmations. Check again shortly.</source>
-            <translation>正在等待 Base 网络确认，请稍后重试。</translation>
-        </message>
         <message id="genycaster.pro.billing_error">
             <source>Payment is not verified. No Pro access was granted.</source>
             <translation>付款未通过验证，Pro 权限未激活。</translation>
@@ -7315,10 +7395,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.payment_unavailable">
             <source>GENY payments are not configured on the server yet.</source>
             <translation>服务器尚未配置 GENY 付款。</translation>
-        </message>
-        <message id="genycaster.pro.get_quote">
-            <source>Get GENY quote</source>
-            <translation>获取 GENY 报价</translation>
         </message>
     </context>
 </TS>

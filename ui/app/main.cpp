@@ -98,6 +98,10 @@
 #include "media/remote_image.hpp"
 #include "identity/browser_auth.hpp"
 #include "identity/connections.hpp"
+#include "identity/pro_checkout.hpp"
+#if defined(Q_OS_WASM)
+#include "identity/browser_pro_wallet.hpp"
+#endif
 #include "social/activity.hpp"
 #if defined(Q_OS_WASM)
 #include "browser/signer_bridge.hpp"
@@ -502,12 +506,14 @@ int main(int argc, char* argv[])
     std::unique_ptr<ProviderProfilesController> providerProfilesControllerOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
+    std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
     std::unique_ptr<ChannelPickerController> channelPickerControllerOwner{};
     std::unique_ptr<MiniAppTaskManagerController> miniAppTaskManagerControllerOwner{};
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
+    std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> proWalletBridgeOwner{};
 #endif
 #if GENYCASTER_HAS_MINIAPP_HOST
     std::unique_ptr<farcaster::runtime::miniapp::MiniAppRuntime> miniAppRuntimeOwner{};
@@ -674,6 +680,8 @@ int main(int argc, char* argv[])
     miniAppHostControllerOwner = std::make_unique<MiniAppHostController>(
         miniAppLaunchAvailable, settings);
     MiniAppHostController& miniAppHost = *miniAppHostControllerOwner;
+    proWalletHostOwner = std::make_unique<MiniAppHostController>(true, settings);
+    MiniAppHostController& proWalletHost = *proWalletHostOwner;
     mediaWebHostControllerOwner = std::make_unique<MediaWebHostController>(
         GENYCASTER_HAS_MINIAPP_HOST != 0, QUrl{siwfUriText});
     MediaWebHostController& mediaWebHost = *mediaWebHostControllerOwner;
@@ -895,6 +903,88 @@ int main(int argc, char* argv[])
     genycaster::ui::bootstrap::exposeFontFamilies(engine, fontFamilies);
     GenyPulseActivityController genyPulseActivity;
     OpenProofConnectionsController openProofConnections{nullptr, &settings};
+    ProCheckoutController proCheckout{openProofConnections};
+#if defined(Q_OS_WASM)
+    genycaster::ui::identity::BrowserProWallet proBrowserWallet{proCheckout};
+#endif
+#if FARCASTER_HAS_MINIAPP_EVM_WALLET
+    // Checkout has a separate, first-party, ephemeral wallet session.
+    // Mini App origins, permissions and pending requests never cross into Pro.
+    {
+        auto checkoutBridge = farcaster::provider::compatibility::browser_wallet::bridge::makeBridge({
+            .launch = [host=QPointer<MiniAppHostController>{&proWalletHost}]
+                (const std::string& url) -> foundation::result::Status {
+                if (!host) {
+                    return std::unexpected(foundation::error::Error::make(
+                        foundation::error::ErrorCode::Unavailable,
+                        "GenyCaster Pro wallet chooser is unavailable."));
+                }
+                const QString localUrl = QString::fromStdString(url);
+                QMetaObject::invokeMethod(host, [host,localUrl] {
+                    if (host) host->requestWalletBrowser(localUrl);
+                }, Qt::QueuedConnection);
+                return {};
+            },
+            .supportedChains = {"eip155:8453"}
+        });
+        if (checkoutBridge) {
+            proWalletBridgeOwner = std::move(*checkoutBridge);
+            auto* bridge = proWalletBridgeOwner.get();
+            auto sequence = std::make_shared<std::atomic<std::uint64_t>>(0);
+            proCheckout.setWalletTransport(
+                [bridge,&proWalletHost] {
+                    proWalletHost.setWalletBrowserContext(
+                        QStringLiteral("GenyCaster Pro"),
+                        QStringLiteral("https://caster.genyleap.com"));
+                    const auto session=bridge->beginSession(
+                        "GenyCaster Pro","https://caster.genyleap.com");
+                    if (!session) proWalletHost.walletBrowserSessionEnded();
+                    return session.has_value();
+                },
+                [bridge,&proWalletHost,sequence](
+                    QString method,QJsonArray params,ProCheckoutController::RpcComplete complete) {
+                    const auto data=QJsonDocument{params}.toJson(QJsonDocument::Compact);
+                    bridge->request({
+                        .id = ++(*sequence),
+                        .method = method.toStdString(),
+                        .paramsJson = data.toStdString()
+                    }, [host=QPointer<MiniAppHostController>{&proWalletHost},
+                        complete=std::move(complete)](
+                            farcaster::capability::wallet::EthereumRpcResponse response) mutable {
+                        const bool success=!response.error.has_value();
+                        if (host)
+                            QMetaObject::invokeMethod(host, [host,success] {
+                                if (host)host->walletBrowserRequestFinished(success);
+                            },Qt::QueuedConnection);
+                        if (!success) {
+                            complete({},response.error->code==4001
+                                ? QStringLiteral("wallet_rejected")
+                                : QStringLiteral("wallet_failed"));
+                            return;
+                        }
+                        const QByteArray encoded=QByteArray::fromStdString(response.resultJson);
+                        const auto parsed=QJsonDocument::fromJson(
+                            QByteArrayLiteral("[")+encoded+QByteArrayLiteral("]"));
+                        if (!parsed.isArray() || parsed.array().isEmpty()) {
+                            complete({},QStringLiteral("wallet_invalid_response"));
+                            return;
+                        }
+                        complete(parsed.array().first(),{});
+                    });
+                },
+                [bridge,&proWalletHost] {
+                    bridge->endSession();
+                    proWalletHost.walletBrowserSessionEnded();
+                });
+        }
+    }
+    QObject::connect(&proWalletHost,
+                     &MiniAppHostController::walletBrowserCancelRequested,
+                     &proCheckout, &ProCheckoutController::cancel);
+#endif
+    QObject::connect(&proCheckout, &ProCheckoutController::transactionSubmitted,
+                     &openProofConnections, &OpenProofConnectionsController::verifyProPaymentForQuote);
+
     genyPulseActivity.setAccountConnections(&openProofConnections);
     // The market cap follows a server-verified GENY balance, never the
     // client's public market-info estimate or a QML-supplied wallet.
@@ -1040,6 +1130,8 @@ int main(int argc, char* argv[])
     if (!genycaster::ui::bootstrap::exposeControllers(engine, {
         {"genyPulseActivity", &genyPulseActivity},
         {"openProofConnections", &openProofConnections},
+        {"proCheckout", &proCheckout},
+        {"proWalletHost", &proWalletHost},
         {"presentationBridge", &presentationBridge},
         {"channelDirectory", &channelPickerController},
         {"dataStorage", &dataStorageController},

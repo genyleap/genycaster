@@ -308,14 +308,16 @@ attribution, subscription and redistribution requirements.
 
 ## Paid Pro subscription — server-owned billing
 
-Responsibility: authenticate and renew 30-day Pro subscriptions with GENY paid on
-Base, **without using wallet holdings as membership authorization**.
+Responsibility: authenticate and renew 30-day Pro subscriptions paid in GENY
+or native Circle USDC on Base, **without using wallet holdings as membership
+authorization**.
 Capability origin: GenyCaster product extension (not HyperSnap/Snapchain
 protocol-signing authority). Optional: users can continue using Basic offline.
 Public contract: unauthenticated, read-only `GET /api/v1/cloud/pro/plan`
 for the current USD price and period (no treasury address or membership data);
 authenticated `GET /api/v1/cloud/entitlements`,
-`POST /api/v1/cloud/pro/quote` with `{}`, and
+`POST /api/v1/cloud/pro/quote` with `{asset:"GENY"|"USDC"}` (defaults to GENY
+for older clients), and
 `POST /api/v1/cloud/pro/verify` with `{quote_id,tx_hash}`.
 Canonical data: PostgreSQL `pro_quotes`, `pro_payments`, and
 `pro_subscriptions` introduced by migration
@@ -325,7 +327,7 @@ product database is the subscription entitlement source.
 
 - `GENYCASTER_PRO_MONTHLY_USD_CENTS=299` is the **server-only price**.
   Operators may change it and restart the account service; existing quotes
-  retain their original snapshotted USD price and GENY amount. The client cannot
+  retain their original snapshotted USD price and token amount. The client cannot
   supply, override, or calculate the authorized price.
 - `GENYCASTER_PRO_TREASURY_ADDRESS=0x...` is **required** to enable quote
   issuance; it must be a deliberate, independently controlled Base receiving
@@ -338,16 +340,22 @@ product database is the subscription entitlement source.
   The payable amount is rounded upward to at most six GENY decimal places to
   support manual transfers without short payments caused by wallet rounding.
   Payment gas is separate, paid in ETH, and never charged by GenyCaster.
-- The client may **only** show the quote, copy the exact amount and treasury
-  for transfer from a previously verified Base wallet, and submit a transaction
-  hash. It never exports a bearer token to JavaScript, constructs an unlimited
-  allowance, stores a seed phrase, or grants Pro from UI state. This is a
-  portable manual wallet flow; integrated EIP-1193/WalletConnect submission can
-  be added later as a distinct, opt-in platform adapter.
+- Native clients with the EIP-1193 browser-wallet bridge enabled provide a
+  dedicated, first-party, ephemeral payment wallet session, isolated from
+  Mini App sessions and permissions. The user selects GENY or USDC, approves
+  account access, Base chain selection if necessary and the exact ERC-20
+  `transfer` transaction in their own wallet. The returned transaction hash
+  is submitted automatically to the account API for receipt confirmation.
+  WebAssembly uses an independent, first-party, click-initiated injected
+  EIP-1193 provider; it does not open an inaccessible loopback bridge. A
+  browser without a wallet extension uses the explicit manual-transfer
+  fallback. No UI invokes a native signer secret, exports an account bearer to JavaScript,
+  creates an unlimited allowance, stores a seed phrase, or grants Pro locally.
 - The service independently fetches the current verified wallets for the
-  authenticated FID, checks Base chain ID, a successful receipt, the canonical
-  GENY `Transfer` log, exact quoted amount, configured receiver and a
-  verified payer, block timestamp within the quote, and **six confirmations**.
+  authenticated FID, checks Base chain ID, a successful receipt, the exact
+  canonical asset contract's `Transfer` log, quoted amount, receiver and
+  verified payer, block timestamp within the bounded quote settlement window,
+  and **six confirmations**.
   Pending/missing/reverted/wrong-wallet payments never grant access.
 - PostgreSQL applies a single transactional activation with row locking,
   a globally unique transaction hash, a unique quote ID and owner-scoped
@@ -357,6 +365,12 @@ product database is the subscription entitlement source.
   Expiry is time-based; GENY holdings, UI caches and user-submitted claims
   are not eligibility proof. Missing migration, unavailable exchange rate,
   missing merchant configuration or unverifiable payment fails closed.
+- Native USDC is the Circle Base ERC-20 contract
+  `0x833589fCD6eDb6E08f4c7C32D4f71b54bDA02913` (6 decimals); bridged
+  USDbC is deliberately unsupported. The USDC nominal amount equals the
+  configured USD price, using integer cents-to-micro-units (299 cents =
+  2.990000 USDC). It does not depend on the GENY oracle. Token-contract
+  verification must succeed on the correct Base RPC before a quote is issued.
 - There is no automatic renewal, no direct debit and no recurring allowance.
   A retired token-holder threshold does not silently grandfather account
   privileges. Any transition grants must be explicit and audited separately.

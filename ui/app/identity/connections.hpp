@@ -187,10 +187,13 @@ public:
     [[nodiscard]] QString proBillingError() const { return m_proBillingError; }
 
     /** @brief Obtain a signed-account, time-limited USD-priced GENY quote. */
-    Q_INVOKABLE void requestProPaymentQuote();
+    Q_INVOKABLE void requestProPaymentQuote(const QString& asset = QStringLiteral("GENY"));
 
     /** @brief Verify an external-wallet Base transaction; never signs locally. */
     Q_INVOKABLE void verifyProPayment(const QString& transactionHash);
+
+    /** @brief Verify an immutable quote-to-transaction binding from trusted checkout. */
+    void verifyProPaymentForQuote(const QString& quoteId, const QString& transactionHash);
 
     /** @brief Recover the existing account session, then refresh server Pro.
      * Never provisions a signer, prompts custody, or grants a local Pro tier. */
@@ -414,6 +417,10 @@ private:
     QVariantMap m_proQuote{};
     qulonglong m_proQuoteFid{};
     QString m_proBillingError{};
+    QString m_pendingProPaymentHash{};
+    QString m_pendingProPaymentQuoteId{};
+    QTimer m_proPaymentPoll{};
+    int m_proPaymentChecks{};
     QVariantMap m_proEntitlements{};
     qulonglong m_proEntitlementsFid{};
     qint64 m_proEntitlementsFetchedAt{};

@@ -3,68 +3,158 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Product-owned Pro explainer. It never upgrades an account locally:
-// membership and wallet balances are verified by the account service.
+// A two-stage first-party purchase sheet. The server signs neither UI state nor
+// an amount supplied by the client: only its owner-scoped quote is payable.
 GenyDrawer {
     id: root
     objectName: "genyProDetailsDrawer"
     property bool compact: false
     signal accountRequested()
-    // A signed-in Farcaster/OpenProof application identity is distinct from
-    // the independently verified account-server payment session.
+    property string selectedAsset: "GENY"
+    property bool checkoutOpen: false
+    property string displayedQuoteId: ""
+    property bool showBenefits: false
+    property bool manualExpanded: false
+    property string paymentHash: ""
+    property int expandedFeature: -1
+    property double quoteNowMs: Date.now()
+    property bool startedVerification: false
+
+    readonly property var plan: openProofConnections
+        ? (openProofConnections.proPlan || ({})) : ({})
+    readonly property var membership: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property var paymentQuote: openProofConnections
+        ? (openProofConnections.proPaymentQuote || ({})) : ({})
+    readonly property bool eligible: membership.status === "verified"
+        && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
-        && presentationBridge.isAuthenticated
-        && openProofConnections
+        && presentationBridge.isAuthenticated && openProofConnections
         && Number(presentationBridge.accountFid || 0) > 0
         && Number(presentationBridge.accountFid)
             === Number(openProofConnections.activeAccountFid || 0)
+    readonly property bool cloudReady: openProofConnections
+        && openProofConnections.cloudAuthorizationReady
+        && Number(openProofConnections.activeAccountFid || 0) > 0
     readonly property bool restoringSession: openProofConnections
         && openProofConnections.cloudSessionBusy
     readonly property bool verifyingIdentity: openProofConnections
         && openProofConnections.authorizing
-    property bool startedVerification: false
-    readonly property var plan: openProofConnections
-        ? (openProofConnections.proPlan || ({})) : ({})
-    readonly property bool cloudReady: openProofConnections
-        && openProofConnections.cloudAuthorizationReady
-        && Number(openProofConnections.activeAccountFid || 0) > 0
-    readonly property bool canRequestQuote: cloudReady
-        && openProofConnections && !openProofConnections.proPlanBusy
-        && monthlyUsdCents > 0 && plan.payment_available === true
-    readonly property var membership: openProofConnections
-        ? (openProofConnections.proEntitlements || ({})) : ({})
-    readonly property bool eligible: membership.status === "verified"
-                                     && membership.tier === "pro"
-                                     && membership.eligible === true
-    readonly property var paymentQuote: openProofConnections
-        ? (openProofConnections.proPaymentQuote || ({})) : ({})
     readonly property int monthlyUsdCents: Number(plan.price_usd_cents || 0)
     readonly property string monthlyUsd: monthlyUsdCents > 0
         ? (monthlyUsdCents / 100).toFixed(2) : "—"
-    property string paymentHash: ""
-    property double quoteNowMs: Date.now()
-    readonly property bool quoteValid: Boolean(paymentQuote.id)
-        && new Date(paymentQuote.expires_at).getTime() > quoteNowMs
-    property int expandedFeature: -1
-    Timer {
-        interval: 1000
-        repeat: true
-        running: root.opened && Boolean(root.paymentQuote.id)
-        onTriggered: root.quoteNowMs = Date.now()
+    readonly property bool quotePresent: Boolean(paymentQuote.id)
+    readonly property bool checkoutActive: checkoutOpen && quotePresent && !eligible
+    readonly property string quoteAsset: String(paymentQuote.asset || "GENY")
+    readonly property bool quoteValid: quotePresent && remainingSeconds > 45
+    readonly property int remainingSeconds: Math.max(0, Math.ceil(
+        (new Date(paymentQuote.expires_at).getTime() - quoteNowMs) / 1000) || 0)
+    readonly property bool txSubmitted: proCheckout
+        && String(proCheckout.txHash || "").length === 66
+        && String(proCheckout.quoteId || "") === String(paymentQuote.id || "")
+    readonly property bool validPaymentHash: /^0x[0-9a-fA-F]{64}$/.test(paymentHash.trim())
+    readonly property bool canRequestQuote: cloudReady && openProofConnections
+        && !openProofConnections.proPlanBusy
+        && monthlyUsdCents > 0 && plan.payment_available === true
+    readonly property bool busy: (openProofConnections && openProofConnections.proBillingBusy)
+        || (proCheckout && proCheckout.busy)
+    readonly property string amountText: String(paymentQuote.amount_geny || "")
+        + " " + quoteAsset
+    readonly property bool walletAvailable: proCheckout && proCheckout.walletAvailable
+
+    function shortWallet(value) {
+        const address = String(value || "")
+        return address.length === 42 ? address.slice(0, 8) + "…" + address.slice(-6) : address
+    }
+    function timeRemaining(seconds) {
+        const time = Math.max(0, Math.floor(seconds))
+        return Math.floor(time / 60) + ":" + String(time % 60).padStart(2, "0")
+    }
+    function walletErrorMessage() {
+        if (!proCheckout || !proCheckout.error) return ""
+        const code = String(proCheckout.error)
+        if (code === "wallet_rejected") return qsTrId("genycaster.pro.wallet_cancelled")
+        if (code === "wallet_not_verified_for_account")
+            return qsTrId("genycaster.pro.wallet_mismatch")
+        if (code === "wallet_switch_base_required" || code === "wallet_wrong_chain")
+            return qsTrId("genycaster.pro.wallet_base_required")
+        if (code === "invalid_payment_quote")
+            return qsTrId("genycaster.pro.quote_expired")
+        return qsTrId("genycaster.pro.wallet_failure")
+    }
+    function requestCurrentQuote() {
+        if (!openProofConnections) return
+        if (root.canRequestQuote)
+            openProofConnections.requestProPaymentQuote(root.selectedAsset)
+    }
+    function proceed() {
+        if (root.eligible) { root.close(); return }
+        if (root.monthlyUsdCents <= 0) {
+            if (openProofConnections) openProofConnections.fetchProPlan(true)
+            return
+        }
+        if (!root.appSignedIn) { root.accountRequested(); return }
+        if (!root.cloudReady) {
+            if (!root.restoringSession && !root.verifyingIdentity) {
+                root.startedVerification = true
+                openProofConnections.authorizeAccount()
+            }
+            return
+        }
+        if (!root.checkoutActive) { root.requestCurrentQuote(); return }
+        if (root.txSubmitted) {
+            if (!root.busy && openProofConnections)
+                openProofConnections.verifyProPayment(proCheckout.txHash)
+            return
+        }
+        if (!root.quoteValid) { root.requestCurrentQuote(); return }
+        if (root.manualExpanded || !root.walletAvailable) {
+            if (root.validPaymentHash && !root.busy)
+                openProofConnections.verifyProPayment(root.paymentHash.trim())
+            return
+        }
+        if (!root.busy) proCheckout.pay()
+    }
+    function primaryLabel() {
+        if (eligible) return qsTrId("genycaster.pro.checkout_done")
+        if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
+        if (!appSignedIn) return qsTrId("genycaster.pro.connect_to_pay")
+        if (restoringSession) return qsTrId("genycaster.pro.restoring_payment_session")
+        if (verifyingIdentity) return qsTrId("genycaster.pro.approve_payment_identity")
+        if (!cloudReady) return qsTrId("genycaster.pro.verify_with_farcaster")
+        if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
+        if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
+        if (!quoteValid) return qsTrId("genycaster.pro.checkout_new_quote")
+        if (manualExpanded || !walletAvailable) return qsTrId("genycaster.pro.verify_payment")
+        return qsTrId("genycaster.pro.checkout_open_wallet")
     }
 
     bottomSheet: root.compact
     showHandle: root.compact
     dimBackground: true
-    width: root.compact ? parent.width : Math.min(440,parent.width*0.94)
-    height: root.compact ? Math.min(parent.height*0.88,760) : parent.height
+    width: compact ? parent.width : Math.min(468, parent.width * 0.94)
+    // Size to visible content before scrolling; avoid a tall empty purchase
+    // drawer when benefits are collapsed, while remaining safe on narrow phones.
+    height: Math.min(parent.height * (compact ? 0.9 : 1.0),
+        Math.max(Theme.scaleUi(350),
+            fixedHeader.height + fixedActions.height
+            + detailsColumn.implicitHeight + Theme.space4 * 3))
     contentPadding: Theme.space4
+
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.opened && root.quotePresent
+        onTriggered: root.quoteNowMs = Date.now()
+    }
 
     Component.onCompleted: {
         if (openProofConnections) openProofConnections.fetchProPlan(false)
     }
-
     onOpened: {
+        checkoutOpen = quotePresent && !eligible
+        manualExpanded = !walletAvailable && quotePresent
+        showBenefits = false
         expandedFeature = -1
         quoteNowMs = Date.now()
         detailsViewport.contentY = 0
@@ -73,21 +163,31 @@ GenyDrawer {
             openProofConnections.retryProEntitlements()
         }
     }
-
+    onPaymentQuoteChanged: {
+        if (root.opened && root.quotePresent && !root.eligible
+            && String(root.paymentQuote.id) !== root.displayedQuoteId) {
+            root.displayedQuoteId = String(root.paymentQuote.id)
+            root.selectedAsset = root.quoteAsset
+            root.checkoutOpen = true
+            root.manualExpanded = !root.walletAvailable
+            root.paymentHash = ""
+            root.quoteNowMs = Date.now()
+            detailsViewport.contentY = 0
+        }
+    }
     onClosed: {
-        // Only cancel a proof initiated from this drawer; a verification
-        // already started in account connections belongs to that workflow.
         if (startedVerification && openProofConnections
             && openProofConnections.authorizing)
             openProofConnections.stopAuthorization()
         startedVerification = false
+        // Never cancel a submitted or in-flight wallet transfer merely because
+        // the drawer closes. The controller still needs its transaction hash
+        // to verify the receipt, even if the user leaves this page.
     }
-
     Connections {
         target: openProofConnections
         function onStateChanged() {
-            if (root.cloudReady)
-                root.startedVerification = false
+            if (root.cloudReady) root.startedVerification = false
             if (root.opened && root.cloudReady && !openProofConnections.proEntitlementsBusy)
                 openProofConnections.fetchProEntitlements(false)
         }
@@ -104,17 +204,17 @@ GenyDrawer {
             anchors.right: parent.right
             anchors.top: parent.top
             height: Theme.scaleUi(56)
-            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
 
             Superellipse {
                 visible: !root.compact
-                Layout.preferredWidth: visible ? 40 : 0
-                Layout.preferredHeight: visible ? 40 : 0
-                curveDepth: Theme.curveCompact
+                Layout.preferredWidth: 42
+                Layout.preferredHeight: 42
                 fillColor: Theme.surfaceMuted
-                borderWidth: Theme.strokeHairline
                 borderColor: Theme.borderSubtle
+                borderWidth: Theme.strokeHairline
+                curveDepth: Theme.curveCompact
                 Icon {
                     anchors.centerIn: parent
                     text: Theme.iconSpark
@@ -128,22 +228,17 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.pro.title")
-                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.textPrimary
+                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
+                    elide: Text.ElideRight
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: root.eligible
-                          ? qsTrId("genycaster.pro.status_verified")
-                          : !root.appSignedIn
-                            ? qsTrId("genycaster.pro.requires_pro")
-                            : !root.cloudReady
-                              ? qsTrId("genycaster.pro.payment_identity_pending")
-                              : root.membership.status === "unavailable"
-                                ? qsTrId("genycaster.pro.status_unavailable")
-                                : qsTrId("genycaster.pro.requires_pro")
+                    text: root.eligible ? qsTrId("genycaster.pro.status_verified")
+                        : root.checkoutActive ? qsTrId("genycaster.pro.checkout_payment")
+                        : qsTrId("genycaster.pro.checkout_membership")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
                     horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
@@ -170,29 +265,30 @@ GenyDrawer {
             anchors.top: fixedHeader.bottom
             anchors.bottom: fixedActions.top
             anchors.topMargin: Theme.space2
-            anchors.bottomMargin: Theme.space2
+            anchors.bottomMargin: Theme.space3
+            contentWidth: width
+            contentHeight: detailsColumn.implicitHeight + Theme.space2
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            contentWidth: width
-            contentHeight: detailsColumn.implicitHeight + Theme.space3
             interactive: contentHeight > height
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             ColumnLayout {
                 id: detailsColumn
                 width: detailsViewport.width
-                spacing: Theme.space2
-                // A server-priced subscription, not a token-balance threshold.
+                spacing: Theme.space3
+
                 Superellipse {
+                    id: priceCard
                     objectName: "genyProNeutralEligibilitySummary"
                     Layout.fillWidth: true
-                    implicitHeight: summaryColumn.implicitHeight + Theme.space4 * 2
+                    implicitHeight: priceColumn.implicitHeight + Theme.space4 * 2
                     fillColor: Theme.surfaceRaised
                     borderColor: Theme.borderSubtle
                     borderWidth: Theme.strokeHairline
                     curveDepth: Theme.curveContainer
                     ColumnLayout {
-                        id: summaryColumn
+                        id: priceColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
@@ -205,49 +301,17 @@ GenyDrawer {
                                 : openProofConnections && openProofConnections.proPlanBusy
                                   ? qsTrId("genycaster.pro.price_loading")
                                   : qsTrId("genycaster.pro.price_unavailable")
-                            font.pixelSize: Theme.typeTitle1Size
+                            font.pixelSize: root.checkoutActive ? Theme.typeTitle3Size
+                                                                 : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
                             color: Theme.textPrimary
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
+                            visible: !root.checkoutActive
                             text: qsTrId("genycaster.pro.manual_renewal")
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.textSecondary
-                            wrapMode: Text.Wrap
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: root.appSignedIn && !root.cloudReady
-                            text: root.restoringSession
-                                ? qsTrId("genycaster.pro.restoring_payment_session")
-                                : root.verifyingIdentity
-                                  ? qsTrId("genycaster.pro.approve_payment_identity")
-                                  : qsTrId("genycaster.pro.verify_payment_identity")
-                            font.pixelSize: Theme.typeCaptionSize
-                            color: Theme.textSecondary
-                            wrapMode: Text.Wrap
-                        }
-                        ActionButton {
-                            Layout.fillWidth: true
-                            visible: root.appSignedIn && !root.cloudReady
-                                && root.verifyingIdentity
-                                && openProofConnections
-                                && String(openProofConnections.approvalUrl || "").length > 0
-                            compact: true
-                            text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
-                            iconGlyph: Theme.iconArrowUpRight
-                            onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: root.appSignedIn && root.startedVerification
-                                && !root.cloudReady && !root.verifyingIdentity
-                                && openProofConnections
-                                && String(openProofConnections.error || "").length > 0
-                            text: openProofConnections ? openProofConnections.error : ""
-                            color: Theme.negative
-                            font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
                         }
                         DirectionAwareLabel {
@@ -258,135 +322,113 @@ GenyDrawer {
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightDemiBold
                             color: Theme.positive
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            visible: root.membership.status === "unavailable"
-                            text: qsTrId("genycaster.pro.verification_unavailable")
-                            color: Theme.textSecondary
                             wrapMode: Text.Wrap
-                            font.pixelSize: Theme.typeCaptionSize
                         }
                     }
                 }
 
-                // Quote identity and amount come only from the signed-in
-                // GenyCaster account API. No client-side GENY/USD calculations.
+                // Intro: a short explanation and two explicit payment methods.
                 ColumnLayout {
                     Layout.fillWidth: true
-                    visible: Boolean(root.paymentQuote.id)
-                    spacing: Theme.space2
+                    visible: !root.checkoutActive && !root.eligible
+                    spacing: Theme.space3
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.pro.quote_label")
+                        text: qsTrId("genycaster.pro.checkout_choose_currency")
                         color: Theme.textPrimary
                         font.pixelSize: Theme.typeLabelSize
                         font.weight: Theme.weightDemiBold
                     }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: String(root.paymentQuote.amount_geny || "") + " GENY"
-                        font.pixelSize: Theme.typeTitle3Size
-                        font.weight: Theme.weightBold
-                        color: Theme.textPrimary
-                        forceLeftToRight: true
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.pro.payer_wallet").arg(
-                            String((root.paymentQuote.verified_payers || [])[0] || ""))
-                        font.pixelSize: Theme.typeCaptionSize
-                        color: Theme.textSecondary
-                        wrapMode: Text.WrapAnywhere
-                        forceLeftToRight: true
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.pro.receiving_address")
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: String(root.paymentQuote.treasury || "")
-                        color: Theme.textPrimary
-                        forceLeftToRight: true
-                        elide: Text.ElideMiddle
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
-                        ActionButton {
-                            Layout.fillWidth: true
-                            compact: true
-                            quiet: true
-                            text: qsTrId("genycaster.pro.copy_amount")
-                            onClicked: presentationBridge.copyText(
-                                String(root.paymentQuote.amount_geny || ""))
-                        }
-                        ActionButton {
-                            Layout.fillWidth: true
-                            compact: true
-                            quiet: true
-                            text: qsTrId("genycaster.pro.copy_recipient")
-                            onClicked: presentationBridge.copyText(
-                                String(root.paymentQuote.treasury || ""))
+                        Repeater {
+                            model: ["GENY", "USDC"]
+                            delegate: Button {
+                                required property string modelData
+                                readonly property bool chosen: root.selectedAsset === modelData
+                                Layout.fillWidth: true
+                                implicitHeight: Theme.scaleUi(50)
+                                focusPolicy: Qt.StrongFocus
+                                hoverEnabled: !root.compact
+                                Accessible.name: modelData
+                                Accessible.description: chosen ? qsTrId("genycaster.pro.checkout_selected") : ""
+                                onClicked: root.selectedAsset = modelData
+                                background: Superellipse {
+                                    curveDepth: Theme.curveControl
+                                    fillColor: chosen ? Theme.surfaceMuted : Theme.surfaceRaised
+                                    borderColor: chosen ? Theme.accent : Theme.borderSubtle
+                                    borderWidth: chosen ? Theme.strokeEmphasis : Theme.strokeHairline
+                                }
+                                contentItem: RowLayout {
+                                    layoutDirection: Theme.uiDirection
+                                    spacing: Theme.space2
+                                    Item { Layout.fillWidth: true }
+                                    Icon {
+                                        text: modelData === "GENY" ? Theme.iconSpark : Theme.iconWallet
+                                        color: chosen ? Theme.accent : Theme.textSecondary
+                                        preferredSize: Theme.iconSizeSmall
+                                    }
+                                    DirectionAwareLabel {
+                                        text: modelData
+                                        color: Theme.textPrimary
+                                        font.pixelSize: Theme.typeLabelSize
+                                        font.weight: chosen ? Theme.weightBold : Theme.weightMedium
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
                         }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.pro.quote_expiry").arg(
-                            LocaleFormat.formatDateTime(new Date(root.paymentQuote.expires_at).getTime()))
-                        color: root.quoteValid ? Theme.textSecondary : Theme.negative
-                        font.pixelSize: Theme.typeCaptionSize
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        text: qsTrId("genycaster.pro.payment_instructions")
+                        text: root.selectedAsset === "USDC"
+                              ? qsTrId("genycaster.pro.checkout_usdc_hint")
+                              : qsTrId("genycaster.pro.checkout_geny_hint")
                         color: Theme.textSecondary
-                        wrapMode: Text.Wrap
                         font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
                     }
-                    DirectionAwareTextField {
+
+                    // Value proposition does not dominate payment. Expand on demand.
+                    Button {
+                        id: benefitsToggle
                         Layout.fillWidth: true
-                        Layout.minimumWidth: 0
-                        enabled: root.quoteValid
-                        maximumLength: 66
-                        placeholderText: qsTrId("genycaster.pro.transaction_hash")
-                        text: root.paymentHash
-                        onTextChanged: root.paymentHash = text
+                        implicitHeight: Theme.scaleUi(46)
+                        padding: Theme.space2
+                        flat: true
+                        hoverEnabled: !root.compact
+                        onClicked: root.showBenefits = !root.showBenefits
+                        background: Superellipse {
+                            fillColor: benefitsToggle.hovered ? Theme.surfaceHover : Theme.surfaceRaised
+                            borderColor: Theme.borderSubtle
+                            borderWidth: Theme.strokeHairline
+                            curveDepth: Theme.curveCompact
+                        }
+                        contentItem: RowLayout {
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                text: Theme.iconSpark
+                                color: Theme.proAccent
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.pro.checkout_benefits")
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightMedium
+                            }
+                            Icon {
+                                text: root.showBenefits ? Theme.iconChevronUp : Theme.iconChevronDown
+                                color: Theme.textSecondary
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                        }
                     }
-                    ActionButton {
-                        Layout.fillWidth: true
-                        compact: true
-                        prominent: true
-                        busy: openProofConnections ? openProofConnections.proBillingBusy : false
-                        enabled: root.quoteValid && !busy
-                            && /^0x[0-9a-fA-F]{64}$/.test(root.paymentHash.trim())
-                        text: qsTrId("genycaster.pro.verify_payment")
-                        onClicked: openProofConnections.verifyProPayment(root.paymentHash.trim())
-                    }
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: openProofConnections && String(openProofConnections.proBillingError || "").length > 0
-                    text: openProofConnections && openProofConnections.proBillingError === "payment_pending"
-                        ? qsTrId("genycaster.pro.payment_pending")
-                        : qsTrId("genycaster.pro.billing_error")
-                    color: Theme.negative
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.Wrap
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: root.monthlyUsdCents > 0
-                        && root.plan.payment_available === false
-                    text: qsTrId("genycaster.pro.payment_unavailable")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.Wrap
                 }
 
                 Repeater {
@@ -414,7 +456,8 @@ GenyDrawer {
                         readonly property bool expanded: root.expandedFeature === index
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        implicitHeight: Math.max(48, featureLayout.implicitHeight + Theme.space2 * 2)
+                        visible: root.showBenefits && !root.checkoutActive && !root.eligible
+                        implicitHeight: Math.max(42, featureLayout.implicitHeight + Theme.space2 * 2)
                         leftPadding: Theme.space3
                         rightPadding: Theme.space3
                         topPadding: Theme.space2
@@ -424,7 +467,6 @@ GenyDrawer {
                         Accessible.name: String(modelData.title || "")
                         Accessible.description: String(modelData.detail || "")
                         onClicked: root.expandedFeature = expanded ? -1 : index
-
                         background: Superellipse {
                             fillColor: feature.expanded ? Theme.surfaceMuted
                                 : feature.hovered ? Theme.surfaceHover : Theme.surfaceRaised
@@ -440,20 +482,10 @@ GenyDrawer {
                             id: featureLayout
                             spacing: Theme.space2
                             layoutDirection: Theme.uiDirection
-
-                            Superellipse {
-                                Layout.preferredWidth: 32
-                                Layout.preferredHeight: 32
-                                Layout.alignment: Qt.AlignTop
-                                fillColor: Theme.surfaceMuted
-                                borderWidth: 0
-                                curveDepth: Theme.curveCompact
-                                Icon {
-                                    anchors.centerIn: parent
-                                    text: String(feature.modelData.icon || "")
-                                    color: Theme.inkMuted
-                                    preferredSize: Theme.iconSizeSmall
-                                }
+                            Icon {
+                                text: String(feature.modelData.icon || "")
+                                color: Theme.inkMuted
+                                preferredSize: Theme.iconSizeSmall
                             }
                             ColumnLayout {
                                 Layout.fillWidth: true
@@ -479,13 +511,260 @@ GenyDrawer {
                                 }
                             }
                             Icon {
-                                Layout.alignment: Qt.AlignTop
                                 text: feature.expanded ? Theme.iconChevronUp : Theme.iconChevronDown
                                 color: Theme.inkMuted
                                 preferredSize: Theme.iconSizeSmall
                             }
                         }
                     }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: root.checkoutActive
+                    spacing: Theme.space3
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space1
+                            DirectionAwareLabel {
+                                text: qsTrId("genycaster.pro.checkout_pay_amount")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: root.amountText
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeTitle3Size
+                                font.weight: Theme.weightBold
+                                forceLeftToRight: true
+                                elide: Text.ElideRight
+                            }
+                        }
+                        DirectionAwareLabel {
+                            text: root.quoteAsset + " · Base"
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                    }
+
+                    Superellipse {
+                        Layout.fillWidth: true
+                        implicitHeight: validityRow.implicitHeight + Theme.space3 * 2
+                        fillColor: Theme.surfaceMuted
+                        borderColor: Theme.borderSubtle
+                        borderWidth: Theme.strokeHairline
+                        curveDepth: Theme.curveCompact
+                        RowLayout {
+                            id: validityRow
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Theme.space3
+                            spacing: Theme.space2
+                            Icon {
+                                text: Theme.iconCalendar
+                                color: root.quoteValid ? Theme.textSecondary : Theme.negative
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: root.quoteValid
+                                    ? qsTrId("genycaster.pro.checkout_expires_in")
+                                        .arg(root.timeRemaining(root.remainingSeconds))
+                                    : qsTrId("genycaster.pro.quote_expired")
+                                color: root.quoteValid ? Theme.textSecondary : Theme.negative
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: !root.txSubmitted
+                        text: qsTrId("genycaster.pro.checkout_sender").arg(
+                            root.shortWallet((root.paymentQuote.verified_payers || [])[0]))
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                        forceLeftToRight: true
+                        elide: Text.ElideMiddle
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        visible: root.txSubmitted && !root.eligible
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.checkout_confirming")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.shortWallet(proCheckout ? proCheckout.txHash : "")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            forceLeftToRight: true
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.checkout_confirmation_hint")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                    }
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: proCheckout && String(proCheckout.error || "").length > 0
+                            && !root.txSubmitted
+                        text: root.walletErrorMessage()
+                        color: Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: openProofConnections
+                            && String(openProofConnections.proBillingError || "").length > 0
+                            && openProofConnections.proBillingError !== "payment_pending"
+                        text: qsTrId("genycaster.pro.billing_error")
+                        color: Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+
+                    Button {
+                        id: advancedPayment
+                        Layout.fillWidth: true
+                        visible: !root.txSubmitted && root.quoteValid
+                        flat: true
+                        hoverEnabled: !root.compact
+                        implicitHeight: Theme.scaleUi(38)
+                        onClicked: root.manualExpanded = !root.manualExpanded
+                        contentItem: RowLayout {
+                            layoutDirection: Theme.uiDirection
+                            spacing: Theme.space2
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: root.walletAvailable
+                                    ? qsTrId("genycaster.pro.checkout_manual_fallback")
+                                    : qsTrId("genycaster.pro.checkout_manual_only")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            Icon {
+                                text: root.manualExpanded ? Theme.iconChevronUp : Theme.iconChevronDown
+                                preferredSize: Theme.iconSizeSmall
+                                color: Theme.textSecondary
+                            }
+                        }
+                        background: Item {}
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        visible: root.manualExpanded && !root.txSubmitted && root.quoteValid
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.payment_instructions")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.receiving_address")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: String(root.paymentQuote.treasury || "")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeCaptionSize
+                            forceLeftToRight: true
+                            elide: Text.ElideMiddle
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            ActionButton {
+                                Layout.fillWidth: true
+                                compact: true
+                                quiet: true
+                                text: qsTrId("genycaster.pro.copy_amount")
+                                iconGlyph: Theme.iconCopy
+                                onClicked: presentationBridge.copyText(
+                                    String(root.paymentQuote.amount_geny || ""))
+                            }
+                            ActionButton {
+                                Layout.fillWidth: true
+                                compact: true
+                                quiet: true
+                                text: qsTrId("genycaster.pro.copy_recipient")
+                                iconGlyph: Theme.iconCopy
+                                onClicked: presentationBridge.copyText(
+                                    String(root.paymentQuote.treasury || ""))
+                            }
+                        }
+                        DirectionAwareTextField {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            enabled: root.quoteValid
+                            maximumLength: 66
+                            placeholderText: qsTrId("genycaster.pro.transaction_hash")
+                            text: root.paymentHash
+                            onTextChanged: root.paymentHash = text
+                        }
+                    }
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.checkout_gas_note")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.textSecondary
+                        wrapMode: Text.Wrap
+                    }
+                }
+
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.appSignedIn && !root.cloudReady && !root.eligible
+                    text: root.restoringSession
+                        ? qsTrId("genycaster.pro.restoring_payment_session")
+                        : root.verifyingIdentity
+                          ? qsTrId("genycaster.pro.approve_payment_identity")
+                          : qsTrId("genycaster.pro.verify_payment_identity")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.textSecondary
+                    wrapMode: Text.Wrap
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    visible: root.appSignedIn && !root.cloudReady
+                        && root.verifyingIdentity && openProofConnections
+                        && String(openProofConnections.approvalUrl || "").length > 0
+                    text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
+                    compact: true
+                    quiet: true
+                    onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.monthlyUsdCents > 0 && root.plan.payment_available === false
+                    text: qsTrId("genycaster.pro.payment_unavailable")
+                    color: Theme.negative
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
                 }
             }
         }
@@ -503,57 +782,38 @@ GenyDrawer {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: Math.max(56,implicitHeight)
+            height: Math.max(60, implicitHeight)
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection
             ActionButton {
-                Layout.fillWidth: true
+                visible: root.checkoutActive && !root.txSubmitted
+                enabled: !root.busy
                 compact: true
                 quiet: true
-                text: qsTrId("genycaster.pro.not_now")
-                onClicked: root.close()
+                text: qsTrId("genycaster.pro.checkout_change_method")
+                onClicked: {
+                    root.checkoutOpen = false
+                    root.manualExpanded = false
+                    detailsViewport.contentY = 0
+                }
             }
             ActionButton {
                 Layout.fillWidth: true
-                compact: true
+                compact: false
                 prominent: true
-                iconGlyph: Theme.iconWallet
-                spinIconWhileBusy: true
-                busy: openProofConnections ? openProofConnections.proBillingBusy : false
-                enabled: !busy
+                iconGlyph: root.checkoutActive && !root.txSubmitted && root.walletAvailable
+                    ? Theme.iconWallet : ""
+                busy: root.busy
+                enabled: !root.busy
                     && !(openProofConnections && openProofConnections.proPlanBusy)
-                    && !(root.appSignedIn && (root.restoringSession
-                                               || root.verifyingIdentity))
-                    && (!root.cloudReady || root.monthlyUsdCents <= 0
-                        || root.canRequestQuote)
-                text: root.monthlyUsdCents <= 0
-                    ? qsTrId("genycaster.pro.refresh_price")
-                    : !root.appSignedIn
-                      ? qsTrId("genycaster.pro.connect_to_pay")
-                      : root.restoringSession
-                        ? qsTrId("genycaster.pro.restoring_payment_session")
-                        : root.verifyingIdentity
-                          ? qsTrId("genycaster.connections.copy_waiting_for_confirmation")
-                          : !root.cloudReady
-                            ? qsTrId("genycaster.pro.verify_with_farcaster")
-                            : qsTrId("genycaster.pro.get_quote")
-                onClicked: {
-                    if (!openProofConnections) return
-                    if (root.monthlyUsdCents <= 0) {
-                        openProofConnections.fetchProPlan(true)
-                    } else if (!root.appSignedIn) {
-                        root.accountRequested()
-                    } else if (!root.cloudReady
-                               && !root.verifyingIdentity && !root.restoringSession) {
-                        // This proves control of the already signed-in FID.
-                        // Never ask the user to create or log into a second
-                        // identity, and never grant Pro from local state.
-                        root.startedVerification = true
-                        openProofConnections.authorizeAccount()
-                    } else if (root.canRequestQuote) {
-                        openProofConnections.requestProPaymentQuote()
-                    }
-                }
+                    && !(root.appSignedIn && (root.restoringSession || root.verifyingIdentity))
+                    && (root.eligible || !root.checkoutActive || root.txSubmitted
+                        || !root.quoteValid || (root.manualExpanded || !root.walletAvailable)
+                        ? root.validPaymentHash || root.eligible || !root.checkoutActive
+                          || root.txSubmitted || !root.quoteValid
+                        : root.walletAvailable)
+                text: root.primaryLabel()
+                onClicked: root.proceed()
             }
         }
     }

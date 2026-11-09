@@ -6993,10 +6993,6 @@ Company | https://company.com</source>
             <source>Pro subscription active</source>
             <translation>اشتراک پرو فعال است</translation>
         </message>
-        <message id="genycaster.pro.status_unavailable">
-            <source>Status unavailable</source>
-            <translation>وضعیت در دسترس نیست</translation>
-        </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
             <translation>چندوظیفگی مینی‌اپ‌ها</translation>
@@ -7237,10 +7233,6 @@ Company | https://company.com</source>
             <source>Refresh price</source>
             <translation>تازه‌سازی قیمت</translation>
         </message>
-        <message id="genycaster.pro.payment_identity_pending">
-            <source>Payment account verification required</source>
-            <translation>تأیید هویت پرداخت لازم است</translation>
-        </message>
         <message id="genycaster.pro.restoring_payment_session">
             <source>Restoring secure payment session…</source>
             <translation>در حال بازیابی نشست امن پرداخت…</translation>
@@ -7257,6 +7249,110 @@ Company | https://company.com</source>
             <source>Verify with Farcaster</source>
             <translation>تأیید با فارکستر</translation>
         </message>
+        <message id="genycaster.pro.checkout_done">
+            <source>Done</source>
+            <translation>تمام</translation>
+        </message>
+        <message id="genycaster.pro.checkout_continue">
+            <source>Continue</source>
+            <translation>ادامه</translation>
+        </message>
+        <message id="genycaster.pro.checkout_membership">
+            <source>Membership · 30 days</source>
+            <translation>اشتراک · ۳۰ روز</translation>
+        </message>
+        <message id="genycaster.pro.checkout_payment">
+            <source>Secure checkout · Base</source>
+            <translation>پرداخت امن · بیس</translation>
+        </message>
+        <message id="genycaster.pro.checkout_choose_currency">
+            <source>Choose how to pay</source>
+            <translation>روش پرداخت را انتخاب کنید</translation>
+        </message>
+        <message id="genycaster.pro.checkout_selected">
+            <source>Selected</source>
+            <translation>انتخاب‌شده</translation>
+        </message>
+        <message id="genycaster.pro.checkout_usdc_hint">
+            <source>Pay $2.99 in native USDC on Base. No GENY needed.</source>
+            <translation>بدون نیاز به GENY، با USDC اصلی در شبکهٔ Base پرداخت کنید.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_geny_hint">
+            <source>Pay the live USD equivalent in GENY on Base.</source>
+            <translation>معادل دلاری روز را با GENY در شبکهٔ Base بپردازید.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_benefits">
+            <source>What’s included in Pro</source>
+            <translation>امکانات اشتراک پرو</translation>
+        </message>
+        <message id="genycaster.pro.checkout_pay_amount">
+            <source>You’ll pay</source>
+            <translation>مبلغ پرداخت</translation>
+        </message>
+        <message id="genycaster.pro.checkout_expires_in">
+            <source>Quote expires in %1</source>
+            <translation>اعتبار پیش‌فاکتور: %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_expired">
+            <source>Quote expired. Get a fresh price before paying.</source>
+            <translation>پیش‌فاکتور منقضی شده است. قبل از پرداخت نرخ جدید بگیرید.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_sender">
+            <source>Use a verified wallet: %1</source>
+            <translation>از کیف پول تأییدشده استفاده کنید: %1</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirming">
+            <source>Payment submitted. Confirming on Base…</source>
+            <translation>تراکنش ارسال شد؛ در انتظار تأیید شبکهٔ Base…</translation>
+        </message>
+        <message id="genycaster.pro.checkout_confirmation_hint">
+            <source>You can close this panel. Pro unlocks after on-chain confirmation.</source>
+            <translation>می‌توانید این پنجره را ببندید. پرو پس از تأیید تراکنش فعال می‌شود.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_cancelled">
+            <source>Wallet request cancelled. No payment was sent.</source>
+            <translation>درخواست کیف پول لغو شد؛ هیچ پرداختی ارسال نشد.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_mismatch">
+            <source>Choose a wallet verified for this Farcaster account.</source>
+            <translation>کیف پول تأییدشده برای همین حساب فارکستر را انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_base_required">
+            <source>Switch your wallet to Base and try again.</source>
+            <translation>کیف پول را به شبکهٔ Base تغییر دهید و دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.pro.wallet_failure">
+            <source>Unable to complete the wallet request. Try again or use manual transfer.</source>
+            <translation>پرداخت با کیف پول انجام نشد. دوباره تلاش کنید یا انتقال دستی را انتخاب کنید.</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_fallback">
+            <source>Use manual transfer instead</source>
+            <translation>استفاده از انتقال دستی</translation>
+        </message>
+        <message id="genycaster.pro.checkout_manual_only">
+            <source>Manual wallet transfer</source>
+            <translation>انتقال دستی با کیف پول</translation>
+        </message>
+        <message id="genycaster.pro.checkout_gas_note">
+            <source>Network: Base · Gas paid in ETH · No automatic renewal</source>
+            <translation>شبکه Base · کارمزد با ETH · بدون تمدید خودکار</translation>
+        </message>
+        <message id="genycaster.pro.checkout_check_payment">
+            <source>Check payment</source>
+            <translation>بررسی پرداخت</translation>
+        </message>
+        <message id="genycaster.pro.checkout_new_quote">
+            <source>Get fresh quote</source>
+            <translation>دریافت پیش‌فاکتور جدید</translation>
+        </message>
+        <message id="genycaster.pro.checkout_open_wallet">
+            <source>Continue in wallet</source>
+            <translation>ادامه در کیف پول</translation>
+        </message>
+        <message id="genycaster.pro.checkout_change_method">
+            <source>Change method</source>
+            <translation>تغییر روش پرداخت</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 دلار / ماه</translation>
@@ -7268,14 +7364,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.active_until">
             <source>Active until %1</source>
             <translation>فعال تا %1</translation>
-        </message>
-        <message id="genycaster.pro.quote_label">
-            <source>GENY payment quote · Base</source>
-            <translation>پیش‌فاکتور پرداخت GENY · شبکه Base</translation>
-        </message>
-        <message id="genycaster.pro.payer_wallet">
-            <source>Pay from verified wallet: %1</source>
-            <translation>پرداخت از کیف پول تأییدشده: %1</translation>
         </message>
         <message id="genycaster.pro.receiving_address">
             <source>Receiving address on Base</source>
@@ -7289,10 +7377,6 @@ Company | https://company.com</source>
             <source>Copy recipient</source>
             <translation>کپی آدرس دریافت‌کننده</translation>
         </message>
-        <message id="genycaster.pro.quote_expiry">
-            <source>Quote valid until %1</source>
-            <translation>اعتبار پیش‌فاکتور تا %1</translation>
-        </message>
         <message id="genycaster.pro.payment_instructions">
             <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
             <translation>از کیف پول تأییدشدهٔ این حساب، مقدار دقیق GENY را در شبکه Base انتقال دهید. کارمزد با ETH پرداخت می‌شود؛ سپس هش تراکنش را وارد کنید. پس از پایان اعتبار پیش‌فاکتور پرداخت نکنید.</translation>
@@ -7305,10 +7389,6 @@ Company | https://company.com</source>
             <source>Verify payment</source>
             <translation>تأیید پرداخت</translation>
         </message>
-        <message id="genycaster.pro.payment_pending">
-            <source>Waiting for Base confirmations. Check again shortly.</source>
-            <translation>در انتظار تأییدهای شبکه Base؛ کمی بعد دوباره بررسی کنید.</translation>
-        </message>
         <message id="genycaster.pro.billing_error">
             <source>Payment is not verified. No Pro access was granted.</source>
             <translation>پرداخت تأیید نشده و دسترسی پرو فعال نشده است.</translation>
@@ -7316,10 +7396,6 @@ Company | https://company.com</source>
         <message id="genycaster.pro.payment_unavailable">
             <source>GENY payments are not configured on the server yet.</source>
             <translation>پرداخت GENY هنوز روی سرور پیکربندی نشده است.</translation>
-        </message>
-        <message id="genycaster.pro.get_quote">
-            <source>Get GENY quote</source>
-            <translation>دریافت پیش‌فاکتور GENY</translation>
         </message>
     </context>
 </TS>

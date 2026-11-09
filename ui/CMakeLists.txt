@@ -431,6 +431,9 @@ qt_add_executable(genycaster
     app/identity/browser_auth.hpp
     app/identity/connections.cpp
     app/identity/connections.hpp
+    app/identity/pro_checkout.cpp
+    app/identity/pro_checkout.hpp
+    app/identity/browser_pro_wallet.hpp
     app/social/activity.cpp
     app/social/activity.hpp
 )
@@ -904,7 +907,9 @@ else()
     target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_BROWSER_WALLET_AUTHORIZER=0)
 endif()
 
-if(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE AND FARCASTER_ENABLE_MINIAPPS)
+# First-party Pro checkout also requires the EIP-1193 bridge when Mini Apps
+# are disabled. Its isolated wallet session must not depend on Mini App SDK.
+if(FARCASTER_ENABLE_BROWSER_WALLET_BRIDGE)
     target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_MINIAPP_EVM_WALLET=1)
     target_link_libraries(genycaster PRIVATE farcaster::provider_compatibility_browser_wallet)
 else()

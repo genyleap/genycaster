@@ -134,6 +134,12 @@ OpenProofConnectionsController::OpenProofConnectionsController(QObject* parent, 
 {
     m_gatewayUrl = configuredUrl("GENYCASTER_OPENPROOF_CONNECTIONS_GATEWAY_URL",
         QStringLiteral("openproofConnectionsGatewayUrl"));
+    m_proPaymentPoll.setSingleShot(true);
+    connect(&m_proPaymentPoll, &QTimer::timeout, this, [this] {
+        if (!m_pendingProPaymentHash.isEmpty() && !m_proBillingRequest &&
+            m_proPaymentChecks < 80 && cloudAuthorizationReady())
+            verifyProPaymentForQuote(m_pendingProPaymentQuoteId,m_pendingProPaymentHash);
+    });
     m_grantExpiry.setSingleShot(true);
     connect(&m_grantExpiry, &QTimer::timeout, this, [this] {
         clearAccountGrant();
@@ -1683,9 +1689,14 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
     });
 }
 
-void OpenProofConnectionsController::requestProPaymentQuote()
+void OpenProofConnectionsController::requestProPaymentQuote(const QString& asset)
 {
     if (m_proBillingRequest) return;
+    if (asset != QStringLiteral("GENY") && asset != QStringLiteral("USDC")) {
+        m_proBillingError = QStringLiteral("unsupported_payment_asset");
+        emit proBillingChanged();
+        return;
+    }
     if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
         m_proBillingError = QStringLiteral("authentication_required");
         emit proBillingChanged();
@@ -1700,13 +1711,15 @@ void OpenProofConnectionsController::requestProPaymentQuote()
     request.setRawHeader("Content-Type", "application/json");
     request.setRawHeader("Accept", "application/json");
     authorizeCloudRequest(request);
-    auto* reply = m_network.post(request, QByteArrayLiteral("{}"));
+    auto* reply = m_network.post(request,
+        QJsonDocument{QJsonObject{{QStringLiteral("asset"), asset}}}
+            .toJson(QJsonDocument::Compact));
     m_proBillingRequest = reply;
     m_proBillingError.clear();
     emit proBillingChanged();
     const auto viewer = m_viewerFid;
     const auto generation = m_grantGeneration;
-    connect(reply, &QNetworkReply::finished, this, [this,reply,viewer,generation] {
+    connect(reply, &QNetworkReply::finished, this, [this,reply,viewer,generation,asset] {
         if (m_proBillingRequest != reply) { reply->deleteLater(); return; }
         m_proBillingRequest.clear();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -1718,6 +1731,7 @@ void OpenProofConnectionsController::requestProPaymentQuote()
         const auto quote=root.value(QStringLiteral("quote")).toObject();
         if (status==201 && !quote.isEmpty()
             && quote.value(QStringLiteral("chain_id")).toInt()==8453
+            && quote.value(QStringLiteral("asset")).toString() == asset
             && quote.value(QStringLiteral("amount_base_units")).isString()
             && quote.value(QStringLiteral("treasury")).isString()) {
             m_proQuote=quote.toVariantMap();
@@ -1733,12 +1747,24 @@ void OpenProofConnectionsController::requestProPaymentQuote()
 
 void OpenProofConnectionsController::verifyProPayment(const QString& transactionHash)
 {
+    const QString quoteId=m_proQuoteFid==m_viewerFid
+        ?m_proQuote.value(QStringLiteral("id")).toString():QString{};
+    verifyProPaymentForQuote(quoteId,transactionHash);
+}
+
+void OpenProofConnectionsController::verifyProPaymentForQuote(
+    const QString& quoteId, const QString& transactionHash)
+{
     if (m_proBillingRequest) return;
     static const QRegularExpression hashPattern{
         QStringLiteral("^0x[0-9a-fA-F]{64}$")};
-    const QString hash=transactionHash.trimmed();
-    const QString quoteId=m_proQuoteFid==m_viewerFid
-        ?m_proQuote.value(QStringLiteral("id")).toString():QString{};
+    const QString hash=transactionHash.trimmed().toLower();
+    if (hash != m_pendingProPaymentHash || quoteId != m_pendingProPaymentQuoteId) {
+        m_pendingProPaymentHash=hash;
+        m_pendingProPaymentQuoteId=quoteId;
+        m_proPaymentChecks=0;
+    }
+    m_proPaymentPoll.stop();
     if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
         || quoteId.isEmpty() || !hashPattern.match(hash).hasMatch()) {
         m_proBillingError=QStringLiteral("invalid_payment_reference");
@@ -1774,6 +1800,10 @@ void OpenProofConnectionsController::verifyProPayment(const QString& transaction
         const auto doc=QJsonDocument::fromJson(bytes);
         const auto root=doc.object();
         if (status==200 && root.value(QStringLiteral("entitlements")).isObject()) {
+            m_proPaymentPoll.stop();
+            m_pendingProPaymentHash.clear();
+            m_pendingProPaymentQuoteId.clear();
+            m_proPaymentChecks=0;
             m_proQuote.clear();
             m_proQuoteFid=viewer;
             m_proBillingError.clear();
@@ -1784,6 +1814,9 @@ void OpenProofConnectionsController::verifyProPayment(const QString& transaction
         } else {
             m_proBillingError=root.value(QStringLiteral("error")).toString(
                 QStringLiteral("billing_verification_unavailable"));
+            if ((status==202 || status==503) && !m_pendingProPaymentHash.isEmpty() &&
+                ++m_proPaymentChecks < 80)
+                m_proPaymentPoll.start(7000);
         }
         emit proBillingChanged();
     });
@@ -2740,6 +2773,10 @@ void OpenProofConnectionsController::clearAccountGrant()
     emit feedbackChanged();
     cancelNetworkReply(m_proEntitlementsRead, this);
     cancelNetworkReply(m_proBillingRequest, this);
+    m_proPaymentPoll.stop();
+    m_pendingProPaymentHash.clear();
+    m_pendingProPaymentQuoteId.clear();
+    m_proPaymentChecks=0;
     m_proQuote.clear();
     m_proQuoteFid = 0;
     m_proBillingError.clear();

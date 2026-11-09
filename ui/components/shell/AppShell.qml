@@ -440,6 +440,7 @@ Item {
                                         || composerDrawer.opened || accountPopup.opened
                                         || renderingSettingsPopup.opened || taskManagerPopup.opened || feedbackDialog.opened
                                         || miniAppHost.walletBrowserPickerActive
+                                        || proWalletHost.walletBrowserPickerActive
                                              || searchPalette.opened || mobileCreateMenu.opened || contextDrawer.opened
                                              || mediaGallery.opened || signOutConfirm.opened
 
@@ -3196,6 +3197,12 @@ Item {
     WalletBrowserPicker {
         id: walletBrowserPicker
         parent: Overlay.overlay
+    }
+
+    WalletBrowserPicker {
+        id: proWalletBrowserPicker
+        parent: Overlay.overlay
+        walletHost: proWalletHost
     }
 
     TaskManagerPopup {

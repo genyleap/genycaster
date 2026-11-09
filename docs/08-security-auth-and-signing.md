@@ -154,8 +154,8 @@ Any E2EE messaging layer must use an audited standard/mature protocol design and
 ## GenyCaster Pro billing boundary
 
 Pro is an optional, **product-owned** 30-day subscription, priced in USD
-(default `299` cents per period) and settled by an exact GENY ERC-20
-transfer on Base. The operator sets `GENYCASTER_PRO_MONTHLY_USD_CENTS`
+(default `299` cents per period) and settled by an exact GENY or native
+Circle USDC ERC-20 transfer on Base. The operator sets `GENYCASTER_PRO_MONTHLY_USD_CENTS`
 **on the account server**, and explicitly configures a controlled treasury
 wallet before payments are enabled. No QML amount or wallet balance grants
 Pro. The API issues owner-scoped, expiring quotes, verifies the onchain
@@ -176,5 +176,8 @@ required. This must never route an already signed-in user back into ordinary
 account login, imply that protocol signing is a payment authorization, or
 silently provision a session from a remembered FID. The approval URL is a
 short-lived challenge and never appears in logs, persistent settings or a
-payment quote. See `services/account-sync/README.md` for the operational
+payment quote. The WebAssembly wallet transfer uses only a first-party
+EIP-1193 provider from an explicit user action; it never reuses Mini App
+permission grants, browser authentication secrets or localhost transports.
+Wallet responses are not proof of membership until server receipt verification. See `services/account-sync/README.md` for the operational
 checkout contract and migration `012_pro_billing.sql`.

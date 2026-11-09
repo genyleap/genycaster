@@ -68,7 +68,7 @@ Some platform-specific integrations can have separate localization coverage. The
 GenyCaster includes product-specific integration with the **GENY token ecosystem on Base**:
 
 - An asset widget can display GENY token holdings associated with verified Farcaster-linked wallet addresses. A token display is informational and is **not** proof of special permissions.
-- **Geny Pro** is a separate service-verified entitlement. The service verifies eligible addresses and reads token balances on Base before granting any additional product capabilities. It does not accept a user-submitted balance or client-side UI badge as proof.
+- **Geny Pro** is a 30-day, server-priced USD subscription paid with GENY or native USDC on Base. The server verifies on-chain payment from a wallet linked to the same FID, and an authoritative subscription expiry; token balances and client-side badges do not grant access.
 - Supported Pro capabilities in source include expanded Mini App concurrency, custom bookmark collections and additional publishing/media or market-interface allowances. Exact limits are returned by the current server policy and can vary; an extended text draft is not a single oversized Farcaster protocol message.
 - GENY integration is **an optional product capability**, not the canonical Farcaster protocol, the account identity authority or a requirement for ordinary public reads.
 - This documentation makes **no investment, pricing, staking, reward or guaranteed eligibility claim**.

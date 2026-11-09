@@ -7,6 +7,7 @@ import Farcaster.Client
 // is temporarily hidden while this Qt modal is open, then restored unchanged.
 Item {
     id: picker
+    property var walletHost: miniAppHost
     implicitWidth: 0
     implicitHeight: 0
 
@@ -23,7 +24,7 @@ Item {
     function sync() {
         // Waiting after launch belongs to the Mini App, not a second modal
         // stacked beneath its native WebKit window.
-        const selecting = miniAppHost.walletBrowserPickerActive
+        const selecting = picker.walletHost.walletBrowserPickerActive
         if (selecting && !dialog.opened)
             dialog.open()
         else if (!selecting && dialog.opened)
@@ -57,7 +58,7 @@ Item {
         Shortcut {
             sequence: "Escape"
             enabled: dialog.opened
-            onActivated: miniAppHost.cancelWalletBrowser()
+            onActivated: picker.walletHost.cancelWalletBrowser()
         }
 
         contentItem: ColumnLayout {
@@ -69,13 +70,13 @@ Item {
             ModalHeader {
                 Layout.fillWidth: true
                 title: qsTrId("genycaster.wallet.browser_title")
-                subtitle: miniAppHost.walletBrowserAppName
-                onCloseRequested: miniAppHost.cancelWalletBrowser()
+                subtitle: picker.walletHost.walletBrowserAppName
+                onCloseRequested: picker.walletHost.cancelWalletBrowser()
             }
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: miniAppHost.walletBrowserOrigin
+                text: picker.walletHost.walletBrowserOrigin
                 forceLeftToRight: true
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
@@ -83,7 +84,7 @@ Item {
             }
 
             Repeater {
-                model: miniAppHost.walletBrowserOptions
+                model: picker.walletHost.walletBrowserOptions
 
                 delegate: Button {
                     id: option
@@ -101,7 +102,7 @@ Item {
                     focusPolicy: Qt.StrongFocus
                     Accessible.name: browserName
                     Accessible.description: lastUsed ? qsTrId("genycaster.wallet.previous_browser") : ""
-                    onClicked: miniAppHost.chooseWalletBrowser(browserId)
+                    onClicked: picker.walletHost.chooseWalletBrowser(browserId)
 
                     background: Superellipse {
                         fillColor: option.down ? Theme.primarySurface
@@ -180,9 +181,9 @@ Item {
             }
 
             DirectionAwareLabel {
-                visible: miniAppHost.walletBrowserError.length > 0
+                visible: picker.walletHost.walletBrowserError.length > 0
                 Layout.fillWidth: true
-                text: miniAppHost.walletBrowserError
+                text: picker.walletHost.walletBrowserError
                 font.pixelSize: Theme.typeCaptionSize
                 color: Theme.danger
                 wrapMode: Text.Wrap
@@ -203,14 +204,14 @@ Item {
                     quiet: true
                     compact: true
                     text: qsTrId("genycaster.wallet.cancel")
-                    onClicked: miniAppHost.cancelWalletBrowser()
+                    onClicked: picker.walletHost.cancelWalletBrowser()
                 }
             }
         }
     }
 
     Connections {
-        target: miniAppHost
+        target: picker.walletHost
         function onWalletBrowserPickerChanged() { picker.sync() }
     }
     Component.onCompleted: picker.sync()

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProBillingPolicy,decimalUnits,createProQuote,createProRateReader,
-  createProTokenVerifier,subscriptionEntitlements,verifyProTransfer} from '../pro_billing.mjs';
+  createProTokenVerifier,subscriptionEntitlements,verifyProTransfer,quoteAsset} from '../pro_billing.mjs';
 import {createAccountApi} from '../server.mjs';
 
 const treasury='0x'+'55'.repeat(20);
@@ -33,6 +33,17 @@ test('manual-wallet quote uses at most six GENY decimals and never undercharges'
   assert.match(quote.amount_geny,/^[0-9]+(?:\.[0-9]{1,6})?$/);
   assert.ok(units*r.priceUnits*100n>=
     BigInt(policy.monthlyUsdCents)*10n**36n);
+});
+test('Circle native USDC issues an exact 6-decimal quote without fetching GENY/USD',()=>{
+  const q=createProQuote({policy,asset:'USDC',now:Date.UTC(2026,10,9)});
+  assert.equal(quoteAsset(q),'USDC');
+  assert.equal(q.token,'0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
+  assert.equal(q.amount_geny,'2.99');
+  assert.equal(q.amount_base_units,'2990000');
+  assert.equal(q.price_usd_cents,299);
+  assert.equal(createProQuote({policy:createProBillingPolicy({...env,
+    GENYCASTER_PRO_MONTHLY_USD_CENTS:'499'}),asset:'USDC'}).amount_base_units,'4990000');
+  assert.throws(()=>createProQuote({policy,asset:'USDbC'}),/unsupported_payment_asset/);
 });
 test('GENY invoice is rounded UP in ERC20 base units, not floating point',()=>{
   assert.equal(decimalUnits('0.000000000000000001'),1n);
@@ -90,11 +101,11 @@ test('Base token contract, chain ID and decimals are checked before every new pr
   }});
   await assert.rejects(wrong(policy),/unsupported_token_decimals/);
 });
-function receiptNetwork(overrides={}) {
-  const quote=createProQuote({policy,rate,now:Date.UTC(2026,10,9)});
+function receiptNetwork(overrides={},asset='GENY') {
+  const quote=createProQuote({policy,rate,asset,now:Date.UTC(2026,10,9)});
   const when=BigInt(Date.parse(quote.created_at)/1000+40);
   const receipt={transactionHash:hash,status:'0x1',blockNumber:'0x64',
-    blockHash:'0x'+'cd'.repeat(32),logs:[{address:token,topics:[
+    blockHash:'0x'+'cd'.repeat(32),logs:[{address:quote.token,topics:[
       topic,topicAddress(wallet),topicAddress(treasury)],
       data:'0x'+BigInt(quote.amount_base_units).toString(16).padStart(64,'0')}]};
   const values={eth_chainId:'0x2105',eth_getTransactionReceipt:{...receipt,...overrides},
@@ -123,6 +134,17 @@ test('only confirmed exact token Transfer from verified wallet to configured tre
   await assert.rejects(verifyProTransfer(wrong),/payment_not_matched/);
   await assert.rejects(verifyProTransfer(receiptNetwork({status:'0x0'})),/payment_failed/);
   await assert.rejects(verifyProTransfer({...fixture,txHash:'0xdead'}),/invalid_payment_hash/);
+});
+test('USDC receipts require native Circle token, exact amount, verified sender and confirmations',async()=>{
+  const base=receiptNetwork({},'USDC');
+  const ok=await verifyProTransfer(base);
+  assert.equal(ok.tx_hash,hash);
+  const mismatch=receiptNetwork({logs:[{address:token,topics:[
+    topic,topicAddress(wallet),topicAddress(treasury)],data:'0x'+(2990000n).toString(16).padStart(64,'0')}]},'USDC');
+  await assert.rejects(verifyProTransfer(mismatch),/payment_not_matched/);
+  const broken=receiptNetwork({logs:[{address:base.quote.token,topics:[
+    topic,topicAddress(wallet),topicAddress(treasury)],data:'0x'+(2990001n).toString(16).padStart(64,'0')}]},'USDC');
+  await assert.rejects(verifyProTransfer(broken),/payment_not_matched/);
 });
 test('renewal entitlements expire automatically without token holding',()=>{
   const start=Date.UTC(2026,10,9);
@@ -179,6 +201,13 @@ test('server checkout requires authenticated FID and never grants on unverified 
     const quote=(await q.json()).quote;
     assert.equal(quote.price_usd_cents,299);
     assert.equal(quote.amount_geny,'2990');
+    const usdc=await req('pro/quote',true,{asset:'USDC'});
+    assert.equal(usdc.status,201);
+    const usdcQuote=(await usdc.json()).quote;
+    assert.equal(usdcQuote.asset,'USDC');
+    assert.equal(usdcQuote.decimals,6);
+    assert.equal(usdcQuote.amount_geny,'2.99');
+    assert.equal((await req('pro/quote',true,{asset:'USDbC'})).status,400);
     const invalid=await req('pro/verify',true,{quote_id:quote.id,tx_hash:hash});
     assert.equal(invalid.status,422);
     assert.equal(calls.some(([action])=>action==='confirm'),false);
