@@ -7220,6 +7220,26 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>التفاعلات الحالية على المنشورات المنشورة في كل فترة، وليس وقت حدوث التفاعل.</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>جارٍ تحميل سعر برو…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>سعر برو الحالي غير متاح. حاول مرة أخرى.</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>تحقق من جلسة حسابك في جني كاستر قبل طلب عرض دفع.</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>ربط الحساب</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>تحديث السعر</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 دولار / شهر</translation>

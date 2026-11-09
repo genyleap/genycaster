@@ -42,7 +42,9 @@ test('Geny Pro replaces the sidebar Streak CTA with a themed, interactive drawer
  assert.match(drawer,/id: fixedActions/);
  assert.match(drawer,/membership\.status === "verified"/);
  assert.match(drawer,/membership\.eligible === true/);
- assert.match(drawer,/fetchProEntitlements\(true\)/);
+ assert.match(drawer,/fetchProPlan\(true\)/);
+ assert.match(drawer,/retryProEntitlements\(\)/);
+ assert.match(drawer,/root\.canRequestQuote/);
 });
 
 test('Cast conversation header shows canonical avatar and verified membership without repeating channel by author',()=>{

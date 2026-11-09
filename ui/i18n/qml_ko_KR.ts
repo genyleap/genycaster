@@ -7220,6 +7220,26 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>각 기간에 게시된 글의 현재 반응 수이며, 반응이 발생한 날짜가 아닙니다.</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>Pro 가격 불러오는 중…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>현재 Pro 가격을 불러올 수 없습니다. 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>결제 견적을 요청하기 전에 GenyCaster 계정 세션을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>계정 연결</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>가격 새로고침</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1달러 / 월</translation>

@@ -7220,6 +7220,26 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>各期間に投稿された内容への現在の反応数です。反応が発生した日時ではありません。</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>Pro の料金を読み込み中…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>現在の Pro 料金を取得できません。再試行してください。</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>支払い見積もりを取得する前に、GenyCaster アカウントのセッションを確認してください。</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>アカウントを接続</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>料金を更新</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 ドル / 月</translation>

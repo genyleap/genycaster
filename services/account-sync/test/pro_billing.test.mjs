@@ -164,6 +164,15 @@ test('server checkout requires authenticated FID and never grants on unverified 
     method,headers:{'content-type':'application/json',
       ...(auth?{authorization:'Bearer allowed'}:{})},body:JSON.stringify(body)});
   try{
+    const anonymousPlan=await fetch(base+'pro/plan');
+    assert.equal(anonymousPlan.status,200);
+    const publishedPlan=(await anonymousPlan.json()).plan;
+    assert.equal(publishedPlan.price_usd_cents,299);
+    assert.equal(publishedPlan.period_days,30);
+    assert.equal(publishedPlan.chain_id,8453);
+    assert.equal(publishedPlan.payment_available,true);
+    assert.equal('treasury' in publishedPlan,false);
+    assert.equal((await req('pro/plan',false)).status,405);
     assert.equal((await req('pro/quote',false)).status,401);
     const q=await req('pro/quote');
     assert.equal(q.status,201);

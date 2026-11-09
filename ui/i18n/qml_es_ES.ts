@@ -7221,6 +7221,26 @@ Empresa | https://company.com</translation>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>Reacciones actuales a publicaciones de cada período, no la fecha de las reacciones.</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>Cargando precio de Pro…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>El precio actual de Pro no está disponible. Vuelve a intentarlo.</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>Verifica la sesión de tu cuenta GenyCaster antes de solicitar una cotización.</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>Conectar cuenta</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>Actualizar precio</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 USD / mes</translation>

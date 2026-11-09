@@ -9,6 +9,15 @@ GenyDrawer {
     id: root
     objectName: "genyProDetailsDrawer"
     property bool compact: false
+    signal accountRequested()
+    readonly property var plan: openProofConnections
+        ? (openProofConnections.proPlan || ({})) : ({})
+    readonly property bool cloudReady: openProofConnections
+        && openProofConnections.cloudAuthorizationReady
+        && Number(openProofConnections.activeAccountFid || 0) > 0
+    readonly property bool canRequestQuote: cloudReady
+        && openProofConnections && !openProofConnections.proPlanBusy
+        && monthlyUsdCents > 0 && plan.payment_available === true
     readonly property var membership: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property bool eligible: membership.status === "verified"
@@ -16,7 +25,7 @@ GenyDrawer {
                                      && membership.eligible === true
     readonly property var paymentQuote: openProofConnections
         ? (openProofConnections.proPaymentQuote || ({})) : ({})
-    readonly property int monthlyUsdCents: Number(membership.monthly_usd_cents || 0)
+    readonly property int monthlyUsdCents: Number(plan.price_usd_cents || 0)
     readonly property string monthlyUsd: monthlyUsdCents > 0
         ? (monthlyUsdCents / 100).toFixed(2) : "—"
     property string paymentHash: ""
@@ -38,11 +47,26 @@ GenyDrawer {
     height: root.compact ? Math.min(parent.height*0.88,760) : parent.height
     contentPadding: Theme.space4
 
+    Component.onCompleted: {
+        if (openProofConnections) openProofConnections.fetchProPlan(false)
+    }
+
     onOpened: {
         expandedFeature = -1
         quoteNowMs = Date.now()
         detailsViewport.contentY = 0
-        if (openProofConnections) openProofConnections.fetchProEntitlements(true)
+        if (openProofConnections) {
+            openProofConnections.fetchProPlan(true)
+            openProofConnections.retryProEntitlements()
+        }
+    }
+
+    Connections {
+        target: openProofConnections
+        function onStateChanged() {
+            if (root.opened && root.cloudReady && !openProofConnections.proEntitlementsBusy)
+                openProofConnections.fetchProEntitlements(false)
+        }
     }
 
     contentItem: Item {
@@ -89,7 +113,8 @@ GenyDrawer {
                     Layout.fillWidth: true
                     text: root.eligible
                           ? qsTrId("genycaster.pro.status_verified")
-                          : root.membership.status === "unavailable"
+                          : (!root.cloudReady
+                             || root.membership.status === "unavailable")
                             ? qsTrId("genycaster.pro.status_unavailable")
                             : qsTrId("genycaster.pro.requires_pro")
                     font.pixelSize: Theme.typeCaptionSize
@@ -148,7 +173,11 @@ GenyDrawer {
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
+                            text: root.monthlyUsdCents > 0
+                                ? qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
+                                : openProofConnections && openProofConnections.proPlanBusy
+                                  ? qsTrId("genycaster.pro.price_loading")
+                                  : qsTrId("genycaster.pro.price_unavailable")
                             font.pixelSize: Theme.typeTitle1Size
                             font.weight: Theme.weightBold
                             color: Theme.textPrimary
@@ -156,6 +185,14 @@ GenyDrawer {
                         DirectionAwareLabel {
                             Layout.fillWidth: true
                             text: qsTrId("genycaster.pro.manual_renewal")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.textSecondary
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: !root.cloudReady
+                            text: qsTrId("genycaster.pro.connect_required")
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.textSecondary
                             wrapMode: Text.Wrap
@@ -291,8 +328,8 @@ GenyDrawer {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: !root.eligible && root.membership.status === "verified"
-                        && root.membership.payment_available === false
+                    visible: root.monthlyUsdCents > 0
+                        && root.plan.payment_available === false
                     text: qsTrId("genycaster.pro.payment_unavailable")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.typeCaptionSize
@@ -430,10 +467,26 @@ GenyDrawer {
                 iconGlyph: Theme.iconWallet
                 spinIconWhileBusy: true
                 busy: openProofConnections ? openProofConnections.proBillingBusy : false
-                enabled: !busy && root.monthlyUsdCents > 0
-                    && root.membership.payment_available === true
-                text: qsTrId("genycaster.pro.get_quote")
-                onClicked: if (openProofConnections) openProofConnections.requestProPaymentQuote()
+                enabled: !busy
+                    && !(openProofConnections && openProofConnections.proPlanBusy)
+                    && (!root.cloudReady || root.monthlyUsdCents <= 0
+                        || root.canRequestQuote)
+                text: root.monthlyUsdCents <= 0
+                    ? qsTrId("genycaster.pro.refresh_price")
+                    : !root.cloudReady
+                      ? qsTrId("genycaster.pro.connect_to_pay")
+                      : qsTrId("genycaster.pro.get_quote")
+                onClicked: {
+                    if (!openProofConnections) return
+                    if (root.monthlyUsdCents <= 0) {
+                        openProofConnections.fetchProPlan(true)
+                    } else if (!root.cloudReady) {
+                        openProofConnections.retryProEntitlements()
+                        root.accountRequested()
+                    } else if (root.canRequestQuote) {
+                        openProofConnections.requestProPaymentQuote()
+                    }
+                }
             }
         }
     }

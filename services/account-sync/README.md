@@ -312,7 +312,9 @@ Responsibility: authenticate and renew 30-day Pro subscriptions with GENY paid o
 Base, **without using wallet holdings as membership authorization**.
 Capability origin: GenyCaster product extension (not HyperSnap/Snapchain
 protocol-signing authority). Optional: users can continue using Basic offline.
-Public contract: authenticated `GET /api/v1/cloud/entitlements`,
+Public contract: unauthenticated, read-only `GET /api/v1/cloud/pro/plan`
+for the current USD price and period (no treasury address or membership data);
+authenticated `GET /api/v1/cloud/entitlements`,
 `POST /api/v1/cloud/pro/quote` with `{}`, and
 `POST /api/v1/cloud/pro/verify` with `{quote_id,tx_hash}`.
 Canonical data: PostgreSQL `pro_quotes`, `pro_payments`, and

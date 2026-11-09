@@ -7221,6 +7221,26 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>تعاملات فعلی نشرهای هر بازه نمایش داده می‌شوند، نه زمان وقوع تعاملات.</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>در حال دریافت قیمت پرو…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>قیمت فعلی پرو در دسترس نیست. دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>برای دریافت پیش‌فاکتور پرداخت، ابتدا نشست حساب جنی‌کستر را تأیید کنید.</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>اتصال حساب</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>تازه‌سازی قیمت</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>%1 دلار / ماه</translation>

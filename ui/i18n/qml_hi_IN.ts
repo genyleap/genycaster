@@ -7220,6 +7220,26 @@ Company | https://company.com</source>
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>प्रत्येक अवधि में प्रकाशित पोस्ट पर वर्तमान प्रतिक्रियाएँ, न कि प्रतिक्रियाओं का समय।</translation>
         </message>
+        <message id="genycaster.pro.price_loading">
+            <source>Loading Pro price…</source>
+            <translation>प्रो की कीमत लोड हो रही है…</translation>
+        </message>
+        <message id="genycaster.pro.price_unavailable">
+            <source>Current Pro price is unavailable. Please retry.</source>
+            <translation>प्रो की मौजूदा कीमत उपलब्ध नहीं है। दोबारा कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.pro.connect_required">
+            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
+            <translation>भुगतान कोट माँगने से पहले अपने GenyCaster खाते का सत्र सत्यापित करें।</translation>
+        </message>
+        <message id="genycaster.pro.connect_to_pay">
+            <source>Connect account</source>
+            <translation>खाता कनेक्ट करें</translation>
+        </message>
+        <message id="genycaster.pro.refresh_price">
+            <source>Refresh price</source>
+            <translation>कीमत रीफ़्रेश करें</translation>
+        </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
             <translation>$%1 / माह</translation>

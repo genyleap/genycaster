@@ -54,6 +54,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString manualLinkedInUrl READ manualLinkedInUrl NOTIFY stateChanged)
     Q_PROPERTY(bool cloudBusy READ cloudBusy NOTIFY cloudStateChanged)
     Q_PROPERTY(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged)
+    Q_PROPERTY(qulonglong activeAccountFid READ activeAccountFid NOTIFY stateChanged)
     Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
     Q_PROPERTY(int cloudRevision READ cloudRevision NOTIFY cloudStateChanged)
@@ -65,6 +66,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool feedbackSubmitted READ feedbackSubmitted NOTIFY feedbackChanged)
     Q_PROPERTY(QVariantMap profileStatus READ profileStatus NOTIFY profileStatusChanged)
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
+    Q_PROPERTY(QVariantMap proPlan READ proPlan NOTIFY proPlanChanged)
+    Q_PROPERTY(bool proPlanBusy READ proPlanBusy NOTIFY proPlanChanged)
+    Q_PROPERTY(QString proPlanError READ proPlanError NOTIFY proPlanChanged)
     Q_PROPERTY(QVariantMap proEntitlements READ proEntitlements NOTIFY proEntitlementsChanged)
     Q_PROPERTY(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged)
     Q_PROPERTY(QVariantMap proPaymentQuote READ proPaymentQuote NOTIFY proBillingChanged)
@@ -163,6 +167,12 @@ public:
     [[nodiscard]] bool proEntitlementsBusy() const noexcept {
         return m_proEntitlementsRead != nullptr;
     }
+
+    /** @brief Public server-owned USD price, independent of account identity. */
+    [[nodiscard]] QVariantMap proPlan() const { return m_proPlan; }
+    [[nodiscard]] bool proPlanBusy() const noexcept { return m_proPlanRequest != nullptr; }
+    [[nodiscard]] QString proPlanError() const { return m_proPlanError; }
+    Q_INVOKABLE void fetchProPlan(bool force = false);
     Q_INVOKABLE void fetchProEntitlements(bool force = false);
 
     /** @brief Checkout snapshot belongs to the current verified account only. */
@@ -329,6 +339,7 @@ public:
 
 signals:
     void mutedProfilesChanged();
+    void proPlanChanged();
     void proEntitlementsChanged();
     void proBillingChanged();
     void genyAssetsChanged();
@@ -390,6 +401,10 @@ private:
     bool m_feedbackSubmitted{};
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
+    QPointer<QNetworkReply> m_proPlanRequest{};
+    QVariantMap m_proPlan{};
+    QString m_proPlanError{};
+    qint64 m_proPlanFetchedAt{};
     QPointer<QNetworkReply> m_proEntitlementsRead{};
     QPointer<QNetworkReply> m_proBillingRequest{};
     QVariantMap m_proQuote{};

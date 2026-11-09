@@ -346,6 +346,7 @@ void OpenProofConnectionsController::restoreAccountSession()
         fetchStreak();
         fetchStreakPreferences();
         emit stateChanged();
+        fetchProEntitlements(false);
         if(m_cloudServiceAvailable) {
             pumpBookmarkChanges();
             pumpNotificationSeenAt();
@@ -432,6 +433,7 @@ void OpenProofConnectionsController::acceptBrowserAccountSession(
     fetchStreak();
     fetchStreakPreferences();
     emit stateChanged();
+    fetchProEntitlements(false);
     if(m_cloudServiceAvailable) {
         pumpBookmarkChanges();
         pumpNotificationSeenAt();
@@ -1545,6 +1547,66 @@ void OpenProofConnectionsController::retryProEntitlements()
         bootstrapAccountSession();
     else
         restoreAccountSession();
+}
+
+void OpenProofConnectionsController::fetchProPlan(const bool force)
+{
+    // Plan pricing is public product metadata; do not require an FID,
+    // OpenProof bearer, cookie or an authorized cloud session.
+    if (!trustedHttpsEndpoint(m_cloudUrl)) {
+        m_proPlan.clear();
+        m_proPlanFetchedAt = 0;
+        m_proPlanError = QStringLiteral("price_unavailable");
+        emit proPlanChanged();
+        return;
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (!force && !m_proPlan.isEmpty() && m_proPlanFetchedAt > 0
+        && now - m_proPlanFetchedAt < 60'000)
+        return;
+    if (m_proPlanRequest)
+        return;
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/pro/plan"));
+    url.setQuery(QString{});
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(12'000);
+    request.setRawHeader("Accept", "application/json");
+    auto* reply = m_network.get(request);
+    m_proPlanRequest = reply;
+    m_proPlanError.clear();
+    emit proPlanChanged();
+    connect(reply, &QNetworkReply::finished, this, [this,reply] {
+        if (m_proPlanRequest != reply) { reply->deleteLater(); return; }
+        m_proPlanRequest.clear();
+        const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes = reply->bytesAvailable() <= 2048 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        const auto doc = QJsonDocument::fromJson(bytes);
+        const auto plan = doc.isObject()
+            ? doc.object().value(QStringLiteral("plan")).toObject()
+            : QJsonObject{};
+        const int cents = plan.value(QStringLiteral("price_usd_cents")).toInt();
+        const bool valid = status == 200 && cents > 0 && cents <= 999'999
+            && plan.value(QStringLiteral("period_days")).toInt() == 30
+            && plan.value(QStringLiteral("chain_id")).toInt() == 8453
+            && plan.value(QStringLiteral("payment_available")).isBool()
+            && plan.value(QStringLiteral("billing_mode")).toString()
+                == QStringLiteral("monthly_payment");
+        if (valid) {
+            m_proPlan = plan.toVariantMap();
+            m_proPlanFetchedAt = QDateTime::currentMSecsSinceEpoch();
+            m_proPlanError.clear();
+        } else {
+            // A stale plan can never enable a new payment quote.
+            m_proPlan.clear();
+            m_proPlanFetchedAt = 0;
+            m_proPlanError = QStringLiteral("price_unavailable");
+        }
+        emit proPlanChanged();
+    });
 }
 
 void OpenProofConnectionsController::fetchProEntitlements(const bool force)

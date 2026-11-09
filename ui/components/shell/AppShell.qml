@@ -22,6 +22,7 @@ Item {
     GenyProDetailsDrawer {
         id: genyProDetailsDrawer
         compact: root.compact
+        onAccountRequested: root.openAccountPopup()
     }
 
     readonly property bool isReady: presentationBridge.architectureState.length > 0

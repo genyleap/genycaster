@@ -551,11 +551,28 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'entitlements','geny/assets','pro/quote','pro/verify',
+      'entitlements','geny/assets','pro/plan','pro/quote','pro/verify',
       'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','feedback',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
+    }
+    // Public price discovery is not an entitlement. Users can see the
+    // operator-controlled price before establishing a private cloud session.
+    // Checkout and subscription activation remain strictly authenticated.
+    if(entity==='pro/plan') {
+      if(request.method!=='GET') {
+        respond(response,405,{error:'method_not_allowed'});return true;
+      }
+      respond(response,200,{plan:{
+        price_usd_cents:billingPolicy.monthlyUsdCents,
+        period_days:billingPolicy.periodDays,
+        chain_id:billingPolicy.chainId,
+        token_symbol:'GENY',
+        payment_available:Boolean(billingPolicy.enabled && store.proBillingReady?.()),
+        billing_mode:'monthly_payment'
+      }});
+      return true;
     }
     if(entity==='profile_activity' && request.method==='GET') {
       const params=new URL(request.url,'http://localhost').searchParams;

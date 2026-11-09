@@ -85,3 +85,25 @@ test('Pro descriptions are translated and contain no unfilled %1 in feature deta
   assert.doesNotMatch(featureSection,/%1/);
  }
 });
+
+test('Pro drawer loads server-owned public price and recovers account authorization',()=>{
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ const shell=read('ui/components/shell/AppShell.qml');
+ const cpp=read('ui/app/identity/connections.cpp');
+ const header=read('ui/app/identity/connections.hpp');
+ const cloud=read('services/account-sync/cloud_state.mjs');
+ assert.match(drawer,/monthlyUsdCents: Number\(plan\.price_usd_cents \|\| 0\)/);
+ assert.doesNotMatch(drawer,/monthlyUsdCents: Number\(membership\.monthly_usd_cents/);
+ assert.match(drawer,/openProofConnections\.fetchProPlan\(true\)/);
+ assert.match(drawer,/openProofConnections\.retryProEntitlements\(\)/);
+ assert.match(drawer,/root\.canRequestQuote/);
+ assert.match(drawer,/root\.accountRequested\(\)/);
+ assert.match(shell,/onAccountRequested: root\.openAccountPopup\(\)/);
+ assert.match(header,/Q_PROPERTY\(QVariantMap proPlan READ proPlan NOTIFY proPlanChanged\)/);
+ assert.match(header,/Q_PROPERTY\(qulonglong activeAccountFid READ activeAccountFid NOTIFY stateChanged\)/);
+ assert.match(cpp,/\/api\/v1\/cloud\/pro\/plan/);
+ assert.match(cpp,/void OpenProofConnectionsController::fetchProPlan/);
+ assert.match(cloud,/entity==='pro\/plan'/);
+ assert.match(cloud,/price_usd_cents:billingPolicy\.monthlyUsdCents/);
+ assert.match(cloud,/if \(!owner\) \{respond\(response,401/);
+});
