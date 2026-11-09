@@ -160,6 +160,25 @@ add_test(NAME ui.token_sparkline_geometry COMMAND farcaster_token_sparkline_test
 set_tests_properties(ui.token_sparkline_geometry PROPERTIES
     TIMEOUT 15 LABELS "ui;market;qt;rendering")
 
+# The production scene-graph generators are compiled into this narrowly
+# scoped native test. Exercise giant but representable QML dimensions without
+# submitting GPU work, to catch floating-to-int tessellation UB under UBSan.
+qt_add_executable(farcaster_render_geometry_bounds_tests
+    render_geometry_bounds_tests.cpp
+    "${genycasterUiSourceDir}/render/stroke.cpp"
+    "${genycasterUiSourceDir}/render/stroke.hpp"
+    "${genycasterUiSourceDir}/render/superellipse.cpp"
+    "${genycasterUiSourceDir}/render/superellipse.hpp"
+    "${genycasterUiSourceDir}/render/geometry_safety.hpp")
+target_compile_features(farcaster_render_geometry_bounds_tests PRIVATE cxx_std_26)
+target_link_libraries(farcaster_render_geometry_bounds_tests PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Quick Qt6::Qml)
+farcaster_enable_warnings(farcaster_render_geometry_bounds_tests)
+add_test(NAME ui.render_geometry_bounds COMMAND farcaster_render_geometry_bounds_tests)
+set_tests_properties(ui.render_geometry_bounds PROPERTIES
+    TIMEOUT 20 LABELS "ui;qt;rendering;safety"
+    ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
+
 # A standalone real-Qt network/QObject test, independent of the giant
 # executable and its C++ module graph. The local test server makes request
 # batching, exact cast counts and unknown values deterministic.

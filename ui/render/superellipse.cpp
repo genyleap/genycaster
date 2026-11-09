@@ -1,4 +1,5 @@
 #include "superellipse.hpp"
+#include "geometry_safety.hpp"
 
 #include <QQuickWindow>
 #include <QSGGeometry>
@@ -148,8 +149,8 @@ void appendQuad(
         * std::max<qreal>(0.0, radius) * devicePixelRatio;
     const qreal quality = std::clamp(qualityScale, 0.5, 2.0);
     const qreal targetPhysicalStep = 0.86 / quality;
-    return std::clamp(
-        static_cast<int>(std::ceil(physicalQuarterLength / targetPhysicalStep)),
+    return genycaster::render::safety::boundedSegmentCount(
+        physicalQuarterLength / targetPhysicalStep,
         MinimumCornerSegments,
         MaximumCornerSegments);
 }

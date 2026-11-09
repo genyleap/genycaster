@@ -1,4 +1,5 @@
 #include "stroke.hpp"
+#include "geometry_safety.hpp"
 
 #include <QQuickWindow>
 #include <QSGGeometry>
@@ -107,8 +108,9 @@ void appendRoundDisc(
     }
 
     const qreal physicalCircumference = 2.0 * std::numbers::pi_v<qreal> * radius * devicePixelRatio;
-    const int segments = std::clamp(
-        static_cast<int>(std::ceil(physicalCircumference / (3.0 / std::clamp(qualityScale, 0.5, 2.0)))), MinimumCircleSegments, 144);
+    const int segments = genycaster::render::safety::boundedSegmentCount(
+        physicalCircumference / (3.0 / std::clamp(qualityScale, 0.5, 2.0)),
+        MinimumCircleSegments, 144);
 
     const auto centerVertex = makeVertex(center, color);
     for (int index = 0; index < segments; ++index) {
@@ -245,7 +247,8 @@ void appendStrokeRun(
     const qreal sweepRadians = sweepAngleDegrees * std::numbers::pi_v<qreal> / 180.0;
     const qreal physicalLength = std::abs(sweepRadians) * radius * devicePixelRatio;
     const qreal quality = std::clamp(qualityScale, 0.5, 2.0);
-    const int segments = std::clamp(static_cast<int>(std::ceil(physicalLength / (1.65 / quality))), 10, MaximumArcSegments);
+    const int segments = genycaster::render::safety::boundedSegmentCount(
+        physicalLength / (1.65 / quality), 10, MaximumArcSegments);
     points.reserve(static_cast<std::size_t>(segments + 1));
     const QPointF center{size.width() / 2.0, size.height() / 2.0};
 
@@ -297,8 +300,9 @@ void appendQuarterArc(
     }
 
     const qreal physicalQuarterLength = (std::numbers::pi_v<qreal> / 2.0) * radius * devicePixelRatio;
-    const int segments = std::clamp(
-        static_cast<int>(std::ceil(physicalQuarterLength / (2.1 / std::clamp(qualityScale, 0.5, 2.0)))), 4, MaximumRoundedRectSegmentsPerCorner);
+    const int segments = genycaster::render::safety::boundedSegmentCount(
+        physicalQuarterLength / (2.1 / std::clamp(qualityScale, 0.5, 2.0)),
+        4, MaximumRoundedRectSegmentsPerCorner);
 
     points.reserve(static_cast<std::size_t>(segments * 4 + 5));
     points.emplace_back(left + radius, top);

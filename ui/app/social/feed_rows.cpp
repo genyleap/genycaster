@@ -103,9 +103,13 @@ void FeedRowsModel::remove(const int index)
 
 void FeedRowsModel::move(const int from, const int to, const int amount)
 {
-    if (amount <= 0 || from < 0 || to < 0 ||
-        from + amount > count() || to + amount > count() ||
-        (from == to)) {
+    // from/to/amount are QML-callable signed integers. Validate without
+    // first adding them: INT_MAX + positive amount is signed-overflow UB,
+    // even when the resulting range would be rejected afterwards.
+    const int rowCount = count();
+    if (amount <= 0 || from < 0 || to < 0 || from >= rowCount
+        || to >= rowCount || amount > rowCount - from
+        || amount > rowCount - to || from == to) {
         return;
     }
     const int destinationChild = from < to ? to + amount : to;
@@ -473,14 +477,21 @@ void MasonryWindowModel::relayout(const int columns, const qreal cardWidth,
 
 int MasonryWindowModel::laneAt(const qreal x) const noexcept
 {
-    const int visual = std::clamp(static_cast<int>(
-        std::floor((x - m_inset) / std::max(1.0, m_cardWidth + m_gap))), 0, m_columns - 1);
+    // Cast only after bounding the floating coordinate. C++ does not define
+    // a floating-to-int conversion if the result is outside int's range.
+    const qreal position = (x - m_inset) / std::max(1.0, m_cardWidth + m_gap);
+    int visual = 0;
+    if (position >= static_cast<qreal>(m_columns - 1))
+        visual = m_columns - 1;
+    else if (position > 0.0)
+        visual = static_cast<int>(position); // 0 < position < 7
     return m_rtl ? m_columns - visual - 1 : visual;
 }
 
 int MasonryWindowModel::indexAt(const qreal x, const qreal y) const
 {
-    if (m_geometry.isEmpty()) return -1;
+    if (m_geometry.isEmpty() || !std::isfinite(x) || !std::isfinite(y))
+        return -1;
     const auto probe = [this, y](const int column) {
         const auto& lane = m_lanes.at(column);
         const auto it = std::lower_bound(lane.cbegin(), lane.cend(), y,

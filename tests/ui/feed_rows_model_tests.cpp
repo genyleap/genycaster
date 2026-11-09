@@ -4,6 +4,7 @@
 #include <QSignalSpy>
 #include <QAbstractItemModelTester>
 
+#include <limits>
 #include <source_location>
 
 namespace {
@@ -73,6 +74,21 @@ int main(int argc, char** argv)
     require(moved.size() == 2 && model.get(9000).value(QStringLiteral("stableKey"))
         == QStringLiteral("0x9000"));
     require(resets.isEmpty());
+    // A QML caller can supply arbitrary 32-bit integers. Previously these
+    // calls evaluated from + amount / to + amount before rejecting the input.
+    // UndefinedBehaviorSanitizer must not flag signed overflow here.
+    const int maximum = std::numeric_limits<int>::max();
+    const qsizetype movesBeforeInvalidInput = moved.size();
+    model.move(maximum, 0, maximum);
+    model.move(0, maximum, maximum);
+    model.move(maximum, maximum, 1);
+    model.move(0, 1, maximum);
+    model.move(1, 0, maximum);
+    model.move(-1, 0, maximum);
+    require(moved.size() == movesBeforeInvalidInput);
+    require(model.count() == n);
+    require(model.get(9000).value(QStringLiteral("stableKey"))
+            == QStringLiteral("0x9000"));
     model.remove(9000);
     require(model.count() == n - 1 && removed.size() == 1);
     require(!model.get(9000).value(QStringLiteral("stableKey")).toString().isEmpty());
@@ -108,6 +124,14 @@ int main(int argc, char** argv)
     magazine.relayout(3, 320.0, 12.0, 12.0, 12.0, false);
     magazine.setViewport(0.0, 720.0, 280.0, 950.0, true);
     require(magazine.count() > 0 && magazine.count() < 60);
+    // indexAt crosses the QML/C++ boundary; do not cast an unbounded double
+    // to int inside laneAt, and reject non-finite viewport coordinates.
+    const qreal extreme = 1.0e300;
+    require(magazine.indexAt(extreme, 12.0) >= 0);
+    require(magazine.indexAt(-extreme, 12.0) >= 0);
+    require(magazine.indexAt(std::numeric_limits<qreal>::infinity(), 12.0) == -1);
+    require(magazine.indexAt(std::numeric_limits<qreal>::quiet_NaN(), 12.0) == -1);
+    require(magazine.indexAt(0.0, std::numeric_limits<qreal>::quiet_NaN()) == -1);
     const auto top = magazine.geometryAt(0);
     const auto nextInLane = magazine.geometryAt(3);
     require(top.value(QStringLiteral("x")) == nextInLane.value(QStringLiteral("x")));
