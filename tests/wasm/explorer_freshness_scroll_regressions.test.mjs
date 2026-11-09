@@ -45,7 +45,27 @@ test('Explorer Conversations uses verified network replies instead of text heuri
     assert.equal(isConversation({isReply: true, parentCastId: '0xparent'}), true);
     assert.equal(isConversation({text: 'Can anyone answer this question?'}), false);
     assert.equal(isConversation({replyCount: 25}), false);
-    assert.match(qml, /root.activeFeed === "conversations" && root.isConversation\(row\)/);
+    assert.match(qml, /if \(root\.isConversation\(row\)\)/);
+    assert.doesNotMatch(qml, /root\.activeFeed === "conversations" && root\.isConversation\(row\)/);
+    // Following is an audience constraint: the filtered reply projection
+    // must not reject actual replies merely because its source is "following".
+    const body = qml.match(/    function sourceRows\(\) \{([\s\S]*?)\n    \}\n\n    function rowKey\(/);
+    assert.ok(body);
+    const rows = [
+        {castId: 'following-reply', isReply: true, parentCastId: '0xparent'},
+        {castId: 'following-root', isReply: false}
+    ];
+    const root = {
+        rows, supplementalRows: [], socialMode: false,
+        presentationMode: 'conversations', activeFeed: 'following',
+        topicFilterActive: false,
+        rowMatchesSignerFilter: () => true,
+        rowMatchesAppFilter: () => true,
+        isConversation
+    };
+    const project = new Function('root', 'function sourceRows() {' + body[1]
+        + '\n}\nreturn sourceRows();');
+    assert.deepEqual(project(root).map(item => item.payload.castId), ['following-reply']);
     const gateway = read('src/providers/hypersnap/async_gateway.cpp');
     const decoder = read('src/providers/hypersnap/codec.cpp');
     const bridge = read('src/presentation/qt/presentation_bridge.cpp');
@@ -196,23 +216,47 @@ test('video playback preserves production audio while headless Qt 6.12 QA avoids
     assert.match(testFixture, /QStringLiteral\("audioOutputEnabled"\), false/);
 });
 
-test('NFT and developer tabs have independent provider searches and cache keys', () => {
+test('NFT and developer tabs favor real channel casts and preserve independent provider cursor sources', () => {
     const gateway = read('src/providers/hypersnap/async_gateway.cpp');
     const local = read('src/storage/read_store.cpp');
     const model = read('src/application/read_model.cppm');
     const surface = read('ui/components/feed/FeedSurface.qml');
-    assert.match(gateway, /spec\.path = "\/v2\/farcaster\/cast\/search"/);
-    assert.match(gateway, /\{"q", query\.kind/);
-    assert.match(gateway, /\? "art" : "github"/);
+    assert.match(gateway, /spec\.path = "\/v2\/farcaster\/feed\/channels"/);
+    assert.match(gateway, /\{"channel_ids", "dev,developers,build,programming"\}/);
+    assert.match(gateway, /spec\.fallbackPath = "\/v2\/farcaster\/cast\/search"/);
+    assert.match(gateway, /\{"q", "github"\}/);
     assert.match(gateway, /collectibleSearchTerms\{/);
-    assert.match(gateway, /"art", "mint", "opensea", "superrare", "foundation"/);
+    assert.match(gateway, /"nft,art", "mint", "opensea", "superrare", "foundation"/);
+    assert.match(gateway, /collectibleChannelSource \? "\/v2\/farcaster\/feed\/channels" : spec\.path/);
     assert.match(gateway, /encodeCollectibleCursor\(state\)/);
+    assert.match(gateway, /collectibleCursorPrefix\{"collectibles:v2:"\}/);
+    assert.match(gateway, /legacyCollectibleCursorPrefix\{"collectibles:v1:"\}/);
+    assert.match(gateway, /state\.cursors\[0\]\.reset\(\)/);
+    assert.match(gateway, /state\.exhausted\[0\] = true/);
     assert.match(local, /"feed:nfts"/);
     assert.match(local, /"feed:developers"/);
     assert.match(model, /Nfts, Developers/);
     assert.match(surface, /root\.hasCollectible\(row\)/);
     assert.doesNotMatch(surface, /root\.activeFeed === "nfts" \|\| root\.hasCollectible\(row\)/);
     assert.match(surface, /root\.activeFeed === "developers"/);
+});
+
+test('NFT image admission accepts opaque artwork CDN URLs but not ordinary links', () => {
+    const qml = read('ui/components/feed/FeedSurface.qml');
+    const artworkMatch = qml.match(/    function looksLikeArtworkUrl\(value\) \{([\s\S]*?)\n    \}/);
+    const imageMatch = qml.match(/    function rowHasImage\(data\) \{([\s\S]*?)\n    \}/);
+    assert.ok(artworkMatch && imageMatch);
+    const looksLikeArtworkUrl = new Function('value', artworkMatch[0] + '\nreturn looksLikeArtworkUrl(value);');
+    const rowHasImage = new Function('root', 'data', imageMatch[0] + '\nreturn rowHasImage(data);');
+    const root = {
+        collectiblePreview: () => ({}),
+        classifiedFamily: () => 'web',
+        embedUrl: embed => embed.url || embed.value || '',
+        looksLikeArtworkUrl
+    };
+    assert.equal(rowHasImage(root, {embeds: [{url:'https://imagedelivery.net/hash/image-id/quality'}]}), true);
+    assert.equal(rowHasImage(root, {embeds: [{url:'https://gateway.pinata.cloud/ipfs/QmOpaque'}]}), true);
+    assert.equal(rowHasImage(root, {embeds: [{url:'https://github.com/example/project'}]}), false);
 });
 
 test('story strip uses the current account Following graph, never public cast authors', () => {

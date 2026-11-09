@@ -266,4 +266,39 @@ trace; the installed `perf` command was not executable through the current
 restricted remote-operation policy. Other platform measurements remain
 unavailable rather than fabricated.
 
+## Explorer semantic feeds — 9 November 2026
+
+An isolated, read-only public HyperSnap probe was made against the configured
+default indexed provider (`https://haatz.quilibrium.com`), not the separate
+raw Snapchain host. Results are sample observations rather than user-visible
+end-to-end timings:
+
+| Explorer source | Public probe | Observation |
+|---|---|---|
+| NFTs / text search | `cast/search?q=art` or `q=nft`, 40 rows | No embeds in sampled results; client-side art eligibility can reject the whole page |
+| NFTs / channel feed | `feed/channels?channel_ids=nft,art`, 40 rows | 30 rows with embeds; endpoint responded in approximately 126 ms |
+| Dev / text search | `cast/search?q=github`, 40 rows | All sampled results had no embeds and triggered an optional display-hydration path |
+| Dev / channel feed | `feed/channels?channel_ids=dev,developers,build,programming`, 40 rows | 40 indexed channel casts; endpoint responded in approximately 158 ms |
+| Conversations / native chain | `v1/info` plus 500-block event window on two shards, then `cast/bulk` | Valid replies and parent identities verified; public node was responding during the probe |
+| Following / reply projection | `feed/following?fid=3&limit=50` | 34 of 50 public sampled posts were replies, proving that a source-name gate can wrongly hide real conversations |
+
+**Corrections:** the first NFT source now requests indexed NFT/art channel
+casts, with independent bounded market/mint search cursors for supplemental
+pages. Dev prioritizes developer channels; compatible nodes without the
+channel endpoint fall back to text search. A search cursor never enters the
+unavailable channel endpoint on later NFT pages; existing v1 collectible
+cursors are decoded conservatively and migrated to v2 without replaying
+the old text-search cursor against the new channel endpoint. In
+`ui/components/feed/FeedSurface.qml`, Following + Conversations filters
+replies by actual parent identity rather than rejecting the Following
+source, and image detection accepts established artwork-CDN URLs lacking a
+file extension. This does not loosen the fungible-token exclusion gate.
+
+**Limits:** these probes used public data, not the user's selected node or
+credentials. A successful HTTP probe does not prove mobile FPS, complete
+image decode, offline behavior, or installed-app startup. The native provider
+contract test includes cursor routing, fallback and decoded-parent checks;
+`tests/wasm/explorer_freshness_scroll_regressions.test.mjs` checks the
+Following reply projection and extensionless image classification.
+
 See also [Architecture](ARCHITECTURE.md), [UI performance contract](14-performance-and-ui-runtime.md), and [Contributing](../CONTRIBUTING.md).

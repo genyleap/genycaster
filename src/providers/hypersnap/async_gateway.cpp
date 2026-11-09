@@ -404,9 +404,13 @@ constexpr std::string_view conversationCursorPrefix{"conversations:v1:"};
 
 // Independent artwork/mint searches: a single literal "nft" query misses
 // verified artworks and collection links whose author never writes that word.
-constexpr std::string_view collectibleCursorPrefix{"collectibles:v1:"};
+constexpr std::string_view collectibleCursorPrefix{"collectibles:v2:"};
+constexpr std::string_view legacyCollectibleCursorPrefix{"collectibles:v1:"};
+// The first source is the real NFT/art channel feed, not a text-only "art"
+// search. Subsequent turns keep independent search cursors for collectible
+// links outside those channels.
 constexpr std::array<std::string_view, 5> collectibleSearchTerms{
-    "art", "mint", "opensea", "superrare", "foundation"};
+    "nft,art", "mint", "opensea", "superrare", "foundation"};
 
 struct CollectibleSearchCursor final {
     std::size_t turn{};
@@ -434,9 +438,14 @@ struct CollectibleSearchCursor final {
 [[nodiscard]] foundation::result::Result<CollectibleSearchCursor>
 decodeCollectibleCursor(std::string_view text)
 {
-    if (!text.starts_with(collectibleCursorPrefix))
+    // The v1 first turn searched text "art"; v2's first turn is a
+    // channel feed. Replaying a v1 search cursor against /feed/channels
+    // would fail. Decode old cursors but retire that incompatible turn.
+    const bool legacy = text.starts_with(legacyCollectibleCursorPrefix);
+    if (!legacy && !text.starts_with(collectibleCursorPrefix))
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Invalid artwork discovery cursor."));
-    text.remove_prefix(collectibleCursorPrefix.size());
+    text.remove_prefix(legacy ? legacyCollectibleCursorPrefix.size()
+                              : collectibleCursorPrefix.size());
     const auto firstColon = text.find(':');
     std::size_t turn{};
     if (firstColon == text.npos ||
@@ -471,6 +480,11 @@ decodeCollectibleCursor(std::string_view text)
     }
     if (!text.empty())
         return std::unexpected(makeError(ErrorCode::InvalidArgument, "Trailing artwork cursor data."));
+    if (legacy) {
+        state.cursors[0].reset();
+        state.exhausted[0] = true;
+        if (state.turn == 0U) state.turn = 1U;
+    }
     return state;
 }
 
@@ -1224,18 +1238,25 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
         spec.capabilityId = capability::catalog::feedConversationsRead();
         break;
     case application::read::model::FeedQuery::Kind::Nfts:
-    case application::read::model::FeedQuery::Kind::Developers:
-        // A semantic tab must query its own index. Filtering the first few
-        // arbitrary global casts cannot discover a sparse NFT/dev topic.
-        spec.capabilityId = query.kind == application::read::model::FeedQuery::Kind::Nfts
-            ? capability::catalog::feedNftsRead()
-            : capability::catalog::feedDevelopersRead();
+        spec.capabilityId = capability::catalog::feedNftsRead();
+        // The first turn selects indexed NFT/art channels. Further turns
+        // search mint/marketplace destinations beyond those channels.
         spec.path = "/v2/farcaster/cast/search";
-        spec.query = {
-            {"q", query.kind == application::read::model::FeedQuery::Kind::Nfts
-                ? "art" : "github"},
-            {"sort_type", "recent"},
-        };
+        spec.query = {{"q", "mint"}, {"sort_type", "recent"}};
+        // Older compatible nodes may lack /feed/channels, but still support
+        // search. Do not make their NFT tab unusable.
+        spec.fallbackPath = "/v2/farcaster/cast/search";
+        spec.fallbackQuery = {{"q", "art"}, {"sort_type", "recent"}};
+        spec.timeout = discoveryRequestTimeout;
+        break;
+    case application::read::model::FeedQuery::Kind::Developers:
+        spec.capabilityId = capability::catalog::feedDevelopersRead();
+        // Prioritize canonical developer-channel posts. Search-index casts
+        // are often sparse and require an extra cast/bulk hydration roundtrip.
+        spec.path = "/v2/farcaster/feed/channels";
+        spec.query = {{"channel_ids", "dev,developers,build,programming"}};
+        spec.fallbackPath = "/v2/farcaster/cast/search";
+        spec.fallbackQuery = {{"q", "github"}, {"sort_type", "recent"}};
         spec.timeout = discoveryRequestTimeout;
         break;
     case application::read::model::FeedQuery::Kind::Trending:
@@ -1469,10 +1490,15 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
             if (communityContinuation) {
                 resolvedCursor = resolvedCursor->substr(communityCursorPrefix.size());
             }
+            const bool collectibleChannelSource =
+                collectibleState && collectibleState->turn == 0U;
             auto preferredQuery = communityContinuation
                 ? std::vector<std::pair<std::string, std::string>>{{"fid", "3"}}
-                : spec.query;
-            if (collectibleState) {
+                : collectibleChannelSource
+                    ? std::vector<std::pair<std::string, std::string>>{
+                          {"channel_ids", std::string{collectibleSearchTerms[0]}}}
+                    : spec.query;
+            if (collectibleState && !collectibleChannelSource) {
                 for (auto& [name, value] : preferredQuery) {
                     if (name == "q") {
                         value = collectibleSearchTerms[collectibleState->turn];
@@ -1485,18 +1511,21 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                 preferredQuery.emplace_back("cursor", *resolvedCursor);
             }
             auto preferred = m_client.getJson(
-                communityContinuation ? "/v2/farcaster/feed/following" : spec.path,
+                communityContinuation ? "/v2/farcaster/feed/following"
+                    : collectibleChannelSource ? "/v2/farcaster/feed/channels" : spec.path,
                 preferredQuery,
                 [this, group, spec, capabilityId, selectorIdentity, pageRequest, resolvedCursor, requestPriority,
-                 communityContinuation, collectibleState,
+                 communityContinuation, collectibleState, collectibleChannelSource,
                  completion = std::move(completion)](
                     foundation::result::Result<std::string> body) mutable {
                     auto process = std::make_shared<std::function<void(
-                        foundation::result::Result<std::string>, bool)>>(
+                        foundation::result::Result<std::string>, bool, bool)>>(
                         [this, group, spec, capabilityId, selectorIdentity, resolvedCursor, requestPriority,
-                         collectibleState, completion = std::move(completion)](
+                         collectibleState, collectibleChannelSource,
+                         completion = std::move(completion)](
                                        foundation::result::Result<std::string> selectedBody,
-                                       const bool communityFallback) mutable {
+                                       const bool communityFallback,
+                                       const bool usedAliasFallback) mutable {
                         if (group->cancelled.load(std::memory_order_acquire)) {
                             return;
                         }
@@ -1522,8 +1551,14 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         if (collectibleState) {
                             auto state = *collectibleState;
                             const auto completedTurn = state.turn;
-                            state.cursors[completedTurn] = providerCursor;
-                            state.exhausted[completedTurn] = !providerCursor;
+                            // If an older provider does not implement channel
+                            // feeds, its text-search cursor is not a channel
+                            // cursor. Never feed it back into /feed/channels.
+                            const bool skippedChannel = collectibleChannelSource
+                                && usedAliasFallback;
+                            state.cursors[completedTurn] = skippedChannel
+                                ? std::nullopt : providerCursor;
+                            state.exhausted[completedTurn] = skippedChannel || !providerCursor;
                             bool foundNext = false;
                             for (std::size_t offset = 1U; offset <= state.cursors.size(); ++offset) {
                                 const auto candidate = (completedTurn + offset) % state.cursors.size();
@@ -1600,8 +1635,14 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             }
                         };
 
+                        // Channel feeds return the complete cast envelope. The
+                        // text-search index may omit display mention ranges,
+                        // so only its turns need the optional bulk enrichment.
                         const bool searchNeedsMentions =
-                            spec.path == "/v2/farcaster/cast/search" && !page.casts.empty();
+                            (usedAliasFallback ||
+                             (!collectibleChannelSource
+                              && spec.path == "/v2/farcaster/cast/search"))
+                            && !page.casts.empty();
                         const bool sparseXMentions = !searchNeedsMentions
                             && std::ranges::any_of(page.casts, mayContainSparseXMention);
                         const bool repliesNeedMetrics =
@@ -1648,7 +1689,7 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                     });
 
                     if (body || communityContinuation) {
-                        (*process)(std::move(body), communityContinuation);
+                        (*process)(std::move(body), communityContinuation, false);
                         return;
                     }
 
@@ -1666,20 +1707,20 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                             "/v2/farcaster/feed/following",
                             {{"fid", "3"}, {"limit", std::to_string(pageRequest.limit)}},
                             [process](foundation::result::Result<std::string> result) mutable {
-                                (*process)(std::move(result), true);
+                                (*process)(std::move(result), true, false);
                             },
                             request::GetOptions{.timeout = followingRequestTimeout},
                             requestPriority);
                         if (community) {
                             group->add(std::move(*community));
                         } else {
-                            (*process)(std::unexpected(std::move(community.error())), false);
+                            (*process)(std::unexpected(std::move(community.error())), false, false);
                         }
                         return;
                     }
 
                     if (!spec.fallbackPath || !supportsAliasFallback(body.error().code)) {
-                        (*process)(std::move(body), false);
+                        (*process)(std::move(body), false, false);
                         return;
                     }
                     auto fallbackQuery = spec.fallbackQuery;
@@ -1691,14 +1732,14 @@ foundation::result::Result<AppRequest> AsyncGateway::feed(
                         *spec.fallbackPath,
                         fallbackQuery,
                         [process](foundation::result::Result<std::string> fallbackBody) mutable {
-                            (*process)(std::move(fallbackBody), false);
+                            (*process)(std::move(fallbackBody), false, true);
                         },
                         request::GetOptions{.timeout = spec.timeout},
                         requestPriority);
                     if (fallback) {
                         group->add(std::move(*fallback));
                     } else {
-                        (*process)(std::unexpected(std::move(fallback.error())), false);
+                        (*process)(std::unexpected(std::move(fallback.error())), false, true);
                     }
                 },
                 request::GetOptions{

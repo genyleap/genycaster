@@ -374,10 +374,12 @@ class RecentAsyncTransport final : public transport::async_http::IAsyncHttpTrans
 public:
     explicit RecentAsyncTransport(
         const bool probeParallelShards = false, const bool corruptSecondShard = false,
-        const bool partialReactionPages = false)
+        const bool partialReactionPages = false,
+        const bool channelFeedUnavailable = false)
         : m_probeParallelShards{probeParallelShards},
           m_corruptSecondShard{corruptSecondShard},
           m_partialReactionPages{partialReactionPages},
+          m_channelFeedUnavailable{channelFeedUnavailable},
           m_worker{[this] { drain(); }} {}
     ~RecentAsyncTransport() override {
         {
@@ -458,9 +460,13 @@ private:
                     ? R"json({"reactions":[{"cast":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","fid":1}}],"next":{"cursor":"page-2"}})json"
                     : R"json({"reactions":[],"next":null})json";
             }
+            const bool unsupportedChannel = m_channelFeedUnavailable
+                && pending.first.url.find("/v2/farcaster/feed/channels")
+                    != std::string::npos;
             auto response = transport::http::HttpResponse{
-                .statusCode = 200U,
-                .body = std::move(responseBody),
+                .statusCode = static_cast<std::uint16_t>(unsupportedChannel ? 404U : 200U),
+                .body = unsupportedChannel ? R"json({"error":"not found"})json"
+                                           : std::move(responseBody),
             };
             pending.second(std::move(response));
         }
@@ -480,6 +486,9 @@ private:
                 return R"json({"events":[]})json";
             }
             return R"json({"events":[{"id":23756802,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600010,"castAddBody":{"text":"A"}}}}},{"id":23756801,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600000,"castAddBody":{"text":"B"}}}}},{"id":23756800,"blockNumber":1450,"type":"HUB_EVENT_TYPE_MERGE_MESSAGE","mergeMessageBody":{"message":{"hash":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","data":{"type":"MESSAGE_TYPE_CAST_ADD","timestamp":182600015,"castAddBody":{"parentCastId":{"fid":2,"hash":"0xparent"}}}}}}]})json";
+        }
+        if (url.find("/v2/farcaster/feed/channels") != std::string::npos) {
+            return test::hypersnap::fixtures::rootPostFeedResponse();
         }
         if (url.find("/v2/farcaster/cast/search") != std::string::npos) {
             // Matches the provider's real {result:{casts,next}} envelope.
@@ -510,6 +519,7 @@ private:
     bool m_probeParallelShards{};
     bool m_corruptSecondShard{};
     bool m_partialReactionPages{};
+    bool m_channelFeedUnavailable{};
     bool m_firstShardScheduled{};
     bool m_firstShardCompleted{};
     bool m_parallelShardsObserved{};
@@ -812,20 +822,75 @@ void testRecentAsyncFeedAndCursor()
     }
     const auto artNext = querySemantic(application::read::model::FeedQuery::Kind::Nfts);
     assert(artNext);
-    // An exhausted general art index must continue to mint results rather than
-    // repeating art or displaying an empty NFT category.
+    // The NFT/art channel is the first verified media source. Once exhausted,
+    // a marketplace/mint search must advance independently instead of
+    // repeating channel results or displaying an empty category.
     querySemantic(application::read::model::FeedQuery::Kind::Nfts, artNext);
     querySemantic(application::read::model::FeedQuery::Kind::Developers);
     const auto searches = transport.requestedUrls();
     assert(std::ranges::any_of(searches, [](const auto& url) {
-        return url.find("/v2/farcaster/cast/search") != std::string::npos
-            && url.find("q=art") != std::string::npos; }));
+        return url.find("/v2/farcaster/feed/channels") != std::string::npos
+            && url.find("channel_ids=nft%2Cart") != std::string::npos; }));
     assert(std::ranges::any_of(searches, [](const auto& url) {
         return url.find("/v2/farcaster/cast/search") != std::string::npos
             && url.find("q=mint") != std::string::npos; }));
     assert(std::ranges::any_of(searches, [](const auto& url) {
-        return url.find("/v2/farcaster/cast/search") != std::string::npos
-            && url.find("q=github") != std::string::npos; }));
+        return url.find("/v2/farcaster/feed/channels") != std::string::npos
+            && url.find("channel_ids=dev%2Cdevelopers%2Cbuild%2Cprogramming")
+                != std::string::npos; }));
+    // A compatible node may implement search but not channel feeds. Its
+    // search cursor must never be replayed against the unsupported endpoint.
+    {
+        RecentAsyncTransport unavailable{false, false, false, true};
+        provider::hypersnap::async_gateway::AsyncGateway compatibilityGateway{
+            unavailable, decode, serial, *continuation, testConfig()};
+        const auto requestCompat = [&](const std::optional<capability::pagination::ContinuationToken> token) {
+            auto pending = std::make_shared<
+                std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+            auto future = pending->get_future();
+            auto started = compatibilityGateway.feed(
+                application::read::model::FeedQuery{
+                    .kind = application::read::model::FeedQuery::Kind::Nfts,
+                    .limit = 3U, .continuation = token},
+                [pending](foundation::result::Result<capability::feed::FeedPage> page) {
+                    pending->set_value(std::move(page));
+                });
+            assert(started);
+            assert(future.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+            auto page = future.get();
+            assert(page && !page->casts.empty());
+            return page->next;
+        };
+        auto compatNext = requestCompat(std::nullopt);
+        assert(compatNext);
+        requestCompat(compatNext);
+        const auto urls = unavailable.requestedUrls();
+        assert(std::ranges::count_if(urls, [](const auto& url) {
+            return url.find("/v2/farcaster/feed/channels") != std::string::npos; }) == 1);
+        assert(std::ranges::any_of(urls, [](const auto& url) {
+            return url.find("/v2/farcaster/cast/search") != std::string::npos
+                && url.find("q=art") != std::string::npos; }));
+        assert(std::ranges::any_of(urls, [](const auto& url) {
+            return url.find("/v2/farcaster/cast/search") != std::string::npos
+                && url.find("q=mint") != std::string::npos; }));
+        auto devPending = std::make_shared<
+            std::promise<foundation::result::Result<capability::feed::FeedPage>>>();
+        auto devFuture = devPending->get_future();
+        auto devRequest = compatibilityGateway.feed(
+            application::read::model::FeedQuery{
+                .kind = application::read::model::FeedQuery::Kind::Developers, .limit = 3U},
+            [devPending](foundation::result::Result<capability::feed::FeedPage> page) {
+                devPending->set_value(std::move(page));
+            });
+        assert(devRequest);
+        assert(devFuture.wait_for(std::chrono::seconds{5}) == std::future_status::ready);
+        const auto devPage = devFuture.get();
+        assert(devPage && !devPage->casts.empty());
+        const auto fallbackUrls = unavailable.requestedUrls();
+        assert(std::ranges::any_of(fallbackUrls, [](const auto& url) {
+            return url.find("/v2/farcaster/cast/search") != std::string::npos
+                && url.find("q=github") != std::string::npos; }));
+    }
     // Every semantic source is isolated by its own provider-affine cursor key.
 }
 

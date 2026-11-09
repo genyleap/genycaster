@@ -387,7 +387,12 @@ Item {
             const family = root.classifiedFamily(embed, metadata)
             const directArtwork = String(embed.imageSource || embed.previewImage
                                          || metadata.previewImage || metadata.imageSource || "")
+            // Hypersnap returns bare URLs for many real NFT photographs
+            // (notably imagedelivery.net and IPFS) without a file extension.
+            // The provider's art/nft channel still has to pass the collectible
+            // classifier below; only the media candidate detection expands.
             if (directArtwork.length > 0 || kind === "image" || family === "image"
+                    || root.looksLikeArtworkUrl(value)
                     || /\.(?:avif|gif|jpe?g|png|webp)(?:$|[?#])/i.test(value))
                 return true
         }
@@ -673,7 +678,10 @@ Item {
                 if (root.activeFeed === "developers" || root.looksDeveloper(row))
                     result.push({ payload: row, presentationKind: "developer" })
             } else if (root.presentationMode === "conversations") {
-                if (root.activeFeed === "conversations" && root.isConversation(row))
+                // Following is an audience scope, not a content type. When the
+                // user selects Following + Conversations the provider source is
+                // "following", but its verified replies still belong here.
+                if (root.isConversation(row))
                     result.push({ payload: row, presentationKind: "conversation" })
             } else if (root.isRootPost(row)) {
                 result.push({ payload: row, presentationKind: "conversation" })
