@@ -1161,8 +1161,7 @@ ListView {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: root.compact ? Theme.mobileGutter : Theme.space5
-        anchors.bottomMargin: root.compact
-                              ? root.bottomOverlayInset + Theme.space3 : Theme.space4
+        anchors.bottomMargin: Math.max(Theme.space4, root.bottomOverlayInset + Theme.space3)
     }
     ContentRefreshIndicator {
         anchors.left: parent.left

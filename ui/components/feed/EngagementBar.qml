@@ -3,12 +3,28 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-RowLayout {
+Item {
     id: root
     objectName: "engagementBar"
     // Mirror the interaction clusters as a whole for RTL. Keep the
     // individual action's icon/count cluster controlled by EngagementButton.
-    layoutDirection: Theme.uiDirection
+    property int layoutDirection: Theme.uiDirection
+
+    // Reflow utility actions before their minimum width can widen the whole
+    // cast's ColumnLayout and clip text/media at the card boundary.
+    Layout.minimumWidth: 0
+    readonly property real actionSpacing: root.compact ? 0 : Theme.space1
+    readonly property real reactionRowWidth: replyButton.implicitWidth
+        + quoteButton.implicitWidth + recastButton.implicitWidth
+        + likeButton.implicitWidth + reactionActions.columnSpacing * 3
+    readonly property bool stackedActions: width < reactionRowWidth
+        + utilityActions.implicitWidth + actionSpacing
+    // The card measures this wrapper, not a grid whose row count and size
+    // constraints are being renegotiated by its enclosing RowLayout.
+    implicitWidth: reactionRowWidth + utilityActions.implicitWidth + actionSpacing
+    implicitHeight: stackedActions
+        ? reactionActions.implicitHeight + Theme.space1 + utilityActions.implicitHeight
+        : Math.max(reactionActions.implicitHeight, utilityActions.implicitHeight)
 
     property bool compact: false
     function closeShareMenu() {
@@ -213,21 +229,26 @@ RowLayout {
     signal likeRequested(bool active)
     signal authenticationRequested()
 
-    // Four tight reaction actions on the left, with Bookmark and Share pinned
-    // to the right. Every tappable target remains at least 44px.
-    spacing: root.compact ? 0 : Theme.space1
+    // Keep reaction and utility groups readable without reducing hit targets.
+    // Narrow cards place utilities on a second line instead of clipping them.
     Accessible.description: qsTrId("genycaster.engagement.value_replies").arg(LocaleFormat.formatInteger(root.replyCount))
 
-    RowLayout {
+    GridLayout {
         id: reactionActions
         objectName: "castReactionActions"
-        Layout.alignment: Qt.AlignVCenter
-        layoutDirection: Theme.uiDirection
-        spacing: root.compact ? 0 : Theme.space1
+        x: root.layoutDirection === Qt.RightToLeft ? root.width - width : 0
+        y: 0
+        width: Math.min(root.width, root.reactionRowWidth)
+        height: implicitHeight
+        columns: root.width < root.reactionRowWidth ? 2 : 4
+        layoutDirection: root.layoutDirection
+        columnSpacing: root.actionSpacing
+        rowSpacing: 0
 
     EngagementButton {
+        id: replyButton
         objectName: "castReplyButton"
-        Layout.minimumWidth: Theme.touchTarget
+        Layout.minimumWidth: implicitWidth
         iconGlyph: Theme.iconReply
         metricText: root.replyCount > 0 ? LocaleFormat.formatCompactNumber(root.replyCount) : ""
         enabled: true
@@ -239,6 +260,7 @@ RowLayout {
     }
 
     EngagementButton {
+        id: quoteButton
         objectName: "castQuoteButton"
         Layout.minimumWidth: Theme.touchTarget
         iconGlyph: Theme.iconQuote
@@ -248,7 +270,8 @@ RowLayout {
     }
 
     EngagementButton {
-        Layout.minimumWidth: Theme.touchTarget
+        id: recastButton
+        Layout.minimumWidth: implicitWidth
         iconGlyph: Theme.iconRepost
         metricText: root.recastCount > 0 ? LocaleFormat.formatCompactNumber(root.recastCount) : ""
         active: root.effectiveRecastedByMe
@@ -276,7 +299,8 @@ RowLayout {
     }
 
     EngagementButton {
-        Layout.minimumWidth: Theme.touchTarget
+        id: likeButton
+        Layout.minimumWidth: implicitWidth
         iconGlyph: root.displayedLikeIcon
         iconFilled: root.effectiveLikedByMe
         activeColor: Theme.negative
@@ -301,6 +325,17 @@ RowLayout {
             root.likeRequested(next)
         }
     }
+    }
+
+    RowLayout {
+        id: utilityActions
+        objectName: "castUtilityActions"
+        x: root.layoutDirection === Qt.RightToLeft ? 0 : root.width - width
+        y: root.stackedActions ? reactionActions.height + Theme.space1 : 0
+        width: implicitWidth
+        height: implicitHeight
+        layoutDirection: root.layoutDirection
+        spacing: root.actionSpacing
 
         RowLayout {
             id: castViewsLabel
@@ -333,18 +368,6 @@ RowLayout {
             }
 
         }
-
-    }
-
-    // Flexible space keeps utility actions at the physical trailing edge.
-    Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
-
-    RowLayout {
-        id: utilityActions
-        objectName: "castUtilityActions"
-        Layout.alignment: Qt.AlignVCenter
-        layoutDirection: Theme.uiDirection
-        spacing: root.compact ? 0 : Theme.space1
 
     EngagementButton {
         id: bookmarkButton

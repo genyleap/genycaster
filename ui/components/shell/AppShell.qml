@@ -8,6 +8,17 @@ Item {
     id: root
     objectName: "appShell"
 
+    function readingOverlayInset(surface) {
+        if (mobileBottomNavigation.visible)
+            return mobileBottomNavigation.height
+        if (!floatingCompose.visible)
+            return 0
+        // Both controls need separate hit areas. Translate the compose top
+        // into the reading viewport; shell footers and rails have other bounds.
+        const composeTop = root.mapToItem(surface, floatingCompose.x, floatingCompose.y).y
+        return Math.max(0, surface.height - composeTop)
+    }
+
     GenyProDetailsDrawer {
         id: genyProDetailsDrawer
         compact: root.compact
@@ -1687,7 +1698,7 @@ Item {
                                                 explorerLayoutAvailable: root.primaryDestination === "explorer"
                                                     && presentationBridge.activeFeed !== "channel"
                                                 explorerLayout: root.explorerDisplayLayout
-                                                bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
+                                                bottomOverlayInset: root.readingOverlayInset(feedSurfaceLoader)
                                                 presentationActive: feedSurfaceLoader.surfaceRequested
                                                 rows: root.withoutMutedActors(
                                                     root.topicBrowseActive && root.topicBrowseScope==="explorer"
@@ -1857,7 +1868,7 @@ Item {
 
                                         sourceComponent: Component {
                                             ProfileSurface {
-                                                bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
+                                                bottomOverlayInset: root.readingOverlayInset(profileSurfaceLoader)
                                                 detail: presentationBridge.detail
                                                 navigationRevision: root.profileTopRevision
                                                 rows: root.topicBrowseActive && root.topicBrowseScope==="profile"
@@ -1967,7 +1978,7 @@ Item {
                                                 activeView: presentationBridge.activeView
                                                 detail: presentationBridge.detail
                                                 compact: root.compact
-                                                bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
+                                                bottomOverlayInset: root.readingOverlayInset(castSurfaceLoader)
                                                 busy: presentationBridge.isBusy
                                                 interactionsAvailable: presentationBridge.isAuthenticated
                                                                        && presentationBridge.writeReady

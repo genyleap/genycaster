@@ -17,7 +17,7 @@ Flickable {
     property int layoutDirection: Theme.uiDirection
     property real gutter: Theme.space3
     property real outsideInset: gutter
-    property real cacheBuffer: Math.min(height * 0.8, 720)
+    property real cacheBuffer: Math.min(height * 1.25, 1200)
     readonly property real retentionBuffer: cacheBuffer + Math.min(1200, Math.max(420, height * 1.15))
 
     // Exact painted heights survive viewport eviction and reverse scrolling.
@@ -41,7 +41,7 @@ Flickable {
         aspectMemory[id] = value
     }
     function heightKey(key, revision, width) {
-        return String(key) + "|" + String(revision) + "|" + Math.round(width / 24)
+        return String(key) + "|" + String(revision) + "|" + Number(width).toFixed(2)
     }
     function recalledHeight(key, revision, width) {
         return Number(measuredHeights[heightKey(key, revision, width)] || 0)
@@ -183,10 +183,10 @@ Flickable {
     onLayoutDirectionChanged: scheduleLayout()
     onGutterChanged: scheduleLayout()
     onOutsideInsetChanged: scheduleLayout()
-    onMovingChanged: if (!moving) scheduleLayout()
     Component.onCompleted: scheduleLayout()
 
-    Timer { id: layoutTimer; interval: 0; onTriggered: view.forceLayout() }
+    // Collect text/media measurements into one geometry commit per frame.
+    Timer { id: layoutTimer; interval: 16; onTriggered: view.forceLayout() }
     Timer { id: admissionTimer; interval: 0; onTriggered: view.updateAdmissions() }
 
     Loader {

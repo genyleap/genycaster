@@ -259,6 +259,7 @@ ColumnLayout {
         embeds: root.effectiveVisualEmbeds
         compact: root.compact
         mobilePresentation: root.mobileViewport
+        cornerCoverColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
         asynchronousTiles: !root.magazineCard
         sharedMediaGeometry: root.sharedMediaGeometry
         // Desktop Timeline keeps its fixed media reservation. On phones a
@@ -320,10 +321,11 @@ ColumnLayout {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         active: tile.admitted
-                        // Per-tile admission is staggered, including during
-                        // motion. Keep one construction boundary for the preview;
-                        // its media requests and texture admission remain async.
-                        asynchronous: false
+                        // Timers on several newly admitted casts can fire in
+                        // the same frame. Incubate the heavy preview trees too,
+                        // rather than constructing that entire burst at once.
+                        asynchronous: true
+                        visible: status === Loader.Ready
                         sourceComponent: Component {
                             EmbedPreview {
                                 embed: tile.embedData

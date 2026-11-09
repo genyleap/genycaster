@@ -892,6 +892,7 @@ Item {
                     // create the small native text subtree synchronously.
                     asynchronous: false
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
 
                     // Inline text owns its pointer events. A broad parent
                     // TapHandler also fires for @mentions/URL anchors and
@@ -930,6 +931,7 @@ Item {
                     // rapid magazine scrolling or view changes.
                     asynchronous: !root.magazineCard
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
                     sourceComponent: Component {
@@ -1001,6 +1003,7 @@ Item {
                     // rapid magazine scrolling or view changes.
                     asynchronous: !root.magazineCard
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     Layout.leftMargin: root.mediaContentInset
                     Layout.rightMargin: root.mediaContentInset
                     sourceComponent: Component {
@@ -1026,6 +1029,7 @@ Item {
                     // rapid magazine scrolling or view changes.
                     asynchronous: !root.magazineCard
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     sourceComponent: Component {
                         CastEmbedsPanel {
                             magazineCard: root.magazineCard

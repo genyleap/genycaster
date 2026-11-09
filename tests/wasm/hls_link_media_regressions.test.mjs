@@ -58,5 +58,5 @@ test('editorial link artwork and focus rings on both home composers',()=>{
 test('single photo and WASM galleries use alpha mask rather than inverse edge fills',()=>{
  const gallery=read('ui/components/media/GalleryLayout.qml');
  assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"/);
- assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
+ assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"\s*\|\| root\.visibleCount === 1/);
 });

@@ -32,6 +32,9 @@ Item {
     // supplies AppShell's compact state; attached Window.width is not
     // reliably invalidated when the outer window resizes.
     property bool mobilePresentation: false
+    // Surface identity is independent of natural-aspect discovery: compact
+    // Timeline cards use the canvas, while Magazine cards use a raised surface.
+    property color cornerCoverColor: Theme.background
     readonly property bool mobileFullBleed: root.visibleCount === 1
                                             && root.mobilePresentation
     readonly property real gap: Theme.space2
@@ -343,15 +346,13 @@ Item {
                         // Single-media casts must show the complete image at every
                         // breakpoint. Multi-image galleries intentionally crop tiles.
                         preserveAspect: root.visibleCount === 1
-                        // Keep native gallery artwork on the direct QSG image
-                        // path, avoiding one offscreen image and mask layer per
-                        // common single-cast photo. Browser/WebGL rendering still needs the
-                        // mask because its vector corner cover can show seams at
-                        // fractional DPR. Retain Metal's mask for single photos.
+                        // Every fitted single image uses the same alpha mask,
+                        // including Magazine cards and temporary letterboxing.
+                        // Resizing or discovering its aspect must never switch
+                        // it back to an opaque inverse corner cover.
                         useLayeredMask: Qt.platform.os === "wasm"
-                                        || (Qt.platform.os === "osx" && root.visibleCount === 1
-                                            && !root.dynamicAspectDiscovery)
-                        cornerCoverColor: root.dynamicAspectDiscovery ? Theme.surfaceRaised : Theme.background
+                                        || root.visibleCount === 1
+                        cornerCoverColor: root.cornerCoverColor
                         // A full-width, aspect-correct Magazine photo does not
                         // need an additional blurred GPU render pass.
                         ambientEnabled: root.visibleCount === 1 && !root.dynamicAspectDiscovery

@@ -223,7 +223,30 @@ Source updates and geometry measurement are coalesced, and a same-cast viewer
 reaction revision retains the previous painted height until new content
 provides a real measurement. The cover/header instances are retained across
 Magazine/Timeline toggles so the banner is not re-incubated on every switch.
-Geometry estimates are width-bucketed; actual measured content always wins.
+Height samples are keyed by stable identity, revision and layout width at
+hundredth-pixel precision. A narrower card must not reuse a measurement from a
+24-pixel bucket that wrapped its text differently. Actual measured content
+always wins. Geometry notifications name only the changed roles so moving a
+slot does not invalidate its cast payload. QML coalesces measurements on a
+16-ms timer; ending a wheel gesture alone does not rebuild all numeric slots.
+
+Supporting previews incubate asynchronously after admission; admission timers
+must not synchronously construct several heavy preview trees in one GUI turn.
+Inline paragraphs populate only the selected text renderer, avoiding duplicate
+shaping in an invisible platform-selection editor. The bounded preload window
+starts cast construction before the next viewport enters, while retention
+continues to preserve nearby delegates on reverse scroll.
+
+Cast action groups reflow to additional rows when their intrinsic widths no
+longer fit; they must not impose an oversized minimum width on the text/media
+column or rely on clipping to hide actions. An Item wrapper reports the full
+height of the action rows, and their positions use that same geometry; nested
+layout negotiation must not leave the utility row outside the measured card.
+Button implicit widths come from the icon/count cluster, never from flexible
+spacers whose assigned widths feed back into the next size calculation.
+The shell maps the floating compose
+button's top into each reading viewport to reserve a separate scroll-to-top
+hit area above it, including when desktop rails or the footer change bounds.
 
 Conversation replies use the same native primitive-role reconciliation rather
 than a per-hydration global revision counter. Only a cast whose visible text,
@@ -259,6 +282,15 @@ the shared bounded feed cache. The heavy image still uses Qt Quick
 known after decoding, a debounced aspect commit waits until kinetic scrolling
 settles; the existing native/Timeline height tracking then updates card
 geometry without intentionally clipping or overlaying neighboring casts.
+
+All single photos use the shared painted-rectangle alpha mask, including
+Magazine cards, compact Timeline and temporary fitted reservations. Window
+width and natural-aspect discovery must not switch a single photo back to an
+opaque inverse corner cover; those covers exposed straight raster edges during
+resize. Native multi-image galleries retain their direct texture path and
+vector corner covers, colored from the owning card's surface. Browser galleries
+retain alpha masks for both single and multiple images. Mask admission remains
+bound to ready, visible media through `SuperellipseImage`.
 
 Regression coverage includes `tests/ui/mobile_gallery_runtime_tests.cpp`
 (real Qt 6.12 QML layout and delayed aspect resolution), and

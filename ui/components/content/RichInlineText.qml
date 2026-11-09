@@ -122,7 +122,9 @@ Item {
         persistentSelection: true
         activeFocusOnPress: true
         textFormat: TextEdit.RichText
-        text: root.nativeMarkup()
+        // Only the selected renderer lays out the paragraph. A hidden
+        // TextEdit otherwise duplicates shaping for every admitted cast.
+        text: root.usePlatformSelection ? root.nativeMarkup() : ""
         wrapMode: TextEdit.Wrap
         font.family: Theme.fontFamilyForText(String(root.safeBlockData.text || ""))
         font.pixelSize: root.textSize
@@ -180,7 +182,7 @@ Item {
         anchors.right: parent.right
         y: root.emojiVerticalInset
         height: textLayout.contentHeight
-        inlines: root.flattenedInlines()
+        inlines: root.usePlatformSelection ? [] : root.flattenedInlines()
         pixelSize: root.textSize
         bold: root.fontBold
         lineHeight: Theme.typeBodyLineHeight

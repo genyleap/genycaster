@@ -327,7 +327,7 @@ QString MasonryWindowModel::heightKey(const QString& key, const QString& revisio
                                     const qreal width) const
 {
     return key + QLatin1Char('|') + revision + QLatin1Char('|')
-        + QString::number(qRound(width / 24.0));
+        + QString::number(width, 'f', 2);
 }
 
 qreal MasonryWindowModel::fallbackHeight(const Slot& slot) const
@@ -557,13 +557,33 @@ void MasonryWindowModel::synchronizeWindow()
             }
         }
         Slot& current = m_window[index];
-        if (current.sourceIndex != desired.sourceIndex
-            || current.revision != desired.revision || current.kind != desired.kind
-            || current.media != desired.media || std::abs(current.x - desired.x) >= 0.5
-            || std::abs(current.y - desired.y) >= 0.5
-            || std::abs(current.height - desired.height) >= 0.5) {
+        QList<int> changedRoles{};
+        if (current.sourceIndex != desired.sourceIndex) {
+            changedRoles.append(SourceIndexRole);
+        }
+        if (current.revision != desired.revision) {
+            changedRoles.append(RevisionKeyRole);
+        }
+        if (current.kind != desired.kind) {
+            changedRoles.append(PresentationKindRole);
+        }
+        if (current.media != desired.media) {
+            changedRoles.append(MediaLayoutKindRole);
+        }
+        if (std::abs(current.x - desired.x) >= 0.5) {
+            changedRoles.append(CardXRole);
+        }
+        if (std::abs(current.y - desired.y) >= 0.5) {
+            changedRoles.append(CardYRole);
+        }
+        if (std::abs(current.height - desired.height) >= 0.5) {
+            changedRoles.append(CardHeightRole);
+        }
+        if (!changedRoles.isEmpty()) {
             current = desired;
-            emit dataChanged(createIndex(index, 0), createIndex(index, 0));
+            // Geometry corrections must not invalidate unchanged cast payloads
+            // and rebuild their rich text/media bindings on the GUI thread.
+            emit dataChanged(createIndex(index, 0), createIndex(index, 0), changedRoles);
         }
         ++index;
     }

@@ -32,40 +32,42 @@ Button {
         NumberAnimation { duration: Theme.motionFast; easing.type: Easing.OutCubic }
     }
 
-    contentItem: RowLayout {
-        id: content
-        layoutDirection: Theme.uiDirection
-        spacing: control.metricText.length > 0 ? Theme.space1 : 0
+    contentItem: Item {
+        implicitWidth: content.implicitWidth
+        implicitHeight: content.implicitHeight
 
-        // RowLayout stretches all six footer cells equally; centering each
-        // icon/count cluster keeps the action-to-count gap identical in
-        // RTL, LTR, detail views and nested replies.
-        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
+        // Intrinsic content size must not include layout-assigned spacer
+        // widths: feeding those back into the button made it grow on reflow.
+        RowLayout {
+            id: content
+            anchors.centerIn: parent
+            layoutDirection: Theme.uiDirection
+            spacing: control.metricText.length > 0 ? Theme.space1 : 0
 
-        // Give every contextual reaction a stable square viewport. Some SVGs
-        // have non-square intrinsic viewBoxes; never stretch the image to fill
-        // the metric row or allow its geometry to alter the action height.
-        Icon {
-            Layout.preferredWidth: Math.max(22, control.iconSize + 4)
-            Layout.preferredHeight: Math.max(22, control.iconSize + 4)
-            Layout.alignment: Qt.AlignVCenter
-            clip: true
-            text: control.iconGlyph
-            filled: control.iconFilled
-            color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
-            preferredSize: control.iconSize
+            // Give every contextual reaction a stable square viewport. Some SVGs
+            // have non-square intrinsic viewBoxes; never stretch the image to fill
+            // the metric row or allow its geometry to alter the action height.
+            Icon {
+                Layout.preferredWidth: Math.max(22, control.iconSize + 4)
+                Layout.preferredHeight: Math.max(22, control.iconSize + 4)
+                Layout.alignment: Qt.AlignVCenter
+                clip: true
+                text: control.iconGlyph
+                filled: control.iconFilled
+                color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
+                preferredSize: control.iconSize
+            }
+
+            Label {
+                visible: control.metricText.length > 0
+                text: control.metricText
+                color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.typeCaptionSize
+                font.weight: control.active ? Theme.weightDemiBold : Theme.weightMedium
+            }
+
         }
-
-        Label {
-            visible: control.metricText.length > 0
-            text: control.metricText
-            color: control.active ? control.activeColor : (control.enabled ? Theme.inkMuted : Theme.inkDisabled)
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.typeCaptionSize
-            font.weight: control.active ? Theme.weightDemiBold : Theme.weightMedium
-        }
-
-        Item { Layout.fillWidth: true; Layout.minimumWidth: 0 }
     }
 
     // No selected/pressed tile: selection is conveyed only by the

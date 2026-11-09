@@ -55,11 +55,11 @@ test('home composer focus is visible and link artwork leads the responsive edito
  assert.match(link,/localizationController\.isRightToLeftText\(root\.castCaption\)/);
  assert.match(link,/Layout\.preferredHeight: !shouldReserve \? 0[\s\S]*?Math\.min\(root\.compact \? 300 : Theme\.scaleUi\(192\)/);
 });
-test('gallery avoids subpixel inverse covers on Metal and WebGL',()=>{
+test('single photos and browser galleries keep alpha masks across resizing',()=>{
  const gallery=read('ui/components/media/GalleryLayout.qml');
  const tile=read('ui/components/media/GalleryTile.qml');
  assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"/);
- assert.match(gallery,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
+ assert.match(gallery,/useLayeredMask: Qt\.platform\.os === "wasm"\s*\|\| root\.visibleCount === 1/);
  assert.match(tile,/clip: true/);
 });
 

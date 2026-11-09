@@ -409,6 +409,7 @@ Item {
             }]
             compact: root.compact
             mobilePresentation: root.mobileViewport
+            cornerCoverColor: root.magazineCard ? Theme.surfaceRaised : Theme.backgroundPrimary
             asynchronousTiles: !root.magazineCard
             sharedMediaGeometry: root.sharedMediaGeometry
             dynamicAspectDiscovery: root.magazineCard || root.mobileViewport

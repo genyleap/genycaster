@@ -19,7 +19,7 @@ test('WASM gallery corners use one shared image mask, not vector inverse covers'
  const layout=read('ui/components/media/GalleryLayout.qml');
  const tile=read('ui/components/media/GalleryTile.qml');
  assert.match(layout,/useLayeredMask: Qt\.platform\.os === "wasm"/);
- assert.match(layout,/Qt\.platform\.os === "osx" && root\.visibleCount === 1/);
+ assert.match(layout,/useLayeredMask: Qt\.platform\.os === "wasm"\s*\|\| root\.visibleCount === 1/);
  assert.match(tile,/visible: !root\.useLayeredMask && preview\.ready/);
  assert.match(tile,/clipToSuperellipse: root\.useLayeredMask/);
 });
