@@ -65,13 +65,12 @@ test('drawer headers use the same centered title and close-button layout',()=>{
  assert.match(apps,/ModalHeader \{/);
 });
 
-test('Cast URL and Mini App embeds share gutters, rounded artwork and failure collapse',()=>{
+test('Cast URL and Mini App embeds share gutters, rounded artwork and stable failure placeholders',()=>{
  const card=read('ui/components/media/LinkPreview.qml');
  assert.match(card,/cardInset: root\.embeddedInCard \? 0 : root\.layoutMiniApp \? Theme\.space4/);
  assert.match(card,/anchors\.margins: root\.cardInset/);
  assert.match(card,/spacing: Theme\.space2/);
- assert.match(card,/&& !root\.miniAppArtworkUnavailable \? readyHeight : 0/);
- assert.match(card,/&& !root\.richArtworkUnavailable \? readyHeight : 0/);
+ assert.equal([...card.matchAll(/&& root\.reservedLayout\.artwork \? readyHeight : 0/g)].length, 2);
  assert.match(card,/clipToSuperellipse: true/);
  assert.match(card,/if \(loadFailed && root\.previewSource\.length > 0\)/);
  assert.match(card,/text: root\.miniAppLaunching[\s\S]*?: qsTrId\("genycaster\.apps\.open"\)/);

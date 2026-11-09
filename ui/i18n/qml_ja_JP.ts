@@ -4937,8 +4937,8 @@ Company | https://company.com</source>
             <translation>Genycaster</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>ホーム</translation>
+            <source>Dashboard</source>
+            <translation>ダッシュボード</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7204,10 +7204,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>すべての軸で同じ目盛りを使用します（最大値：%1）。</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>活動日数：%1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>ビットコイン</translation>
@@ -7227,10 +7223,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>各期間に投稿された内容への現在の反応数です。反応が発生した日時ではありません。</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>過去%1週間のアクティビティ</translation>
         </message>
     </context>
 </TS>

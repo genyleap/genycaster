@@ -4937,8 +4937,8 @@ Company | https://company.com</source>
             <translation>Genycaster</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>الرئيسية</translation>
+            <source>Dashboard</source>
+            <translation>لوحة التحكم</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7204,10 +7204,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>تستخدم جميع المحاور المقياس نفسه (أعلى قيمة: %1).</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>الأيام النشطة: %1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>بيتكوين</translation>
@@ -7227,10 +7223,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>التفاعلات الحالية على المنشورات المنشورة في كل فترة، وليس وقت حدوث التفاعل.</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>النشاط خلال آخر %1 أسبوعًا</translation>
         </message>
     </context>
 </TS>

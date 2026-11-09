@@ -4937,8 +4937,8 @@ Company | https://company.com</source>
             <translation>Genycaster</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>홈</translation>
+            <source>Dashboard</source>
+            <translation>대시보드</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7204,10 +7204,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>모든 축은 같은 척도를 사용합니다(최댓값: %1).</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>활동 일수: %1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>비트코인</translation>
@@ -7227,10 +7223,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>각 기간에 게시된 글의 현재 반응 수이며, 반응이 발생한 날짜가 아닙니다.</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>최근 %1주 활동</translation>
         </message>
     </context>
 </TS>

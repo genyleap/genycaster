@@ -4937,8 +4937,8 @@ Company | https://company.com</source>
             <translation>Genycaster</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>Início</translation>
+            <source>Dashboard</source>
+            <translation>Painel de controle</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7204,10 +7204,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>Todos os eixos usam a mesma escala (máximo: %1).</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>Dias ativos: %1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>Bitcoin</translation>
@@ -7227,10 +7223,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>Reações atuais às publicações de cada período, não a data em que ocorreram.</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>Atividade nas últimas %1 semanas</translation>
         </message>
     </context>
 </TS>

@@ -4937,8 +4937,8 @@ Company | https://company.com</source>
             <translation>Genycaster</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>होम</translation>
+            <source>Dashboard</source>
+            <translation>डैशबोर्ड</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7204,10 +7204,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>सभी अक्षों का पैमाना समान है (अधिकतम: %1)।</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>सक्रिय दिन: %1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>बिटकॉइन</translation>
@@ -7227,10 +7223,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>प्रत्येक अवधि में प्रकाशित पोस्ट पर वर्तमान प्रतिक्रियाएँ, न कि प्रतिक्रियाओं का समय।</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>पिछले %1 सप्ताह की गतिविधि</translation>
         </message>
     </context>
 </TS>

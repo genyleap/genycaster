@@ -4958,8 +4958,8 @@ Company | https://company.com</source>
             <translation>جنی‌کستر</translation>
         </message>
         <message id="genycaster.side_nav.home">
-            <source>Home</source>
-            <translation>خانه</translation>
+            <source>Dashboard</source>
+            <translation>داشبورد</translation>
         </message>
         <message id="genycaster.side_nav.no_identity_open">
             <source>No identity open</source>
@@ -7205,10 +7205,6 @@ Company | https://company.com</source>
             <source>All axes share one scale (highest count: %1).</source>
             <translation>همهٔ محورها مقیاس یکسان دارند (بیشترین مقدار: %1).</translation>
         </message>
-        <message id="genycaster.stats.github_active_days">
-            <source>Active days: %1</source>
-            <translation>روزهای فعال: %1</translation>
-        </message>
         <message id="genycaster.market.asset_bitcoin">
             <source>Bitcoin</source>
             <translation>بیت‌کوین</translation>
@@ -7228,10 +7224,6 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>تعاملات فعلی نشرهای هر بازه نمایش داده می‌شوند، نه زمان وقوع تعاملات.</translation>
-        </message>
-        <message id="genycaster.stats.github_recent_weeks">
-            <source>Activity over the last %1 weeks</source>
-            <translation>فعالیت در %1 هفتهٔ اخیر</translation>
         </message>
     </context>
 </TS>

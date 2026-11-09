@@ -22,7 +22,8 @@ test('profile profession and category are selectable, validated, and retain save
 });
 test('mobile profile binds avatar and connections to the same header band',()=>{
   assert.match(profile,/readonly property int profileAvatarX: root\.profileContentRtl/);
-  assert.match(profile,/id: ownerSocialBadgeStrip[\s\S]*?visible: root\.isOwnProfile && root\.ownerSocialLinks\.length > 0/);
+  assert.match(profile,/id: ownerSocialBadgeStrip[\s\S]*?visible: root\.isOwnProfile\s/);
+  assert.match(profile,/objectName: "profileConnectionsButton"/);
   assert.doesNotMatch(profile,/objectName: "compactVerifiedSocialBadges"/);
   assert.match(profile,/Layout\.preferredWidth: Theme\.scaleUi\(root\.compact \? 29 : 34\)/);
 });

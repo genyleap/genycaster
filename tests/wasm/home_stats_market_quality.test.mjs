@@ -20,9 +20,9 @@ test("every bundled locale contains the new stats and market names", () => {
     const ids = [
         "genycaster.stats.range_week", "genycaster.stats.range_month",
         "genycaster.stats.range_quarter", "genycaster.stats.range_year",
-        "genycaster.stats.radar_explainer", "genycaster.stats.github_active_days",
+        "genycaster.stats.radar_explainer", "genycaster.side_nav.home",
         "genycaster.market.asset_bitcoin", "genycaster.market.asset_ethereum",
-        "genycaster.market.asset_solana", "genycaster.stats.github_recent_weeks"
+        "genycaster.market.asset_solana"
     ];
     for (const locale of [
         "en_US", "fa_IR", "ar_SA", "de_DE", "es_ES", "fr_FR",
@@ -108,17 +108,14 @@ test("publishing stacks share a square baseline, a rounded top and native Feed P
     assert.doesNotMatch(chart, /0\.52/);
 });
 
-test("GitHub insights are gated on verified owner identity, not public profile links", () => {
+test("Stats omits GitHub insights and all contribution fetches without touching profile activity", () => {
     const panel = read("ui/components/home/StatsPanel.qml");
-    assert.match(panel, /openProofConnections\.cloudAuthorizationReady/);
-    assert.match(panel, /openProofConnections\.connections/);
-    assert.match(panel, /genyPulseActivity\.requestGitHubContributions/);
-    assert.match(panel, /githubStatus === "ok"/);
-    assert.match(panel, /refreshGitHubContributions/);
-    assert.match(panel, /identity-unconfirmed/);
-    assert.match(panel, /rate-limited/);
-    assert.match(panel, /githubCalendar\.username/);
-    assert.match(panel, /githubCalendar\.year/);
+    const profile = read("ui/components/profile/GenyPulsePanel.qml");
+    assert.doesNotMatch(panel, /github|GitHub|genyPulseActivity|openProofConnections/i);
+    assert.match(panel, /StatsChart\s*\{/);
+    assert.match(panel, /StatsTopCasts\s*\{/);
+    assert.match(panel, /root\.refreshRequested\(\)/);
+    assert.match(profile, /function refreshGithubCalendar\(/);
 });
 
 test("market names translate independently of immutable ticker symbols", () => {
@@ -193,16 +190,24 @@ test("monotone SVG Bezier geometry is rounded without overshooting verified dail
     }
 });
 
-test("GitHub contribution heatmap is backed by verified calendar days, not fabricated progress", () => {
-    const panel = read("ui/components/home/StatsPanel.qml");
-    assert.match(panel, /readonly property var githubDayMap/);
-    assert.match(panel, /if \(!githubReady\) return map/);
-    assert.match(panel, /githubCalendar\.days \|\| \[\]/);
-    assert.match(panel, /root\.githubWeekCount \* 7/);
-    assert.match(panel, /root\.githubColor\(dayData\.level\)/);
-    assert.match(panel, /root\.githubDateAt\(index\)/);
-    assert.match(panel, /github_recent_weeks/);
-    assert.doesNotMatch(panel, /githubGrowthPercentage|fakeGithubDays/);
+test("Dashboard navigation retains its home route and localizes its new label", () => {
+    const desktop = read("ui/components/navigation/SideNavigation.qml");
+    const compact = read("ui/components/navigation/CompactNavigationRail.qml");
+    assert.match(desktop, /qsTrId\("genycaster\.side_nav\.home"\)/);
+    assert.match(compact, /qsTrId\("genycaster\.side_nav\.home"\)/);
+    assert.match(compact, /key: "home"/);
+    assert.match(desktop, /root\.primaryDestination === "home"/);
+    for (const [locale, expected] of Object.entries({
+        en_US: "Dashboard", fa_IR: "داشبورد", fr_FR: "Tableau de bord",
+        de_DE: "Übersicht", es_ES: "Panel de control", ar_SA: "لوحة التحكم",
+        hi_IN: "डैशबोर्ड", ja_JP: "ダッシュボード",
+        ko_KR: "대시보드", pt_BR: "Painel de controle",
+        ru_RU: "Панель управления", zh_CN: "仪表盘"
+    })) {
+        const catalog = read("ui/i18n/qml_" + locale + ".ts");
+        assert.ok(catalog.includes('<message id="genycaster.side_nav.home">'), locale);
+        assert.ok(catalog.includes("<translation>" + expected + "</translation>"), locale);
+    }
 });
 
 
@@ -594,7 +599,7 @@ test("localized stats report has a precise scope note, a dated source and stable
         }
     }
     const textStart = panel.indexOf("    function buildShareText() {");
-    const textEnd = panel.indexOf("\n    // Only the FID-bound", textStart);
+    const textEnd = panel.indexOf("\n    property bool manualMarketRefresh:", textStart);
     assert.ok(textStart >= 0 && textEnd > textStart);
     const fn = panel.slice(textStart, textEnd);
     const format = (locale, hasEngagement = true) => {

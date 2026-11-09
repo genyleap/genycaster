@@ -32,14 +32,14 @@ test('raw link text is hidden only if a destination card already represents it',
   assert.match(cast, /return source\.replace/);
 });
 
-test('link previews keep complete art and collectibles do not reserve blank panels', () => {
+test('link previews preserve artwork slots and collectibles retain their frame through metadata arrival', () => {
   const preview = read('ui/components/media/LinkPreview.qml');
   const collectible = read('ui/components/media/CollectiblePreview.qml');
   assert.match(preview, /id: genericThumb[\s\S]*?fillMode: Image\.PreserveAspectFit/);
-  assert.match(preview, /readonly property bool shouldReserve: root\.reserveArtwork[\s\S]*?root\.previewSource\.length > 0/);
-  assert.match(collectible, /visible: root\.artworkSource\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
+  assert.match(preview, /readonly property bool shouldReserve: root\.reserveArtwork\s*&& Boolean\(root\.reservedLayout\.artwork\)/);
+  assert.match(collectible, /visible: root\.targetUrl\.length > 0 && !Boolean\(root\.embed\.pairedVisual\)/);
   assert.match(collectible, /fillMode: Image\.PreserveAspectFit/);
-  assert.match(collectible, /visible: root\.creatorText\.length > 0/);
+  assert.match(collectible, /Layout\.preferredHeight: root\.captionLineHeight/);
 });
 
 test('discovery covers share a superellipse shape and Save action is visible', () => {
