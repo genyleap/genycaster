@@ -1782,7 +1782,10 @@ Item {
                         x: root.profileContentRtl ? root.profileContentX
                                                   : root.profileContentX + root.profileContentWidth - width
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: root.isOwnProfile && root.ownerSocialLinks.length > 0
+                        // Keep Manage Connections accessible even before the
+                        // owner has linked any social accounts. Verified badges
+                        // remain absent until OpenProof supplies proof.
+                        visible: root.isOwnProfile
                         spacing: Theme.space1
                         // Place linked badges opposite the avatar in either
                         // direction; on compact RTL screens the avatar is right.

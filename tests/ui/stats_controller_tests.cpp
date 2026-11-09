@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
             QObject::connect(socket, &QTcpSocket::readyRead, socket,
                 [&, socket, input] {
                     input->append(socket->readAll());
-                    const int header = input->indexOf("\r\n\r\n");
+                    const qsizetype header = input->indexOf("\r\n\r\n");
                     if (header < 0) return;
                     const QByteArray line = input->left(input->indexOf("\r\n"));
                     const auto words = line.split(' ');

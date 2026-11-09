@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/social/stats.hpp
+ * @brief       Exposes read-only account statistics to the Qt interface.
+ *
+ * @details
+ * Owns bounded account snapshot pagination and aggregation, including
+ * explicit partial results and cancellation across selected read routes.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       07 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QDateTime>

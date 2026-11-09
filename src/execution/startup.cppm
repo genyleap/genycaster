@@ -1,12 +1,18 @@
 /*!
- * @file src/execution/thread_startup.hpp
- * @brief Exception-safe launch of the execution worker groups.
+ * @file        src/execution/startup.cppm
+ * @brief       Provides exception-safe native worker-group construction.
  *
- * A partially constructed std::vector<std::thread> must not unwind while
- * its elements are joinable: ~std::thread would call std::terminate().
- * This helper is used only during construction, before jobs are accepted.
+ * @details
+ * Rolls back partially started thread groups before rethrowing a thread
+ * creation failure, preventing joinable-thread destruction on unwind.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       09 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
  */
-#pragma once
+
+module;
 
 #include <cstddef>
 #include <thread>
@@ -14,11 +20,17 @@
 #include <utility>
 #include <vector>
 
-namespace farcaster::execution::detail {
+export module farcaster.execution.startup;
 
-// launch() returns a newly started std::thread; requestStop() must be noexcept
-// and wake workers blocked in their condition_variable. When thread creation
-// fails, join every worker before allowing the original exception to escape.
+export namespace farcaster::execution::startup {
+
+/**
+ * @brief Starts an owned worker group or joins every started worker on failure.
+ *
+ * @details
+ * The rollback callback must be noexcept and wake any workers waiting on a
+ * condition variable. No jobs may be admitted until construction succeeds.
+ */
 template<class Launch, class RequestStop>
 void startWorkerGroup(std::vector<std::thread>& workers, const std::size_t count,
                       Launch&& launch, RequestStop&& requestStop)
@@ -43,4 +55,4 @@ void startWorkerGroup(std::vector<std::thread>& workers, const std::size_t count
 #endif
 }
 
-} // namespace farcaster::execution::detail
+} // namespace farcaster::execution::startup

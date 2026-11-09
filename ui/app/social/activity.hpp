@@ -51,6 +51,7 @@ public:
     /** Resolve a numeric provider subject only after OpenProof confirmed the link. */
     Q_INVOKABLE void requestGitHubId(const QString& accountId);
     Q_INVOKABLE void requestGitHubContributions(const QString& username, int year);
+
     /** Explicit user retry bypasses the successful-snapshot TTL. */
     Q_INVOKABLE void refreshGitHubContributions(const QString& username, int year);
 

@@ -12,14 +12,13 @@ module;
 #include <utility>
 #include <vector>
 
-#include "thread_startup.hpp"
-
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
 
 module farcaster.execution.weighted_thread_pool;
 
+import farcaster.execution.startup;
 import farcaster.foundation.error;
 import farcaster.foundation.result;
 
@@ -163,7 +162,7 @@ struct WeightedThreadPoolExecutor::Impl final {
           maximumQueuedWeightBytes(std::max<std::size_t>(requestedMaximumQueuedWeightBytes, 1U))
     {
         const std::size_t workerCount = std::max<std::size_t>(requestedWorkerCount, 1U);
-        detail::startWorkerGroup(workers, workerCount,
+        startup::startWorkerGroup(workers, workerCount,
             [this] { return std::thread{[this] { run(); }}; },
             [this]() noexcept {
                 {

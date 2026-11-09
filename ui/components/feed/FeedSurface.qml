@@ -387,9 +387,9 @@ Item {
             const family = root.classifiedFamily(embed, metadata)
             const directArtwork = String(embed.imageSource || embed.previewImage
                                          || metadata.previewImage || metadata.imageSource || "")
-            // Hypersnap returns bare URLs for many real NFT photographs
+            // Some media origins return bare URLs for real NFT photographs
             // (notably imagedelivery.net and IPFS) without a file extension.
-            // The provider's art/nft channel still has to pass the collectible
+            // The selected read route's art/nft channel must still pass the collectible
             // classifier below; only the media candidate detection expands.
             if (directArtwork.length > 0 || kind === "image" || family === "image"
                     || root.looksLikeArtworkUrl(value)

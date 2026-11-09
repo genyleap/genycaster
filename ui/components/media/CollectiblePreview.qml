@@ -121,7 +121,9 @@ Superellipse {
             // state can clear on re-admission after kinetic scrolling.
             // Reserve the artwork region as soon as the collectible URL is
             // known, even before the marketplace resolves its image.
-            visible: root.artworkSource.length > 0 && !Boolean(root.embed.pairedVisual)
+            // URL identity reserves the frame. Late artwork/failure only changes
+            // pixels inside it, never the parent card's scroll geometry.
+            visible: root.targetUrl.length > 0 && !Boolean(root.embed.pairedVisual)
             Layout.fillWidth: !root.horizontalCard
             Layout.preferredWidth: root.horizontalCard ? root.artworkWidth : -1
             Layout.preferredHeight: visible ? root.artworkHeight : 0
@@ -222,9 +224,10 @@ Superellipse {
 
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                // The title may grow from one line to two once metadata lands.
-                // Allocate both lines before the first presentation frame.
-                Layout.preferredHeight: Math.min(root.titleLineHeight * 2, Math.max(root.titleLineHeight, implicitHeight))
+                // Reserve two title lines independent of title hydration.
+                Layout.preferredHeight: root.titleLineHeight * 2
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: Layout.preferredHeight
                 verticalAlignment: Text.AlignTop
                 text: root.titleText
                 color: Theme.textPrimary
@@ -236,8 +239,10 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.creatorText.length > 0
-                Layout.preferredHeight: visible ? root.captionLineHeight : 0
+                // Metadata is optional but its slot is reserved per identity.
+                Layout.preferredHeight: root.captionLineHeight
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
                 text: root.creatorText
                 color: Theme.textSecondary
@@ -246,8 +251,9 @@ Superellipse {
             }
 
             DirectionAwareLabel {
-                visible: root.collectionText.length > 0 && root.collectionText !== root.titleText
-                Layout.preferredHeight: visible ? root.captionLineHeight : 0
+                Layout.preferredHeight: root.captionLineHeight
+                Layout.minimumHeight: Layout.preferredHeight
+                Layout.maximumHeight: Layout.preferredHeight
                 Layout.fillWidth: true
                 text: root.collectionText !== root.titleText ? root.collectionText : ""
                 color: Theme.textTertiary
@@ -258,8 +264,7 @@ Superellipse {
             Flow {
                 id: metadataChips
                 Layout.fillWidth: true
-                visible: root.chainText.length > 0 || root.editionText.length > 0 || root.priceText.length > 0
-                Layout.preferredHeight: visible ? 28 : 0
+                Layout.preferredHeight: 28
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 layoutDirection: Theme.uiDirection

@@ -44,7 +44,14 @@ Item {
                                  root.strokeColor.b,
                                  Theme.dark ? 0.13 : 0.085)
                        : "transparent"
-            PathPolyline { path: root.areaPoints }
+            // An uninitialized/empty Qt QVariantList is not a valid PathPolyline
+            // path under every Qt 6.12 renderer. Degenerate points are inert
+            // while the fill is transparent and avoid scene-graph warnings.
+            PathPolyline {
+                path: root.areaPoints && root.areaPoints.length >= 4
+                      ? root.areaPoints
+                      : [Qt.point(0, 0), Qt.point(0, 0), Qt.point(0, 0), Qt.point(0, 0)]
+            }
         }
 
         ShapePath {
@@ -53,7 +60,11 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.normalizedPoints }
+            PathPolyline {
+                path: root.normalizedPoints && root.normalizedPoints.length >= 2
+                      ? root.normalizedPoints
+                      : [Qt.point(0, 0), Qt.point(0, 0)]
+            }
         }
     }
 }

@@ -494,9 +494,10 @@ Superellipse {
     // The preview is a visual boundary. Its layout must shrink inside
     // the Cast card on narrow native and WASM windows alike.
     clip: true
-    // Pending metadata gets a small baseline; resolved text owns its natural
-    // height instead of reserving empty lines between every metadata field.
-    readonly property real genericReservedHeight: root.compact ? 72 : 92
+    // A generic destination has one compact, stable text budget per width
+    // class. Late OpenGraph title/summary/footer metadata replaces text inside
+    // this reservation instead of reflowing every subsequent feed row.
+    readonly property real genericReservedHeight: root.compact ? 142 : 130
     readonly property real cardInset: root.embeddedInCard ? 0 : root.layoutMiniApp ? Theme.space4
         : root.compact ? Theme.space2 : root.preferPosterLayout ? Theme.space3 : Theme.space5
     // Keep the height contract identical to the actual inner gutter.
@@ -610,10 +611,11 @@ Superellipse {
                 readonly property real readyHeight: Math.max(root.compact ? 158 : 184,
                                                               Math.min(root.compact ? 420 : 640,
                                                                        width / Math.max(0.7, Math.min(3.0, root.previewImageAspect))))
-                // A working Mini App keeps its full 3:2 discovery poster.
-                // Only a confirmed load failure falls back to a compact action.
+                // Preserve the 3:2 discovery frame through timeout/failure.
+                // The error fallback belongs INSIDE that reserved rectangle;
+                // removing it would jerk the entire feed upwards.
                 readonly property real targetHeight: root.reserveArtwork
-                    && !root.miniAppArtworkUnavailable ? readyHeight : 0
+                    && root.reservedLayout.artwork ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -804,8 +806,10 @@ Superellipse {
                 readonly property real readyHeight: Math.max(root.compact ? 116 : 142,
                                                               Math.min(root.compact ? 238 : 328,
                                                                        width / Math.max(0.75, Math.min(3.0, root.previewImageAspect))))
+                // A failed or delayed poster must never collapse the reserved
+                // frame: the fallback occupies precisely the same geometry.
                 readonly property real targetHeight: root.reserveArtwork
-                    && !root.richArtworkUnavailable ? readyHeight : 0
+                    && root.reservedLayout.artwork ? readyHeight : 0
                 visible: targetHeight > 0
                 Layout.fillWidth: true
                 Layout.preferredHeight: targetHeight
@@ -1086,9 +1090,10 @@ Superellipse {
 
             Item {
                 id: genericThumbFrame
+                // Choose the artwork slot once per URL. Metadata or a failed
+                // image must not insert/remove a full-width thumbnail mid-scroll.
                 readonly property bool shouldReserve: root.reserveArtwork
-                                                    && root.previewSource.length > 0
-                                                    && !root.genericArtworkUnavailable
+                                                    && Boolean(root.reservedLayout.artwork)
                 visible: shouldReserve
                 clip: true
                 Layout.alignment: Qt.AlignTop
@@ -1161,7 +1166,7 @@ Superellipse {
                 }
 
                 GenySpinner {
-                    objectName: "genericLinkLoadingSpinner"
+                    objectName: "genericPosterLoadingSpinner"
                     anchors.centerIn: parent
                     width: 20
                     height: 20
@@ -1181,7 +1186,10 @@ Superellipse {
                 Layout.preferredWidth: 0
                 Layout.fillHeight: false
                 Layout.alignment: Qt.AlignTop
-                Layout.minimumHeight: root.metadataLoading ? root.genericReservedHeight : 0
+                Layout.minimumHeight: root.genericReservedHeight
+                Layout.preferredHeight: root.genericReservedHeight
+                Layout.maximumHeight: root.genericReservedHeight
+                clip: true
                 // Keep the phone artwork in its existing slot while moving
                 // all text and destination details onto a shared inner edge.
                 Layout.leftMargin: root.compact && !root.embeddedInCard ? Theme.space2 : 0
@@ -1221,10 +1229,21 @@ Superellipse {
 
                         Icon {
                             anchors.centerIn: parent
-                            visible: !siteFavicon.ready
+                            visible: !siteFavicon.ready && !root.metadataLoading
                             text: root.providerKind === "github" ? Theme.iconCode : Theme.iconLink
                             color: root.providerColor
                             preferredSize: Theme.iconSizeSmall
+                        }
+
+                        GenySpinner {
+                            objectName: "genericLinkLoadingSpinner"
+                            anchors.centerIn: parent
+                            width: Theme.iconSizeSmall
+                            height: width
+                            visible: root.metadataLoading && !genericThumbFrame.shouldReserve
+                            running: visible && !root.scrollMoving
+                            color: Theme.textTertiary
+                            strokeWidth: 1.8
                         }
 
                         SuperellipseImage {

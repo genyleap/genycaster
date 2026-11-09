@@ -155,7 +155,9 @@ Item {
                 joinStyle: ShapePath.RoundJoin
 
                 PathPolyline {
-                    path: root.sparklinePoints
+                    path: root.sparklinePoints && root.sparklinePoints.length >= 2
+                          ? root.sparklinePoints
+                          : [Qt.point(0, 0), Qt.point(0, 0)]
                 }
             }
         }

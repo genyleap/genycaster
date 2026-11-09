@@ -38,6 +38,8 @@ INTENTIONALLY_IDENTICAL_IDS = {
     "genycaster.brand.genyleap",
     "genycaster.pro.title",
     "genycaster.pro.short",
+    # This analytics title consists only of the product name and a value token.
+    "genycaster.stats.share_report_title",
     # Protocol names and token standards are intentionally untranslated.
     "genycaster.home.idea_nft_topic",
     "genycaster.home.idea_farcaster_topic",
@@ -109,6 +111,8 @@ IDENTICAL_TERM_IDS_BY_LOCALE = {
     },
     "fr_FR": {
         "genycaster.context.widgets",
+        # The editorial view name is also the correct French noun.
+        "genycaster.explorer.magazine",
         "genycaster.detail.conversation",
         "genycaster.streak.badge_firestorm",
         "genycaster.streak.sat",

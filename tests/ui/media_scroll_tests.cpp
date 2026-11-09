@@ -2,11 +2,13 @@
 #include "localization_controller.hpp"
 #include "media_playback_coordinator.hpp"
 #include "rendering_controller.hpp"
+#include "sparkline.hpp"
 #include "rich_inline_text_item.hpp"
 #include "../../ui/render/superellipse.hpp"
 #include "../../ui/app/social/feed_rows.hpp"
 
 #include <QGuiApplication>
+#include <QHash>
 #include <QDir>
 #include <QImage>
 #include <QImageReader>
@@ -16,6 +18,7 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQmlError>
 #include <QQuickAsyncImageProvider>
 #include <QQuickItem>
 #include <QQuickItemGrabResult>
@@ -215,6 +218,7 @@ int main(int argc, char** argv)
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     qmlRegisterType<RichInlineTextItem>("Farcaster.Client", 1, 0, "RichInlineTextItem");
     qmlRegisterType<FeedRowsModel>("Farcaster.Client", 1, 0, "FeedRowsModel");
+    qmlRegisterType<MasonryWindowModel>("Farcaster.Client", 1, 0, "MasonryWindowModel");
     qmlRegisterType<SceneGraphSuperellipseItem>(
         "Farcaster.Client", 1, 0, "SceneGraphSuperellipse");
     // Source-loaded components normally get native types from their enclosing
@@ -275,11 +279,15 @@ int main(int argc, char** argv)
             property var myApps: []
             property var explorerApps: []
             signal previewReady(string url, var preview)
+            signal protocolProfileWriteCompleted(bool confirmed, string message)
+            property bool writeReady: false
+            property bool writeBusy: false
             function isLaunchingUrl(url) { return false }
             function previewFor(url) { return ({}) }
             function requestPreview(url) {}
             function imageSourceForUrl(url) { return url }
             function contextualReactionIcon(text) { return "actions/heart" }
+            function castShareUrl(hash) { return "https://example.test/cast/" + hash }
         }
     )");
     if (!previewServices) { return 1; }
@@ -288,6 +296,90 @@ int main(int argc, char** argv)
     context->setContextProperty(QStringLiteral("miniAppHost"), previewServices.get());
     context->setContextProperty(QStringLiteral("miniAppCatalog"), previewServices.get());
     context->setContextProperty(QStringLiteral("presentationBridge"), previewServices.get());
+    auto mediaUpload = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property bool available: false
+            property bool busy: false
+            property string errorText: ""
+            signal assetReady(string url, string mediaType, string managementToken, int afterIndex)
+            function clear() {}
+            function browseBrowserImage(index) {}
+        }
+    )");
+    if (!mediaUpload) return 1;
+    context->setContextProperty(QStringLiteral("mediaUpload"), mediaUpload.get());
+    // Source-loaded CastItem/RichInlineText resolve these native application
+    // context contracts through the engine, not through imported QML modules.
+    auto channelDirectory = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property int imageRevision: 0
+            function nameForChannel(id) { return id }
+            function imageUrlForChannel(id) { return "" }
+            function ensureChannelImage(id) {}
+        }
+    )");
+    auto textSelectionSettings = createInline(engine, R"(
+        import QtQml
+        QtObject { property bool systemSelectionEnabled: false }
+    )");
+    if (!channelDirectory || !textSelectionSettings) return 1;
+    context->setContextProperty(QStringLiteral("channelDirectory"), channelDirectory.get());
+    context->setContextProperty(QStringLiteral("textSelectionSettings"), textSelectionSettings.get());
+    // Read-only analytics controllers are native context contracts in the full
+    // application. HomeDashboard instantiates hidden Stats panels too, so the
+    // headless fixture must provide snapshots even on the Overview tab.
+    auto statsController = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property string state: "idle"
+            property var summary: ({
+                casts: 0, replies: 0, likes: 0, recasts: 0,
+                receivedReplies: 0, engagement: 0, hasEngagement: false,
+                hasAudience: false, followers: 0, following: 0,
+                observedDays: 0, averages: ({ casts: 0, replies: 0 }),
+                daily: ({})
+            })
+            property var activity: []
+            property var topCasts: []
+            property string updatedAt: ""
+            property int loadedCount: 0
+            function load(fid, contract, endpoint, days, force) {}
+            function clear() {}
+        }
+    )");
+    auto marketController = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property string state: "idle"
+            property var metrics: ({})
+            property string updatedAt: ""
+            property bool partial: false
+            property bool planConfigured: false
+            signal changed()
+            function refresh(force) { return true }
+        }
+    )");
+    auto genyPulseActivity = createInline(engine, R"(
+        import QtQml
+        QtObject {
+            property var farcaster: ({ status: "idle", days: [] })
+            property var github: ({ status: "idle", days: [] })
+            property var onchain: ({ status: "unlinked" })
+            property var githubContributions: ({ status: "idle", days: [] })
+            function requestFarcaster(fid) {}
+            function requestGitHub(login) {}
+            function requestGitHubId(accountId) {}
+            function setVerifiedWallet(wallet) {}
+            function requestGitHubContributions(login, year) {}
+            function refreshGitHubContributions(login, year) {}
+        }
+    )");
+    if (!statsController || !marketController || !genyPulseActivity) return 1;
+    context->setContextProperty(QStringLiteral("statsController"), statsController.get());
+    context->setContextProperty(QStringLiteral("marketController"), marketController.get());
+    context->setContextProperty(QStringLiteral("genyPulseActivity"), genyPulseActivity.get());
     // The profile connection manager is another native context object in the
     // application. Its presence is required when source-loading ProfileSurface.
     auto openProofConnections = createInline(engine, R"(
@@ -302,6 +394,28 @@ int main(int argc, char** argv)
             property string approvalUrl: ""
             property string consentUrl: ""
             property string error: ""
+            property string cloudError: ""
+            property bool cloudAuthorizationReady: false
+            property bool cloudServiceAvailable: false
+            property bool cloudBusy: false
+            property bool cachedSnapshot: false
+            property string pendingProvider: ""
+            property string manualLinkedInUrl: ""
+            signal cloudProfileExtrasReceived(var item)
+            signal cloudProfileExtrasSaved(var item)
+            signal profileStatusChanged()
+            signal profileStatusSaveFinished(bool saved, string message)
+            function fetchCloudProfileExtras() {}
+            function pushCloudProfileExtras(item) {}
+            function setManualLinkedInUrl(url) {}
+            property bool profileStatusBusy: false
+            property bool streakBusy: false
+            signal stateChanged()
+            function fetchProfileStatus(fid) {}
+            function fetchPublicActivitySource(fid) {}
+            function fetchStreak() {}
+            function fetchStreakPreferences() {}
+            function fetchProEntitlements() {}
             function openConsent() {}
             function refresh() {}
             function authorizeAccount() {}
@@ -325,6 +439,11 @@ int main(int argc, char** argv)
     )");
     if (!richComposer) { return 1; }
     context->setContextProperty(QStringLiteral("richComposer"), richComposer.get());
+    qmlRegisterSingletonType<TokenSparklineGeometry>(
+        "Farcaster.Client", 1, 0, "TokenSparklineGeometry",
+        [](QQmlEngine* owner, QJSEngine*) -> QObject* {
+            return new TokenSparklineGeometry(owner);
+        });
     const int themeType = qmlRegisterSingletonType(
         QUrl::fromLocalFile(QStringLiteral(MEDIA_THEME_FILE)), "Farcaster.Client", 1, 0, "Theme");
     const int localeType = qmlRegisterSingletonType(
@@ -452,16 +571,16 @@ int main(int argc, char** argv)
     // in that dead context, even when the visual object still exists.
     QSignalSpy qmlWarnings{&engine, &QQmlEngine::warnings};
 
-    // Magazine geometry is independent from live media/providers. Exercise
-    // variable heights, bounded delegate admission, reflow and append with a
-    // deterministic local model before the full feed integration fixtures.
+    // Magazine geometry lives in the native window model, while the actual
+    // QML delegates are limited to the visible viewport. Exercise both
+    // numeric geometry and bounded admission with a real FeedRowsModel.
     {
         auto magazineModel = createInline(engine, R"(
             import QtQuick
-            import QtQml.Models
+            import Farcaster.Client
             Item {
                 property alias rows: entries
-                ListModel { id: entries }
+                FeedRowsModel { id: entries }
                 function appendRow() {
                     const index = entries.count
                     entries.append({stableKey: "fixture:" + index, revisionKey: "1",
@@ -473,6 +592,10 @@ int main(int argc, char** argv)
             }
         )");
         if (!magazineModel) { return 1; }
+        auto* sourceRows = magazineModel->findChild<FeedRowsModel*>();
+        expect(sourceRows && sourceRows->count() == 60,
+            "magazine fixture exposes 60 native stable rows");
+        if (!sourceRows) { return 1; }
         QQmlComponent magazineDelegate{&engine};
         magazineDelegate.setData(R"(
             import QtQuick
@@ -490,69 +613,119 @@ int main(int argc, char** argv)
                  "(function(key, kind, media, width) { return Number(key.split(':')[1]) % 2 === 0 ? 140 : 260; })"))}});
         if (!magazine) { return 1; }
         auto* wall = qobject_cast<QQuickItem*>(magazine.get());
+        if (!wall) { return 1; }
         wall->setSize(QSizeF{1040, 600});
+        auto* layout = wall->findChild<MasonryWindowModel*>(QStringLiteral("masonryWindowModel"));
+        expect(layout && layout->sourceModel() == sourceRows,
+            "magazine layout references the actual native source model");
+        if (!layout) { return 1; }
+        const auto geometry = [&](int index) { return layout->geometryAt(index); };
+        const auto vertical = [&](int index, const char* role) {
+            return geometry(index).value(QLatin1String(role)).toDouble();
+        };
+        const auto visibleSlots = [&] {
+            return visualItemsNamed(*wall, QStringLiteral("masonrySlot"));
+        };
+        const auto loadedCards = [&] {
+            return visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard"));
+        };
         expect(QTest::qWaitFor([&] {
-            return visualItemsNamed(*wall, QStringLiteral("masonrySlot")).size() == 60
-                && visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() >= 4;
-        }), "magazine creates slots and admits visible cards");
-        auto magazineSlots = visualItemsNamed(*wall, QStringLiteral("masonrySlot"));
-        std::sort(magazineSlots.begin(), magazineSlots.end(), [](const auto* left, const auto* right) {
-            return left->property("index").toInt() < right->property("index").toInt();
-        });
-        expect(magazine->property("columns").toInt() == 2,
-            "default magazine uses two columns at desktop reading width");
+            return sourceRows->count() == 60 && layout->count() > 0
+                && layout->count() < 60 && loadedCards().size() >= 4;
+        }), "native magazine admits visible cards without allocating all 60 QML slots");
         const double gap = magazine->property("gutter").toDouble();
-        expect(magazineSlots.size() == 60, "magazine preserves every source row");
-        if (magazineSlots.size() != 60) { return 1; }
-        expect(qAbs(magazineSlots[0]->y() - magazineSlots[1]->y()) < 1 && magazineSlots[0]->x() != magazineSlots[1]->x(),
-            "first cards share a top edge in separate columns");
-        expect(qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - magazineSlots[0]->height() - gap) < 1,
-            "short card's lane continues without waiting for the taller neighbor");
-        expect(visualItemsNamed(*wall, QStringLiteral("masonryFixtureCard")).size() < 16,
-            "offscreen rows do not instantiate expensive card content");
-        auto firstCards = visualItemsNamed(*magazineSlots[0], QStringLiteral("masonryFixtureCard"));
+        expect(magazine->property("columns").toInt() == 2,
+            "desktop magazine has two columns at 1040px");
+        expect(layout->count() == visibleSlots().size() && layout->count() < 35,
+            "Qt Repeater creates only the bounded viewport window");
+        expect(geometry(59).value(QStringLiteral("stableKey")).toString()
+                == QStringLiteral("fixture:59"),
+            "offscreen rows retain queryable numeric geometry and stable identity");
+        expect(qAbs(vertical(0, "y") - vertical(1, "y")) < 1
+                   && vertical(0, "x") != vertical(1, "x"),
+            "first cards share a top edge in separate lanes");
+        expect(qAbs(vertical(2, "y") - vertical(0, "y") - vertical(0, "height") - gap) < 1,
+            "short card's lane continues before its taller neighbor");
+        expect(loadedCards().size() < 16,
+            "offscreen rows never instantiate expensive card content");
+
+        const auto findSourceSlot = [&](const int sourceIndex) -> QQuickItem* {
+            for (auto* slot : visibleSlots()) {
+                if (slot->property("sourceIndex").toInt() == sourceIndex)
+                    return slot;
+            }
+            return nullptr;
+        };
+        auto* firstSlot = findSourceSlot(0);
+        expect(firstSlot != nullptr, "first stable row is inside the initial window");
+        if (!firstSlot) { return 1; }
+        auto firstCards = visualItemsNamed(*firstSlot, QStringLiteral("masonryFixtureCard"));
+        expect(!firstCards.empty(), "first card has completed async incubation");
         if (firstCards.empty()) { return 1; }
-        const double lane = magazineSlots[2]->x();
         firstCards.front()->setProperty("extraHeight", 100);
         expect(QTest::qWaitFor([&] {
-            return qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - magazineSlots[0]->height() - gap) < 1;
-        }), "late media height pushes the next card without overlap");
-        expect(magazineSlots[2]->x() == lane, "late metadata preserves assigned columns");
-        // An oversize placeholder must contract to the actual decoded image
-        // height. Repacking the entire magazine would move this card to a
-        // different column, while keeping the placeholder leaves a blank gap.
+            return qAbs(vertical(0, "height") - 240) < 2;
+        }), "late media expansion updates actual numeric geometry");
         firstCards.front()->setProperty("extraHeight", -50);
         expect(QTest::qWaitFor([&] {
-            return qAbs(magazineSlots[0]->height() - 90) < 1
-                && qAbs(magazineSlots[2]->y() - magazineSlots[0]->y() - 90 - gap) < 1;
-        }), "decoded shorter media collapses its placeholder without gaps");
-        expect(qAbs(magazineSlots[2]->x() - lane) < 1,
-            "late media contraction does not move cards horizontally");
-        expect(QMetaObject::invokeMethod(wall, "positionViewAtIndex",
-            Q_ARG(QVariant, 40), Q_ARG(QVariant, 0)), "magazine accepts indexed navigation");
-        expect(QTest::qWaitFor([&] {
-            return !visualItemsNamed(*magazineSlots[40], QStringLiteral("masonryFixtureCard")).empty()
-                && visualItemsNamed(*magazineSlots[0], QStringLiteral("masonryFixtureCard")).empty();
-        }), "scrolling admits the destination and releases distant card trees");
-        wall->setWidth(500);
-        expect(QTest::qWaitFor([&] { return magazine->property("columns").toInt() == 1; }),
-            "narrow magazine reflows into one column");
-        QMetaObject::invokeMethod(wall, "forceLayout");
-        for (std::size_t index = 1; index < magazineSlots.size(); ++index) {
-            expect(magazineSlots[index]->y() >= magazineSlots[index - 1]->y() + magazineSlots[index - 1]->height(),
-                "single-column reflow never overlaps adjacent cards");
-            expect(magazineSlots[index]->x() >= 0 && magazineSlots[index]->x() + magazineSlots[index]->width() <= wall->width(),
-                "magazine cards remain inside their viewport");
-        }
-        expect(QMetaObject::invokeMethod(magazineModel.get(), "appendRow"), "local pagination appends a row");
-        expect(QTest::qWaitFor([&] { return magazine->property("count").toInt() == 61; }),
-            "magazine observes appended rows without replacing the view");
-        QMetaObject::invokeMethod(wall, "positionViewAtBeginning");
-        expect(magazine->property("contentY").toDouble() == 0, "magazine return-to-top reaches the header");
+            return qAbs(vertical(0, "height") - 90) < 2;
+        }), "decoded shorter media contracts the placeholder slot");
 
-        // The desktop Explorer intentionally uses ~420dp cards and up to
-        // three columns. A non-maximized window must not strand a lone
-        // centered card inside a pane wide enough for two compact cards.
+        const auto geometryWithoutOverlap = [&] {
+            QHash<int, double> laneBottom{};
+            for (int index = 0; index < sourceRows->count(); ++index) {
+                const QVariantMap row = geometry(index);
+                if (row.value(QStringLiteral("stableKey")).toString().isEmpty())
+                    return false;
+                const double x = row.value(QStringLiteral("x")).toDouble();
+                const double y = row.value(QStringLiteral("y")).toDouble();
+                const double height = row.value(QStringLiteral("height")).toDouble();
+                if (!(height > 0) || !(x >= 0))
+                    return false;
+                const int lane = qRound(x);
+                if (laneBottom.contains(lane) && y + 0.75 < laneBottom.value(lane))
+                    return false;
+                laneBottom.insert(lane, y + height + gap);
+            }
+            return true;
+        };
+        expect(QTest::qWaitFor(geometryWithoutOverlap),
+            "numeric magazine geometry remains overlap-free after media updates");
+        expect(QMetaObject::invokeMethod(wall, "positionViewAtIndex",
+            Q_ARG(QVariant, 40), Q_ARG(QVariant, 0)),
+            "magazine accepts indexed navigation");
+        expect(QTest::qWaitFor([&] {
+            return layout->windowIndexForSource(40) >= 0
+                && layout->windowIndexForSource(0) < 0
+                && !loadedCards().empty();
+        }), "scrolling recycles distant QML slots while admitting destination cards");
+        expect(layout->count() < 35 && visibleSlots().size() == layout->count(),
+            "deep scroll retains bounded QML allocation");
+
+        wall->setWidth(500);
+        expect(QTest::qWaitFor([&] {
+            return magazine->property("columns").toInt() == 1;
+        }), "narrow magazine reflows into one column");
+        QMetaObject::invokeMethod(wall, "forceLayout");
+        expect(geometryWithoutOverlap(), "single-column geometry does not overlap");
+        for (int index = 0; index < sourceRows->count(); ++index)
+            expect(vertical(index, "x") >= 0
+                && vertical(index, "x") + magazine->property("cardWidth").toDouble()
+                     <= wall->width() + 1,
+                "all numeric cards remain inside the responsive viewport");
+        expect(QMetaObject::invokeMethod(magazineModel.get(), "appendRow"),
+            "local pagination appends a native model row");
+        expect(QTest::qWaitFor([&] {
+            return sourceRows->count() == 61
+                && magazine->property("count").toInt() == 61
+                && geometry(60).value(QStringLiteral("stableKey")).toString()
+                   == QStringLiteral("fixture:60");
+        }), "native magazine appends a row without replacing the view");
+        QMetaObject::invokeMethod(wall, "positionViewAtBeginning");
+        expect(magazine->property("contentY").toDouble() == 0,
+            "magazine return-to-top reaches the header");
+
+        // Width thresholds must adapt to the available desktop reading pane.
         magazine->setProperty("targetCardWidth", 420.0);
         magazine->setProperty("maximumColumns", 3);
         wall->setWidth(740);
@@ -562,7 +735,7 @@ int main(int argc, char** argv)
         QMetaObject::invokeMethod(wall, "forceLayout");
         const double windowedCard = magazine->property("cardWidth").toDouble();
         expect(qAbs(windowedCard * 2 + gap * 3 - wall->width()) < 1,
-            "two-column windowed Explorer uses its entire reading pane");
+            "two-column Explorer fills its reading pane");
         wall->setWidth(1040);
         expect(QTest::qWaitFor([&] {
             return magazine->property("columns").toInt() == 3;
@@ -570,7 +743,7 @@ int main(int argc, char** argv)
         QMetaObject::invokeMethod(wall, "forceLayout");
         const double wideCard = magazine->property("cardWidth").toDouble();
         expect(qAbs(wideCard * 3 + gap * 4 - wall->width()) < 1,
-            "three-column Explorer uses its entire reading pane");
+            "three-column Explorer fills its reading pane");
         wall->setWidth(590);
         expect(QTest::qWaitFor([&] {
             return magazine->property("columns").toInt() == 1;
@@ -579,37 +752,36 @@ int main(int argc, char** argv)
         expect(qAbs(magazine->property("cardWidth").toDouble() + gap * 2
                     - wall->width()) < 1,
             "single-column Explorer does not center a width-capped card");
-
-        // Repeated layout, pagination and viewport admission must never
-        // produce the Loader.active binding loop seen on macOS with media.
+        expect(geometryWithoutOverlap(), "responsive magazine keeps every numeric slot valid");
         expect(qmlWarnings.empty(),
-            "magazine viewport admission emits no QML binding-loop or incubation warnings");
+            "magazine pagination and viewport admission emit no QML lifecycle warnings");
         qmlWarnings.clear();
     }
 
-    // The mobile footer must render as a full-width edge-to-edge surface,
-    // not as a rounded floating panel with pale gutters at phone corners.
-    // Instantiate the real QML component so property/geometry regressions
-    // cannot hide behind source-pattern tests.
+    // The current mobile navigation is a transparent floating dock, not a
+    // full-width dark footer. Verify actual controls and bounds rather than
+    // asserting that the deliberately removed footer rectangle exists.
     {
         auto footerFixture = createSurface(engine, QStringLiteral("BottomNavigation"), *scroll);
         if (!footerFixture) { return 1; }
         auto* footer = qobject_cast<QQuickItem*>(footerFixture.get());
         footer->setSize(QSizeF{390, 88});
         polishTree(footer);
-        auto* backdrop = footer->findChild<QQuickItem*>(
-            QStringLiteral("mobileFooterBackground"));
-        auto* lowerEdge = footer->findChild<QQuickItem*>(
-            QStringLiteral("mobileContentLowerEdge"));
-        expect(backdrop != nullptr && lowerEdge != nullptr,
-               "mobile footer provides a dark edge-to-edge backdrop and curved content edge");
-        if (backdrop && lowerEdge) {
-            expect(qAbs(backdrop->width() - footer->width()) < 1
-                       && qAbs(backdrop->height() - footer->height()) < 1,
-                   "dark mobile footer fills the entire viewport width and height");
-            expect(qAbs(lowerEdge->width() - footer->width()) < 1
-                       && lowerEdge->y() < 0,
-                   "rounded page edge spans the viewport and overlaps above the footer");
+        auto* capsule = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobileNavigationCapsule"));
+        auto* homeControl = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobileDockHome"));
+        auto* exploreControl = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobileDockExplore"));
+        auto* primaryAction = footer->findChild<QQuickItem*>(
+            QStringLiteral("mobilePrimaryActionButton"));
+        expect(capsule && homeControl && exploreControl && primaryAction,
+            "mobile floating dock exposes its main destinations and separate primary action");
+        if (capsule) {
+            expect(capsule->width() > 0 && capsule->width() < footer->width()
+                       && capsule->x() >= 0
+                       && capsule->x() + capsule->width() <= footer->width(),
+                "mobile glass capsule stays inside its transparent viewport");
         }
     }
 
@@ -629,11 +801,25 @@ int main(int argc, char** argv)
         const auto searchCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_search"));
         const auto appsCards = visualItemsNamed(*home, QStringLiteral("homeShortcut_apps"));
         const auto banners = visualItemsNamed(*home, QStringLiteral("genyTokenBanner"));
-        expect(banners.size() == 1,
-               "Home Hub renders one compact GENY announcement banner");
-        expect(explorerCards.size() == 1 && searchCards.size() == 1
-                   && appsCards.size() == 1 && walletCards.size() == 1,
-               "Home Hub renders three active destinations and one disabled Wallet");
+        const auto visibleCount = [](const std::vector<QQuickItem*>& items) {
+            return std::count_if(items.begin(), items.end(),
+                [](const QQuickItem* item) {
+                    for (const QQuickItem* current = item; current;
+                         current = current->parentItem()) {
+                        if (!current->isVisible()) return false;
+                    }
+                    return true;
+                });
+        };
+        expect(visibleCount(banners) == 1,
+            "Home Hub exposes exactly one visible GENY banner at the active breakpoint");
+        expect(visibleCount(explorerCards) == 1 && visibleCount(searchCards) == 1
+                && visibleCount(appsCards) == 1 && visibleCount(walletCards) == 1,
+            "Home Hub exposes three live shortcuts and one Wallet preview");
+        if (!walletCards.empty())
+            expect(std::all_of(walletCards.begin(), walletCards.end(),
+                [](const QQuickItem* item) { return item->property("locked").toBool(); }),
+                "Wallet preview is explicitly locked and cannot dispatch actions");
     }
 
     // Exercise the real notification delegate with reply body, quote context,
@@ -794,9 +980,9 @@ int main(int argc, char** argv)
         // profile tabs. The former dedicated 34px row wasted prime vertical
         // space between the tab underline and the first cast.
         auto* tabs = profile->findChild<QQuickItem*>(QStringLiteral("profileTabs"));
-        auto* sort = profile->findChild<QQuickItem*>(QStringLiteral("profileSortFilter"));
+        auto* sort = profile->findChild<QQuickItem*>(QStringLiteral("mobileProfileFilterTrigger"));
         expect(tabs != nullptr && sort != nullptr,
-               "profile tabs and sort control are both discoverable");
+               "profile tabs and the compact filter trigger are both discoverable");
         if (tabs && sort) {
             polishTree(qobject_cast<QQuickItem*>(profile.get()));
             const auto tabPos = tabs->mapToScene(QPointF{0, 0});
@@ -1021,6 +1207,15 @@ int main(int argc, char** argv)
         feedRoute.reset();
         QCoreApplication::processEvents();
     }
+    if (!qmlWarnings.empty()) {
+        for (const auto& entry : qmlWarnings) {
+            if (entry.isEmpty()) continue;
+            const auto diagnostics = entry.front().value<QList<QQmlError>>();
+            for (const QQmlError& diagnostic : diagnostics)
+                std::println("QML lifecycle warning: {}",
+                             diagnostic.toString().toStdString());
+        }
+    }
     expect(qmlWarnings.empty(),
         "destroyed notification/profile/feed surfaces never evaluate stale deferred callbacks");
     qmlWarnings.clear();
@@ -1060,47 +1255,54 @@ int main(int argc, char** argv)
         "pending media freezes indeterminate animation during scroll motion");
     const int uploadsBeforeCompletion = images->textureUploads();
     images->completePending();
-    expect(QTest::qWaitFor([&] { return image->property("status").toInt() == 0; }),
-        "motion detaches the QML image response before texture preparation");
-    expect(!flag(*image, "ready"), "detached completion cannot admit a new texture while scrolling");
-    expect(!flag(*image, "maskActive"), "detached completion cannot allocate a mask layer while scrolling");
-    expect(flag(*image, "loading"), "placeholder persists until presentation admission");
-    QTest::qWait(80);
-    expect(images->textureUploads() == uploadsBeforeCompletion,
-        "detached media does not upload a GPU texture during motion");
+    // The current media pipeline intentionally keeps an in-flight request
+    // alive across wheel/touch movement. Cancel-and-retry produced blank
+    // thumbnails and excessive network work on continuously moving feeds.
+    expect(QTest::qWaitFor([&] {
+        return flag(*image, "decodedReady");
+    }), "an in-flight image can finish decoding during scroll movement");
     expect(images->requestCount() == 1,
-        "scroll detachment creates no replacement QML request during motion");
+        "scrolling does not cancel and duplicate an already-running image request");
     expect(qobject_cast<QQuickItem*>(image.get())->size() == originalSize,
-        "scroll detachment preserves reserved image geometry");
+        "continuous scrolling preserves the image placeholder geometry");
+    // A pending frame grant must leave the original placeholder in place.
+    if (!flag(*image, "ready"))
+        expect(flag(*loadingIndicator, "visible"),
+            "decoded but unpresented image retains a visible placeholder");
     host->setProperty("moving", false);
-    expect(flag(*image, "loading") && flag(*loadingIndicator, "visible")
-               && flag(*loadingSpinner, "visible") && !flag(*loadingFallback, "visible"),
-        "post-fling admission delay cannot blank or replace the media spinner");
-    expect(flag(*loadingSpinner, "running"),
-        "spinner animation resumes after scrolling settles");
-    expect(QTest::qWaitFor([&] { return images->requestCount() == 2; }),
-        "settling reattaches the QML image consumer");
-    images->completePending();
-    expect(QTest::qWaitFor([&] { return flag(*image, "ready"); }), "settling admits the reattached image");
-    expect(maskLoader && flag(*maskLoader, "active") && maskLoader->property("item").value<QObject*>(),
-        "ready media constructs its mask only after scrolling settles");
-    expect(countVisualItemsWithClass(*qobject_cast<QQuickItem*>(image.get()), QStringLiteral("MultiEffect")) == 1,
-        "a clipped single image constructs only its admitted mask effect");
-    if (window.rendererInterface()->graphicsApi() != QSGRendererInterface::Software) {
-        expect(QTest::qWaitFor([&] { return images->textureUploads() > uploadsBeforeCompletion; }),
-            "settling uploads the real image through the GPU renderer");
-    }
+    expect(QTest::qWaitFor([&] {
+        window.update();
+        QCoreApplication::processEvents();
+        return flag(*image, "ready");
+    }), "decoded image is presented after frame admission without a new request");
+    expect(images->requestCount() == 1,
+        "the completed response is reused across the scroll transition");
+    expect(maskLoader && flag(*maskLoader, "active")
+                && maskLoader->property("item").value<QObject*>(),
+        "ready media constructs its mask only when the image is presented");
+    if (window.rendererInterface()->graphicsApi() != QSGRendererInterface::Software)
+        expect(images->textureUploads() > uploadsBeforeCompletion,
+            "real renderer eventually uploads the decoded image");
     host->setProperty("moving", true);
-    expect(flag(*image, "ready") && flag(*image, "maskActive"),
-        "an already presented image and mask persist across the next fling");
+    expect(flag(*image, "ready"),
+        "a presented image persists unchanged across a subsequent fling");
     image->setProperty("source", QUrl{QStringLiteral("image://remote/recycled")});
-    expect(!flag(*image, "ready"), "recycled delegates clear previous artwork immediately");
-    QTest::qWait(100);
-    expect(images->requestCount() == 2, "recycled delegate defers its next image request during scrolling");
+    expect(!flag(*image, "ready"),
+        "recycled delegates clear the previous image before starting a new identity");
+    // Default media requests continue during a real fling. The narrower
+    // deferNewLoadsWhileScrolling property is an explicit opt-in for special
+    // media surfaces, not a global Gallery/Feed default.
+    expect(QTest::qWaitFor([&] { return images->requestCount() >= 2; }),
+        "new image identity can start during continuous scrolling");
     host->setProperty("moving", false);
-    expect(QTest::qWaitFor([&] { return images->requestCount() == 3; }), "recycled image starts after settling");
     images->completePending();
-    expect(QTest::qWaitFor([&] { return flag(*image, "ready"); }), "replacement image is eventually visible");
+    expect(QTest::qWaitFor([&] {
+        window.update();
+        QCoreApplication::processEvents();
+        return flag(*image, "ready");
+    }), "replacement image is eventually presented with stable geometry");
+    expect(images->requestCount() == 2,
+        "recycling does not start an extra duplicate request");
 
     // Provider failures already include transport retry and URL backoff. A
     // batch of failed thumbnails must become quiescent, not create a new wave
@@ -1293,14 +1495,18 @@ int main(int argc, char** argv)
         "decoded aspect ratio cannot reflow the feed gallery");
     auto* galleryItem = qobject_cast<QQuickItem*>(gallery.get());
     const auto singleGalleryPreviews = visualItemsNamed(*galleryItem, QStringLiteral("galleryPreview"));
-    expect(singleGalleryPreviews.size() == 1 && !flag(*singleGalleryPreviews.front(), "clipToSuperellipse"),
-        "single-image feed artwork stays on the direct texture path without an offscreen mask");
+    // A fitted single image deliberately opts into the true alpha mask: an
+    // inverse-corner overlay can leave square corners on letterboxed artwork.
+    expect(singleGalleryPreviews.size() == 1
+               && flag(*singleGalleryPreviews.front(), "clipToSuperellipse"),
+        "single-image gallery uses the final fitted-image alpha mask");
     const auto singleMaskLoaders = visualItemsNamed(*galleryItem, QStringLiteral("mediaMaskLoader"));
-    expect(singleMaskLoaders.size() == 1 && !flag(*singleMaskLoaders.front(), "active")
-               && !singleMaskLoaders.front()->property("item").value<QObject*>(),
-        "single-image gallery does not allocate a mask item or MultiEffect");
-    expect(countVisualItemsWithClass(*galleryItem, QStringLiteral("MultiEffect")) == 0,
-        "single-image gallery constructs no hidden MultiEffect object");
+    expect(singleMaskLoaders.size() == 1,
+        "single-image gallery retains the mask's lazy admission boundary");
+    if (!singleGalleryPreviews.empty() && flag(*singleGalleryPreviews.front(), "ready")) {
+        expect(singleMaskLoaders.size() == 1 && flag(*singleMaskLoaders.front(), "active"),
+            "admitted single-image gallery creates its required corner mask");
+    }
 
     // The production failure case is a cast with adjacent images. This controlled
     // provider deliberately releases both responses in one turn to prove that
@@ -1319,9 +1525,11 @@ int main(int argc, char** argv)
         return visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryTileLoader")).size() == 2;
     }), "multi-image gallery reserves both tile slots while moving");
     QTest::qWait(140);
-    expect(visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).empty()
-               && images->requestCount() == requestsBeforeMultiGallery,
-        "new gallery rows construct no heavy tile subtree or image request during scrolling");
+    // Admission proceeds in bounded staggered batches during a continuous
+    // fling. Requiring scroll-idle here starved images in long magazine feeds.
+    expect(images->requestCount() <= requestsBeforeMultiGallery + 2
+               && visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).size() <= 2,
+        "continuous scrolling admits only the two bounded gallery tile requests");
     host->setProperty("moving", false);
     expect(QTest::qWaitFor([&] {
         return visualItemsNamed(*multiGalleryItem, QStringLiteral("galleryPreview")).size() == 2;
@@ -1453,8 +1661,8 @@ int main(int argc, char** argv)
     auto* mediaLoader = mixedCast->findChild<QQuickItem*>(QStringLiteral("castVisualMedia"));
     expect(captionLoader && mediaLoader && captionLoader->y() < mediaLoader->y(),
         "text precedes image media in every cast, including mixed media casts");
-    expect(countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) == 0,
-        "mixed image+link cast defers its supporting LinkPreview while scrolling");
+    expect(countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) <= 1,
+        "mixed image+link cast never duplicates supporting LinkPreview during scrolling");
     host->setProperty("moving", false);
     expect(QTest::qWaitFor([&] {
         return countVisualItemsWithClass(*mixedCastItem, QStringLiteral("LinkPreview")) == 1;
@@ -1652,11 +1860,12 @@ int main(int argc, char** argv)
     expect(QTest::qWaitFor([&] { return flickable->property("contentY").toDouble() > initialContentY; }),
         "real scroll advances while media remains pending");
     expect(nestedImage && flag(*nestedImage, "scrollMoving"), "late-attached delegate discovers its moving ancestor");
-    expect(images->requestCount() == requestsBeforeAttachment,
-        "late-attached delegate does not start its image during a fling");
+    expect(QTest::qWaitFor([&] {
+        return images->requestCount() == requestsBeforeAttachment + 1;
+    }), "late-attached delegate starts exactly one bounded image request during a fling");
     expect(QMetaObject::invokeMethod(flickable.get(), "cancelFlick"), "real flick stops");
-    expect(QTest::qWaitFor([&] { return images->requestCount() > requestsBeforeAttachment; }),
-        "late-attached image starts after actual Flickable settles");
+    expect(images->requestCount() == requestsBeforeAttachment + 1,
+        "settling reuses the in-flight image rather than re-requesting it");
     images->completePending();
     expect(QTest::qWaitFor([&] {
         window.update();
@@ -1826,7 +2035,9 @@ int main(int argc, char** argv)
     const QStringList slowPrefixes{QStringLiteral("generic"), QStringLiteral("rich"), QStringLiteral("miniApp")};
     for (std::size_t index = 0; index < slowLinks.size(); ++index) {
         const auto prefix = slowPrefixes.at(static_cast<qsizetype>(index));
-        auto* spinner = slowLinks[index]->findChild<QObject*>(prefix + QStringLiteral("LinkLoadingSpinner"));
+        const QString spinnerName = index == 0 ? QStringLiteral("genericPosterLoadingSpinner")
+                                               : prefix + QStringLiteral("LinkLoadingSpinner");
+        auto* spinner = slowLinks[index]->findChild<QObject*>(spinnerName);
         auto* fallback = slowLinks[index]->findChild<QObject*>(prefix + QStringLiteral("LinkFallbackIcon"));
         expect(spinner && flag(*spinner, "visible") && flag(*spinner, "running")
                    && fallback && !flag(*fallback, "visible"),

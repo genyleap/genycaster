@@ -41,6 +41,10 @@ PROVIDER_AWARE_PRESENTATION = {
     "ui/app/settings/providers.cpp",
     "ui/app/social/channels.cpp",
     "ui/app/social/activity.cpp",
+    # Statistics must distinguish raw protocol from indexed read contracts;
+    # this narrowly audited presentation adapter never constructs provider routes.
+    "ui/app/social/stats.cpp",
+    "tests/ui/stats_controller_tests.cpp",
     "ui/app/runtime/bindings.cpp",  # Selected-node social relationship binding.
     "tests/ui/provider_profiles_controller_tests.cpp",
 }
@@ -74,6 +78,9 @@ ALLOWED_HPP = {
     # Reviewed third-party scure-bip39 English wordlist, compiled as inert data
     # inside the OpenSSL/C interface's global module fragment (never an API).
     pathlib.Path("src/platform/custody_bip39_english.hpp"),
+    # Qt 6.12 QJsonValue internals expose TU-local templates under GCC 16
+    # named-module compilation; keep this specific Qt SDK compatibility boundary textual.
+    pathlib.Path("src/transport/qt_network/media_json_numbers.hpp"),
     pathlib.Path("src/presentation/qt/presentation_bridge.hpp"),
     pathlib.Path("src/presentation/qt/localization_controller.hpp"),
     pathlib.Path("src/presentation/qt/appearance_controller.hpp"),

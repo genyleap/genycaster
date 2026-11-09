@@ -1,6 +1,16 @@
-// Guard C++ floating-point-to-integer conversions in scene-graph tessellation.
-// A value outside int's representable range has undefined conversion behavior.
-// Keep the existing visual quality thresholds and their fixed tessellation caps.
+/*!
+ * @file        ui/render/geometry_safety.hpp
+ * @brief       Provides bounded scene-graph tessellation segment conversion.
+ *
+ * @details
+ * Rejects non-finite estimates and clamps values before floating-point to
+ * integer conversion while retaining the existing tessellation quality caps.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       09 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
 #pragma once
 
 #include <QtGlobal>

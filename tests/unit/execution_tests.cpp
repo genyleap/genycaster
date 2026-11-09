@@ -1,5 +1,3 @@
-#include "../../src/execution/thread_startup.hpp"
-
 #include <atomic>
 #include <cassert>
 #include <chrono>
@@ -12,6 +10,7 @@
 #include <vector>
 
 import farcaster.execution.thread_pool;
+import farcaster.execution.startup;
 import farcaster.execution.serial;
 import farcaster.execution.weighted_thread_pool;
 
@@ -60,7 +59,7 @@ int main()
         std::vector<std::thread> workers{};
         bool caught = false;
         try {
-            farcaster::execution::detail::startWorkerGroup(workers, 3U,
+            farcaster::execution::startup::startWorkerGroup(workers, 3U,
                 [&]() -> std::thread {
                     if (++attempts == 2)
                         throw std::system_error{

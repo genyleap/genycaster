@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/data/market.hpp
+ * @brief       Exposes rate-limited, read-only market snapshots to Qt UI.
+ *
+ * @details
+ * Owns transient network requests and snapshot state for the first-party
+ * market aggregator without exposing transport operations through QML.
+ *
+ * @author      Kambiz Asadzadeh
+ * @since       08 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 #include <QNetworkAccessManager>
 #include <QObject>

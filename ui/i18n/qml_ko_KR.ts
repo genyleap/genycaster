@@ -1,10 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="ko_KR" sourcelanguage="en_US">
     <context>
-        <message id="genycaster.explorer.layout">
-            <source>View</source>
-            <translation>보기</translation>
-        </message>
         <message id="genycaster.explorer.magazine">
             <source>Magazine</source>
             <translation>매거진</translation>
@@ -12,18 +8,6 @@
         <message id="genycaster.explorer.timeline">
             <source>Timeline</source>
             <translation>타임라인</translation>
-        </message>
-        <message id="genycaster.explorer.small_cards">
-            <source>Small cards</source>
-            <translation>작은 카드</translation>
-        </message>
-        <message id="genycaster.explorer.medium_cards">
-            <source>Medium cards</source>
-            <translation>중간 카드</translation>
-        </message>
-        <message id="genycaster.explorer.large_cards">
-            <source>Large cards</source>
-            <translation>큰 카드</translation>
         </message>
         <message id="genycaster.market.last_checked">
             <source>Last checked: %1</source>
@@ -233,10 +217,6 @@
         <message id="genycaster.stats.all">
             <source>All</source>
             <translation>전체</translation>
-        </message>
-        <message id="genycaster.stats.last_n_days">
-            <source>Last %1 days</source>
-            <translation>최근 %1일</translation>
         </message>
         <message id="genycaster.stats.loading">
             <source>Loading account statistics… %1 casts checked</source>

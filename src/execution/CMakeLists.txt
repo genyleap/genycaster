@@ -6,6 +6,7 @@ target_sources(farcaster_execution
         FILE_SET CXX_MODULES
         FILES
             serial.cppm
+            startup.cppm
             thread_pool.cppm
             weighted_thread_pool.cppm
     PRIVATE

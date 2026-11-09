@@ -513,6 +513,8 @@ add_executable(farcaster_media_scroll_tests
     media_scroll_tests.cpp
     "${genycasterUiSourceDir}/app/social/feed_rows.cpp"
     "${genycasterUiSourceDir}/app/social/feed_rows.hpp"
+    "${genycasterUiSourceDir}/render/sparkline.cpp"
+    "${genycasterUiSourceDir}/render/sparkline.hpp"
     "${genycasterUiSourceDir}/render/superellipse.cpp")
 target_include_directories(farcaster_media_scroll_tests PRIVATE
     "${genycasterUiSourceDir}/render")

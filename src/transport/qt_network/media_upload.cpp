@@ -12,9 +12,9 @@ module;
 #include <QMimeDatabase>
 #include <QString>
 #include <QUuid>
-#include <QUrl>
 
 #include "media_json_numbers.hpp"
+#include <QUrl>
 
 #include <algorithm>
 #include <atomic>
