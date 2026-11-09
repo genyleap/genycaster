@@ -14,6 +14,8 @@ module;
 #include <QUuid>
 #include <QUrl>
 
+#include "media_json_numbers.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <condition_variable>
@@ -491,17 +493,26 @@ public:
         const QString uploadId = ticket->value(QStringLiteral("uploadId")).toString();
         const QString assetUrlText = ticket->value(QStringLiteral("assetUrl")).toString();
         const QString mode = ticket->value(QStringLiteral("mode")).toString();
-        const auto partSizeBytes = static_cast<std::uint64_t>(
-            ticket->value(QStringLiteral("partSizeBytes")).toDouble(0.0));
-        const auto partCount = static_cast<std::uint64_t>(
-            ticket->value(QStringLiteral("partCount")).toDouble(0.0));
-        const auto expectedPartCount = partSizeBytes > 0U
-            ? (sizeBytes + partSizeBytes - 1U) / partSizeBytes
-            : 0U;
+        // Validate the JSON number *before* converting it to an unsigned
+        // integer. A negative, fractional, NaN or oversized number previously
+        // reached a floating-to-uint64 cast with undefined behavior.
+        const auto parsedPartSize = detail::boundedJsonUnsigned(
+            ticket->value(QStringLiteral("partSizeBytes")), 64U * 1024U * 1024U);
+        const auto parsedPartCount = detail::boundedJsonUnsigned(
+            ticket->value(QStringLiteral("partCount")), 10000U);
         if (uploadId.isEmpty() || mode != QStringLiteral("gateway-multipart") ||
-            !validHttpUrl(assetUrlText) || partSizeBytes == 0U || partCount == 0U ||
-            partCount != expectedPartCount || partCount > 10000U ||
-            partSizeBytes > 64U * 1024U * 1024U) {
+            !validHttpUrl(assetUrlText) || !parsedPartSize || *parsedPartSize == 0U ||
+            !parsedPartCount || *parsedPartCount == 0U) {
+            return std::unexpected(makeError(
+                foundation::error::ErrorCode::ProtocolFailure,
+                "Media gateway returned an invalid multipart upload ticket."));
+        }
+        const std::uint64_t partSizeBytes = *parsedPartSize;
+        const std::uint64_t partCount = *parsedPartCount;
+        // Quotient + remainder avoids overflow from (size + partSize - 1).
+        const std::uint64_t expectedPartCount = sizeBytes / partSizeBytes
+            + (sizeBytes % partSizeBytes != 0U ? 1U : 0U);
+        if (partCount != expectedPartCount) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,
                 "Media gateway returned an invalid multipart upload ticket."));
@@ -594,12 +605,13 @@ public:
                 abortMultipart();
                 return std::unexpected(std::move(partResponse.error()));
             }
-            const auto returnedPartNumber = static_cast<std::uint64_t>(
-                partResponse->value(QStringLiteral("partNumber")).toDouble(0.0));
-            const auto returnedSizeBytes = static_cast<std::uint64_t>(
-                partResponse->value(QStringLiteral("sizeBytes")).toDouble(0.0));
+            const auto returnedPartNumber = detail::boundedJsonUnsigned(
+                partResponse->value(QStringLiteral("partNumber")), partNumber);
+            const auto returnedSizeBytes = detail::boundedJsonUnsigned(
+                partResponse->value(QStringLiteral("sizeBytes")), expectedBytes);
             const QString etag = partResponse->value(QStringLiteral("etag")).toString().trimmed();
-            if (returnedPartNumber != partNumber || returnedSizeBytes != expectedBytes || etag.isEmpty()) {
+            if (!returnedPartNumber || *returnedPartNumber != partNumber ||
+                !returnedSizeBytes || *returnedSizeBytes != expectedBytes || etag.isEmpty()) {
                 abortMultipart();
                 return std::unexpected(makeError(
                     foundation::error::ErrorCode::ProtocolFailure,
@@ -658,9 +670,12 @@ public:
         const QString finalContentType = completion->value(QStringLiteral("contentType")).toString(contentType);
         const QString finalFileName = completion->value(QStringLiteral("fileName")).toString(info.fileName());
         const QString managementToken = completion->value(QStringLiteral("managementToken")).toString().trimmed();
-        const auto finalSize = static_cast<std::uint64_t>(
-            completion->value(QStringLiteral("sizeBytes")).toDouble(static_cast<double>(sizeBytes)));
-        if (!validHttpUrl(finalAssetUrl) || finalSize != sizeBytes || managementToken.isEmpty()) {
+        const QJsonValue finalSizeField = completion->value(QStringLiteral("sizeBytes"));
+        const auto finalSize = finalSizeField.isUndefined()
+            ? std::optional<std::uint64_t>{sizeBytes}
+            : detail::boundedJsonUnsigned(finalSizeField, sizeBytes);
+        if (!validHttpUrl(finalAssetUrl) || !finalSize || *finalSize != sizeBytes ||
+            managementToken.isEmpty()) {
             return std::unexpected(makeError(
                 foundation::error::ErrorCode::ProtocolFailure,
                 "Media gateway completion response did not match the uploaded file."));
@@ -671,7 +686,7 @@ public:
                 .url = toString(finalAssetUrl),
                 .contentType = toString(finalContentType),
                 .fileName = toString(finalFileName),
-                .sizeBytes = finalSize,
+                .sizeBytes = *finalSize,
                 .kind = image ? domain::media::Kind::Image : domain::media::Kind::Video,
             },
             .managementToken = toString(managementToken),

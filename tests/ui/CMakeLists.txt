@@ -179,6 +179,30 @@ set_tests_properties(ui.render_geometry_bounds PROPERTIES
     TIMEOUT 20 LABELS "ui;qt;rendering;safety"
     ENVIRONMENT "QT_QPA_PLATFORM=minimal;QT_QUICK_BACKEND=software")
 
+# Check untrusted multipart gateway JSON numbers before converting to an
+# unsigned C++ integer. This small test intentionally needs only QtCore.
+qt_add_executable(farcaster_media_json_numbers_tests media_json_numbers_tests.cpp)
+target_compile_features(farcaster_media_json_numbers_tests PRIVATE cxx_std_26)
+target_link_libraries(farcaster_media_json_numbers_tests PRIVATE Qt6::Core)
+farcaster_enable_warnings(farcaster_media_json_numbers_tests)
+add_test(NAME ui.media_json_numbers COMMAND farcaster_media_json_numbers_tests)
+set_tests_properties(ui.media_json_numbers PROPERTIES
+    TIMEOUT 10 LABELS "ui;qt;media;security;safety")
+
+if(TARGET farcaster_transport_qt_media)
+    # Drive malformed multipart JSON through the actual signed-media adapter,
+    # not only its parser helper; no external network or private signer keys.
+    qt_add_executable(farcaster_media_gateway_protocol_tests media_gateway_protocol_tests.cpp)
+    target_compile_features(farcaster_media_gateway_protocol_tests PRIVATE cxx_std_26)
+    target_link_libraries(farcaster_media_gateway_protocol_tests PRIVATE
+        farcaster::transport_qt_media Qt6::Core)
+    set_property(TARGET farcaster_media_gateway_protocol_tests PROPERTY CXX_SCAN_FOR_MODULES ON)
+    farcaster_enable_warnings(farcaster_media_gateway_protocol_tests)
+    add_test(NAME ui.media_gateway_protocol COMMAND farcaster_media_gateway_protocol_tests)
+    set_tests_properties(ui.media_gateway_protocol PROPERTIES
+        TIMEOUT 15 LABELS "ui;qt;media;security;safety")
+endif()
+
 # A standalone real-Qt network/QObject test, independent of the giant
 # executable and its C++ module graph. The local test server makes request
 # batching, exact cast counts and unknown values deterministic.

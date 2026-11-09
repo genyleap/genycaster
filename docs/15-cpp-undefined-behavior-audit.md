@@ -66,3 +66,98 @@ Normal `std::vector::reserve()`, `QList`, Qt model roles and public QML interfac
 5. Run full Linux/Windows/macOS/Android/WebAssembly CI and real rendering tests before declaring this release cross-platform safe.
 
 The methodology follows the [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines) resource, bounds and concurrency principles. This is a **verified high-risk first pass**, not a claim of exhaustive manual analysis or proof of total absence of undefined behavior.
+
+
+## Continuation — worker construction and untrusted Media Upload (2026-11-09)
+
+**Inventory update:** after adding the narrowly scoped safety headers, the read-only
+first-party C++ pattern survey covers **353** files in `src/`, `ui/` and
+`services/` (excluding `build/` and downloaded `_deps/`). This is still an
+automated *inventory*, not an exhaustive manual review of all call chains.
+For this pass, the detailed reviewed paths are
+`src/execution/thread_pool.cpp`,
+`src/execution/weighted_thread_pool.cpp`,
+`src/execution/thread_startup.hpp`,
+`src/transport/qt_network/media_upload.cpp`,
+`src/transport/qt_network/async_http.cpp`,
+`src/providers/hypersnap/async_request.cpp`,
+`src/application/read_async_service.cpp`,
+`ui/app/runtime/composition.cpp/.cppm`, and
+`ui/app/social/channels.cpp`.
+
+### Additional findings register
+
+| ID / category | Location / severity / confidence | Root cause and trigger | Repair / standard | Verification and performance |
+|---|---|---|---|---|
+| **UB-05 — untrusted JSON floating-to-unsigned cast** | `src/transport/qt_network/media_upload.cpp` (ticket fields `partSizeBytes`, `partCount`; part response `partNumber`, `sizeBytes`; completion `sizeBytes`). **High**, **confirmed conditional UB**. | Network-returned JSON numbers were converted with `static_cast<std::uint64_t>(value.toDouble(...))` **before** validating bounds/integrality. Negative and out-of-range doubles violate C++ floating-to-integer conversion requirements; fractional positive values could silently truncate. A standalone pre-fix-shaped GCC 16.2 probe with `1e100` generated `-fsanitize=float-cast-overflow`: “outside the range of representable values of type 'long unsigned int'”. | `src/transport/qt_network/media_json_numbers.hpp` validates numeric type, exact integer conversion via Qt 6.12 `QJsonValue::toInteger(-1)`, nonnegative value and a caller-provided maximum **before** converting to unsigned. Validate multipart sizes/counts before division; compute ceiling quotient with division+remainder; preserve the optional completion-size fallback. **C++20/Qt 6.12**, no C++26 dependency. | `ui.media_json_numbers` tests negative, fractional, oversized, nonnumeric, NaN/infinity and valid boundary values. **`ui.media_gateway_protocol` invokes the real media adapter** with an in-memory fake HTTP transport and fake public signer; verifies accepted three-step upload and fail-closed malformed ticket, part and completion responses. The real `farcaster_transport_qt_media` library compiled with GCC16/Qt6.12. All tests passed. No measured runtime delta: metadata parsing is not a per-frame hot path. |
+| **REL-02 — partially started worker group can terminate process** | `src/execution/thread_pool.cpp` and `src/execution/weighted_thread_pool.cpp` constructors. **High availability**, **confirmed by standard C++ destructor contract and control flow**, not memory UB. | Each constructor created multiple `std::thread` elements without rollback. If creating worker N throws `std::system_error` after earlier workers have started, unwinding destroys joinable threads; `std::thread::~thread` calls `std::terminate`. No actual OS resource-exhaustion event was observed. | Both native pools now call `src/execution/thread_startup.hpp::startWorkerGroup`. The helper requests synchronized stop, wakes blocked workers and joins all started threads **before rethrowing the original exception**; the rollback callback is compile-time required to be `noexcept`. **C++20**, zero extra work during normal job execution. | `tests/unit/execution_tests.cpp` deliberately throws during worker creation after one worker was started, proving that it is awakened and joined and the exception is propagated. Native `execution.bounded_read_pool` passed. No full-platform fault-injection coverage yet. |
+| **REL-03 — weighted queue budget charged before an allocation succeeds** | `src/execution/weighted_thread_pool.cpp`, **Medium reliability**, **confirmed exception-safety ordering issue**. | `queuedWeightBytes += retainedBytes` ran before `std::deque::push_back`. On a `bad_alloc` or another enqueue exception, no item would be inserted, but the resource budget would remain charged. Affects native and cooperative-WASM implementations. | Insert the nothrow-movable job first, then commit the byte counter; no additional allocation or synchronization. **C++20**. | Native unit test verifies bounded admission, rejection under full budget, drain and successful subsequent full-budget admission. **Actual allocator-failure injection for the deque has not been run**; the exceptional path is source-proven only. |
+
+### Ownership and thread-affinity audit observations
+
+- `ui/app/runtime/composition.cpp:Runtime::~Runtime` cancels active Read requests
+  before destruction and releases the asynchronous transport before draining
+  Decode and Cache executors. The ReadService and routed adapters remain live
+  until afterward. This is an intentionally safe ownership ordering for
+  service/gateway callbacks **within this Runtime composition**.
+- `src/transport/qt_network/async_http.cpp` uses a context-bound Qt worker
+  `QObject`, `QPointer` handles and `BlockingQueuedConnection` shutdown
+  before joining its `QThread`. Pending observer closures are abandoned
+  rather than invoked during teardown. This is a source-level observation,
+  **not** proof that every external caller respects object lifetime.
+- `ui/app/social/channels.cpp` connects network reply handlers with the
+  controller as QObject context; that context cancellation is safer than an
+  unscoped `[this]` lambda. `ChannelListModel::synchronize` performs Qt
+  begin/end insert, move and remove operations. This review did not establish
+  a new model-contract violation.
+- Remaining risk **OPEN-01** is not closed: teardown under actual simultaneous
+  provider completion, executor rejection, cancellation and navigation has not
+  been stress-tested across all target platforms.
+
+### Additional verification
+
+- GCC 16.2 / Qt 6.12 native compilation: **pass** for
+  `farcaster_transport_qt_media`, the number decoder test and the existing
+  execution library/unit target.
+- Native regression: `ui.media_gateway_protocol`, `ui.media_json_numbers`,
+  `execution.bounded_read_pool` — **3/3 passed**. The five focused native
+  model/render/exec/media-number tests also passed.
+- Instrumented out-of-tree test targets compiled with
+  `-fsanitize=address,undefined -fno-omit-frame-pointer -O1`:
+  `ubsan_feed_bounds`, `ubsan_scene_graph`, `ubsan_media_json_numbers`
+  — **3/3 passed**. LeakSanitizer disabled; sanitizer scope remains narrow.
+- Independent pre-fix-shaped `-fsanitize=float-cast-overflow` negative control
+  exited nonzero on `1e100` before casting into `uint64_t`, as expected.
+- A **separate** `-fsanitize=thread` worker-startup test successfully compiled,
+  but the TSan runtime immediately exited **66** with
+  `FATAL: ThreadSanitizer: memory layout is incompatible` on this Linux
+  host. **No TSan race detection result is available.** Do not interpret this
+  environment failure as a race or a passing analysis.
+- Clang 18/clang-tidy is installed, but invocation was rejected by the
+  restricted remote command policy; no clang-tidy or Clang Static Analyzer
+  scan is claimed. AppleClang, Android and production WASM builds remain
+  unverified in this pass.
+- No new dependencies, public model roles, QML properties, authentication
+  guarantees, cache ordering or provider-specific domain contracts were added.
+  No reproducible benchmark or performance improvement claim is made.
+
+**Next work:** continue Qt object-lifetime stress tests and provider-specific
+buffer/path parsing audits, run TSan on a compatible host, and verify native
+and WebAssembly builds in the normal CI matrix. Do not claim full repository
+coverage on the basis of these targeted passes.
+
+### Network shutdown verification update
+
+The previously unbuilt native Qt shutdown-test executables were explicitly compiled
+and executed after review of the Runtime/transport lifetime contract:
+
+- `ui.background_shutdown.quit`, `close-window`, `early-return`, `success`,
+  `timeout`, `gui-stop`, `gui-success`, and `scope-reuse`: **8/8 passed**.
+- `ui.async_reactor_shutdown` (one active and two queued requests abandoned
+  without stale observer delivery): **1/1 passed**.
+
+Both were run with GCC16's `libstdc++` on the native Linux host. A first
+CTEST invocation returned `Not Run` because the executables were not built,
+not because the tests had failed; after compiling them, all nine passed.
+This evidence covers the tested shutdown contracts, **not all possible
+cross-thread schedules**.
