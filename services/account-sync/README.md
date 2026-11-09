@@ -333,6 +333,8 @@ product database is the subscription entitlement source.
   on GeckoTerminal's Base token-price API, caches it at most 60 seconds and
   fails closed if missing or invalid. A quote contains an exact ERC-20 base-unit
   amount, the verified contract, treasury, chain 8453, and a 5-minute expiry.
+  The payable amount is rounded upward to at most six GENY decimal places to
+  support manual transfers without short payments caused by wallet rounding.
   Payment gas is separate, paid in ETH, and never charged by GenyCaster.
 - The client may **only** show the quote, copy the exact amount and treasury
   for transfer from a previously verified Base wallet, and submit a transaction

@@ -117,8 +117,13 @@ export function createProRateReader({fetchImpl=globalThis.fetch,now=Date.now}={}
 }
 export function createProQuote({policy,rate,now=Date.now()}) {
   if(!policy.enabled)throw new Error('billing_not_configured');
-  const units=(BigInt(policy.monthlyUsdCents)*TOKEN_UNITS*USD_DECIMALS
+  const exactUnits=(BigInt(policy.monthlyUsdCents)*TOKEN_UNITS*USD_DECIMALS
     +100n*rate.priceUnits-1n)/(100n*rate.priceUnits);
+  // External wallets may round token-entry fields. Quote at most six GENY
+  // decimals, always rounding UP, so an ordinary manual transfer can satisfy
+  // the exact onchain receipt without an 18-digit precision trap.
+  const paymentQuantum=10n**12n;
+  const units=((exactUnits+paymentQuantum-1n)/paymentQuantum)*paymentQuantum;
   // Explicit max to fail closed on bad feeds or catastrophic price swings.
   if(units<1n || units>100_000_000n*TOKEN_UNITS)
     throw new Error('invalid_pro_rate');

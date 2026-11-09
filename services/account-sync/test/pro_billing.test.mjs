@@ -24,6 +24,16 @@ test('price is operator-controlled in USD cents; treasury must be explicitly con
   assert.throws(()=>createProBillingPolicy({GENYCASTER_PRO_TREASURY_ADDRESS:token}));
   assert.throws(()=>createProBillingPolicy({GENYCASTER_PRO_TREASURY_ADDRESS:'0x'+'00'.repeat(20)}));
 });
+test('manual-wallet quote uses at most six GENY decimals and never undercharges',()=>{
+  const price='0.000727985424361289';
+  const r={priceUsd:price,priceUnits:decimalUnits(price),source:'GeckoTerminal/Base'};
+  const quote=createProQuote({policy,rate:r,now:Date.UTC(2026,10,9)});
+  const units=BigInt(quote.amount_base_units);
+  assert.equal(units%10n**12n,0n);
+  assert.match(quote.amount_geny,/^[0-9]+(?:\.[0-9]{1,6})?$/);
+  assert.ok(units*r.priceUnits*100n>=
+    BigInt(policy.monthlyUsdCents)*10n**36n);
+});
 test('GENY invoice is rounded UP in ERC20 base units, not floating point',()=>{
   assert.equal(decimalUnits('0.000000000000000001'),1n);
   assert.throws(()=>decimalUnits('1e-9'));
