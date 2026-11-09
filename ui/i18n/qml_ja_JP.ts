@@ -7228,10 +7228,6 @@ Company | https://company.com</source>
             <source>Current Pro price is unavailable. Please retry.</source>
             <translation>現在の Pro 料金を取得できません。再試行してください。</translation>
         </message>
-        <message id="genycaster.pro.connect_required">
-            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
-            <translation>支払い見積もりを取得する前に、GenyCaster アカウントのセッションを確認してください。</translation>
-        </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
             <translation>アカウントを接続</translation>
@@ -7239,6 +7235,26 @@ Company | https://company.com</source>
         <message id="genycaster.pro.refresh_price">
             <source>Refresh price</source>
             <translation>料金を更新</translation>
+        </message>
+        <message id="genycaster.pro.payment_identity_pending">
+            <source>Payment account verification required</source>
+            <translation>支払いアカウントの確認が必要です</translation>
+        </message>
+        <message id="genycaster.pro.restoring_payment_session">
+            <source>Restoring secure payment session…</source>
+            <translation>安全な支払いセッションを復元中…</translation>
+        </message>
+        <message id="genycaster.pro.approve_payment_identity">
+            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
+            <translation>Pro に進むには、Farcaster でこのアカウントの確認リクエストを承認してください。</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment_identity">
+            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
+            <translation>すでにログインしています。安全な Pro 決済のため、同じ Farcaster アカウントを確認してください。</translation>
+        </message>
+        <message id="genycaster.pro.verify_with_farcaster">
+            <source>Verify with Farcaster</source>
+            <translation>Farcaster で確認</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

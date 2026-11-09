@@ -54,6 +54,7 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QString manualLinkedInUrl READ manualLinkedInUrl NOTIFY stateChanged)
     Q_PROPERTY(bool cloudBusy READ cloudBusy NOTIFY cloudStateChanged)
     Q_PROPERTY(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged)
+    Q_PROPERTY(bool cloudSessionBusy READ cloudSessionBusy NOTIFY stateChanged)
     Q_PROPERTY(qulonglong activeAccountFid READ activeAccountFid NOTIFY stateChanged)
     Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
@@ -130,6 +131,9 @@ public:
     [[nodiscard]] bool cloudBusy() const noexcept { return m_cloudRequest != nullptr; }
     [[nodiscard]] bool cloudAuthorizationReady() const noexcept {
         return (m_verified && !m_accountBearer.isEmpty()) || m_cloudSessionVerified;
+    }
+    [[nodiscard]] bool cloudSessionBusy() const noexcept {
+        return m_sessionRequest != nullptr;
     }
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }

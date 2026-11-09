@@ -107,3 +107,28 @@ test('Pro drawer loads server-owned public price and recovers account authorizat
  assert.match(cloud,/price_usd_cents:billingPolicy\.monthlyUsdCents/);
  assert.match(cloud,/if \(!owner\) \{respond\(response,401/);
 });
+
+test('signed-in Pro checkout verifies its existing FID without reopening login',()=>{
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ const header=read('ui/app/identity/connections.hpp');
+ const implementation=read('ui/app/identity/connections.cpp');
+ assert.match(header,/Q_PROPERTY\(bool cloudSessionBusy READ cloudSessionBusy NOTIFY stateChanged\)/);
+ assert.match(drawer,/readonly property bool appSignedIn: presentationBridge/);
+ assert.match(drawer,/Number\(presentationBridge\.accountFid\)/);
+ assert.match(drawer,/Number\(openProofConnections\.activeAccountFid \|\| 0\)/);
+ assert.match(drawer,/root\.appSignedIn && !root\.cloudReady/);
+ assert.match(drawer,/root\.startedVerification = true\s+openProofConnections\.authorizeAccount\(\)/);
+ assert.match(drawer,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
+ assert.match(drawer,/openProofConnections\.stopAuthorization\(\)/);
+ assert.match(drawer,/else if \(!root\.appSignedIn\) \{\s+root\.accountRequested\(\)/);
+ assert.match(drawer,/root\.restoringSession/);
+ assert.match(implementation,/m_sessionRequest=reply;\s+emit stateChanged\(\);/);
+ assert.doesNotMatch(drawer,/openProofConnections\.retryProEntitlements\(\)\s+root\.accountRequested\(\)/);
+ for(const lang of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+   'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+  const ts=read('ui/i18n/qml_'+lang+'.ts');
+  for(const id of ['payment_identity_pending','restoring_payment_session',
+      'approve_payment_identity','verify_payment_identity','verify_with_farcaster'])
+   assert.equal(ts.split('id="genycaster.pro.'+id+'"').length-1,1,lang+':'+id);
+ }
+});

@@ -312,6 +312,7 @@ void OpenProofConnectionsController::restoreAccountSession()
     request.setRawHeader("Accept","application/json");
     auto* reply=m_network.get(request);
     m_sessionRequest=reply;
+    emit stateChanged();
     const auto generation=m_grantGeneration;
     const auto viewer=m_viewerFid;
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
@@ -321,6 +322,7 @@ void OpenProofConnectionsController::restoreAccountSession()
             return;
         }
         m_sessionRequest.clear();
+        emit stateChanged();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:
@@ -377,6 +379,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
     request.setRawHeader("Authorization","Bearer "+m_accountBearer);
     auto* reply=m_network.post(request,QByteArray{});
     m_sessionRequest=reply;
+    emit stateChanged();
     const auto generation=m_grantGeneration;
     const auto viewer=m_viewerFid;
     connect(reply,&QNetworkReply::finished,this,[this,reply,generation,viewer] {
@@ -386,6 +389,7 @@ void OpenProofConnectionsController::bootstrapAccountSession()
             return;
         }
         m_sessionRequest.clear();
+        emit stateChanged();
         const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         // A previous account-session GET may be cancelled when a freshly
         // verified recovery bearer arrives. Do not read a closed reply:

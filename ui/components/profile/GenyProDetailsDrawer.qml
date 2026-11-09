@@ -10,6 +10,19 @@ GenyDrawer {
     objectName: "genyProDetailsDrawer"
     property bool compact: false
     signal accountRequested()
+    // A signed-in Farcaster/OpenProof application identity is distinct from
+    // the independently verified account-server payment session.
+    readonly property bool appSignedIn: presentationBridge
+        && presentationBridge.isAuthenticated
+        && openProofConnections
+        && Number(presentationBridge.accountFid || 0) > 0
+        && Number(presentationBridge.accountFid)
+            === Number(openProofConnections.activeAccountFid || 0)
+    readonly property bool restoringSession: openProofConnections
+        && openProofConnections.cloudSessionBusy
+    readonly property bool verifyingIdentity: openProofConnections
+        && openProofConnections.authorizing
+    property bool startedVerification: false
     readonly property var plan: openProofConnections
         ? (openProofConnections.proPlan || ({})) : ({})
     readonly property bool cloudReady: openProofConnections
@@ -61,9 +74,20 @@ GenyDrawer {
         }
     }
 
+    onClosed: {
+        // Only cancel a proof initiated from this drawer; a verification
+        // already started in account connections belongs to that workflow.
+        if (startedVerification && openProofConnections
+            && openProofConnections.authorizing)
+            openProofConnections.stopAuthorization()
+        startedVerification = false
+    }
+
     Connections {
         target: openProofConnections
         function onStateChanged() {
+            if (root.cloudReady)
+                root.startedVerification = false
             if (root.opened && root.cloudReady && !openProofConnections.proEntitlementsBusy)
                 openProofConnections.fetchProEntitlements(false)
         }
@@ -113,10 +137,13 @@ GenyDrawer {
                     Layout.fillWidth: true
                     text: root.eligible
                           ? qsTrId("genycaster.pro.status_verified")
-                          : (!root.cloudReady
-                             || root.membership.status === "unavailable")
-                            ? qsTrId("genycaster.pro.status_unavailable")
-                            : qsTrId("genycaster.pro.requires_pro")
+                          : !root.appSignedIn
+                            ? qsTrId("genycaster.pro.requires_pro")
+                            : !root.cloudReady
+                              ? qsTrId("genycaster.pro.payment_identity_pending")
+                              : root.membership.status === "unavailable"
+                                ? qsTrId("genycaster.pro.status_unavailable")
+                                : qsTrId("genycaster.pro.requires_pro")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
                     horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
@@ -191,10 +218,36 @@ GenyDrawer {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            visible: !root.cloudReady
-                            text: qsTrId("genycaster.pro.connect_required")
+                            visible: root.appSignedIn && !root.cloudReady
+                            text: root.restoringSession
+                                ? qsTrId("genycaster.pro.restoring_payment_session")
+                                : root.verifyingIdentity
+                                  ? qsTrId("genycaster.pro.approve_payment_identity")
+                                  : qsTrId("genycaster.pro.verify_payment_identity")
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.textSecondary
+                            wrapMode: Text.Wrap
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            visible: root.appSignedIn && !root.cloudReady
+                                && root.verifyingIdentity
+                                && openProofConnections
+                                && String(openProofConnections.approvalUrl || "").length > 0
+                            compact: true
+                            text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
+                            iconGlyph: Theme.iconArrowUpRight
+                            onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.appSignedIn && root.startedVerification
+                                && !root.cloudReady && !root.verifyingIdentity
+                                && openProofConnections
+                                && String(openProofConnections.error || "").length > 0
+                            text: openProofConnections ? openProofConnections.error : ""
+                            color: Theme.negative
+                            font.pixelSize: Theme.typeCaptionSize
                             wrapMode: Text.Wrap
                         }
                         DirectionAwareLabel {
@@ -469,20 +522,34 @@ GenyDrawer {
                 busy: openProofConnections ? openProofConnections.proBillingBusy : false
                 enabled: !busy
                     && !(openProofConnections && openProofConnections.proPlanBusy)
+                    && !(root.appSignedIn && (root.restoringSession
+                                               || root.verifyingIdentity))
                     && (!root.cloudReady || root.monthlyUsdCents <= 0
                         || root.canRequestQuote)
                 text: root.monthlyUsdCents <= 0
                     ? qsTrId("genycaster.pro.refresh_price")
-                    : !root.cloudReady
+                    : !root.appSignedIn
                       ? qsTrId("genycaster.pro.connect_to_pay")
-                      : qsTrId("genycaster.pro.get_quote")
+                      : root.restoringSession
+                        ? qsTrId("genycaster.pro.restoring_payment_session")
+                        : root.verifyingIdentity
+                          ? qsTrId("genycaster.connections.copy_waiting_for_confirmation")
+                          : !root.cloudReady
+                            ? qsTrId("genycaster.pro.verify_with_farcaster")
+                            : qsTrId("genycaster.pro.get_quote")
                 onClicked: {
                     if (!openProofConnections) return
                     if (root.monthlyUsdCents <= 0) {
                         openProofConnections.fetchProPlan(true)
-                    } else if (!root.cloudReady) {
-                        openProofConnections.retryProEntitlements()
+                    } else if (!root.appSignedIn) {
                         root.accountRequested()
+                    } else if (!root.cloudReady
+                               && !root.verifyingIdentity && !root.restoringSession) {
+                        // This proves control of the already signed-in FID.
+                        // Never ask the user to create or log into a second
+                        // identity, and never grant Pro from local state.
+                        root.startedVerification = true
+                        openProofConnections.authorizeAccount()
                     } else if (root.canRequestQuote) {
                         openProofConnections.requestProPaymentQuote()
                     }

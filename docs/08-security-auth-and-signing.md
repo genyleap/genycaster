@@ -168,5 +168,13 @@ proves the Farcaster FID; the transfer must originate from one of that FID's
 currently protocol-verified wallets. No Farcaster Cast signer, locally stored
 recovery phrase or browser session token is used to sign payments. Payment
 verification and privilege enforcement fail closed during missing migrations
-or outages. See `services/account-sync/README.md` for the operational
+or outages. The restored native Farcaster/OpenProof application login is not
+itself an authenticated account-service cookie or a currently verified payment
+session. On Pro entry the client tries restoring that session without prompting;
+when it is absent, an explicit Farcaster proof for the **same active FID** is
+required. This must never route an already signed-in user back into ordinary
+account login, imply that protocol signing is a payment authorization, or
+silently provision a session from a remembered FID. The approval URL is a
+short-lived challenge and never appears in logs, persistent settings or a
+payment quote. See `services/account-sync/README.md` for the operational
 checkout contract and migration `012_pro_billing.sql`.

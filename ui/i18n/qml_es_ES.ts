@@ -7229,10 +7229,6 @@ Empresa | https://company.com</translation>
             <source>Current Pro price is unavailable. Please retry.</source>
             <translation>El precio actual de Pro no está disponible. Vuelve a intentarlo.</translation>
         </message>
-        <message id="genycaster.pro.connect_required">
-            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
-            <translation>Verifica la sesión de tu cuenta GenyCaster antes de solicitar una cotización.</translation>
-        </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
             <translation>Conectar cuenta</translation>
@@ -7240,6 +7236,26 @@ Empresa | https://company.com</translation>
         <message id="genycaster.pro.refresh_price">
             <source>Refresh price</source>
             <translation>Actualizar precio</translation>
+        </message>
+        <message id="genycaster.pro.payment_identity_pending">
+            <source>Payment account verification required</source>
+            <translation>Se requiere verificar la identidad de pago</translation>
+        </message>
+        <message id="genycaster.pro.restoring_payment_session">
+            <source>Restoring secure payment session…</source>
+            <translation>Restaurando sesión de pago segura…</translation>
+        </message>
+        <message id="genycaster.pro.approve_payment_identity">
+            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
+            <translation>Aprueba la solicitud de verificación de esta cuenta en Farcaster para continuar con Pro.</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment_identity">
+            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
+            <translation>Ya has iniciado sesión. Verifica la misma cuenta de Farcaster para habilitar pagos Pro seguros.</translation>
+        </message>
+        <message id="genycaster.pro.verify_with_farcaster">
+            <source>Verify with Farcaster</source>
+            <translation>Verificar con Farcaster</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

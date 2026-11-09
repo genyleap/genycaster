@@ -7228,10 +7228,6 @@ Company | https://company.com</source>
             <source>Current Pro price is unavailable. Please retry.</source>
             <translation>현재 Pro 가격을 불러올 수 없습니다. 다시 시도하세요.</translation>
         </message>
-        <message id="genycaster.pro.connect_required">
-            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
-            <translation>결제 견적을 요청하기 전에 GenyCaster 계정 세션을 확인하세요.</translation>
-        </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
             <translation>계정 연결</translation>
@@ -7239,6 +7235,26 @@ Company | https://company.com</source>
         <message id="genycaster.pro.refresh_price">
             <source>Refresh price</source>
             <translation>가격 새로고침</translation>
+        </message>
+        <message id="genycaster.pro.payment_identity_pending">
+            <source>Payment account verification required</source>
+            <translation>결제 계정 인증이 필요합니다</translation>
+        </message>
+        <message id="genycaster.pro.restoring_payment_session">
+            <source>Restoring secure payment session…</source>
+            <translation>보안 결제 세션 복원 중…</translation>
+        </message>
+        <message id="genycaster.pro.approve_payment_identity">
+            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
+            <translation>Pro를 계속하려면 Farcaster에서 이 계정의 인증 요청을 승인하세요.</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment_identity">
+            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
+            <translation>이미 로그인되어 있습니다. 안전한 Pro 결제를 위해 동일한 Farcaster 계정을 인증하세요.</translation>
+        </message>
+        <message id="genycaster.pro.verify_with_farcaster">
+            <source>Verify with Farcaster</source>
+            <translation>Farcaster로 인증</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

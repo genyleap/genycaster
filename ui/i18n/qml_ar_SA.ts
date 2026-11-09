@@ -7228,10 +7228,6 @@ Company | https://company.com</source>
             <source>Current Pro price is unavailable. Please retry.</source>
             <translation>سعر برو الحالي غير متاح. حاول مرة أخرى.</translation>
         </message>
-        <message id="genycaster.pro.connect_required">
-            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
-            <translation>تحقق من جلسة حسابك في جني كاستر قبل طلب عرض دفع.</translation>
-        </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
             <translation>ربط الحساب</translation>
@@ -7239,6 +7235,26 @@ Company | https://company.com</source>
         <message id="genycaster.pro.refresh_price">
             <source>Refresh price</source>
             <translation>تحديث السعر</translation>
+        </message>
+        <message id="genycaster.pro.payment_identity_pending">
+            <source>Payment account verification required</source>
+            <translation>يلزم التحقق من هوية الدفع</translation>
+        </message>
+        <message id="genycaster.pro.restoring_payment_session">
+            <source>Restoring secure payment session…</source>
+            <translation>جارٍ استعادة جلسة الدفع الآمنة…</translation>
+        </message>
+        <message id="genycaster.pro.approve_payment_identity">
+            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
+            <translation>وافق على طلب التحقق لهذا الحساب في فاركاستر لمتابعة اشتراك برو.</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment_identity">
+            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
+            <translation>أنت مسجّل الدخول بالفعل. تحقّق من حساب فاركاستر نفسه لتفعيل مدفوعات برو الآمنة.</translation>
+        </message>
+        <message id="genycaster.pro.verify_with_farcaster">
+            <source>Verify with Farcaster</source>
+            <translation>التحقق عبر فاركاستر</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

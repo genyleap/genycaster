@@ -7228,10 +7228,6 @@ Company | https://company.com</source>
             <source>Current Pro price is unavailable. Please retry.</source>
             <translation>暂时无法获取当前 Pro 价格，请重试。</translation>
         </message>
-        <message id="genycaster.pro.connect_required">
-            <source>Verify your GenyCaster account session before requesting a payment quote.</source>
-            <translation>请求支付报价前，请先验证 GenyCaster 账户会话。</translation>
-        </message>
         <message id="genycaster.pro.connect_to_pay">
             <source>Connect account</source>
             <translation>连接账户</translation>
@@ -7239,6 +7235,26 @@ Company | https://company.com</source>
         <message id="genycaster.pro.refresh_price">
             <source>Refresh price</source>
             <translation>刷新价格</translation>
+        </message>
+        <message id="genycaster.pro.payment_identity_pending">
+            <source>Payment account verification required</source>
+            <translation>需要验证付款账户</translation>
+        </message>
+        <message id="genycaster.pro.restoring_payment_session">
+            <source>Restoring secure payment session…</source>
+            <translation>正在恢复安全付款会话…</translation>
+        </message>
+        <message id="genycaster.pro.approve_payment_identity">
+            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
+            <translation>请在 Farcaster 中批准此账户的验证请求，以继续购买 Pro。</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment_identity">
+            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
+            <translation>你已经登录。请验证同一个 Farcaster 账户，以启用安全的 Pro 付款。</translation>
+        </message>
+        <message id="genycaster.pro.verify_with_farcaster">
+            <source>Verify with Farcaster</source>
+            <translation>通过 Farcaster 验证</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

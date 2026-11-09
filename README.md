@@ -96,7 +96,7 @@ See [Internationalization & Localization](docs/FEATURES.md#internationalization-
 
 ### GENY ecosystem
 
-GenyCaster includes optional integration with the **GENY token ecosystem on Base**. Its asset widget displays balances associated with verified Farcaster-linked wallets. **Geny Pro** eligibility is evaluated by the account service using verified wallet addresses and on-chain token holdings, with product capabilities and limits defined by server policy.
+GenyCaster includes optional integration with the **GENY token ecosystem on Base**. Its asset widget displays balances associated with verified Farcaster-linked wallets. **Geny Pro** is a 30-day subscription with an operator-controlled USD price paid in GENY on Base; eligibility is determined only by the account service's verified payment and subscription expiry, not by wallet holdings.
 
 These integrations are distinct from Farcaster signing and core social reads. Displaying a balance does not grant Pro, and the application does not infer wallet permissions from token ownership.
 
