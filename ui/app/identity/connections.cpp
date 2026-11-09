@@ -1617,6 +1617,112 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
     });
 }
 
+void OpenProofConnectionsController::requestProPaymentQuote()
+{
+    if (m_proBillingRequest) return;
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
+        m_proBillingError = QStringLiteral("authentication_required");
+        emit proBillingChanged();
+        return;
+    }
+    QUrl url = m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/pro/quote"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(18000);
+    request.setRawHeader("Content-Type", "application/json");
+    request.setRawHeader("Accept", "application/json");
+    authorizeCloudRequest(request);
+    auto* reply = m_network.post(request, QByteArrayLiteral("{}"));
+    m_proBillingRequest = reply;
+    m_proBillingError.clear();
+    emit proBillingChanged();
+    const auto viewer = m_viewerFid;
+    const auto generation = m_grantGeneration;
+    connect(reply, &QNetworkReply::finished, this, [this,reply,viewer,generation] {
+        if (m_proBillingRequest != reply) { reply->deleteLater(); return; }
+        m_proBillingRequest.clear();
+        const auto status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes=reply->bytesAvailable() <= 8192 ? reply->readAll() : QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration) return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto root=doc.object();
+        const auto quote=root.value(QStringLiteral("quote")).toObject();
+        if (status==201 && !quote.isEmpty()
+            && quote.value(QStringLiteral("chain_id")).toInt()==8453
+            && quote.value(QStringLiteral("amount_base_units")).isString()
+            && quote.value(QStringLiteral("treasury")).isString()) {
+            m_proQuote=quote.toVariantMap();
+            m_proQuoteFid=viewer;
+            m_proBillingError.clear();
+        } else {
+            m_proBillingError=root.value(QStringLiteral("error")).toString(
+                QStringLiteral("billing_unavailable"));
+        }
+        emit proBillingChanged();
+    });
+}
+
+void OpenProofConnectionsController::verifyProPayment(const QString& transactionHash)
+{
+    if (m_proBillingRequest) return;
+    static const QRegularExpression hashPattern{
+        QStringLiteral("^0x[0-9a-fA-F]{64}$")};
+    const QString hash=transactionHash.trimmed();
+    const QString quoteId=m_proQuoteFid==m_viewerFid
+        ?m_proQuote.value(QStringLiteral("id")).toString():QString{};
+    if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)
+        || quoteId.isEmpty() || !hashPattern.match(hash).hasMatch()) {
+        m_proBillingError=QStringLiteral("invalid_payment_reference");
+        emit proBillingChanged();
+        return;
+    }
+    QUrl url=m_cloudUrl;
+    url.setPath(QStringLiteral("/api/v1/cloud/pro/verify"));
+    QNetworkRequest request{url};
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(24000);
+    request.setRawHeader("Content-Type","application/json");
+    request.setRawHeader("Accept","application/json");
+    authorizeCloudRequest(request);
+    const QJsonObject data{
+        {QStringLiteral("quote_id"),quoteId},
+        {QStringLiteral("tx_hash"),hash}
+    };
+    auto* reply=m_network.post(request,QJsonDocument{data}.toJson(QJsonDocument::Compact));
+    m_proBillingRequest=reply;
+    m_proBillingError.clear();
+    emit proBillingChanged();
+    const auto viewer=m_viewerFid;
+    const auto generation=m_grantGeneration;
+    connect(reply,&QNetworkReply::finished,this,[this,reply,viewer,generation] {
+        if (m_proBillingRequest != reply) { reply->deleteLater(); return; }
+        m_proBillingRequest.clear();
+        const int status=reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QByteArray bytes=reply->bytesAvailable()<=8192 ? reply->readAll():QByteArray{};
+        reply->deleteLater();
+        if (viewer!=m_viewerFid || generation!=m_grantGeneration) return;
+        const auto doc=QJsonDocument::fromJson(bytes);
+        const auto root=doc.object();
+        if (status==200 && root.value(QStringLiteral("entitlements")).isObject()) {
+            m_proQuote.clear();
+            m_proQuoteFid=viewer;
+            m_proBillingError.clear();
+            // Invalidate the short membership cache, never grant from a local
+            // transaction hash. Only a fresh server response can enable Pro.
+            m_proEntitlementsFetchedAt=0;
+            fetchProEntitlements(true);
+        } else {
+            m_proBillingError=root.value(QStringLiteral("error")).toString(
+                QStringLiteral("billing_verification_unavailable"));
+        }
+        emit proBillingChanged();
+    });
+}
+
 void OpenProofConnectionsController::fetchGenyAssets(const bool force)
 {
     if (!m_viewerFid || !cloudAuthorizationReady() || !trustedHttpsEndpoint(m_cloudUrl)) {
@@ -2567,6 +2673,11 @@ void OpenProofConnectionsController::clearAccountGrant()
     m_feedbackSubmitted = false;
     emit feedbackChanged();
     cancelNetworkReply(m_proEntitlementsRead, this);
+    cancelNetworkReply(m_proBillingRequest, this);
+    m_proQuote.clear();
+    m_proQuoteFid = 0;
+    m_proBillingError.clear();
+    emit proBillingChanged();
     cancelNetworkReply(m_genyAssetsRead, this);
     m_genyAssets.clear();
     m_genyAssetsFid = 0;

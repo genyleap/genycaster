@@ -6985,16 +6985,12 @@ Company | https://company.com</source>
             <translation>リカバリーフレーズを表示</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>Pro 有効 · ウォレット確認済み</translation>
+            <source>Pro subscription active</source>
+            <translation>Pro サブスクリプション有効</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>状態を確認できません</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>Base 上で検証済みの Farcaster ウォレット1つに %1 GENY を保有してください。</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7049,12 +7045,12 @@ Company | https://company.com</source>
             <translation>GenyCaster Pro</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>連携済みウォレット1つで%1 GENY以上の保有を確認済みです。</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>有料 Pro 会員資格を GenyCaster が確認しました。</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>この機能には、Farcasterアカウントと紐づく認証済みウォレット1つに%1 GENY以上が必要です。</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>Pro は30日間 %1 ドルで、GENY で支払います。</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7223,6 +7219,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>各期間に投稿された内容への現在の反応数です。反応が発生した日時ではありません。</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>%1 ドル / 月</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>30日間の Pro。手動更新で自動請求はありません。</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>%1 まで有効</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>GENY 支払い見積もり · Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>認証済みウォレットから支払う: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>Base の受取アドレス</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>GENY 数量をコピー</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>受取先をコピー</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>見積もり有効期限 %1</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>このアカウントで認証済みのウォレットから、Base 上で見積もりどおりの GENY を送金してください。ガス代は ETH で支払い、その後トランザクションハッシュを入力してください。期限後は送金しないでください。</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>トランザクションハッシュ (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>支払いを確認</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>Base の承認待ちです。少し後で再確認してください。</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>支払いは確認できず、Pro は有効化されていません。</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>サーバーで GENY 決済がまだ設定されていません。</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>GENY 見積もりを取得</translation>
         </message>
     </context>
 </TS>

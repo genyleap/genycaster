@@ -6985,16 +6985,12 @@ Company | https://company.com</source>
             <translation>Wiederherstellungswörter anzeigen</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>Pro aktiv · Wallet bestätigt</translation>
+            <source>Pro subscription active</source>
+            <translation>Pro-Abonnement aktiv</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>Status nicht verfügbar</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>Halte %1 GENY in einer verifizierten Farcaster-Wallet auf Base.</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7049,12 +7045,12 @@ Company | https://company.com</source>
             <translation>GenyCaster Pro</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>Verifiziert mit mindestens %1 GENY in einer verknüpften Wallet.</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>Bezahlte Pro-Mitgliedschaft von GenyCaster bestätigt.</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>Für diese Funktion sind mindestens %1 GENY in einer mit deinem Farcaster-Konto verifizierten Wallet nötig.</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>Pro kostet %1 $ für 30 Tage, zahlbar in GENY.</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7223,6 +7219,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>Aktuelle Reaktionen auf Beiträge je Veröffentlichungszeitraum, nicht der Zeitpunkt der Reaktionen.</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>%1 $ / Monat</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>30 Tage Pro. Manuelle Verlängerung, keine automatischen Abbuchungen.</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>Aktiv bis %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>GENY-Zahlungsangebot · Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>Aus verifizierter Wallet bezahlen: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>Empfängeradresse auf Base</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>GENY-Betrag kopieren</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>Empfänger kopieren</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>Angebot gültig bis %1</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>Übertrage den exakten GENY-Betrag von einer für dieses Konto verifizierten Wallet auf Base. Bezahle die Netzwerkgebühren in ETH und gib dann den Transaktionshash ein. Nach Ablauf des Angebots nicht mehr senden.</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>Transaktionshash (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>Zahlung prüfen</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>Warte auf Bestätigungen auf Base. Bitte später erneut prüfen.</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>Zahlung nicht verifiziert. Pro wurde nicht aktiviert.</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>GENY-Zahlungen sind auf dem Server noch nicht eingerichtet.</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>GENY-Angebot anfordern</translation>
         </message>
     </context>
 </TS>

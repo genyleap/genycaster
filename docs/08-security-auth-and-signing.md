@@ -150,3 +150,23 @@ Provider API keys/tokens are infrastructure configuration and must remain outsid
 Do not invent cryptographic protocols.
 
 Any E2EE messaging layer must use an audited standard/mature protocol design and receive dedicated security review before production deployment.
+
+## GenyCaster Pro billing boundary
+
+Pro is an optional, **product-owned** 30-day subscription, priced in USD
+(default `299` cents per period) and settled by an exact GENY ERC-20
+transfer on Base. The operator sets `GENYCASTER_PRO_MONTHLY_USD_CENTS`
+**on the account server**, and explicitly configures a controlled treasury
+wallet before payments are enabled. No QML amount or wallet balance grants
+Pro. The API issues owner-scoped, expiring quotes, verifies the onchain
+Transfer and confirmed block, then atomically records a uniquely consumed
+transaction hash and membership expiry in the independent GenyCaster database.
+The selected HyperSnap/Snapchain protocol route remains independent.
+
+Account identity and wallet transfer signing remain separate: authentication
+proves the Farcaster FID; the transfer must originate from one of that FID's
+currently protocol-verified wallets. No Farcaster Cast signer, locally stored
+recovery phrase or browser session token is used to sign payments. Payment
+verification and privilege enforcement fail closed during missing migrations
+or outages. See `services/account-sync/README.md` for the operational
+checkout contract and migration `012_pro_billing.sql`.

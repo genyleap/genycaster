@@ -6,7 +6,9 @@ import {validateFeedback} from './feedback.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
 import {calculateStreaks,eligibleStreakDay,STREAK_START_DAY} from './streaks.mjs';
-import {createGenyProPolicy,evaluateGenyPro,evaluateGenyAssets} from './pro_entitlements.mjs';
+import {createGenyAssetsPolicy,evaluateGenyAssets,verifiedFarcasterWallets} from './geny_assets.mjs';
+import {createProBillingPolicy,createProRateReader,createProTokenVerifier,createProQuote,
+  formatGeny,subscriptionEntitlements,verifyProTransfer} from './pro_billing.mjs';
 import {createLeaderboardProfileReader} from './leaderboard_profiles.mjs';
 
 const SESSION_COOKIE='__Host-genycaster-account';
@@ -67,7 +69,7 @@ export function verifiedGitHubProfile(value) {
     return match ? {login:match[1],url:'https://github.com/'+match[1]} : null;
   }catch {return null;}
 }
-function validLinkedInUrl(value) {
+export function validLinkedInUrl(value) {
   if (typeof value !== 'string' || value.length > 2048) return false;
   try {
     const url = new URL(value);
@@ -417,8 +419,18 @@ export async function discoverVerifiedStreakCasts(fid,{
 export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                     verifyTopicOwner=verifyCastTopicOwnership,
                                     verifyStreakCast=verifyStreakCastOwnership,
-                                    proPolicy=createGenyProPolicy(),
-                                    resolvePro=(fid)=>evaluateGenyPro(fid,{policy:proPolicy,fetchImpl}),
+                                    proPolicy=createGenyAssetsPolicy(),
+                                    billingPolicy=createProBillingPolicy(),
+                                    readGenyRate=createProRateReader({fetchImpl}),
+                                    checkProToken=createProTokenVerifier({fetchImpl}),
+                                    resolveProPaymentWallets=(fid)=>verifiedFarcasterWallets(fid,{policy:proPolicy,fetchImpl}),
+                                    verifyBillingTransfer=verifyProTransfer,
+                                    resolvePro=async(fid,owner)=>{
+                                      if(!owner || !store.proBillingReady?.())
+                                        return {...subscriptionEntitlements(null,billingPolicy),status:'unavailable',eligible:false};
+                                      return subscriptionEntitlements(
+                                        await store.getProSubscription(owner),billingPolicy);
+                                    },
                                     resolveGenyAssets=(fid)=>evaluateGenyAssets(fid,{policy:proPolicy,fetchImpl}),
                                     discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl})}) {
   // Bounded per-account reconciliation cache; failed network fetches never
@@ -474,10 +486,10 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     respond(response,200,{fid:owner.fid,csrf_token:csrf});
   }
   async function allowProMutation(owner,response) {
-    const membership=await resolvePro(owner.fid);
+    const membership=await resolvePro(owner.fid,owner);
     if(membership.status==='verified' && membership.eligible===true) return true;
     respond(response,403,{error:'geny_pro_required',
-      minimum_geny:proPolicy.minimumGeny,
+      monthly_usd_cents:billingPolicy.monthlyUsdCents,
       verification_status:membership.status});
     return false;
   }
@@ -539,7 +551,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       'app_updates','tasks','drafts','profile_extras','connections/refresh',
       'connections/portable','topics','topic_casts','cast_topics',
       'bookmark_collections','bookmark_collection_items','github_contributions','profile_status',
-      'entitlements','geny/assets','streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
+      'entitlements','geny/assets','pro/quote','pro/verify',
+      'streak','streak/cast','streak/preferences','streak/leaderboard','profile_activity',
       'muted_profiles','feedback',
       'session','session/challenge','session/proof'].includes(entity)) {
       respond(response,404,{error:'not_found'});return true;
@@ -665,8 +678,106 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(request.method!=='GET') {
           respond(response,405,{error:'method_not_allowed'});return true;
         }
-        respond(response,200,{entitlements:await resolvePro(owner.fid)});
+        respond(response,200,{entitlements:await resolvePro(owner.fid,owner)});
         return true;
+      }
+      if(entity==='pro/quote') {
+        if(request.method!=='POST') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!store.proBillingReady?.() || !billingPolicy.enabled) {
+          respond(response,503,{error:'billing_not_configured'});return true;
+        }
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const input=await readBody(request,128);
+        if(!input || Array.isArray(input) || Object.keys(input).length!==0) {
+          respond(response,400,{error:'invalid_quote_request'});return true;
+        }
+        let payerWallets;
+        try {
+          payerWallets=await resolveProPaymentWallets(owner.fid);
+          if(!Array.isArray(payerWallets) || payerWallets.length===0) {
+            respond(response,422,{error:'verified_wallet_required'});return true;
+          }
+        }catch {
+          respond(response,503,{error:'wallet_verification_unavailable'});return true;
+        }
+        let quote;
+        try {
+          await checkProToken(billingPolicy);
+          const rate=await readGenyRate();
+          quote=createProQuote({policy:billingPolicy,rate});
+        }catch {
+          respond(response,503,{error:'billing_rate_unavailable'});return true;
+        }
+        const stored=await store.createProQuote(owner,quote);
+        if(!stored) {respond(response,429,{error:'too_many_pending_quotes'});return true;}
+        respond(response,201,{quote:{
+          id:stored.id,price_usd_cents:stored.price_usd_cents,
+          token:stored.token,treasury:stored.treasury,
+          chain_id:stored.chain_id,amount_base_units:stored.amount_base_units,
+          amount_geny:formatGeny(BigInt(stored.amount_base_units)),
+          geny_price_usd:stored.geny_price_usd,
+          created_at:stored.created_at,expires_at:stored.expires_at,
+          period_days:30,verified_payers:payerWallets.slice(0,100)
+        }});return true;
+      }
+      if(entity==='pro/verify') {
+        if(request.method!=='POST') {
+          respond(response,405,{error:'method_not_allowed'});return true;
+        }
+        if(!store.proBillingReady?.() || !billingPolicy.enabled) {
+          respond(response,503,{error:'billing_not_configured'});return true;
+        }
+        if(!String(request.headers['content-type']||'').startsWith('application/json')) {
+          respond(response,415,{error:'unsupported_media_type'});return true;
+        }
+        const input=await readBody(request,512);
+        if(!input || Array.isArray(input) || Object.keys(input).sort().join(',')!=='quote_id,tx_hash'
+            || typeof input.quote_id!=='string'
+            || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(input.quote_id)
+            || typeof input.tx_hash!=='string'
+            || !/^0x[0-9a-fA-F]{64}$/.test(input.tx_hash)) {
+          respond(response,400,{error:'invalid_payment_reference'});return true;
+        }
+        const quote=await store.getProQuote(owner,input.quote_id);
+        if(!quote) {respond(response,404,{error:'quote_not_found'});return true;}
+        if(quote.status==='paid') {
+          if(quote.tx_hash===input.tx_hash.toLowerCase()) {
+            respond(response,200,{status:'already_paid',
+              entitlements:await resolvePro(owner.fid,owner)});return true;
+          }
+          respond(response,409,{error:'quote_already_paid'});return true;
+        }
+        if(quote.token!==billingPolicy.token || quote.chain_id!==billingPolicy.chainId
+            || quote.treasury!==billingPolicy.treasury) {
+          respond(response,409,{error:'billing_policy_changed'});return true;
+        }
+        let receipt;
+        try {
+          receipt=await verifyBillingTransfer({
+            owner,quote,txHash:input.tx_hash,policy:billingPolicy,fetchImpl});
+        }catch(error) {
+          const code=String(error?.message||'');
+          const rejected=new Set(['invalid_payment_hash','verified_wallet_required',
+            'wrong_billing_chain','payment_failed','payment_not_matched',
+            'payment_outside_quote','quote_not_payable']);
+          respond(response,code==='payment_pending'?202:rejected.has(code)?422:503,
+            {error:code==='payment_pending'?code
+              :rejected.has(code)?code:'billing_verification_unavailable'});
+          return true;
+        }
+        const result=await store.confirmProPayment(owner,quote.id,receipt);
+        if(result.status==='conflict') {
+          respond(response,409,{error:'payment_already_used'});return true;
+        }
+        if(result.status==='not_found') {
+          respond(response,404,{error:'quote_not_found'});return true;
+        }
+        respond(response,200,{status:result.status,
+          entitlements:await resolvePro(owner.fid,owner)});return true;
       }
       // Writes to app-owned Pro features must never trust local status, a
       // profile decoration, or a caller-provided wallet address. Refresh the

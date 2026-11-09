@@ -305,3 +305,61 @@ on upstream errors/HTTP 429 (including initial cache misses), and stale-data
 fallback. Missing values remain unavailable, never fabricated; upstream
 exceptions and credentials are not forwarded to clients. Respect the source's
 attribution, subscription and redistribution requirements.
+
+## Paid Pro subscription — server-owned billing
+
+Responsibility: authenticate and renew 30-day Pro subscriptions with GENY paid on
+Base, **without using wallet holdings as membership authorization**.
+Capability origin: GenyCaster product extension (not HyperSnap/Snapchain
+protocol-signing authority). Optional: users can continue using Basic offline.
+Public contract: authenticated `GET /api/v1/cloud/entitlements`,
+`POST /api/v1/cloud/pro/quote` with `{}`, and
+`POST /api/v1/cloud/pro/verify` with `{quote_id,tx_hash}`.
+Canonical data: PostgreSQL `pro_quotes`, `pro_payments`, and
+`pro_subscriptions` introduced by migration
+`012_pro_billing.sql`. The account issuer/subject comes **only** from an
+OpenProof-verified FID/session. The blockchain is the payment evidence, but the
+product database is the subscription entitlement source.
+
+- `GENYCASTER_PRO_MONTHLY_USD_CENTS=299` is the **server-only price**.
+  Operators may change it and restart the account service; existing quotes
+  retain their original snapshotted USD price and GENY amount. The client cannot
+  supply, override, or calculate the authorized price.
+- `GENYCASTER_PRO_TREASURY_ADDRESS=0x...` is **required** to enable quote
+  issuance; it must be a deliberate, independently controlled Base receiving
+  address. **Do not use a token contract, unknown third-party address, wallet
+  import or development donation address as a merchant treasury by default.**
+- The server obtains a current GENY/USD rate from the canonical GENY contract
+  on GeckoTerminal's Base token-price API, caches it at most 60 seconds and
+  fails closed if missing or invalid. A quote contains an exact ERC-20 base-unit
+  amount, the verified contract, treasury, chain 8453, and a 5-minute expiry.
+  Payment gas is separate, paid in ETH, and never charged by GenyCaster.
+- The client may **only** show the quote, copy the exact amount and treasury
+  for transfer from a previously verified Base wallet, and submit a transaction
+  hash. It never exports a bearer token to JavaScript, constructs an unlimited
+  allowance, stores a seed phrase, or grants Pro from UI state. This is a
+  portable manual wallet flow; integrated EIP-1193/WalletConnect submission can
+  be added later as a distinct, opt-in platform adapter.
+- The service independently fetches the current verified wallets for the
+  authenticated FID, checks Base chain ID, a successful receipt, the canonical
+  GENY `Transfer` log, exact quoted amount, configured receiver and a
+  verified payer, block timestamp within the quote, and **six confirmations**.
+  Pending/missing/reverted/wrong-wallet payments never grant access.
+- PostgreSQL applies a single transactional activation with row locking,
+  a globally unique transaction hash, a unique quote ID and owner-scoped
+  membership rows. Repeated calls cannot add an extra 30 days; a legitimate
+  new payment extends `max(current_expiry, now) + 30 days`.
+- Every gated write independently reads the current server subscription.
+  Expiry is time-based; GENY holdings, UI caches and user-submitted claims
+  are not eligibility proof. Missing migration, unavailable exchange rate,
+  missing merchant configuration or unverifiable payment fails closed.
+- There is no automatic renewal, no direct debit and no recurring allowance.
+  A retired token-holder threshold does not silently grandfather account
+  privileges. Any transition grants must be explicit and audited separately.
+
+**Rollout order**: run automated tests, apply migration 012 with an
+administrative PostgreSQL role, configure a reviewed dedicated treasury
+address and appropriate token-price/provider connectivity, restart the API,
+then perform one controlled real-wallet payment and duplicate-receipt
+negative test on Base before announcing production availability. Do not
+enable payment collection merely because a QML checkout is visible.

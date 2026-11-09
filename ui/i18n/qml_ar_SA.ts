@@ -6985,16 +6985,12 @@ Company | https://company.com</source>
             <translation>إظهار كلمات الاسترداد</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>برو نشط · المحفظة موثقة</translation>
+            <source>Pro subscription active</source>
+            <translation>اشتراك برو نشط</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>الحالة غير متاحة</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>احتفظ بـ %1 GENY في محفظة Farcaster موثقة واحدة على Base.</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7049,12 +7045,12 @@ Company | https://company.com</source>
             <translation>جني كاستر برو</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>تم التحقق بامتلاك %1 GENY على الأقل في محفظة مرتبطة.</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>تم تأكيد عضوية برو المدفوعة بواسطة جني كاستر.</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>تتطلب هذه الميزة %1 GENY على الأقل في محفظة موثّقة مرتبطة بحساب Farcaster الخاص بك.</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>اشتراك برو لمدة ٣٠ يومًا مقابل %1 دولار، يُدفع بعملة GENY.</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7223,6 +7219,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>التفاعلات الحالية على المنشورات المنشورة في كل فترة، وليس وقت حدوث التفاعل.</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>%1 دولار / شهر</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>٣٠ يومًا من برو؛ التجديد يدوي بلا خصومات تلقائية.</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>نشط حتى %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>عرض دفع GENY · شبكة Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>ادفع من المحفظة الموثقة: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>عنوان الاستلام على Base</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>نسخ مبلغ GENY</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>نسخ المستلم</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>العرض صالح حتى %1</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>من محفظة موثقة لهذا الحساب، حوّل مبلغ GENY المحدد على شبكة Base. تُدفع رسوم الشبكة بعملة ETH؛ ثم أدخل تجزئة المعاملة. لا ترسل بعد انتهاء صلاحية العرض.</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>تجزئة المعاملة (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>التحقق من الدفع</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>بانتظار تأكيدات شبكة Base؛ حاول مجددًا بعد قليل.</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>لم يتم التحقق من الدفع ولم يتم تفعيل برو.</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>مدفوعات GENY غير مهيأة على الخادم بعد.</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>احصل على عرض GENY</translation>
         </message>
     </context>
 </TS>

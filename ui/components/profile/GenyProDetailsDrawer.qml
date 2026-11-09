@@ -14,8 +14,22 @@ GenyDrawer {
     readonly property bool eligible: membership.status === "verified"
                                      && membership.tier === "pro"
                                      && membership.eligible === true
-    readonly property int minimumGeny: Math.max(1,Number(membership.minimum_geny || 16000))
+    readonly property var paymentQuote: openProofConnections
+        ? (openProofConnections.proPaymentQuote || ({})) : ({})
+    readonly property int monthlyUsdCents: Number(membership.monthly_usd_cents || 0)
+    readonly property string monthlyUsd: monthlyUsdCents > 0
+        ? (monthlyUsdCents / 100).toFixed(2) : "—"
+    property string paymentHash: ""
+    property double quoteNowMs: Date.now()
+    readonly property bool quoteValid: Boolean(paymentQuote.id)
+        && new Date(paymentQuote.expires_at).getTime() > quoteNowMs
     property int expandedFeature: -1
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.opened && Boolean(root.paymentQuote.id)
+        onTriggered: root.quoteNowMs = Date.now()
+    }
 
     bottomSheet: root.compact
     showHandle: root.compact
@@ -26,6 +40,7 @@ GenyDrawer {
 
     onOpened: {
         expandedFeature = -1
+        quoteNowMs = Date.now()
         detailsViewport.contentY = 0
         if (openProofConnections) openProofConnections.fetchProEntitlements(true)
     }
@@ -115,68 +130,173 @@ GenyDrawer {
                 id: detailsColumn
                 width: detailsViewport.width
                 spacing: Theme.space2
-                // Compact eligibility summary: one calm neutral surface,
-                // strong numeric hierarchy, and no orange-tinted giant box.
+                // A server-priced subscription, not a token-balance threshold.
                 Superellipse {
                     objectName: "genyProNeutralEligibilitySummary"
                     Layout.fillWidth: true
-                    implicitHeight: summaryColumn.implicitHeight + Theme.space3 * 2
+                    implicitHeight: summaryColumn.implicitHeight + Theme.space4 * 2
                     fillColor: Theme.surfaceRaised
                     borderColor: Theme.borderSubtle
                     borderWidth: Theme.strokeHairline
                     curveDepth: Theme.curveContainer
-
-                    RowLayout {
+                    ColumnLayout {
                         id: summaryColumn
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.margins: Theme.space3
-                        spacing: Theme.space3
-
-                        Superellipse {
-                            Layout.preferredWidth: 40
-                            Layout.preferredHeight: 40
-                            Layout.alignment: Qt.AlignTop
-                            curveDepth: Theme.curveCompact
-                            fillColor: Theme.surfaceMuted
-                            borderWidth: 0
-                            Icon {
-                                anchors.centerIn: parent
-                                text: Theme.iconWallet
-                                color: Theme.inkMuted
-                                preferredSize: Theme.iconSizeLarge
-                            }
-                        }
-                        ColumnLayout {
+                        anchors.margins: Theme.space4
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
                             Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                            spacing: Theme.space1
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: LocaleFormat.formatInteger(root.minimumGeny) + " GENY"
-                                color: Theme.textPrimary
-                                font.pixelSize: Theme.typeTitle3Size
-                                font.weight: Theme.weightBold
-                            }
-                            DirectionAwareLabel {
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.pro.eligibility_summary").arg(
-                                    LocaleFormat.formatInteger(root.minimumGeny))
-                                color: Theme.textSecondary
-                                wrapMode: Text.Wrap
-                                font.pixelSize: Theme.typeCaptionSize
-                            }
-                            DirectionAwareLabel {
-                                visible: root.membership.status === "unavailable"
-                                Layout.fillWidth: true
-                                text: qsTrId("genycaster.pro.verification_unavailable")
-                                color: Theme.textSecondary
-                                font.pixelSize: Theme.typeCaptionSize
-                                wrapMode: Text.Wrap
-                            }
+                            text: qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
+                            font.pixelSize: Theme.typeTitle1Size
+                            font.weight: Theme.weightBold
+                            color: Theme.textPrimary
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.manual_renewal")
+                            font.pixelSize: Theme.typeCaptionSize
+                            color: Theme.textSecondary
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.eligible && Boolean(root.membership.expires_at)
+                            text: qsTrId("genycaster.pro.active_until").arg(
+                                LocaleFormat.formatDateTime(new Date(root.membership.expires_at).getTime()))
+                            font.pixelSize: Theme.typeBodySize
+                            font.weight: Theme.weightDemiBold
+                            color: Theme.positive
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            visible: root.membership.status === "unavailable"
+                            text: qsTrId("genycaster.pro.verification_unavailable")
+                            color: Theme.textSecondary
+                            wrapMode: Text.Wrap
+                            font.pixelSize: Theme.typeCaptionSize
                         }
                     }
+                }
+
+                // Quote identity and amount come only from the signed-in
+                // GenyCaster account API. No client-side GENY/USD calculations.
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: Boolean(root.paymentQuote.id)
+                    spacing: Theme.space2
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.quote_label")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(root.paymentQuote.amount_geny || "") + " GENY"
+                        font.pixelSize: Theme.typeTitle3Size
+                        font.weight: Theme.weightBold
+                        color: Theme.textPrimary
+                        forceLeftToRight: true
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.payer_wallet").arg(
+                            String((root.paymentQuote.verified_payers || [])[0] || ""))
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.textSecondary
+                        wrapMode: Text.WrapAnywhere
+                        forceLeftToRight: true
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.receiving_address")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: String(root.paymentQuote.treasury || "")
+                        color: Theme.textPrimary
+                        forceLeftToRight: true
+                        elide: Text.ElideMiddle
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        ActionButton {
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            text: qsTrId("genycaster.pro.copy_amount")
+                            onClicked: presentationBridge.copyText(
+                                String(root.paymentQuote.amount_geny || ""))
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            compact: true
+                            quiet: true
+                            text: qsTrId("genycaster.pro.copy_recipient")
+                            onClicked: presentationBridge.copyText(
+                                String(root.paymentQuote.treasury || ""))
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.quote_expiry").arg(
+                            LocaleFormat.formatDateTime(new Date(root.paymentQuote.expires_at).getTime()))
+                        color: root.quoteValid ? Theme.textSecondary : Theme.negative
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.payment_instructions")
+                        color: Theme.textSecondary
+                        wrapMode: Text.Wrap
+                        font.pixelSize: Theme.typeCaptionSize
+                    }
+                    DirectionAwareTextField {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        enabled: root.quoteValid
+                        maximumLength: 66
+                        placeholderText: qsTrId("genycaster.pro.transaction_hash")
+                        text: root.paymentHash
+                        onTextChanged: root.paymentHash = text
+                    }
+                    ActionButton {
+                        Layout.fillWidth: true
+                        compact: true
+                        prominent: true
+                        busy: openProofConnections ? openProofConnections.proBillingBusy : false
+                        enabled: root.quoteValid && !busy
+                            && /^0x[0-9a-fA-F]{64}$/.test(root.paymentHash.trim())
+                        text: qsTrId("genycaster.pro.verify_payment")
+                        onClicked: openProofConnections.verifyProPayment(root.paymentHash.trim())
+                    }
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: openProofConnections && String(openProofConnections.proBillingError || "").length > 0
+                    text: openProofConnections && openProofConnections.proBillingError === "payment_pending"
+                        ? qsTrId("genycaster.pro.payment_pending")
+                        : qsTrId("genycaster.pro.billing_error")
+                    color: Theme.negative
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: !root.eligible && root.membership.status === "verified"
+                        && root.membership.payment_available === false
+                    text: qsTrId("genycaster.pro.payment_unavailable")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.Wrap
                 }
 
                 Repeater {
@@ -307,12 +427,13 @@ GenyDrawer {
                 Layout.fillWidth: true
                 compact: true
                 prominent: true
-                iconGlyph: Theme.iconRefresh
+                iconGlyph: Theme.iconWallet
                 spinIconWhileBusy: true
-                busy: openProofConnections ? openProofConnections.proEntitlementsBusy : false
-                enabled: !busy
-                text: qsTrId("genycaster.pro.check_status")
-                onClicked: if (openProofConnections) openProofConnections.fetchProEntitlements(true)
+                busy: openProofConnections ? openProofConnections.proBillingBusy : false
+                enabled: !busy && root.monthlyUsdCents > 0
+                    && root.membership.payment_available === true
+                text: qsTrId("genycaster.pro.get_quote")
+                onClicked: if (openProofConnections) openProofConnections.requestProPaymentQuote()
             }
         }
     }

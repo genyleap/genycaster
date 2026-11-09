@@ -15,7 +15,7 @@ Popup {
     property string featureLabel: ""
     readonly property var membership: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
-    readonly property int minimumGeny: Math.max(1, Number(membership.minimum_geny || 16000))
+    readonly property int monthlyUsdCents: Number(membership.monthly_usd_cents || 0)
     width: parent ? Math.min(Theme.scaleUi(380), parent.width - Theme.space4 * 2)
                   : Theme.scaleUi(360)
     x: parent ? (parent.width - width) / 2 : 0
@@ -64,7 +64,8 @@ Popup {
         DirectionAwareLabel {
             Layout.fillWidth: true
             text: qsTrId("genycaster.pro.unlock_hint")
-                .arg(LocaleFormat.formatInteger(root.minimumGeny))
+                .arg(root.monthlyUsdCents > 0
+                    ? (root.monthlyUsdCents / 100).toFixed(2) : "—")
             font.pixelSize: Theme.typeBodySize
             color: Theme.textPrimary
             wrapMode: Text.Wrap

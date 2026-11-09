@@ -34,7 +34,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -48,8 +48,108 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const multipleRolesReady=versions.has(9);
   const streakReady=versions.has(10);
   const feedbackReady=versions.has(11);
+  const proBillingReady=versions.has(12);
   return {
     close:()=>pool.end(),
+    proBillingReady:()=>proBillingReady,
+    // Subscription state is authoritative even when the GENY price oracle is
+    // offline. Time-based expiry is checked by PostgreSQL on every Pro write.
+    async getProSubscription({issuer,subject}) {
+      if(!proBillingReady)throw new Error('pro_billing_schema_unavailable');
+      const result=await pool.query(
+        'SELECT expires_at FROM pro_subscriptions WHERE issuer=$1 AND subject=$2',
+        [issuer,subject]);
+      return result.rows[0]||null;
+    },
+    async createProQuote({issuer,subject},quote) {
+      if(!proBillingReady)throw new Error('pro_billing_schema_unavailable');
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          'SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))',
+          [issuer,subject]);
+        const count=await client.query(
+          'SELECT count(*)::integer AS pending FROM pro_quotes WHERE issuer=$1 AND subject=$2 AND status=$3 AND expires_at>now()',
+          [issuer,subject,'quoted']);
+        if(Number(count.rows[0]?.pending||0)>=3) {
+          await client.query('ROLLBACK');
+          return null;
+        }
+        const result=await client.query(`INSERT INTO pro_quotes
+            (id,issuer,subject,price_usd_cents,geny_price_usd,
+             amount_base_units,token,treasury,chain_id,created_at,expires_at)
+          VALUES ($1::uuid,$2,$3,$4,$5,$6::numeric,$7,$8,$9,$10,$11)
+          RETURNING id::text,price_usd_cents,geny_price_usd,
+            amount_base_units::text,token,treasury,chain_id,
+            created_at,expires_at,status`,
+          [quote.id,issuer,subject,quote.price_usd_cents,quote.geny_price_usd,
+           quote.amount_base_units,quote.token,quote.treasury,quote.chain_id,
+           quote.created_at,quote.expires_at]);
+        await client.query('COMMIT');
+        return result.rows[0];
+      }catch(error) {
+        try {await client.query('ROLLBACK');}catch{}
+        throw error;
+      }finally {client.release();}
+    },
+    async getProQuote({issuer,subject},id) {
+      if(!proBillingReady)throw new Error('pro_billing_schema_unavailable');
+      const result=await pool.query(`SELECT id::text,price_usd_cents,
+        amount_base_units::text,geny_price_usd,token,treasury,chain_id,
+        created_at,expires_at,status,tx_hash FROM pro_quotes
+        WHERE issuer=$1 AND subject=$2 AND id=$3::uuid`,
+        [issuer,subject,id]);
+      return result.rows[0]||null;
+    },
+    async confirmProPayment({issuer,subject},quoteId,receipt) {
+      if(!proBillingReady)throw new Error('pro_billing_schema_unavailable');
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const locked=await client.query(`SELECT id::text,status,tx_hash,
+            price_usd_cents,amount_base_units::text FROM pro_quotes
+          WHERE issuer=$1 AND subject=$2 AND id=$3::uuid FOR UPDATE`,
+          [issuer,subject,quoteId]);
+        const quote=locked.rows[0];
+        if(!quote) {
+          await client.query('ROLLBACK');
+          return {status:'not_found'};
+        }
+        if(quote.status==='paid') {
+          await client.query('ROLLBACK');
+          return {status:quote.tx_hash===receipt.tx_hash?'already_paid':'conflict'};
+        }
+        // A transaction can activate exactly one quote, even across accounts.
+        const payment=await client.query(`INSERT INTO pro_payments
+          (tx_hash,quote_id,issuer,subject,price_usd_cents,
+           amount_base_units,payer,block_number,block_hash)
+          VALUES ($1,$2::uuid,$3,$4,$5,$6::numeric,$7,$8::bigint,$9)
+          ON CONFLICT DO NOTHING RETURNING tx_hash`,
+          [receipt.tx_hash,quote.id,issuer,subject,quote.price_usd_cents,
+           quote.amount_base_units,receipt.payer,receipt.block_number,
+           receipt.block_hash]);
+        if(!payment.rowCount) {
+          await client.query('ROLLBACK');
+          return {status:'conflict'};
+        }
+        await client.query(`UPDATE pro_quotes SET status='paid',tx_hash=$2,
+          paid_at=now() WHERE id=$1::uuid`,[quote.id,receipt.tx_hash]);
+        const renewed=await client.query(`INSERT INTO pro_subscriptions
+          (issuer,subject,expires_at,updated_at)
+          VALUES ($1,$2,now()+interval '30 days',now())
+          ON CONFLICT(issuer,subject) DO UPDATE SET
+            expires_at=GREATEST(pro_subscriptions.expires_at,now())+
+              interval '30 days',
+            updated_at=now()
+          RETURNING expires_at`,[issuer,subject]);
+        await client.query('COMMIT');
+        return {status:'paid',expires_at:renewed.rows[0].expires_at};
+      }catch(error) {
+        try {await client.query('ROLLBACK');}catch{}
+        throw error;
+      }finally {client.release();}
+    },
     feedbackReady:()=>feedbackReady,
     async submitFeedback(owner, item) {
       if (!feedbackReady) throw new Error('feedback_schema_unavailable');

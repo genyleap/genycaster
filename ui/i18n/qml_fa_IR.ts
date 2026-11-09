@@ -6990,16 +6990,12 @@ Company | https://company.com</source>
             <translation>نمایش واژه‌های بازیابی</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>پرو فعال · کیف‌پول تأیید شده</translation>
+            <source>Pro subscription active</source>
+            <translation>اشتراک پرو فعال است</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>وضعیت در دسترس نیست</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>برای پرو، %1 توکن GENY در یک کیف‌پول تأییدشدهٔ فارکستر روی Base نگه دارید.</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7054,12 +7050,12 @@ Company | https://company.com</source>
             <translation>جنی‌کستر پرو</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>دارایی حداقل %1 توکن GENY در یک کیف‌پول متصل تأیید شده است.</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>عضویت پولی پرو توسط جنی‌کستر تأیید شده است.</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>این قابلیت به حداقل %1 توکن GENY در یک کیف‌پول تأییدشدهٔ متصل به حساب فارکستر نیاز دارد.</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>پرو برای ۳۰ روز %1 دلار است و با GENY پرداخت می‌شود.</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7224,6 +7220,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>تعاملات فعلی نشرهای هر بازه نمایش داده می‌شوند، نه زمان وقوع تعاملات.</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>%1 دلار / ماه</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>۳۰ روز پرو؛ تمدید دستی و بدون برداشت خودکار.</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>فعال تا %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>پیش‌فاکتور پرداخت GENY · شبکه Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>پرداخت از کیف پول تأییدشده: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>آدرس دریافت‌کننده در شبکه Base</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>کپی مقدار GENY</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>کپی آدرس دریافت‌کننده</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>اعتبار پیش‌فاکتور تا %1</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>از کیف پول تأییدشدهٔ این حساب، مقدار دقیق GENY را در شبکه Base انتقال دهید. کارمزد با ETH پرداخت می‌شود؛ سپس هش تراکنش را وارد کنید. پس از پایان اعتبار پیش‌فاکتور پرداخت نکنید.</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>هش تراکنش (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>تأیید پرداخت</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>در انتظار تأییدهای شبکه Base؛ کمی بعد دوباره بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>پرداخت تأیید نشده و دسترسی پرو فعال نشده است.</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>پرداخت GENY هنوز روی سرور پیکربندی نشده است.</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>دریافت پیش‌فاکتور GENY</translation>
         </message>
     </context>
 </TS>

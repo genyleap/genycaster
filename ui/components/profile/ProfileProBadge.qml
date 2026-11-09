@@ -12,8 +12,6 @@ Button {
     property bool compact: false
     readonly property bool eligible: entitlement.status === "verified"
                                      && entitlement.eligible === true
-    readonly property int minimumGeny: Math.max(1,
-        Number(entitlement.minimum_geny || 16000))
     signal detailsRequested()
     visible: eligible
     implicitHeight: Theme.scaleUi(32)
@@ -28,7 +26,6 @@ Button {
     LayoutMirroring.enabled: false
     Accessible.name: qsTrId("genycaster.pro.title")
     Accessible.description: qsTrId("genycaster.pro.verified_wallet")
-        .arg(LocaleFormat.formatInteger(minimumGeny))
     Accessible.role: Accessible.Button
     onHoveredChanged: {
         hintDelay.stop()
@@ -143,7 +140,6 @@ Button {
                 Layout.fillWidth: true
                 Layout.preferredWidth: proHint.width - proHint.leftPadding - proHint.rightPadding
                 text: qsTrId("genycaster.pro.verified_wallet")
-                    .arg(LocaleFormat.formatInteger(root.minimumGeny))
                 wrapMode: Text.Wrap
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize

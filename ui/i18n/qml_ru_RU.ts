@@ -6985,16 +6985,12 @@ Company | https://company.com</source>
             <translation>Показать слова восстановления</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>Pro активен · кошелёк подтверждён</translation>
+            <source>Pro subscription active</source>
+            <translation>Подписка Pro активна</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>Статус недоступен</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>Держите %1 GENY в одном подтверждённом кошельке Farcaster в сети Base.</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7049,12 +7045,12 @@ Company | https://company.com</source>
             <translation>GenyCaster Pro</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>Подтверждено наличие не менее %1 GENY в привязанном кошельке.</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>Платная подписка Pro подтверждена GenyCaster.</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>Для этой функции необходимо не менее %1 GENY в подтверждённом кошельке, связанном с Farcaster.</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>Pro стоит %1 $ за 30 дней, оплата в GENY.</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7223,6 +7219,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>Текущее число реакций на записи каждого периода, а не даты самих реакций.</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>%1 $ / месяц</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>30 дней Pro. Ручное продление, без автосписаний.</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>Активно до %1</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>Расчёт оплаты GENY · Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>Оплата с подтверждённого кошелька: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>Адрес получателя в Base</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>Копировать сумму GENY</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>Копировать получателя</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>Предложение действует до %1</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>С подтверждённого кошелька этого аккаунта переведите точную сумму GENY в сети Base. Оплатите комиссию в ETH и введите хеш транзакции. Не отправляйте средства после истечения срока предложения.</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>Хеш транзакции (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>Проверить оплату</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>Ожидаются подтверждения Base. Повторите проверку позже.</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>Платёж не подтверждён. Доступ Pro не активирован.</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>Платежи GENY пока не настроены на сервере.</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>Получить расчёт GENY</translation>
         </message>
     </context>
 </TS>

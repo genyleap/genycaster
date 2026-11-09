@@ -1877,9 +1877,8 @@ GenyDrawer {
                         }
                     }
 
-                    // Pro eligibility is server-verified against an active
-                    // Farcaster identity and one Base GENY wallet. The card
-                    // never turns a client-side market estimate into access.
+                    // Pro eligibility is server-verified against the current
+                    // 30-day paid subscription, not a wallet's GENY balance.
                     Superellipse {
                         id: marketProCard
                         objectName: "genyProMarketQuota"
@@ -1932,9 +1931,10 @@ GenyDrawer {
                                     Layout.fillWidth: true
                                     text: LocaleFormat.formatInteger(root.enabledMarketCount)
                                         + " / " + LocaleFormat.formatInteger(root.marketAssetLimit)
-                                        + " · " + LocaleFormat.formatInteger(Number(
-                                            root.proEntitlements.minimum_geny || 16000))
-                                        + " GENY"
+                                        + " · " + qsTrId("genycaster.pro.monthly_price").arg(
+                                            Number(root.proEntitlements.monthly_usd_cents || 0) > 0
+                                                ? (Number(root.proEntitlements.monthly_usd_cents) / 100).toFixed(2)
+                                                : "—")
                                     font.pixelSize: Theme.typeCaptionSize
                                     color: Theme.textSecondary
                                     wrapMode: Text.Wrap

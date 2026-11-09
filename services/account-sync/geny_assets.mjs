@@ -1,16 +1,12 @@
-// GenyCaster Pro admission: authenticated FID -> protocol-verified Ethereum
-// addresses -> Base ERC-20 balances. The caller never supplies an address or
-// an entitlement; client-side balance widgets are informational only.
+// Read-only GENY holdings and protocol-verified wallet discovery.
+// No holding amount can grant a GenyCaster Pro subscription.
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const HEX_UINT = /^0x[0-9a-fA-F]{1,64}$/;
 const DEFAULT_TOKEN = '0x2a3d6f8c1fc4acdcf3a75d19b445bae02f03676b';
 const MAX_WALLETS = 100;
 const MAX_PAGES = 12;
 
-export function createGenyProPolicy(env=process.env) {
-  const min = String(env.GENYCASTER_PRO_REQUIRED_GENY ?? '16000');
-  if (!/^[1-9][0-9]{0,11}$/.test(min))
-    throw new Error('GENYCASTER_PRO_REQUIRED_GENY must be a positive integer');
+export function createGenyAssetsPolicy(env=process.env) {
   const contract = String(env.GENYCASTER_GENY_CONTRACT_ADDRESS || DEFAULT_TOKEN).toLowerCase();
   if (!ADDRESS.test(contract)) throw new Error('Invalid GENY token address');
   const rpcUrl = String(env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org');
@@ -19,11 +15,10 @@ export function createGenyProPolicy(env=process.env) {
     const url = new URL(endpoint);
     if (url.protocol!=='https:' || url.username || url.password || url.hash
         || url.search || url.pathname!=='/' || url.port)
-      throw new Error('Geny Pro requires credential-free HTTPS provider origins');
+      throw new Error('Geny assets require credential-free HTTPS provider origins');
   }
-  return Object.freeze({minimumGeny:min, contract, rpcUrl, snapchainUrl});
+  return Object.freeze({contract,rpcUrl,snapchainUrl});
 }
-
 async function checkedJson(fetchImpl,url,options={}) {
   const response=await fetchImpl(url,{...options,redirect:'error',
     signal:AbortSignal.timeout(7000)});
@@ -81,64 +76,11 @@ async function rpc(fetchImpl,policy,method,params){
   return BigInt(response.result);
 }
 
-export async function evaluateGenyPro(fid,{
-  policy=createGenyProPolicy(),fetchImpl=globalThis.fetch
-}={}) {
-  const standard={tier:'basic',eligible:false,minimum_geny:policy.minimumGeny,
-    verified_wallet_count:0,qualified_wallet:null,
-    capabilities:{pro_badge:false,custom_bookmark_collections:false,
-      advanced_code_editor:false,multiple_miniapps:false,extra_market_pulse:false,
-      provider_connections:false,extended_casts:false,extra_images:false,
-      long_form_threads:false,multi_image_threads:false},
-    // cast_bytes describes each signed Farcaster message, not the total draft.
-    limits:{cast_bytes:1024,cast_characters:1024,image_embeds:1,
-      concurrent_miniapps:1,market_pulse:4}};
-  try {
-    const wallets=await verifiedFarcasterWallets(fid,{policy,fetchImpl});
-    standard.verified_wallet_count=wallets.length;
-    if (!wallets.length)return {...standard,status:'verified'};
-    if(await rpc(fetchImpl,policy,'eth_chainId',[])!==8453n)
-      throw new Error('provider_unavailable');
-    const decimals=Number(await rpc(fetchImpl,policy,'eth_call',[
-      {to:policy.contract,data:'0x313ce567'},'latest']));
-    if(!Number.isInteger(decimals)||decimals<0||decimals>36)
-      throw new Error('provider_unavailable');
-    const threshold=BigInt(policy.minimumGeny)*(10n**BigInt(decimals));
-    let failures=0;
-    for(const address of wallets){
-      const calldata='0x70a08231'+address.slice(2).padStart(64,'0');
-      try {
-        const balance=await rpc(fetchImpl,policy,'eth_call',[
-          {to:policy.contract,data:calldata},'latest']);
-        if(balance>=threshold){
-          return {status:'verified',tier:'pro',eligible:true,
-            minimum_geny:policy.minimumGeny,verified_wallet_count:wallets.length,
-            qualified_wallet:address,
-            capabilities:{pro_badge:true,custom_bookmark_collections:true,
-              advanced_code_editor:true,multiple_miniapps:true,
-              extra_market_pulse:true,provider_connections:true,
-              // Farcaster Pro is separate. Longer Geny Pro content is
-              // published as a thread ONLY after explicit user approval.
-              extended_casts:false,extra_images:true,
-              long_form_threads:true,multi_image_threads:true},
-            limits:{cast_bytes:1024,cast_characters:4096,image_embeds:4,
-              concurrent_miniapps:4,market_pulse:16}};
-        }
-      }catch{failures++;}
-    }
-    return {...standard,status:failures?'unavailable':'verified'};
-  }catch {
-    // Network faults never turn into a fabricated "not a holder" result,
-    // and never grant Pro from stale or partially verified balances.
-    return {...standard,status:'unavailable'};
-  }
-}
-
 // Read-only Base ERC-20 holdings for a verified Farcaster account. This is
-// deliberately independent of Pro authorization: balances may be summed for
-// display, but eligibility still requires one qualifying wallet.
+// independent of Pro authorization: balances can be summed for display but
+// never establish an account entitlement.
 export async function evaluateGenyAssets(fid,{
-  policy=createGenyProPolicy(),fetchImpl=globalThis.fetch
+  policy=createGenyAssetsPolicy(),fetchImpl=globalThis.fetch
 }={}) {
   const unavailable={status:'unavailable',available:false,partial:false,
     wallets:[],addresses:[],balance:0,holder:false,source:'Base RPC',

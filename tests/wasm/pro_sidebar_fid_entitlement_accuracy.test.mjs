@@ -23,13 +23,15 @@ test('sidebar account card presents four factual metrics including tappable full
 
 test('drawer describes backend-verified Pro capabilities without using cast thread dialog strings',()=>{
  const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
- const policy=read('services/account-sync/pro_entitlements.mjs');
+ const policy=read('services/account-sync/pro_billing.mjs');
  const composer=read('ui/components/composer/ComposerDrawer.qml');
  const settings=read('ui/components/settings/SettingsPopup.qml');
  const chooser=read('ui/components/profile/CollectionChooser.qml');
  assert.match(policy,/concurrent_miniapps:1,market_pulse:4/);
  assert.match(policy,/concurrent_miniapps:4,market_pulse:16/);
  assert.match(policy,/cast_characters:4096,image_embeds:4/);
+ assert.match(policy,/monthlyUsdCents:Number\(cents\)/);
+ assert.match(policy,/expires_at:eligible\?until:null/);
  assert.match(composer,/maxComposerCharacters: verifiedGenyPro/);
  assert.match(settings,/marketAssetLimit: marketProEligible \? 16 : 4/);
  assert.match(chooser,/enabled: root\.proEligible/);
@@ -41,34 +43,32 @@ test('drawer describes backend-verified Pro capabilities without using cast thre
  assert.doesNotMatch(drawer,/genycaster\.pro\.thread_explanation/);
  assert.doesNotMatch(drawer,/genycaster\.miniapp\.session_limit/);
  assert.match(drawer,/genycaster\.pro\.status_verified/);
- assert.match(drawer,/genycaster\.pro\.eligibility_summary/);
+ assert.match(drawer,/genycaster\.pro\.monthly_price/);
+ assert.match(drawer,/genycaster\.pro\.verify_payment/);
+ assert.match(drawer,/openProofConnections\.requestProPaymentQuote\(\)/);
 });
 
-test('Check status rotates its refresh glyph only while the actual HTTP entitlement request is pending',()=>{
+test('Pro checkout uses verified server quote and never grants itself locally',()=>{
  const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
  const button=read('ui/components/controls/ActionButton.qml');
  const header=read('ui/app/identity/connections.hpp');
  const cpp=read('ui/app/identity/connections.cpp');
- assert.match(header,/Q_PROPERTY\(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged\)/);
- assert.match(header,/proEntitlementsBusy\(\) const noexcept \{/);
- assert.match(header,/return m_proEntitlementsRead != nullptr/);
- assert.match(cpp,/m_proEntitlementsRead = reply;\s*emit proEntitlementsChanged\(\)/);
- assert.match(cpp,/m_proEntitlementsRead\.clear\(\)/);
- assert.match(drawer,/spinIconWhileBusy: true/);
- assert.match(drawer,/busy: openProofConnections \? openProofConnections\.proEntitlementsBusy : false/);
- assert.match(drawer,/enabled: !busy/);
- assert.match(drawer,/onClicked: if \(openProofConnections\) openProofConnections\.fetchProEntitlements\(true\)/);
- assert.match(button,/visible: \(!control\.busy \|\| control\.spinIconWhileBusy\)/);
- assert.match(button,/RotationAnimator on rotation/);
+ assert.match(header,/Q_PROPERTY\(bool proBillingBusy READ proBillingBusy NOTIFY proBillingChanged\)/);
+ assert.match(header,/proBillingBusy\(\) const noexcept/);
+ assert.match(header,/m_proBillingRequest != nullptr/);
+ assert.match(drawer,/busy: openProofConnections \? openProofConnections\.proBillingBusy : false/);
+ assert.match(drawer,/requestProPaymentQuote\(\)/);
+ assert.match(drawer,/verifyProPayment\(root\.paymentHash\.trim\(\)\)/);
+ assert.match(cpp,/authorizeCloudRequest\(request\)/);
+ assert.match(cpp,/\/api\/v1\/cloud\/pro\/verify/);
+ assert.match(cpp,/fetchProEntitlements\(true\)/);
  assert.match(button,/running: control\.busy && control\.spinIconWhileBusy/);
- assert.match(button,/onStopped: actionGlyph\.rotation = 0/);
- assert.match(button,/if \(!control\.enabled && !control\.busy\)/);
 });
-
 test('Pro descriptions are translated and contain no unfilled %1 in feature details',()=>{
  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR','hi_IN',
   'ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
- const keys=['status_verified','status_unavailable','eligibility_summary',
+ const keys=['status_verified','status_unavailable','monthly_price','manual_renewal',
+  'verify_payment','get_quote','payment_instructions',
   'feature_miniapps_title','feature_miniapps_desc','feature_collections_desc',
   'feature_connections_desc','feature_market_desc','feature_composer_title',
   'feature_composer_desc'];

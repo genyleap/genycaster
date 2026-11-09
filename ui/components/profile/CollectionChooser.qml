@@ -120,8 +120,8 @@ Popup {
             Layout.fillWidth: true
             visible: !root.proEligible
             text: qsTrId("genycaster.pro.unlock_hint").arg(
-                LocaleFormat.formatInteger(Number(
-                    root.entitlements.minimum_geny || 16000)))
+                Number(root.entitlements.monthly_usd_cents || 0) > 0
+                    ? (Number(root.entitlements.monthly_usd_cents) / 100).toFixed(2) : "—")
             color: Theme.proAccent
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap

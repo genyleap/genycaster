@@ -20,6 +20,11 @@ export function createAccountApi({
   store = null, issuer = null, topicVerifier = undefined,
   proResolver = undefined,
   assetsResolver = undefined,
+  billingPolicy = undefined,
+  readGenyRate = undefined,
+  checkProToken = undefined,
+  resolveProPaymentWallets = undefined,
+  verifyBillingTransfer = undefined,
   marketReader = undefined,
 } = {}) {
   const endpoint = new URL(catalogUrl);
@@ -30,7 +35,12 @@ export function createAccountApi({
   const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl,
     ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {}),
     ...(proResolver ? {resolvePro:proResolver} : {}),
-    ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {})}) : null;
+    ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {}),
+    ...(billingPolicy ? {billingPolicy} : {}),
+    ...(readGenyRate ? {readGenyRate} : {}),
+    ...(checkProToken ? {checkProToken} : {}),
+    ...(resolveProPaymentWallets ? {resolveProPaymentWallets} : {}),
+    ...(verifyBillingTransfer ? {verifyBillingTransfer} : {})}) : null;
   const market = marketReader || createMarketReader({fetchImpl});
   let cached = null;
   let pending = null;

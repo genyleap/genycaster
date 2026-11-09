@@ -67,6 +67,9 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(QVariantMap streak READ streak NOTIFY streakChanged)
     Q_PROPERTY(QVariantMap proEntitlements READ proEntitlements NOTIFY proEntitlementsChanged)
     Q_PROPERTY(bool proEntitlementsBusy READ proEntitlementsBusy NOTIFY proEntitlementsChanged)
+    Q_PROPERTY(QVariantMap proPaymentQuote READ proPaymentQuote NOTIFY proBillingChanged)
+    Q_PROPERTY(bool proBillingBusy READ proBillingBusy NOTIFY proBillingChanged)
+    Q_PROPERTY(QString proBillingError READ proBillingError NOTIFY proBillingChanged)
     Q_PROPERTY(QVariantMap genyAssets READ genyAssets NOTIFY genyAssetsChanged)
     Q_PROPERTY(bool streakBusy READ streakBusy NOTIFY streakChanged)
     Q_PROPERTY(QString streakError READ streakError NOTIFY streakChanged)
@@ -161,6 +164,19 @@ public:
         return m_proEntitlementsRead != nullptr;
     }
     Q_INVOKABLE void fetchProEntitlements(bool force = false);
+
+    /** @brief Checkout snapshot belongs to the current verified account only. */
+    [[nodiscard]] QVariantMap proPaymentQuote() const {
+        return m_proQuoteFid == m_viewerFid ? m_proQuote : QVariantMap{};
+    }
+    [[nodiscard]] bool proBillingBusy() const noexcept { return m_proBillingRequest != nullptr; }
+    [[nodiscard]] QString proBillingError() const { return m_proBillingError; }
+
+    /** @brief Obtain a signed-account, time-limited USD-priced GENY quote. */
+    Q_INVOKABLE void requestProPaymentQuote();
+
+    /** @brief Verify an external-wallet Base transaction; never signs locally. */
+    Q_INVOKABLE void verifyProPayment(const QString& transactionHash);
 
     /** @brief Recover the existing account session, then refresh server Pro.
      * Never provisions a signer, prompts custody, or grants a local Pro tier. */
@@ -314,6 +330,7 @@ public:
 signals:
     void mutedProfilesChanged();
     void proEntitlementsChanged();
+    void proBillingChanged();
     void genyAssetsChanged();
     void stateChanged();
     void cloudStateChanged();
@@ -374,6 +391,10 @@ private:
     QPointer<QNetworkReply> m_profileStatusRead{};
     QPointer<QNetworkReply> m_streakRead{};
     QPointer<QNetworkReply> m_proEntitlementsRead{};
+    QPointer<QNetworkReply> m_proBillingRequest{};
+    QVariantMap m_proQuote{};
+    qulonglong m_proQuoteFid{};
+    QString m_proBillingError{};
     QVariantMap m_proEntitlements{};
     qulonglong m_proEntitlementsFid{};
     qint64 m_proEntitlementsFetchedAt{};

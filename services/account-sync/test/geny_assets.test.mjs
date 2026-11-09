@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {evaluateGenyAssets,createGenyProPolicy} from '../pro_entitlements.mjs';
+import {evaluateGenyAssets,createGenyAssetsPolicy} from '../geny_assets.mjs';
 
 const fid='42';
 const first='0x1111111111111111111111111111111111111111';
@@ -27,7 +27,7 @@ function fixture(balances) {
     if(value==='error')return Response.json({error:{code:-1}});
     return Response.json({result:'0x'+(BigInt(value||0)*10n**18n).toString(16)});
   };
-  return {policy:createGenyProPolicy({}),fetchImpl,calls};
+  return {policy:createGenyAssetsPolicy({}),fetchImpl,calls};
 }
 test('browser balances only use account-verified wallets; sum is display-only',async()=>{
   const f=fixture({[first]:12000,[second]:9000});

@@ -6985,16 +6985,12 @@ Company | https://company.com</source>
             <translation>रिकवरी शब्द दिखाएँ</translation>
         </message>
         <message id="genycaster.pro.status_verified">
-            <source>Pro active · wallet verified</source>
-            <translation>Pro सक्रिय · वॉलेट सत्यापित</translation>
+            <source>Pro subscription active</source>
+            <translation>प्रो सदस्यता सक्रिय</translation>
         </message>
         <message id="genycaster.pro.status_unavailable">
             <source>Status unavailable</source>
             <translation>स्थिति उपलब्ध नहीं</translation>
-        </message>
-        <message id="genycaster.pro.eligibility_summary">
-            <source>Hold %1 GENY in one verified Farcaster wallet on Base.</source>
-            <translation>Base पर एक सत्यापित Farcaster वॉलेट में %1 GENY रखें।</translation>
         </message>
         <message id="genycaster.pro.feature_miniapps_title">
             <source>Mini App multitasking</source>
@@ -7049,12 +7045,12 @@ Company | https://company.com</source>
             <translation>GenyCaster Pro</translation>
         </message>
         <message id="genycaster.pro.verified_wallet">
-            <source>Verified with at least %1 GENY in one linked wallet.</source>
-            <translation>जुड़े हुए एक वॉलेट में कम से कम %1 GENY सत्यापित हैं।</translation>
+            <source>Paid Pro membership verified by GenyCaster.</source>
+            <translation>भुगतान वाली प्रो सदस्यता GenyCaster द्वारा सत्यापित है।</translation>
         </message>
         <message id="genycaster.pro.unlock_hint">
-            <source>This feature requires at least %1 GENY in one verified wallet linked to your Farcaster account.</source>
-            <translation>इस सुविधा के लिए Farcaster खाते से जुड़े सत्यापित वॉलेट में कम से कम %1 GENY चाहिए।</translation>
+            <source>Pro is $%1 for 30 days, payable in GENY.</source>
+            <translation>प्रो की 30 दिनों की कीमत $%1 है, भुगतान GENY में।</translation>
         </message>
         <message id="genycaster.pro.verification_unavailable">
             <source>Membership could not be checked right now. Retry when connected.</source>
@@ -7223,6 +7219,70 @@ Company | https://company.com</source>
         <message id="genycaster.stats.publish_date_snapshot">
             <source>Current reactions on posts published in each period, not when reactions happened.</source>
             <translation>प्रत्येक अवधि में प्रकाशित पोस्ट पर वर्तमान प्रतिक्रियाएँ, न कि प्रतिक्रियाओं का समय।</translation>
+        </message>
+        <message id="genycaster.pro.monthly_price">
+            <source>$%1 / month</source>
+            <translation>$%1 / माह</translation>
+        </message>
+        <message id="genycaster.pro.manual_renewal">
+            <source>30 days of Pro. Manual renewal; no automatic charges.</source>
+            <translation>30 दिन प्रो। मैनुअल नवीनीकरण; कोई स्वचालित शुल्क नहीं।</translation>
+        </message>
+        <message id="genycaster.pro.active_until">
+            <source>Active until %1</source>
+            <translation>%1 तक सक्रिय</translation>
+        </message>
+        <message id="genycaster.pro.quote_label">
+            <source>GENY payment quote · Base</source>
+            <translation>GENY भुगतान कोट · Base</translation>
+        </message>
+        <message id="genycaster.pro.payer_wallet">
+            <source>Pay from verified wallet: %1</source>
+            <translation>सत्यापित वॉलेट से भुगतान करें: %1</translation>
+        </message>
+        <message id="genycaster.pro.receiving_address">
+            <source>Receiving address on Base</source>
+            <translation>Base पर प्राप्तकर्ता का पता</translation>
+        </message>
+        <message id="genycaster.pro.copy_amount">
+            <source>Copy GENY amount</source>
+            <translation>GENY राशि कॉपी करें</translation>
+        </message>
+        <message id="genycaster.pro.copy_recipient">
+            <source>Copy recipient</source>
+            <translation>प्राप्तकर्ता कॉपी करें</translation>
+        </message>
+        <message id="genycaster.pro.quote_expiry">
+            <source>Quote valid until %1</source>
+            <translation>कोट %1 तक मान्य</translation>
+        </message>
+        <message id="genycaster.pro.payment_instructions">
+            <source>From a wallet verified for this account, transfer the exact GENY amount on Base. Pay gas in ETH, then enter the transaction hash. Never send after the quote expires.</source>
+            <translation>इस खाते के सत्यापित वॉलेट से Base पर GENY की सटीक कोट राशि भेजें। गैस शुल्क ETH में चुकाएँ और फिर लेन-देन हैश दर्ज करें। कोट समाप्त होने के बाद भुगतान न भेजें।</translation>
+        </message>
+        <message id="genycaster.pro.transaction_hash">
+            <source>Transaction hash (0x…)</source>
+            <translation>लेन-देन हैश (0x…)</translation>
+        </message>
+        <message id="genycaster.pro.verify_payment">
+            <source>Verify payment</source>
+            <translation>भुगतान सत्यापित करें</translation>
+        </message>
+        <message id="genycaster.pro.payment_pending">
+            <source>Waiting for Base confirmations. Check again shortly.</source>
+            <translation>Base की पुष्टि की प्रतीक्षा है। थोड़ी देर बाद फिर जाँचें।</translation>
+        </message>
+        <message id="genycaster.pro.billing_error">
+            <source>Payment is not verified. No Pro access was granted.</source>
+            <translation>भुगतान सत्यापित नहीं हुआ। प्रो एक्सेस सक्रिय नहीं हुआ।</translation>
+        </message>
+        <message id="genycaster.pro.payment_unavailable">
+            <source>GENY payments are not configured on the server yet.</source>
+            <translation>सर्वर पर GENY भुगतान अभी सेट नहीं हैं।</translation>
+        </message>
+        <message id="genycaster.pro.get_quote">
+            <source>Get GENY quote</source>
+            <translation>GENY कोट प्राप्त करें</translation>
         </message>
     </context>
 </TS>
