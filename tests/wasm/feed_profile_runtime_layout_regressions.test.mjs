@@ -39,7 +39,9 @@ test('Magazine shows a bounded skeleton for truly visible slots awaiting their d
     assert.match(placeholder, /active: view\.visible && slot\.placed/);
     assert.match(placeholder, /slot\.y \+ slot\.height > view\.contentY/);
     assert.match(placeholder, /slot\.y < view\.contentY \+ view\.height/);
-    assert.match(placeholder, /cardLoader\.item === null/);
+    assert.match(placeholder, /!slot\.cardReady \|\| opacity > 0\.01/);
+    assert.match(wall, /readonly property bool cardReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+    assert.match(placeholder, /opacity: slot\.cardReady \? 0 : 1/);
     assert.match(placeholder, /sourceComponent: Component \{\s*Item \{/);
     assert.match(placeholder, /Superellipse \{\s*anchors\.fill: parent\s*fillColor: Theme\.surfaceRaised/);
     assert.match(placeholder, /CastSkeleton \{[\s\S]*?height: Math\.min\(parent\.height, implicitHeight\)/);

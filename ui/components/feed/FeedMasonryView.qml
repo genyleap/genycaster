@@ -55,8 +55,10 @@ Flickable {
                 delete measuredHeights[measuredOrder.shift()]
         }
         measuredHeights[id] = height
-        if (layoutModel.retainHeight(key, revision, width, height, true))
+        if (layoutModel.retainHeight(key, revision, width, height, true)) {
             scheduleLayout()
+            scheduleRebalance()
+        }
     }
 
     readonly property int count: model ? model.count : 0
@@ -74,6 +76,7 @@ Flickable {
     property bool arranging: false
     property bool positioned: false
     property bool relayoutPending: false
+    property bool rebalancePending: false
 
     signal layoutStarted()
     signal layoutFinished()
@@ -113,6 +116,22 @@ Flickable {
         layoutModel.setViewport(contentY, height, cacheBuffer, retentionBuffer,
                                 view.visible && positioned && height > 0)
     }
+    function scheduleRebalance() {
+        // Newly hydrated dimensions invalidate the original shortest-lane
+        // decisions. Preserve lanes during a flick, then redistribute the
+        // numeric slots once the viewport is at rest. Never animate a live
+        // kinetic gesture or instantiate the offscreen cast delegates.
+        rebalancePending = true
+        if (visible && positioned && !moving)
+            rebalanceTimer.restart()
+    }
+    function rebalanceNow() {
+        if (!rebalancePending || !visible || !positioned || moving)
+            return
+        rebalancePending = false
+        layoutModel.requestRepack()
+        forceLayout()
+    }
     function forceLayout() {
         if (arranging) {
             relayoutPending = true
@@ -121,8 +140,15 @@ Flickable {
         layoutTimer.stop()
         arranging = true
         layoutStarted()
-        const anchorIndex = positioned && !moving && contentY > 0
-            ? indexAt(width / 2, contentY + Math.min(80, height / 4)) : -1
+        // A tall-media column can leave the centre of the viewport empty.
+        // Probe further down for a real cast before rebalancing so source
+        // geometry changes preserve the reader's stable-key scroll anchor.
+        let anchorIndex = -1
+        if (positioned && !moving && contentY > 0) {
+            const probes = [Math.min(80, height / 4), height * 0.35, height * 0.7]
+            for (let i = 0; i < probes.length && anchorIndex < 0; ++i)
+                anchorIndex = indexAt(width / 2, contentY + probes[i])
+        }
         const anchor = anchorIndex >= 0 ? layoutModel.geometryAt(anchorIndex) : null
         const offset = anchor && anchor.stableKey ? anchor.y - contentY : 0
         layoutModel.relayout(columns, cardWidth, gutter, headerLoader.height + gutter,
@@ -137,6 +163,9 @@ Flickable {
         positioned = true
         arranging = false
         scheduleAdmission()
+        // Initial rows may arrive before the first viewport has geometry.
+        if (rebalancePending && !moving && !rebalanceTimer.running)
+            rebalanceTimer.start()
         layoutFinished()
         if (relayoutPending) {
             relayoutPending = false
@@ -176,7 +205,12 @@ Flickable {
     onWidthChanged: scheduleLayout()
     onHeightChanged: scheduleAdmission()
     onContentYChanged: scheduleAdmission()
-    onVisibleChanged: scheduleAdmission()
+    onVisibleChanged: {
+        scheduleAdmission()
+        if (visible && rebalancePending) scheduleRebalance()
+    }
+    onMovementStarted: rebalanceTimer.stop()
+    onMovementEnded: if (rebalancePending) scheduleRebalance()
     onCacheBufferChanged: scheduleAdmission()
     onColumnsChanged: scheduleLayout()
     onCardWidthChanged: scheduleLayout()
@@ -188,6 +222,13 @@ Flickable {
     // Collect text/media measurements into one geometry commit per frame.
     Timer { id: layoutTimer; interval: 16; onTriggered: view.forceLayout() }
     Timer { id: admissionTimer; interval: 0; onTriggered: view.updateAdmissions() }
+    Timer { id: rebalanceTimer; interval: 300; repeat: false; onTriggered: view.rebalanceNow() }
+
+    Connections {
+        target: view.model
+        ignoreUnknownSignals: true
+        function onCountChanged() { view.scheduleRebalance() }
+    }
 
     Loader {
         id: headerLoader
@@ -213,6 +254,14 @@ Flickable {
             property real measuredHeight: view.recalledHeight(stableKey, revisionKey, width)
             property bool placed: true
             property bool admitted: true
+            readonly property var loadedCard: cardLoader.item
+            readonly property real paintedHeight: !loadedCard ? 0
+                : loadedCard.resolvedHeight !== undefined
+                  ? Number(loadedCard.resolvedHeight || 0)
+                  : Number(loadedCard.implicitHeight || loadedCard.height || 0)
+            readonly property bool cardReady: cardLoader.status === Loader.Ready
+                && loadedCard !== null && loadedCard.incubating !== true
+                && paintedHeight > 0
             x: cardX
             y: cardY
             width: view.cardWidth
@@ -264,14 +313,21 @@ Flickable {
 
             Loader {
                 id: visiblePlaceholder
+                objectName: "masonrySkeleton"
                 anchors.fill: parent
+                z: 2
+                enabled: false
                 active: view.visible && slot.placed
                         && slot.y + slot.height > view.contentY
                         && slot.y < view.contentY + view.height
-                        && (cardLoader.item === null || cardLoader.item.incubating === true
-                            || Number(cardLoader.item.resolvedHeight !== undefined
-                                      ? cardLoader.item.resolvedHeight
-                                      : cardLoader.item.implicitHeight || 0) <= 0)
+                        && (!slot.cardReady || opacity > 0.01)
+                opacity: slot.cardReady ? 0 : 1
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.reduceMotion || view.moving ? 0 : Theme.motionStandard
+                        easing.type: Easing.OutCubic
+                    }
+                }
                 asynchronous: false
                 sourceComponent: Component {
                     Item {
@@ -292,6 +348,7 @@ Flickable {
             }
             Loader {
                 id: cardLoader
+                objectName: "masonryCast"
                 readonly property int rowIndex: slot.sourceIndex
                 readonly property string stableKey: slot.stableKey
                 readonly property string revisionKey: slot.revisionKey
@@ -300,6 +357,16 @@ Flickable {
                 readonly property real slotY: slot.y
                 width: slot.width
                 active: slot.admitted
+                // Crossfade the hydrated card under the existing skeleton.
+                // Opacity is a scene graph operation; no height animation or
+                // extra image layer is needed for large image-heavy feeds.
+                opacity: slot.cardReady ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Theme.reduceMotion || view.moving ? 0 : Theme.motionStandard
+                        easing.type: Easing.OutCubic
+                    }
+                }
                 // Incubate costly CastItem trees over multiple frames.
                 asynchronous: true
                 sourceComponent: view.delegate

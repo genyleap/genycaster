@@ -93,7 +93,7 @@ test("Masonry viewport admission has no Loader.active geometry binding or loop",
     assert.match(source, /active: slot\.admitted/);
     assert.doesNotMatch(source, /active: view\.visible && view\.positioned && slot\.placed/);
     assert.match(source, /onContentYChanged: scheduleAdmission\(\)/);
-    assert.match(source, /onVisibleChanged: scheduleAdmission\(\)/);
+    assert.match(source, /onVisibleChanged: \{\s*scheduleAdmission\(\)\s*if \(visible && rebalancePending\) scheduleRebalance\(\)\s*\}/);
     assert.match(source, /function scheduleAdmission\(\)/);
     assert.match(source, /onTriggered: view\.updateAdmissions\(\)/);
     assert.match(source, /readonly property real retentionBuffer: cacheBuffer \+/);
@@ -133,7 +133,7 @@ test("Magazine incubates only admitted casts asynchronously without disabling ti
     // Rich text builds synchronously inside the already virtualized row,
     // preventing Qt from abandoning nested text incubators on scroll.
     assert.match(cast, /id: castTextBody[\s\S]*?asynchronous: false/);
-    assert.match(wall, /active: slot\.admitted\s*\/\/ Incubate costly CastItem trees over multiple frames\.\s*asynchronous: true\s*sourceComponent: view\.delegate/);
+    assert.match(wall, /active: slot\.admitted[\s\S]*?opacity: slot\.cardReady \? 1 : 0[\s\S]*?asynchronous: true\s*sourceComponent: view\.delegate/);
     assert.match(wall, /function updateAdmissions\(\)/);
     assert.doesNotMatch(wall, /active: .*slot\.height/);
 });

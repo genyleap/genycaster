@@ -45,6 +45,8 @@ import QtQuick
 QtObject {
     property real space3: 12
     property real space2: 8
+    property bool reduceMotion: false
+    property int motionStandard: 150
     property real curveContainer: 14
     property color surfaceRaised: "#20242c"
     property int uiDirection: Qt.LeftToRight
@@ -153,10 +155,20 @@ Feed.FeedMasonryView {
     QTest::qWait(85);
     const QVariantMap grown = layout->geometryAt(0);
     require(std::abs(grown.value(QStringLiteral("height")).toDouble() - 790.0) < 2.0);
+    QTest::qWait(390);
+    // This 960px fixture has two visual columns. Once the reader is at
+    // rest, source row 2 moves out of the taller first column into the
+    // shorter second lane, rather than reserving a permanent blank slab.
+    const QVariantMap packed = layout->geometryAt(2);
+    require(packed.value(QStringLiteral("x")) != grown.value(QStringLiteral("x")));
     source->setProperty(0, QStringLiteral("revisionKey"), QStringLiteral("settled"));
-    QTest::qWait(85);
+    QTest::qWait(390);
     const QVariantMap settled = layout->geometryAt(0);
     require(std::abs(settled.value(QStringLiteral("height")).toDouble() - 140.0) < 2.0);
+    // As the same row contracts, the delayed repack returns row 2 to
+    // the shortest first lane; the prior width/height reservation is gone.
+    require(layout->geometryAt(2).value(QStringLiteral("x"))
+            == settled.value(QStringLiteral("x")));
     // Column geometry must have no oversized holes or overlapping children,
     // including after the delegate contracts from a larger reservation.
     QHash<int, qreal> previousBottom{};

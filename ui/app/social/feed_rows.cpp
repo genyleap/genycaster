@@ -358,6 +358,13 @@ qreal MasonryWindowModel::fallbackHeight(const Slot& slot) const
     return slot.kind == QStringLiteral("developer") ? 350.0 : 210.0;
 }
 
+void MasonryWindowModel::requestRepack() noexcept
+{
+    // Keep currently visible lanes stable during hydration. The caller
+    // coalesces this costly, visually disruptive pass until the reader rests.
+    m_forceRepack = true;
+}
+
 bool MasonryWindowModel::retainHeight(const QString& key, const QString& revision,
                                       const qreal width, const qreal height,
                                       const bool measured)

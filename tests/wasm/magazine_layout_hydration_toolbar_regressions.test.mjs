@@ -69,6 +69,37 @@ test('Magazine never mistakes a provisional Loader reservation for a real painte
   assert.match(surface, /width: magazineRow && parent \? parent\.width : readList\.width/);
 });
 
+test('Magazine soft-reveals hydrated cards and coalesces lane balancing only after motion', () => {
+  const cpp = source('ui/app/social/feed_rows.cpp');
+  const header = source('ui/app/social/feed_rows.hpp');
+  assert.match(header, /Q_INVOKABLE void requestRepack\(\) noexcept;/);
+  assert.match(cpp, /void MasonryWindowModel::requestRepack\(\) noexcept[\s\S]*?m_forceRepack = true;/);
+  assert.match(wall, /function scheduleRebalance\(\)/);
+  assert.match(wall, /if \(visible && positioned && !moving\)\s+rebalanceTimer\.restart\(\)/);
+  assert.match(wall, /onMovementStarted: rebalanceTimer\.stop\(\)/);
+  assert.match(wall, /onMovementEnded: if \(rebalancePending\) scheduleRebalance\(\)/);
+  assert.match(wall, /id: rebalanceTimer; interval: 300; repeat: false; onTriggered: view\.rebalanceNow\(\)/);
+  assert.match(wall, /layoutModel\.requestRepack\(\)/);
+  assert.match(wall, /readonly property bool cardReady: cardLoader\.status === Loader\.Ready[\s\S]*?paintedHeight > 0/);
+  assert.match(wall, /id: visiblePlaceholder[\s\S]*?opacity: slot\.cardReady \? 0 : 1/);
+  assert.match(wall, /id: cardLoader[\s\S]*?opacity: slot\.cardReady \? 1 : 0/);
+  assert.ok((wall.match(/duration: Theme\.reduceMotion \|\| view\.moving \? 0 : Theme\.motionStandard/g) || []).length >= 2,
+    'both sides of the skeleton handoff honor reduced motion and scroll');
+  assert.doesNotMatch(wall, /Behavior on (?:height|cardHeight)/,
+    'native geometry corrections must not be delayed by decorative size animations');
+});
+
+test('artwork reveals with opacity only after decode; miniature avatars avoid extra animations', () => {
+  const image = source('ui/components/visual/SuperellipseImage.qml');
+  const tile = source('ui/components/media/GalleryTile.qml');
+  assert.match(image, /property bool smoothReveal: false/);
+  assert.match(image, /visible: root\.ready \|\| \(root\.retainPreviousWhileLoading && imageSource\.status === Image\.Loading\)/);
+  assert.match(image, /opacity: root\.ready \|\| \(root\.retainPreviousWhileLoading[\s\S]*?\? 1 : 0\s*Behavior on opacity/);
+  assert.match(image, /enabled: root\.smoothReveal && !Theme\.reduceMotion && !root\.scrollMoving/);
+  assert.match(tile, /fillColor: !preview\.ready \? Theme\.surfaceMuted/);
+  assert.match(tile, /smoothReveal: true/);
+});
+
 test('Magazine view/filter toolbar matches one segmented surface across Explorer and Profile', () => {
   assert.match(toolbar, /id: segments[\s\S]*?fillColor: Theme\.surfaceMuted/);
   assert.match(toolbar, /id: segmentChoices[\s\S]*?anchors\.margins: 4/);

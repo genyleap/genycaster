@@ -119,6 +119,17 @@ int main(int argc, char** argv)
     require(grown.value(QStringLiteral("y")).toDouble() > previousLaneY + 600.0);
     require(magazine.geometryAt(1).value(QStringLiteral("y")) ==
            top.value(QStringLiteral("y")));
+
+    // Hydration can make the original shortest-lane decisions very stale:
+    // a 900px card pinned to lane 0 must not keep every later slot in lane 0
+    // while adjacent lanes have free space. The reader requests this pass
+    // only after movement has stopped (not for every media-frame update).
+    magazine.requestRepack();
+    magazine.relayout(3, 320.0, 12.0, 12.0, 12.0, false);
+    const auto rebalanced = magazine.geometryAt(3);
+    require(rebalanced.value(QStringLiteral("x")) != top.value(QStringLiteral("x")));
+    require(rebalanced.value(QStringLiteral("y")).toDouble() < previousLaneY + 90.0);
+    require(magazine.geometryAt(0).value(QStringLiteral("height")).toDouble() == 900.0);
     magazine.setViewport(8000.0, 720.0, 280.0, 950.0, true);
     require(magazine.count() > 0 && magazine.count() < 70);
     const int distantSource = magazine.data(magazine.index(0, 0),

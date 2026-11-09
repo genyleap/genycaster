@@ -23,6 +23,9 @@ Item {
     property int requestedSourceHeight: 0
     property int decodeQuantum: 128
     property bool showLoadingIndicator: true
+    // Large feed artwork can opt into a cheap image-node opacity reveal.
+    // Avatars/thumbnails retain their immediate path by default.
+    property bool smoothReveal: false
     property bool showFailureIndicator: true
     property bool showManualLoadIndicator: true
     property bool retainPreviousWhileLoading: false
@@ -404,6 +407,14 @@ Item {
         smooth: true
         mipmap: false
         visible: root.ready || (root.retainPreviousWhileLoading && imageSource.status === Image.Loading)
+        // Retain-previous mode must keep the old pixels visible while an
+        // updated source loads; a reveal must not override that contract.
+        opacity: root.ready || (root.retainPreviousWhileLoading
+                   && imageSource.status === Image.Loading) ? 1 : 0
+        Behavior on opacity {
+            enabled: root.smoothReveal && !Theme.reduceMotion && !root.scrollMoving
+            NumberAnimation { duration: Theme.motionStandard; easing.type: Easing.OutCubic }
+        }
         layer.enabled: root.maskActive
         layer.smooth: true
         // Assigning an inline effect unconditionally constructs QQuickMultiEffect

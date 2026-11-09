@@ -134,6 +134,9 @@ public:
     Q_INVOKABLE void relayout(int columns, qreal cardWidth, qreal gap, qreal top,
                             qreal leadingInset, bool rtl);
 
+    /** @brief Rebalances lane assignment on the next relayout, after scrolling settles. */
+    Q_INVOKABLE void requestRepack() noexcept;
+
     /** @brief Updates the bounded visible window by per-lane binary search. */
     Q_INVOKABLE void setViewport(qreal top, qreal height, qreal enteringBuffer,
                                  qreal retentionBuffer, bool active);

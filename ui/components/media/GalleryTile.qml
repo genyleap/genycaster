@@ -108,7 +108,9 @@ Item {
         fillMode: root.preserveAspect ? Image.PreserveAspectFit : Image.PreserveAspectCrop
         curveDepth: Theme.shapeMedia
         clipToSuperellipse: root.useLayeredMask
-        fillColor: preview.ready && root.preserveAspect ? "transparent" : Theme.surface
+        fillColor: !preview.ready ? Theme.surfaceMuted
+                   : root.preserveAspect ? "transparent" : Theme.surface
+        smoothReveal: true
         borderWidth: 0
         onLoadFailedChanged: {
             if (loadFailed && !root.originFallbackAttempted
