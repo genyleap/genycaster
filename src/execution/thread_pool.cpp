@@ -11,6 +11,8 @@ module;
 #include <utility>
 #include <vector>
 
+#include "thread_startup.hpp"
+
 module farcaster.execution.thread_pool;
 
 import farcaster.application.executor;
@@ -26,10 +28,16 @@ struct ThreadPoolExecutor::Impl final {
         : maximumPendingJobs(std::max<std::size_t>(requestedMaximumPendingJobs, 1U))
     {
         const std::size_t workerCount = std::max<std::size_t>(requestedWorkerCount, 1U);
-        workers.reserve(workerCount);
-        for (std::size_t index = 0; index < workerCount; ++index) {
-            workers.emplace_back([this] { run(); });
-        }
+        detail::startWorkerGroup(workers, workerCount,
+            [this] { return std::thread{[this] { run(); }}; },
+            [this]() noexcept {
+                {
+                    std::scoped_lock lock{mutex};
+                    isStopping = true;
+                    isAccepting = false;
+                }
+                condition.notify_all();
+            });
     }
 
     ~Impl() = default;

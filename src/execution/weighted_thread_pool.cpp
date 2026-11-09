@@ -12,6 +12,8 @@ module;
 #include <utility>
 #include <vector>
 
+#include "thread_startup.hpp"
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -132,11 +134,13 @@ foundation::result::Status WeightedThreadPoolExecutor::post(
             foundation::error::ErrorCode::RateLimited,
             "Weighted executor retained-byte budget is exhausted."));
     }
-    state->queuedWeightBytes += retainedBytes;
+    // Commit accounting only after deque insertion succeeds. An allocation
+    // failure must not permanently consume the retained-byte budget.
     state->jobs.push_back(CooperativeWeightedState::Entry{
         .retainedBytes = retainedBytes,
         .job = std::move(job),
     });
+    state->queuedWeightBytes += retainedBytes;
     state->schedule();
     return {};
 }
@@ -159,10 +163,16 @@ struct WeightedThreadPoolExecutor::Impl final {
           maximumQueuedWeightBytes(std::max<std::size_t>(requestedMaximumQueuedWeightBytes, 1U))
     {
         const std::size_t workerCount = std::max<std::size_t>(requestedWorkerCount, 1U);
-        workers.reserve(workerCount);
-        for (std::size_t index = 0; index < workerCount; ++index) {
-            workers.emplace_back([this] { run(); });
-        }
+        detail::startWorkerGroup(workers, workerCount,
+            [this] { return std::thread{[this] { run(); }}; },
+            [this]() noexcept {
+                {
+                    std::scoped_lock lock{mutex};
+                    isStopping = true;
+                    isAccepting = false;
+                }
+                available.notify_all();
+            });
     }
 
     void run()
@@ -271,11 +281,13 @@ foundation::result::Status WeightedThreadPoolExecutor::post(
                 foundation::error::ErrorCode::RateLimited,
                 "Weighted executor retained-byte budget is exhausted."));
         }
-        m_impl->queuedWeightBytes += retainedBytes;
+        // Preserve accounting if deque insertion throws bad_alloc. The job
+        // is movable without throwing; enqueue is the only commit point.
         m_impl->jobs.push_back(WeightedJob{
             .retainedBytes = retainedBytes,
             .job = std::move(job),
         });
+        m_impl->queuedWeightBytes += retainedBytes;
     }
     m_impl->available.notify_one();
     return {};
