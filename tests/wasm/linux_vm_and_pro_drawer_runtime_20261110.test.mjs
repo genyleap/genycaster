@@ -17,10 +17,13 @@ test('Parallels Linux virtual GPU selects CPU renderer before Qt initializes', (
   assert.match(main, /product_name/);
   assert.match(main, /sys_vendor/);
   assert.match(main, /toLower\(\)\.contains\("parallels"\)/);
-  assert.match(main, /qputenv\("QT_QUICK_BACKEND", "software"\)/);
+  assert.match(main, /qputenv\("QSG_RHI_BACKEND", "opengl"\)/);
+  assert.match(main, /qputenv\("LIBGL_ALWAYS_SOFTWARE", "1"\)/);
+  assert.doesNotMatch(main, /qputenv\("QT_QUICK_BACKEND", "software"\)/);
   assert.match(smoke, /--visual-test --snapshot/);
   assert.match(smoke, /Black\/blank Qt Quick frame/);
-  assert.doesNotMatch(smoke, /QSG_RHI_BACKEND=software/);
+  assert.match(smoke, /QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1/);
+  assert.doesNotMatch(smoke, /QT_QUICK_BACKEND=software/);
 });
 
 test('Pro drawer never presents payment before FID-scoped entitlement is verified', () => {

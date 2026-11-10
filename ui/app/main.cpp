@@ -219,11 +219,12 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
 int main(int argc, char* argv[])
 {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-    // Parallels Desktop's virtual ARM GPU can create a Qt Quick window but
-    // fail to present any scene-graph frames (a fully black client surface).
-    // Select the CPU Qt Quick renderer before QGuiApplication/QQuickWindow
-    // initialization only for that known virtual GPU. Respect user-specified
-    // graphics backends and retain accelerated rendering on real hardware.
+    // Parallels' virtual GPU can create a window without presenting frames.
+    // Keep Qt's RHI scene graph (Shapes and shader effects require it) and
+    // render its OpenGL backend through Mesa's CPU llvmpipe driver instead.
+    // QT_QUICK_BACKEND=software replaces the entire scene graph and can
+    // yield a blank UI even though QML startup succeeds. Honour explicit
+    // user/administrator backend overrides.
     if (qEnvironmentVariableIsEmpty("QT_QUICK_BACKEND")
         && qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
         QFile virtualMachineProduct{QStringLiteral("/sys/class/dmi/id/product_name")};
@@ -236,9 +237,11 @@ int main(int argc, char* argv[])
         if (containsParallels(virtualMachineProduct)
             || containsParallels(virtualMachineVendor)
             || containsParallels(virtualMachineArmModel)) {
-            qputenv("QT_QUICK_BACKEND", "software");
-            qInfo() << "GenyCaster: Parallels virtual GPU detected;"
-                       " using Qt Quick software renderer";
+            qputenv("QSG_RHI_BACKEND", "opengl");
+            if (qEnvironmentVariableIsEmpty("LIBGL_ALWAYS_SOFTWARE"))
+                qputenv("LIBGL_ALWAYS_SOFTWARE", "1");
+            qInfo() << "GenyCaster: Parallels detected; using Qt RHI"
+                       " OpenGL through Mesa software rasterization";
         }
     }
 #endif

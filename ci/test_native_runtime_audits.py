@@ -6,11 +6,13 @@ import tempfile
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from ci.audit_linux_appdir import validate as validate_linux
 from ci.prune_linux_qt_plugins import prune
 from ci.audit_macos_bundle import audit as validate_macos
+from ci.prune_macos_bundle import prune as prune_macos
 
 
 def fixture_macos(app: Path) -> None:
@@ -93,6 +95,39 @@ class RuntimePackagingTests(unittest.TestCase):
             sql.write_bytes(b"bad external libpq reference")
             with self.assertRaisesRegex(ValueError, "SQL drivers"):
                 validate_macos(app, "arm64", inspect_macho=False)
+
+    def test_macos_prunes_unreferenced_sql_framework_before_dmg(self):
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+            sql = app / "Contents/Frameworks/QtSql.framework"
+            (sql / "Versions/A").mkdir(parents=True)
+            (sql / "Versions/A/QtSql").write_bytes(b"unused Mach-O")
+            plugin = app / "Contents/PlugIns/sqldrivers/libqsqlite.dylib"
+            plugin.parent.mkdir(parents=True)
+            plugin.write_bytes(b"unused plugin")
+            with patch("ci.prune_macos_bundle.subprocess.run",
+                       return_value=subprocess.CompletedProcess(
+                           ["/usr/bin/otool"], 0,
+                           "binary:\\n    @rpath/QtCore.framework/Versions/A/QtCore", "")):
+                self.assertEqual(prune_macos(app), 2)
+            self.assertFalse(sql.exists())
+            self.assertFalse(plugin.exists())
+            validate_macos(app, "arm64", inspect_macho=False)
+
+    def test_macos_does_not_delete_sql_needed_by_another_plugin(self):
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+            sql = app / "Contents/Frameworks/QtSql.framework"
+            sql.mkdir(parents=True)
+            with patch("ci.prune_macos_bundle.subprocess.run",
+                       return_value=subprocess.CompletedProcess(
+                           ["/usr/bin/otool"], 0,
+                           "binary:\\n    @rpath/QtSql.framework/Versions/A/QtSql", "")):
+                with self.assertRaisesRegex(ValueError, "dynamically required"):
+                    prune_macos(app)
+            self.assertTrue(sql.exists())
 
     def test_macos_rejects_missing_cocoa_plugin(self):
         with tempfile.TemporaryDirectory() as d:

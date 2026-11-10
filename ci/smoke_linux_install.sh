@@ -21,15 +21,17 @@ DIRECTORY="$(dirname "$PACKAGE")"
 FILENAME="$(basename "$PACKAGE")"
 APPIMAGE_FILE="$(basename "$APPIMAGE")"
 
+mkdir -p "$DIRECTORY/diagnostics"
 docker run --rm \
   --mount "type=bind,src=$DIRECTORY,dst=/release,readonly" \
+  --mount "type=bind,src=$DIRECTORY/diagnostics,dst=/diagnostics" \
   --env "GENYCASTER_DEB=$FILENAME" \
   --env "GENYCASTER_APPIMAGE=$APPIMAGE_FILE" \
   ubuntu:24.04 bash -euc '
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
     apt-get install -y -qq --no-install-recommends \
-      "/release/$GENYCASTER_DEB" xvfb xauth python3-pil >/dev/null
+      "/release/$GENYCASTER_DEB" xvfb xauth python3-pil libgl1-mesa-dri >/dev/null
     test -x /opt/genycaster/AppRun
     # Qt must come from the installer, not from an independently installed
     # distro package. Test the full QML startup on a blank user environment.
@@ -40,7 +42,7 @@ docker run --rm \
     export XDG_RUNTIME_DIR=/tmp/genycaster-xdg
     mkdir -p "$XDG_RUNTIME_DIR"
     chmod 700 "$XDG_RUNTIME_DIR"
-    QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+    QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
       QML_DISABLE_DISK_CACHE=1 \
       timeout 45s xvfb-run -a env \
         -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
@@ -50,7 +52,7 @@ docker run --rm \
     echo "Clean Ubuntu 24.04 Qt/QML installer smoke: PASS"
     # AppImage must work independently of system Qt, too. The type-2
     # extractor avoids FUSE requirements in unprivileged containers.
-    APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+    APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
       QML_DISABLE_DISK_CACHE=1 \
       timeout 45s xvfb-run -a env \
         -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
@@ -66,19 +68,19 @@ docker run --rm \
       else
         program="/release/$GENYCASTER_APPIMAGE"
       fi
-      QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+      QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
         QML_DISABLE_DISK_CACHE=1 APPIMAGE_EXTRACT_AND_RUN=1 \
         timeout 45s xvfb-run -a env \
           -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
           -u QML_IMPORT_PATH -u QML2_IMPORT_PATH -u LD_LIBRARY_PATH \
-          "$program" --visual-test --snapshot "/tmp/genycaster-$target.png" \
+          "$program" --visual-test --snapshot "/diagnostics/genycaster-$target.png" \
           --snapshot-delay-ms=2800 \
           --settings-path="/tmp/genycaster-$target-visual.ini"
       python3 - "$target" <<'"'"'PY'"'"'
 from PIL import Image
 from pathlib import Path
 import sys
-path = Path("/tmp/genycaster-" + sys.argv[1] + ".png")
+path = Path("/diagnostics/genycaster-" + sys.argv[1] + ".png")
 with Image.open(path) as image:
     rgb = image.convert("RGB")
     width, height = rgb.size
@@ -88,7 +90,7 @@ with Image.open(path) as image:
                              y * (height - 1) // 23))
                for y in range(24) for x in range(32)}
     if len(samples) < 12:
-        raise SystemExit(f"Black/blank Qt Quick frame: {sys.argv[1]} ({len(samples)} colors)")
+        raise SystemExit(f"Black/blank Qt Quick frame: {sys.argv[1]} ({len(samples)} colors, RGB={next(iter(samples))})")
     print(f"Linux {sys.argv[1]} software-rendered frame: PASS ({len(samples)} sampled colors)")
 PY
     done
