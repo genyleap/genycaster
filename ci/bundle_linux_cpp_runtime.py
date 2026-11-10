@@ -18,6 +18,15 @@ LAUNCHER = """#!/bin/sh
 set -eu
 appdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 export LD_LIBRARY_PATH="$appdir/usr/lib{{EXISTING_LIBRARY_PATH}}"
+# Qt may prefer native Wayland on the host, although the portable package
+# only includes XCB. Use XWayland when available instead of failing QPA init.
+# Respect explicit user/application platform overrides.
+if [ -z "${QT_QPA_PLATFORM:-}" ] && [ -n "${WAYLAND_DISPLAY:-}" ] &&
+   [ -n "${DISPLAY:-}" ] &&
+   [ ! -f "$appdir/usr/plugins/platforms/libqwayland-generic.so" ] &&
+   [ ! -f "$appdir/usr/plugins/platforms/libqwayland-egl.so" ]; then
+    export QT_QPA_PLATFORM=xcb
+fi
 exec "$appdir/usr/bin/Genycaster" "$@"
 """.replace("{{EXISTING_LIBRARY_PATH}}", "$" + "{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}")
 
