@@ -406,8 +406,11 @@ add_executable(farcaster_openproof_connections_tests
     "${genycasterUiSourceDir}/app/identity/browser_auth.hpp")
 target_include_directories(farcaster_openproof_connections_tests PRIVATE
     "${genycasterUiSourceDir}/app")
+# This target recompiles the production connections.cpp independently.
+# Its native secure-session proof uses QtConcurrent; the executable's link
+# dependencies do not propagate to standalone test binaries.
 target_link_libraries(farcaster_openproof_connections_tests PRIVATE
-    Qt6::Core Qt6::Network Qt6::Gui)
+    Qt6::Core Qt6::Network Qt6::Gui Qt6::Concurrent)
 farcaster_enable_warnings(farcaster_openproof_connections_tests)
 set_source_files_properties("${CMAKE_BINARY_DIR}/generated/public_endpoints.json"
     PROPERTIES QT_RESOURCE_ALIAS "public_endpoints.json")

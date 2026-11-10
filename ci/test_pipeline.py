@@ -66,6 +66,21 @@ class PipelineTests(unittest.TestCase):
                 self.assertIn('QT_RESOURCE_ALIAS "components/' + public + '"',
                               cmake, public)
 
+    def test_openproof_connections_test_links_native_concurrent(self) -> None:
+        """Standalone C++ test must carry every library needed by its sources."""
+        import re
+
+        source = Path("ui/app/identity/connections.cpp").read_text()
+        cmake = Path("tests/ui/CMakeLists.txt").read_text()
+        self.assertIn("#include <QtConcurrent>", source)
+        self.assertIn("QtConcurrent::run(", source)
+        self.assertIn('"${genycasterUiSourceDir}/app/identity/connections.cpp"', cmake)
+        links = re.search(
+            r"target_link_libraries\(farcaster_openproof_connections_tests"
+            r"\s+PRIVATE\s+([^)]*)\)", cmake, re.S)
+        self.assertIsNotNone(links)
+        self.assertIn("Qt6::Concurrent", links.group(1))
+
     def test_explorer_masonry_uses_supported_qt_keyboard_signals(self) -> None:
         """Unsupported Keys signals must not break Main.qml at application startup."""
         import re
