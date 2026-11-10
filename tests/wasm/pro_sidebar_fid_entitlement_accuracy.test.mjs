@@ -184,17 +184,32 @@ test('Pro navigation, payment and mobile profile use responsive layout and brand
  const profile=read('ui/components/profile/ProfileSurface.qml');
  const control=read('ui/components/controls/GenyDrawer.qml');
  const cmake=read('ui/CMakeLists.txt');
- assert.match(drawer,/edge: root\.compact \? Qt\.BottomEdge : \(Theme\.rtl \? Qt\.RightEdge : Qt\.LeftEdge\)/);
- assert.match(drawer,/height: root\.compact[\s\S]*?: parent\.height/);
+ assert.match(drawer,/edge: root\.compact \? Qt\.BottomEdge : Qt\.RightEdge/);
+ assert.match(drawer,/fullScreen: root\.compact/);
+ assert.match(drawer,/showHandle: false/);
+ assert.match(drawer,/height: parent\.height/);
  assert.match(control,/edge: bottomSheet \? Qt\.BottomEdge/);
  assert.match(profile,/objectName: "profileUsernameAndLinksRow"/);
+ assert.ok(profile.indexOf('objectName: "profileIdentityRow"')
+   < profile.indexOf('id: identityLinks'));
+ assert.ok(profile.indexOf('id: identityLinks')
+   < profile.indexOf('objectName: "profileUsernameAndLinksRow"'));
  assert.match(profile,/id: identityLinks[\s\S]*?Layout\.preferredWidth: Math\.min\(implicitWidth, Layout\.maximumWidth\)/);
+ assert.match(profile,/id: identityPrimaryLink[\s\S]*?Layout\.fillWidth: false/);
+ assert.match(profile,/id: identityMoreLinks[\s\S]*?padding: 0/);
  assert.match(profile,/id: profileProBadge[\s\S]*?visible: root\.isOwnProfile[\s\S]*?id: profileStreakBadge/);
  assert.doesNotMatch(profile,/objectName: "compactOwnAccountProStatus"/);
  assert.doesNotMatch(profile,/text: qsTrId\("genycaster\.profile\.linked_networks"\)/);
- assert.match(drawer,/geny-token-mark-dark\.svg/);
- assert.match(drawer,/geny-token-mark-light\.svg/);
- assert.match(drawer,/usdc-token-mark\.svg/);
+ assert.match(drawer,/ProTokenMark\s*\{\s*asset: modelData/);
+ assert.match(drawer,/ProTokenMark\s*\{\s*asset: root\.quoteAsset/);
+ const token=read('ui/components/profile/ProTokenMark.qml');
+ assert.match(token,/geny-token-mark-dark\.svg/);
+ assert.match(token,/geny-token-mark-light\.svg/);
+ assert.match(token,/usdc-token-mark\.svg/);
+ assert.match(token,/sourceSize\.width: Math\.max\(24, Math\.ceil\(width/);
+ assert.match(token,/Screen\.devicePixelRatio/);
+ assert.match(token,/228\.73 \/ 465\.02/);
+ assert.match(cmake,/components\/profile\/ProTokenMark\.qml/);
  assert.match(cmake,/genyleap\/\*\.svg/);
  const symbol=read('ui/assets/icons/genyleap/icons/brands/usdc-token-mark.svg');
  assert.match(symbol,/<svg[\s\S]*?#2775CA/);

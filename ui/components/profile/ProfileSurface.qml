@@ -1906,14 +1906,10 @@ Item {
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
-                            // Pro belongs with Streak on the achievement row,
-                            // not beside the display name. Let names take the
-                            // available identity-row width on narrow screens.
-                            Layout.fillWidth: root.compact
+                            // The name and link cluster share this baseline.
+                            // The name yields space before its text is elided.
+                            Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            Layout.maximumWidth: root.compact
-                                ? Math.max(0, root.profileContentWidth - Theme.space2)
-                                : Math.max(100, root.profileContentWidth * 0.57)
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
@@ -1988,7 +1984,86 @@ Item {
                         
 
                         
-                        Item { Layout.fillWidth: true }
+                        RowLayout {
+                            id: identityLinks
+                            objectName: "profileIdentityLinks"
+                            visible: root.primaryProfileLinkUrl.length > 0
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.minimumWidth: 0
+                            // Size to the contents, not the available row:
+                            // both clickable labels remain adjacent even when
+                            // the profile spans a very wide desktop viewport.
+                            Layout.maximumWidth: Math.min(root.profileContentWidth
+                                * (root.compact ? 0.51 : 0.48),
+                                Theme.scaleUi(root.compact ? 260 : 365))
+                            Layout.preferredWidth: Math.min(implicitWidth, Layout.maximumWidth)
+                            spacing: Theme.space1
+                            layoutDirection: Theme.uiDirection
+
+                            Button {
+                                id: identityPrimaryLink
+                                objectName: "profileIdentityPrimaryLink"
+                                Layout.fillWidth: false
+                                Layout.minimumWidth: 0
+                                Layout.preferredWidth: Math.min(implicitWidth,
+                                    Math.max(Theme.scaleUi(45), identityLinks.Layout.maximumWidth
+                                        - (identityMoreLinks.visible ? identityMoreLinks.implicitWidth
+                                            + identityLinks.spacing : 0)))
+                                flat: true
+                                hoverEnabled: true
+                                padding: 0
+                                background: Item {}
+                                contentItem: RowLayout {
+                                    spacing: Theme.space1
+                                    layoutDirection: Theme.uiDirection
+                                    Icon {
+                                        text: Theme.iconLink
+                                        color: Theme.accent
+                                        preferredSize: Theme.typeCaptionSize
+                                    }
+                                    Label {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        text: root.displayUrl(root.primaryProfileLinkUrl)
+                                        horizontalAlignment: Theme.textStartAlignment
+                                        LayoutMirroring.enabled: false
+                                        color: Theme.accent
+                                        font.family: Theme.latinFontFamily
+                                        font.pixelSize: Theme.typeCaptionSize
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+                                Accessible.role: Accessible.Link
+                                Accessible.name: root.primaryProfileLinkUrl
+                                onClicked: root.externalRequested(root.primaryProfileLinkUrl)
+                            }
+                            Button {
+                                id: identityMoreLinks
+                                objectName: "profileMoreLinksInline"
+                                visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
+                                Layout.alignment: Qt.AlignVCenter
+                                flat: true
+                                hoverEnabled: true
+                                padding: Theme.space1
+                                background: Rectangle {
+                                    radius: Theme.curveCompact
+                                    color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
+                                    Behavior on color {
+                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                    }
+                                }
+                                contentItem: Label {
+                                    text: qsTrId("genycaster.profile.more_links").arg(
+                                        LocaleFormat.formatInteger(root.additionalProfileLinksCount))
+                                    color: Theme.inkMuted
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightDemiBold
+                                }
+                                Accessible.name: qsTrId("genycaster.profile.show_all_links")
+                                onClicked: profileLinksDrawer.open()
+                            }
+                        }
 
                         ActionButton {
                         // Unknown is not a confirmed negative relationship.
@@ -2045,89 +2120,6 @@ Item {
                             font.pixelSize: Theme.typeMetaSize
                             horizontalAlignment: Theme.textStartAlignment
                             elide: Text.ElideRight
-                        }
-
-
-                        Item {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
-                        }
-
-                        RowLayout {
-                            id: identityLinks
-                            objectName: "profileIdentityLinks"
-                            visible: root.primaryProfileLinkUrl.length > 0
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.minimumWidth: 0
-                            // Measure the URL and 'and N more' together. A
-                            // fixed-width link group leaves a visible gap
-                            // between their labels and compresses the handle.
-                            Layout.maximumWidth: Math.min(root.profileContentWidth
-                                * (root.compact ? 0.58 : 0.60),
-                                Theme.scaleUi(root.compact ? 290 : 380))
-                            Layout.preferredWidth: Math.min(implicitWidth, Layout.maximumWidth)
-                            spacing: Theme.space2
-                            layoutDirection: Theme.uiDirection
-
-                            Button {
-                                id: identityPrimaryLink
-                                objectName: "profileIdentityPrimaryLink"
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 0
-                                flat: true
-                                hoverEnabled: true
-                                padding: 0
-                                background: Item {}
-                                contentItem: RowLayout {
-                                    spacing: Theme.space1
-                                    layoutDirection: Theme.uiDirection
-                                    Icon {
-                                        text: Theme.iconLink
-                                        color: Theme.accent
-                                        preferredSize: Theme.typeCaptionSize
-                                    }
-                                    Label {
-                                        Layout.fillWidth: true
-                                        Layout.minimumWidth: 0
-                                        text: root.displayUrl(root.primaryProfileLinkUrl)
-                                        horizontalAlignment: Theme.textStartAlignment
-                                        LayoutMirroring.enabled: false
-                                        color: Theme.accent
-                                        font.family: Theme.latinFontFamily
-                                        font.pixelSize: Theme.typeCaptionSize
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                }
-                                Accessible.role: Accessible.Link
-                                Accessible.name: root.primaryProfileLinkUrl
-                                onClicked: root.externalRequested(root.primaryProfileLinkUrl)
-                            }
-                            Button {
-                                id: identityMoreLinks
-                                objectName: "profileMoreLinksInline"
-                                visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
-                                Layout.alignment: Qt.AlignVCenter
-                                flat: true
-                                hoverEnabled: true
-                                padding: Theme.space1
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
-                                    Behavior on color {
-                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                    }
-                                }
-                                contentItem: Label {
-                                    text: qsTrId("genycaster.profile.more_links").arg(
-                                        LocaleFormat.formatInteger(root.additionalProfileLinksCount))
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                Accessible.name: qsTrId("genycaster.profile.show_all_links")
-                                onClicked: profileLinksDrawer.open()
-                            }
                         }
                     }
 

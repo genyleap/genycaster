@@ -127,18 +127,17 @@ GenyDrawer {
         return qsTrId("genycaster.pro.checkout_open_wallet")
     }
 
+    // Mobile checkout fills the screen; a short sheet hides benefits and
+    // makes the payment steps appear clipped above a fixed footer.
     bottomSheet: root.compact
-    showHandle: root.compact
+    fullScreen: root.compact
+    showHandle: false
     dimBackground: true
-    // Desktop checkout is a full-height side drawer on the physical left in
-    // LTR; RTL mirrors the opening edge. Mobile remains a bottom sheet.
-    edge: root.compact ? Qt.BottomEdge : (Theme.rtl ? Qt.RightEdge : Qt.LeftEdge)
+    // Billing always opens from the physical right on desktop, regardless
+    // of interface language. Other GenyDrawer instances keep their policy.
+    edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
     width: root.compact ? parent.width : Math.min(468, parent.width * 0.94)
-    height: root.compact
-        ? Math.min(parent.height * 0.9,
-            Math.max(Theme.scaleUi(350), fixedHeader.height + fixedActions.height
-                + detailsColumn.implicitHeight + Theme.space4 * 3))
-        : parent.height
+    height: parent.height
     contentPadding: Theme.space4
 
     Timer {
@@ -358,20 +357,9 @@ GenyDrawer {
                                     layoutDirection: Theme.uiDirection
                                     spacing: Theme.space2
                                     Item { Layout.fillWidth: true }
-                                    Image {
-                                        Layout.preferredWidth: Theme.scaleUi(24)
-                                        Layout.preferredHeight: Theme.scaleUi(24)
-                                        source: modelData === "GENY"
-                                            ? (Theme.dark
-                                                ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
-                                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg")
-                                            : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/usdc-token-mark.svg"
-                                        sourceSize.width: 72
-                                        sourceSize.height: 72
-                                        fillMode: Image.PreserveAspectFit
-                                        smooth: true
-                                        mipmap: false
-                                        Accessible.name: modelData
+                                    ProTokenMark {
+                                        asset: modelData
+                                        tokenSize: Theme.scaleUi(30)
                                     }
                                     DirectionAwareLabel {
                                         text: modelData
@@ -529,19 +517,9 @@ GenyDrawer {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
-                        Image {
-                            Layout.preferredWidth: Theme.scaleUi(38)
-                            Layout.preferredHeight: Theme.scaleUi(38)
-                            source: root.quoteAsset === "GENY"
-                                ? (Theme.dark
-                                    ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
-                                    : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg")
-                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/usdc-token-mark.svg"
-                            sourceSize.width: 112
-                            sourceSize.height: 112
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            mipmap: false
+                        ProTokenMark {
+                            asset: root.quoteAsset
+                            tokenSize: Theme.scaleUi(40)
                         }
                         ColumnLayout {
                             Layout.fillWidth: true

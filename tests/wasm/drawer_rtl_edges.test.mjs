@@ -26,9 +26,11 @@ test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom 
   for (const file of owners){
     if(file==='components/controls/GenyDrawer.qml')continue;
     if(file==='components/profile/GenyProDetailsDrawer.qml') {
-      // Purchase alone intentionally opens as a full-height left inspector,
-      // mirrored in RTL; every other drawer inherits the shared policy.
-      assert.match(qml(file),/edge: root\.compact \? Qt\.BottomEdge : \(Theme\.rtl \? Qt\.RightEdge : Qt\.LeftEdge\)/);
+      // Checkout uniquely opens on the physical RIGHT on desktop and fills
+      // the screen on mobile; other drawers retain their RTL edge policy.
+      assert.match(qml(file),/edge: root\.compact \? Qt\.BottomEdge : Qt\.RightEdge/);
+      assert.match(qml(file),/fullScreen: root\.compact/);
+      assert.match(qml(file),/height: parent\.height/);
       continue;
     }
     // No accidental physical side overrides in child instances. All desktop

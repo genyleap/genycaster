@@ -54,6 +54,7 @@ set(farcasterQmlFiles
     components/composer/FormattingToolbar.qml
     components/controls/GenyDrawer.qml
     components/profile/GenyProDetailsDrawer.qml
+    components/profile/ProTokenMark.qml
     components/controls/GenyAdaptiveDialog.qml
     components/media/GalleryLayout.qml
     components/media/GalleryTile.qml
