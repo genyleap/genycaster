@@ -12,6 +12,9 @@ GenyDrawer {
     signal accountRequested()
     property string selectedAsset: "GENY"
     property bool checkoutOpen: false
+    // Opening membership details is read-only; never initiate a payment
+    // quote or a secure-session challenge until the user requests checkout.
+    property bool purchaseIntent: false
     property string displayedQuoteId: ""
     property bool showBenefits: false
     property bool manualExpanded: false
@@ -27,7 +30,8 @@ GenyDrawer {
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property var paymentQuote: openProofConnections
         ? (openProofConnections.proPaymentQuote || ({})) : ({})
-    readonly property bool eligible: membership.status === "verified"
+    readonly property bool membershipVerified: membership.status === "verified"
+    readonly property bool eligible: membershipVerified
         && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
         && presentationBridge.isAuthenticated && openProofConnections
@@ -53,8 +57,8 @@ GenyDrawer {
         && String(proCheckout.txHash || "").length === 66
         && String(proCheckout.quoteId || "") === String(paymentQuote.id || "")
     readonly property bool validPaymentHash: /^0x[0-9a-fA-F]{64}$/.test(paymentHash.trim())
-    readonly property bool canRequestQuote: cloudReady && openProofConnections
-        && !openProofConnections.proPlanBusy
+    readonly property bool canRequestQuote: membershipVerified && !eligible
+        && cloudReady && openProofConnections && !openProofConnections.proPlanBusy
         && monthlyUsdCents > 0 && plan.payment_available === true
     readonly property bool busy: (openProofConnections && openProofConnections.proBillingBusy)
         || (proCheckout && proCheckout.busy)
@@ -88,7 +92,7 @@ GenyDrawer {
         openProofConnections.requestProPaymentQuote(root.selectedAsset)
     }
     function prepareQuote() {
-        if (!root.opened || root.checkoutOpen || root.eligible
+        if (!root.opened || !root.purchaseIntent || root.checkoutOpen || root.eligible
             || !root.canRequestQuote || root.busy || root.quoteForSelection
             || root.lastRequestedAsset === root.selectedAsset) return
         root.requestCurrentQuote()
@@ -96,19 +100,33 @@ GenyDrawer {
     function cancelPayment() {
         // Cancel the local session; any already submitted on-chain
         // transaction continues to require independent verification.
-        if (!root.txSubmitted && proCheckout) proCheckout.cancel()
         root.checkoutOpen = false
+        root.purchaseIntent = false
         root.manualExpanded = false
         root.paymentHash = ""
+        // Dismiss the overlay before a wallet transport invokes callbacks;
+        // on Windows a synchronous native wallet cancellation may otherwise
+        // keep a modal Drawer visible while its event loop is occupied.
         root.close()
     }
     function proceed() {
         if (root.eligible) { root.close(); return }
+        if (!root.appSignedIn) { root.accountRequested(); return }
+        // Unknown entitlements are not a Basic subscription. Recheck the
+        // signed-in account before ever presenting a purchase flow.
+        if (!root.membershipVerified) {
+            if (!root.restoringSession && openProofConnections) {
+                if (root.cloudReady)
+                    openProofConnections.fetchProEntitlements(true)
+                else
+                    openProofConnections.retryProEntitlements()
+            }
+            return
+        }
         if (root.monthlyUsdCents <= 0) {
             if (openProofConnections) openProofConnections.fetchProPlan(true)
             return
         }
-        if (!root.appSignedIn) { root.accountRequested(); return }
         if (!root.cloudReady) {
             // Retry secure account-session restoration. A native vault signer
             // or the previously registered browser signer proves the FID
@@ -119,6 +137,7 @@ GenyDrawer {
         }
         if (!root.checkoutActive) {
             if (!root.quoteForSelection) {
+                root.purchaseIntent = true
                 if (!root.busy) root.requestCurrentQuote()
                 return
             }
@@ -143,9 +162,10 @@ GenyDrawer {
     }
     function primaryLabel() {
         if (eligible) return qsTrId("genycaster.pro.checkout_done")
-        if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
         if (!appSignedIn) return qsTrId("genycaster.pro.connect_to_pay")
-        if (restoringSession) return qsTrId("genycaster.pro.restoring_payment_session")
+        if (restoringSession) return qsTrId("genycaster.pro.check_status")
+        if (!membershipVerified) return qsTrId("genycaster.pro.check_status")
+        if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
         if (!cloudReady) return qsTrId("genycaster.pro.restore_secure_session")
         if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
         if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
@@ -167,8 +187,10 @@ GenyDrawer {
     edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
     width: parent ? (root.compact ? parent.width
         : Math.min(500, Math.max(360, parent.width * 0.40))) : 468
-    height: parent ? (root.fullScreen ? parent.height
-        : Math.min(parent.height, Math.max(Theme.scaleUi(root.compact ? 380 : 500),
+    // On desktop this is a true edge-to-edge side panel, not a short
+    // floating sheet clipped midway through the window.
+    height: parent ? (!root.compact || root.fullScreen ? parent.height
+        : Math.min(parent.height, Math.max(Theme.scaleUi(380),
             fixedHeader.height + detailsColumn.implicitHeight + fixedActions.height
             + Theme.space4 * 5))) : 640
     contentPadding: root.compact ? Theme.space3 : Theme.space4
@@ -184,10 +206,10 @@ GenyDrawer {
         if (openProofConnections) openProofConnections.fetchProPlan(false)
     }
     onOpened: {
+        purchaseIntent = false
         checkoutOpen = false
         lastRequestedAsset = ""
-        prepareQuote()
-        manualExpanded = !walletAvailable && quotePresent
+        manualExpanded = false
         showBenefits = false
         expandedFeature = -1
         quoteNowMs = Date.now()
@@ -196,15 +218,16 @@ GenyDrawer {
             // Opening a UI surface does not force repeated billing/status
             // requests. Membership is fetched once from the account cache.
             openProofConnections.fetchProPlan(false)
+            // The membership view never silently requests a signer proof or
+            // begins a payment session. Restore/check is an explicit action.
             if (root.cloudReady)
                 openProofConnections.fetchProEntitlements(false)
-            else if (root.appSignedIn && !root.restoringSession)
-                openProofConnections.retryProEntitlements()
         }
     }
     onClosed: {
+        root.purchaseIntent = false
         if (!root.txSubmitted && proCheckout && proCheckout.busy)
-            proCheckout.cancel()
+            Qt.callLater(() => proCheckout.cancel())
     }
     onCanRequestQuoteChanged: root.prepareQuote()
     onBusyChanged: root.prepareQuote()
@@ -895,7 +918,7 @@ GenyDrawer {
                     Layout.fillWidth: true
                     visible: root.appSignedIn && !root.cloudReady && !root.eligible
                     text: root.restoringSession
-                        ? qsTrId("genycaster.pro.restoring_payment_session")
+                        ? qsTrId("genycaster.pro.secure_session_hint")
                         : openProofConnections && String(openProofConnections.accountProofError || "").length > 0
                           ? qsTrId("genycaster.pro.secure_session_unavailable")
                           : qsTrId("genycaster.pro.secure_session_hint")
@@ -932,7 +955,7 @@ GenyDrawer {
             layoutDirection: Theme.uiDirection
             ActionButton {
                 objectName: "genyProCancelCheckout"
-                visible: !root.eligible
+                visible: true
                 compact: true
                 quiet: true
                 text: qsTrId("genycaster.wallet.cancel")

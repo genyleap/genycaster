@@ -38,6 +38,11 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
     set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/properties/Windows/genycaster.ico")
     set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/properties/Windows/genycaster.ico")
     set(CPACK_NSIS_MENU_LINKS "Genycaster.exe" "GenyCaster")
+    # Separate the publisher/brand introduction (Welcome) from the actual
+    # GPLv3 acceptance page. Never prepend a mixed-brand preface to the
+    # legally operative full license text in a single scrolling control.
+    set(CPACK_NSIS_WELCOME_TITLE "Welcome to GenyCaster - Genyleap Labs")
+    set(CPACK_NSIS_BRANDING_TEXT "Genyleap Labs | https://genycaster.xyz")
     # These NSIS commands are loaded after CPackConfig.cmake is parsed.
     # Bracket-quoted commands preserve backslashes and shortcut quoting.
     if(GENYCASTER_WINDOWS_PACKAGE_ARCH STREQUAL "arm64")
@@ -53,21 +58,12 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
         "${CMAKE_CURRENT_BINARY_DIR}/GenyCasterNSISOptions.cmake")
     unset(GENYCASTER_VC_REDIST_SUFFIX)
 
-    # A visible publisher/copyright preface complements (never replaces)
-    # the complete GPLv3 text. Brand identity is not relicensed by the GPL.
+    # GPLv3 has its own complete, readable acceptance step. The separate
+    # Welcome page above introduces the publisher and official website.
+    # Other notices remain installed under THIRD_PARTY_NOTICES.md.
     file(READ "${CMAKE_SOURCE_DIR}/LICENSE" _genycasterGplText)
     set(_genycasterLicensePage "${CMAKE_CURRENT_BINARY_DIR}/GenyCaster-Installer-License.txt")
-    file(WRITE "${_genycasterLicensePage}"
-        "GenyCaster - Software License and Publisher Notice\r\n"
-        "Copyright (C) 2026 Genyleap Labs.\r\n"
-        "Official website: https://genycaster.xyz\r\n"
-        "GenyCaster source code is distributed under the GNU General Public License version 3.\r\n"
-        "The Genyleap and GenyCaster names, logos and trademarks are not granted for trademark use by this code license.\r\n"
-        "Third-party components keep their respective licenses; see THIRD_PARTY_NOTICES.md in the installation.\r\n"
-        "\r\n"
-        "GNU GENERAL PUBLIC LICENSE\r\n"
-        "--------------------------\r\n"
-        "${_genycasterGplText}")
+    file(WRITE "${_genycasterLicensePage}" "${_genycasterGplText}")
     set(CPACK_RESOURCE_FILE_LICENSE "${_genycasterLicensePage}")
     install(FILES "${CMAKE_SOURCE_DIR}/LICENSE"
         DESTINATION "." RENAME "LICENSE.txt" COMPONENT Runtime)

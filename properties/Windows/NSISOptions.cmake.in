@@ -20,10 +20,10 @@ DetailPrint "Installing Microsoft Visual C++ runtime"
 ExecWait '"$INSTDIR\vc_redist.@GENYCASTER_VC_REDIST_SUFFIX@.exe" /install /quiet /norestart' $0
 StrCmp $0 0 genycaster_vc_runtime_done
 StrCmp $0 1638 genycaster_vc_runtime_done
-StrCmp $0 3010 genycaster_vc_runtime_reboot
+; VC Redistributable may recommend a deferred restart; never force the
+; application installer to display a reboot page or restart Windows.
+StrCmp $0 3010 genycaster_vc_runtime_done
 MessageBox MB_ICONSTOP|MB_OK "Microsoft Visual C++ runtime installation failed (code $0)."
 Abort
-genycaster_vc_runtime_reboot:
-SetRebootFlag true
 genycaster_vc_runtime_done:
 ]=])

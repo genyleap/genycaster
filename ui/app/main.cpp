@@ -218,6 +218,28 @@ makeWalletApprovalLauncher(QString launchTemplate, const bool preferCustodyWalle
 
 int main(int argc, char* argv[])
 {
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    // Parallels Desktop's virtual ARM GPU can create a Qt Quick window but
+    // fail to present any scene-graph frames (a fully black client surface).
+    // Select the CPU Qt Quick renderer before QGuiApplication/QQuickWindow
+    // initialization only for that known virtual GPU. Respect user-specified
+    // graphics backends and retain accelerated rendering on real hardware.
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_BACKEND")
+        && qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
+        QFile virtualMachineProduct{QStringLiteral("/sys/class/dmi/id/product_name")};
+        QFile virtualMachineVendor{QStringLiteral("/sys/class/dmi/id/sys_vendor")};
+        const auto containsParallels = [](QFile& file) {
+            return file.open(QIODevice::ReadOnly)
+                && file.read(256).contains("Parallels");
+        };
+        if (containsParallels(virtualMachineProduct)
+            || containsParallels(virtualMachineVendor)) {
+            qputenv("QT_QUICK_BACKEND", "software");
+            qInfo() << "GenyCaster: Parallels virtual GPU detected;"
+                       " using Qt Quick software renderer";
+        }
+    }
+#endif
 #if defined(Q_OS_ANDROID)
     // Match the bundled OpenSSL 3 sonames before Qt initializes TLS/networking.
     qputenv("ANDROID_OPENSSL_SUFFIX", "_3");

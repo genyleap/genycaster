@@ -56,6 +56,13 @@ class NsisConfigurationTests(unittest.TestCase):
             data = options.read_text()
             self.assertIn("CreateShortCut", data)
             self.assertIn("vc_redist." + suffix + ".exe", data)
+            self.assertNotIn("SetRebootFlag true", data)
+            self.assertIn("StrCmp $0 3010 genycaster_vc_runtime_done", data)
+            license_text = (build / "GenyCaster-Installer-License.txt").read_text()
+            self.assertTrue(license_text.startswith("GNU GENERAL PUBLIC LICENSE"),
+                            license_text[:150])
+            self.assertNotIn("Software License and Publisher Notice", license_text)
+            self.assertIn("CPACK_NSIS_WELCOME_TITLE", cpack.read_text())
             self.assertNotIn("@GENYCASTER_VC_REDIST_SUFFIX@", data)
             probe = root / "probe.cmake"
             probe.write_text(
