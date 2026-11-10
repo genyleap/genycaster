@@ -73,7 +73,7 @@ def install(appdir: Path, qt_root: Path) -> None:
     # the developer's Qt installation or an unrelated host Qt runtime.
     config = usr / "bin/qt.conf"
     config.write_text(
-        "[Paths]\\nPrefix = ..\\nPlugins = plugins\\nQml2Imports = qml\\nQmlImports = qml\\n",
+        "[Paths]\nPrefix = ..\nPlugins = plugins\nQml2Imports = qml\nQmlImports = qml\n",
         encoding="utf-8",
     )
     print(f"Bundled Qt TLS/OpenSSL runtime: {plugin_destination}")
