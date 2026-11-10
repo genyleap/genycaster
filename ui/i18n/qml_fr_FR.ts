@@ -1321,10 +1321,6 @@ Entreprise | https://company.com</translation>
             <source>Choose a category and role from the lists.</source>
             <translation>Choisissez une catégorie et un rôle dans les listes.</translation>
         </message>
-        <message id="genycaster.profile.linked_networks">
-            <source>Connected networks</source>
-            <translation>Réseaux connectés</translation>
-        </message>
         <message id="genycaster.profile.manage_connections">
             <source>Manage social connections</source>
             <translation>Gérer les connexions sociales</translation>
@@ -7253,18 +7249,6 @@ Entreprise | https://company.com</translation>
             <source>Restoring secure payment session…</source>
             <translation>Restauration de la session de paiement sécurisée…</translation>
         </message>
-        <message id="genycaster.pro.approve_payment_identity">
-            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
-            <translation>Approuvez la demande de vérification de ce compte dans Farcaster pour continuer avec Pro.</translation>
-        </message>
-        <message id="genycaster.pro.verify_payment_identity">
-            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
-            <translation>Vous êtes déjà connecté. Confirmez le même compte Farcaster pour activer les paiements Pro sécurisés.</translation>
-        </message>
-        <message id="genycaster.pro.verify_with_farcaster">
-            <source>Verify with Farcaster</source>
-            <translation>Vérifier avec Farcaster</translation>
-        </message>
         <message id="genycaster.pro.checkout_done">
             <source>Done</source>
             <translation>Terminé</translation>
@@ -7368,6 +7352,18 @@ Entreprise | https://company.com</translation>
         <message id="genycaster.pro.checkout_change_method">
             <source>Change method</source>
             <translation>Changer de méthode</translation>
+        </message>
+        <message id="genycaster.pro.restore_secure_session">
+            <source>Restore secure session</source>
+            <translation>Restaurer la session sécurisée</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_unavailable">
+            <source>The secure account session could not be restored. Check your connection or sign in again through GenyCaster.</source>
+            <translation>Impossible de restaurer la session sécurisée. Vérifiez la connexion ou reconnectez-vous dans GenyCaster.</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_hint">
+            <source>Your account is already signed in. GenyCaster can restore secure payment access without a separate Farcaster verification.</source>
+            <translation>Vous êtes déjà connecté. GenyCaster peut restaurer l'accès au paiement sans vérification Farcaster distincte.</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

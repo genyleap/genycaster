@@ -313,8 +313,8 @@ test('verified Pro chip is beside Streak and has a themed accessible hint',()=>{
  assert.doesNotMatch(identity,/id: profileProBadge/);
  assert.match(cluster,/profileStreakBadge[\s\S]*?profileUnverifiedStreak/);
  assert.match(source,/profileBadgesRow.width - profileStatsFlow.spacing \* 3/);
- assert.match(pro,/visible: eligible/);
- assert.match(pro,/eligible: entitlement.status === "verified"[\s\S]*?entitlement.eligible === true/);
+ assert.match(pro,/visible: showUpgrade \|\| eligible/);
+ assert.match(pro,/eligible: entitlement.status === "verified"[\s\S]*?entitlement.tier === "pro" && entitlement.eligible === true/);
  assert.match(pro,/objectName: "genyProThemedTooltip"/);
  assert.match(pro,/background: PopupSurface/);
  assert.doesNotMatch(pro,/ToolTip\.visible/);

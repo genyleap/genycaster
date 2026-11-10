@@ -110,7 +110,7 @@ test('Pro drawer loads server-owned public price and recovers account authorizat
  assert.match(cloud,/if \(!owner\) \{respond\(response,401/);
 });
 
-test('signed-in Pro checkout verifies its existing FID without reopening login',()=>{
+test('signed-in Pro checkout restores a secure session without Farcaster app prompts',()=>{
  const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
  const header=read('ui/app/identity/connections.hpp');
  const implementation=read('ui/app/identity/connections.cpp');
@@ -119,9 +119,12 @@ test('signed-in Pro checkout verifies its existing FID without reopening login',
  assert.match(drawer,/Number\(presentationBridge\.accountFid\)/);
  assert.match(drawer,/Number\(openProofConnections\.activeAccountFid \|\| 0\)/);
  assert.match(drawer,/root\.appSignedIn && !root\.cloudReady/);
- assert.match(drawer,/root\.startedVerification = true\s+openProofConnections\.authorizeAccount\(\)/);
- assert.match(drawer,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
- assert.match(drawer,/openProofConnections\.stopAuthorization\(\)/);
+ assert.match(drawer,/openProofConnections\.retryProEntitlements\(\)/);
+ assert.doesNotMatch(drawer,/openProofConnections\.authorizeAccount\(\)/);
+ assert.doesNotMatch(drawer,/Qt\.openUrlExternally\(openProofConnections\.approvalUrl\)/);
+ assert.match(header,/Q_PROPERTY\(bool accountProofBusy READ accountProofBusy NOTIFY stateChanged\)/);
+ assert.match(implementation,/void OpenProofConnectionsController::beginSignedAccountSession\(\)/);
+ assert.match(read('ui/app/runtime/bindings.cpp'),/setAccountProofSigner\(/);
  assert.match(drawer,/if \(!root\.appSignedIn\) \{ root\.accountRequested\(\); return \}/);
  assert.match(drawer,/root\.restoringSession/);
  assert.match(implementation,/m_sessionRequest=reply;\s+emit stateChanged\(\);/);
@@ -129,8 +132,8 @@ test('signed-in Pro checkout verifies its existing FID without reopening login',
  for(const lang of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
    'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
   const ts=read('ui/i18n/qml_'+lang+'.ts');
-  for(const id of ['restoring_payment_session',
-      'approve_payment_identity','verify_payment_identity','verify_with_farcaster'])
+  for(const id of ['restoring_payment_session','restore_secure_session',
+      'secure_session_unavailable','secure_session_hint'])
    assert.equal(ts.split('id="genycaster.pro.'+id+'"').length-1,1,lang+':'+id);
  }
 });
@@ -150,13 +153,18 @@ test('WASM Pro uses an isolated browser EIP-1193 wallet without localhost listen
  assert.match(app,/ProCheckoutController::transactionSubmitted,[\s\S]*?OpenProofConnectionsController::verifyProPaymentForQuote/);
 });
 
-test('own mobile profile shows accurate Pro, Basic or unknown state beside name',()=>{
+test('own mobile profile shows accurate Pro, Basic or unknown beside Streak',()=>{
  const qml=read('ui/components/profile/ProfileSurface.qml');
  const badge=read('ui/components/profile/ProfileProBadge.qml');
- assert.match(qml,/objectName: "profileIdentityRow"[\s\S]*?objectName: "compactOwnAccountProStatus"/);
- assert.match(qml,/objectName: "compactOwnAccountProStatus"[\s\S]*?visible: root\.compact && root\.isOwnProfile[\s\S]*?showUpgrade: true[\s\S]*?entitlement: root\.ownProEntitlement/);
+ const identity=qml.slice(qml.indexOf('objectName: "profileIdentityRow"'),
+   qml.indexOf('objectName: "profileLocationRow"'));
+ const achievement=qml.slice(qml.indexOf('objectName: "profileAchievementBadges"'),
+   qml.indexOf('objectName: "profileOwnerActions"'));
+ assert.doesNotMatch(identity,/ProfileProBadge/);
+ assert.match(achievement,/ProfileProBadge\s*\{[\s\S]*?id: profileProBadge/);
+ assert.match(achievement,/id: profileProBadge[\s\S]*?id: profileStreakBadge/);
  assert.match(qml,/openProofConnections\.cloudAuthorizationReady[\s\S]*?Number\(openProofConnections\.activeAccountFid\) === Number\(root\.activeDetail\.fid \|\| 0\)/);
- assert.match(qml,/objectName: "profileAchievementBadges"[\s\S]*?showUpgrade: true\s+visible: root\.isOwnProfile && !root\.compact/);
+ assert.match(qml,/objectName: "profileAchievementBadges"[\s\S]*?showUpgrade: true\s+visible: root\.isOwnProfile/);
  assert.match(badge,/entitlement\.status === "verified"\s*&& entitlement\.tier === "pro" && entitlement\.eligible === true/);
  assert.match(badge,/entitlement\.status === "verified"\s*&& entitlement\.tier === "basic" && entitlement\.eligible === false/);
  assert.match(badge,/get_pro/);
@@ -169,4 +177,48 @@ test('own mobile profile shows accurate Pro, Basic or unknown state beside name'
   for(const id of ['get_pro','check_pro_status','basic_status_hint','status_unknown_hint'])
    assert.equal(xml.split('id="genycaster.pro.'+id+'"').length-1,1,lang+':'+id);
  }
+});
+
+test('Pro navigation, payment and mobile profile use responsive layout and branded assets',()=>{
+ const drawer=read('ui/components/profile/GenyProDetailsDrawer.qml');
+ const profile=read('ui/components/profile/ProfileSurface.qml');
+ const control=read('ui/components/controls/GenyDrawer.qml');
+ const cmake=read('ui/CMakeLists.txt');
+ assert.match(drawer,/edge: root\.compact \? Qt\.BottomEdge : \(Theme\.rtl \? Qt\.RightEdge : Qt\.LeftEdge\)/);
+ assert.match(drawer,/height: root\.compact[\s\S]*?: parent\.height/);
+ assert.match(control,/edge: bottomSheet \? Qt\.BottomEdge/);
+ assert.match(profile,/objectName: "profileUsernameAndLinksRow"/);
+ assert.match(profile,/id: identityLinks[\s\S]*?Layout\.preferredWidth: Math\.min\(implicitWidth, Layout\.maximumWidth\)/);
+ assert.match(profile,/id: profileProBadge[\s\S]*?visible: root\.isOwnProfile[\s\S]*?id: profileStreakBadge/);
+ assert.doesNotMatch(profile,/objectName: "compactOwnAccountProStatus"/);
+ assert.doesNotMatch(profile,/text: qsTrId\("genycaster\.profile\.linked_networks"\)/);
+ assert.match(drawer,/geny-token-mark-dark\.svg/);
+ assert.match(drawer,/geny-token-mark-light\.svg/);
+ assert.match(drawer,/usdc-token-mark\.svg/);
+ assert.match(cmake,/genyleap\/\*\.svg/);
+ const symbol=read('ui/assets/icons/genyleap/icons/brands/usdc-token-mark.svg');
+ assert.match(symbol,/<svg[\s\S]*?#2775CA/);
+});
+
+test('native account recovery only signs one-time proof and never trusts local FID as a session',()=>{
+ const controller=read('ui/app/identity/connections.cpp');
+ const header=read('ui/app/identity/connections.hpp');
+ const binding=read('ui/app/runtime/bindings.cpp');
+ const cloud=read('services/account-sync/cloud_state.mjs');
+ const proof=read('services/account-sync/signer_session_proof.mjs');
+ assert.match(header,/using AccountProofSigner = std::function/);
+ assert.match(controller,/m_accountProofRequest != challenge/);
+ assert.match(controller,/generation != m_grantGeneration/);
+ assert.match(controller,/\/api\/v1\/cloud\/session\/challenge/);
+ assert.match(controller,/\/api\/v1\/cloud\/session\/proof/);
+ assert.match(controller,/status == 401 && m_accountProofSigner/);
+ assert.match(controller,/m_accountProofAttempted = true/);
+ assert.match(controller,/if \(code != 200\)/);
+ assert.match(controller,/restoreAccountSession\(\);/);
+ assert.match(controller,/cancelNetworkReply\(m_accountProofRequest, this\)/);
+ assert.match(binding,/signerVault->load\(domain::identity::Fid/);
+ assert.match(binding,/genycaster-account-session-v1/);
+ assert.doesNotMatch(binding,/signerVault->ensure\(domain::identity::Fid/);
+ assert.match(cloud,/createSignerSessionProof/);
+ assert.match(proof,/verify/);
 });

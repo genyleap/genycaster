@@ -18,7 +18,6 @@ GenyDrawer {
     property string paymentHash: ""
     property int expandedFeature: -1
     property double quoteNowMs: Date.now()
-    property bool startedVerification: false
 
     readonly property var plan: openProofConnections
         ? (openProofConnections.proPlan || ({})) : ({})
@@ -37,9 +36,8 @@ GenyDrawer {
         && openProofConnections.cloudAuthorizationReady
         && Number(openProofConnections.activeAccountFid || 0) > 0
     readonly property bool restoringSession: openProofConnections
-        && openProofConnections.cloudSessionBusy
-    readonly property bool verifyingIdentity: openProofConnections
-        && openProofConnections.authorizing
+        && (openProofConnections.cloudSessionBusy
+            || openProofConnections.accountProofBusy)
     readonly property int monthlyUsdCents: Number(plan.price_usd_cents || 0)
     readonly property string monthlyUsd: monthlyUsdCents > 0
         ? (monthlyUsdCents / 100).toFixed(2) : "—"
@@ -95,10 +93,11 @@ GenyDrawer {
         }
         if (!root.appSignedIn) { root.accountRequested(); return }
         if (!root.cloudReady) {
-            if (!root.restoringSession && !root.verifyingIdentity) {
-                root.startedVerification = true
-                openProofConnections.authorizeAccount()
-            }
+            // Retry secure account-session restoration. A native vault signer
+            // or the previously registered browser signer proves the FID
+            // without opening the external Farcaster authorization flow.
+            if (!root.restoringSession)
+                openProofConnections.retryProEntitlements()
             return
         }
         if (!root.checkoutActive) { root.requestCurrentQuote(); return }
@@ -120,8 +119,7 @@ GenyDrawer {
         if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
         if (!appSignedIn) return qsTrId("genycaster.pro.connect_to_pay")
         if (restoringSession) return qsTrId("genycaster.pro.restoring_payment_session")
-        if (verifyingIdentity) return qsTrId("genycaster.pro.approve_payment_identity")
-        if (!cloudReady) return qsTrId("genycaster.pro.verify_with_farcaster")
+        if (!cloudReady) return qsTrId("genycaster.pro.restore_secure_session")
         if (!checkoutActive) return qsTrId("genycaster.pro.checkout_continue")
         if (txSubmitted) return qsTrId("genycaster.pro.checkout_check_payment")
         if (!quoteValid) return qsTrId("genycaster.pro.checkout_new_quote")
@@ -132,13 +130,15 @@ GenyDrawer {
     bottomSheet: root.compact
     showHandle: root.compact
     dimBackground: true
-    width: compact ? parent.width : Math.min(468, parent.width * 0.94)
-    // Size to visible content before scrolling; avoid a tall empty purchase
-    // drawer when benefits are collapsed, while remaining safe on narrow phones.
-    height: Math.min(parent.height * (compact ? 0.9 : 1.0),
-        Math.max(Theme.scaleUi(350),
-            fixedHeader.height + fixedActions.height
-            + detailsColumn.implicitHeight + Theme.space4 * 3))
+    // Desktop checkout is a full-height side drawer on the physical left in
+    // LTR; RTL mirrors the opening edge. Mobile remains a bottom sheet.
+    edge: root.compact ? Qt.BottomEdge : (Theme.rtl ? Qt.RightEdge : Qt.LeftEdge)
+    width: root.compact ? parent.width : Math.min(468, parent.width * 0.94)
+    height: root.compact
+        ? Math.min(parent.height * 0.9,
+            Math.max(Theme.scaleUi(350), fixedHeader.height + fixedActions.height
+                + detailsColumn.implicitHeight + Theme.space4 * 3))
+        : parent.height
     contentPadding: Theme.space4
 
     Timer {
@@ -175,19 +175,11 @@ GenyDrawer {
             detailsViewport.contentY = 0
         }
     }
-    onClosed: {
-        if (startedVerification && openProofConnections
-            && openProofConnections.authorizing)
-            openProofConnections.stopAuthorization()
-        startedVerification = false
-        // Never cancel a submitted or in-flight wallet transfer merely because
-        // the drawer closes. The controller still needs its transaction hash
-        // to verify the receipt, even if the user leaves this page.
-    }
+    // Closing the sheet must not interrupt a payment already submitted to a
+    // wallet. Its bound quote is still verified by the account API.
     Connections {
         target: openProofConnections
         function onStateChanged() {
-            if (root.cloudReady) root.startedVerification = false
             if (root.opened && root.cloudReady && !openProofConnections.proEntitlementsBusy)
                 openProofConnections.fetchProEntitlements(false)
         }
@@ -366,10 +358,20 @@ GenyDrawer {
                                     layoutDirection: Theme.uiDirection
                                     spacing: Theme.space2
                                     Item { Layout.fillWidth: true }
-                                    Icon {
-                                        text: modelData === "GENY" ? Theme.iconSpark : Theme.iconWallet
-                                        color: chosen ? Theme.accent : Theme.textSecondary
-                                        preferredSize: Theme.iconSizeSmall
+                                    Image {
+                                        Layout.preferredWidth: Theme.scaleUi(24)
+                                        Layout.preferredHeight: Theme.scaleUi(24)
+                                        source: modelData === "GENY"
+                                            ? (Theme.dark
+                                                ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+                                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg")
+                                            : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/usdc-token-mark.svg"
+                                        sourceSize.width: 72
+                                        sourceSize.height: 72
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        mipmap: false
+                                        Accessible.name: modelData
                                     }
                                     DirectionAwareLabel {
                                         text: modelData
@@ -527,6 +529,20 @@ GenyDrawer {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
+                        Image {
+                            Layout.preferredWidth: Theme.scaleUi(38)
+                            Layout.preferredHeight: Theme.scaleUi(38)
+                            source: root.quoteAsset === "GENY"
+                                ? (Theme.dark
+                                    ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
+                                    : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg")
+                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/usdc-token-mark.svg"
+                            sourceSize.width: 112
+                            sourceSize.height: 112
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            mipmap: false
+                        }
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space1
@@ -741,22 +757,12 @@ GenyDrawer {
                     visible: root.appSignedIn && !root.cloudReady && !root.eligible
                     text: root.restoringSession
                         ? qsTrId("genycaster.pro.restoring_payment_session")
-                        : root.verifyingIdentity
-                          ? qsTrId("genycaster.pro.approve_payment_identity")
-                          : qsTrId("genycaster.pro.verify_payment_identity")
+                        : openProofConnections && String(openProofConnections.accountProofError || "").length > 0
+                          ? qsTrId("genycaster.pro.secure_session_unavailable")
+                          : qsTrId("genycaster.pro.secure_session_hint")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.textSecondary
                     wrapMode: Text.Wrap
-                }
-                ActionButton {
-                    Layout.fillWidth: true
-                    visible: root.appSignedIn && !root.cloudReady
-                        && root.verifyingIdentity && openProofConnections
-                        && String(openProofConnections.approvalUrl || "").length > 0
-                    text: qsTrId("genycaster.connections.copy_open_farcaster_verification")
-                    compact: true
-                    quiet: true
-                    onClicked: Qt.openUrlExternally(openProofConnections.approvalUrl)
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -806,7 +812,7 @@ GenyDrawer {
                 busy: root.busy
                 enabled: !root.busy
                     && !(openProofConnections && openProofConnections.proPlanBusy)
-                    && !(root.appSignedIn && (root.restoringSession || root.verifyingIdentity))
+                    && !(root.appSignedIn && root.restoringSession)
                     && (root.eligible || !root.checkoutActive || root.txSubmitted
                         || !root.quoteValid || (root.manualExpanded || !root.walletAvailable)
                         ? root.validPaymentHash || root.eligible || !root.checkoutActive

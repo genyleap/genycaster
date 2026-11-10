@@ -40,7 +40,8 @@ test('owner profile anchors linked networks to the right with blue or green proo
   assert.ok(start > 0 && end > start);
   assert.match(group, /layoutDirection: root\.profileContentRtl \? Qt\.RightToLeft : Qt\.LeftToRight/);
   assert.match(group, /width: Math\.min\(implicitWidth/);
-  assert.match(group, /visible: !root\.compact/);
+  assert.match(group, /visible: root\.isOwnProfile/);
+  assert.doesNotMatch(group,/genycaster\.profile\.linked_networks/);
   assert.match(group, /socialBadge\.liveVerified \? Theme\.success : Theme\.accent/);
   assert.match(group, /Theme\.iconCheck/);
   assert.match(group, /objectName: "profileConnectionsButton"/);

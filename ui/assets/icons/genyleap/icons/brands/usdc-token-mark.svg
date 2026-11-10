@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Native USDC on Base. Circle USDC blue-and-white currency mark.
+     Decorative brand asset only; contract identity is validated separately. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="USDC">
+  <circle cx="100" cy="100" r="100" fill="#2775CA"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 57C37 69 28 84 28 100S37 131 52 143" stroke-width="10"/>
+    <path d="M148 57C163 69 172 84 172 100S163 131 148 143" stroke-width="10"/>
+    <path d="M119 76C113 70 106 67 97 67C83 67 73 76 73 88C73 100 84 104 100 108C116 112 125 119 125 130C125 144 114 151 99 151C89 151 81 148 74 141" stroke-width="12"/>
+    <path d="M100 54V164" stroke-width="9"/>
+  </g>
+</svg>

@@ -25,6 +25,7 @@
 #include <QtTypes>
 #include <cstdint>
 #include <functional>
+#include <optional>
 
 #include "browser_auth.hpp"
 #include <QObject>
@@ -55,6 +56,8 @@ class OpenProofConnectionsController final : public QObject {
     Q_PROPERTY(bool cloudBusy READ cloudBusy NOTIFY cloudStateChanged)
     Q_PROPERTY(bool cloudAuthorizationReady READ cloudAuthorizationReady NOTIFY stateChanged)
     Q_PROPERTY(bool cloudSessionBusy READ cloudSessionBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool accountProofBusy READ accountProofBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString accountProofError READ accountProofError NOTIFY stateChanged)
     Q_PROPERTY(qulonglong activeAccountFid READ activeAccountFid NOTIFY stateChanged)
     Q_PROPERTY(bool cloudServiceAvailable READ cloudServiceAvailable NOTIFY cloudStateChanged)
     Q_PROPERTY(QString cloudError READ cloudError NOTIFY cloudStateChanged)
@@ -135,6 +138,20 @@ public:
     [[nodiscard]] bool cloudSessionBusy() const noexcept {
         return m_sessionRequest != nullptr;
     }
+    [[nodiscard]] bool accountProofBusy() const noexcept {
+        return m_accountProofRequest != nullptr;
+    }
+    [[nodiscard]] QString accountProofError() const { return m_accountProofError; }
+
+    struct AccountSignerProof final {
+        QString publicKeyHex;
+        QString signatureHex;
+    };
+    using AccountProofSigner = std::function<std::optional<AccountSignerProof>(
+        qulonglong fid, const QString& nonce)>;
+
+    /** @brief Local, OS-vault-backed account proof. Never exposes private keys. */
+    void setAccountProofSigner(AccountProofSigner signer);
     [[nodiscard]] bool cloudServiceAvailable() const noexcept { return m_cloudServiceAvailable; }
     [[nodiscard]] qulonglong activeAccountFid() const noexcept { return m_viewerFid; }
 
@@ -493,6 +510,11 @@ private:
     // Cancel safely even when QNetworkReply::abort() emits finished() inline.
     void cancelAccountSessionRequest();
     QPointer<QNetworkReply> m_sessionRequest{};
+    QPointer<QNetworkReply> m_accountProofRequest{};
+    AccountProofSigner m_accountProofSigner{};
+    bool m_accountProofAttempted{};
+    QString m_accountProofError{};
+    void beginSignedAccountSession();
     bool m_cloudServiceAvailable{};
     bool m_cloudSessionVerified{};
     bool m_sessionRevoking{};

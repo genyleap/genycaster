@@ -305,6 +305,134 @@ QNetworkReply* OpenProofConnectionsController::requestVerifiedGitHubCalendar(
     return m_network.get(request);
 }
 
+void OpenProofConnectionsController::setAccountProofSigner(AccountProofSigner signer)
+{
+    m_accountProofSigner = std::move(signer);
+    // The runtime's secure vault may finish initialization after an account
+    // has already been restored locally. Retry its account cookie silently.
+    if (m_accountProofSigner && m_viewerFid && !cloudAuthorizationReady()
+        && !m_sessionRequest && !m_accountProofRequest && !m_sessionRevoking)
+        restoreAccountSession();
+}
+
+void OpenProofConnectionsController::beginSignedAccountSession()
+{
+    // Account membership is not inferred from a local FID or vault key.
+    // A fresh one-use challenge is verified against the network's signer
+    // registry by the account service before a session cookie is issued.
+    if (!m_viewerFid || !m_accountProofSigner || m_accountProofRequest
+        || m_accountProofAttempted || m_sessionRequest || m_sessionRevoking
+        || m_cloudUrl.scheme() != QStringLiteral("https")
+        || m_cloudUrl.host() != QStringLiteral("caster.genyleap.com"))
+        return;
+    m_accountProofAttempted = true;
+    m_accountProofError.clear();
+
+    auto makeRequest = [this](const QString& path) {
+        QUrl url = m_cloudUrl;
+        url.setPath(path);
+        url.setQuery(QString{});
+        QNetworkRequest request{url};
+        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                             QNetworkRequest::ManualRedirectPolicy);
+        request.setTransferTimeout(10'000);
+        request.setHeader(QNetworkRequest::ContentTypeHeader,
+                          QStringLiteral("application/json"));
+        request.setRawHeader("Accept", "application/json");
+        // Native Qt is not a website. Explicitly bind this first-party proof
+        // to the same official origin that browser CSRF checks require.
+        request.setRawHeader("Origin", "https://caster.genyleap.com");
+        return request;
+    };
+    const auto viewer = m_viewerFid;
+    const auto generation = m_grantGeneration;
+    const QByteArray body = QJsonDocument{QJsonObject{
+        {QStringLiteral("fid"), QString::number(viewer)}}}
+        .toJson(QJsonDocument::Compact);
+    auto* challenge = m_network.post(
+        makeRequest(QStringLiteral("/api/v1/cloud/session/challenge")), body);
+    m_accountProofRequest = challenge;
+    emit stateChanged();
+    connect(challenge, &QNetworkReply::finished, this,
+        [this, challenge, viewer, generation, makeRequest] {
+        if (m_accountProofRequest != challenge) {
+            challenge->deleteLater();
+            return;
+        }
+        m_accountProofRequest.clear();
+        const int status = challenge->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const auto bytes = challenge->bytesAvailable() <= 2048
+            ? challenge->readAll() : QByteArray{};
+        challenge->deleteLater();
+        if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+        if (status != 200) {
+            m_accountProofError = QStringLiteral("account_session_unavailable");
+            emit stateChanged();
+            return;
+        }
+        const auto document = QJsonDocument::fromJson(bytes);
+        const auto object = document.isObject() ? document.object() : QJsonObject{};
+        const QString nonce = object.value(QStringLiteral("nonce")).toString();
+        static const QRegularExpression noncePattern{
+            QStringLiteral("^[A-Za-z0-9_-]{43}$")};
+        if (object.value(QStringLiteral("fid")).toString() != QString::number(viewer)
+            || !noncePattern.match(nonce).hasMatch()) {
+            m_accountProofError = QStringLiteral("invalid_account_challenge");
+            emit stateChanged();
+            return;
+        }
+
+        std::optional<AccountSignerProof> proof;
+        try {
+            proof = m_accountProofSigner ? m_accountProofSigner(viewer, nonce)
+                                         : std::nullopt;
+        } catch (...) {
+            proof.reset();
+        }
+        static const QRegularExpression publicKeyPattern{
+            QStringLiteral("^[0-9a-f]{64}$")};
+        static const QRegularExpression signaturePattern{
+            QStringLiteral("^[0-9a-f]{128}$")};
+        if (!proof || !publicKeyPattern.match(proof->publicKeyHex).hasMatch()
+            || !signaturePattern.match(proof->signatureHex).hasMatch()) {
+            m_accountProofError = QStringLiteral("account_signer_unavailable");
+            emit stateChanged();
+            return;
+        }
+        const QByteArray signedBody = QJsonDocument{QJsonObject{
+            {QStringLiteral("fid"), QString::number(viewer)},
+            {QStringLiteral("nonce"), nonce},
+            {QStringLiteral("public_key"), proof->publicKeyHex},
+            {QStringLiteral("signature"), proof->signatureHex}}}
+            .toJson(QJsonDocument::Compact);
+        auto* signedReply = m_network.post(
+            makeRequest(QStringLiteral("/api/v1/cloud/session/proof")), signedBody);
+        m_accountProofRequest = signedReply;
+        emit stateChanged();
+        connect(signedReply, &QNetworkReply::finished, this,
+            [this, signedReply, viewer, generation] {
+            if (m_accountProofRequest != signedReply) {
+                signedReply->deleteLater();
+                return;
+            }
+            m_accountProofRequest.clear();
+            const int code = signedReply->attribute(
+                QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            signedReply->deleteLater();
+            if (viewer != m_viewerFid || generation != m_grantGeneration) return;
+            if (code != 200) {
+                m_accountProofError = QStringLiteral("account_proof_not_accepted");
+                emit stateChanged();
+                return;
+            }
+            // The reply alone is never accepted as proof of a retained cookie.
+            // Re-read the owner and CSRF secret through the same cookie jar.
+            restoreAccountSession();
+            emit stateChanged();
+        });
+    });
+}
+
 void OpenProofConnectionsController::restoreAccountSession()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
@@ -336,8 +464,12 @@ void OpenProofConnectionsController::restoreAccountSession()
         const auto bytes=status==200 && reply->isReadable()
             && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
-        if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
+        if (status != 200) {
+            if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
+                beginSignedAccountSession();
             return;
+        }
         const auto doc=QJsonDocument::fromJson(bytes);
         if(!doc.isObject())return;
         const auto data=doc.object();
@@ -346,6 +478,7 @@ void OpenProofConnectionsController::restoreAccountSession()
             || csrf.size()!=43)return;
         m_cloudSessionVerified=true;
         m_cloudCsrf=csrf;
+        m_accountProofError.clear();
         fetchTopics();
         refreshBookmarkCollections();
         m_bookmarkPoll.start();
@@ -366,6 +499,7 @@ void OpenProofConnectionsController::restoreAccountSession()
 void OpenProofConnectionsController::cancelAccountSessionRequest()
 {
     cancelNetworkReply(m_sessionRequest, this);
+    cancelNetworkReply(m_accountProofRequest, this);
 }
 
 void OpenProofConnectionsController::bootstrapAccountSession()
@@ -403,8 +537,12 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         const auto bytes=status==200 && reply->isReadable()
             && reply->bytesAvailable()<8192 ? reply->readAll() : QByteArray{};
         reply->deleteLater();
-        if(generation!=m_grantGeneration || viewer!=m_viewerFid || status!=200)
+        if(generation!=m_grantGeneration || viewer!=m_viewerFid) return;
+        if (status != 200) {
+            if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
+                beginSignedAccountSession();
             return;
+        }
         const auto doc=QJsonDocument::fromJson(bytes);
         if(!doc.isObject())return;
         const auto data=doc.object();
@@ -1550,8 +1688,10 @@ void OpenProofConnectionsController::retryProEntitlements()
     // A signed-in Farcaster user may already have a verified GenyCaster
     // HttpOnly session. Restore it before interpreting a missing Pro response
     // as Basic. This never opens a signer/approval window.
-    if (m_sessionRequest)
+    if (m_sessionRequest || m_accountProofRequest)
         return;
+    m_accountProofAttempted = false;
+    m_accountProofError.clear();
     if (!m_accountBearer.isEmpty()
         && (m_verified || m_accountBearer.startsWith("recovery.")))
         bootstrapAccountSession();
@@ -3277,6 +3417,8 @@ void OpenProofConnectionsController::setViewerFid(const qulonglong fid)
     cancelAccountSessionRequest();
     m_cloudSessionVerified=false;
     m_cloudCsrf.clear();
+    m_accountProofAttempted=false;
+    m_accountProofError.clear();
     m_authorization.cancel();
     clearAccountGrant();
     m_authorizing = false;

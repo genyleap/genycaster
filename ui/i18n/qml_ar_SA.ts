@@ -1320,10 +1320,6 @@ Company | https://company.com</source>
             <source>Choose a category and role from the lists.</source>
             <translation>اختر فئة ودورًا من القائمتين.</translation>
         </message>
-        <message id="genycaster.profile.linked_networks">
-            <source>Connected networks</source>
-            <translation>الشبكات المتصلة</translation>
-        </message>
         <message id="genycaster.profile.manage_connections">
             <source>Manage social connections</source>
             <translation>إدارة الاتصالات الاجتماعية</translation>
@@ -7252,18 +7248,6 @@ Company | https://company.com</source>
             <source>Restoring secure payment session…</source>
             <translation>جارٍ استعادة جلسة الدفع الآمنة…</translation>
         </message>
-        <message id="genycaster.pro.approve_payment_identity">
-            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
-            <translation>وافق على طلب التحقق لهذا الحساب في فاركاستر لمتابعة اشتراك برو.</translation>
-        </message>
-        <message id="genycaster.pro.verify_payment_identity">
-            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
-            <translation>أنت مسجّل الدخول بالفعل. تحقّق من حساب فاركاستر نفسه لتفعيل مدفوعات برو الآمنة.</translation>
-        </message>
-        <message id="genycaster.pro.verify_with_farcaster">
-            <source>Verify with Farcaster</source>
-            <translation>التحقق عبر فاركاستر</translation>
-        </message>
         <message id="genycaster.pro.checkout_done">
             <source>Done</source>
             <translation>تم</translation>
@@ -7367,6 +7351,18 @@ Company | https://company.com</source>
         <message id="genycaster.pro.checkout_change_method">
             <source>Change method</source>
             <translation>تغيير الطريقة</translation>
+        </message>
+        <message id="genycaster.pro.restore_secure_session">
+            <source>Restore secure session</source>
+            <translation>استعادة الجلسة الآمنة</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_unavailable">
+            <source>The secure account session could not be restored. Check your connection or sign in again through GenyCaster.</source>
+            <translation>تعذرت استعادة جلسة الحساب الآمنة. تحقق من الاتصال أو سجل الدخول مجددًا عبر جني كاستر.</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_hint">
+            <source>Your account is already signed in. GenyCaster can restore secure payment access without a separate Farcaster verification.</source>
+            <translation>لقد سجلت الدخول بالفعل. يستطيع جني كاستر استعادة الوصول الآمن للدفع دون تحقق منفصل عبر فاركاستر.</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

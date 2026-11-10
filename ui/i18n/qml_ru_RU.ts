@@ -1320,10 +1320,6 @@ Company | https://company.com</source>
             <source>Choose a category and role from the lists.</source>
             <translation>Выберите категорию и роль из списков.</translation>
         </message>
-        <message id="genycaster.profile.linked_networks">
-            <source>Connected networks</source>
-            <translation>Подключённые сети</translation>
-        </message>
         <message id="genycaster.profile.manage_connections">
             <source>Manage social connections</source>
             <translation>Управлять социальными связями</translation>
@@ -7252,18 +7248,6 @@ Company | https://company.com</source>
             <source>Restoring secure payment session…</source>
             <translation>Восстановление защищённого платёжного сеанса…</translation>
         </message>
-        <message id="genycaster.pro.approve_payment_identity">
-            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
-            <translation>Подтвердите запрос на проверку этого аккаунта в Farcaster, чтобы продолжить с Pro.</translation>
-        </message>
-        <message id="genycaster.pro.verify_payment_identity">
-            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
-            <translation>Вы уже вошли в аккаунт. Подтвердите тот же аккаунт Farcaster для безопасной оплаты Pro.</translation>
-        </message>
-        <message id="genycaster.pro.verify_with_farcaster">
-            <source>Verify with Farcaster</source>
-            <translation>Подтвердить через Farcaster</translation>
-        </message>
         <message id="genycaster.pro.checkout_done">
             <source>Done</source>
             <translation>Готово</translation>
@@ -7367,6 +7351,18 @@ Company | https://company.com</source>
         <message id="genycaster.pro.checkout_change_method">
             <source>Change method</source>
             <translation>Изменить способ</translation>
+        </message>
+        <message id="genycaster.pro.restore_secure_session">
+            <source>Restore secure session</source>
+            <translation>Восстановить защищённый сеанс</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_unavailable">
+            <source>The secure account session could not be restored. Check your connection or sign in again through GenyCaster.</source>
+            <translation>Не удалось восстановить защищённый сеанс. Проверьте соединение или войдите через GenyCaster заново.</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_hint">
+            <source>Your account is already signed in. GenyCaster can restore secure payment access without a separate Farcaster verification.</source>
+            <translation>Вы уже вошли. GenyCaster может восстановить платёжный сеанс без отдельной проверки в Farcaster.</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

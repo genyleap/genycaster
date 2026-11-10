@@ -25,6 +25,12 @@ test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom 
   assert.ok(owners.length>=11,'audit the full drawer family');
   for (const file of owners){
     if(file==='components/controls/GenyDrawer.qml')continue;
+    if(file==='components/profile/GenyProDetailsDrawer.qml') {
+      // Purchase alone intentionally opens as a full-height left inspector,
+      // mirrored in RTL; every other drawer inherits the shared policy.
+      assert.match(qml(file),/edge: root\.compact \? Qt\.BottomEdge : \(Theme\.rtl \? Qt\.RightEdge : Qt\.LeftEdge\)/);
+      continue;
+    }
     // No accidental physical side overrides in child instances. All desktop
     // sheets inherit one source of truth; the bottomSheet flag stays adaptive.
     assert.doesNotMatch(qml(file),/\bedge\s*:\s*[^\n]*(?:Qt\.(?:LeftEdge|RightEdge)|Theme\.rtl)/,

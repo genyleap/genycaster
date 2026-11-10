@@ -4967,6 +4967,35 @@ void attachRuntime(RuntimeAttachment attachment,
     }
 
     attachment.runtime = std::move(readyRuntime);
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+    // A signed-in native client can silently prove its existing registered
+    // Ed25519 signer after the in-memory Account API cookie expires. The
+    // signer remains in the OS-protected vault; only the domain-separated,
+    // one-use proof leaves this process. This avoids launching Farcaster
+    // solely to query a Pro membership.
+    attachment.openProofConnections.setAccountProofSigner(
+        [runtimeWeak = std::weak_ptr<Runtime>{attachment.runtime}](
+            const qulonglong fid, const QString& nonce)
+            -> std::optional<OpenProofConnectionsController::AccountSignerProof> {
+        auto current = runtimeWeak.lock();
+        if (!current || !current->signerVault || fid == 0) return std::nullopt;
+        auto signer = current->signerVault->load(domain::identity::Fid{
+            static_cast<std::uint64_t>(fid)});
+        if (!signer || !*signer) return std::nullopt;
+        auto publicKey = (*signer)->publicKey();
+        if (!publicKey || publicKey->hex.size() != 64) return std::nullopt;
+        const std::string canonical =
+            std::string{"genycaster-account-session-v1\n"}
+            + std::to_string(fid) + "\n" + nonce.toStdString();
+        auto signature = (*signer)->sign(canonical);
+        if (!signature || signature->bytes.size() != 64) return std::nullopt;
+        const QByteArray raw{signature->bytes.data(),
+            static_cast<qsizetype>(signature->bytes.size())};
+        return OpenProofConnectionsController::AccountSignerProof{
+            QString::fromStdString(publicKey->hex),
+            QString::fromLatin1(raw.toHex())};
+    });
+#endif
     connectRuntime(
         attachment.presentationBridge,
         attachment.richComposerController,

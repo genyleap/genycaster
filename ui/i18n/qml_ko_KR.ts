@@ -1320,10 +1320,6 @@ Company | https://company.com</source>
             <source>Choose a category and role from the lists.</source>
             <translation>목록에서 카테고리와 역할을 선택하세요.</translation>
         </message>
-        <message id="genycaster.profile.linked_networks">
-            <source>Connected networks</source>
-            <translation>연결된 네트워크</translation>
-        </message>
         <message id="genycaster.profile.manage_connections">
             <source>Manage social connections</source>
             <translation>소셜 연결 관리</translation>
@@ -7252,18 +7248,6 @@ Company | https://company.com</source>
             <source>Restoring secure payment session…</source>
             <translation>보안 결제 세션 복원 중…</translation>
         </message>
-        <message id="genycaster.pro.approve_payment_identity">
-            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
-            <translation>Pro를 계속하려면 Farcaster에서 이 계정의 인증 요청을 승인하세요.</translation>
-        </message>
-        <message id="genycaster.pro.verify_payment_identity">
-            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
-            <translation>이미 로그인되어 있습니다. 안전한 Pro 결제를 위해 동일한 Farcaster 계정을 인증하세요.</translation>
-        </message>
-        <message id="genycaster.pro.verify_with_farcaster">
-            <source>Verify with Farcaster</source>
-            <translation>Farcaster로 인증</translation>
-        </message>
         <message id="genycaster.pro.checkout_done">
             <source>Done</source>
             <translation>완료</translation>
@@ -7367,6 +7351,18 @@ Company | https://company.com</source>
         <message id="genycaster.pro.checkout_change_method">
             <source>Change method</source>
             <translation>방법 변경</translation>
+        </message>
+        <message id="genycaster.pro.restore_secure_session">
+            <source>Restore secure session</source>
+            <translation>보안 세션 복원</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_unavailable">
+            <source>The secure account session could not be restored. Check your connection or sign in again through GenyCaster.</source>
+            <translation>보안 계정 세션을 복원하지 못했습니다. 연결을 확인하거나 GenyCaster에서 다시 로그인하세요.</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_hint">
+            <source>Your account is already signed in. GenyCaster can restore secure payment access without a separate Farcaster verification.</source>
+            <translation>이미 로그인되어 있습니다. 별도의 Farcaster 인증 없이 안전한 결제 접근을 복원할 수 있습니다.</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>

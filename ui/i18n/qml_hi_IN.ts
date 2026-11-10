@@ -1320,10 +1320,6 @@ Company | https://company.com</source>
             <source>Choose a category and role from the lists.</source>
             <translation>सूचियों से श्रेणी और भूमिका चुनें।</translation>
         </message>
-        <message id="genycaster.profile.linked_networks">
-            <source>Connected networks</source>
-            <translation>जुड़े हुए नेटवर्क</translation>
-        </message>
         <message id="genycaster.profile.manage_connections">
             <source>Manage social connections</source>
             <translation>सोशल कनेक्शन प्रबंधित करें</translation>
@@ -7252,18 +7248,6 @@ Company | https://company.com</source>
             <source>Restoring secure payment session…</source>
             <translation>सुरक्षित भुगतान सत्र बहाल हो रहा है…</translation>
         </message>
-        <message id="genycaster.pro.approve_payment_identity">
-            <source>Approve this account's verification request in Farcaster to continue with Pro.</source>
-            <translation>प्रो जारी रखने के लिए Farcaster में इसी खाते का सत्यापन अनुरोध स्वीकार करें।</translation>
-        </message>
-        <message id="genycaster.pro.verify_payment_identity">
-            <source>You are already signed in. Confirm the same Farcaster account to enable secure Pro payments.</source>
-            <translation>आप पहले से साइन इन हैं। सुरक्षित प्रो भुगतान सक्षम करने के लिए उसी Farcaster खाते की पुष्टि करें।</translation>
-        </message>
-        <message id="genycaster.pro.verify_with_farcaster">
-            <source>Verify with Farcaster</source>
-            <translation>Farcaster से सत्यापित करें</translation>
-        </message>
         <message id="genycaster.pro.checkout_done">
             <source>Done</source>
             <translation>हो गया</translation>
@@ -7367,6 +7351,18 @@ Company | https://company.com</source>
         <message id="genycaster.pro.checkout_change_method">
             <source>Change method</source>
             <translation>तरीका बदलें</translation>
+        </message>
+        <message id="genycaster.pro.restore_secure_session">
+            <source>Restore secure session</source>
+            <translation>सुरक्षित सत्र बहाल करें</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_unavailable">
+            <source>The secure account session could not be restored. Check your connection or sign in again through GenyCaster.</source>
+            <translation>सुरक्षित खाता सत्र बहाल नहीं हुआ। कनेक्शन जाँचें या GenyCaster से फिर साइन इन करें।</translation>
+        </message>
+        <message id="genycaster.pro.secure_session_hint">
+            <source>Your account is already signed in. GenyCaster can restore secure payment access without a separate Farcaster verification.</source>
+            <translation>आप पहले से साइन इन हैं। GenyCaster अलग Farcaster सत्यापन के बिना सुरक्षित भुगतान सत्र बहाल कर सकता है।</translation>
         </message>
         <message id="genycaster.pro.monthly_price">
             <source>$%1 / month</source>
