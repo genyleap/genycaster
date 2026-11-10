@@ -16,6 +16,8 @@ GenyDrawer {
     property bool showBenefits: false
     property bool manualExpanded: false
     property string paymentHash: ""
+    property string lastRequestedAsset: ""
+    readonly property bool quoteForSelection: quotePresent && quoteAsset === selectedAsset && quoteValid
     property int expandedFeature: -1
     property double quoteNowMs: Date.now()
 
@@ -81,9 +83,24 @@ GenyDrawer {
         return qsTrId("genycaster.pro.wallet_failure")
     }
     function requestCurrentQuote() {
-        if (!openProofConnections) return
-        if (root.canRequestQuote)
-            openProofConnections.requestProPaymentQuote(root.selectedAsset)
+        if (!root.canRequestQuote || root.busy) return
+        root.lastRequestedAsset = root.selectedAsset
+        openProofConnections.requestProPaymentQuote(root.selectedAsset)
+    }
+    function prepareQuote() {
+        if (!root.opened || root.checkoutOpen || root.eligible
+            || !root.canRequestQuote || root.busy || root.quoteForSelection
+            || root.lastRequestedAsset === root.selectedAsset) return
+        root.requestCurrentQuote()
+    }
+    function cancelPayment() {
+        // Cancel the local session; any already submitted on-chain
+        // transaction continues to require independent verification.
+        if (!root.txSubmitted && proCheckout) proCheckout.cancel()
+        root.checkoutOpen = false
+        root.manualExpanded = false
+        root.paymentHash = ""
+        root.close()
     }
     function proceed() {
         if (root.eligible) { root.close(); return }
@@ -100,7 +117,17 @@ GenyDrawer {
                 openProofConnections.retryProEntitlements()
             return
         }
-        if (!root.checkoutActive) { root.requestCurrentQuote(); return }
+        if (!root.checkoutActive) {
+            if (!root.quoteForSelection) {
+                if (!root.busy) root.requestCurrentQuote()
+                return
+            }
+            root.checkoutOpen = true
+            root.displayedQuoteId = String(root.paymentQuote.id)
+            root.manualExpanded = !root.walletAvailable
+            if (root.walletAvailable && !root.busy) proCheckout.pay()
+            return
+        }
         if (root.txSubmitted) {
             if (!root.busy && openProofConnections)
                 openProofConnections.verifyProPayment(proCheckout.txHash)
@@ -151,7 +178,9 @@ GenyDrawer {
         if (openProofConnections) openProofConnections.fetchProPlan(false)
     }
     onOpened: {
-        checkoutOpen = quotePresent && !eligible
+        checkoutOpen = false
+        lastRequestedAsset = ""
+        prepareQuote()
         manualExpanded = !walletAvailable && quotePresent
         showBenefits = false
         expandedFeature = -1
@@ -162,17 +191,28 @@ GenyDrawer {
             openProofConnections.retryProEntitlements()
         }
     }
+    onClosed: {
+        if (!root.txSubmitted && proCheckout && proCheckout.busy)
+            proCheckout.cancel()
+    }
+    onCanRequestQuoteChanged: root.prepareQuote()
+    onBusyChanged: root.prepareQuote()
+    onSelectedAssetChanged: {
+        root.lastRequestedAsset = ""
+        root.prepareQuote()
+    }
     onPaymentQuoteChanged: {
-        if (root.opened && root.quotePresent && !root.eligible
-            && String(root.paymentQuote.id) !== root.displayedQuoteId) {
-            root.displayedQuoteId = String(root.paymentQuote.id)
-            root.selectedAsset = root.quoteAsset
-            root.checkoutOpen = true
-            root.manualExpanded = !root.walletAvailable
-            root.paymentHash = ""
+        if (root.opened && root.quotePresent) {
             root.quoteNowMs = Date.now()
-            detailsViewport.contentY = 0
+            // A network response cannot automatically initiate wallet payment.
+            if (root.checkoutOpen
+                && String(root.paymentQuote.id) !== root.displayedQuoteId) {
+                root.checkoutOpen = false
+                root.manualExpanded = false
+                root.paymentHash = ""
+            }
         }
+        root.prepareQuote()
     }
     // Closing the sheet must not interrupt a payment already submitted to a
     // wallet. Its bound quote is still verified by the account API.
@@ -244,7 +284,7 @@ GenyDrawer {
                 iconOnly: true
                 iconGlyph: Theme.iconClose
                 text: qsTrId("genycaster.pro.not_now")
-                onClicked: root.close()
+                onClicked: root.cancelPayment()
             }
         }
 
@@ -514,6 +554,20 @@ GenyDrawer {
                     visible: root.checkoutActive
                     spacing: Theme.space3
 
+                    ActionButton {
+                        objectName: "genyProChangePaymentMethod"
+                        visible: !root.txSubmitted
+                        enabled: !root.busy
+                        compact: true
+                        quiet: true
+                        text: qsTrId("genycaster.pro.checkout_change_method")
+                        onClicked: {
+                            root.checkoutOpen = false
+                            root.manualExpanded = false
+                            detailsViewport.contentY = 0
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space2
@@ -770,16 +824,12 @@ GenyDrawer {
             spacing: Theme.space2
             layoutDirection: Theme.uiDirection
             ActionButton {
-                visible: root.checkoutActive && !root.txSubmitted
-                enabled: !root.busy
+                objectName: "genyProCancelCheckout"
+                visible: !root.eligible
                 compact: true
                 quiet: true
-                text: qsTrId("genycaster.pro.checkout_change_method")
-                onClicked: {
-                    root.checkoutOpen = false
-                    root.manualExpanded = false
-                    detailsViewport.contentY = 0
-                }
+                text: qsTrId("genycaster.wallet.cancel")
+                onClicked: root.cancelPayment()
             }
             ActionButton {
                 Layout.fillWidth: true
