@@ -72,6 +72,59 @@ def fixture_linux(app: Path) -> None:
 
 
 class RuntimePackagingTests(unittest.TestCase):
+    def test_macos_mounted_dmg_otool_architecture_header(self):
+        """otool -L can repeat a mounted DMG path with an architecture label."""
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+            ffmpeg = app / "Contents/Frameworks/libswresample.7.dylib"
+            ffmpeg.write_bytes(b"Mach-O test fixture")
+
+            def fake_macho_tool(command, **_kwargs):
+                if command[0] == "/usr/bin/lipo":
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                self.assertEqual(command[0], "/usr/bin/otool")
+                binary = command[-1]
+                return subprocess.CompletedProcess(
+                    command, 0,
+                    f"{binary}:\n"
+                    f"{binary} (architecture arm64):\n"
+                    "    @rpath/libswresample.7.dylib "
+                    "(compatibility version 7.0.0, current version 7.0.0)\n"
+                    "    /usr/lib/libSystem.B.dylib "
+                    "(compatibility version 1.0.0, current version 1.0.0)\n",
+                    "",
+                )
+
+            with patch("ci.audit_macos_bundle.subprocess.run",
+                       side_effect=fake_macho_tool):
+                validate_macos(app, "arm64")
+
+    def test_macos_otool_still_rejects_real_host_dependencies(self):
+        """Filtering otool's header must not permit a real SDK-path leak."""
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+
+            def fake_macho_tool(command, **_kwargs):
+                if command[0] == "/usr/bin/lipo":
+                    return subprocess.CompletedProcess(command, 0, "", "")
+                self.assertEqual(command[0], "/usr/bin/otool")
+                binary = command[-1]
+                return subprocess.CompletedProcess(
+                    command, 0,
+                    f"{binary}:\n"
+                    f"{binary} (architecture arm64):\n"
+                    "    /Users/runner/work/Qt/libUnbundled.dylib "
+                    "(compatibility version 1.0.0, current version 1.0.0)\n",
+                    "",
+                )
+
+            with patch("ci.audit_macos_bundle.subprocess.run",
+                       side_effect=fake_macho_tool):
+                with self.assertRaisesRegex(ValueError, "Build-host library leaked"):
+                    validate_macos(app, "arm64")
+
     def test_macos_complete_bundle(self):
         with tempfile.TemporaryDirectory() as d:
             app = Path(d) / "Genycaster.app"
