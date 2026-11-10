@@ -1117,6 +1117,7 @@ Item {
 
     RowLayout {
         id: shellContent
+        objectName: "shellContent"
         // Do not render shell navigation or header behind full-window Setup.
         visible: presentationBridge.authenticationStateObserved && !root.initialSetupOpen
         anchors.left: parent.left

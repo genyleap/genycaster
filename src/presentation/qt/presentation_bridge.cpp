@@ -4579,6 +4579,10 @@ void PresentationBridge::applyProfileFollowsMe(const qulonglong fid, const bool 
 
 void PresentationBridge::applyVerificationFixture()
 {
+    // Visual/smoke tests must represent a settled signed-out account state.
+    // Without this, AppShell.shellContent stays invisible and grabWindow()
+    // captures only Theme.background even when Qt Quick itself renders fine.
+    m_authenticationStateObserved = true;
     m_setupBypassedForVerification = true;
     m_runtimeReady = true;
     m_hasReadActivity = true;

@@ -96,23 +96,10 @@ Drawer {
         blockInput: true
         onBackgroundTapped: control.close()
 
-        // Native desktop needs a deterministic outside-press path even when
-        // the Drawer gesture recognizer consumes the modal backdrop event.
-        // Keep the existing mobile bottom-sheet behavior unchanged.
-        MouseArea {
-            anchors.fill: parent
-            z: 200
-            // Desktop browsers have platform.os === wasm. The viewport
-            // presentation (not the runtime OS) determines outside dismissal.
-            visible: !control.bottomSheet
-            enabled: visible
-            acceptedButtons: Qt.AllButtons
-            onPressed: mouse => {
-                mouse.accepted = true
-                control.close()
-            }
-            onReleased: mouse => mouse.accepted = true
-        }
+        // DrawerBackdrop already owns one outside-press/tap recognizer and
+        // deduplicates events. Do not layer another full-screen MouseArea
+        // over it: native pointer grabs can then swallow the popup's close
+        // button or keep the modal overlay intercepting the desktop.
     }
 
     Overlay.modeless: DrawerBackdrop {

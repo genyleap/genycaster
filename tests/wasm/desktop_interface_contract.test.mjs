@@ -54,13 +54,17 @@ test('desktop store uses borderless app rows and compact Open buttons', () => {
 
 test('desktop outside click closes drawers without changing mobile input handling', () => {
     const drawer = read('ui/components/controls/GenyDrawer.qml');
+    const backdrop = read('ui/components/visual/DrawerBackdrop.qml');
     assert.match(drawer, /onBackgroundTapped: control\.close\(\)/);
-    assert.match(drawer, /visible: !control\.bottomSheet/);
-    assert.doesNotMatch(drawer, /visible: !control\.bottomSheet\s*&&\s*\(Qt\.platform\.os/);
+    assert.match(drawer, /Overlay\.modal: DrawerBackdrop \{/);
+    const modal = drawer.split('Overlay.modal: DrawerBackdrop {')[1].split('Overlay.modeless:')[0];
+    assert.doesNotMatch(modal, /MouseArea\s*\{/);
+    assert.match(backdrop, /function requestOutsideDismiss\(\)/);
+    assert.match(backdrop, /outsideDismissConsumed/);
+    assert.match(backdrop, /onPressed: mouse => \{[\s\S]*?root\.requestOutsideDismiss\(\)/);
     const settings = read('ui/components/settings/SettingsPopup.qml');
     assert.match(settings, /viewportWidth: Overlay\.overlay/);
     assert.match(settings, /viewportWidth < Theme\.breakpointMobile/);
-    assert.match(drawer, /onPressed: mouse => \{[\s\S]*?control\.close\(\)/);
     assert.match(drawer, /blockInput: true/);
 });
 

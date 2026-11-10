@@ -5,6 +5,7 @@ module;
 #include "rich_composer_controller.hpp"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QObject>
@@ -34,6 +35,50 @@ int scheduleSnapshots(QGuiApplication& application,
                       bool openExploreForTest,
                       const QString& snapshotPath)
 {
+    // Exercise the real shared Qt Drawer and Pro QML with a running event
+    // loop, rather than merely looking for component names in source text.
+    // Run only in the local --visual-test fixture; never modify user state.
+    if (isVisualTest && arguments.contains(QStringLiteral("--exercise-pro-drawer"))) {
+        auto* const window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
+        auto* const drawer = window ? window->findChild<QObject*>(
+            QStringLiteral("genyProDetailsDrawer")) : nullptr;
+        if (!window || !drawer) return 11;
+        auto* const cycle = new QTimer{&application};
+        cycle->setInterval(550); // Allow 275ms entrance/exit animations to finish.
+        QObject::connect(cycle, &QTimer::timeout, &application,
+            [cycle, window, drawer, phase = 0]() mutable {
+                if (phase > 0 && drawer->property("opened").toBool()
+                    != ((phase - 1) % 2 == 0)) {
+                    qWarning() << "Pro drawer did not finish transition at phase" << phase;
+                    cycle->stop();
+                    QCoreApplication::exit(12);
+                    return;
+                }
+                if (phase == 12) {
+                    qInfo() << "Pro drawer: six open/close cycles passed";
+                    cycle->stop();
+                    QCoreApplication::exit(0);
+                    return;
+                }
+                if (phase % 2 == 0) {
+                    if (drawer->property("height").toReal() < window->height() - 2) {
+                        qWarning() << "Pro drawer does not span desktop height";
+                        cycle->stop();
+                        QCoreApplication::exit(13);
+                        return;
+                    }
+                }
+                const char* action = phase % 2 == 0 ? "open" : "close";
+                if (!QMetaObject::invokeMethod(drawer, action, Qt::DirectConnection)) {
+                    qWarning() << "Pro drawer cannot invoke" << action;
+                    cycle->stop();
+                    QCoreApplication::exit(14);
+                    return;
+                }
+                ++phase;
+            });
+        QTimer::singleShot(600, cycle, [cycle] { cycle->start(); });
+    }
     if (isVisualTest && !snapshotPath.isEmpty()) {
         auto* const window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
         if (window == nullptr) { return 3; }

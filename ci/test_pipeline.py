@@ -36,7 +36,8 @@ class PipelineTests(unittest.TestCase):
         render = Path("ui/render")
         self.assertEqual({p.name for p in render.iterdir() if p.is_file()},
                          {"stroke.cpp", "stroke.hpp", "superellipse.cpp",
-                          "superellipse.hpp", "sparkline.cpp", "sparkline.hpp"})
+                          "superellipse.hpp", "sparkline.cpp", "sparkline.hpp",
+                          "geometry_safety.hpp"})
         source_root = Path("ui/components")
         mapping = json.loads((source_root / "source_paths.json").read_text())
         # This count grows when new public QML components are registered.
@@ -289,7 +290,11 @@ class PipelineTests(unittest.TestCase):
         # C++26 modules do not make that capability declaration transitive.
         self.assertIn("import farcaster.capability.signer;", wiring)
         self.assertIn("std::shared_ptr<capability::signer::ICustodyAuthorizer>", wiring)
-        self.assertIn("QFutureWatcher<RecoveryOutcome>", wiring)
+        # Watch Qt's void completion channel: comparing QFuture of a
+        # C++26 std::expected DTO can instantiate incompatible constraints.
+        self.assertIn("QFutureWatcher<void>", wiring)
+        self.assertIn("std::make_shared<QFuture<RecoveryOutcome>>()", wiring)
+        self.assertIn("RecoveryOutcome verified = recoveryFuture->result();", wiring)
         self.assertIn(
             "[&bridge, &connections, runtime, sessionObserver,",
             wiring,
@@ -630,8 +635,12 @@ class PipelineTests(unittest.TestCase):
             installer = Path(folder) / "GenyCaster-windows-x86_64.exe"
             installer.write_bytes(b"MZ" + bytes(8192))
             required = {
-                "Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
-                "qt6keychain.dll", "platforms/qwindows.dll",
+                "Genycaster.exe", "Qt6Core.dll", "Qt6Gui.dll",
+                "Qt6Qml.dll", "Qt6Quick.dll", "Qt6Multimedia.dll",
+                "Qt6Network.dll", "qt6keychain.dll", "platforms/qwindows.dll",
+                "qml/QtQuick/Controls/qtquickcontrols2plugin.dll",
+                "qml/QtQuick/Controls/Basic/qtquickcontrols2basicstyleplugin.dll",
+                "multimedia/ffmpegmediaplugin.dll",
                 "libcrypto-3-x64.dll", "libssl-3-x64.dll",
                 "libcurl.dll", "sqlite3.dll",
                 "LICENSE.txt", "THIRD_PARTY_NOTICES.md",

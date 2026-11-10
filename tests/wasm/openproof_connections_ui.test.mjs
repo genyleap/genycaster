@@ -242,7 +242,11 @@ test('desktop Connections and shared Settings drawer dismiss by backdrop and Esc
   assert.match(base, /sequence: "Escape"/);
   assert.match(base, /enabled: control.visible && !control.bottomSheet/);
   assert.match(base, /onBackgroundTapped: control.close\(\)/);
-  assert.match(base, /visible: !control.bottomSheet/);
+  const modal = base.split('Overlay.modal: DrawerBackdrop {')[1].split('Overlay.modeless:')[0];
+  assert.doesNotMatch(modal, /MouseArea\s*\{/);
+  const backdrop = read('../../ui/components/visual/DrawerBackdrop.qml');
+  assert.match(backdrop, /function requestOutsideDismiss\(\)/);
+  assert.match(backdrop, /outsideDismissConsumed/);
   assert.match(settings, /GenyDrawer/);
   assert.match(popup, /closePolicy: Popup.CloseOnEscape \| Popup.CloseOnPressOutside/);
 });

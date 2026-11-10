@@ -28,6 +28,11 @@ int configureSmokeTests(QGuiApplication& application,
             && rootObject->objectName() == QStringLiteral("rootWindow")
             && rootObject->property("isReady").toBool()
             && rootObject->findChild<QObject*>(QStringLiteral("appShell")) != nullptr
+            // A constructed shell can still display nothing if account
+            // restoration has never reached its settled/observed state.
+            && rootObject->findChild<QObject*>(QStringLiteral("shellContent")) != nullptr
+            && rootObject->findChild<QObject*>(QStringLiteral("shellContent"))
+                   ->property("visible").toBool()
             // Home is the initial surface; the costly feed ListView is
             // deliberately Loader-backed and may not exist until Explorer
             // navigation. Treat either an instantiated feed or Home as a
