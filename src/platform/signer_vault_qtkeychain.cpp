@@ -251,6 +251,19 @@ struct CredentialFree final {
         if (error != ERROR_NOT_FOUND)
             return std::unexpected(windowsCredentialError(error, "delete"));
     }
+    // If QtKeychain was configured to allow fallback reads from the legacy
+    // key-only name, explicit signer revocation must erase that entry too.
+    // Otherwise a subsequent restore could silently resurrect the local key.
+    if (!qtKeychainCompatibilityFlag(QStringLiteral("qtkeychainCompatNamingScheme"))
+        && qtKeychainCompatibilityFlag(
+            QStringLiteral("qtkeychainFallbackToCompatNamingScheme"))) {
+        const std::wstring legacy = QString::fromStdString(accountFor(fid)).toStdWString();
+        if (!CredDeleteW(legacy.c_str(), CRED_TYPE_GENERIC, 0)) {
+            const DWORD error = GetLastError();
+            if (error != ERROR_NOT_FOUND)
+                return std::unexpected(windowsCredentialError(error, "delete legacy"));
+        }
+    }
     return {};
 }
 #endif
