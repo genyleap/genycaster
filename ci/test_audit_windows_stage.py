@@ -20,10 +20,18 @@ def fake_pe(path: Path, arch: str) -> None:
 
 
 def stage_dir(root: Path, arch: str) -> None:
-    for rel in ("Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
+    for rel in ("Genycaster.exe", "Qt6Core.dll", "Qt6Gui.dll",
+                "Qt6Qml.dll", "Qt6Quick.dll", "Qt6Multimedia.dll",
+                "multimedia/ffmpegmediaplugin.dll", "Qt6Network.dll",
                 "qt6keychain.dll", "platforms/qwindows.dll"):
         fake_pe(root / rel, arch)
-    (root / "qml").mkdir()
+    for module, plugin in (
+        ("QtQuick/Controls", "qtquickcontrols2plugin.dll"),
+        ("QtQuick/Controls/Basic", "qtquickcontrols2basicstyleplugin.dll"),
+    ):
+        (root / "qml" / module).mkdir(parents=True)
+        (root / "qml" / module / "qmldir").write_text("module QtQuick.Controls")
+        fake_pe(root / "qml" / module / plugin, arch)
     (root / ("vc_redist.arm64.exe" if arch == "arm64"
              else "vc_redist.x64.exe")).write_bytes(b"fixture")
 
@@ -46,6 +54,14 @@ class AuditWindowsStageTests(unittest.TestCase):
             stage_dir(root, "x86_64")
             fake_pe(root / "qmltooling/other.dll", "x86_64")
             with self.assertRaisesRegex(ValueError, "Unstaged runtime"):
+                audit(root, "x86_64")
+
+    def test_refuses_missing_qml_controls_plugin(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            stage_dir(root, "x86_64")
+            (root / "qml/QtQuick/Controls/qtquickcontrols2plugin.dll").unlink()
+            with self.assertRaisesRegex(ValueError, "QML runtime plugin missing"):
                 audit(root, "x86_64")
 
     def test_refuses_non_debugger_binary_in_other_sdk_directory(self):

@@ -193,12 +193,24 @@ publishes a GitHub release even if you manually run it from a tag.
   vault, network access and login must be verified before wider distribution.
 * macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
   OpenSSL 3.5.9 source compiled for the deployment target, rather than
-  linking Homebrew bottles that may require macOS 26. `macdeployqt` creates
-  an ad-hoc development DMG; Developer ID signing and Apple notarization
-  are NOT configured yet.
-* Windows: The NSIS installer is not Authenticode-signed; production
-  certificates and verified signing remain a separate release requirement.
-* Linux: AppImage runtime checks must be performed on clean supported systems.
+  linking Homebrew bottles that may require macOS 26. `macdeployqt
+  -qmldir=ui` bundles QML dependencies. The QML and Cocoa plugins, Qt
+  frameworks and Mach-O dependencies are audited in both the build `.app`
+  and the `.app` actually mounted from its DMG; both must pass a startup
+  smoke test with Qt SDK environment variables removed. Developer ID signing
+  and Apple notarization are NOT configured yet.
+* Windows: The staged application must bundle QtQuick.Controls, the Basic
+  style and the Multimedia backend. Windows CI runs the executable's QML
+  startup smoke test without Qt SDK/vcpkg PATH entries before NSIS packaging.
+  The signed Microsoft VC redistributable is supplied for clean installations.
+  The NSIS installer itself is not Authenticode-signed; production certificates
+  and verified signing remain a separate release requirement.
+* Linux: Qt/QML/Multimedia components and ELF dependencies in linuxdeploy's
+  AppDir are audited. The Debian package installs and starts in a fresh
+  Ubuntu 24.04 Docker container without Qt installed; its Debian dependency
+  declarations provide the system graphics/X11 libraries automatically.
+  AppImage interoperability with other distributions and GPU drivers still
+  requires further platform-specific testing.
 * Web: The static site is archived only. It is not auto-deployed. Browser
   startup, HTTPS/CORS and cache behavior need end-to-end verification.
 
@@ -210,8 +222,11 @@ macOS UDIF DMG trailers, WebAssembly bootstrap/loader/manifest files, Android
 ARM64 Qt/SSL/QtKeychain libraries and DEX/manifest, and Windows EXE/Qt/SSL/
 SQLite/curl/QtKeychain DLLs. The packaging checks are also covered by server-run
 `ci/test_pipeline.py` tests. Checksums remain separate and are recalculated
-for tagged releases. None of these checks establishes a working runtime,
-verified TLS handshake, a trusted signature, or completed user acceptance.
+for tagged releases. The new desktop startup smoke tests go further and
+exercise the packaged QML root on CI, but they do not replace actual-device
+testing across supported OS versions, GPU drivers, secure-vault backends and
+wallet/identity flows. Neither an unsigned iOS bundle nor an unnotarized macOS
+DMG should be described as production-installable for every user.
 
 The Android job also checks `QT_FEATURE_ssl=1` in the installed Qt Network
 SDK **for manual and tagged builds**, before building OpenSSL. Bundling TLS

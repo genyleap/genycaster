@@ -46,6 +46,10 @@ def validate_linux_deb(path: Path) -> None:
         "./opt/genycaster/usr/bin/Genycaster",
         "./usr/share/applications/genycaster.desktop",
         "./usr/share/icons/hicolor/512x512/apps/genycaster.png",
+        "./opt/genycaster/usr/qml/QtQuick/Controls/qmldir",
+        "./opt/genycaster/usr/qml/QtQuick/Controls/libqtquickcontrols2plugin.so",
+        "./opt/genycaster/usr/qml/QtQuick/Controls/Basic/qmldir",
+        "./opt/genycaster/usr/qml/QtQuick/Controls/Basic/libqtquickcontrols2basicstyleplugin.so",
     ):
         require(required in listing, f"Linux DEB missing {required}")
 
@@ -219,6 +223,10 @@ def validate_android(path: Path) -> None:
         required = (
             "AndroidManifest.xml",
             f"lib/{abi}/libgenycaster_{abi}.so",
+            f"lib/{abi}/libQt6Core_{abi}.so",
+            f"lib/{abi}/libQt6Gui_{abi}.so",
+            f"lib/{abi}/libQt6Qml_{abi}.so",
+            f"lib/{abi}/libQt6Quick_{abi}.so",
             f"lib/{abi}/libQt6Network_{abi}.so",
             f"lib/{abi}/libqt6keychain.so",
             f"lib/{abi}/libssl_3.so",
@@ -313,11 +321,21 @@ def validate_windows(path: Path) -> None:
     names = {name.lower() for name in exact_names}
     require(any(PurePosixPath(name).name == "Genycaster.exe" for name in exact_names),
             "Windows installer missing correctly cased executable")
-    for required in ("qt6core.dll", "qt6network.dll", "qt6keychain.dll"):
+    for required in ("qt6core.dll", "qt6gui.dll", "qt6qml.dll",
+                     "qt6quick.dll", "qt6multimedia.dll", "qt6network.dll",
+                     "qt6keychain.dll"):
         require(any(PurePosixPath(name).name == required for name in names),
                 f"Windows installer missing {required}")
     require(any(name.endswith("platforms/qwindows.dll") for name in names),
             "Windows installer missing Qt platform plugin")
+    for module, filename in (
+        ("qml/qtquick/controls/", "qtquickcontrols2plugin.dll"),
+        ("qml/qtquick/controls/basic/", "qtquickcontrols2basicstyleplugin.dll"),
+    ):
+        require(any(module in name and name.endswith(filename) for name in names),
+                f"Windows installer missing packaged QML plugin {filename}")
+    require(any(name.endswith("multimedia/ffmpegmediaplugin.dll") for name in names),
+            "Windows installer missing Qt Multimedia backend")
     redist = "vc_redist.arm64.exe" if "windows-arm64" in path.name.lower() else "vc_redist.x64.exe"
     require(any(PurePosixPath(name).name == redist for name in names),
             f"Windows installer missing Microsoft compiler runtime: {redist}")

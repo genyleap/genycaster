@@ -27,6 +27,12 @@ def main() -> None:
     assert "python3 -m unittest ci/test_deployment_config.py" in gate
     assert "node --test services/test/deployment_config.test.mjs" in gate
     assert "ci/test_audit_windows_stage.py" in gate
+    assert "ci/test_native_runtime_audits.py" in gate
+    assert '-qmldir="$GITHUB_WORKSPACE/ui"' in workflow
+    assert 'ci/audit_macos_bundle.py "$MOUNT/Genycaster.app"' in workflow
+    assert 'ci/audit_linux_appdir.py AppDir' in workflow
+    assert 'bash ci/smoke_linux_install.sh' in workflow
+    assert 'ci/smoke_windows_stage.ps1 -Stage dist/app' in workflow
     assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
     # Release-gate checks prevent accidental tag or main-branch bypass.
     gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
@@ -81,6 +87,7 @@ def main() -> None:
     assert 'ldd "$plugin"' in linux
     assert "for backend in ffmpeg gstreamer" in linux
     assert "inputs.target_arch == 'x86_64'" in linux
+    assert "QtQuick.Controls" in Path("ui/components/shell/Main.qml").read_text()
     # The actual Qt plugin's ELF dependencies are authoritative; a separate
     # legacy libgstplay SONAME is not present on every Qt 6.12 target.
     assert "libgstplay-1.0.so.0" not in linux

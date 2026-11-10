@@ -14,7 +14,8 @@ import shutil
 import struct
 
 DEVELOPMENT_DIRECTORIES = ("bin", "include", "lib", "mkspecs", "qmltooling")
-RUNTIME_DLLS = ("Qt6Core.dll", "Qt6Network.dll", "qt6keychain.dll")
+RUNTIME_DLLS = ("Qt6Core.dll", "Qt6Gui.dll", "Qt6Qml.dll", "Qt6Quick.dll",
+                "Qt6Multimedia.dll", "Qt6Network.dll", "qt6keychain.dll")
 PE_MACHINES = {"arm64": 0xAA64, "x86_64": 0x8664}
 
 
@@ -73,6 +74,17 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
             raise ValueError(f"Runtime dependency missing: {name}")
     if not (stage / "qml").is_dir():
         raise ValueError("Qt QML modules missing from Windows runtime")
+    # A valid installer can still fail before first paint if windeployqt missed
+    # the QML plugins imported by Main.qml. Audit the actual staged payload.
+    for module, plugin in (
+        ("QtQuick/Controls", "qtquickcontrols2plugin.dll"),
+        ("QtQuick/Controls/Basic", "qtquickcontrols2basicstyleplugin.dll"),
+    ):
+        directory = stage / "qml" / module
+        if not (directory / "qmldir").is_file() or not (directory / plugin).is_file():
+            raise ValueError(f"Qt QML runtime plugin missing: {module}/{plugin}")
+    if not (stage / "multimedia/ffmpegmediaplugin.dll").is_file():
+        raise ValueError("Windows runtime missing Qt FFmpeg Multimedia backend")
     # windeployqt puts the official Microsoft redistributable beside the app.
     # NSIS runs it to satisfy clean OS installations; never rely on the
     # developer's machine already having the VC runtime installed.

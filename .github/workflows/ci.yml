@@ -70,7 +70,7 @@ jobs:
         run: python3 ci/release_gate.py
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
@@ -218,6 +218,9 @@ jobs:
             --icon-file AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png \
             --plugin qt --output appimage
           test -s "$OUTPUT"
+          # Audit QtQuick.Controls, Basic style and XCB plugins in the actual
+          # linuxdeploy AppDir before accepting its AppImage/DEB outputs.
+          python3 ci/audit_linux_appdir.py AppDir
           mv "$OUTPUT" dist/
           python3 ci/verify_platform_package.py linux "dist/$OUTPUT"
           # zsync uses checksums of existing AppImage blocks to fetch only
@@ -231,6 +234,10 @@ jobs:
           python3 ci/package_linux_deb.py --appdir AppDir --output dist \
             --version "$VERSION" --arch "${{ matrix.arch }}"
           python3 ci/verify_platform_package.py linux-deb \
+            "dist/GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.deb"
+          # Fresh Ubuntu container: no developer Qt installation, no Qt SDK
+          # environment. Validate the actual installed Debian runtime.
+          bash ci/smoke_linux_install.sh \
             "dist/GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.deb"
           (cd dist && sha256sum *.AppImage *.deb > SHA256SUMS)
       - uses: actions/upload-artifact@v4
@@ -347,11 +354,24 @@ jobs:
           test -n "$(find build/native/bin -maxdepth 1 -type d -name 'Genycaster.app' -print -quit)"
           # Fail if a cross-architecture Qt library or toolchain leaked in.
           /usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"
-          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -dmg -verbose=1
+          # macdeployqt without -qmldir produces a seemingly valid DMG but
+          # omits QtQuick.Controls/qtquickcontrols2plugin on a clean Mac.
+          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$GITHUB_WORKSPACE/ui" -dmg -verbose=1
+          python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
           mkdir -p dist
           DMG=build/native/bin/Genycaster.dmg
           test -s "$DMG"
           hdiutil verify "$DMG"
+          # Inspect and run the ACTUAL mounted DMG payload, not just the build
+          # tree; this catches incomplete DMG copies and Qt SDK fallbacks.
+          MOUNT="$RUNNER_TEMP/genycaster-dmg-${{ matrix.arch }}"
+          mkdir -p "$MOUNT"
+          hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG"
+          trap 'hdiutil detach "$MOUNT" -quiet || true' EXIT
+          test -d "$MOUNT/Genycaster.app"
+          python3 ci/audit_macos_bundle.py "$MOUNT/Genycaster.app" "${{ matrix.arch }}" --smoke
+          hdiutil detach "$MOUNT"
+          trap - EXIT
           cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
           # Independent runtime snapshot for an eventual supervised updater.
@@ -520,6 +540,10 @@ jobs:
           # build tools), preserve QML/plugins, and refuse mixed x64/ARM64 DLLs.
           # Run before CPack and before generating runtime update snapshots.
           python ci/audit_windows_stage.py dist/app ${{ matrix.arch }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Load Main.qml from the actual packaged runtime with the runner's
+          # Qt/vcpkg SDK paths removed. A successful C++ link is not sufficient.
+          & ./ci/smoke_windows_stage.ps1 -Stage dist/app
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # The VC redistributable is executable code installed with elevated
           # rights. Accept only a Microsoft Authenticode-signed bootstrapper.
@@ -942,6 +966,11 @@ jobs:
           set -euo pipefail
           nix build ".#packages.${{ matrix.system }}.default" --print-build-logs --out-link result
           test -x result/bin/Genycaster
+          # The Nix wrapper must resolve Qt plugins/QML from its own closure
+          # and open the real application's QML root on a headless runner.
+          QT_QPA_PLATFORM=offscreen QSG_RHI_BACKEND=software \
+            timeout 45s result/bin/Genycaster --smoke-test \
+            --settings-path="$RUNNER_TEMP/genycaster-nix-smoke.ini"
       - name: Record Nix store closure for reproducibility
         run: |
           set -euo pipefail

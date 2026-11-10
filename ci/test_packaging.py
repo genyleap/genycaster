@@ -30,12 +30,18 @@ class PackagingTests(unittest.TestCase):
     def test_windows_arm64_stage_strips_sdk_and_rejects_x64_dlls(self) -> None:
         with TemporaryDirectory() as tmp:
             stage = Path(tmp)
-            for name in ("Genycaster.exe", "Qt6Core.dll", "Qt6Network.dll",
-                         "qt6keychain.dll", "platforms/qwindows.dll",
-                         "qml/Farcaster/Client/plugin.dll"):
+            for name in ("Genycaster.exe", "Qt6Core.dll", "Qt6Gui.dll",
+                         "Qt6Qml.dll", "Qt6Quick.dll", "Qt6Multimedia.dll",
+                         "Qt6Network.dll", "qt6keychain.dll",
+                         "platforms/qwindows.dll", "multimedia/ffmpegmediaplugin.dll",
+                         "qml/Farcaster/Client/plugin.dll",
+                         "qml/QtQuick/Controls/qtquickcontrols2plugin.dll",
+                         "qml/QtQuick/Controls/Basic/qtquickcontrols2basicstyleplugin.dll"):
                 file = stage / name
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_bytes(self.fake_pe(0xAA64))
+            for module in ("QtQuick/Controls", "QtQuick/Controls/Basic"):
+                (stage / "qml" / module / "qmldir").write_text("module " + module)
             (stage / "vc_redist.arm64.exe").write_bytes(self.fake_pe(0xAA64))
             for directory in ("bin", "include", "lib", "mkspecs", "qmltooling"):
                 (stage / directory).mkdir()
@@ -52,12 +58,12 @@ class PackagingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unstaged runtime executable or DLL"):
                 audit(stage, "arm64")
             helper.unlink()
-            self.assertEqual(audit(stage, "arm64"), 6)
+            self.assertEqual(audit(stage, "arm64"), 13)
             self.assertEqual(pe_machine(stage / "Genycaster.exe"), 0xAA64)
             self.assertTrue((stage / "qml/Farcaster/Client/plugin.dll").exists())
             self.assertFalse((stage / "include").exists())
             self.assertFalse((stage / "bin").exists())
-            self.assertEqual(audit(stage, "arm64", clean=False), 6)
+            self.assertEqual(audit(stage, "arm64", clean=False), 13)
             (stage / "Qt6Network.dll").write_bytes(self.fake_pe(0x8664))
             with self.assertRaisesRegex(ValueError, "Wrong Windows PE architecture"):
                 audit(stage, "arm64", clean=False)
@@ -111,6 +117,10 @@ class PackagingTests(unittest.TestCase):
                     "[Desktop Entry]\nType=Application\nName=GenyCaster\n"
                     "Exec=Genycaster\nIcon=genycaster\n",
                 "usr/share/icons/hicolor/512x512/apps/genycaster.png": "icon",
+                "usr/qml/QtQuick/Controls/qmldir": "module QtQuick.Controls",
+                "usr/qml/QtQuick/Controls/libqtquickcontrols2plugin.so": "plugin",
+                "usr/qml/QtQuick/Controls/Basic/qmldir": "module QtQuick.Controls.Basic",
+                "usr/qml/QtQuick/Controls/Basic/libqtquickcontrols2basicstyleplugin.so": "plugin",
             }
             for name, body in entries.items():
                 file = app / name
