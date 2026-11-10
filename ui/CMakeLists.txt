@@ -1419,12 +1419,19 @@ target_include_directories(genycaster
         "${CMAKE_CURRENT_SOURCE_DIR}/app/social"
 )
 
-# VectorImage track-matte composition needs Qt 6.11+ and the Qt Lottie vector-format plugin.
-# Older/renderer-free SDKs retain the Unicode fallback without loading this type.
+# No target (native, Android, iOS or WASM) uses the QtSql plugin API.
+# Application persistence uses the native SQLite implementation. Exclude
+# unrelated SQL drivers while leaving platform/QML/multimedia plugins intact.
+# Qt's dynamic deployment honors EXCLUDE_BY_TYPE for Android, and static
+# imports for iOS/WASM remain limited to required plugin targets.
 find_package(Qt6 QUIET COMPONENTS Lottie)
 if(Qt6Lottie_FOUND AND Qt6_VERSION VERSION_GREATER_EQUAL 6.11)
     target_compile_definitions(genycaster PRIVATE FARCASTER_HAS_LOTTIE=1)
-    qt_import_plugins(genycaster INCLUDE Qt6::QLottieVectorImagePlugin)
+    qt_import_plugins(genycaster
+        INCLUDE Qt6::QLottieVectorImagePlugin
+        EXCLUDE_BY_TYPE sqldrivers)
+else()
+    qt_import_plugins(genycaster EXCLUDE_BY_TYPE sqldrivers)
 endif()
 
 set(farcasterTranslationFiles

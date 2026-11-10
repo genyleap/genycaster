@@ -56,6 +56,14 @@ class AuditWindowsStageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unstaged runtime"):
                 audit(root, "x86_64")
 
+    def test_refuses_unused_qt_sql_drivers(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            stage_dir(root, "x86_64")
+            fake_pe(root / "sqldrivers/qsqlpsql.dll", "x86_64")
+            with self.assertRaisesRegex(ValueError, "Unused Qt SQL"):
+                audit(root, "x86_64")
+
     def test_refuses_missing_qml_controls_plugin(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

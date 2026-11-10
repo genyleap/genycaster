@@ -194,7 +194,9 @@ publishes a GitHub release even if you manually run it from a tag.
 * macOS: macOS 26 runners build a macOS 15+ target using SHA-256-pinned
   OpenSSL 3.5.9 source compiled for the deployment target, rather than
   linking Homebrew bottles that may require macOS 26. `macdeployqt
-  -qmldir=ui` bundles QML dependencies. The QML and Cocoa plugins, Qt
+  -qmldir=ui` bundles QML dependencies. QtSql/PostgreSQL/ODBC/Mimer
+  drivers are excluded before deployment: GenyCaster uses native SQLite
+  and must not depend on unrelated database clients. The QML and Cocoa plugins, Qt
   frameworks and Mach-O dependencies are audited in both the build `.app`
   and the `.app` actually mounted from its DMG; both must pass a startup
   smoke test with Qt SDK environment variables removed. Developer ID signing

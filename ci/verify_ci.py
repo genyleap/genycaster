@@ -29,7 +29,14 @@ def main() -> None:
     assert "ci/test_audit_windows_stage.py" in gate
     assert "ci/test_native_runtime_audits.py" in gate
     assert '-qmldir="$GITHUB_WORKSPACE/ui"' in workflow
+    assert 'mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"' in workflow
+    assert '--skip-plugin-types sqldrivers,qmltooling' in workflow
+    assert 'ci/prune_linux_qt_plugins.py AppDir' in workflow
+    assert workflow.index("ci/prune_linux_qt_plugins.py AppDir") < workflow.index("--output appimage")
+    assert "ci/audit_macos_bundle.py" in workflow
     assert 'ci/audit_macos_bundle.py "$MOUNT/Genycaster.app"' in workflow
+    assert "EXCLUDE_BY_TYPE sqldrivers" in Path("ui/CMakeLists.txt").read_text()
+    assert "--skip-plugin-types sqldrivers,qmltooling" in workflow
     assert 'ci/audit_linux_appdir.py AppDir' in workflow
     assert 'bash ci/smoke_linux_install.sh' in workflow
     assert 'ci/smoke_windows_stage.ps1 -Stage dist/app' in workflow

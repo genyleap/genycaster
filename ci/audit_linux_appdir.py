@@ -26,6 +26,8 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
     for name in ("libQt6Core.so.6", "libQt6Gui.so.6",
                  "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6"):
         require((libraries / name).is_file(), f"Linux AppDir missing {name}")
+    require(not any(d.parent.name == "plugins" for d in root.rglob("sqldrivers")),
+            "Linux AppDir includes unused Qt SQL plugins")
     qml = root / "qml"
     require(qml.is_dir(), "Linux AppDir missing QML imports")
     required_plugins = (

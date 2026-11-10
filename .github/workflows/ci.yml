@@ -212,15 +212,20 @@ jobs:
           chmod +x build/ci-linuxdeploy/linuxdeploy-plugin-qt
           export PATH="$PWD/build/ci-linuxdeploy:$PATH"
           export OUTPUT="GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.AppImage"
+          # First deploy the Qt runtime into AppDir without sealing an
+          # AppImage. The Qt plugin can include unused SQL drivers; trim them
+          # before packaging, while preserving QML/Basic/Multimedia plugins.
           ./build/ci-linuxdeploy/linuxdeploy.AppImage \
             --appdir AppDir \
             --desktop-file AppDir/usr/share/applications/genycaster.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png \
-            --plugin qt --output appimage
-          test -s "$OUTPUT"
-          # Audit QtQuick.Controls, Basic style and XCB plugins in the actual
-          # linuxdeploy AppDir before accepting its AppImage/DEB outputs.
+            --plugin qt
+          python3 ci/prune_linux_qt_plugins.py AppDir
           python3 ci/audit_linux_appdir.py AppDir
+          # Seal the audited runtime, not the unfiltered Qt plugin output.
+          ./build/ci-linuxdeploy/linuxdeploy.AppImage \
+            --appdir AppDir --output appimage
+          test -s "$OUTPUT"
           mv "$OUTPUT" dist/
           python3 ci/verify_platform_package.py linux "dist/$OUTPUT"
           # zsync uses checksums of existing AppImage blocks to fetch only
@@ -354,8 +359,16 @@ jobs:
           test -n "$(find build/native/bin -maxdepth 1 -type d -name 'Genycaster.app' -print -quit)"
           # Fail if a cross-architecture Qt library or toolchain leaked in.
           /usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"
-          # macdeployqt without -qmldir produces a seemingly valid DMG but
-          # omits QtQuick.Controls/qtquickcontrols2plugin on a clean Mac.
+          # Qt's SDK ships SQL drivers for PostgreSQL, ODBC, Mimer etc.
+          # GenyCaster uses its native SQLite storage and never links QtSql.
+          # macdeployqt has no selective SQL-plugin switch, so hide ONLY the
+          # unused SDK sqldrivers before it scans/copies plugins. Do not copy
+          # missing system libpq/libiodbc or relax the dependency audit.
+          SQL_DRIVERS="$QT_ROOT_DIR/plugins/sqldrivers"
+          if [[ -d "$SQL_DRIVERS" ]]; then
+            mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"
+          fi
+          # -qmldir preserves necessary QML imports (Controls/Basic).
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$GITHUB_WORKSPACE/ui" -dmg -verbose=1
           python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
           mkdir -p dist
@@ -517,6 +530,7 @@ jobs:
           New-Item -ItemType Directory -Force dist/app | Out-Null
           Copy-Item build/native/bin/Genycaster.exe dist/app/
           & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --release `
+            --skip-plugin-types sqldrivers,qmltooling `
             --qmldir ui --dir dist/app dist/app/Genycaster.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # windeployqt bundles Qt but not the non-Qt vcpkg dependency tree.

@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from ci.audit_linux_appdir import validate as validate_linux
+from ci.prune_linux_qt_plugins import prune
 from ci.audit_macos_bundle import audit as validate_macos
 
 
@@ -75,6 +76,16 @@ class RuntimePackagingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "qtquickcontrols2plugin"):
                 validate_macos(app, "arm64", inspect_macho=False)
 
+    def test_macos_rejects_unused_qt_sql_drivers(self):
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+            sql = app / "Contents/PlugIns/sqldrivers/libqsqlpsql.dylib"
+            sql.parent.mkdir(parents=True)
+            sql.write_bytes(b"bad external libpq reference")
+            with self.assertRaisesRegex(ValueError, "SQL drivers"):
+                validate_macos(app, "arm64", inspect_macho=False)
+
     def test_macos_rejects_missing_cocoa_plugin(self):
         with tempfile.TemporaryDirectory() as d:
             app = Path(d) / "Genycaster.app"
@@ -88,6 +99,19 @@ class RuntimePackagingTests(unittest.TestCase):
             root = Path(d) / "AppDir"
             fixture_linux(root)
             validate_linux(root, inspect_elf=False)
+
+    def test_linux_removes_only_sql_plugins_before_sealing_appimage(self):
+        with tempfile.TemporaryDirectory() as d:
+            appdir = Path(d) / "AppDir"
+            fixture_linux(appdir)
+            sql = appdir / "usr/plugins/sqldrivers/libqsqlpsql.so"
+            sql.parent.mkdir(parents=True)
+            sql.write_bytes(b"bad dependency")
+            with self.assertRaisesRegex(ValueError, "unused Qt SQL"):
+                validate_linux(appdir, inspect_elf=False)
+            self.assertEqual(prune(appdir), 1)
+            validate_linux(appdir, inspect_elf=False)
+            self.assertTrue((appdir / "usr/plugins/multimedia/libffmpegmediaplugin.so").exists())
 
     def test_linux_rejects_missing_controls_plugin(self):
         with tempfile.TemporaryDirectory() as d:

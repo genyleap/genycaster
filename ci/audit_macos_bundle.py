@@ -41,6 +41,10 @@ def audit(app: Path, architecture: str, *, inspect_macho: bool = True) -> None:
         require((frameworks / f"{framework}.framework").is_dir(),
                 f"Missing bundled {framework} framework")
     files = [path for path in contents.rglob("*") if path.is_file()]
+    require(not any(in_module(path, "sqldrivers") for path in files),
+            "Unused Qt SQL drivers must not be shipped in a macOS client")
+    require(not (frameworks / "QtSql.framework").exists(),
+            "Unused QtSql framework must not be shipped in a macOS client")
     require(any(path.name == "libqcocoa.dylib"
                 and in_module(path, "platforms")
                 for path in files), "Missing bundled Cocoa platform plugin")

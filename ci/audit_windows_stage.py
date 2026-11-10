@@ -72,6 +72,8 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
     for name in ("Genycaster.exe", *RUNTIME_DLLS, "platforms/qwindows.dll"):
         if not (stage / name).is_file():
             raise ValueError(f"Runtime dependency missing: {name}")
+    if (stage / "sqldrivers").exists() or (stage / "Qt6Sql.dll").exists():
+        raise ValueError("Unused Qt SQL plugin or library staged on Windows")
     if not (stage / "qml").is_dir():
         raise ValueError("Qt QML modules missing from Windows runtime")
     # A valid installer can still fail before first paint if windeployqt missed
