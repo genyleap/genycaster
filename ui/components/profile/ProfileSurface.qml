@@ -683,6 +683,27 @@ Item {
     property real pendingRestoreOffset: 0
     property bool pendingRestoreCapture: false
     property int resetPositionPasses: 0
+    // A new profile can change its header geometry after the ListView first
+    // becomes visible. Keep the entry at the true header top until the first
+    // layout settles, without disturbing deliberate reading/scrolling.
+    property bool profileEntryResetActive: false
+    function finishProfileEntryReset() {
+        profileEntryResetActive = false
+        resetPositionPasses = 0
+        resetPositionTimer.stop()
+        profileEntrySettleTimer.stop()
+    }
+    function positionReaderAtHeaderTop() {
+        root.readList.cancelFlick()
+        root.readList.positionViewAtBeginning()
+        if (!root.profileMagazineEnabled && profileList.headerItem) {
+            // ListView InlineHeader may start BEFORE originY. Positioning the
+            // first delegate, rather than the header, clips the cover.
+            const headerY = Number(profileList.headerItem.y)
+            if (isFinite(headerY))
+                profileList.contentY = Math.min(root.readOriginY(), headerY)
+        }
+    }
     // Keep QVariantMap payloads out of ListModel roles; the model itself stays
     // type-stable and delegates re-read only when their revision role changes.
     property var stablePayloads: ({})
@@ -1013,7 +1034,8 @@ Item {
     // reset contentY to the top; targeted inserts/moves now preserve delegates
     // while the heavyweight content remains in our keyed payload store.
     function captureViewportAnchor() {
-        if (root.restoringViewport || profileRowsModel.count === 0) return
+        if (root.profileEntryResetActive || root.restoringViewport
+                || profileRowsModel.count === 0) return
         const headerHeight = root.readList.headerItem ? root.readList.headerItem.implicitHeight : 0
         // indexAt() takes *content* coordinates, not viewport coordinates.
         // Probing near y=0 while scrolled past the header never finds a row.
@@ -1044,7 +1066,8 @@ Item {
     }
 
     function stabilizeViewportAfterGeometryChange() {
-        if (root.readList.moving || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
+        if (root.profileEntryResetActive || root.readList.moving
+                || root.viewportAnchorKey.length === 0 || root.restoringViewport) return
         root.restoringViewport = true
         root.scheduleViewportRestore(root.viewportAnchorKey, root.viewportAnchorOffset, true)
     }
@@ -1103,7 +1126,8 @@ Item {
             Math.max(1, root.readList.width / 2), probeY)
         let anchorKey = ""
         let anchorOffset = 0
-        if (anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
+        if (!root.profileEntryResetActive
+                && anchorIndex >= 0 && anchorIndex < profileRowsModel.count) {
             const anchorItem = root.readList.itemAtIndex(anchorIndex)
             anchorKey = String(profileRowsModel.get(anchorIndex).stableKey)
             anchorOffset = anchorItem ? anchorItem.y - root.readList.contentY : 0
@@ -1164,9 +1188,10 @@ Item {
         root.pendingRestoreKey = ""
         root.viewportAnchorKey = ""
         root.restoringViewport = false
-        root.readList.cancelFlick()
-        root.readList.positionViewAtBeginning()
-        root.resetPositionPasses = 1
+        root.profileEntryResetActive = true
+        profileEntrySettleTimer.restart()
+        root.positionReaderAtHeaderTop()
+        root.resetPositionPasses = 2
         resetPositionTimer.restart()
     }
 
@@ -1179,9 +1204,11 @@ Item {
         // Two event turns permit the ListView header to settle without a
         // delayed closure outliving a recycled/destroyed profile surface.
         root.resetPositionPasses = 2
-        // A real identity navigation resets immediately. Only the follow-up
-        // layout pass is deferred and may be cancelled by a user scroll.
-        root.readList.positionViewAtBeginning()
+        root.profileEntryResetActive = true
+        profileEntrySettleTimer.restart()
+        // A real identity navigation resets immediately. Reflow of a loaded
+        // header does not cancel the follow-up pass.
+        root.positionReaderAtHeaderTop()
         resetPositionTimer.restart()
     }
 
@@ -1213,9 +1240,11 @@ Item {
         root.viewportAnchorKey = ""
         stableModelSyncTimer.restart()
         root.resetPositionPasses = 1
-        // A selected profile tab is an explicit route change, unlike metadata
-        // reflow. Reset synchronously before any new wheel event can intervene.
-        root.readList.positionViewAtBeginning()
+        root.profileEntryResetActive = true
+        profileEntrySettleTimer.restart()
+        // An explicit tab switch returns to the full header, not the first
+        // profile post. The magazine and timeline layouts share this contract.
+        root.positionReaderAtHeaderTop()
         resetPositionTimer.restart()
     }
     onProfileSortModeChanged: stableModelSyncTimer.restart()
@@ -1266,22 +1295,25 @@ Item {
     }
 
     Timer {
+        id: profileEntrySettleTimer
+        interval: 480
+        repeat: false
+        onTriggered: root.finishProfileEntryReset()
+    }
+    Timer {
         id: resetPositionTimer
         interval: 0
         repeat: false
         onTriggered: {
             if (root.resetPositionPasses <= 0)
                 return
-            // A queued reset belongs to navigation, never to the next wheel
-            // frame. Desktop wheel input can change contentY without entering
-            // ListView.moving; do not override a reader already scrolling.
-            if (root.readList.moving
-                    || root.readList.contentY - root.readOriginY()
-                        > Math.max(100, root.readList.height * 0.4)) {
-                root.resetPositionPasses = 0
+            // Only a real gesture cancels entry positioning. A delayed
+            // cover/header layout shift is not evidence of a user scroll.
+            if (root.readList.moving) {
+                root.finishProfileEntryReset()
                 return
             }
-            root.readList.positionViewAtBeginning()
+            root.positionReaderAtHeaderTop()
             --root.resetPositionPasses
             if (root.resetPositionPasses > 0)
                 resetPositionTimer.restart()
@@ -1323,8 +1355,7 @@ Item {
 
         onMovementStarted: {
             // User gestures outrank a pending initial-position timer.
-            root.resetPositionPasses = 0
-            resetPositionTimer.stop()
+            root.finishProfileEntryReset()
             viewportRestoreTimer.stop()
             root.restoringViewport = false
             root.pendingRestoreKey = ""
@@ -1341,20 +1372,27 @@ Item {
         // The anchor is captured once when movement ends; geometry stabilization
         // is only meaningful while the viewport is stationary.
         onContentYChanged: {
-            if (root.resetPositionPasses > 0
-                    && profileList.contentY - profileList.originY
-                        > Math.max(100, profileList.height * 0.4)) {
-                root.resetPositionPasses = 0
-                resetPositionTimer.stop()
-            }
-            if (!profileList.moving && !root.restoringViewport && !scrollWorkThrottle.running)
+            if (!root.profileEntryResetActive && !profileList.moving
+                    && !root.restoringViewport && !scrollWorkThrottle.running)
                 scrollWorkThrottle.start()
         }
         onContentHeightChanged: {
+            if (root.profileEntryResetActive) {
+                resetPositionTimer.restart()
+                return
+            }
             if (!profileList.moving) {
                 root.stabilizeViewportAfterGeometryChange()
                 if (!scrollWorkThrottle.running)
                     scrollWorkThrottle.start()
+            }
+        }
+        Connections {
+            target: profileList.headerItem
+            ignoreUnknownSignals: true
+            function onHeightChanged() {
+                if (root.profileEntryResetActive)
+                    resetPositionTimer.restart()
             }
         }
 
@@ -1365,7 +1403,8 @@ Item {
           id: profileHeaderComponent
           ColumnLayout {
             width: root.readList.width
-            spacing: Theme.space2
+            // No phantom top gutter after the hidden own-profile action row.
+            spacing: root.compact && root.isOwnProfile ? 0 : Theme.space2
 
             RowLayout {
                 visible: !(root.compact && root.isOwnProfile)

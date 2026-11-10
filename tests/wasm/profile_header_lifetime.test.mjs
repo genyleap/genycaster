@@ -81,8 +81,10 @@ test('profile never resurrects a recycled anchor or overrides a user scroll with
   assert.match(capture, /index < 0[\s\S]*?root\.viewportAnchorKey = ""/);
   const reset = profileQml.split('id: resetPositionTimer')[1]
     .split('id: scrollWorkThrottle')[0];
-  assert.match(reset, /if \(root\.readList\.moving[\s\S]*?root\.resetPositionPasses = 0/);
-  assert.match(profileQml, /onContentYChanged: \{[\s\S]*?resetPositionTimer\.stop\(\)/);
+  assert.match(reset, /if \(root\.readList\.moving\) \{[\s\S]*?root\.finishProfileEntryReset\(\)/);
+  assert.match(profileQml, /onMovementStarted: \{[\s\S]*?root\.finishProfileEntryReset\(\)/);
+  assert.match(profileQml, /onContentHeightChanged: \{\s*if \(root\.profileEntryResetActive\) \{\s*resetPositionTimer\.restart\(\)/);
+  assert.match(profileQml, /if \(root\.profileEntryResetActive \|\| root\.restoringViewport/);
 });
 
 test('profile metadata completes after feed starts and after multiple tab changes', () => {

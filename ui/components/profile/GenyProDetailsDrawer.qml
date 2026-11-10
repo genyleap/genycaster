@@ -243,18 +243,22 @@ GenyDrawer {
             layoutDirection: Theme.uiDirection
 
             Superellipse {
-                visible: !root.compact
-                Layout.preferredWidth: 42
-                Layout.preferredHeight: 42
-                fillColor: Theme.surfaceMuted
-                borderColor: Theme.borderSubtle
+                id: proIdentityMark
+                objectName: "genyProIdentityMark"
+                // The mobile header must not reserve an empty logo slot.
+                // Show the same membership mark across all viewports.
+                Layout.preferredWidth: Theme.scaleUi(root.compact ? 48 : 44)
+                Layout.preferredHeight: Layout.preferredWidth
+                Layout.alignment: Qt.AlignVCenter
+                fillColor: Theme.proSurface
+                borderColor: Theme.proBorder
                 borderWidth: Theme.strokeHairline
                 curveDepth: Theme.curveCompact
                 Icon {
                     anchors.centerIn: parent
                     text: Theme.iconSpark
                     color: Theme.proAccent
-                    preferredSize: Theme.iconSizeLarge
+                    preferredSize: Theme.scaleUi(root.compact ? 29 : 25)
                 }
             }
             ColumnLayout {
@@ -266,7 +270,7 @@ GenyDrawer {
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.textPrimary
-                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
+                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
                 DirectionAwareLabel {
@@ -276,7 +280,7 @@ GenyDrawer {
                         : qsTrId("genycaster.pro.checkout_membership")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
-                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
+                    horizontalAlignment: Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
             }
@@ -374,6 +378,88 @@ GenyDrawer {
                             font.weight: Theme.weightDemiBold
                             color: Theme.positive
                             wrapMode: Text.Wrap
+                        }
+                    }
+                }
+
+                // Active membership needs a useful, compact benefits summary
+                // rather than an empty slab between the price and Done.
+                Superellipse {
+                    id: activeProBenefits
+                    objectName: "genyProActiveBenefits"
+                    visible: root.eligible && !root.checkoutActive
+                    Layout.fillWidth: true
+                    implicitHeight: activeBenefitsColumn.implicitHeight + Theme.space4 * 2
+                    fillColor: Theme.surfaceRaised
+                    borderColor: Theme.borderSubtle
+                    borderWidth: Theme.strokeHairline
+                    curveDepth: Theme.curveContainer
+
+                    ColumnLayout {
+                        id: activeBenefitsColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Theme.space4
+                        spacing: Theme.space3
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                text: Theme.iconSpark
+                                color: Theme.proAccent
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.pro.checkout_benefits")
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightBold
+                                color: Theme.textPrimary
+                                wrapMode: Text.Wrap
+                            }
+                        }
+
+                        Repeater {
+                            model: [
+                                {icon: Theme.iconApps,
+                                 title: qsTrId("genycaster.pro.feature_miniapps_title")},
+                                {icon: Theme.iconBookmark,
+                                 title: qsTrId("genycaster.pro.bookmark_collections")},
+                                {icon: Theme.iconLink,
+                                 title: qsTrId("genycaster.pro.connections")},
+                                {icon: Theme.iconChart,
+                                 title: qsTrId("genycaster.pro.market_pulse")},
+                                {icon: Theme.iconCompose,
+                                 title: qsTrId("genycaster.pro.feature_composer_title")}
+                            ]
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                spacing: Theme.space3
+                                layoutDirection: Theme.uiDirection
+                                Icon {
+                                    text: String(modelData.icon)
+                                    color: Theme.textSecondary
+                                    preferredSize: Theme.iconSizeSmall
+                                }
+                                DirectionAwareLabel {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
+                                    text: String(modelData.title)
+                                    color: Theme.textPrimary
+                                    font.pixelSize: Theme.typeBodySize
+                                    wrapMode: Text.Wrap
+                                }
+                                Icon {
+                                    text: Theme.iconCheck
+                                    color: Theme.positive
+                                    preferredSize: Theme.iconSizeSmall
+                                }
+                            }
                         }
                     }
                 }
