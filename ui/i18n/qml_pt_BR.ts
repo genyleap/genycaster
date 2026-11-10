@@ -7032,6 +7032,22 @@ Company | https://company.com</source>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>Este rascunho não pode ser publicado como sequência. Reduza o texto ou remova anexos.</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Obter Pro</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Verificar Pro</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Assinatura Basic ativa. Toque para mudar para Pro.</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>Status da assinatura indisponível. Toque para verificar.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

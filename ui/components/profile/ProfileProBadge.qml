@@ -3,19 +3,27 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// One compact, server-verified status chip. A mouse hover, keyboard activation
-// or touch tap opens the same themed explanation (never Qt's default tooltip).
+// One compact own-account membership chip. A server-verified Pro/Basic status
+// is distinguished from an unknown session. Hover/tap opens the details drawer.
 Button {
     id: root
     objectName: "verifiedGenyProBadge"
     property var entitlement: ({})
     property bool compact: false
+    // Own-account status is shown even for Basic and unavailable sessions.
+    // Only a verified, matching server entitlement may render the Pro mark.
+    property bool showUpgrade: false
     readonly property bool eligible: entitlement.status === "verified"
-                                     && entitlement.eligible === true
+        && entitlement.tier === "pro" && entitlement.eligible === true
+    readonly property bool basicVerified: entitlement.status === "verified"
+        && entitlement.tier === "basic" && entitlement.eligible === false
+    readonly property string statusText: eligible ? qsTrId("genycaster.pro.short")
+        : basicVerified ? qsTrId("genycaster.pro.get_pro")
+        : qsTrId("genycaster.pro.check_pro_status")
     signal detailsRequested()
-    visible: eligible
-    implicitHeight: Theme.scaleUi(32)
-    implicitWidth: Math.max(Theme.scaleUi(68),
+    visible: showUpgrade || eligible
+    implicitHeight: Theme.scaleUi(compact ? 29 : 32)
+    implicitWidth: Math.max(Theme.scaleUi(compact ? 64 : 68),
                             badgeContents.implicitWidth + Theme.space3 * 2)
     leftPadding: Theme.space3
     rightPadding: Theme.space3
@@ -24,8 +32,10 @@ Button {
     hoverEnabled: !compact
     focusPolicy: Qt.StrongFocus
     LayoutMirroring.enabled: false
-    Accessible.name: qsTrId("genycaster.pro.title")
-    Accessible.description: qsTrId("genycaster.pro.verified_wallet")
+    Accessible.name: root.statusText
+    Accessible.description: eligible ? qsTrId("genycaster.pro.verified_wallet")
+        : basicVerified ? qsTrId("genycaster.pro.basic_status_hint")
+        : qsTrId("genycaster.pro.status_unknown_hint")
     Accessible.role: Accessible.Button
     onHoveredChanged: {
         hintDelay.stop()
@@ -52,7 +62,7 @@ Button {
 
     function showHint() {
         const overlay = root.Overlay.overlay
-        if (!overlay || !eligible) return
+        if (!overlay) return
         const point = root.mapToItem(overlay, 0, 0)
         proHint.x = Math.max(Theme.space2,
             Math.min(overlay.width - proHint.width - Theme.space2,
@@ -73,10 +83,11 @@ Button {
 
     background: Superellipse {
         fillColor: root.down || root.hovered
-            ? Theme.proSurfaceHover : Theme.proSurface
+            ? (root.eligible || root.basicVerified ? Theme.proSurfaceHover : Theme.surfaceHover)
+            : root.eligible ? Theme.proSurface : Theme.surfaceRaised
         borderWidth: Theme.keyboardFocusVisible(root) ? 2 : 1
         borderColor: Theme.keyboardFocusVisible(root)
-            ? Theme.focus : Theme.proBorder
+            ? Theme.focus : (root.eligible || root.basicVerified ? Theme.proBorder : Theme.borderSubtle)
         curveDepth: height / 2
         elevation: Theme.elevationNone
         Behavior on fillColor {
@@ -90,14 +101,15 @@ Button {
         layoutDirection: Qt.LeftToRight
         Icon {
             Layout.alignment: Qt.AlignVCenter
-            text: Theme.iconSpark
-            preferredSize: Theme.scaleUi(15)
-            color: Theme.proAccent
+            text: root.eligible ? Theme.iconSpark : root.basicVerified
+                ? Theme.iconSpark : Theme.iconRefresh
+            preferredSize: Theme.scaleUi(compact ? 13 : 15)
+            color: root.eligible || root.basicVerified ? Theme.proAccent : Theme.textSecondary
         }
         Label {
             Layout.alignment: Qt.AlignVCenter
-            text: qsTrId("genycaster.pro.short")
-            color: Theme.proAccent
+            text: root.statusText
+            color: root.eligible || root.basicVerified ? Theme.proAccent : Theme.textSecondary
             font.pixelSize: Theme.typeCaptionSize
             font.weight: Theme.weightBold
             font.letterSpacing: 0.6
@@ -139,7 +151,9 @@ Button {
             DirectionAwareLabel {
                 Layout.fillWidth: true
                 Layout.preferredWidth: proHint.width - proHint.leftPadding - proHint.rightPadding
-                text: qsTrId("genycaster.pro.verified_wallet")
+                text: root.eligible ? qsTrId("genycaster.pro.verified_wallet")
+                    : root.basicVerified ? qsTrId("genycaster.pro.basic_status_hint")
+                    : qsTrId("genycaster.pro.status_unknown_hint")
                 wrapMode: Text.Wrap
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeCaptionSize

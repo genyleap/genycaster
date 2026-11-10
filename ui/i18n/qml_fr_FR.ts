@@ -7033,6 +7033,22 @@ Entreprise | https://company.com</translation>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>Impossible de publier ce brouillon en fil. Raccourcissez-le ou retirez des pièces jointes.</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Passer Pro</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Vérifier Pro</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Abonnement Basic actif. Touchez pour passer à Pro.</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>Statut de l’abonnement indisponible. Touchez pour vérifier.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

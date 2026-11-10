@@ -7033,6 +7033,22 @@ Empresa | https://company.com</translation>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>No se puede publicar este borrador como hilo. Reduce el texto o elimina adjuntos.</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Obtener Pro</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Comprobar Pro</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>La membresía Basic está activa. Toca para mejorar a Pro.</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>El estado de membresía no está disponible. Toca para comprobarlo.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

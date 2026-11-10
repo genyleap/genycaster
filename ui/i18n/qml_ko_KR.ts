@@ -7032,6 +7032,22 @@ Company | https://company.com</source>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>이 초안을 스레드로 게시할 수 없습니다. 텍스트나 첨부 파일을 줄이세요.</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Pro 가입</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Pro 확인</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Basic 멤버십이 활성화되어 있습니다. 탭하여 Pro로 업그레이드하세요.</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>멤버십 상태를 확인할 수 없습니다. 탭하여 확인하세요.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

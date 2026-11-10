@@ -7032,6 +7032,22 @@ Company | https://company.com</source>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>この下書きをスレッドとして投稿できません。文章や添付ファイルを減らしてください。</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Pro を取得</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Pro を確認</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Basic 会員です。タップして Pro にアップグレードできます。</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>会員状態を取得できません。タップして確認してください。</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

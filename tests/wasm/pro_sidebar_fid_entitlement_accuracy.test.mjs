@@ -149,3 +149,24 @@ test('WASM Pro uses an isolated browser EIP-1193 wallet without localhost listen
  assert.match(checkout,/emit transactionSubmitted\(m_quoteId,hash\)/);
  assert.match(app,/ProCheckoutController::transactionSubmitted,[\s\S]*?OpenProofConnectionsController::verifyProPaymentForQuote/);
 });
+
+test('own mobile profile shows accurate Pro, Basic or unknown state beside name',()=>{
+ const qml=read('ui/components/profile/ProfileSurface.qml');
+ const badge=read('ui/components/profile/ProfileProBadge.qml');
+ assert.match(qml,/objectName: "profileIdentityRow"[\s\S]*?objectName: "compactOwnAccountProStatus"/);
+ assert.match(qml,/objectName: "compactOwnAccountProStatus"[\s\S]*?visible: root\.compact && root\.isOwnProfile[\s\S]*?showUpgrade: true[\s\S]*?entitlement: root\.ownProEntitlement/);
+ assert.match(qml,/openProofConnections\.cloudAuthorizationReady[\s\S]*?Number\(openProofConnections\.activeAccountFid\) === Number\(root\.activeDetail\.fid \|\| 0\)/);
+ assert.match(qml,/objectName: "profileAchievementBadges"[\s\S]*?showUpgrade: true\s+visible: root\.isOwnProfile && !root\.compact/);
+ assert.match(badge,/entitlement\.status === "verified"\s*&& entitlement\.tier === "pro" && entitlement\.eligible === true/);
+ assert.match(badge,/entitlement\.status === "verified"\s*&& entitlement\.tier === "basic" && entitlement\.eligible === false/);
+ assert.match(badge,/get_pro/);
+ assert.match(badge,/check_pro_status/);
+ assert.match(badge,/onClicked: \{[\s\S]*?root\.detailsRequested\(\)/);
+ const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR','hi_IN',
+  'ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
+ for(const lang of locales){
+  const xml=read('ui/i18n/qml_'+lang+'.ts');
+  for(const id of ['get_pro','check_pro_status','basic_status_hint','status_unknown_hint'])
+   assert.equal(xml.split('id="genycaster.pro.'+id+'"').length-1,1,lang+':'+id);
+ }
+});

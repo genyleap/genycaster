@@ -7032,6 +7032,22 @@ Company | https://company.com</source>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>Черновик нельзя опубликовать цепочкой. Сократите текст или удалите вложения.</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Получить Pro</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Проверить Pro</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Подписка Basic активна. Нажмите для перехода на Pro.</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>Статус подписки недоступен. Нажмите для проверки.</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

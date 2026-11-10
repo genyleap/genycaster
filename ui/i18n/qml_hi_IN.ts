@@ -7032,6 +7032,22 @@ Company | https://company.com</source>
             <source>This draft cannot be published as a thread. Shorten it or remove attachments.</source>
             <translation>इस ड्राफ़्ट को थ्रेड के रूप में पोस्ट नहीं किया जा सकता। टेक्स्ट या अटैचमेंट कम करें।</translation>
         </message>
+        <message id="genycaster.pro.get_pro">
+            <source>Get Pro</source>
+            <translation>Pro लें</translation>
+        </message>
+        <message id="genycaster.pro.check_pro_status">
+            <source>Check Pro</source>
+            <translation>Pro जाँचें</translation>
+        </message>
+        <message id="genycaster.pro.basic_status_hint">
+            <source>Basic membership is active. Tap to upgrade to Pro.</source>
+            <translation>Basic सदस्यता सक्रिय है। Pro में अपग्रेड करने के लिए टैप करें।</translation>
+        </message>
+        <message id="genycaster.pro.status_unknown_hint">
+            <source>Membership status is unavailable. Tap to check it.</source>
+            <translation>सदस्यता स्थिति उपलब्ध नहीं है। जाँचने के लिए टैप करें।</translation>
+        </message>
         <message id="genycaster.pro.short">
             <source>PRO</source>
             <translation>PRO</translation>

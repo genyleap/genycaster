@@ -86,6 +86,12 @@ Item {
     // never fabricated verified entitlements or activity.
     readonly property var proEntitlementsSnapshot: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
+    // A cached Pro response from another FID or a disconnected cloud session
+    // must never appear as the current account's verified membership.
+    readonly property var ownProEntitlement: root.isOwnProfile && openProofConnections
+        && openProofConnections.cloudAuthorizationReady
+        && Number(openProofConnections.activeAccountFid) === Number(root.activeDetail.fid || 0)
+        ? root.proEntitlementsSnapshot : ({status: "unavailable"})
     readonly property var streakSnapshot: openProofConnections
         ? (openProofConnections.streak || ({})) : ({})
     readonly property var streakPreferencesSnapshot: openProofConnections
@@ -1908,10 +1914,13 @@ Item {
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
-                            Layout.fillWidth: false
+                            // Keep the profile name readable beside the
+                            // own-account membership status on narrow phones.
+                            Layout.fillWidth: root.compact && root.isOwnProfile
                             Layout.minimumWidth: 0
-                            Layout.maximumWidth: Math.max(100, root.profileContentWidth
-                                * (root.compact ? 0.43 : 0.57))
+                            Layout.maximumWidth: root.compact && root.isOwnProfile
+                                ? Math.max(88, root.profileContentWidth - Theme.scaleUi(113))
+                                : Math.max(100, root.profileContentWidth * (root.compact ? 0.43 : 0.57))
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
@@ -1920,6 +1929,20 @@ Item {
                             horizontalAlignment: Theme.textStartAlignment
                             wrapMode: Text.NoWrap
                             elide: Text.ElideRight
+                        }
+
+                        // Like the account status controls in other social
+                        // clients, Basic and Pro are discoverable next to the
+                        // owner's name. Unknown does not masquerade as Basic.
+                        ProfileProBadge {
+                            id: compactProfileMembership
+                            objectName: "compactOwnAccountProStatus"
+                            visible: root.compact && root.isOwnProfile
+                            showUpgrade: true
+                            compact: true
+                            entitlement: root.ownProEntitlement
+                            Layout.alignment: Qt.AlignVCenter
+                            onDetailsRequested: root.proRequested()
                         }
 
                         Item {
@@ -2338,8 +2361,9 @@ Item {
                                 id: profileProBadge
                                 objectName: "verifiedGenyProBadge"
                                 compact: root.compact
-                                entitlement: root.proEntitlementsSnapshot
-                                visible: root.isOwnProfile && eligible
+                                entitlement: root.ownProEntitlement
+                                showUpgrade: true
+                                visible: root.isOwnProfile && !root.compact
                                 onDetailsRequested: root.proRequested()
                             }
 
