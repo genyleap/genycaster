@@ -45,10 +45,17 @@ def fixture_linux(app: Path) -> None:
     executable.parent.mkdir(parents=True)
     executable.write_bytes(b"\x7fELF" + b"\x00" * 200)
     for library in ("libQt6Core.so.6", "libQt6Gui.so.6",
-                    "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6"):
+                    "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6",
+                    "libssl.so.3", "libcrypto.so.3"):
         lib = usr / "lib" / library
         lib.parent.mkdir(parents=True, exist_ok=True)
         lib.write_bytes(b"fixture")
+    openssl_backend = usr / "plugins/tls/libqopensslbackend.so"
+    openssl_backend.parent.mkdir(parents=True, exist_ok=True)
+    openssl_backend.write_bytes(b"fixture")
+    qt_config = usr / "bin/qt.conf"
+    qt_config.parent.mkdir(parents=True, exist_ok=True)
+    qt_config.write_text("[Paths]\\nPrefix = ..\\nPlugins = plugins\\n")
     for module, plugin in (
         ("QtQuick/Controls", "libqtquickcontrols2plugin.so"),
         ("QtQuick/Controls/Basic", "libqtquickcontrols2basicstyleplugin.so"),
@@ -214,6 +221,31 @@ class RuntimePackagingTests(unittest.TestCase):
             root = Path(d) / "AppDir"
             fixture_linux(root)
             validate_linux(root, inspect_elf=False)
+
+    def test_linux_rejects_unbundled_qt_tls_plugin(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "AppDir"
+            fixture_linux(root)
+            (root / "usr/plugins/tls/libqopensslbackend.so").unlink()
+            with self.assertRaisesRegex(ValueError, "Qt OpenSSL TLS"):
+                validate_linux(root, inspect_elf=False)
+
+    def test_linux_rejects_missing_openssl_pair_member(self):
+        for soname in ("libssl.so.3", "libcrypto.so.3"):
+            with self.subTest(soname=soname), tempfile.TemporaryDirectory() as d:
+                root = Path(d) / "AppDir"
+                fixture_linux(root)
+                (root / "usr/lib" / soname).unlink()
+                with self.assertRaisesRegex(ValueError, soname.replace(".", r"\\.")):
+                    validate_linux(root, inspect_elf=False)
+
+    def test_linux_rejects_missing_or_invalid_qt_conf(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "AppDir"
+            fixture_linux(root)
+            (root / "usr/bin/qt.conf").write_text("[Paths]\\nPlugins = /opt/Qt\\n")
+            with self.assertRaisesRegex(ValueError, "Qt plugin path"):
+                validate_linux(root, inspect_elf=False)
 
     def test_linux_removes_only_sql_plugins_before_sealing_appimage(self):
         with tempfile.TemporaryDirectory() as d:
