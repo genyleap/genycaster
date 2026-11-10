@@ -105,6 +105,16 @@ class PackagingTests(unittest.TestCase):
                 self.assertIn("Genycaster.app/Contents/MacOS/Genycaster",
                               {entry["path"] for entry in manifest["files"]})
 
+    def test_linux_desktop_entry_has_registered_categories(self) -> None:
+        source = Path("properties/Linux/genycaster.desktop").read_text()
+        self.assertIn("Categories=Network;InstantMessaging;", source)
+        self.assertNotIn("SocialNetwork", source)
+        validator = shutil.which("desktop-file-validate")
+        if validator:
+            import subprocess
+            subprocess.run([validator, "properties/Linux/genycaster.desktop"],
+                           check=True, capture_output=True, text=True)
+
     @unittest.skipUnless(shutil.which("dpkg-deb"), "dpkg-deb unavailable")
     def test_deb_installer_contains_app_and_desktop_entry(self) -> None:
         with TemporaryDirectory() as tmp:

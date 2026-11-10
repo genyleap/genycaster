@@ -5,5 +5,5 @@ Comment=Native Farcaster client
 Exec=Genycaster
 Icon=genycaster
 Terminal=false
-Categories=Network;SocialNetwork;
+Categories=Network;InstantMessaging;
 StartupNotify=true

@@ -28,6 +28,9 @@ def main() -> None:
     assert "node --test services/test/deployment_config.test.mjs" in gate
     assert "ci/test_audit_windows_stage.py" in gate
     assert "ci/test_native_runtime_audits.py" in gate
+    assert "ci/test_nsis_cpack_config.py" in gate
+    assert "ci/test_packaging.py" in gate
+    assert "desktop-file-validate AppDir/usr/share/applications/genycaster.desktop" in workflow
     assert '-qmldir="$GITHUB_WORKSPACE/ui"' in workflow
     assert 'mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"' in workflow
     assert '--skip-plugin-types sqldrivers,qmltooling' in workflow
@@ -271,13 +274,15 @@ def main() -> None:
     assert 'QStringLiteral("https")' in instance
     assert 'CPACK_NSIS_EXECUTABLES_DIRECTORY "."' in windows
     assert 'CPACK_NSIS_INSTALLED_ICON_NAME "Genycaster.exe"' in windows
-    assert "string(CONCAT CPACK_NSIS_EXTRA_INSTALL_COMMANDS" in windows
-    assert "vc_redist.${_genycasterVCRedistSuffix}.exe" in windows
-    assert "ExecWait" in windows and "SetRebootFlag true" in windows
+    nsis_options = Path("properties/Windows/NSISOptions.cmake.in").read_text(encoding="utf-8")
+    assert "set(CPACK_PROJECT_CONFIG_FILE" in windows
+    assert "GenyCasterNSISOptions.cmake" in windows
+    assert "vc_redist.@GENYCASTER_VC_REDIST_SUFFIX@.exe" in nsis_options
+    assert "ExecWait" in nsis_options and "SetRebootFlag true" in nsis_options
     assert "Get-AuthenticodeSignature -FilePath" in workflow
-    assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in windows
-    assert "CPACK_NSIS_DELETE_ICONS_EXTRA" in windows
-    assert "GenyCaster.lnk" in windows
+    assert "CPACK_NSIS_CREATE_ICONS_EXTRA" in nsis_options
+    assert "CPACK_NSIS_DELETE_ICONS_EXTRA" in nsis_options
+    assert "GenyCaster.lnk" in nsis_options
     assert "GenyCaster-Installer-License.txt" in windows
     assert "CPACK_RESOURCE_FILE_LICENSE" in windows
     assert 'RENAME "LICENSE.txt"' in windows

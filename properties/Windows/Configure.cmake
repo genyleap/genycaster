@@ -38,34 +38,20 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
     set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/properties/Windows/genycaster.ico")
     set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/properties/Windows/genycaster.ico")
     set(CPACK_NSIS_MENU_LINKS "Genycaster.exe" "GenyCaster")
-    # CPack's menu links are Start Menu entries, NOT Desktop shortcuts.
-    # Create the desktop link on installation and always remove it on uninstall.
-    set(CPACK_NSIS_CREATE_ICONS_EXTRA
-        "CreateShortCut \"$DESKTOP\\GenyCaster.lnk\" \"$INSTDIR\\Genycaster.exe\"")
-    set(CPACK_NSIS_DELETE_ICONS_EXTRA
-        "Delete \"$DESKTOP\\GenyCaster.lnk\"")
-
-    # Qt/MSVC needs the Microsoft Visual C++ runtime. Qt's windeployqt
-    # stages the official redistributable but does not install it.
+    # These NSIS commands are loaded after CPackConfig.cmake is parsed.
+    # Bracket-quoted commands preserve backslashes and shortcut quoting.
     if(GENYCASTER_WINDOWS_PACKAGE_ARCH STREQUAL "arm64")
-        set(_genycasterVCRedistSuffix "arm64")
+        set(GENYCASTER_VC_REDIST_SUFFIX "arm64")
     else()
-        set(_genycasterVCRedistSuffix "x64")
+        set(GENYCASTER_VC_REDIST_SUFFIX "x64")
     endif()
-    string(CONCAT CPACK_NSIS_EXTRA_INSTALL_COMMANDS
-        "IfFileExists \"$INSTDIR\\vc_redist.${_genycasterVCRedistSuffix}.exe\" +2 0\n"
-        "Abort \"Microsoft Visual C++ runtime installer is missing\"\n"
-        "DetailPrint \"Installing Microsoft Visual C++ runtime\"\n"
-        "ExecWait '\"$INSTDIR\\vc_redist.${_genycasterVCRedistSuffix}.exe\" /install /quiet /norestart' $0\n"
-        "StrCmp $0 0 genycaster_vc_runtime_done\n"
-        "StrCmp $0 1638 genycaster_vc_runtime_done\n"
-        "StrCmp $0 3010 genycaster_vc_runtime_reboot\n"
-        "MessageBox MB_ICONSTOP|MB_OK \"Microsoft Visual C++ runtime installation failed (code $0).\"\n"
-        "Abort\n"
-        "genycaster_vc_runtime_reboot:\n"
-        "SetRebootFlag true\n"
-        "genycaster_vc_runtime_done:\n")
-    unset(_genycasterVCRedistSuffix)
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/properties/Windows/NSISOptions.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/GenyCasterNSISOptions.cmake"
+        @ONLY)
+    set(CPACK_PROJECT_CONFIG_FILE
+        "${CMAKE_CURRENT_BINARY_DIR}/GenyCasterNSISOptions.cmake")
+    unset(GENYCASTER_VC_REDIST_SUFFIX)
 
     # A visible publisher/copyright preface complements (never replaces)
     # the complete GPLv3 text. Brand identity is not relicensed by the GPL.
