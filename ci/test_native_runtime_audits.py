@@ -79,6 +79,30 @@ def fixture_linux(app: Path) -> None:
 
 
 class RuntimePackagingTests(unittest.TestCase):
+    def test_windows_signer_uses_native_wincred_without_a_nested_qt_loop(self):
+        source = Path("src/platform/signer_vault_qtkeychain.cpp").read_text(
+            encoding="utf-8")
+        cmake = Path("src/platform/CMakeLists.txt").read_text(encoding="utf-8")
+        for snippet in (
+            "CredReadW(", "CredWriteW(", "CredDeleteW(",
+            "CRED_TYPE_GENERIC", "CRED_PERSIST_ENTERPRISE",
+            "windowsLoadSeed(service, fid)", "windowsSaveSeed(service, fid, seed)",
+            "windowsDeleteSeed(service, fid)", "qtkeychainCompatNamingScheme",
+            "qtkeychainFallbackToCompatNamingScheme",
+        ):
+            self.assertIn(snippet, source)
+        self.assertIn("#if !defined(Q_OS_WIN)\\nvoid runJob", source)
+        self.assertIn('key + QLatin1Char(\'@\')', source)
+        self.assertIn("target_link_libraries(farcaster_platform_signer PRIVATE advapi32)",
+                      cmake)
+
+    def test_linux_launcher_handles_unbundled_wayland_without_overriding_user(self):
+        from ci.bundle_linux_cpp_runtime import LAUNCHER
+        self.assertIn('WAYLAND_DISPLAY', LAUNCHER)
+        self.assertIn('QT_QPA_PLATFORM:-', LAUNCHER)
+        self.assertIn('export QT_QPA_PLATFORM=xcb', LAUNCHER)
+        self.assertIn('usr/plugins/platforms/libqwayland-generic.so', LAUNCHER)
+
     def test_macos_mounted_dmg_otool_architecture_header(self):
         """otool -L can repeat a mounted DMG path with an architecture label."""
         with tempfile.TemporaryDirectory() as d:
