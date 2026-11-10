@@ -106,13 +106,20 @@ class RuntimePackagingTests(unittest.TestCase):
             plugin = app / "Contents/PlugIns/sqldrivers/libqsqlite.dylib"
             plugin.parent.mkdir(parents=True)
             plugin.write_bytes(b"unused plugin")
+            storage = app / "Contents/Frameworks/QtQmlLocalStorage.framework"
+            storage.mkdir(parents=True)
+            local_plugin = app / "Contents/PlugIns/quick/libqmllocalstorageplugin.dylib"
+            local_plugin.parent.mkdir(parents=True)
+            local_plugin.write_bytes(b"unused localstorage plugin")
             with patch("ci.prune_macos_bundle.subprocess.run",
                        return_value=subprocess.CompletedProcess(
                            ["/usr/bin/otool"], 0,
                            "binary:\\n    @rpath/QtCore.framework/Versions/A/QtCore", "")):
-                self.assertEqual(prune_macos(app), 2)
+                self.assertEqual(prune_macos(app), 4)
             self.assertFalse(sql.exists())
             self.assertFalse(plugin.exists())
+            self.assertFalse(storage.exists())
+            self.assertFalse(local_plugin.exists())
             validate_macos(app, "arm64", inspect_macho=False)
 
     def test_macos_does_not_delete_sql_needed_by_another_plugin(self):
@@ -125,9 +132,21 @@ class RuntimePackagingTests(unittest.TestCase):
                        return_value=subprocess.CompletedProcess(
                            ["/usr/bin/otool"], 0,
                            "binary:\\n    @rpath/QtSql.framework/Versions/A/QtSql", "")):
-                with self.assertRaisesRegex(ValueError, "dynamically required"):
+                with self.assertRaisesRegex(ValueError, "would be required"):
                     prune_macos(app)
             self.assertTrue(sql.exists())
+
+    def test_macos_preserves_localstorage_when_imported_by_product(self):
+        with tempfile.TemporaryDirectory() as d:
+            app = Path(d) / "Genycaster.app"
+            fixture_macos(app)
+            (app / "Contents/Frameworks/QtSql.framework").mkdir(parents=True)
+            qml = Path(d) / "qml"
+            qml.mkdir()
+            (qml / "Main.qml").write_text("import QtQuick.LocalStorage\\n")
+            with self.assertRaisesRegex(ValueError, "imported by"):
+                prune_macos(app, qml)
+            self.assertTrue((app / "Contents/Frameworks/QtSql.framework").exists())
 
     def test_macos_rejects_missing_cocoa_plugin(self):
         with tempfile.TemporaryDirectory() as d:

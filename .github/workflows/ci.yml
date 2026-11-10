@@ -389,7 +389,7 @@ jobs:
           # hidden. Inspect every shipped Mach-O dependency before removing
           # unused QtSql, and do not let a second deployment repopulate it.
           "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$GITHUB_WORKSPACE/ui" -verbose=1
-          python3 ci/prune_macos_bundle.py "$APP"
+          python3 ci/prune_macos_bundle.py "$APP" --qml-source "$GITHUB_WORKSPACE/ui"
           python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
           mkdir -p dist
           DMG=build/native/bin/Genycaster.dmg

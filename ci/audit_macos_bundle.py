@@ -45,6 +45,10 @@ def audit(app: Path, architecture: str, *, inspect_macho: bool = True) -> None:
             "Unused Qt SQL drivers must not be shipped in a macOS client")
     require(not (frameworks / "QtSql.framework").exists(),
             "Unused QtSql framework must not be shipped in a macOS client")
+    require(not (frameworks / "QtQmlLocalStorage.framework").exists(),
+            "Unused QtQmlLocalStorage framework must not be shipped in a macOS client")
+    require(not any(path.name == "libqmllocalstorageplugin.dylib" for path in files),
+            "Unused QML LocalStorage plugin must not be shipped in a macOS client")
     require(any(path.name == "libqcocoa.dylib"
                 and in_module(path, "platforms")
                 for path in files), "Missing bundled Cocoa platform plugin")
