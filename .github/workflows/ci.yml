@@ -20,7 +20,7 @@ on:
           - ios
           - nixos
       target_arch:
-        description: Optional architecture filter for macOS validation
+        description: Optional architecture filter for a single-platform validation
         type: choice
         required: false
         default: all
@@ -100,15 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: x86_64
-            runner: ubuntu-24.04
-            qt_arch: linux_gcc_64
-            appimage_arch: x86_64
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            qt_arch: linux_gcc_arm64
-            appimage_arch: aarch64
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'linux' && inputs.target_arch == 'x86_64' && '[{"arch":"x86_64","runner":"ubuntu-24.04","qt_arch":"linux_gcc_64","appimage_arch":"x86_64"}]' || github.event_name == 'workflow_dispatch' && inputs.platform == 'linux' && inputs.target_arch == 'arm64' && '[{"arch":"arm64","runner":"ubuntu-24.04-arm","qt_arch":"linux_gcc_arm64","appimage_arch":"aarch64"}]' || '[{"arch":"x86_64","runner":"ubuntu-24.04","qt_arch":"linux_gcc_64","appimage_arch":"x86_64"},{"arch":"arm64","runner":"ubuntu-24.04-arm","qt_arch":"linux_gcc_arm64","appimage_arch":"aarch64"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'linux'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
@@ -147,18 +139,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Catch missing GStreamer libraries before spending CI minutes
-          # compiling the entire C++26 app or running linuxdeploy.
-          GST_QT_PLUGIN="$QT_ROOT_DIR/plugins/multimedia/libgstreamermediaplugin.so"
-          test -f "$GST_QT_PLUGIN"
-          MISSING_MULTIMEDIA="$(ldd "$GST_QT_PLUGIN" | grep "not found" || true)"
-          if [[ -n "$MISSING_MULTIMEDIA" ]]; then
-            echo "::error::Qt GStreamer backend has missing runtime libraries: $MISSING_MULTIMEDIA"
+          # The official Qt 6.12 Linux x86_64 archive can ship only FFmpeg;
+          # ARM64 may also ship GStreamer. Require at least one usable backend
+          # and inspect the actual ELF dependencies rather than a hardcoded
+          # optional plugin or legacy GStreamer SONAME.
+          multimedia="$QT_ROOT_DIR/plugins/multimedia"
+          usable=0
+          for backend in ffmpeg gstreamer; do
+            plugin="$multimedia/lib${backend}mediaplugin.so"
+            if [[ ! -f "$plugin" ]]; then
+              echo "::notice::Optional Qt $backend backend not present"
+              continue
+            fi
+            missing="$(ldd "$plugin" | grep "not found" || true)"
+            if [[ -n "$missing" ]]; then
+              echo "::warning::Qt $backend backend missing runtime libraries: $missing"
+              continue
+            fi
+            echo "Qt $backend media backend dependencies resolved"
+            usable=$((usable + 1))
+          done
+          if (( usable < 1 )); then
+            echo "::error::No usable Qt Multimedia backend found in $multimedia"
             exit 1
           fi
-          # Qt 6.12 no longer requires a separate libgstplay SONAME on
-          # every supported GStreamer build. Validate the actual linked
-          # runtime dependencies above rather than probing a legacy SONAME.
       - name: Build Qt client
         shell: bash
         run: |

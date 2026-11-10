@@ -78,7 +78,9 @@ def main() -> None:
     assert "libgstreamer-plugins-bad1.0-0" in workflow
     linux = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
     assert linux.index("Check Qt Multimedia deployment dependencies") < linux.index("Build Qt client")
-    assert 'ldd "$GST_QT_PLUGIN"' in linux
+    assert 'ldd "$plugin"' in linux
+    assert "for backend in ffmpeg gstreamer" in linux
+    assert "inputs.target_arch == 'x86_64'" in linux
     # The actual Qt plugin's ELF dependencies are authoritative; a separate
     # legacy libgstplay SONAME is not present on every Qt 6.12 target.
     assert "libgstplay-1.0.so.0" not in linux
