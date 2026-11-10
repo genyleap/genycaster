@@ -91,7 +91,7 @@ class RuntimePackagingTests(unittest.TestCase):
             "qtkeychainFallbackToCompatNamingScheme",
         ):
             self.assertIn(snippet, source)
-        self.assertIn("#if !defined(Q_OS_WIN)\\nvoid runJob", source)
+        self.assertIn("#if !defined(Q_OS_WIN)\nvoid runJob", source)
         self.assertIn('key + QLatin1Char(\'@\')', source)
         self.assertIn("target_link_libraries(farcaster_platform_signer PRIVATE advapi32)",
                       cmake)
