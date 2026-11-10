@@ -3948,6 +3948,7 @@ Item {
         manualLinkedInUrl: openProofConnections ? openProofConnections.manualLinkedInUrl : ""
         errorText: openProofConnections ? openProofConnections.error : ""
         onOpenProfileRequested: url => root.externalRequested(url)
+        onProDetailsRequested: root.proRequested()
         onAuthorizeRequested: openProofConnections.authorizeAccount()
         onApprovalRequested: url => Qt.openUrlExternally(url)
         onRefreshRequested: openProofConnections.refreshConnections()

@@ -157,20 +157,26 @@ GenyDrawer {
     // Mobile checkout fills the screen; a short sheet hides benefits and
     // makes the payment steps appear clipped above a fixed footer.
     bottomSheet: root.compact
-    fullScreen: root.compact
-    showHandle: false
+    // Short sheets hug their content; large checkout forms can expand to the
+    // available viewport, with a scrolling body above the pinned actions.
+    fullScreen: root.compact && root.manualExpanded && root.checkoutActive
+    showHandle: root.compact && !root.fullScreen
     dimBackground: true
     // Billing always opens from the physical right on desktop, regardless
     // of interface language. Other GenyDrawer instances keep their policy.
     edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
-    width: root.compact ? parent.width : Math.min(468, parent.width * 0.94)
-    height: parent.height
-    contentPadding: Theme.space4
+    width: parent ? (root.compact ? parent.width
+        : Math.min(500, Math.max(360, parent.width * 0.40))) : 468
+    height: parent ? (root.fullScreen ? parent.height
+        : Math.min(parent.height, Math.max(Theme.scaleUi(root.compact ? 380 : 500),
+            fixedHeader.height + detailsColumn.implicitHeight + fixedActions.height
+            + Theme.space4 * 5))) : 640
+    contentPadding: root.compact ? Theme.space3 : Theme.space4
 
     Timer {
         interval: 1000
         repeat: true
-        running: root.opened && root.quotePresent
+        running: root.opened && root.checkoutActive && root.quotePresent
         onTriggered: root.quoteNowMs = Date.now()
     }
 
@@ -187,8 +193,13 @@ GenyDrawer {
         quoteNowMs = Date.now()
         detailsViewport.contentY = 0
         if (openProofConnections) {
-            openProofConnections.fetchProPlan(true)
-            openProofConnections.retryProEntitlements()
+            // Opening a UI surface does not force repeated billing/status
+            // requests. Membership is fetched once from the account cache.
+            openProofConnections.fetchProPlan(false)
+            if (root.cloudReady)
+                openProofConnections.fetchProEntitlements(false)
+            else if (root.appSignedIn && !root.restoringSession)
+                openProofConnections.retryProEntitlements()
         }
     }
     onClosed: {
@@ -214,15 +225,8 @@ GenyDrawer {
         }
         root.prepareQuote()
     }
-    // Closing the sheet must not interrupt a payment already submitted to a
-    // wallet. Its bound quote is still verified by the account API.
-    Connections {
-        target: openProofConnections
-        function onStateChanged() {
-            if (root.opened && root.cloudReady && !openProofConnections.proEntitlementsBusy)
-                openProofConnections.fetchProEntitlements(false)
-        }
-    }
+    // No refresh from generic account stateChanged: it includes unrelated
+    // account mutations and previously caused repeated Pro status checks.
 
     contentItem: Item {
         id: viewport
@@ -277,7 +281,23 @@ GenyDrawer {
                 }
             }
             ActionButton {
-                visible: !root.compact
+                objectName: "genyProManualStatusRefresh"
+                visible: root.opened && root.appSignedIn
+                Layout.alignment: Qt.AlignVCenter
+                compact: true
+                quiet: true
+                iconOnly: true
+                iconGlyph: Theme.iconRefresh
+                text: qsTrId("genycaster.pro.check_status")
+                enabled: !root.busy && !openProofConnections.proEntitlementsBusy
+                onClicked: {
+                    if (root.cloudReady)
+                        openProofConnections.fetchProEntitlements(true)
+                    else
+                        openProofConnections.retryProEntitlements()
+                }
+            }
+            ActionButton {
                 Layout.alignment: Qt.AlignVCenter
                 compact: true
                 quiet: true

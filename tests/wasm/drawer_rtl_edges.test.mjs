@@ -29,8 +29,8 @@ test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom 
       // Checkout uniquely opens on the physical RIGHT on desktop and fills
       // the screen on mobile; other drawers retain their RTL edge policy.
       assert.match(qml(file),/edge: root\.compact \? Qt\.BottomEdge : Qt\.RightEdge/);
-      assert.match(qml(file),/fullScreen: root\.compact/);
-      assert.match(qml(file),/height: parent\.height/);
+      assert.match(qml(file),/fullScreen: root\.compact && root\.manualExpanded && root\.checkoutActive/);
+      assert.match(qml(file),/root\.fullScreen \? parent\.height/);
       continue;
     }
     // No accidental physical side overrides in child instances. All desktop

@@ -16,8 +16,17 @@ Item {
     property string readEndpoint: ""
     property string activeTab: "overview"
     property int statsDays: 30
+    readonly property var proMembership: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property bool verifiedGenyPro: authenticated
+        && Number(accountFid) > 0 && openProofConnections
+        && Number(openProofConnections.activeAccountFid) === Number(accountFid)
+        && proMembership.status === "verified"
+        && proMembership.tier === "pro" && proMembership.eligible === true
+    onVerifiedGenyProChanged: root.requestStats(false)
     function requestStats(force) {
-        if (!root.authenticated || root.accountFid === "" || root.accountFid === "0") {
+        if (!root.authenticated || !root.verifiedGenyPro
+                || root.accountFid === "" || root.accountFid === "0") {
             statsController.clear()
             return
         }
@@ -80,6 +89,7 @@ Item {
     signal exploreRequested()
     signal composeRequested(string text)
     signal statsReportRequested(string text)
+    signal proRequested()
     signal photoRequested()
     signal searchRequested()
     signal notificationsRequested()
@@ -519,7 +529,9 @@ GenyTokenBanner {
                         width: parent.width
                         compact: false
                         tabActive: root.activeTab === "stats"
+                        proUnlocked: root.verifiedGenyPro
                         periodDays: root.statsDays
+                        onProRequested: root.proRequested()
                         onPeriodRequested: days => root.statsDays = days
                         onRefreshRequested: root.requestStats(true)
                         onShareRequested: text => root.statsReportRequested(text)
@@ -683,7 +695,9 @@ GenyTokenBanner {
                 Layout.rightMargin: Theme.space3
                 compact: true
                 tabActive: root.activeTab === "stats"
+                proUnlocked: root.verifiedGenyPro
                 periodDays: root.statsDays
+                onProRequested: root.proRequested()
                 onPeriodRequested: days => root.statsDays = days
                 onRefreshRequested: root.requestStats(true)
                 onShareRequested: text => root.statsReportRequested(text)

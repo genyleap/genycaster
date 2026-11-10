@@ -1645,6 +1645,7 @@ Item {
                                         compact: root.compact
                                         bottomOverlayInset: mobileBottomNavigation.visible ? mobileBottomNavigation.height : 0
                                         onExploreRequested: root.openExplorer()
+                                        onProRequested: genyProDetailsDrawer.open()
                                         onComposeRequested: text => root.openComposer(null, "", text)
                                         onStatsReportRequested: text => root.openComposer(null, "", text, null, true)
                                         onPhotoRequested: root.openComposer(null, "media", homeDashboard.draftText)
@@ -2027,6 +2028,7 @@ Item {
 
                             ComposerDrawer {
                                 id: composerDrawer
+                                onProRequested: genyProDetailsDrawer.open()
                                 // On phones the composer must be positioned against the
                                 // live Qt viewport, not the readingPane whose geometry
                                 // may extend beyond the visible keyboard viewport.
@@ -2477,6 +2479,7 @@ Item {
         busy: openProofConnections ? openProofConnections.bookmarkCollectionsBusy : false
         errorText: openProofConnections ? openProofConnections.bookmarkCollectionsError : ""
         onClosed: root.bookmarkAssignmentCreateName=""
+        onProDetailsRequested: genyProDetailsDrawer.open()
         onCollectionPicked: id => root.assignSavedBookmark(
             root.bookmarkChoiceHash,id)
         onCreateRequested: name => {
@@ -2560,6 +2563,7 @@ Item {
                 blurSourceItem: shellContent
                 onCustomAccentStudioRequested: color => accentColorStudio.openWith(color)
                 onDataStorageRequested: root.openDataStorageSettings()
+                onProDetailsRequested: genyProDetailsDrawer.open()
                 onSignOutConfirmationRequested: root.requestSignOut()
                 onProfileRequested: {
                     close()

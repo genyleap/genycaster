@@ -13,6 +13,7 @@ GenyDrawer {
     ProUpgradeNotice {
         id: composerProNotice
         featureLabel: qsTrId("genycaster.pro.advanced_editor")
+        onUpgradeRequested: root.proRequested()
     }
 
     property var parentCast: null
@@ -119,6 +120,7 @@ GenyDrawer {
     signal publishRequested(string text, var mentionFids, var mentionPositions, var embeds, string parentUrl)
     signal replyRequested(string text, var mentionFids, var mentionPositions, var embeds)
     signal threadRequested(var casts)
+    signal proRequested()
     signal abandoned()
 
     function topicName(slug) {
@@ -1937,8 +1939,10 @@ GenyDrawer {
                                               : (root.compact
                                                  ? (mediaPanel.visible
                                                     ? Math.max(135, Math.min(192, composerScroll.height * 0.30))
-                                                    : Math.max(135, composerScroll.height
-                                                        - (root.keyboardVisible ? 84 : 126)))
+                                                    : Math.max(150, Math.min(
+                                                        Math.max(260, mobilePlainEditor.contentHeight
+                                                            + Theme.space4 * 2),
+                                                        Math.max(300, composerScroll.height * 1.5))))
                                                  : root.structuredReport && root.editorMode === "visual"
                                                    // Use the wrapped text's actual height. Content
                                                    // exceeding the viewport scrolls in composerScroll.
@@ -1979,6 +1983,9 @@ GenyDrawer {
                         visible: root.compact && root.editorMode === "visual"
                         anchors.fill: parent
                         anchors.margins: Theme.space2
+                        // Content-sized editor avoids cutting off multi-line
+                        // statistics reports in the iOS/WASM keyboard viewport.
+                        clip: true
                         placeholderText: qsTrId("genycaster.shell.whats_happening")
                         background: null
                         selectByMouse: true

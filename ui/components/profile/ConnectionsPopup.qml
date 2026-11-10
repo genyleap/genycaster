@@ -32,6 +32,7 @@ GenyDrawer {
     signal disconnectRequested(string provider, string subject)
     signal openProfileRequested(string url)
     signal manualLinkedInRequested(string url)
+    signal proDetailsRequested()
 
     // Shared GenyDrawer handles bottom sheets on phones and consistently
     // right-anchored inspectors on desktop in both LTR and RTL.
@@ -698,5 +699,6 @@ GenyDrawer {
     ProUpgradeNotice {
         id: connectionsProNotice
         featureLabel: qsTrId("genycaster.pro.connections")
+        onUpgradeRequested: picker.proDetailsRequested()
     }
 }

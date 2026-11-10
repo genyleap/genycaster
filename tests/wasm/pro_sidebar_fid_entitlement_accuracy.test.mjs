@@ -185,9 +185,9 @@ test('Pro navigation, payment and mobile profile use responsive layout and brand
  const control=read('ui/components/controls/GenyDrawer.qml');
  const cmake=read('ui/CMakeLists.txt');
  assert.match(drawer,/edge: root\.compact \? Qt\.BottomEdge : Qt\.RightEdge/);
- assert.match(drawer,/fullScreen: root\.compact/);
- assert.match(drawer,/showHandle: false/);
- assert.match(drawer,/height: parent\.height/);
+ assert.match(drawer,/fullScreen: root\.compact && root\.manualExpanded && root\.checkoutActive/);
+ assert.match(drawer,/showHandle: root\.compact && !root\.fullScreen/);
+ assert.match(drawer,/root\.fullScreen \? parent\.height/);
  assert.match(control,/edge: bottomSheet \? Qt\.BottomEdge/);
  assert.match(profile,/objectName: "profileUsernameAndLinksRow"/);
  assert.ok(profile.indexOf('objectName: "profileIdentityRow"')

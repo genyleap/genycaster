@@ -26,6 +26,7 @@ Popup {
     signal collectionPicked(string id)
     signal createRequested(string name)
     signal unfiledRequested()
+    signal proDetailsRequested()
 
     background: PopupSurface { curveDepth: Theme.curveContainer }
     contentItem: ColumnLayout {
@@ -145,5 +146,6 @@ Popup {
     ProUpgradeNotice {
         id: collectionsProNotice
         featureLabel: qsTrId("genycaster.pro.bookmark_collections")
+        onUpgradeRequested: root.proDetailsRequested()
     }
 }

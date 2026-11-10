@@ -82,6 +82,9 @@ public:
     }
     void startRecovery()
     {
+        // Repeated taps must not replace the pending one-shot request ID:
+        // the first response would otherwise be discarded as stale.
+        if (!m_pendingRecoveryId.isEmpty()) return;
         // One-shot nonce prevents delayed responses from an older setup
         // from establishing a fresh identity after cancellation.
         m_pendingRecoveryId = QUuid::createUuid().toString(QUuid::WithoutBraces);

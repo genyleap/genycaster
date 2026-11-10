@@ -13,6 +13,7 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     property string featureLabel: ""
+    signal upgradeRequested()
     readonly property var membership: openProofConnections
         ? (openProofConnections.proEntitlements || ({})) : ({})
     readonly property int monthlyUsdCents: Number(membership.monthly_usd_cents || 0)
@@ -26,6 +27,7 @@ Popup {
         spacing: Theme.space3
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             Superellipse {
                 Layout.preferredWidth: Theme.scaleUi(40)
@@ -78,8 +80,21 @@ Popup {
             color: Theme.textSecondary
             wrapMode: Text.Wrap
         }
+        ActionButton {
+            Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+            visible: root.membership.status !== "verified"
+            compact: true
+            quiet: true
+            iconGlyph: Theme.iconRefresh
+            text: qsTrId("genycaster.pro.check_status")
+            onClicked: {
+                if (openProofConnections) openProofConnections.fetchProEntitlements(true)
+                root.close()
+            }
+        }
         RowLayout {
             Layout.fillWidth: true
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space2
             ActionButton {
                 Layout.fillWidth: true
@@ -92,11 +107,11 @@ Popup {
                 Layout.fillWidth: true
                 compact: true
                 prominent: true
-                iconGlyph: Theme.iconRefresh
-                text: qsTrId("genycaster.pro.check_status")
+                iconGlyph: Theme.iconSpark
+                text: qsTrId("genycaster.pro.get_pro")
                 onClicked: {
-                    if (openProofConnections) openProofConnections.fetchProEntitlements(true)
                     root.close()
+                    root.upgradeRequested()
                 }
             }
         }

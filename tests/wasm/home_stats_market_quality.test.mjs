@@ -111,7 +111,9 @@ test("publishing stacks share a square baseline, a rounded top and native Feed P
 test("Stats omits GitHub insights and all contribution fetches without touching profile activity", () => {
     const panel = read("ui/components/home/StatsPanel.qml");
     const profile = read("ui/components/profile/GenyPulsePanel.qml");
-    assert.doesNotMatch(panel, /github|GitHub|genyPulseActivity|openProofConnections/i);
+    // Premium entitlement checks may consult the account controller, but
+    // statistics must remain independent from GitHub activity.
+    assert.doesNotMatch(panel, /github|GitHub|genyPulseActivity/i);
     assert.match(panel, /StatsChart\s*\{/);
     assert.match(panel, /StatsTopCasts\s*\{/);
     assert.match(panel, /root\.refreshRequested\(\)/);

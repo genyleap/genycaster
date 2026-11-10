@@ -2896,10 +2896,13 @@ void PresentationBridge::beginRecoverySetup()
         applyAuthenticationError(qtTrId("genycaster.bridge.the_local_runtime_is_still_starting"));
         return;
     }
-    if (m_isAuthenticated || authenticationBusy()) {
+    if (m_isAuthenticated) {
         applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
         return;
     }
+    // A second tap while the in-page browser recovery is already open is
+    // not an authentication failure. Keep the original one-shot ceremony.
+    if (authenticationBusy()) return;
     m_authenticationRoute = QStringLiteral("recovery");
     m_authenticationErrorText.clear();
     emit authenticationStateChanged();

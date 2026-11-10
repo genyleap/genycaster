@@ -101,6 +101,7 @@ GenyDrawer {
     signal dataStorageRequested()
     signal signOutConfirmationRequested()
     signal profileRequested()
+    signal proDetailsRequested()
 
     function applyCustomAccentColor(color) {
         const applied = appearanceController.setCustomAccentColor(String(color || ""))
@@ -3007,5 +3008,6 @@ GenyDrawer {
     ProUpgradeNotice {
         id: marketProNotice
         featureLabel: qsTrId("genycaster.pro.market_pulse")
+        onUpgradeRequested: root.proDetailsRequested()
     }
 }

@@ -12,6 +12,12 @@ ColumnLayout {
 
     property int periodDays: 30
     property bool compact: false
+    // Entitlements are verified by the account controller and scoped to FID
+    // by HomeDashboard. Unknown is never promoted to an unlocked account.
+    property bool proUnlocked: false
+    readonly property var proMembership: openProofConnections
+        ? (openProofConnections.proEntitlements || ({})) : ({})
+    readonly property bool proStatusKnown: proMembership.status === "verified"
     property string section: "social"
     property real sectionArrival: 1
 
@@ -36,12 +42,12 @@ ColumnLayout {
             sectionEntrance.start()
         }
         if (tabActive) {
-            if (section === "market") marketController.refresh(false)
+            if (section === "market" && root.proUnlocked) marketController.refresh(false)
         }
     }
     onTabActiveChanged: {
         if (tabActive) {
-            if (section === "market") marketController.refresh(false)
+            if (section === "market" && root.proUnlocked) marketController.refresh(false)
         }
     }
     property bool tabActive: false
@@ -129,6 +135,7 @@ ColumnLayout {
     }
 
     function requestMarketRefresh() {
+        if (!root.proUnlocked) return
         dismissRefreshFeedback.stop()
         const accepted = marketController.refresh(true)
         if (!accepted) {
@@ -158,7 +165,8 @@ ColumnLayout {
         // aggregator remains responsible for shared TTL/rate limiting.
         interval: 300000
         repeat: true
-        running: root.tabActive && root.section === "market" && root.visible
+        running: root.tabActive && root.proUnlocked
+            && root.section === "market" && root.visible
         onTriggered: marketController.refresh(false)
     }
     Connections {
@@ -170,6 +178,7 @@ ColumnLayout {
     signal refreshRequested()
     signal shareRequested(string text)
     signal castRequested(string hash)
+    signal proRequested()
 
     RowLayout {
         Layout.fillWidth: true
@@ -202,7 +211,7 @@ ColumnLayout {
         ActionButton {
             objectName: "statsShareResultsButton"
             visible: root.section === "social"
-            enabled: root.loaded && !root.loading
+            enabled: root.proUnlocked && root.loaded && !root.loading
             Layout.preferredWidth: iconOnly ? 42 : implicitWidth
             Layout.preferredHeight: 42
             Layout.alignment: Qt.AlignVCenter
@@ -235,7 +244,7 @@ ColumnLayout {
             text: qsTrId("genycaster.stats.refresh")
             busy: root.section === "market" ? root.marketRequestBusy : root.loading
             spinIconWhileBusy: !Theme.reduceMotion
-            enabled: !busy
+            enabled: root.proUnlocked && !busy
             onClicked: {
                 if (root.section === "market") root.requestMarketRefresh()
                 else root.refreshRequested()
@@ -245,7 +254,8 @@ ColumnLayout {
 
     DirectionAwareLabel {
         Layout.fillWidth: true
-        visible: root.section === "market" && root.marketRefreshFeedback.length > 0
+        visible: root.proUnlocked && root.section === "market"
+            && root.marketRefreshFeedback.length > 0
         text: root.marketRefreshFeedback
         color: root.manualMarketRefresh ? Theme.accent : Theme.textSecondary
         font.pixelSize: Theme.typeCaptionSize
@@ -277,11 +287,71 @@ ColumnLayout {
         }
     }
 
+    // A true locked state, not a decorative blur over account data. The
+    // server-side subscription remains authoritative; this surface neither
+    // fetches premium metrics nor accepts refresh/share while locked.
+    Superellipse {
+        id: premiumStatsGate
+        objectName: "statsProUpgradeGate"
+        visible: !root.proUnlocked
+        Layout.fillWidth: true
+        implicitHeight: premiumGateBody.implicitHeight + Theme.space4 * 2
+        fillColor: Theme.proSurface
+        borderColor: Theme.proBorder
+        borderWidth: Theme.strokeHairline
+        curveDepth: Theme.curveContainer
+
+        ColumnLayout {
+            id: premiumGateBody
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins: Theme.space4
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                Icon {
+                    text: Theme.iconSpark
+                    color: Theme.proAccent
+                    preferredSize: Theme.iconSizeLarge
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.pro.title")
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightBold
+                    color: Theme.textPrimary
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: root.proStatusKnown
+                    ? qsTrId("genycaster.pro.feature_market_desc")
+                    : qsTrId("genycaster.pro.verification_unavailable")
+                font.pixelSize: Theme.typeBodySize
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
+            }
+            ActionButton {
+                objectName: "statsUnlockProButton"
+                Layout.fillWidth: root.compact
+                Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                compact: false
+                prominent: true
+                iconGlyph: Theme.iconSpark
+                text: qsTrId("genycaster.pro.get_pro")
+                onClicked: root.proRequested()
+            }
+        }
+    }
+
     // Keep the context and range actions on the same compact line. The
     // period menu is local to this surface, not a second navigation strip.
     RowLayout {
         objectName: "statsPeriodContextRow"
-        visible: root.section === "social"
+        visible: root.proUnlocked && root.section === "social"
         Layout.fillWidth: true
         Layout.minimumWidth: 0
         layoutDirection: Theme.uiDirection
@@ -400,19 +470,20 @@ ColumnLayout {
 
     DirectionAwareLabel {
         Layout.fillWidth: true
-        visible: root.section === "social" && root.loading
+        visible: root.proUnlocked && root.section === "social" && root.loading
         text: qsTrId("genycaster.stats.loading").arg(LocaleFormat.formatInteger(statsController.loadedCount))
         color: Theme.textSecondary
         font.pixelSize: Theme.typeCaptionSize
     }
 
     StatsSkeleton {
-        visible: root.section === "social" && root.loading
+        visible: root.proUnlocked && root.section === "social" && root.loading
         Layout.fillWidth: true
     }
 
     Superellipse {
-        visible: root.section === "social" && (root.fetchState === "error" || root.fetchState === "idle")
+        visible: root.proUnlocked && root.section === "social"
+            && (root.fetchState === "error" || root.fetchState === "idle")
         Layout.fillWidth: true
         Layout.preferredHeight: errorLabel.implicitHeight + Theme.space4 * 2
         fillColor: Theme.surface
@@ -439,7 +510,7 @@ ColumnLayout {
     ColumnLayout {
         id: content
         Layout.fillWidth: true
-        visible: root.section === "social" && root.loaded
+        visible: root.proUnlocked && root.section === "social" && root.loaded
         spacing: Theme.space3
         opacity: root.loaded ? root.sectionArrival : 0
         transform: Translate { y: (1 - root.sectionArrival) * 8 }
@@ -534,7 +605,7 @@ ColumnLayout {
         }
     }
     MarketPanel {
-        visible: root.section === "market"
+        visible: root.proUnlocked && root.section === "market"
         Layout.fillWidth: true
         opacity: root.sectionArrival
         transform: Translate { y: (1 - root.sectionArrival) * 8 }
