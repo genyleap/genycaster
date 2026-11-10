@@ -16,6 +16,9 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkInformation>
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#include <QSslSocket>
+#endif
 #include <QObject>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -276,6 +279,23 @@ int main(int argc, char* argv[])
 
 
     const QStringList arguments = QCoreApplication::arguments();
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+    if (arguments.contains(QStringLiteral("--check-tls"))) {
+        // Do not let a correctly linked Qt/QML shell mask an unusable
+        // runtime OpenSSL backend. This probes actual dlopen/Qt TLS loading.
+        const bool supportsTls = QSslSocket::supportsSsl();
+        const QString backend = QSslSocket::activeBackend();
+        if (!supportsTls || backend != QStringLiteral("openssl")) {
+            qCritical().noquote()
+                << "GenyCaster Linux TLS preflight failed: backend=" << backend
+                << "sslAvailable=" << supportsTls;
+            return 7;
+        }
+        qInfo().noquote() << "GenyCaster Linux TLS preflight: PASS"
+                            << QSslSocket::sslLibraryVersionString();
+        return 0;
+    }
+#endif
     const bool isSmokeTest = arguments.contains(QStringLiteral("--smoke-test"));
     const bool isVisualTest = arguments.contains(QStringLiteral("--visual-test"));
     const bool isRuntimeSmokeTest = arguments.contains(QStringLiteral("--runtime-smoke-test"));
