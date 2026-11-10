@@ -123,6 +123,7 @@ class PackagingTests(unittest.TestCase):
             entries = {
                 "AppRun": "#!/bin/sh\nexit 0\n",
                 "usr/bin/Genycaster": "elf-placeholder",
+                "usr/lib/libstdc++.so.6": "shipped target GCC C++ runtime fixture",
                 "usr/share/applications/genycaster.desktop":
                     "[Desktop Entry]\nType=Application\nName=GenyCaster\n"
                     "Exec=Genycaster\nIcon=genycaster\n",

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import tempfile
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -56,6 +58,12 @@ def fixture_linux(app: Path) -> None:
     platform = usr / "plugins/platforms/libqxcb.so"
     platform.parent.mkdir(parents=True)
     platform.write_bytes(b"fixture")
+    # Explicit runtime and launcher; system libstdc++ must not satisfy a
+    # GCC 16 executable when installed on an older clean distribution.
+    (usr / "lib/libstdc++.so.6").write_bytes(b"ELF fixture")
+    launcher = app / "AppRun"
+    launcher.write_text('#!/bin/sh\nLD_LIBRARY_PATH="$(dirname "$0")/usr/lib"\n')
+    launcher.chmod(0o755)
     multimedia = usr / "plugins/multimedia/libffmpegmediaplugin.so"
     multimedia.parent.mkdir(parents=True)
     multimedia.write_bytes(b"fixture")
@@ -112,6 +120,34 @@ class RuntimePackagingTests(unittest.TestCase):
             self.assertEqual(prune(appdir), 1)
             validate_linux(appdir, inspect_elf=False)
             self.assertTrue((appdir / "usr/plugins/multimedia/libffmpegmediaplugin.so").exists())
+
+    def test_linux_audit_cli_imports_sibling_runtime_module(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "AppDir"
+            fixture_linux(root)
+            result = subprocess.run(
+                [sys.executable, "ci/audit_linux_appdir.py", str(root),
+                 "--skip-elf"],
+                capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(result.returncode, 0,
+                             result.stdout + result.stderr)
+
+    def test_linux_rejects_missing_bundled_cpp_runtime(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "AppDir"
+            fixture_linux(root)
+            (root / "usr/lib/libstdc++.so.6").unlink()
+            with self.assertRaisesRegex(ValueError, "target compiler libstdc"):
+                validate_linux(root, inspect_elf=False)
+
+    def test_linux_rejects_missing_runtime_launcher(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / "AppDir"
+            fixture_linux(root)
+            (root / "AppRun").unlink()
+            with self.assertRaisesRegex(ValueError, "runtime launcher"):
+                validate_linux(root, inspect_elf=False)
 
     def test_linux_rejects_missing_controls_plugin(self):
         with tempfile.TemporaryDirectory() as d:

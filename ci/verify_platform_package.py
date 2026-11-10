@@ -44,6 +44,7 @@ def validate_linux_deb(path: Path) -> None:
     for required in (
         "./opt/genycaster/AppRun",
         "./opt/genycaster/usr/bin/Genycaster",
+        "./opt/genycaster/usr/lib/libstdc++.so.6",
         "./usr/share/applications/genycaster.desktop",
         "./usr/share/icons/hicolor/512x512/apps/genycaster.png",
         "./opt/genycaster/usr/qml/QtQuick/Controls/qmldir",

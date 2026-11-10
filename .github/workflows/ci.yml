@@ -70,7 +70,7 @@ jobs:
         run: python3 ci/release_gate.py
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
@@ -222,10 +222,17 @@ jobs:
             --icon-file AppDir/usr/share/icons/hicolor/512x512/apps/genycaster.png \
             --plugin qt
           python3 ci/prune_linux_qt_plugins.py AppDir
+          # linuxdeploy blacklists libstdc++ even when GCC 16 requires a
+          # newer GLIBCXX symbol than stock Ubuntu 24.04 provides. Bundle
+          # ONLY the matching compiler runtime and launch against it.
+          python3 ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16
           python3 ci/audit_linux_appdir.py AppDir
           # Seal the audited runtime, not the unfiltered Qt plugin output.
           ./build/ci-linuxdeploy/linuxdeploy.AppImage \
             --appdir AppDir --output appimage
+          # Recheck that the final sealing pass did not replace the launcher
+          # or remove the target GCC 16 runtime.
+          python3 ci/audit_linux_appdir.py AppDir
           test -s "$OUTPUT"
           mv "$OUTPUT" dist/
           python3 ci/verify_platform_package.py linux "dist/$OUTPUT"
@@ -244,7 +251,8 @@ jobs:
           # Fresh Ubuntu container: no developer Qt installation, no Qt SDK
           # environment. Validate the actual installed Debian runtime.
           bash ci/smoke_linux_install.sh \
-            "dist/GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.deb"
+            "dist/GenyCaster-v${VERSION}-linux-${{ matrix.arch }}.deb" \
+            "dist/$OUTPUT"
           (cd dist && sha256sum *.AppImage *.deb > SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:

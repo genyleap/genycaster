@@ -4,19 +4,27 @@
 # universal test of every Linux distro; Ubuntu 24.04 is the baseline contract.
 set -euo pipefail
 
-[[ $# -eq 1 ]] || { echo "Usage: $0 path/to/package.deb" >&2; exit 2; }
+[[ $# -eq 2 ]] || { echo "Usage: $0 path/to/package.deb path/to/package.AppImage" >&2; exit 2; }
 PACKAGE="$(realpath "$1")"
+APPIMAGE="$(realpath "$2")"
 test -s "$PACKAGE"
+test -s "$APPIMAGE"
+[[ "$(dirname "$PACKAGE")" == "$(dirname "$APPIMAGE")" ]] || {
+  echo "AppImage and DEB must be in the same release directory" >&2
+  exit 2
+}
 command -v docker >/dev/null || {
   echo "::error::Docker unavailable for fresh-install smoke test" >&2
   exit 1
 }
 DIRECTORY="$(dirname "$PACKAGE")"
 FILENAME="$(basename "$PACKAGE")"
+APPIMAGE_FILE="$(basename "$APPIMAGE")"
 
 docker run --rm \
   --mount "type=bind,src=$DIRECTORY,dst=/release,readonly" \
   --env "GENYCASTER_DEB=$FILENAME" \
+  --env "GENYCASTER_APPIMAGE=$APPIMAGE_FILE" \
   ubuntu:24.04 bash -euc '
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -qq
@@ -40,4 +48,14 @@ docker run --rm \
         /opt/genycaster/AppRun --smoke-test \
         --settings-path=/tmp/genycaster-smoke-settings.ini
     echo "Clean Ubuntu 24.04 Qt/QML installer smoke: PASS"
+    # AppImage must work independently of system Qt, too. The type-2
+    # extractor avoids FUSE requirements in unprivileged containers.
+    APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=software \
+      QML_DISABLE_DISK_CACHE=1 \
+      timeout 45s xvfb-run -a env \
+        -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \
+        -u QML_IMPORT_PATH -u QML2_IMPORT_PATH -u LD_LIBRARY_PATH \
+        "/release/$GENYCASTER_APPIMAGE" --smoke-test \
+        --settings-path=/tmp/genycaster-appimage-smoke.ini
+    echo "Clean Ubuntu 24.04 AppImage Qt/QML startup smoke: PASS"
   '

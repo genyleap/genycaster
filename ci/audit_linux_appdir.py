@@ -12,6 +12,11 @@ import os
 from pathlib import Path
 import subprocess
 
+if __package__:
+    from .bundle_linux_cpp_runtime import elf_machine, symbol_versions
+else:
+    from bundle_linux_cpp_runtime import elf_machine, symbol_versions
+
 
 def require(condition: bool, reason: str) -> None:
     if not condition:
@@ -22,7 +27,14 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
     root = appdir / "usr"
     executable = root / "bin/Genycaster"
     require(executable.is_file(), "Linux AppDir missing Genycaster executable")
+    launcher = appdir / "AppRun"
+    require(launcher.is_file() and not launcher.is_symlink()
+            and "LD_LIBRARY_PATH" in launcher.read_text(encoding="utf-8")
+            and "/usr/lib" in launcher.read_text(encoding="utf-8"),
+            "Linux AppDir missing C++ runtime launcher")
     libraries = root / "lib"
+    cpp_runtime = libraries / "libstdc++.so.6"
+    require(cpp_runtime.is_file(), "Linux AppDir missing target compiler libstdc++.so.6")
     for name in ("libQt6Core.so.6", "libQt6Gui.so.6",
                  "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6"):
         require((libraries / name).is_file(), f"Linux AppDir missing {name}")
@@ -56,6 +68,12 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
             "Linux AppDir missing Qt Multimedia runtime backend")
     if not inspect_elf:
         return
+    require(elf_machine(cpp_runtime) == elf_machine(executable),
+            "Bundled C++ runtime has wrong ELF architecture")
+    required = symbol_versions(executable)
+    available = symbol_versions(cpp_runtime)
+    require(required.issubset(available),
+            "Bundled C++ runtime lacks required GLIBCXX symbol versions")
     env = os.environ.copy()
     env["LD_LIBRARY_PATH"] = str(libraries)
     env.pop("QT_PLUGIN_PATH", None)
@@ -71,8 +89,12 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
         require(result.returncode == 0,
                 f"Cannot inspect Linux runtime dependencies: {binary}: {result.stderr}")
         require("not found" not in result.stdout
-                and "GLIBC_" not in result.stderr,
+                and "GLIBC_" not in result.stderr
+                and "GLIBCXX_" not in result.stderr,
                 f"Unresolved runtime dependency in {binary}:\n{result.stdout}\n{result.stderr}")
+        if binary == executable:
+            require(str(cpp_runtime) in result.stdout,
+                    "Executable is loading system libstdc++ rather than bundled C++ runtime")
     print(f"Linux Qt/QML AppDir dependencies resolved: {appdir}")
 
 

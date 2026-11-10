@@ -2,8 +2,9 @@
 """Turn an already self-contained linuxdeploy AppDir into a native Debian installer.
 
 Both the AppImage and .deb use the same verified Qt/QML/runtime directory.
-System ABI libraries remain system-managed; bundled Qt plugins and application
-dependencies remain under /opt/genycaster and are never copied into /usr/lib.
+glibc and system graphics libraries remain system-managed. The compiler's
+versioned libstdc++ and Qt/QML runtime remain under /opt/genycaster,
+never copied into the distribution's /usr/lib.
 """
 from __future__ import annotations
 

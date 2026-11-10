@@ -30,6 +30,13 @@ def main() -> None:
     assert "ci/test_native_runtime_audits.py" in gate
     assert "ci/test_nsis_cpack_config.py" in gate
     assert "ci/test_packaging.py" in gate
+    assert "ci/test_linux_cpp_runtime.py" in gate
+    assert "ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16" in workflow
+    linux_job = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
+    assert linux_job.index("ci/bundle_linux_cpp_runtime.py AppDir") < linux_job.index("--output appimage")
+    assert linux_job.count("ci/audit_linux_appdir.py AppDir") == 2
+    assert '"dist/$OUTPUT"' in linux_job
+    assert "GENYCASTER_APPIMAGE" in Path("ci/smoke_linux_install.sh").read_text()
     assert "desktop-file-validate AppDir/usr/share/applications/genycaster.desktop" in workflow
     assert '-qmldir="$GITHUB_WORKSPACE/ui"' in workflow
     assert 'mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"' in workflow

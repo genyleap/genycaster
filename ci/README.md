@@ -208,9 +208,15 @@ publishes a GitHub release even if you manually run it from a tag.
   The NSIS installer itself is not Authenticode-signed; production certificates
   and verified signing remain a separate release requirement.
 * Linux: Qt/QML/Multimedia components and ELF dependencies in linuxdeploy's
-  AppDir are audited. The Debian package installs and starts in a fresh
-  Ubuntu 24.04 Docker container without Qt installed; its Debian dependency
-  declarations provide the system graphics/X11 libraries automatically.
+  AppDir are audited. GCC 16 requires GLIBCXX symbols unavailable in the
+  stock Ubuntu 24.04 C++ library; linuxdeploy blacklists libstdc++ by
+  default. The matching compiler-provided `libstdc++.so.6` is therefore
+  bundled into `AppDir/usr/lib` and selected by the packaged `AppRun`
+  launcher. The audit verifies ELF architecture, GLIBCXX symbol coverage,
+  glibc 2.39 compatibility and actual dynamic-loader selection. Both the
+  Debian installer **and the AppImage** must start in a clean Ubuntu 24.04
+  Docker container without Qt installed. Debian system graphics/X11 libraries
+  remain managed by the OS; do not bundle glibc or require GCC 16 from users.
   AppImage interoperability with other distributions and GPU drivers still
   requires further platform-specific testing.
 * Web: The static site is archived only. It is not auto-deployed. Browser
