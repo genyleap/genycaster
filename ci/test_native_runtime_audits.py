@@ -55,7 +55,7 @@ def fixture_linux(app: Path) -> None:
     openssl_backend.write_bytes(b"fixture")
     qt_config = usr / "bin/qt.conf"
     qt_config.parent.mkdir(parents=True, exist_ok=True)
-    qt_config.write_text("[Paths]\\nPrefix = ..\\nPlugins = plugins\\n")
+    qt_config.write_text("[Paths]\nPrefix = ..\nPlugins = plugins\n")
     for module, plugin in (
         ("QtQuick/Controls", "libqtquickcontrols2plugin.so"),
         ("QtQuick/Controls/Basic", "libqtquickcontrols2basicstyleplugin.so"),
@@ -236,14 +236,14 @@ class RuntimePackagingTests(unittest.TestCase):
                 root = Path(d) / "AppDir"
                 fixture_linux(root)
                 (root / "usr/lib" / soname).unlink()
-                with self.assertRaisesRegex(ValueError, soname.replace(".", r"\\.")):
+                with self.assertRaisesRegex(ValueError, soname.replace(".", r"\.")):
                     validate_linux(root, inspect_elf=False)
 
     def test_linux_rejects_missing_or_invalid_qt_conf(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d) / "AppDir"
             fixture_linux(root)
-            (root / "usr/bin/qt.conf").write_text("[Paths]\\nPlugins = /opt/Qt\\n")
+            (root / "usr/bin/qt.conf").write_text("[Paths]\nPlugins = /opt/Qt\n")
             with self.assertRaisesRegex(ValueError, "Qt plugin path"):
                 validate_linux(root, inspect_elf=False)
 
