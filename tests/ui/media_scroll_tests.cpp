@@ -1037,7 +1037,6 @@ int main(int argc, char** argv)
                 QCoreApplication::processEvents();
                 polishTree(qobject_cast<QQuickItem*>(profile.get()));
                 QCoreApplication::processEvents();
-                const QPointF nameStart = name->mapToItem(flow, QPointF{0, 0});
                 const QPointF nameEnd = name->mapToItem(
                     flow, QPointF{name->width(), name->height() / 2});
                 const QPointF slotStart = slot->mapToItem(flow, QPointF{0, 0});
@@ -1047,24 +1046,19 @@ int main(int argc, char** argv)
                     group, QPointF{primary->width(), primary->height() / 2});
                 const QPointF moreStart = more->mapToItem(group, QPointF{0, 0});
                 const qreal betweenLinks = moreStart.x() - primaryEnd.x();
-                expect(group->width() > primary->width()
-                    && group->width() <= flow->width() + 1,
-                    "profile link group uses its natural width within the header");
+                expect(group->width() <= slot->width() + 2,
+                    "profile link group fits its dedicated trailing slot");
                 expect(betweenLinks >= -1 && betweenLinks <= 10,
-                    "primary URL and and-N-more are immediately adjacent");
+                    "primary URL and and-N-more remain immediately adjacent");
                 expect(slotStart.x() >= -1
                     && slotStart.x() + slot->width() <= flow->width() + 2,
-                    "identity links remain within the profile content gutter");
-                if (viewportWidth >= 700) {
-                    expect(qAbs(nameEnd.y() - slotCenter.y()) <= 3,
-                        "display name and links are vertically centered on one baseline");
-                    expect(slotStart.x() >= nameEnd.x() - 1
-                        && slotStart.x() - nameEnd.x() <= 16,
-                        "desktop profile links start immediately after the display name");
-                } else {
-                    expect(slotStart.y() >= nameStart.y() + name->height(),
-                        "on a narrow phone the link cluster wraps intact below the name");
-                }
+                    "identity links stay within the profile content gutter");
+                expect(qAbs(nameEnd.y() - slotCenter.y()) <= 4,
+                    "name and links remain centered on the same row");
+                expect(slotStart.x() > nameEnd.x(),
+                    "links are at the opposite side, not overlapping the name");
+                expect(qAbs(slotStart.x() + slot->width() - flow->width()) <= 4,
+                    "links are anchored to the trailing edge of the header");
             }
         }
         profile.reset();

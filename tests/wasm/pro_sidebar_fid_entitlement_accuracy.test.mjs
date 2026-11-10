@@ -194,11 +194,12 @@ test('Pro navigation, payment and mobile profile use responsive layout and brand
    < profile.indexOf('id: identityLinks'));
  assert.ok(profile.indexOf('id: identityLinks')
    < profile.indexOf('objectName: "profileUsernameAndLinksRow"'));
- assert.match(profile,/Flow\s*\{\s*objectName: "profileIdentityRow"/);
+ assert.match(profile,/RowLayout\s*\{\s*objectName: "profileIdentityRow"/);
+ assert.match(profile,/objectName: "profileIdentityLeading"/);
  assert.doesNotMatch(profile,/Flow\s*\{[^}]*implicitHeight:\s*childrenRect\.height/);
- assert.match(profile,/id: profileDisplayName[\s\S]*?width: Math\.min\(implicitWidth, root\.profileContentWidth\)/);
+ assert.match(profile,/id: profileDisplayName[\s\S]*?width: Math\.min\(implicitWidth, profileIdentityFlow\.width\)/);
  assert.doesNotMatch(profile,/id: profileDisplayName[\s\S]*?Layout\.fillWidth: true[\s\S]*?id: identityLinkSlot/);
- assert.match(profile,/id: identityLinkSlot[\s\S]*?width: Math\.min\(identityLinks\.implicitWidth, root\.profileContentWidth\)/);
+ assert.match(profile,/id: identityLinkSlot[\s\S]*?Layout\.preferredWidth: Math\.min\(identityLinks\.implicitWidth,/);
  assert.match(profile,/id: identityLinks[\s\S]*?spacing: Theme\.space1/);
  assert.match(profile,/id: identityPrimaryLink[\s\S]*?Layout\.fillWidth: false/);
  assert.match(profile,/id: identityMoreLinks[\s\S]*?padding: 0/);

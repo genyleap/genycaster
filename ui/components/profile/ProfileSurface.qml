@@ -1900,19 +1900,25 @@ Item {
                     x: root.profileContentX
                     spacing: Theme.space1
 
-                    Flow {
+                    RowLayout {
                         objectName: "profileIdentityRow"
                         Layout.fillWidth: true
-                        // Natural-width elements align alongside the display name.
-                        // Flow wraps the complete links group on narrow windows.
-                        // Qt calculates Flow.implicitHeight from positioned children.
-                        spacing: Theme.space2
+                        spacing: Theme.space3
                         layoutDirection: Theme.uiDirection
+
+                        Flow {
+                            id: profileIdentityFlow
+                            objectName: "profileIdentityLeading"
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            Layout.preferredHeight: implicitHeight
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
                             id: profileDisplayName
                             objectName: "profileDisplayName"
-                            width: Math.min(implicitWidth, root.profileContentWidth)
+                            width: Math.min(implicitWidth, profileIdentityFlow.width)
                             height: implicitHeight
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
@@ -1988,12 +1994,51 @@ Item {
                         }
 
 
+                        ActionButton {
+                            width: implicitWidth
+                            height: implicitHeight
+                            // Unknown is not a confirmed negative relationship.
+                            // Keep the button discoverable without blind protocol writes.
+                            visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                                     && !Boolean(root.activeDetail.blockedByMe)
+                            // Do not strand Follow in a disabled state when the
+                            // relationship endpoint cannot yet provide evidence.
+                            // The protocol writer still performs signer checks.
+                            enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
+                            busy: !Boolean(root.activeDetail.followingKnown) && root.busy
+                            compact: true
+                            implicitHeight: Theme.scaleUi(30)
+                            leftPadding: Theme.space2
+                            rightPadding: Theme.space2
+                            iconSize: Theme.scaleUi(14)
+                            iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                            text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                            selected: Boolean(root.activeDetail.followingByMe)
+                            prominent: !Boolean(root.activeDetail.followingByMe)
+                            Accessible.description: !Boolean(root.activeDetail.followingKnown)
+                                                    ? qsTrId("genycaster.search.relationship_unknown")
+                                                    : Boolean(root.activeDetail.followingByMe)
+                                                      ? qsTrId("genycaster.profile.unfollow") : text
+                            onClicked: {
+                                if (!root.interactionsAvailable) {
+                                    root.authenticationRequested()
+                                    return
+                                }
+                                root.followingMutationRequested(
+                                    Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
+                            }
+                        }
+                        } // Left-aligned name, badges, and follow actions
+
                         Item {
                             id: identityLinkSlot
                             objectName: "profileIdentityLinksSlot"
                             visible: root.primaryProfileLinkUrl.length > 0
-                            width: Math.min(identityLinks.implicitWidth, root.profileContentWidth)
-                            height: Math.max(profileDisplayName.height, identityLinks.implicitHeight)
+                            Layout.preferredWidth: Math.min(identityLinks.implicitWidth,
+                                Math.max(Theme.scaleUi(100), root.profileContentWidth * 0.48))
+                            Layout.minimumWidth: 0
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredHeight: Math.max(profileDisplayName.height, identityLinks.implicitHeight)
 
                             RowLayout {
                                 id: identityLinks
@@ -2010,7 +2055,7 @@ Item {
                                     Layout.fillWidth: false
                                     Layout.minimumWidth: 0
                                     Layout.preferredWidth: Math.min(implicitWidth,
-                                        Math.max(Theme.scaleUi(42), root.profileContentWidth
+                                        Math.max(Theme.scaleUi(42), identityLinkSlot.width
                                             - (identityMoreLinks.visible ? identityMoreLinks.implicitWidth
                                                 + identityLinks.spacing : 0)))
                                     flat: true
@@ -2026,7 +2071,7 @@ Item {
                                             preferredSize: Theme.typeCaptionSize
                                         }
                                         Label {
-                                            Layout.fillWidth: false
+                                            Layout.fillWidth: true
                                             Layout.minimumWidth: 0
                                             Layout.preferredWidth: Math.min(implicitWidth,
                                                 Theme.scaleUi(root.compact ? 150 : 230))
@@ -2072,41 +2117,7 @@ Item {
                             }
                         }
 
-                        ActionButton {
-                            width: implicitWidth
-                            height: implicitHeight
-                            // Unknown is not a confirmed negative relationship.
-                            // Keep the button discoverable without blind protocol writes.
-                            visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
-                                     && !Boolean(root.activeDetail.blockedByMe)
-                            // Do not strand Follow in a disabled state when the
-                            // relationship endpoint cannot yet provide evidence.
-                            // The protocol writer still performs signer checks.
-                            enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
-                            busy: !Boolean(root.activeDetail.followingKnown) && root.busy
-                            compact: true
-                            implicitHeight: Theme.scaleUi(30)
-                            leftPadding: Theme.space2
-                            rightPadding: Theme.space2
-                            iconSize: Theme.scaleUi(14)
-                            iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
-                            text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                            selected: Boolean(root.activeDetail.followingByMe)
-                            prominent: !Boolean(root.activeDetail.followingByMe)
-                            Accessible.description: !Boolean(root.activeDetail.followingKnown)
-                                                    ? qsTrId("genycaster.search.relationship_unknown")
-                                                    : Boolean(root.activeDetail.followingByMe)
-                                                      ? qsTrId("genycaster.profile.unfollow") : text
-                            onClicked: {
-                                if (!root.interactionsAvailable) {
-                                    root.authenticationRequested()
-                                    return
-                                }
-                                root.followingMutationRequested(
-                                    Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
-                            }
-                        }
-                    }
+                    } // Full-width identity row
 
                     RowLayout {
                         objectName: "profileUsernameAndLinksRow"
