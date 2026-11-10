@@ -228,12 +228,14 @@ int main(int argc, char* argv[])
         && qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
         QFile virtualMachineProduct{QStringLiteral("/sys/class/dmi/id/product_name")};
         QFile virtualMachineVendor{QStringLiteral("/sys/class/dmi/id/sys_vendor")};
+        QFile virtualMachineArmModel{QStringLiteral("/sys/firmware/devicetree/base/model")};
         const auto containsParallels = [](QFile& file) {
             return file.open(QIODevice::ReadOnly)
-                && file.read(256).contains("Parallels");
+                && file.read(256).toLower().contains("parallels");
         };
         if (containsParallels(virtualMachineProduct)
-            || containsParallels(virtualMachineVendor)) {
+            || containsParallels(virtualMachineVendor)
+            || containsParallels(virtualMachineArmModel)) {
             qputenv("QT_QUICK_BACKEND", "software");
             qInfo() << "GenyCaster: Parallels virtual GPU detected;"
                        " using Qt Quick software renderer";

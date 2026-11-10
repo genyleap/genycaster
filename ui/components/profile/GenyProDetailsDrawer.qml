@@ -182,6 +182,11 @@ GenyDrawer {
     fullScreen: root.compact && root.manualExpanded && root.checkoutActive
     showHandle: root.compact && !root.fullScreen
     dimBackground: true
+    // A full-height payment form scrolls within its own Flickable. Disable
+    // Qt Drawer edge-gesture grabs so native desktop clicks (especially the
+    // Close/Cancel buttons) cannot be consumed by the drag recognizer.
+    // The visible mobile handle and backdrop retain dismissal paths.
+    interactive: false
     // Billing always opens from the physical right on desktop, regardless
     // of interface language. Other GenyDrawer instances keep their policy.
     edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
@@ -360,6 +365,7 @@ GenyDrawer {
                 Superellipse {
                     id: priceCard
                     objectName: "genyProNeutralEligibilitySummary"
+                    visible: root.membershipVerified
                     Layout.fillWidth: true
                     implicitHeight: priceColumn.implicitHeight + Theme.space4 * 2
                     fillColor: Theme.surfaceRaised
@@ -375,7 +381,8 @@ GenyDrawer {
                         spacing: Theme.space2
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            text: root.monthlyUsdCents > 0
+                            text: root.eligible ? qsTrId("genycaster.pro.status_verified")
+                                : root.monthlyUsdCents > 0
                                 ? qsTrId("genycaster.pro.monthly_price").arg(root.monthlyUsd)
                                 : openProofConnections && openProofConnections.proPlanBusy
                                   ? qsTrId("genycaster.pro.price_loading")
@@ -387,7 +394,7 @@ GenyDrawer {
                         }
                         DirectionAwareLabel {
                             Layout.fillWidth: true
-                            visible: !root.checkoutActive
+                            visible: !root.eligible && !root.checkoutActive
                             text: qsTrId("genycaster.pro.manual_renewal")
                             font.pixelSize: Theme.typeCaptionSize
                             color: Theme.textSecondary
@@ -404,6 +411,19 @@ GenyDrawer {
                             wrapMode: Text.Wrap
                         }
                     }
+                }
+
+                // A missing account grant is not evidence that an existing
+                // Pro membership expired. Do not show the purchase chooser or
+                // the next renewal price until the server verifies this FID.
+                DirectionAwareLabel {
+                    objectName: "genyProMembershipUnknownNotice"
+                    Layout.fillWidth: true
+                    visible: root.appSignedIn && !root.membershipVerified
+                    text: qsTrId("genycaster.pro.verification_unavailable")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.typeBodySize
+                    wrapMode: Text.Wrap
                 }
 
                 // Active membership needs a useful, compact benefits summary
@@ -491,7 +511,7 @@ GenyDrawer {
                 // Intro: a short explanation and two explicit payment methods.
                 ColumnLayout {
                     Layout.fillWidth: true
-                    visible: !root.checkoutActive && !root.eligible
+                    visible: !root.checkoutActive && !root.eligible && root.membershipVerified
                     spacing: Theme.space3
 
                     DirectionAwareLabel {
@@ -617,6 +637,7 @@ GenyDrawer {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
                         visible: root.showBenefits && !root.checkoutActive && !root.eligible
+                            && root.membershipVerified
                         implicitHeight: Math.max(42, featureLayout.implicitHeight + Theme.space2 * 2)
                         leftPadding: Theme.space3
                         rightPadding: Theme.space3

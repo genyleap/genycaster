@@ -66,10 +66,10 @@ def main() -> None:
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
     assert "macos-26-intel" in workflow
-    # macos-26 ARM64 hosted runners have been cancelled after ~15 minutes
-    # without executing a single step; choose the supported macOS 15 ARM
-    # runner, which also matches our minimum macOS deployment target.
-    assert '"runner":"macos-15"' in workflow
+    # macOS 15/Xcode 16.4 Apple SDK headers contain legacy enum arithmetic
+    # rejected in C++26 mode. Preserve the C++26 native WebKit boundary on
+    # the macOS 26/Xcode 26 SDK/compiler pair until Apple fixes older SDKs.
+    assert '"runner":"macos-26"' in workflow
     assert "inputs.target_arch == 'x86_64'" in workflow
     # A job-level if is evaluated *before* matrix expansion. When the
     # platform is skipped, matrix expressions in its job name are displayed

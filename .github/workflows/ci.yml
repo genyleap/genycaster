@@ -267,7 +267,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'x86_64' && '[{"arch":"x86_64","runner":"macos-26-intel"}]' || github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'arm64' && '[{"arch":"arm64","runner":"macos-15"}]' || '[{"arch":"arm64","runner":"macos-15"},{"arch":"x86_64","runner":"macos-26-intel"}]') }}
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'x86_64' && '[{"arch":"x86_64","runner":"macos-26-intel"}]' || github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'arm64' && '[{"arch":"arm64","runner":"macos-26"}]' || '[{"arch":"arm64","runner":"macos-26"},{"arch":"x86_64","runner":"macos-26-intel"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'macos'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
