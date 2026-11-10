@@ -21,10 +21,12 @@ DIRECTORY="$(dirname "$PACKAGE")"
 FILENAME="$(basename "$PACKAGE")"
 APPIMAGE_FILE="$(basename "$APPIMAGE")"
 
-mkdir -p "$DIRECTORY/diagnostics"
+# Keep diagnostics outside dist/: they must never enter the release artifacts.
+DIAGNOSTICS="$PWD/build/ci-linux-render-diagnostics"
+mkdir -p "$DIAGNOSTICS"
 docker run --rm \
   --mount "type=bind,src=$DIRECTORY,dst=/release,readonly" \
-  --mount "type=bind,src=$DIRECTORY/diagnostics,dst=/diagnostics" \
+  --mount "type=bind,src=$DIAGNOSTICS,dst=/diagnostics" \
   --env "GENYCASTER_DEB=$FILENAME" \
   --env "GENYCASTER_APPIMAGE=$APPIMAGE_FILE" \
   ubuntu:24.04 bash -euc '
