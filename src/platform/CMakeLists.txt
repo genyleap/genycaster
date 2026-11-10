@@ -117,6 +117,11 @@ elseif(FARCASTER_ENABLE_QTKEYCHAIN_SIGNER_VAULT)
             PUBLIC farcaster::capabilities farcaster::domain farcaster::foundation
             PRIVATE OpenSSL::Crypto Qt6Keychain::Qt6Keychain
         )
+        if(WIN32)
+            # Direct WinCred signer storage avoids nested Qt event loops on
+            # the signer worker; keep QtKeychain for Linux/Android.
+            target_link_libraries(farcaster_platform_signer PRIVATE advapi32)
+        endif()
         set(_farcasterSecureSignerVaultBackend "qtkeychain")
     else()
         target_sources(farcaster_platform_signer PRIVATE signer_vault_unavailable.cpp)
