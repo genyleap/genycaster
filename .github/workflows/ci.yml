@@ -431,15 +431,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: x86_64
-            runner: windows-2022
-            msvc_arch: amd64
-            vcpkg_triplet: x64-windows
-          - arch: arm64
-            runner: windows-11-arm
-            msvc_arch: arm64
-            vcpkg_triplet: arm64-windows
+        # Honor the explicit architecture filter for manual Windows runs.
+        # Do not incur both Windows runner charges for an ARM-only test.
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'windows' && inputs.target_arch == 'x86_64' && '[{"arch":"x86_64","runner":"windows-2022","msvc_arch":"amd64","vcpkg_triplet":"x64-windows"}]' || github.event_name == 'workflow_dispatch' && inputs.platform == 'windows' && inputs.target_arch == 'arm64' && '[{"arch":"arm64","runner":"windows-11-arm","msvc_arch":"arm64","vcpkg_triplet":"arm64-windows"}]' || '[{"arch":"x86_64","runner":"windows-2022","msvc_arch":"amd64","vcpkg_triplet":"x64-windows"},{"arch":"arm64","runner":"windows-11-arm","msvc_arch":"arm64","vcpkg_triplet":"arm64-windows"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'windows'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
