@@ -353,23 +353,25 @@ def validate_windows(path: Path) -> None:
                 f"Windows installer missing {needle} runtime DLL")
 
 
+PACKAGE_VALIDATORS = {
+    "linux": validate_linux,
+    "linux-deb": validate_linux_deb,
+    "ios": validate_ios,
+    "macos": validate_macos,
+    "windows": validate_windows,
+    "android": validate_android,
+    "web": validate_web,
+}
+
+
 def verify(platform: str, path: Path) -> None:
     require(path.is_file() and path.stat().st_size > 0, "Package missing or empty")
-    validators = {
-        "linux": validate_linux,
-        "linux-deb": validate_linux_deb,
-        "ios": validate_ios,
-        "macos": validate_macos,
-        "windows": validate_windows,
-        "android": validate_android,
-        "web": validate_web,
-    }
-    validators[platform](path)
+    PACKAGE_VALIDATORS[platform](path)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("platform", choices=("linux", "macos", "windows", "android", "ios", "web"))
+    parser.add_argument("platform", choices=tuple(PACKAGE_VALIDATORS))
     parser.add_argument("path", type=Path)
     args = parser.parse_args()
     verify(args.platform, args.path)

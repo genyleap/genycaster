@@ -148,6 +148,15 @@ class PackagingTests(unittest.TestCase):
             ).stdout
             self.assertIn("libsqlite3-0", depends)
             verify("linux-deb", result)
+            # Exercise the exact command CI invokes. Calling verify() directly
+            # previously hid the missing argparse "linux-deb" choice.
+            cli = subprocess.run(
+                ["python3", "ci/verify_platform_package.py", "linux-deb",
+                 str(result)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(cli.returncode, 0, cli.stdout + cli.stderr)
+            self.assertIn("Valid linux-deb package:", cli.stdout)
 
 
 if __name__ == "__main__":

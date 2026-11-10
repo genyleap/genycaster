@@ -3,6 +3,7 @@
 from __future__ import annotations
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,10 +30,17 @@ class NsisConfigurationTests(unittest.TestCase):
                 "project(GenyCaster VERSION 1.0.0 LANGUAGES CXX)\n"
                 'file(WRITE "@{CMAKE_BINARY_DIR}/stub.cpp" "int main(){return 0;}")\n'
                 'add_executable(genycaster "@{CMAKE_BINARY_DIR}/stub.cpp")\n'
+                'file(WRITE "@{CMAKE_BINARY_DIR}/thirdparty.hpp" "SDK-only")\n'
+                'install(FILES "@{CMAKE_BINARY_DIR}/thirdparty.hpp" DESTINATION include)\n'
                 'set(GENYCASTER_RELEASE_VERSION "1.0.0-rc1")\n'
                 f'set(GENYCASTER_WINDOWS_PACKAGE_ARCH "{arch}")\n'
                 'include("@{CMAKE_SOURCE_DIR}/properties/Windows/Configure.cmake")\n'
             ).replace("@{", chr(36) + "{")
+            # Simulate one runtime payload and a third-party CMake install
+            # rule (e.g., QtKeychain headers). Only Runtime may be shipped.
+            stage = src / "dist/app"
+            stage.mkdir(parents=True)
+            (stage / "Genycaster.exe").write_bytes(b"fake-runtime")
             (src / "CMakeLists.txt").write_text(cmake_source)
             build = root / "build"
             config = subprocess.run(
@@ -62,6 +70,29 @@ class NsisConfigurationTests(unittest.TestCase):
             check = subprocess.run(["cmake", "-P", str(probe)],
                 capture_output=True, text=True, timeout=30)
             self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+            # CPack must not leak the install rules from other components
+            # into the real NSIS install payload. Use the portable TGZ
+            # generator to inspect CPack's component selection without
+            # requiring the Windows-only NSIS compiler on this test runner.
+            output = root / "release"
+            package = subprocess.run(
+                ["cpack", "--config", str(cpack), "-G", "TGZ",
+                 "-B", str(output)],
+                capture_output=True, text=True, timeout=90,
+            )
+            self.assertEqual(package.returncode, 0,
+                             package.stdout + package.stderr)
+            packages = list(output.glob("*.tar.gz"))
+            self.assertEqual(len(packages), 1)
+            with tarfile.open(packages[0], "r:gz") as archive:
+                members = archive.getnames()
+            self.assertTrue(any(name.endswith("/Genycaster.exe")
+                                for name in members), members)
+            self.assertFalse(any("/include/" in name
+                                 or name.endswith("/include")
+                                 for name in members), members)
+            self.assertFalse(any(name.endswith("thirdparty.hpp")
+                                 for name in members), members)
 
 if __name__ == "__main__":
     unittest.main()

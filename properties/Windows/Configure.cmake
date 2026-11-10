@@ -86,6 +86,12 @@ if(GENYCASTER_WINDOWS_PACKAGE_ARCH)
     unset(_genycasterGplText)
     unset(_genycasterLicensePage)
     set(CPACK_MONOLITHIC_INSTALL ON)
+    # Package only GenyCaster's explicit Runtime component. QtKeychain and
+    # other dependency subprojects install SDK headers, import libraries and
+    # CMake metadata in the default Unspecified component; those are not part
+    # of the deployable app and must never enter the NSIS payload.
+    set(CPACK_INSTALL_CMAKE_PROJECTS
+        "${CMAKE_BINARY_DIR};${PROJECT_NAME};Runtime;/")
 
     # All dependencies must already have been deployed to this directory.
     # Directory contents are read by cpack at install time, after CI staging.
