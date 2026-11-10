@@ -121,7 +121,8 @@ jobs:
             libxcb-render-util0 libxcb-xinerama0 \
             libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
             libcurl4-openssl-dev libdbus-1-dev software-properties-common \
-            libfontconfig1 libfreetype6 libgstreamer-plugins-bad1.0-0 python3
+            libfontconfig1 libfreetype6 libgstreamer-plugins-bad1.0-0 \
+            libgstreamer-plugins-good1.0-0 python3
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
           sudo apt-get install -y gcc-16 g++-16 lld
@@ -280,9 +281,13 @@ jobs:
           tar -xzf "$ARCHIVE" -C build/ci-openssl
           cd "build/ci-openssl/openssl-${OPENSSL_VERSION}"
           export CC="$(xcrun --sdk macosx --find clang)"
+          export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+          test -f "$SDKROOT/usr/include/stdlib.h"
           export MACOSX_DEPLOYMENT_TARGET=15.0
-          export CFLAGS="-O2 -mmacosx-version-min=15.0"
-          export LDFLAGS="-mmacosx-version-min=15.0"
+          export CFLAGS="-O2 -mmacosx-version-min=15.0 -isysroot $SDKROOT"
+          export LDFLAGS="-mmacosx-version-min=15.0 -isysroot $SDKROOT"
+          # The macOS 26 hosted runner does not reliably expose the target
+          # SDK's standard C headers unless clang receives its explicit sysroot.
           ./Configure "darwin64-${{ matrix.arch }}-cc" no-shared no-tests \
             --prefix="$GITHUB_WORKSPACE/build/ci-openssl/install" \
             --openssldir="$GITHUB_WORKSPACE/build/ci-openssl/install/ssl"
