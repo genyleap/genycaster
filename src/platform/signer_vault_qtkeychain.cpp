@@ -4,6 +4,15 @@ module;
 #include <QEventLoop>
 #include <QObject>
 #include <QString>
+#if defined(Q_OS_WIN)
+#include <QCoreApplication>
+#include <QSettings>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <wincred.h>
+#endif
 
 // QtKeychain installs its public header as qt6keychain/keychain.h, while
 // a source-tree FetchContent build exposes qtkeychain/keychain.h. Both use
@@ -66,6 +75,7 @@ struct Seed final {
     }
 };
 
+#if !defined(Q_OS_WIN)
 [[nodiscard]] foundation::error::Error makeStorageError(
     const QKeychain::Error code,
     const QString& detail,
@@ -100,6 +110,8 @@ struct Seed final {
     return foundation::error::Error::make(mapped, std::move(message));
 }
 
+#endif
+
 [[nodiscard]] foundation::error::Error cryptoError(const std::string_view context)
 {
     return foundation::error::Error::make(
@@ -119,6 +131,7 @@ struct Seed final {
     return "fid:" + std::to_string(fid.value);
 }
 
+#if !defined(Q_OS_WIN)
 void runJob(QKeychain::Job& job)
 {
     QEventLoop loop{};
@@ -129,10 +142,126 @@ void runJob(QKeychain::Job& job)
     loop.exec(QEventLoop::ExcludeUserInputEvents);
 }
 
+#else
+// QtKeychain 0.17 on Windows stores a CRED_TYPE_GENERIC entry named
+// "key@service" with the raw 32-byte binary payload. The Qt Job's nested
+// event loop is not safe for the signer executor on affected Windows hosts.
+// Use the same OS vault and key identity directly, preserving existing keys.
+[[nodiscard]] bool qtKeychainCompatibilityFlag(const QString& name)
+{
+    QSettings user{};
+    if (user.value(name, false).toBool()) return true;
+    QSettings system{QSettings::SystemScope,
+                     QCoreApplication::organizationName(),
+                     QCoreApplication::applicationName()};
+    return system.value(name, false).toBool();
+}
+
+[[nodiscard]] std::wstring credentialTarget(
+    const std::string& service, const domain::identity::Fid fid)
+{
+    const QString key = QString::fromStdString(accountFor(fid));
+    if (qtKeychainCompatibilityFlag(QStringLiteral("qtkeychainCompatNamingScheme")))
+        return key.toStdWString();
+    return (key + QLatin1Char('@') + QString::fromStdString(service)).toStdWString();
+}
+
+[[nodiscard]] foundation::error::Error windowsCredentialError(
+    const DWORD code, const std::string_view action)
+{
+    using foundation::error::ErrorCode;
+    ErrorCode category = ErrorCode::StorageFailure;
+    if (code == ERROR_ACCESS_DENIED) category = ErrorCode::Unauthorized;
+    if (code == ERROR_NO_SUCH_LOGON_SESSION) category = ErrorCode::Unavailable;
+    return foundation::error::Error::make(
+        category,
+        "Windows Credential Manager could not " + std::string{action}
+            + " the protocol signer (system error " + std::to_string(code) + ").");
+}
+
+struct CredentialFree final {
+    void operator()(CREDENTIALW* value) const noexcept
+    {
+        if (value) {
+            if (value->CredentialBlob && value->CredentialBlobSize)
+                SecureZeroMemory(value->CredentialBlob, value->CredentialBlobSize);
+            CredFree(value);
+        }
+    }
+};
+
+[[nodiscard]] foundation::result::Result<std::optional<Seed>> windowsLoadSeed(
+    const std::string& service, const domain::identity::Fid fid)
+{
+    const std::wstring target = credentialTarget(service, fid);
+    CREDENTIALW* raw{};
+    if (!CredReadW(target.c_str(), CRED_TYPE_GENERIC, 0, &raw)) {
+        const DWORD error = GetLastError();
+        if (error != ERROR_NOT_FOUND)
+            return std::unexpected(windowsCredentialError(error, "read"));
+        // Match the pinned QtKeychain 0.17 optional migration setting.
+        if (qtKeychainCompatibilityFlag(
+                QStringLiteral("qtkeychainCompatNamingScheme"))
+            || !qtKeychainCompatibilityFlag(
+                QStringLiteral("qtkeychainFallbackToCompatNamingScheme"))) {
+            return std::optional<Seed>{};
+        }
+        const std::wstring legacy = QString::fromStdString(accountFor(fid)).toStdWString();
+        if (!CredReadW(legacy.c_str(), CRED_TYPE_GENERIC, 0, &raw)) {
+            const DWORD legacyError = GetLastError();
+            if (legacyError == ERROR_NOT_FOUND) return std::optional<Seed>{};
+            return std::unexpected(windowsCredentialError(legacyError, "read"));
+        }
+    }
+    const std::unique_ptr<CREDENTIALW, CredentialFree> stored{raw};
+    // A GenyCaster Ed25519 seed is exactly 32 bytes; attributes represent
+    // QtKeychain's large-data DPAPI format and are never used for our seeds.
+    if (stored->CredentialBlobSize != SeedSize || stored->CredentialBlob == nullptr
+        || stored->AttributeCount != 0) {
+        return std::unexpected(foundation::error::Error::make(
+            foundation::error::ErrorCode::StorageFailure,
+            "Windows secure signer entry does not contain a valid Ed25519 seed."));
+    }
+    Seed seed{};
+    std::copy_n(stored->CredentialBlob, SeedSize, seed.bytes.begin());
+    return std::optional<Seed>{std::move(seed)};
+}
+
+[[nodiscard]] foundation::result::Status windowsSaveSeed(
+    const std::string& service, const domain::identity::Fid fid, const Seed& seed)
+{
+    std::wstring target = credentialTarget(service, fid);
+    CREDENTIALW credential{};
+    credential.Type = CRED_TYPE_GENERIC;
+    credential.TargetName = target.data();
+    credential.CredentialBlob = const_cast<BYTE*>(seed.bytes.data());
+    credential.CredentialBlobSize = static_cast<DWORD>(SeedSize);
+    credential.Persist = CRED_PERSIST_ENTERPRISE;
+    if (!CredWriteW(&credential, 0))
+        return std::unexpected(windowsCredentialError(GetLastError(), "store"));
+    return {};
+}
+
+[[nodiscard]] foundation::result::Status windowsDeleteSeed(
+    const std::string& service, const domain::identity::Fid fid)
+{
+    const std::wstring target = credentialTarget(service, fid);
+    if (!CredDeleteW(target.c_str(), CRED_TYPE_GENERIC, 0)) {
+        const DWORD error = GetLastError();
+        if (error != ERROR_NOT_FOUND)
+            return std::unexpected(windowsCredentialError(error, "delete"));
+    }
+    return {};
+}
+#endif
+
 [[nodiscard]] foundation::result::Result<std::optional<Seed>> loadSeed(
     const std::string& service,
     const domain::identity::Fid fid)
 {
+#if defined(Q_OS_WIN)
+    return windowsLoadSeed(service, fid);
+#else
     QKeychain::ReadPasswordJob job{QString::fromStdString(service)};
     job.setKey(QString::fromStdString(accountFor(fid)));
     runJob(job);
@@ -160,6 +289,7 @@ void runJob(QKeychain::Job& job)
         seed.bytes.begin());
     OPENSSL_cleanse(data.data(), static_cast<std::size_t>(data.size()));
     return std::optional<Seed>{std::move(seed)};
+#endif
 }
 
 [[nodiscard]] foundation::result::Status saveSeed(
@@ -167,6 +297,9 @@ void runJob(QKeychain::Job& job)
     const domain::identity::Fid fid,
     const Seed& seed)
 {
+#if defined(Q_OS_WIN)
+    return windowsSaveSeed(service, fid, seed);
+#else
     QByteArray data{
         reinterpret_cast<const char*>(seed.bytes.data()),
         static_cast<qsizetype>(seed.bytes.size())};
@@ -179,12 +312,16 @@ void runJob(QKeychain::Job& job)
         return std::unexpected(makeStorageError(job.error(), job.errorString(), "store"));
     }
     return {};
+#endif
 }
 
 [[nodiscard]] foundation::result::Status deleteSeed(
     const std::string& service,
     const domain::identity::Fid fid)
 {
+#if defined(Q_OS_WIN)
+    return windowsDeleteSeed(service, fid);
+#else
     QKeychain::DeletePasswordJob job{QString::fromStdString(service)};
     job.setKey(QString::fromStdString(accountFor(fid)));
     runJob(job);
@@ -192,6 +329,7 @@ void runJob(QKeychain::Job& job)
         return {};
     }
     return std::unexpected(makeStorageError(job.error(), job.errorString(), "delete"));
+#endif
 }
 
 [[nodiscard]] foundation::result::Result<Seed> createSeed()
