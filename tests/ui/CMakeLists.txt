@@ -523,6 +523,10 @@ target_link_libraries(farcaster_media_scroll_tests PRIVATE
 # Source-loaded native QML fixtures must mirror the flattened public resource
 # names, even when production sources are grouped into feature directories.
 set(genycasterPublicQmlFixtureDir "${CMAKE_CURRENT_BINARY_DIR}/qml-public-components")
+# Reconfigure when a public alias is added, renamed or moved. file(READ)
+# alone does not make Ninja watch the QML source map.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${genycasterUiSourceDir}/components/source_paths.json")
 file(READ "${genycasterUiSourceDir}/components/source_paths.json" genycasterQmlSourcePaths)
 string(JSON genycasterQmlSourceCount LENGTH "${genycasterQmlSourcePaths}")
 if(genycasterQmlSourceCount LESS 1)

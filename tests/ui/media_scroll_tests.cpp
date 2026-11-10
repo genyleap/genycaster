@@ -992,6 +992,88 @@ int main(int argc, char** argv)
     expect(qmlWarnings.empty(), "notification row instantiates without Qt 6.12 QML warnings");
     qmlWarnings.clear();
 
+    // Geometry regression: the profile identity name and both URL controls
+    // must be adjacent on desktop. In narrow/mobile widths the *entire* link
+    // cluster wraps as one unit instead of leaving 200+ px of blank space
+    // between the URL and "and N more". Inspect actual Qt Quick items, not
+    // QML source substrings or a layout sketch.
+    {
+        auto profile = createSurface(engine, QStringLiteral("ProfileSurface"), *scroll,
+            {{QStringLiteral("detail"), QVariantMap{
+                  {QStringLiteral("fid"), 44},
+                  {QStringLiteral("username"), QStringLiteral("compez.eth")},
+                  {QStringLiteral("displayName"), QStringLiteral("COMPEZ DNA")},
+                  {QStringLiteral("profileUrl"), QStringLiteral("https://linktr.ee/compez")}}},
+             {QStringLiteral("accountFid"), 44},
+             {QStringLiteral("compact"), false}});
+        if (!profile) return 1;
+        auto* storedExtras = profile->findChild<QObject*>(
+            QStringLiteral("profileExtrasSettings"));
+        expect(storedExtras != nullptr, "profile link geometry fixture exposes the local extras store");
+        if (storedExtras) {
+            storedExtras->setProperty("entriesJson", QStringLiteral(
+                R"({"farcaster:44":{"links":["https://a.example.com","https://b.example.com","https://c.example.com"]}})"));
+            profile->setProperty("profileExtrasGeneration",
+                                 profile->property("profileExtrasGeneration").toInt() + 1);
+        }
+        auto* flow = profile->findChild<QQuickItem*>(QStringLiteral("profileIdentityRow"));
+        auto* name = profile->findChild<QQuickItem*>(QStringLiteral("profileDisplayName"));
+        auto* slot = profile->findChild<QQuickItem*>(QStringLiteral("profileIdentityLinksSlot"));
+        auto* group = profile->findChild<QQuickItem*>(QStringLiteral("profileIdentityLinks"));
+        auto* primary = profile->findChild<QQuickItem*>(
+            QStringLiteral("profileIdentityPrimaryLink"));
+        auto* more = profile->findChild<QQuickItem*>(QStringLiteral("profileMoreLinksInline"));
+        expect(flow && name && slot && group && primary && more,
+               "real profile links and name expose geometry for responsive testing");
+        if (flow && name && slot && group && primary && more) {
+            expect(QTest::qWaitFor([&] {
+                return profile->property("additionalProfileLinksCount").toInt() == 3
+                    && more->isVisible();
+            }), "fixture renders an actual URL and the and-3-more button");
+            for (const int viewportWidth : {1280, 940, 700, 390}) {
+                profile->setProperty("width", viewportWidth);
+                profile->setProperty("compact", viewportWidth < 600);
+                profile->setProperty("height", 690);
+                QCoreApplication::processEvents();
+                polishTree(qobject_cast<QQuickItem*>(profile.get()));
+                QCoreApplication::processEvents();
+                const QPointF nameStart = name->mapToItem(flow, QPointF{0, 0});
+                const QPointF nameEnd = name->mapToItem(
+                    flow, QPointF{name->width(), name->height() / 2});
+                const QPointF slotStart = slot->mapToItem(flow, QPointF{0, 0});
+                const QPointF slotCenter = slot->mapToItem(
+                    flow, QPointF{0, slot->height() / 2});
+                const QPointF primaryEnd = primary->mapToItem(
+                    group, QPointF{primary->width(), primary->height() / 2});
+                const QPointF moreStart = more->mapToItem(group, QPointF{0, 0});
+                const qreal betweenLinks = moreStart.x() - primaryEnd.x();
+                expect(group->width() > primary->width()
+                    && group->width() <= flow->width() + 1,
+                    "profile link group uses its natural width within the header");
+                expect(betweenLinks >= -1 && betweenLinks <= 10,
+                    "primary URL and and-N-more are immediately adjacent");
+                expect(slotStart.x() >= -1
+                    && slotStart.x() + slot->width() <= flow->width() + 2,
+                    "identity links remain within the profile content gutter");
+                if (viewportWidth >= 700) {
+                    expect(qAbs(nameEnd.y() - slotCenter.y()) <= 3,
+                        "display name and links are vertically centered on one baseline");
+                    expect(slotStart.x() >= nameEnd.x() - 1
+                        && slotStart.x() - nameEnd.x() <= 16,
+                        "desktop profile links start immediately after the display name");
+                } else {
+                    expect(slotStart.y() >= nameStart.y() + name->height(),
+                        "on a narrow phone the link cluster wraps intact below the name");
+                }
+            }
+        }
+        profile.reset();
+        images->completePending();
+        expect(qmlWarnings.empty(),
+               "profile link geometry and reflow do not produce QML binding warnings");
+        qmlWarnings.clear();
+    }
+
     // Regression: a profile's transient empty metadata/rows during polling must
     // not reset an already-scrolled ListView or replace the loaded casts. The
     // reported WASM jump to the banner happened without a user route change.

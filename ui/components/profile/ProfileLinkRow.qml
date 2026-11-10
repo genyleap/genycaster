@@ -12,6 +12,8 @@ Button {
     // Generic numbered placeholders should not hide a verified page title.
     property bool genericLabel: false
     property string displayUrl: ""
+    // Closed profile-link drawers must not start background favicon requests.
+    property bool mediaActive: true
     signal openRequested(string url)
 
     Layout.fillWidth: true
@@ -128,10 +130,11 @@ Button {
                 height: width
                 // A favicon is essential UI artwork, not an optional feed
                 // download. Force the bounded remote image provider to admit it.
-                source: Qt.platform.os === "wasm"
-                    ? root.browserFaviconSource
-                    : (root.faviconUrl.length > 0
-                        ? dataStorage.remoteImageSource(root.faviconUrl, "avatars", true) : "")
+                source: !root.mediaActive ? ""
+                    : Qt.platform.os === "wasm"
+                      ? root.browserFaviconSource
+                      : (root.faviconUrl.length > 0
+                          ? dataStorage.remoteImageSource(root.faviconUrl, "avatars", true) : "")
                 sourceSize.width: Math.ceil(width * 3)
                 sourceSize.height: Math.ceil(height * 3)
                 fillMode: Image.PreserveAspectFit

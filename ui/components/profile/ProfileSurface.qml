@@ -262,6 +262,7 @@ Item {
 
     Settings {
         id: profileExtrasSettings
+        objectName: "profileExtrasSettings"
         category: "genycaster-profile-extras"
         property string entriesJson: "{}"
     }
@@ -1899,17 +1900,20 @@ Item {
                     x: root.profileContentX
                     spacing: Theme.space1
 
-                    RowLayout {
+                    Flow {
                         objectName: "profileIdentityRow"
                         Layout.fillWidth: true
+                        // Natural-width elements align alongside the display name.
+                        // Flow wraps the complete links group on narrow windows.
+                        // Qt calculates Flow.implicitHeight from positioned children.
                         spacing: Theme.space2
                         layoutDirection: Theme.uiDirection
 
                         DirectionAwareLabel {
-                            // The name and link cluster share this baseline.
-                            // The name yields space before its text is elided.
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 0
+                            id: profileDisplayName
+                            objectName: "profileDisplayName"
+                            width: Math.min(implicitWidth, root.profileContentWidth)
+                            height: implicitHeight
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
                                   || qsTrId("genycaster.profile.farcaster_profile")
                             color: Theme.ink
@@ -1926,7 +1930,8 @@ Item {
                                      && !root.isOwnProfile
                             implicitWidth: followsYouText.implicitWidth + Theme.space3
                             implicitHeight: Math.max(22, followsYouText.implicitHeight + Theme.space1)
-                            Layout.alignment: Qt.AlignVCenter
+                            width: implicitWidth
+                            height: implicitHeight
 
                             Superellipse {
                                 anchors.fill: parent
@@ -1954,6 +1959,8 @@ Item {
                             visible: root.genyHolderAttested
                             implicitWidth: holderBadgeContent.implicitWidth + Theme.space3
                             implicitHeight: Math.max(25, holderBadgeContent.implicitHeight + Theme.space1)
+                            width: implicitWidth
+                            height: implicitHeight
                             radius: implicitHeight / 2
                             color: Theme.dark ? "#342812" : "#FFF6DE"
                             border.color: "#D6A435"
@@ -1981,123 +1988,124 @@ Item {
                         }
 
 
-                        
-
-                        
-                        RowLayout {
-                            id: identityLinks
-                            objectName: "profileIdentityLinks"
+                        Item {
+                            id: identityLinkSlot
+                            objectName: "profileIdentityLinksSlot"
                             visible: root.primaryProfileLinkUrl.length > 0
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.minimumWidth: 0
-                            // Size to the contents, not the available row:
-                            // both clickable labels remain adjacent even when
-                            // the profile spans a very wide desktop viewport.
-                            Layout.maximumWidth: Math.min(root.profileContentWidth
-                                * (root.compact ? 0.51 : 0.48),
-                                Theme.scaleUi(root.compact ? 260 : 365))
-                            Layout.preferredWidth: Math.min(implicitWidth, Layout.maximumWidth)
-                            spacing: Theme.space1
-                            layoutDirection: Theme.uiDirection
+                            width: Math.min(identityLinks.implicitWidth, root.profileContentWidth)
+                            height: Math.max(profileDisplayName.height, identityLinks.implicitHeight)
 
-                            Button {
-                                id: identityPrimaryLink
-                                objectName: "profileIdentityPrimaryLink"
-                                Layout.fillWidth: false
-                                Layout.minimumWidth: 0
-                                Layout.preferredWidth: Math.min(implicitWidth,
-                                    Math.max(Theme.scaleUi(45), identityLinks.Layout.maximumWidth
-                                        - (identityMoreLinks.visible ? identityMoreLinks.implicitWidth
-                                            + identityLinks.spacing : 0)))
-                                flat: true
-                                hoverEnabled: true
-                                padding: 0
-                                background: Item {}
-                                contentItem: RowLayout {
-                                    spacing: Theme.space1
-                                    layoutDirection: Theme.uiDirection
-                                    Icon {
-                                        text: Theme.iconLink
-                                        color: Theme.accent
-                                        preferredSize: Theme.typeCaptionSize
+                            RowLayout {
+                                id: identityLinks
+                                objectName: "profileIdentityLinks"
+                                width: parent.width
+                                height: implicitHeight
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.space1
+                                layoutDirection: Theme.uiDirection
+
+                                Button {
+                                    id: identityPrimaryLink
+                                    objectName: "profileIdentityPrimaryLink"
+                                    Layout.fillWidth: false
+                                    Layout.minimumWidth: 0
+                                    Layout.preferredWidth: Math.min(implicitWidth,
+                                        Math.max(Theme.scaleUi(42), root.profileContentWidth
+                                            - (identityMoreLinks.visible ? identityMoreLinks.implicitWidth
+                                                + identityLinks.spacing : 0)))
+                                    flat: true
+                                    hoverEnabled: true
+                                    padding: 0
+                                    background: Item {}
+                                    contentItem: RowLayout {
+                                        spacing: Theme.space1
+                                        layoutDirection: Theme.uiDirection
+                                        Icon {
+                                            text: Theme.iconLink
+                                            color: Theme.accent
+                                            preferredSize: Theme.typeCaptionSize
+                                        }
+                                        Label {
+                                            Layout.fillWidth: false
+                                            Layout.minimumWidth: 0
+                                            Layout.preferredWidth: Math.min(implicitWidth,
+                                                Theme.scaleUi(root.compact ? 150 : 230))
+                                            text: root.displayUrl(root.primaryProfileLinkUrl)
+                                            horizontalAlignment: Theme.textStartAlignment
+                                            LayoutMirroring.enabled: false
+                                            color: Theme.accent
+                                            font.family: Theme.latinFontFamily
+                                            font.pixelSize: Theme.typeCaptionSize
+                                            elide: Text.ElideRight
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
                                     }
-                                    Label {
-                                        Layout.fillWidth: true
-                                        Layout.minimumWidth: 0
-                                        text: root.displayUrl(root.primaryProfileLinkUrl)
-                                        horizontalAlignment: Theme.textStartAlignment
-                                        LayoutMirroring.enabled: false
-                                        color: Theme.accent
-                                        font.family: Theme.latinFontFamily
+                                    Accessible.role: Accessible.Link
+                                    Accessible.name: root.primaryProfileLinkUrl
+                                    onClicked: root.externalRequested(root.primaryProfileLinkUrl)
+                                }
+                                Button {
+                                    id: identityMoreLinks
+                                    objectName: "profileMoreLinksInline"
+                                    visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
+                                    Layout.alignment: Qt.AlignVCenter
+                                    flat: true
+                                    hoverEnabled: true
+                                    padding: 0
+                                    background: Rectangle {
+                                        radius: Theme.curveCompact
+                                        color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
+                                        Behavior on color {
+                                            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                                        }
+                                    }
+                                    contentItem: Label {
+                                        text: qsTrId("genycaster.profile.more_links").arg(
+                                            LocaleFormat.formatInteger(root.additionalProfileLinksCount))
+                                        color: Theme.inkMuted
                                         font.pixelSize: Theme.typeCaptionSize
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
+                                        font.weight: Theme.weightDemiBold
                                     }
+                                    Accessible.name: qsTrId("genycaster.profile.show_all_links")
+                                    onClicked: profileLinksDrawer.open()
                                 }
-                                Accessible.role: Accessible.Link
-                                Accessible.name: root.primaryProfileLinkUrl
-                                onClicked: root.externalRequested(root.primaryProfileLinkUrl)
-                            }
-                            Button {
-                                id: identityMoreLinks
-                                objectName: "profileMoreLinksInline"
-                                visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
-                                Layout.alignment: Qt.AlignVCenter
-                                flat: true
-                                hoverEnabled: true
-                                padding: Theme.space1
-                                background: Rectangle {
-                                    radius: Theme.curveCompact
-                                    color: identityMoreLinks.hovered ? Theme.surfaceHover : "transparent"
-                                    Behavior on color {
-                                        ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-                                    }
-                                }
-                                contentItem: Label {
-                                    text: qsTrId("genycaster.profile.more_links").arg(
-                                        LocaleFormat.formatInteger(root.additionalProfileLinksCount))
-                                    color: Theme.inkMuted
-                                    font.pixelSize: Theme.typeCaptionSize
-                                    font.weight: Theme.weightDemiBold
-                                }
-                                Accessible.name: qsTrId("genycaster.profile.show_all_links")
-                                onClicked: profileLinksDrawer.open()
                             }
                         }
 
                         ActionButton {
-                        // Unknown is not a confirmed negative relationship.
-                        // Keep the button discoverable without blind protocol writes.
-                        visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
-                                 && !Boolean(root.activeDetail.blockedByMe)
-                        // Do not strand Follow in a disabled state when the
-                        // relationship endpoint cannot yet provide evidence.
-                        // The protocol writer still performs signer checks.
-                        enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
-                        busy: !Boolean(root.activeDetail.followingKnown) && root.busy
-                        compact: true
-                        Layout.alignment: Qt.AlignVCenter
-                        implicitHeight: Theme.scaleUi(30)
-                        leftPadding: Theme.space2
-                        rightPadding: Theme.space2
-                        iconSize: Theme.scaleUi(14)
-                        iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
-                        text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
-                        selected: Boolean(root.activeDetail.followingByMe)
-                        prominent: !Boolean(root.activeDetail.followingByMe)
-                        Accessible.description: !Boolean(root.activeDetail.followingKnown)
-                                                ? qsTrId("genycaster.search.relationship_unknown")
-                                                : Boolean(root.activeDetail.followingByMe)
-                                                  ? qsTrId("genycaster.profile.unfollow") : text
-                        onClicked: {
-                            if (!root.interactionsAvailable) {
-                                root.authenticationRequested()
-                                return
+                            width: implicitWidth
+                            height: implicitHeight
+                            // Unknown is not a confirmed negative relationship.
+                            // Keep the button discoverable without blind protocol writes.
+                            visible: Number(root.activeDetail.fid || 0) > 0 && !root.isOwnProfile
+                                     && !Boolean(root.activeDetail.blockedByMe)
+                            // Do not strand Follow in a disabled state when the
+                            // relationship endpoint cannot yet provide evidence.
+                            // The protocol writer still performs signer checks.
+                            enabled: !root.busy && !Boolean(root.activeDetail.blocksMe)
+                            busy: !Boolean(root.activeDetail.followingKnown) && root.busy
+                            compact: true
+                            implicitHeight: Theme.scaleUi(30)
+                            leftPadding: Theme.space2
+                            rightPadding: Theme.space2
+                            iconSize: Theme.scaleUi(14)
+                            iconGlyph: Boolean(root.activeDetail.followingByMe) ? Theme.iconCheck : ""
+                            text: Boolean(root.activeDetail.followingByMe) ? qsTrId("genycaster.profile.followed") : qsTrId("genycaster.profile.follow")
+                            selected: Boolean(root.activeDetail.followingByMe)
+                            prominent: !Boolean(root.activeDetail.followingByMe)
+                            Accessible.description: !Boolean(root.activeDetail.followingKnown)
+                                                    ? qsTrId("genycaster.search.relationship_unknown")
+                                                    : Boolean(root.activeDetail.followingByMe)
+                                                      ? qsTrId("genycaster.profile.unfollow") : text
+                            onClicked: {
+                                if (!root.interactionsAvailable) {
+                                    root.authenticationRequested()
+                                    return
+                                }
+                                root.followingMutationRequested(
+                                    Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
                             }
-                            root.followingMutationRequested(
-                                Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
                         }
-                    }
                     }
 
                     RowLayout {
@@ -2834,7 +2842,7 @@ Item {
                 x: root.profileContentX
                 width: root.profileContentWidth
                 anchors.verticalCenter: parent.verticalCenter
-                visible: root.rows.length === 0 && !root.busy && root.runtimeReady
+                visible: (!root.rows || root.rows.length === 0) && !root.busy && root.runtimeReady
                          && root.errorText.length === 0
                 spacing: Theme.space2
 
@@ -3880,6 +3888,7 @@ Item {
                     spacing: Theme.space3
                     ProfileLinkRow {
                         visible: root.showProfileUrl
+                        mediaActive: profileLinksDrawer.opened
                         targetUrl: String(root.activeDetail.profileUrl || "")
                         userLabel: qsTrId("genycaster.profile.farcaster_website")
                         displayUrl: root.displayUrl(targetUrl)
@@ -3891,6 +3900,7 @@ Item {
                     Repeater {
                         model: root.profileExtraLinks
                         delegate: ProfileLinkRow {
+                            mediaActive: profileLinksDrawer.opened
                             required property int index
                             required property var modelData
                             targetUrl: String(modelData)
@@ -3977,7 +3987,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         z: 50
-        active: root.busy && root.rows.length > 0
+        active: root.busy && root.rows && root.rows.length > 0
     }
 
 }

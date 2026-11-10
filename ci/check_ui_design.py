@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from pathlib import Path
-import re, sys
+import json, re, sys
 
 root = Path(__file__).resolve().parents[1]
 ui = root / 'ui'
@@ -35,6 +35,22 @@ discovered = sorted(str(p.relative_to(ui)) for p in ui.rglob('*.qml'))
 errors: list[str] = []
 if registered != discovered:
     errors.append(f'QML manifest mismatch: missing={sorted(set(discovered)-set(registered))}, extra={sorted(set(registered)-set(discovered))}')
+
+# The native QML import smoke suite source-loads public QML aliases from this
+# mapping. Missing an entry can let a broken component ship even when the
+# production CMake list is complete (e.g. ProTokenMark in GenyProDetailsDrawer).
+source_map = json.loads((ui / 'components' / 'source_paths.json').read_text(encoding='utf-8'))
+source_components = {
+    str(path.relative_to(ui / 'components'))
+    for path in (ui / 'components').rglob('*.qml')
+    if path.name != 'Main.qml'
+}
+mapped_components = set(source_map.values())
+if mapped_components != source_components or len(source_map) != len(mapped_components):
+    errors.append('Native QML source map mismatch: '
+                  f'missing={sorted(source_components-mapped_components)}, '
+                  f'extra={sorted(mapped_components-source_components)}, '
+                  f'duplicate={len(source_map)-len(mapped_components)}')
 
 controls = {
     'AbstractButton','Action','ActionGroup','ApplicationWindow','BusyIndicator','Button','ButtonGroup',

@@ -11,7 +11,9 @@ test('WASM profile links use the vetted first-party favicon proxy with ordered f
  assert.match(row,/\["\/favicon\.ico", "\/favicon\.png",/);
  assert.match(row,/apple-touch-icon\.png/);
  assert.match(row,/if \(!path\) return root\.previewArtworkSource/);
- assert.match(row,/source: Qt\.platform\.os === "wasm"\s*\? root\.browserFaviconSource/);
+ assert.match(row,/source: !root\.mediaActive \? ""\s*: Qt\.platform\.os === "wasm"\s*\? root\.browserFaviconSource/);
+ const profile=read("ui/components/profile/ProfileSurface.qml");
+ assert.match(profile,/mediaActive: profileLinksDrawer\.opened/);
  assert.match(row,/browserFaviconVariant\+\+/);
  assert.match(proxy,/export function validPublicFaviconUrl/);
  assert.match(proxy,/rasterMimeFromBytes/);

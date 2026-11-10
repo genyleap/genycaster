@@ -113,6 +113,7 @@
   "NotificationSurface.qml": "feed/NotificationSurface.qml",
   "PanelWidthControl.qml": "settings/PanelWidthControl.qml",
   "PopupSurface.qml": "controls/PopupSurface.qml",
+  "ProTokenMark.qml": "profile/ProTokenMark.qml",
   "ProUpgradeNotice.qml": "profile/ProUpgradeNotice.qml",
   "ProfileLinkRow.qml": "profile/ProfileLinkRow.qml",
   "ProfileListItem.qml": "profile/ProfileListItem.qml",
