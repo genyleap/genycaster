@@ -20,7 +20,7 @@ def fake_pe(path: Path, arch: str) -> None:
 
 
 def stage_dir(root: Path, arch: str) -> None:
-    for rel in ("Genycaster.exe", "Qt6Core.dll", "Qt6Gui.dll",
+    for rel in ("Genycaster.exe", "sqlite3.dll", "Qt6Core.dll", "Qt6Gui.dll",
                 "Qt6Qml.dll", "Qt6Quick.dll", "Qt6Multimedia.dll",
                 "multimedia/ffmpegmediaplugin.dll", "Qt6Network.dll",
                 "qt6keychain.dll", "platforms/qwindows.dll"):
@@ -54,6 +54,14 @@ class AuditWindowsStageTests(unittest.TestCase):
             stage_dir(root, "x86_64")
             fake_pe(root / "qmltooling/other.dll", "x86_64")
             with self.assertRaisesRegex(ValueError, "Unstaged runtime"):
+                audit(root, "x86_64")
+
+    def test_refuses_missing_native_sqlite_runtime(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            stage_dir(root, "x86_64")
+            (root / "sqlite3.dll").unlink()
+            with self.assertRaisesRegex(ValueError, "native SQLite runtime"):
                 audit(root, "x86_64")
 
     def test_refuses_unused_qt_sql_drivers(self):

@@ -74,6 +74,11 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
             raise ValueError(f"Runtime dependency missing: {name}")
     if (stage / "sqldrivers").exists() or (stage / "Qt6Sql.dll").exists():
         raise ValueError("Unused Qt SQL plugin or library staged on Windows")
+    # Native SQLite C API is the application database engine. It is distinct
+    # from QtSql and must remain packaged on vcpkg dynamic-link Windows builds.
+    if not any(path.is_file() and "sqlite" in path.name.lower()
+               and path.suffix.lower() == ".dll" for path in stage.iterdir()):
+        raise ValueError("Required native SQLite runtime DLL missing on Windows")
     if not (stage / "qml").is_dir():
         raise ValueError("Qt QML modules missing from Windows runtime")
     # A valid installer can still fail before first paint if windeployqt missed

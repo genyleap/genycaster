@@ -30,7 +30,7 @@ class PackagingTests(unittest.TestCase):
     def test_windows_arm64_stage_strips_sdk_and_rejects_x64_dlls(self) -> None:
         with TemporaryDirectory() as tmp:
             stage = Path(tmp)
-            for name in ("Genycaster.exe", "Qt6Core.dll", "Qt6Gui.dll",
+            for name in ("Genycaster.exe", "sqlite3.dll", "Qt6Core.dll", "Qt6Gui.dll",
                          "Qt6Qml.dll", "Qt6Quick.dll", "Qt6Multimedia.dll",
                          "Qt6Network.dll", "qt6keychain.dll",
                          "platforms/qwindows.dll", "multimedia/ffmpegmediaplugin.dll",
@@ -58,12 +58,12 @@ class PackagingTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Unstaged runtime executable or DLL"):
                 audit(stage, "arm64")
             helper.unlink()
-            self.assertEqual(audit(stage, "arm64"), 13)
+            self.assertEqual(audit(stage, "arm64"), 14)
             self.assertEqual(pe_machine(stage / "Genycaster.exe"), 0xAA64)
             self.assertTrue((stage / "qml/Farcaster/Client/plugin.dll").exists())
             self.assertFalse((stage / "include").exists())
             self.assertFalse((stage / "bin").exists())
-            self.assertEqual(audit(stage, "arm64", clean=False), 13)
+            self.assertEqual(audit(stage, "arm64", clean=False), 14)
             (stage / "Qt6Network.dll").write_bytes(self.fake_pe(0x8664))
             with self.assertRaisesRegex(ValueError, "Wrong Windows PE architecture"):
                 audit(stage, "arm64", clean=False)
@@ -131,6 +131,12 @@ class PackagingTests(unittest.TestCase):
             (app / "usr/bin/Genycaster").chmod(0o755)
             result = build(app, root / "dist", "1.0.0-rc1", "arm64")
             self.assertTrue(result.name.endswith("-linux-arm64.deb"))
+            import subprocess
+            depends = subprocess.run(
+                ["dpkg-deb", "-f", str(result), "Depends"],
+                capture_output=True, text=True, check=True,
+            ).stdout
+            self.assertIn("libsqlite3-0", depends)
             verify("linux-deb", result)
 
 
