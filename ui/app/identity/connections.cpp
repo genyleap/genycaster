@@ -16,6 +16,11 @@
 #include <QSettings>
 #include <QSysInfo>
 #include <QTimer>
+#if !defined(Q_OS_WASM)
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QtConcurrent>
+#endif
 #include <QUrlQuery>
 #include <QUuid>
 
@@ -321,7 +326,8 @@ void OpenProofConnectionsController::beginSignedAccountSession()
     // A fresh one-use challenge is verified against the network's signer
     // registry by the account service before a session cookie is issued.
     if (!m_viewerFid || !m_accountProofSigner || m_accountProofRequest
-        || m_accountProofAttempted || m_sessionRequest || m_sessionRevoking
+        || m_accountProofSigning || m_accountProofAttempted
+        || m_sessionRequest || m_sessionRevoking
         || m_cloudUrl.scheme() != QStringLiteral("https")
         || m_cloudUrl.adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)
             != QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())})
@@ -383,13 +389,16 @@ void OpenProofConnectionsController::beginSignedAccountSession()
             return;
         }
 
-        std::optional<AccountSignerProof> proof;
-        try {
-            proof = m_accountProofSigner ? m_accountProofSigner(viewer, nonce)
-                                         : std::nullopt;
-        } catch (...) {
-            proof.reset();
-        }
+        // The native QtKeychain vault runs a nested QEventLoop while talking
+        // to the OS credential store. Calling it in QNetworkReply::finished
+        // freezes the GUI (and the modal Pro drawer) on slow Windows vaults.
+        // Keep network requests on the GUI thread, and run *only* the signer
+        // work on QtConcurrent's pool. A generation/serial gate rejects
+        // responses from accounts, challenges or sessions that changed.
+        auto submitProof = [this, viewer, generation, nonce, makeRequest](
+            std::optional<AccountSignerProof> proof) {
+        if (viewer != m_viewerFid || generation != m_grantGeneration
+            || m_sessionRevoking) return;
         static const QRegularExpression publicKeyPattern{
             QStringLiteral("^[0-9a-f]{64}$")};
         static const QRegularExpression signaturePattern{
@@ -431,13 +440,61 @@ void OpenProofConnectionsController::beginSignedAccountSession()
             restoreAccountSession();
             emit stateChanged();
         });
+        };
+#if defined(Q_OS_WASM)
+        // Single-threaded browser builds never register a native vault.
+        std::optional<AccountSignerProof> proof;
+        try {
+            if (m_accountProofSigner) proof = m_accountProofSigner(viewer, nonce);
+        } catch (...) {}
+        submitProof(std::move(proof));
+#else
+        m_accountProofSigning = true;
+        const std::uint64_t serial = ++m_accountProofSignSerial;
+        emit stateChanged();
+        auto signedFuture = std::make_shared<QFuture<std::optional<AccountSignerProof>>>(
+            QtConcurrent::run([signer = m_accountProofSigner, viewer, nonce] {
+                try {
+                    if (signer) return signer(viewer, nonce);
+                } catch (...) {}
+                return std::optional<AccountSignerProof>{};
+            }));
+        auto* watcher = new QFutureWatcher<void>(this);
+        connect(watcher, &QFutureWatcher<void>::finished, this,
+            [this, watcher, signedFuture, serial, viewer, generation,
+             submitProof = std::move(submitProof)]() mutable {
+            watcher->deleteLater();
+            // Never use an account proof after sign-out, cancellation, or
+            // a second challenge. No wallet or cookie is stored by the worker.
+            if (!m_accountProofSigning || serial != m_accountProofSignSerial
+                || viewer != m_viewerFid || generation != m_grantGeneration)
+                return;
+            m_accountProofSigning = false;
+            emit stateChanged();
+            submitProof(signedFuture->result());
+        });
+        watcher->setFuture(*signedFuture);
+        // OS credential stores occasionally never answer (locked Windows
+        // credential provider, unavailable desktop keychain). Do not leave
+        // the Pro sheet in a perpetual "Restoring" state. The worker may
+        // finish later but its serial is revoked and its proof discarded.
+        QTimer::singleShot(20'000, this, [this, serial, viewer, generation] {
+            if (!m_accountProofSigning || serial != m_accountProofSignSerial
+                || viewer != m_viewerFid || generation != m_grantGeneration)
+                return;
+            ++m_accountProofSignSerial;
+            m_accountProofSigning = false;
+            m_accountProofError = QStringLiteral("account_signer_unavailable");
+            emit stateChanged();
+        });
+#endif
     });
 }
 
 void OpenProofConnectionsController::restoreAccountSession()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
-        || m_sessionRevoking || m_sessionRequest) return;
+        || m_sessionRevoking || m_sessionRequest || m_accountProofSigning) return;
     QUrl url=m_cloudUrl;
     url.setPath(QStringLiteral("/api/v1/cloud/session"));
     auto request=QNetworkRequest{url};
@@ -499,8 +556,14 @@ void OpenProofConnectionsController::restoreAccountSession()
 
 void OpenProofConnectionsController::cancelAccountSessionRequest()
 {
+    // Cancelling a network session must invalidate any still-running vault
+    // operation; QtConcurrent work finishes independently of this QObject.
+    ++m_accountProofSignSerial;
+    const bool wasSigning = m_accountProofSigning;
+    m_accountProofSigning = false;
     cancelNetworkReply(m_sessionRequest, this);
     cancelNetworkReply(m_accountProofRequest, this);
+    if (wasSigning) emit stateChanged();
 }
 
 void OpenProofConnectionsController::bootstrapAccountSession()
@@ -1689,7 +1752,7 @@ void OpenProofConnectionsController::retryProEntitlements()
     // A signed-in Farcaster user may already have a verified GenyCaster
     // HttpOnly session. Restore it before interpreting a missing Pro response
     // as Basic. This never opens a signer/approval window.
-    if (m_sessionRequest || m_accountProofRequest)
+    if (m_sessionRequest || m_accountProofRequest || m_accountProofSigning)
         return;
     m_accountProofAttempted = false;
     m_accountProofError.clear();
@@ -2891,6 +2954,8 @@ void OpenProofConnectionsController::saveCachedConnections() const
 
 void OpenProofConnectionsController::clearAccountGrant()
 {
+    ++m_accountProofSignSerial;
+    m_accountProofSigning = false;
 #if defined(Q_OS_WASM)
     closeGenycasterConnectionWindow();
 #endif

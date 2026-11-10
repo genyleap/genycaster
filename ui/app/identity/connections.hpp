@@ -139,7 +139,7 @@ public:
         return m_sessionRequest != nullptr;
     }
     [[nodiscard]] bool accountProofBusy() const noexcept {
-        return m_accountProofRequest != nullptr;
+        return m_accountProofRequest != nullptr || m_accountProofSigning;
     }
     [[nodiscard]] QString accountProofError() const { return m_accountProofError; }
 
@@ -513,6 +513,10 @@ private:
     QPointer<QNetworkReply> m_accountProofRequest{};
     AccountProofSigner m_accountProofSigner{};
     bool m_accountProofAttempted{};
+    // Secure-store reads can block inside a nested QtKeychain event loop.
+    // Worker completions must never outlive the active account/challenge.
+    bool m_accountProofSigning{};
+    std::uint64_t m_accountProofSignSerial{};
     QString m_accountProofError{};
     void beginSignedAccountSession();
     bool m_cloudServiceAvailable{};
