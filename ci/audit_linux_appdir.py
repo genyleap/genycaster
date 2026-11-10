@@ -36,8 +36,17 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
     cpp_runtime = libraries / "libstdc++.so.6"
     require(cpp_runtime.is_file(), "Linux AppDir missing target compiler libstdc++.so.6")
     for name in ("libQt6Core.so.6", "libQt6Gui.so.6",
-                 "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6"):
+                 "libQt6Qml.so.6", "libQt6Quick.so.6", "libQt6Multimedia.so.6",
+                 "libssl.so.3", "libcrypto.so.3"):
         require((libraries / name).is_file(), f"Linux AppDir missing {name}")
+    tls_plugin = root / "plugins/tls/libqopensslbackend.so"
+    require(tls_plugin.is_file(),
+            "Linux AppDir missing Qt OpenSSL TLS backend")
+    qt_config = (root / "bin/qt.conf")
+    require(qt_config.is_file() and
+            "Plugins = plugins" in qt_config.read_text(encoding="utf-8") and
+            "Prefix = .." in qt_config.read_text(encoding="utf-8"),
+            "Linux AppDir missing correct Qt plugin path configuration")
     require(not any(d.parent.name == "plugins" for d in root.rglob("sqldrivers")),
             "Linux AppDir includes unused Qt SQL plugins")
     qml = root / "qml"
@@ -68,8 +77,10 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
             "Linux AppDir missing Qt Multimedia runtime backend")
     if not inspect_elf:
         return
-    require(elf_machine(cpp_runtime) == elf_machine(executable),
-            "Bundled C++ runtime has wrong ELF architecture")
+    for dependency in (cpp_runtime, tls_plugin,
+                       libraries / "libssl.so.3", libraries / "libcrypto.so.3"):
+        require(elf_machine(dependency) == elf_machine(executable),
+                f"Bundled Linux runtime has wrong ELF architecture: {dependency}")
     required = symbol_versions(executable)
     available = symbol_versions(cpp_runtime)
     require(required.issubset(available),
@@ -83,7 +94,9 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
                    qml / "QtQuick/Controls/libqtquickcontrols2plugin.so",
                    qml / "QtQuick/Controls/Basic/libqtquickcontrols2basicstyleplugin.so",
                    next(p for p in platform_plugins if p.is_file()),
-                   next(p for p in multimedia if p.is_file())]:
+                   next(p for p in multimedia if p.is_file()),
+                   tls_plugin,
+                   libraries / "libssl.so.3", libraries / "libcrypto.so.3"]:
         result = subprocess.run(["ldd", str(binary)], env=env,
                                 capture_output=True, text=True, check=False)
         require(result.returncode == 0,
