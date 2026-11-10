@@ -52,6 +52,13 @@ docker run --rm \
         /opt/genycaster/AppRun --smoke-test \
         --settings-path=/tmp/genycaster-smoke-settings.ini
     echo "Clean Ubuntu 24.04 Qt/QML installer smoke: PASS"
+    # Loading the QML root alone cannot detect a broken OpenSSL dlopen pair.
+    # Verify that the installed app actually has a usable Qt TLS socket.
+    QT_QPA_PLATFORM=xcb timeout 20s xvfb-run -a env \\
+      -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \\
+      -u QML_IMPORT_PATH -u QML2_IMPORT_PATH -u LD_LIBRARY_PATH \\
+      /opt/genycaster/AppRun --check-tls
+    echo "Clean Ubuntu 24.04 Debian Qt TLS preflight: PASS"
     # AppImage must work independently of system Qt, too. The type-2
     # extractor avoids FUSE requirements in unprivileged containers.
     APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=opengl LIBGL_ALWAYS_SOFTWARE=1 \
@@ -62,6 +69,11 @@ docker run --rm \
         "/release/$GENYCASTER_APPIMAGE" --smoke-test \
         --settings-path=/tmp/genycaster-appimage-smoke.ini
     echo "Clean Ubuntu 24.04 AppImage Qt/QML startup smoke: PASS"
+    APPIMAGE_EXTRACT_AND_RUN=1 QT_QPA_PLATFORM=xcb timeout 20s xvfb-run -a env \\
+      -u QT_PLUGIN_PATH -u QT_QPA_PLATFORM_PLUGIN_PATH \\
+      -u QML_IMPORT_PATH -u QML2_IMPORT_PATH -u LD_LIBRARY_PATH \\
+      "/release/$GENYCASTER_APPIMAGE" --check-tls
+    echo "Clean Ubuntu 24.04 AppImage Qt TLS preflight: PASS"
     # QML object creation can pass with an entirely black Qt Quick surface.
     # Render a real offscreen frame and reject uniform/blank captures.
     for target in deb appimage; do
