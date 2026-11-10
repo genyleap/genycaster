@@ -29,6 +29,24 @@ def in_module(path: Path, *parts: str) -> bool:
                for i in range(len(segments) - len(parts) + 1))
 
 
+def otool_dependencies(output: str, binary: Path) -> list[str]:
+    """Return Mach-O install names, excluding otool's file/architecture headers.
+
+    On some macOS versions, `otool -L` emits both `path:` and
+    `path (architecture arm64):`. Neither is a linked library.
+    """
+    binary_header = re.compile(
+        rf"{re.escape(str(binary))}(?: \\(architecture [^)]+\\))?:"
+    )
+    dependencies = []
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or binary_header.fullmatch(line):
+            continue
+        dependencies.append(line.split(" (compatibility version", 1)[0])
+    return dependencies
+
+
 def audit(app: Path, architecture: str, *, inspect_macho: bool = True) -> None:
     require(architecture in {"arm64", "x86_64"}, "Invalid target architecture")
     contents = app / "Contents"
@@ -88,10 +106,7 @@ def audit(app: Path, architecture: str, *, inspect_macho: bool = True) -> None:
                                 capture_output=True, text=True, check=False)
         require(result.returncode == 0,
                 f"Cannot inspect macOS dependencies: {binary}: {result.stderr}")
-        for line in result.stdout.splitlines()[1:]:
-            dependency = line.strip().split(" (compatibility version", 1)[0]
-            if not dependency:
-                continue
+        for dependency in otool_dependencies(result.stdout, binary):
             require(not dependency.startswith(("/opt/", "/usr/local/",
                     "/Users/", "/home/", "/Applications/Qt/")),
                     f"Build-host library leaked into {binary}: {dependency}")
