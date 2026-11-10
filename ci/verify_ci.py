@@ -19,10 +19,14 @@ def main() -> None:
     assert not FORBIDDEN_CORE_JOB.search(workflow)
     assert "confirm_full_matrix:" in workflow
     assert "GENYCASTER_FULL_MATRIX_CONFIRMED" in workflow
-    # Hosted Actions only build/package; development tests run on the server.
-    for test_command in ("node --test", "ctest --test-dir",
-                         "python3 -m unittest", "cmake -S tests/"):
+    # A bounded security gate runs before expensive hosted builds; large
+    # native and integration test suites continue to run separately.
+    for test_command in ("ctest --test-dir", "cmake -S tests/"):
         assert test_command not in workflow, test_command
+    gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
+    assert "python3 -m unittest ci/test_deployment_config.py" in gate
+    assert "node --test services/test/deployment_config.test.mjs" in gate
+    assert "ci/test_audit_windows_stage.py" in gate
     assert "cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
     # Release-gate checks prevent accidental tag or main-branch bypass.
     gate = workflow.split("  gate:", 1)[1].split("  linux:", 1)[0]
@@ -39,7 +43,8 @@ def main() -> None:
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
     assert "macos-26-intel" in workflow
-    assert "runner: macos-26" in workflow
+    assert '"runner":"macos-26"' in workflow
+    assert "inputs.target_arch == 'x86_64'" in workflow
     # A job-level if is evaluated *before* matrix expansion. When the
     # platform is skipped, matrix expressions in its job name are displayed
     # literally in GitHub's UI. Leave matrix values to the job instances and
@@ -60,7 +65,7 @@ def main() -> None:
     assert "Build OpenSSL 3.5.9 for macOS 15 deployment" in workflow
     assert "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a" in workflow
     assert "MACOSX_DEPLOYMENT_TARGET=15.0" in workflow
-    assert 'export CFLAGS="-O2 -mmacosx-version-min=15.0"' in workflow
+    assert 'export CFLAGS="-O2 -mmacosx-version-min=15.0 -isysroot $SDKROOT"' in workflow
     assert 'darwin64-${{ matrix.arch }}-cc' in workflow
     assert '-DOPENSSL_ROOT_DIR="$GITHUB_WORKSPACE/build/ci-openssl/install"' in workflow
     assert '-DOPENSSL_INCLUDE_DIR="$GITHUB_WORKSPACE/build/ci-openssl/install/include"' in workflow
@@ -74,7 +79,9 @@ def main() -> None:
     linux = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
     assert linux.index("Check Qt Multimedia deployment dependencies") < linux.index("Build Qt client")
     assert 'ldd "$GST_QT_PLUGIN"' in linux
-    assert "libgstplay-1.0.so.0" in linux
+    # The actual Qt plugin's ELF dependencies are authoritative; a separate
+    # legacy libgstplay SONAME is not present on every Qt 6.12 target.
+    assert "libgstplay-1.0.so.0" not in linux
     # A desktop install must not be a portable bundle masquerading as setup.
     # Verify per-user activation, desktop shortcuts, publisher metadata, and
     # architecture hygiene independently from the cross-platform build.
@@ -152,12 +159,14 @@ def main() -> None:
     context_objects = re.findall(
         r'\{"([A-Za-z][A-Za-z0-9]*)",\s*&[A-Za-z][A-Za-z0-9]*\}', entry)
     expected_context_objects = {
-        "genyPulseActivity", "openProofConnections", "presentationBridge",
+        "genyPulseActivity", "openProofConnections", "proCheckout",
+        "proWalletHost", "presentationBridge",
         "channelDirectory", "dataStorage", "richComposer", "emojiController",
         "mediaUpload", "mediaClassifier", "mediaPlayback",
         "localizationController", "geoLocationResolver", "linkPreviewResolver",
         "browserLinkMetadataController", "browserTokenPreviewController",
-        "castViewController", "browserReactionController", "miniAppHost",
+        "castViewController", "statsController", "marketController",
+        "browserReactionController", "miniAppHost",
         "miniAppCatalog", "miniAppTaskManager", "liveInsights",
         "nodeSelectionController", "providerProfiles", "updateController",
         "appearanceController", "renderingController", "textSelectionSettings",

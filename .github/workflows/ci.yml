@@ -19,6 +19,15 @@ on:
           - web
           - ios
           - nixos
+      target_arch:
+        description: Optional architecture filter for macOS validation
+        type: choice
+        required: false
+        default: all
+        options:
+          - all
+          - x86_64
+          - arm64
       confirm_full_matrix:
         description: Confirm costly all-platform build (uses multiple macOS/Windows runners)
         required: false
@@ -34,7 +43,7 @@ permissions:
 concurrency:
   # Repeat dispatches for the same ref/platform supersede earlier manual runs.
   # Never cancel tag-triggered release jobs and never overlap unrelated platforms.
-  group: genycaster-cross-platform-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'tag' }}
+  group: genycaster-cross-platform-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.platform || 'tag' }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_arch || 'all' }}
   cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 env:
@@ -61,7 +70,7 @@ jobs:
         run: python3 ci/release_gate.py
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
@@ -147,7 +156,9 @@ jobs:
             echo "::error::Qt GStreamer backend has missing runtime libraries: $MISSING_MULTIMEDIA"
             exit 1
           fi
-          test -n "$(ldconfig -p | grep 'libgstplay-1.0.so.0' || true)"
+          # Qt 6.12 no longer requires a separate libgstplay SONAME on
+          # every supported GStreamer build. Validate the actual linked
+          # runtime dependencies above rather than probing a legacy SONAME.
       - name: Build Qt client
         shell: bash
         run: |
@@ -231,11 +242,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: arm64
-            runner: macos-26
-          - arch: x86_64
-            runner: macos-26-intel
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'x86_64' && '[{"arch":"x86_64","runner":"macos-26-intel"}]' || github.event_name == 'workflow_dispatch' && inputs.platform == 'macos' && inputs.target_arch == 'arm64' && '[{"arch":"arm64","runner":"macos-26"}]' || '[{"arch":"arm64","runner":"macos-26"},{"arch":"x86_64","runner":"macos-26-intel"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'macos'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120

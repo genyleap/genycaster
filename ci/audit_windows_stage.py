@@ -52,8 +52,20 @@ def audit(stage: Path, arch: str, *, clean: bool = True) -> int:
                     if (candidate.is_file()
                             and candidate.suffix.lower() in {".dll", ".exe"}
                             and not (stage / candidate.name).is_file()):
-                        raise ValueError(
-                            f"Unstaged runtime executable or DLL in SDK directory: {candidate}")
+                        # windeployqt copies the qmltooling SDK's Qt Creator
+                        # debugger helpers even in a release deployment.
+                        # They are not loadable production runtime plugins.
+                        # Keep the exemption narrow: all other binary files in
+                        # SDK-only subtrees still fail the staging audit.
+                        debugger_tool = (
+                            name == "qmltooling"
+                            and candidate.parent == directory
+                            and candidate.suffix.lower() == ".dll"
+                            and candidate.name.lower().startswith("qmldbg_")
+                        )
+                        if not debugger_tool:
+                            raise ValueError(
+                                f"Unstaged runtime executable or DLL in SDK directory: {candidate}")
                 shutil.rmtree(directory)
 
     for name in ("Genycaster.exe", *RUNTIME_DLLS, "platforms/qwindows.dll"):

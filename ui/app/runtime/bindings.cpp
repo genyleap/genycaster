@@ -2832,12 +2832,17 @@ void connectRuntime(
                 .phase = application::session::SessionPhase::Starting,
             });
 
-            auto* watcher = new QFutureWatcher<RecoveryOutcome>(&bridge);
-            QObject::connect(watcher, &QFutureWatcher<RecoveryOutcome>::finished,
+            // Watch only completion: libc++ 22's std::expected comparison
+            // constraints can recursively instantiate when Qt compares a
+            // QFutureInterface<RecoveryOutcome> inside QFutureWatcher<T>.
+            // Retain the typed future separately to read the verified result.
+            auto recoveryFuture = std::make_shared<QFuture<RecoveryOutcome>>();
+            auto* watcher = new QFutureWatcher<void>(&bridge);
+            QObject::connect(watcher, &QFutureWatcher<void>::finished,
                 &bridge,
                 [&bridge, &connections, runtime, sessionObserver, signerObserver,
-                 nativeRecoveryGeneration, generation, watcher] {
-                    RecoveryOutcome verified = watcher->result();
+                 nativeRecoveryGeneration, generation, watcher, recoveryFuture] {
+                    RecoveryOutcome verified = recoveryFuture->result();
                     watcher->deleteLater();
                     if (nativeRecoveryGeneration->load(std::memory_order_acquire)
                         != generation
@@ -2946,7 +2951,7 @@ void connectRuntime(
                             qtTrId("genycaster.setup.recovery_failed_retry"));
                     }
                 });
-            watcher->setFuture(QtConcurrent::run(
+            *recoveryFuture = QtConcurrent::run(
                 [runtime, gateway = configuredGateway.toStdString(),
                  words = std::move(utf8)]() mutable -> RecoveryOutcome {
                     std::string mnemonic{words.constData(),
@@ -3003,7 +3008,8 @@ void connectRuntime(
                         .expiresSeconds = verified->expiresSeconds,
                         .oneShotSigner = std::move(*signer),
                     };
-                }));
+                });
+            watcher->setFuture(QFuture<void>{*recoveryFuture});
         });
 #else
     QObject::connect(&bridge, &PresentationBridge::nativeRecoveryRequested, &bridge,
