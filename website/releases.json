@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-10",
+  "platforms": {
+    "windows": {
+      "version": null,
+      "assets": []
+    },
+    "macos": {
+      "version": null,
+      "assets": []
+    },
+    "linux": {
+      "version": null,
+      "assets": []
+    },
+    "android": {
+      "version": null,
+      "assets": []
+    },
+    "ios": {
+      "version": null,
+      "assets": []
+    }
+  }
+}
