@@ -92,11 +92,50 @@ option(
 )
 unset(_farcasterMediaUploadDefault)
 
+# Secure CMake-owned deployment configuration. No secrets or user-controlled JS.
+set(GENYCASTER_PUBLIC_ORIGIN "https://caster.genyleap.com" CACHE STRING "Canonical public application origin")
+set(GENYCASTER_SIWF_ORIGIN "https://genycaster.genyleap.com" CACHE STRING "Trusted SIWF relying party origin (separate from the hosting origin)")
+set(GENYCASTER_OPENPROOF_ISSUER "https://openproof.genyleap.com" CACHE STRING "Trusted OpenProof issuer")
+set(GENYCASTER_OPENPROOF_BROWSER_BASE "https://genyleap.com/openproof" CACHE STRING "OAuth browser handoff base")
+set(GENYCASTER_BROWSER_GATEWAY_ORIGIN "https://storage-farcaster.genyleap.com" CACHE STRING "Browser gateway origin")
+set(GENYCASTER_MEDIA_PUBLIC_ORIGIN "https://media-farcaster.genyleap.com" CACHE STRING "Media delivery origin")
+set(GENYCASTER_SNAPCHAIN_ORIGIN "https://snapchain.genyleap.com" CACHE STRING "Default Snapchain read origin")
+set(GENYCASTER_HYPERSNAP_ORIGIN "https://haatz.quilibrium.com" CACHE STRING "Default HyperSnap read origin")
+set(GENYCASTER_COMPANY_ORIGIN "https://genyleap.com" CACHE STRING "Public legal origin")
+# Protocol adapters also consume this header in headless/client-library builds.
+# Generate for every build profile, not only the UI application.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(_deploymentConfigArgs)
+foreach(_key IN ITEMS PUBLIC_ORIGIN SIWF_ORIGIN OPENPROOF_ISSUER OPENPROOF_BROWSER_BASE
+                          BROWSER_GATEWAY_ORIGIN MEDIA_PUBLIC_ORIGIN SNAPCHAIN_ORIGIN
+                          HYPERSNAP_ORIGIN COMPANY_ORIGIN)
+    # A semicolon would split the CMake list into new process arguments.
+    # Reject it before passing any untrusted cache value to the generator.
+    string(FIND "${GENYCASTER_${_key}}" ";" _deploymentListSeparator)
+    if(NOT _deploymentListSeparator EQUAL -1)
+        message(FATAL_ERROR "GENYCASTER_${_key} cannot contain a CMake list separator")
+    endif()
+    list(APPEND _deploymentConfigArgs --set "GENYCASTER_${_key}=${GENYCASTER_${_key}}")
+endforeach()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/ci/generate_deployment_config.py")
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/ci/generate_deployment_config.py"
+            --out-dir "${CMAKE_BINARY_DIR}/generated" ${_deploymentConfigArgs}
+        RESULT_VARIABLE _deploymentConfigResult
+        ERROR_VARIABLE _deploymentConfigError
+    )
+    if(NOT _deploymentConfigResult EQUAL 0)
+        message(FATAL_ERROR "Invalid GenyCaster deployment configuration: ${_deploymentConfigError}")
+    endif()
+    include_directories(BEFORE "${CMAKE_BINARY_DIR}/generated")
+
 # Shipping deployment identity/origins. These are first-party product defaults,
 # not provider identities. Runtime CLI/environment overrides remain available for
 # development, testing and self-hosted deployments.
-set(_GENYCASTER_CANONICAL_SIWF_DOMAIN "genycaster.genyleap.com")
-set(_GENYCASTER_CANONICAL_SIWF_URI "https://genycaster.genyleap.com/login")
+string(REGEX REPLACE "^https://" "" _GENYCASTER_CANONICAL_SIWF_DOMAIN
+    "${GENYCASTER_SIWF_ORIGIN}")
+set(_GENYCASTER_CANONICAL_SIWF_URI "${GENYCASTER_SIWF_ORIGIN}/login")
 set(FARCASTER_DEFAULT_SIWF_DOMAIN
     "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
     CACHE STRING "Default SIWF domain for shipping Genycaster builds")
@@ -108,43 +147,27 @@ set(FARCASTER_DEFAULT_SIWF_URI
 # before they can be compiled into a shipping binary. Local development values
 # such as http://localhost:3000/login remain valid.
 if(NOT FARCASTER_DEFAULT_SIWF_DOMAIN MATCHES "^[A-Za-z0-9.-]+(:[0-9]+)?$")
-    message(WARNING
-        "Invalid cached FARCASTER_DEFAULT_SIWF_DOMAIN='${FARCASTER_DEFAULT_SIWF_DOMAIN}'. "
-        "Resetting it to '${_GENYCASTER_CANONICAL_SIWF_DOMAIN}'.")
-    set(FARCASTER_DEFAULT_SIWF_DOMAIN
-        "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
-        CACHE STRING "Default SIWF domain for shipping Genycaster builds" FORCE)
+    message(FATAL_ERROR "Invalid FARCASTER_DEFAULT_SIWF_DOMAIN. Clear the stale CMake cache or provide a valid domain.")
 endif()
 if(NOT FARCASTER_DEFAULT_SIWF_URI MATCHES "^https?://[^ \t\r\n\"'\\]+$")
-    message(WARNING
-        "Invalid cached FARCASTER_DEFAULT_SIWF_URI='${FARCASTER_DEFAULT_SIWF_URI}'. "
-        "Resetting it to '${_GENYCASTER_CANONICAL_SIWF_URI}'.")
-    set(FARCASTER_DEFAULT_SIWF_URI
-        "${_GENYCASTER_CANONICAL_SIWF_URI}"
-        CACHE STRING "Default SIWF URI for shipping Genycaster builds" FORCE)
+    message(FATAL_ERROR "Invalid FARCASTER_DEFAULT_SIWF_URI. Clear the stale CMake cache or provide a valid URI.")
 endif()
 string(REGEX REPLACE "^https?://([^/]+).*$" "\\1" _farcasterSiwfUriAuthority
     "${FARCASTER_DEFAULT_SIWF_URI}")
 if(NOT _farcasterSiwfUriAuthority STREQUAL FARCASTER_DEFAULT_SIWF_DOMAIN)
-    message(WARNING
-        "Cached SIWF domain/URI do not describe the same relying party "
-        "('${FARCASTER_DEFAULT_SIWF_DOMAIN}' vs '${FARCASTER_DEFAULT_SIWF_URI}'). "
-        "Resetting both to the canonical Genycaster deployment identity.")
-    set(FARCASTER_DEFAULT_SIWF_DOMAIN
-        "${_GENYCASTER_CANONICAL_SIWF_DOMAIN}"
-        CACHE STRING "Default SIWF domain for shipping Genycaster builds" FORCE)
-    set(FARCASTER_DEFAULT_SIWF_URI
-        "${_GENYCASTER_CANONICAL_SIWF_URI}"
-        CACHE STRING "Default SIWF URI for shipping Genycaster builds" FORCE)
+    message(FATAL_ERROR
+        "SIWF domain and URI must use the same relying-party authority. "
+        "Set FARCASTER_DEFAULT_SIWF_DOMAIN and FARCASTER_DEFAULT_SIWF_URI "
+        "to matching values or clear stale CMake cache entries.")
 endif()
 unset(_farcasterSiwfUriAuthority)
 unset(_GENYCASTER_CANONICAL_SIWF_DOMAIN)
 unset(_GENYCASTER_CANONICAL_SIWF_URI)
 set(FARCASTER_DEFAULT_SNAPCHAIN_BASE_URL
-    "https://snapchain.genyleap.com"
+    "${GENYCASTER_SNAPCHAIN_ORIGIN}"
     CACHE STRING "Default Genycaster-facing Snapchain HTTP origin")
 set(FARCASTER_DEFAULT_MEDIA_GATEWAY_BASE_URL
-    "https://storage-farcaster.genyleap.com"
+    "${GENYCASTER_BROWSER_GATEWAY_ORIGIN}"
     CACHE STRING "Default Genycaster media upload gateway origin")
 set(FARCASTER_DEFAULT_APP_FID
     "866408"

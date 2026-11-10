@@ -17,7 +17,8 @@ test('the Qt Views controller batches and bounds network work outside QML',()=>{
   assert.match(controller,/maxEntries = 384/);
   assert.match(controller,/requestDeadlineMs = 8 \* 1000/);
   assert.match(controller,/QTimer::singleShot\(requestDeadlineMs, reply/);
-  assert.match(controller,/storage-farcaster\.genyleap\.com\/v1\/browser\/cast-views/);
+  assert.match(controller,/genycaster::deployment::browserGateway/);
+  assert.match(controller,/\/v1\/browser\/cast-views/);
   assert.match(controller,/QJsonDocument::fromJson/);
   assert.match(header,/Q_PROPERTY\(QVariant count READ count NOTIFY countChanged FINAL\)/);
 });

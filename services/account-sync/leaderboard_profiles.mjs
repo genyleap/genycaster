@@ -1,13 +1,17 @@
 // Public Farcaster identity decoration for opted-in Streak ranks only.
-// HyperSnap is a fixed, public profile read; no tokens or user-provided URLs.
-const ORIGIN='https://haatz.quilibrium.com/v2/farcaster/user?fid=';
+// HyperSnap profile reads are deployment-selected, not user-selected hosts.
+import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
 const FID=/^[1-9][0-9]{0,18}$/;
 const MAX_BODY=16384;
 const TTL_OK=5*60_000;
 const TTL_ERROR=60_000;
 const MAX_CACHE=256;
 
-export function createLeaderboardProfileReader({fetchImpl=globalThis.fetch,now=Date.now}={}) {
+export function createLeaderboardProfileReader({
+  fetchImpl=globalThis.fetch,now=Date.now,
+  hypersnapOrigin=serverDeployment().hypersnapOrigin}={}) {
+  const origin=trustedOrigin(hypersnapOrigin,'GENYCASTER_HYPERSNAP_ORIGIN')
+    + '/v2/farcaster/user?fid=';
   const cache=new Map();
   const pending=new Map();
   async function resolve(fid) {
@@ -19,7 +23,7 @@ export function createLeaderboardProfileReader({fetchImpl=globalThis.fetch,now=D
     const work=(async()=>{
       let value=null;
       try {
-        const response=await fetchImpl(ORIGIN+encodeURIComponent(fid),{
+        const response=await fetchImpl(origin+encodeURIComponent(fid),{
           method:'GET',redirect:'error',headers:{accept:'application/json'},
           signal:AbortSignal.timeout(2800)
         });

@@ -14,6 +14,7 @@
 
 module;
 
+#include "genycaster_deployment.hpp"
 #include <string>
 
 export module farcaster.provider.hypersnap.config;
@@ -30,7 +31,7 @@ export namespace farcaster::provider::hypersnap::config {
  * Hypersnap implementation itself.
  */
 struct Config final {
-    std::string baseUrl{"https://haatz.quilibrium.com"};
+    std::string baseUrl{genycaster::deployment::hypersnapOrigin};
     // Optional upstream hosted-service credential. Passed only as an HTTP
     // header, never embedded in endpoint URLs, logs or persistent settings.
     std::string apiKey{};

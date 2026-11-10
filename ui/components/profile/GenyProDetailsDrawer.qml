@@ -270,7 +270,7 @@ GenyDrawer {
                     font.pixelSize: Theme.typeTitle3Size
                     font.weight: Theme.weightBold
                     color: Theme.textPrimary
-                    horizontalAlignment: Theme.textStartAlignment
+                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
                 DirectionAwareLabel {
@@ -280,7 +280,7 @@ GenyDrawer {
                         : qsTrId("genycaster.pro.checkout_membership")
                     font.pixelSize: Theme.typeCaptionSize
                     color: root.eligible ? Theme.positive : Theme.textSecondary
-                    horizontalAlignment: Theme.textStartAlignment
+                    horizontalAlignment: root.compact ? Text.AlignHCenter : Theme.textStartAlignment
                     elide: Text.ElideRight
                 }
             }
@@ -302,6 +302,7 @@ GenyDrawer {
                 }
             }
             ActionButton {
+                visible: !root.compact
                 Layout.alignment: Qt.AlignVCenter
                 compact: true
                 quiet: true

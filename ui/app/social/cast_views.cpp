@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "cast_views.hpp"
 
 #include <QJsonDocument>
@@ -44,8 +45,8 @@ CastViewController::CastViewController(
     : QObject(parent),
       m_endpoint(endpoint.isValid() && !endpoint.isEmpty()
           ? std::move(endpoint)
-          : QUrl{QStringLiteral(
-              "https://storage-farcaster.genyleap.com/v1/browser/cast-views")}),
+          : QUrl{(QString::fromUtf8(genycaster::deployment::browserGateway.data())
+              + QStringLiteral("/v1/browser/cast-views"))}),
       m_networkEnabled(networkEnabled),
       m_retryIntervalMs(std::max<qint64>(1, retryIntervalMs))
 {

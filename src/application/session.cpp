@@ -1,5 +1,7 @@
 module;
 
+#include "genycaster_deployment.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <expected>
@@ -291,7 +293,7 @@ foundation::result::Status SessionService::acceptVerifiedRecovery(
             if (session.fid.value == 0U
                 || session.method != domain::session::AuthenticationMethod::Custody
                 || !session.identityIssuer
-                || *session.identityIssuer != "https://openproof.genyleap.com"
+                || *session.identityIssuer != genycaster::deployment::openProofIssuer
                 || !session.identitySubject || session.identitySubject->empty()
                 || session.identitySubject->size() > 512U
                 || !validAddress(session.custodyAddress)

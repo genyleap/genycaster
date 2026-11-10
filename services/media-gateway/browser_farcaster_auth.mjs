@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
 
 const relay = 'https://relay.farcaster.xyz';
 const attemptLifetimeMs = 5 * 60_000;
@@ -71,13 +72,19 @@ async function upstreamJson(fetchImpl, url, options, expected = [200]) {
 }
 
 export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now,
-  issuerOrigin = 'https://openproof.genyleap.com' } = {}) {
+  issuerOrigin = serverDeployment().openProofIssuer,
+  connectionBrowserBase = serverDeployment().openProofBrowserBase } = {}) {
   const issuerUrl = new URL(issuerOrigin);
   if (issuerUrl.protocol !== 'https:' || issuerUrl.username || issuerUrl.password ||
       issuerUrl.search || issuerUrl.hash || issuerUrl.pathname !== '/' ||
       issuerUrl.port && issuerUrl.port !== '443')
     throw resultError('auth_invalid_issuer_configuration',500);
   const issuer = issuerUrl.origin;
+  const browserBase = trustedOrigin(connectionBrowserBase,
+    'GENYCASTER_OPENPROOF_BROWSER_BASE',{path:true});
+  const accountOrigin = new URL(browserBase).origin;
+  const accountDomain = new URL(browserBase).hostname;
+  const accountUri = accountOrigin + '/account';
   const attempts = new Map();
   // Ephemeral, server-held OpenProof session for the SAME locally verified
   // recovery proof. Only an opaque 45-minute capability crosses into the
@@ -123,7 +130,7 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     const challenge = started.json;
     if (!challenge?.nonce || !challenge?.domain || !challenge?.uri ||
         !challenge?.expires_at || cookies.size < 4 ||
-        challenge.domain !== 'genyleap.com') {
+        challenge.domain !== accountDomain || challenge.uri !== accountUri) {
       throw resultError('auth_invalid_openproof_challenge');
     }
     const opened = await upstreamJson(fetchImpl, relay + '/v1/channel', {
@@ -176,10 +183,13 @@ export function createBrowserFarcasterBroker({ fetchImpl = fetch, now = Date.now
     const body = challenge.json;
     if (cookies.size < 4 || body?.provider !== 'farcaster'
         || String(body.fid) !== fid || body.address?.toLowerCase() !== address.toLowerCase()
-        || body.domain !== 'genyleap.com' || body.statement !== 'Farcaster Auth'
+        || body.domain !== accountDomain || body.statement !== 'Farcaster Auth'
         || body.resource_prefix !== 'farcaster://fid/'
         || typeof body.message !== 'string' || body.message.length < 40
-        || body.message.length > 8192 || !body.message.includes('farcaster://fid/'+fid)
+        || body.message.length > 8192
+        || !body.message.startsWith(accountDomain+' wants you to sign in with your Ethereum account:\n')
+        || !body.message.includes('\nURI: '+accountUri+'\n')
+        || !body.message.includes('farcaster://fid/'+fid)
         || !/^[A-Za-z0-9]{8,64}$/.test(body.nonce || '')
         || !body.expires_at) {
       throw resultError('auth_invalid_openproof_challenge');

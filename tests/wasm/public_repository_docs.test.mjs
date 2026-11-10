@@ -182,7 +182,8 @@ test("OpenProof identity, opp runtime and independent product database are docum
     assert.match(guide, /Mini App wallet permission/);
     assert.match(readme, /properties\/README\.md/);
     assert.match(read("services/account-sync/server.mjs"), /GENYCASTER_DATABASE_URL/);
-    assert.match(read("services/account-sync/server.mjs"), /GENYCASTER_OPENPROOF_ISSUER/);
+    assert.match(read("services/account-sync/server.mjs"), /serverDeployment\(\)\.openProofIssuer/);
+    assert.match(read("services/deployment_config.mjs"), /GENYCASTER_OPENPROOF_ISSUER/);
 });
 
 test("roadmap reports implemented foundations without concealing unfinished acceptance", () => {

@@ -24,8 +24,10 @@ test('Pro drawer uses neutral surfaces and retains fixed header, footer and inte
  assert.match(pro,/fillColor: feature\.expanded \? Theme\.surfaceMuted/);
  assert.match(pro,/fillColor: Theme\.surfaceMuted/);
  assert.match(pro,/color: Theme\.inkMuted/);
- assert.doesNotMatch(pro,/fillColor: Theme\.proSurface/);
- assert.doesNotMatch(pro,/borderColor: Theme\.proBorder/);
+ // Only the small Pro brand mark in the fixed header may use the Pro palette.
+ const neutral = pro.slice(pro.indexOf('objectName: "genyProNeutralEligibilitySummary"'));
+ assert.doesNotMatch(neutral,/fillColor: Theme\.proSurface/);
+ assert.doesNotMatch(neutral,/borderColor: Theme\.proBorder/);
  assert.match(pro,/id: fixedHeader/);
  assert.match(pro,/id: fixedActions/);
  assert.match(pro,/id: detailsViewport/);

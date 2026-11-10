@@ -2,6 +2,7 @@
 // stores these app-specific preferences, drafts, bookmarks or schedules.
 import {createHash, randomBytes, timingSafeEqual} from 'node:crypto';
 import {createSignerSessionProof} from './signer_session_proof.mjs';
+import {serverDeployment, trustedOrigin} from '../deployment_config.mjs';
 import {validateFeedback} from './feedback.mjs';
 import {validateCastTopicAssignment,TOPIC_SLUG,topicPagination} from './topics.mjs';
 import {createGithubCalendarReader} from './github_contributions.mjs';
@@ -231,7 +232,9 @@ function respond(response,status,value) {
     'cache-control':'no-store','x-content-type-options':'nosniff'});
   response.end(JSON.stringify(value));
 }
-export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
+export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fetch,
+  hypersnapOrigin=serverDeployment().hypersnapOrigin,
+  snapchainOrigin=serverDeployment().snapchainOrigin}={}) {
   // Verify a confirmed CastAdd against a protocol node. HyperSnap is the
   // default network, but users may choose Snapchain. Neither a signed-in FID
   // nor a hash supplied by the client proves ownership by itself.
@@ -240,8 +243,8 @@ export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fe
   const castId='?fid='+encodeURIComponent(String(fid))+
     '&hash='+encodeURIComponent(hash);
   for(const base of [
-    'https://haatz.quilibrium.com/v1/castById',
-    'https://snapchain.genyleap.com/v1/castById'
+    hypersnapOrigin+'/v1/castById',
+    snapchainOrigin+'/v1/castById'
   ]) {
     try {
       const response=await fetchImpl(base+castId,{method:'GET',
@@ -269,7 +272,7 @@ export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fe
   // Some HyperSnap nodes expose indexed casts through v2 rather than a v1
   // hub read. Require the exact FID/hash pair in a bounded server response.
   try {
-    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts?fid='+
+    const url=hypersnapOrigin+'/v2/farcaster/feed/user/casts?fid='+
       encodeURIComponent(String(fid))+'&limit=100';
     const response=await fetchImpl(url,{method:'GET',
       headers:{accept:'application/json'},redirect:'error',
@@ -293,13 +296,15 @@ export async function verifyCastTopicOwnership(hash,fid,{fetchImpl=globalThis.fe
 // Explicit support for the two protocol providers. A client-provided cast
 // hash is never proof: the provider must independently return the exact FID,
  // hash and a CastAdd payload. Both endpoints are bounded and fail closed.
-export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.fetch}={}) {
+export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.fetch,
+  hypersnapOrigin=serverDeployment().hypersnapOrigin,
+  snapchainOrigin=serverDeployment().snapchainOrigin}={}) {
   if(!HASH.test(hash)||!/^[1-9][0-9]{0,18}$/.test(String(fid)))return null;
   // HyperSnap's documented feed/user/casts endpoint is the first choice.
   // Match the returned author FID AND hash; only fresh published casts count.
   // Its hash is bare 40-hex (unlike the 0x-prefixed account API hash).
   try {
-    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts'
+    const url=hypersnapOrigin+'/v2/farcaster/feed/user/casts'
       +'?fid='+encodeURIComponent(String(fid))+'&limit=100';
     const response=await fetchImpl(url,{method:'GET',redirect:'error',
       headers:{accept:'application/json'},signal:AbortSignal.timeout(4500)});
@@ -328,8 +333,8 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
   }catch{}
   // Compatibility with v1 hub reads on either protocol network.
   const endpoints=[
-    'https://haatz.quilibrium.com/v1/castById',
-    'https://snapchain.genyleap.com/v1/castById'
+    hypersnapOrigin+'/v1/castById',
+    snapchainOrigin+'/v1/castById'
   ];
   for(const base of endpoints) {
     try {
@@ -370,13 +375,14 @@ export async function verifyStreakCastOwnership(hash,fid,{fetchImpl=globalThis.f
 // Never credit client-provided days or hashes, and never derive an owner FID
 // from a request parameter. Feed rows are validated against the authorized FID.
 export async function discoverVerifiedStreakCasts(fid,{
-  fetchImpl=globalThis.fetch,now=new Date()
+  fetchImpl=globalThis.fetch,now=new Date(),
+  hypersnapOrigin=serverDeployment().hypersnapOrigin
 }={}) {
   const owner=String(fid||'');
   if(!/^[1-9][0-9]{0,18}$/.test(owner) || !Number.isSafeInteger(Number(owner)))
     return null;
   try {
-    const url='https://haatz.quilibrium.com/v2/farcaster/feed/user/casts'
+    const url=hypersnapOrigin+'/v2/farcaster/feed/user/casts'
       +'?fid='+encodeURIComponent(owner)+'&limit=50';
     const response=await fetchImpl(url,{method:'GET',redirect:'error',
       headers:{accept:'application/json'},signal:AbortSignal.timeout(4500)});
@@ -418,6 +424,10 @@ export async function discoverVerifiedStreakCasts(fid,{
 }
 
 export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
+                                    publicOrigin=serverDeployment().publicOrigin,
+                                    browserGateway=serverDeployment().browserGateway,
+                                    snapchainOrigin=serverDeployment().snapchainOrigin,
+                                    hypersnapOrigin=serverDeployment().hypersnapOrigin,
                                     verifyTopicOwner=verifyCastTopicOwnership,
                                     verifyStreakCast=verifyStreakCastOwnership,
                                     proPolicy=createGenyAssetsPolicy(),
@@ -433,7 +443,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
                                         await store.getProSubscription(owner),billingPolicy);
                                     },
                                     resolveGenyAssets=(fid)=>evaluateGenyAssets(fid,{policy:proPolicy,fetchImpl}),
-                                    discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl})}) {
+                                    discoverStreakCasts=(fid)=>discoverVerifiedStreakCasts(fid,{fetchImpl,hypersnapOrigin})}) {
   // Bounded per-account reconciliation cache; failed network fetches never
   // block a valid historical streak already persisted in PostgreSQL.
   const recentlyCheckedStreaks=new Map();
@@ -464,14 +474,20 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
 
   if (!store || !issuer || new URL(issuer).protocol !== 'https:')
     throw new Error('A store and trusted HTTPS OpenProof issuer are required');
-  const upstream=issuer.replace(/\/$/,'');
-  const signerProof=createSignerSessionProof({fetchImpl});
+  const upstream=trustedOrigin(issuer,'GENYCASTER_OPENPROOF_ISSUER');
+  const trustedPublicOrigin=trustedOrigin(publicOrigin,'GENYCASTER_PUBLIC_ORIGIN');
+  const trustedBrowserGateway=trustedOrigin(browserGateway,'GENYCASTER_BROWSER_GATEWAY_ORIGIN');
+  const trustedSnapchainOrigin=trustedOrigin(snapchainOrigin,'GENYCASTER_SNAPCHAIN_URL');
+  const trustedHyperSnapOrigin=trustedOrigin(hypersnapOrigin,'GENYCASTER_HYPERSNAP_ORIGIN');
+  const signerProof=createSignerSessionProof({
+    fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
-  const leaderboardProfiles=createLeaderboardProfileReader({fetchImpl});
+  const leaderboardProfiles=createLeaderboardProfileReader({
+    fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});
   function sameOriginRequest(request) {
     // The browser must be on the official Genycaster host, not another site
     // submitting a form and attempting to plant an authenticated cookie.
-    return request.headers.origin==='https://caster.genyleap.com' &&
+    return request.headers.origin===trustedPublicOrigin &&
       (!request.headers['sec-fetch-site'] ||
        request.headers['sec-fetch-site']==='same-origin');
   }
@@ -522,7 +538,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
     // the Genycaster media gateway. It holds the OpenProof session server-side.
     // No new grant, cookie transfer to browser, or OpenProof modification.
     const connectionEndpoint=recovery
-      ? 'https://storage-farcaster.genyleap.com/v1/browser/openproof/connections'
+      ? trustedBrowserGateway+'/v1/browser/openproof/connections'
       : upstream+'/account/connections';
     if (!recovery) {
       const profileResponse=await fetchImpl(upstream+'/account/profile',{
@@ -851,7 +867,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         }
         // Server verifies the account owner and the network message before
         // storing. A repeat request for the same hash is idempotent.
-        const evidence=await verifyStreakCast(hash.toLowerCase(),owner.fid,{fetchImpl});
+        const evidence=await verifyStreakCast(hash.toLowerCase(),owner.fid,{fetchImpl,
+          hypersnapOrigin:trustedHyperSnapOrigin,snapchainOrigin:trustedSnapchainOrigin});
         if(!evidence || !['cast','reply'].includes(evidence.kind)
            || !eligibleStreakDay(evidence.day)) {
           respond(response,422,{error:'cast_not_confirmed'});return true;
@@ -1083,7 +1100,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
         if(!assignment || typeof store.assignCastTopics!=='function') {
           respond(response,400,{error:'invalid_cast_topics'});return true;
         }
-        if(!await verifyTopicOwner(assignment.cast_hash,owner.fid,{fetchImpl})) {
+        if(!await verifyTopicOwner(assignment.cast_hash,owner.fid,{fetchImpl,
+          hypersnapOrigin:trustedHyperSnapOrigin,snapchainOrigin:trustedSnapchainOrigin})) {
           respond(response,422,{error:'cast_not_confirmed_for_owner'});return true;
         }
         const saved=await store.assignCastTopics(owner,
@@ -1138,7 +1156,7 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
       if (entity==='connections/refresh') {
         if (request.method!=='POST') {respond(response,405,{error:'method_not_allowed'});return true;}
         const reply=await fetchImpl(owner.authorization.startsWith('Bearer recovery.')
-          ? 'https://storage-farcaster.genyleap.com/v1/browser/openproof/connections'
+          ? trustedBrowserGateway+'/v1/browser/openproof/connections'
           : upstream+'/account/connections',{
           headers:{authorization:owner.authorization,accept:'application/json'},
           redirect:'error',signal:AbortSignal.timeout(6000)});

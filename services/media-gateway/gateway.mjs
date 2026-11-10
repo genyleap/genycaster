@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {serverDeployment} from '../deployment_config.mjs';
 import { defaultBrowserImageHosts, rasterMimeFromBytes, retrieveBrowserImage, validImageUrl, validPublicFaviconUrl } from './browser_image_proxy.mjs';
 import { createBrowserFarcasterBroker } from './browser_farcaster_auth.mjs';
 import { publicTokenSnapshot } from './browser_token_insights.mjs';
@@ -42,8 +43,9 @@ function normalizeOrigin(value, name) {
 }
 
 export function loadConfig(env = process.env) {
+  const deployment = serverDeployment(env);
   const openProofIssuer = normalizeOrigin(
-    env.GENYCASTER_OPENPROOF_ISSUER || 'https://openproof.genyleap.com',
+    deployment.openProofIssuer,
     'GENYCASTER_OPENPROOF_ISSUER',
   );
   if (openProofIssuer.protocol !== 'https:')
@@ -52,8 +54,7 @@ export function loadConfig(env = process.env) {
   // __Host- federation state cookies cannot cross from the issuer subdomain
   // to the main-domain callback registered with upstream providers.
   const connectionBrowserBase = normalizeOrigin(
-    env.GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE ||
-      'https://genyleap.com/openproof',
+    deployment.openProofBrowserBase,
     'GENYCASTER_OPENPROOF_CONNECTION_BROWSER_BASE',
   );
   if (connectionBrowserBase.protocol !== 'https:' ||
@@ -70,14 +71,16 @@ export function loadConfig(env = process.env) {
     throw new Error('GENYLEAP_MEDIA_MULTIPART_PART_BYTES must be between 5 MiB and 64 MiB.');
   }
   return Object.freeze({
+    publicOrigin: new URL(deployment.publicOrigin),
+    browserGateway: new URL(deployment.browserGateway),
     host: env.GENYLEAP_MEDIA_HOST?.trim() || '127.0.0.1',
     port: positiveInteger(env.GENYLEAP_MEDIA_PORT, 8790, 'GENYLEAP_MEDIA_PORT'),
     publicBaseUrl: normalizeOrigin(
-      env.GENYLEAP_MEDIA_PUBLIC_BASE_URL || 'https://media-farcaster.genyleap.com',
+      deployment.mediaPublicOrigin,
       'GENYLEAP_MEDIA_PUBLIC_BASE_URL',
     ),
     snapchainBaseUrl: normalizeOrigin(
-      env.GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL || 'https://snapchain.genyleap.com',
+      deployment.snapchainOrigin,
       'GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL',
     ),
     ticketSecret,
@@ -449,6 +452,8 @@ export function miniAppArtworkUrls(document) {
 }
 
 export function createMediaGateway(config, storage, dependencies = {}) {
+  const managedMediaHost = config.publicBaseUrl.hostname;
+  const browserImageHosts = [...new Set([...defaultBrowserImageHosts, managedMediaHost])];
   const runtime = {
     fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
     now: dependencies.now ?? (() => Date.now()),
@@ -468,6 +473,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
   const partLimiter = dependencies.partLimiter ?? new FixedWindowRateLimiter(config.rateWindowMs, config.partRateLimit);
   const farcasterBroker = dependencies.farcasterBroker ?? createBrowserFarcasterBroker({
     ...runtime, issuerOrigin:config.openProofIssuer.origin,
+    connectionBrowserBase:config.connectionBrowserBase.href,
   });
   // OpenProof's own session remains authoritative. A freshly recovered
   // custody proof may temporarily authorize the same account without making
@@ -637,14 +643,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       // missing view counts with real zero impressions. Origin isolation
       // and one per-batch rate decision protect the public indexer.
       const origin = request.headers.origin;
-      if (origin === 'https://caster.genyleap.com') {
+      if (origin === config.publicOrigin.origin) {
         response.setHeader('access-control-allow-origin', origin);
         response.setHeader('vary', 'origin');
       }
       response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
       response.setHeader('access-control-allow-headers', 'content-type, accept');
       if (request.method === 'OPTIONS') {
-        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.writeHead(origin === config.publicOrigin.origin ? 204 : 403);
         response.end(); return;
       }
       if (request.method !== 'POST') {
@@ -670,14 +676,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       // inference from an incomplete list). Origin and request size are
       // bounded independently of other media endpoints.
       const origin = request.headers.origin;
-      if (origin === 'https://caster.genyleap.com') {
+      if (origin === config.publicOrigin.origin) {
         response.setHeader('access-control-allow-origin', origin);
         response.setHeader('vary', 'origin');
       }
       response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
       response.setHeader('access-control-allow-headers', 'content-type, accept');
       if (request.method === 'OPTIONS') {
-        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.writeHead(origin === config.publicOrigin.origin ? 204 : 403);
         response.end(); return;
       }
       if (request.method !== 'POST') {
@@ -702,14 +708,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
 
     if (requestUrl.pathname === '/v1/browser/link-preview') {
       const origin = request.headers.origin;
-      if (origin === 'https://caster.genyleap.com') {
+      if (origin === config.publicOrigin.origin) {
         response.setHeader('access-control-allow-origin', origin);
         response.setHeader('vary', 'origin');
       }
       response.setHeader('access-control-allow-methods','GET, OPTIONS');
       response.setHeader('access-control-allow-headers','accept');
       if (request.method === 'OPTIONS') {
-        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.writeHead(origin === config.publicOrigin.origin ? 204 : 403);
         response.end(); return;
       }
       if (request.method !== 'GET') {
@@ -745,14 +751,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
 
     if (requestUrl.pathname === '/v1/browser/miniapp-preview') {
       const origin = request.headers.origin;
-      if (origin === 'https://caster.genyleap.com') {
+      if (origin === config.publicOrigin.origin) {
         response.setHeader('access-control-allow-origin', origin);
         response.setHeader('vary', 'origin');
       }
       response.setHeader('access-control-allow-methods','GET, OPTIONS');
       response.setHeader('access-control-allow-headers','accept');
       if (request.method === 'OPTIONS') {
-        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.writeHead(origin === config.publicOrigin.origin ? 204 : 403);
         response.end(); return;
       }
       if (request.method !== 'GET') {
@@ -1236,14 +1242,14 @@ export function createMediaGateway(config, storage, dependencies = {}) {
 
     if (requestUrl.pathname === '/v1/browser/tokens') {
       const origin = request.headers.origin;
-      if (origin === 'https://caster.genyleap.com') {
+      if (origin === config.publicOrigin.origin) {
         response.setHeader('access-control-allow-origin', origin);
         response.setHeader('vary', 'origin');
       }
       response.setHeader('access-control-allow-methods', 'GET, OPTIONS');
       response.setHeader('access-control-allow-headers', 'accept');
       if (request.method === 'OPTIONS') {
-        response.writeHead(origin === 'https://caster.genyleap.com' ? 204 : 403);
+        response.writeHead(origin === config.publicOrigin.origin ? 204 : 403);
         response.end();
         return;
       }
@@ -1264,7 +1270,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       const rate = limiter.check(clientAddress(request, config.trustCloudflare), runtime.now());
       if (!rate.allowed) { writeJson(response, 429, { error: 'rate_limited' }); return; }
-      const resolved = await publicTokenSnapshot(chain, address, runtime.fetchImpl);
+      const resolved = await publicTokenSnapshot(chain, address, runtime.fetchImpl,config.browserGateway.origin);
       if (resolved.status !== 200) {
         writeJson(response, resolved.status, { error: resolved.error }); return;
       }
@@ -1307,7 +1313,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       }
       let allowedHosts;
       if (declaringApp && typeof requested === 'string'
-          && !validImageUrl(requested)
+          && !validImageUrl(requested, browserImageHosts, managedMediaHost)
           && (verifiedMiniAppIcons.get(requested) || 0) <= runtime.now()
           && (verifiedMiniAppImages.get(requested) || 0) <= runtime.now()) {
         const cached = miniAppArtworkScopes.get(declaringApp);
@@ -1333,17 +1339,17 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       // outside the static CDN allowlist. Public site favicons are the only
       // bounded path exception: raster-only, pinned public DNS and a fixed
       // path. No arbitrary remote image/proxy URLs are admitted.
-      if (typeof requested === 'string' && !validImageUrl(requested)) {
+      if (typeof requested === 'string' && !validImageUrl(requested, browserImageHosts, managedMediaHost)) {
         const publicIcon = validPublicFaviconUrl(requested);
         if (publicIcon)
-          allowedHosts = [...defaultBrowserImageHosts, publicIcon.hostname];
+          allowedHosts = [...browserImageHosts, publicIcon.hostname];
         if ((verifiedLinkImages.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now()) {
           try {
             const checked = new URL(requested);
             if (checked.protocol === 'https:' && !checked.username && !checked.password
                 && !checked.hash && (!checked.port || checked.port === '443'))
-              allowedHosts = [...defaultBrowserImageHosts, checked.hostname];
+              allowedHosts = [...browserImageHosts, checked.hostname];
           } catch {}
         }
         let candidate = null;
@@ -1353,7 +1359,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
           if ((verifiedMiniAppIcons.get(candidate.href) || 0) <= runtime.now())
             await refreshMiniAppIconCatalogue();
           if ((verifiedMiniAppIcons.get(candidate.href) || 0) > runtime.now())
-            allowedHosts = [...defaultBrowserImageHosts, candidate.hostname];
+            allowedHosts = [...browserImageHosts, candidate.hostname];
         }
         if (!allowedHosts) {
           writeJson(response, 400, { error: 'image_source_not_allowed' });
@@ -1363,7 +1369,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       const verifiedMiniAppArtwork = typeof requested === 'string'
         && ((verifiedMiniAppIcons.get(requested) || 0) > runtime.now()
             || (verifiedMiniAppImages.get(requested) || 0) > runtime.now());
-      const options = allowedHosts ? { allowedHosts } : {};
+      const options = { allowedHosts: allowedHosts || browserImageHosts,
+        managedMediaHost };
       let result;
       const cachedArtwork = verifiedMiniAppArtwork
         ? verifiedArtworkCache.get(requested) : null;
@@ -1504,8 +1511,8 @@ export function createMediaGateway(config, storage, dependencies = {}) {
     const browserUploadPath = requestUrl.pathname === '/v1/uploads'
       || requestUrl.pathname === '/v1/uploads/complete'
       || /^\/v1\/uploads\/[^/]+\/parts\/[1-9][0-9]{0,4}$/.test(requestUrl.pathname);
-    if (browserUploadPath && request.headers.origin === 'https://caster.genyleap.com') {
-      response.setHeader('access-control-allow-origin', 'https://caster.genyleap.com');
+    if (browserUploadPath && request.headers.origin === config.publicOrigin.origin) {
+      response.setHeader('access-control-allow-origin', config.publicOrigin.origin);
       response.setHeader('vary', 'origin');
       response.setHeader('access-control-allow-methods', 'POST, PUT, DELETE, OPTIONS');
       response.setHeader('access-control-allow-headers',
@@ -1513,7 +1520,7 @@ export function createMediaGateway(config, storage, dependencies = {}) {
       response.setHeader('cache-control','no-store');
     }
     if (browserUploadPath && request.method === 'OPTIONS') {
-      response.writeHead(request.headers.origin === 'https://caster.genyleap.com' ? 204 : 403);
+      response.writeHead(request.headers.origin === config.publicOrigin.origin ? 204 : 403);
       response.end();
       return;
     }

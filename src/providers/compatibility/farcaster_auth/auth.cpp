@@ -1,5 +1,7 @@
 module;
 
+#include "genycaster_deployment.hpp"
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <openssl/evp.h>
@@ -1427,7 +1429,7 @@ completeRecoveryChallenge(transport::http::IHttpTransport& transport,
     const auto authenticated = json->get<bool>("authenticated", false);
     if (!authenticated || responseFid != std::to_string(challenge.fid.value)
         || subject.empty() || subject.size() > 512U
-        || issuer != "https://openproof.genyleap.com"
+        || issuer != genycaster::deployment::openProofIssuer
         || !accountTicket.starts_with("recovery.")
         || !validRecoveryTicket(std::string_view{accountTicket}.substr(9))
         || expires < 60 || expires > 3600) {

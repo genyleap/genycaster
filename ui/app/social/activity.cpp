@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "activity.hpp"
 #include "../identity/connections.hpp"
 
@@ -146,7 +147,8 @@ void GenyPulseActivityController::publishFarcaster(const bool complete) {
 
 void GenyPulseActivityController::fetchFarcasterPage(
     const qulonglong fid, const QString cursor, const int page) {
-    QUrl url{QStringLiteral("https://haatz.quilibrium.com/v2/farcaster/feed/user/casts")};
+    QUrl url{(QString::fromUtf8(genycaster::deployment::hypersnapOrigin.data())
+        + QStringLiteral("/v2/farcaster/feed/user/casts"))};
     QUrlQuery query;
     query.addQueryItem(QStringLiteral("fid"),QString::number(fid));
     query.addQueryItem(QStringLiteral("limit"),QStringLiteral("100"));

@@ -14,6 +14,8 @@
 
 module;
 
+#include "genycaster_deployment.hpp"
+
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -33,7 +35,7 @@ export namespace farcaster::transport::qtnetwork::media {
 
 /** @brief Configuration for the provider-neutral Genyleap media gateway adapter. */
 struct Config final {
-    std::string baseUrl{"https://storage-farcaster.genyleap.com"};
+    std::string baseUrl{genycaster::deployment::browserGateway};
     std::chrono::milliseconds requestTimeout{30'000};
     std::chrono::milliseconds uploadTimeout{15 * 60 * 1000};
     std::size_t maxResponseBytes{1024U * 1024U};

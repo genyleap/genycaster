@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "browser_auth.hpp"
 
 #include <QJsonArray>
@@ -12,7 +13,7 @@
 
 namespace {
 
-constexpr auto issuer = "https://openproof.genyleap.com";
+constexpr auto issuer = genycaster::deployment::openProofIssuer.data();
 constexpr auto clientId = "genycaster-native-v1";
 
 QNetworkRequest secureRequest(const char* path)
@@ -195,8 +196,8 @@ void BrowserOpenProofAuth::beginFarcaster(Observer observer, ConnectionGrant con
     m_connectionGrant = std::move(connectionGrant);
     emitState(BrowserOpenProofState{.phase = BrowserOpenProofState::Phase::Starting});
 
-    auto request = QNetworkRequest{QUrl{QStringLiteral(
-        "https://storage-farcaster.genyleap.com/v1/browser/farcaster/start")}};
+    auto request = QNetworkRequest{QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())
+        + QStringLiteral("/v1/browser/farcaster/start")}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(15'000);
@@ -234,8 +235,8 @@ void BrowserOpenProofAuth::pollFarcaster()
         fail(qtTrId("genycaster.browser_auth.farcaster_challenge_expired"));
         return;
     }
-    QNetworkRequest request{QUrl{QStringLiteral(
-        "https://storage-farcaster.genyleap.com/v1/browser/farcaster/poll")}};
+    QNetworkRequest request{QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())
+        + QStringLiteral("/v1/browser/farcaster/poll")}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(15'000);
@@ -359,8 +360,8 @@ void BrowserOpenProofAuth::checkUserinfo()
 
 void BrowserOpenProofAuth::checkConnections()
 {
-    auto request = QNetworkRequest{QUrl{QStringLiteral(
-        "https://storage-farcaster.genyleap.com/v1/browser/openproof/connections")}};
+    auto request = QNetworkRequest{QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())
+        + QStringLiteral("/v1/browser/openproof/connections")}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(15'000);

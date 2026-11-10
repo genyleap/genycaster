@@ -67,7 +67,7 @@ Button {
         // resort instead of a permanent empty monogram.
         if (!path) return root.previewArtworkSource
         const favicon = "https://" + match[1] + path
-        return "https://storage-farcaster.genyleap.com/v1/browser/images?url="
+        return (deploymentEndpoints.browserGateway + "/v1/browser/images?url=")
             + encodeURIComponent(favicon)
     }
     readonly property string faviconUrl: {

@@ -30,8 +30,8 @@ doc = read("docs/44-media-upload-gateway.md")
 
 if "FARCASTER_ENABLE_MEDIA_UPLOAD" not in cmake or "FARCASTER_DEFAULT_MEDIA_GATEWAY_BASE_URL" not in cmake:
     errors.append("Media upload must remain an explicit optional product composition with a first-party gateway default.")
-if "https://storage-farcaster.genyleap.com" not in transport:
-    errors.append("Desktop media transport must target the stable Genyleap upload gateway by default.")
+if "genycaster::deployment::browserGateway" not in transport:
+    errors.append("Desktop media transport must derive its default from the trusted deployment configuration.")
 if "qstorage.quilibrium.com" in transport or "GENYLEAP_MEDIA_STORAGE_" in transport:
     errors.append("Desktop media transport must not contain qStorage/provider storage semantics or credentials.")
 if "IMediaUploadGateway" not in application or "IExecutor" not in application:
@@ -43,7 +43,7 @@ if "richComposer.protocolEmbeds.length > 0" not in composer:
     errors.append("Composer must permit protocol-valid media-only casts after a verified upload.")
 if "mediaFileRequested" not in insert_panel:
     errors.append("Media insertion UI must request a local file instead of accepting a provider URL.")
-for token in ("https://media-farcaster.genyleap.com", "createDownload", "downloadUrlLifetimeSeconds"):
+for token in ("deployment.mediaPublicOrigin", "createDownload", "downloadUrlLifetimeSeconds"):
     if token not in gateway:
         errors.append(f"Stable private media-delivery boundary is missing {token}.")
 for token in (

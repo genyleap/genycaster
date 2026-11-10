@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "market.hpp"
 
 #include <QDateTime>
@@ -15,7 +16,7 @@ constexpr qint64 localCacheMs = 5 * 60 * 1000;
 constexpr qint64 retryMs = 60 * 1000;
 constexpr qsizetype maxPayload = 16 * 1024;
 // No API credential belongs in this URL or in QML/WASM.
-constexpr auto snapshotUrl = "https://caster.genyleap.com/api/v1/cloud/market";
+constexpr auto snapshotPath = "/api/v1/cloud/market";
 }
 
 MarketController::MarketController(const bool directProxy, const bool networkEnabled,
@@ -38,7 +39,7 @@ bool MarketController::refresh(const bool force){
     const qint64 now=QDateTime::currentMSecsSinceEpoch();
     if(m_reply || now<m_retryAtMs ||
        (!force && m_lastRefreshMs>0 && now-m_lastRefreshMs<localCacheMs))return false;
-    QNetworkRequest request{QUrl{QString::fromLatin1(snapshotUrl)}};
+    QNetworkRequest request{QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data()) + QString::fromLatin1(snapshotPath)}};
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
                          QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(12'000);

@@ -8,7 +8,7 @@ const popup = read('../../ui/components/profile/ConnectionsPopup.qml');
 const shell = read('../../ui/components/shell/AppShell.qml');
 const controller = read('../../ui/app/identity/connections.cpp');
 const migration = read('../../services/account-sync/migrations/001_bookmarks.sql');
-const config = JSON.parse(read('../../ui/config/public_endpoints.json'));
+const config = JSON.parse(read('../fixtures/public_endpoints.json'));
 
 test('profile links, profession and holder trust remain separately scoped and disclosed', () => {
   assert.match(qml,/category: "genycaster-profile-extras"/);

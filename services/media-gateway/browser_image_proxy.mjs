@@ -67,17 +67,22 @@ export function validPublicFaviconUrl(rawUrl) {
   return url;
 }
 
-export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts) {
+export function validImageUrl(rawUrl, allowedHosts = defaultBrowserImageHosts,
+  managedMediaHost = 'media-farcaster.genyleap.com') {
   if (typeof rawUrl !== 'string' || rawUrl.length > 4096) return null;
   let parsed;
   try { parsed = new URL(rawUrl); } catch { return null; }
   if (parsed.protocol !== 'https:' || parsed.port && parsed.port !== '443'
       || parsed.username || parsed.password || parsed.hash || isIP(parsed.hostname)) return null;
   const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
-  if (!allowedHosts.some(host => hostname === host || hostname.endsWith('.' + host))) return null;
+  // First-party managed-media hostnames are exact authorities, never wildcard
+  // grants for attacker-controlled subdomains.
+  if (!allowedHosts.some(host => hostname === host
+      || (host !== managedMediaHost && host !== 'media-farcaster.genyleap.com'
+          && hostname.endsWith('.' + host)))) return null;
   // First-party media must be a published asset, not a recursive gateway URL.
-  if (hostname === 'media-farcaster.genyleap.com' &&
-      !parsed.pathname.startsWith('/m/')) return null;
+  if ((hostname === managedMediaHost || hostname === 'media-farcaster.genyleap.com')
+      && !parsed.pathname.startsWith('/m/')) return null;
   if (hostname === 'ipfs.decentralized-content.com'
       && !/^\/ipfs\/(?:b[a-z2-7]{30,100}|Qm[1-9A-HJ-NP-Za-km-z]{44})$/.test(parsed.pathname))
     return null;
@@ -132,6 +137,7 @@ export function rasterMimeFromBytes(bytes) {
 export async function retrieveBrowserImage(rawUrl, {
   lookupHost = lookup,
   allowedHosts = defaultBrowserImageHosts,
+  managedMediaHost = 'media-farcaster.genyleap.com',
   requester = https.request,
   redirects = 0,
   trustedStorageRedirect = false,
@@ -140,7 +146,7 @@ export async function retrieveBrowserImage(rawUrl, {
   // image API itself must continue rejecting direct private-storage URLs.
   const url = trustedStorageRedirect
     ? validImageUrl(rawUrl, ['qstorage.quilibrium.com'])
-    : validImageUrl(rawUrl, allowedHosts);
+    : validImageUrl(rawUrl, allowedHosts, managedMediaHost);
   if (!url || (trustedStorageRedirect &&
       (url.hostname !== 'qstorage.quilibrium.com'
        || !url.pathname.startsWith('/genycaster/v1/')
@@ -164,7 +170,8 @@ export async function retrieveBrowserImage(rawUrl, {
     const finish = value => { if (!finished) { finished = true; resolve(value); } };
     // Bust caches that might retain the expired QStorage 307 even longer
     // than the storage signature's lifetime. Never alter Cast embed URLs.
-    const target = !trustedStorageRedirect && url.hostname === 'media-farcaster.genyleap.com'
+    const target = !trustedStorageRedirect && (url.hostname === managedMediaHost
+      || url.hostname === 'media-farcaster.genyleap.com')
       && url.pathname.startsWith('/m/') ? new URL(url.href) : url;
     if (target !== url) target.searchParams.set('gc_image_request', randomUUID());
     const request = requester(target, {
@@ -188,7 +195,8 @@ export async function retrieveBrowserImage(rawUrl, {
         try {
           const next = new URL(location, target);
           const signedStorage = !trustedStorageRedirect && redirects === 0
-              && url.hostname === 'media-farcaster.genyleap.com'
+              && (url.hostname === managedMediaHost
+                  || url.hostname === 'media-farcaster.genyleap.com')
               && url.pathname.startsWith('/m/')
               && next.hostname === 'qstorage.quilibrium.com';
           // Mini App OpenGraph endpoints frequently issue a 302 to a GIF
@@ -196,16 +204,16 @@ export async function retrieveBrowserImage(rawUrl, {
           // redirects only; redo DNS/public-IP pinning at every hop.
           const sameOriginRaster = !trustedStorageRedirect
             && next.origin === url.origin
-            && validImageUrl(next.href, allowedHosts) !== null;
+            && validImageUrl(next.href, allowedHosts, managedMediaHost) !== null;
           const arweaveRaster = !trustedStorageRedirect
             && isContentAddressedArweaveRedirect(url, next)
-            && validImageUrl(next.href, allowedHosts) !== null;
+            && validImageUrl(next.href, allowedHosts, managedMediaHost) !== null;
           if (!signedStorage && !sameOriginRaster && !arweaveRaster) {
             finish({ status: 502, error: 'image_redirect_not_allowed' });
             return;
           }
           finish(await retrieveBrowserImage(next.href, {
-            lookupHost, allowedHosts, requester, redirects: redirects + 1,
+            lookupHost, allowedHosts, managedMediaHost, requester, redirects: redirects + 1,
             trustedStorageRedirect: signedStorage,
           }));
         } catch { finish({ status: 502, error: 'image_redirect_failed' }); }

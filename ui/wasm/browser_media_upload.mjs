@@ -1,8 +1,9 @@
 // Browser-only, signer-authorized image uploads to the Genyleap Media Gateway.
 // No custody phrase, Ed25519 private CryptoKey, or image bytes enter Qt/QML.
 import { createBrowserSignerVault } from './secure_signer_vault.mjs';
+import { deployment } from './deployment_config.mjs';
 
-const gateway='https://storage-farcaster.genyleap.com';
+const gateway=deployment.browserGateway;
 const encoder=new TextEncoder();
 const allowedTypes=new Map([
     ['jpg','image/jpeg'],['jpeg','image/jpeg'],['png','image/png'],
@@ -89,7 +90,7 @@ export async function uploadBrowserImage({
         const completed=await signAndFetch('POST','/v1/uploads/complete',
             json({uploadId:ticket.uploadId,parts}),'application/json');
         if(completed.assetUrl!==ticket.assetUrl
-           ||!completed.assetUrl.startsWith('https://media-farcaster.genyleap.com/m/v1/')
+           ||!completed.assetUrl.startsWith(deployment.mediaPublicOrigin+'/m/v1/')
            ||completed.sizeBytes!==file.size)
             throw new Error('Media Gateway returned an invalid media asset.');
         return completed;

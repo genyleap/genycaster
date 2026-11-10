@@ -42,7 +42,7 @@ async function pinnedJson(url, {lookupHost = lookup, requester = https.request, 
     const request = requester(valid, {
       method:'GET',timeout:7000,
       headers:{accept:'application/json',
-        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0; +https://caster.genyleap.com)'},
+        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0)'},
       // All DNS answers were checked as public; let Node race only this
       // pinned set so one unreachable CDN address does not consume 7 seconds.
       autoSelectFamily:true,
@@ -135,7 +135,7 @@ async function pinnedEmbedHtml(url, {
     const req=requester(valid,{
       method:'GET',timeout:7000,
       headers:{accept:'text/html',
-        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0; +https://caster.genyleap.com)'},
+        'user-agent':'Mozilla/5.0 (compatible; GenycasterPreview/1.0)'},
       autoSelectFamily:true,
       autoSelectFamilyAttemptTimeout:250,
       lookup:(_host,opts,cb)=>opts.all?cb(null,addresses)

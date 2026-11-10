@@ -373,9 +373,9 @@ test('copyright and Beta version remain readable at the bottom of the desktop le
   assert.match(pane,/text: "© " \+ new Date\(\)\.getFullYear\(\) \+ " Genyleap"/);
   assert.match(pane,/Accessible\.role: Accessible\.Link/);
   assert.match(pane,/activeFocusOnTab: true/);
-  assert.match(pane,/Keys\.onReturnPressed: Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+  assert.match(pane,/Keys\.onReturnPressed: Qt\.openUrlExternally\(\(deploymentEndpoints\.companyOrigin \+ "\/"\)\)/);
   assert.match(pane,/cursorShape: Qt\.PointingHandCursor/);
-  assert.match(pane,/onClicked: Qt\.openUrlExternally\("https:\/\/genyleap\.com\/"\)/);
+  assert.match(pane,/onClicked: Qt\.openUrlExternally\(\(deploymentEndpoints\.companyOrigin \+ "\/"\)\)/);
   assert.doesNotMatch(pane,/" GenyCaster"/);
 });
 

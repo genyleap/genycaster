@@ -2,6 +2,7 @@
 // Farcaster Ed25519 signer remains on-device. The server independently checks
 // signer registration in Snapchain before issuing a Genycaster account cookie.
 import {createPublicKey,randomBytes,verify} from 'node:crypto';
+import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
 
 const FID=/^[1-9][0-9]{0,18}$/;
 const NONCE=/^[A-Za-z0-9_-]{43}$/;
@@ -19,11 +20,11 @@ function bad(status=401,error='invalid_account_proof') {
 function challengeBytes(fid,nonce) {
   return Buffer.from(SIGNER_CHALLENGE_PREFIX+'\n'+fid+'\n'+nonce,'utf8');
 }
-async function checkSigner(fid,key,fetchImpl,nowMs) {
+async function checkSigner(fid,key,fetchImpl,nowMs,snapchainOrigin) {
   let pageToken='';
   const seen=new Set();
   for(let page=0;page<PAGE_LIMIT;page++) {
-    const url=new URL('https://snapchain.genyleap.com/v1/signersByFid');
+    const url=new URL(snapchainOrigin+'/v1/signersByFid');
     url.searchParams.set('fid',fid);
     url.searchParams.set('pageSize','100');
     if(pageToken)url.searchParams.set('pageToken',pageToken);
@@ -65,7 +66,13 @@ async function checkSigner(fid,key,fetchImpl,nowMs) {
   return false;
 }
 
-export function createSignerSessionProof({fetchImpl=globalThis.fetch,now=Date.now}={}) {
+export function createSignerSessionProof({
+  fetchImpl=globalThis.fetch,now=Date.now,
+  issuer=serverDeployment().openProofIssuer,
+  snapchainOrigin=serverDeployment().snapchainOrigin,
+}={}) {
+  const trustedIssuer=trustedOrigin(issuer,'GENYCASTER_OPENPROOF_ISSUER');
+  const trustedSnapchain=trustedOrigin(snapchainOrigin,'GENYCASTER_SNAPCHAIN_URL');
   const pending=new Map();
   function prune() {
     const time=now();
@@ -95,8 +102,8 @@ export function createSignerSessionProof({fetchImpl=globalThis.fetch,now=Date.no
       format:'der',type:'spki'});
     if(!verify(null,challengeBytes(fid,nonce),pub,Buffer.from(signature,'hex')))
       bad(401);
-    if(!await checkSigner(fid,publicKey,fetchImpl,now()))bad(401,'unregistered_signer');
-    return {issuer:'https://openproof.genyleap.com',subject:'farcaster:'+fid,fid};
+    if(!await checkSigner(fid,publicKey,fetchImpl,now(),trustedSnapchain))bad(401,'unregistered_signer');
+    return {issuer:trustedIssuer,subject:'farcaster:'+fid,fid};
   }
   return {issue,prove};
 }

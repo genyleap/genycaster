@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
@@ -530,6 +531,14 @@ int main(int argc, char* argv[])
         "Farcaster.Client", 1, 0, "RichInlineTextItem");
 
     QQmlApplicationEngine engine{};
+    engine.rootContext()->setContextProperty(QStringLiteral("deploymentEndpoints"),
+        QVariantMap{
+            {QStringLiteral("publicOrigin"), QString::fromUtf8(genycaster::deployment::publicOrigin.data())},
+            {QStringLiteral("openProofIssuer"), QString::fromUtf8(genycaster::deployment::openProofIssuer.data())},
+            {QStringLiteral("browserGateway"), QString::fromUtf8(genycaster::deployment::browserGateway.data())},
+            {QStringLiteral("mediaPublicOrigin"), QString::fromUtf8(genycaster::deployment::mediaPublicOrigin.data())},
+            {QStringLiteral("companyOrigin"), QString::fromUtf8(genycaster::deployment::companyOrigin.data())},
+        });
 #if !defined(Q_OS_WASM)
     // Declared after the engine and controller owners so early-return cleanup
     // joins global workers before their borrowed presentation objects disappear.
@@ -713,9 +722,9 @@ int main(int argc, char* argv[])
     // Keep upstream API credentials out of browser binaries and avoid CORS.
     // The first-party gateway only exposes bounded public catalogue reads.
     primaryMiniAppCatalogue = MiniAppCatalogEndpoint{
-        .catalogueUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=catalog"),
-        .searchUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=search"),
-        .relevantUrl = QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/miniapps?kind=relevant"),
+        .catalogueUrl = (QString::fromUtf8(genycaster::deployment::browserGateway.data()) + QStringLiteral("/v1/browser/miniapps?kind=catalog")),
+        .searchUrl = (QString::fromUtf8(genycaster::deployment::browserGateway.data()) + QStringLiteral("/v1/browser/miniapps?kind=search")),
+        .relevantUrl = (QString::fromUtf8(genycaster::deployment::browserGateway.data()) + QStringLiteral("/v1/browser/miniapps?kind=relevant")),
         .providerLabel = QStringLiteral("Genycaster public Mini Apps catalogue"),
         .format = MiniAppCatalogFormat::Json,
     };
@@ -935,9 +944,9 @@ int main(int argc, char* argv[])
                 [bridge,&proWalletHost] {
                     proWalletHost.setWalletBrowserContext(
                         QStringLiteral("GenyCaster Pro"),
-                        QStringLiteral("https://caster.genyleap.com"));
+                        QString::fromUtf8(genycaster::deployment::publicOrigin.data()));
                     const auto session=bridge->beginSession(
-                        "GenyCaster Pro","https://caster.genyleap.com");
+                        "GenyCaster Pro",std::string{genycaster::deployment::publicOrigin});
                     if (!session) proWalletHost.walletBrowserSessionEnded();
                     return session.has_value();
                 },
@@ -1332,7 +1341,7 @@ int main(int argc, char* argv[])
                         .siwfUri = std::move(siwfUri),
                         .browserSnapchainOrigin = snapchainBaseUrl
                             ? QString::fromStdString(*snapchainBaseUrl)
-                            : QStringLiteral("https://snapchain.genyleap.com"),
+                            : QString::fromUtf8(genycaster::deployment::snapchainOrigin.data()),
                         .startupIdentity = std::move(startupIdentity),
                         .authenticationAvailable = authenticationAvailable,
                         .openExploreForTest = openExploreForTest,

@@ -409,10 +409,11 @@ target_include_directories(farcaster_openproof_connections_tests PRIVATE
 target_link_libraries(farcaster_openproof_connections_tests PRIVATE
     Qt6::Core Qt6::Network Qt6::Gui)
 farcaster_enable_warnings(farcaster_openproof_connections_tests)
+set_source_files_properties("${CMAKE_BINARY_DIR}/generated/public_endpoints.json"
+    PROPERTIES QT_RESOURCE_ALIAS "public_endpoints.json")
 qt_add_resources(farcaster_openproof_connections_tests openproof_connections_test_config
     PREFIX "/genycaster-config"
-    BASE "${genycasterUiSourceDir}/config"
-    FILES "${genycasterUiSourceDir}/config/public_endpoints.json")
+    FILES "${CMAKE_BINARY_DIR}/generated/public_endpoints.json")
 add_test(NAME ui.openproof_connections COMMAND farcaster_openproof_connections_tests)
 set_tests_properties(ui.openproof_connections PROPERTIES TIMEOUT 10
     LABELS "ui;openproof;connections;security")

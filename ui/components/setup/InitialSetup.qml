@@ -787,10 +787,10 @@ Item {
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Link
                     Accessible.name: copyrightLabel.text
-                    Accessible.onPressAction: Qt.openUrlExternally("https://genyleap.com/")
-                    Keys.onReturnPressed: Qt.openUrlExternally("https://genyleap.com/")
-                    Keys.onEnterPressed: Qt.openUrlExternally("https://genyleap.com/")
-                    Keys.onSpacePressed: Qt.openUrlExternally("https://genyleap.com/")
+                    Accessible.onPressAction: Qt.openUrlExternally((deploymentEndpoints.companyOrigin + "/"))
+                    Keys.onReturnPressed: Qt.openUrlExternally((deploymentEndpoints.companyOrigin + "/"))
+                    Keys.onEnterPressed: Qt.openUrlExternally((deploymentEndpoints.companyOrigin + "/"))
+                    Keys.onSpacePressed: Qt.openUrlExternally((deploymentEndpoints.companyOrigin + "/"))
 
                     Text {
                         id: copyrightLabel
@@ -810,7 +810,7 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Qt.openUrlExternally("https://genyleap.com/")
+                        onClicked: Qt.openUrlExternally((deploymentEndpoints.companyOrigin + "/"))
                     }
                 }
                 Text {

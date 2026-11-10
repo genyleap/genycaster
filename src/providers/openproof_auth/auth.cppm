@@ -14,6 +14,7 @@
 
 module;
 
+#include "genycaster_deployment.hpp"
 #include <chrono>
 #include <memory>
 #include <string>
@@ -28,9 +29,9 @@ export namespace farcaster::provider::identity::openproof {
 
 /** @brief OpenProof/Genyleap identity composition for the Genycaster native client. */
 struct Config final {
-    std::string issuer{"https://openproof.genyleap.com"};
+    std::string issuer{genycaster::deployment::openProofIssuer};
     std::string clientId{"genycaster-native-v1"};
-    std::string genyleapAccountUrl{"https://genyleap.com/account"};
+    std::string genyleapAccountUrl{std::string{genycaster::deployment::companyOrigin} + "/account"};
     std::string farcasterRelayBaseUrl{"https://relay.farcaster.xyz"};
     std::string farcasterRelayVersion{"v1"};
     std::chrono::milliseconds requestTimeout{10'000};

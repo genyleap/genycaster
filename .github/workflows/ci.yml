@@ -59,6 +59,12 @@ jobs:
           persist-credentials: false
       - id: release
         run: python3 ci/release_gate.py
+      - name: Validate secure deployment configuration and URL boundaries
+        run: |
+          python3 -m unittest ci/test_deployment_config.py
+          python3 ci/check_deployment_boundaries.py
+          python3 ci/check_media_upload_contract.py
+          node --test services/test/deployment_config.test.mjs
       # Gate is the only job that must pass before Qt/toolchain installations.
       # Catch known source regressions while they cost seconds, not macOS hours.
       - name: Confirm explicit full-matrix budget approval

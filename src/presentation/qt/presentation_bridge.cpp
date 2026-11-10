@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "presentation_bridge.hpp"
 
 #include <QByteArray>
@@ -27,11 +28,13 @@
 // A script-opened approval tab can otherwise remain an empty white page
 // after Farcaster verifies a session in the browser. Keep an opener-held
 // handle only for closing that tab; no tokens or session data cross it.
-EM_JS(int, openGenycasterSetupApproval, (const char* destination), {
+EM_JS(int, openGenycasterSetupApproval, (const char* destination, const char* identityIssuer), {
     try {
         const url = new URL(UTF8ToString(destination));
-        if (url.protocol !== 'https:' ||
-            !['farcaster.xyz','warpcast.com','openproof.genyleap.com'].includes(url.hostname))
+        const issuer = new URL(UTF8ToString(identityIssuer));
+        if (url.protocol !== 'https:' || url.username || url.password ||
+            (url.origin !== issuer.origin &&
+             !['farcaster.xyz','warpcast.com'].includes(url.hostname)))
             return 0;
         const previous = window.__genycasterSetupApproval;
         if (previous && !previous.closed) previous.close();
@@ -2793,9 +2796,9 @@ bool PresentationBridge::acceptLegalConsent(
         m_settings->setValue(QStringLiteral("setup/legalConsentAcceptedAtUtc"),
                              QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
         m_settings->setValue(QStringLiteral("setup/legalTermsUrl"),
-                             QStringLiteral("https://genyleap.com/terms-of-use"));
+                             (QString::fromUtf8(genycaster::deployment::companyOrigin.data()) + QStringLiteral("/terms-of-use")));
         m_settings->setValue(QStringLiteral("setup/legalPrivacyUrl"),
-                             QStringLiteral("https://genyleap.com/privacy"));
+                             (QString::fromUtf8(genycaster::deployment::companyOrigin.data()) + QStringLiteral("/privacy")));
         m_settings->sync();
     }
     emit setupStateChanged();
@@ -3402,7 +3405,8 @@ void PresentationBridge::openAuthenticationApproval()
     }
 #if defined(Q_OS_WASM)
     const QByteArray approvedUrl = parsed.toString(QUrl::FullyEncoded).toUtf8();
-    if (openGenycasterSetupApproval(approvedUrl.constData()) != 0)
+    if (openGenycasterSetupApproval(approvedUrl.constData(),
+            genycaster::deployment::openProofIssuer.data()) != 0)
         return;
 #endif
     if (!QDesktopServices::openUrl(parsed)) {

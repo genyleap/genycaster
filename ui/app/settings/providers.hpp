@@ -76,7 +76,7 @@ public:
         QString appliedWriteProviderId,
         bool appliedCompatibleReadFallback = false,
         QObject* parent = nullptr,
-        QString defaultIndexedEndpoint = QStringLiteral("https://haatz.quilibrium.com"),
+        QString defaultIndexedEndpoint = {},
         QString hostedReadEndpoint = {});
 
     [[nodiscard]] QVariantList readProfiles() const;

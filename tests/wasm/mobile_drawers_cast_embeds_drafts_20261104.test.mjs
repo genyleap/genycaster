@@ -7,7 +7,8 @@ test('WASM profile links use the vetted first-party favicon proxy with ordered f
  const row=read('ui/components/profile/ProfileLinkRow.qml');
  const proxy=read('services/media-gateway/browser_image_proxy.mjs');
  assert.match(row,/readonly property string browserFaviconSource:/);
- assert.match(row,/storage-farcaster\.genyleap\.com\/v1\/browser\/images\?url=/);
+ assert.match(row,/deploymentEndpoints\.browserGateway/);
+ assert.match(row,/\/v1\/browser\/images\?url=/);
  assert.match(row,/\["\/favicon\.ico", "\/favicon\.png",/);
  assert.match(row,/apple-touch-icon\.png/);
  assert.match(row,/if \(!path\) return root\.previewArtworkSource/);

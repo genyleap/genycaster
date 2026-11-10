@@ -3,6 +3,7 @@
 // Pro and an unsigned client-supplied amount never creates a payment quote.
 import {randomUUID} from 'node:crypto';
 import {verifiedFarcasterWallets} from './geny_assets.mjs';
+import {serverDeployment} from '../deployment_config.mjs';
 
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/;
 const HASH=/^0x[0-9a-fA-F]{64}$/;
@@ -62,7 +63,7 @@ export function createProBillingPolicy(env=process.env) {
       || Object.values(PRO_PAYMENT_ASSETS).some(item=>item.token===treasury)))
     throw new Error('invalid_pro_treasury');
   const rpcUrl=validOrigin(String(env.GENYCASTER_GENY_RPC_URL||'https://mainnet.base.org'));
-  const snapchainUrl=validOrigin(String(env.GENYCASTER_SNAPCHAIN_URL||'https://snapchain.genyleap.com'));
+  const snapchainUrl=validOrigin(String(env.GENYCASTER_SNAPCHAIN_URL||serverDeployment(env).snapchainOrigin));
   return Object.freeze({
     monthlyUsdCents:Number(cents),treasury,token:GENY,
     rpcUrl,snapchainUrl,chainId:Number(BASE_CHAIN_ID),quoteTtlMs:QUOTE_TTL_MS,

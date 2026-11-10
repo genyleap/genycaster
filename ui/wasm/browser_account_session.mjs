@@ -1,6 +1,7 @@
 // A background, same-origin Genycaster account sign-in using the already
 // registered Farcaster signer. The Ed25519 CryptoKey never leaves IndexedDB.
 // No manual account-data transfer and no OAuth bearer in browser storage.
+import { deployment } from './deployment_config.mjs';
 import {createBrowserSignerVault} from './secure_signer_vault.mjs';
 
 const endpoint='/api/v1/cloud/session';
@@ -25,7 +26,7 @@ export async function ensureBrowserAccountSession({
   signal,origin=globalThis.location?.origin,
 }={}) {
   if(!validFid(fid))throw Error('Invalid account FID');
-  if(origin!=='https://caster.genyleap.com')
+  if(origin!==deployment.publicOrigin)
     throw Error('Account session requires the official secure origin');
   const existing=await fetchImpl(endpoint,{method:'GET',
     credentials:'same-origin',cache:'no-store',redirect:'error',signal});

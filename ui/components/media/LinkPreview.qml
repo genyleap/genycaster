@@ -144,7 +144,7 @@ Superellipse {
     readonly property string animatedPosterUrl: {
         const raw = String(root.previewData.animatedPoster || "")
         return /^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(raw)
-               ? "https://storage-farcaster.genyleap.com/v1/browser/images?url="
+               ? (deploymentEndpoints.browserGateway + "/v1/browser/images?url=")
                  + encodeURIComponent(raw) : ""
     }
     readonly property string faviconSource: String(root.previewData.favicon || root.embed.favicon

@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "reactions.hpp"
 
 #include <QJsonArray>
@@ -33,8 +34,8 @@ BrowserReactionController::BrowserReactionController(
     : QObject(parent),
       m_endpoint(endpoint.isValid() && !endpoint.isEmpty()
           ? std::move(endpoint)
-          : QUrl{QStringLiteral(
-              "https://storage-farcaster.genyleap.com/v1/browser/cast-reactions")}),
+          : QUrl{(QString::fromUtf8(genycaster::deployment::browserGateway.data())
+              + QStringLiteral("/v1/browser/cast-reactions"))}),
       m_enabled(networkEnabled)
 {
     if (useDirectProxy) {

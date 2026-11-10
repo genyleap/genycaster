@@ -104,7 +104,7 @@ Item {
         if (!/^https:\/\/[^\s?#]+\.gif(?:\?[^#]*)?$/i.test(mediaUrl))
             return ''
         return Qt.platform.os === 'wasm'
-               ? 'https://storage-farcaster.genyleap.com/v1/browser/images?url='
+               ? (deploymentEndpoints.browserGateway + "/v1/browser/images?url=")
                  + encodeURIComponent(mediaUrl)
                : mediaUrl
     }

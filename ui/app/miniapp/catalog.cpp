@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "catalog.hpp"
 
 #include <QByteArray>
@@ -121,7 +122,8 @@ constexpr qsizetype recentMiniAppLimit = 20;
     // and decode-worker pipeline on each recycled Qt Quick delegate.
     // The first-party gateway enforces exact trusted catalogue URL grants,
     // public-address checks and bounded raster responses.
-    QUrl browserProxy{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+    QUrl browserProxy{(QString::fromUtf8(genycaster::deployment::browserGateway.data())
+            + QStringLiteral("/v1/browser/images"))};
     QUrlQuery query{};
     query.addQueryItem(QStringLiteral("url"), url.toString(QUrl::FullyEncoded));
     browserProxy.setQuery(query);

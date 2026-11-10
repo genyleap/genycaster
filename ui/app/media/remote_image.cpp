@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "remote_image.hpp"
 
 #include <QBuffer>
@@ -998,7 +999,8 @@ void RemoteImageProvider::Impl::startNetwork(
     const bool routeThroughGateway = gatewayFallbackAttempt;
 #endif
     if (routeThroughGateway) {
-        QUrl imageGateway{QStringLiteral("https://storage-farcaster.genyleap.com/v1/browser/images")};
+        QUrl imageGateway{(QString::fromUtf8(genycaster::deployment::browserGateway.data())
+            + QStringLiteral("/v1/browser/images"))};
         QUrlQuery imageQuery{};
         imageQuery.addQueryItem(QStringLiteral("url"), urlText);
         imageGateway.setQuery(imageQuery);

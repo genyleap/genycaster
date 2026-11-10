@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "link_metadata.hpp"
 
 #include <QHostAddress>
@@ -58,7 +59,7 @@ BrowserLinkMetadataController::BrowserLinkMetadataController(
     : QObject(parent),
       m_relayBase(relayBase.isValid() && !relayBase.isEmpty()
           ? std::move(relayBase)
-          : QUrl{QStringLiteral("https://storage-farcaster.genyleap.com")}),
+          : QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())}),
       m_enabled(enabled)
 {
     if (useDirectProxy) m_network.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});

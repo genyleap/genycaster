@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "connections.hpp"
 
 #include <QCoreApplication>
@@ -66,10 +67,9 @@ namespace {
 
 [[nodiscard]] QUrl configuredUrl(const char* overrideName, const QString& jsonKey)
 {
-    const QString overridden = qEnvironmentVariable(overrideName).trimmed();
-    if (!overridden.isEmpty()) {
-        return QUrl{overridden};
-    }
+    // Build-time trusted deployment settings cannot be redirected via a
+    // process environment inherited from another application or shell.
+    Q_UNUSED(overrideName);
     QFile config{QStringLiteral(":/genycaster-config/public_endpoints.json")};
     if (!config.open(QIODevice::ReadOnly)) {
         return {};
@@ -323,7 +323,8 @@ void OpenProofConnectionsController::beginSignedAccountSession()
     if (!m_viewerFid || !m_accountProofSigner || m_accountProofRequest
         || m_accountProofAttempted || m_sessionRequest || m_sessionRevoking
         || m_cloudUrl.scheme() != QStringLiteral("https")
-        || m_cloudUrl.host() != QStringLiteral("caster.genyleap.com"))
+        || m_cloudUrl.adjusted(QUrl::RemovePath | QUrl::RemoveQuery | QUrl::RemoveFragment)
+            != QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())})
         return;
     m_accountProofAttempted = true;
     m_accountProofError.clear();
@@ -341,7 +342,7 @@ void OpenProofConnectionsController::beginSignedAccountSession()
         request.setRawHeader("Accept", "application/json");
         // Native Qt is not a website. Explicitly bind this first-party proof
         // to the same official origin that browser CSRF checks require.
-        request.setRawHeader("Origin", "https://caster.genyleap.com");
+        request.setRawHeader("Origin", QByteArray{genycaster::deployment::publicOrigin.data()});
         return request;
     };
     const auto viewer = m_viewerFid;

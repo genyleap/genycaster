@@ -5,13 +5,26 @@ set -euo pipefail
 
 web_root=""
 build_dir="${GENYCASTER_WASM_BUILD_DIR:-build/web}"
+deployment_defines=()
 while (($#)); do
   case "$1" in
     --web-root) if (($# < 2)); then echo "Missing --web-root value" >&2; exit 2; fi
                 web_root="$2"; shift 2 ;;
     --build-dir) if (($# < 2)); then echo "Missing --build-dir value" >&2; exit 2; fi
                  build_dir="$2"; shift 2 ;;
-    --help|-h) echo "Usage: bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /absolute/path]"; exit 0 ;;
+    --define)
+      if (($# < 2)); then echo "Missing --define KEY=URL argument" >&2; exit 2; fi
+      if [[ "$2" != *=* ]]; then echo "Invalid --define assignment" >&2; exit 2; fi
+      key="${2%%=*}"
+      case "$key" in
+        GENYCASTER_PUBLIC_ORIGIN|GENYCASTER_SIWF_ORIGIN|GENYCASTER_OPENPROOF_ISSUER|GENYCASTER_OPENPROOF_BROWSER_BASE|\
+        GENYCASTER_BROWSER_GATEWAY_ORIGIN|GENYCASTER_MEDIA_PUBLIC_ORIGIN|\
+        GENYCASTER_SNAPCHAIN_ORIGIN|GENYCASTER_HYPERSNAP_ORIGIN|GENYCASTER_COMPANY_ORIGIN)
+          deployment_defines+=("-D$2") ;;
+        *) echo "Unsupported public deployment key: $key" >&2; exit 2 ;;
+      esac
+      shift 2 ;;
+    --help|-h) echo "Usage: bash ci/build_deploy_wasm_server.sh [--build-dir /absolute/path] [--web-root /absolute/path] [--define GENYCASTER_PUBLIC_ORIGIN=https://app.example.org]"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -51,7 +64,8 @@ cmake -S . -B "$build_dir" -G Ninja \
   "-DCMAKE_TOOLCHAIN_FILE=$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" \
   "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR" \
   "-DQT_HOST_PATH=$QT_HOST_PATH" \
-  -DFARCASTER_BUILD_TESTS=OFF
+  -DFARCASTER_BUILD_TESTS=OFF \
+  "${deployment_defines[@]}"
 cmake --build "$build_dir" --target genycaster --parallel 2
 cmake --build "$build_dir" --target genycaster_wasm_asset_refresh --parallel 2
 

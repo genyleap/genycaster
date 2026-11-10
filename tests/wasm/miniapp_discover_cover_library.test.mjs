@@ -152,7 +152,7 @@ test('feature carousel counter follows visible position, arrows and touch use on
 });
 test('WASM uses browser-cacheable first-party raster proxy, native still uses image provider',()=>{
  const cpp=read("ui/app/miniapp/catalog.cpp");
- assert.match(cpp,/#if defined\(Q_OS_WASM\)[\s\S]*?storage-farcaster\.genyleap\.com\/v1\/browser\/images/);
+ assert.match(cpp,/#if defined\(Q_OS_WASM\)[\s\S]*?genycaster::deployment::browserGateway[\s\S]*?\/v1\/browser\/images/);
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("url"\), url\.toString\(QUrl::FullyEncoded\)\)/);
  assert.match(cpp,/#else\s+const QByteArray encoded/);
 });
@@ -174,5 +174,5 @@ test('manifest-scoped images work for Mini Apps saved before image-proxy upgrade
  assert.match(cpp,/query\.addQueryItem\(QStringLiteral\("miniapp"\), homeUrl\)/);
  assert.match(cpp,/const auto restoreScope = \[&homeUrl\]/);
  assert.match(cpp,/QStringLiteral\("image"\)/);
- assert.match(cpp,/QStringLiteral\("storage-farcaster.genyleap.com"\)/);
+ assert.match(cpp,/genycaster::deployment::browserGateway/);
 });

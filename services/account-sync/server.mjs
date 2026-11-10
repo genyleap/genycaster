@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {serverDeployment} from '../deployment_config.mjs';
 import {createCloudHandler} from './cloud_state.mjs';
 import {createMarketReader} from './market.mjs';
 
@@ -17,7 +18,12 @@ export function normalizeCatalog(raw) {
 
 export function createAccountApi({
   catalogUrl, fetchImpl = globalThis.fetch, now = Date.now,
-  store = null, issuer = null, topicVerifier = undefined,
+  store = null, issuer = null,
+  publicOrigin=serverDeployment().publicOrigin,
+  browserGateway=serverDeployment().browserGateway,
+  snapchainOrigin=serverDeployment().snapchainOrigin,
+  hypersnapOrigin=serverDeployment().hypersnapOrigin,
+  topicVerifier = undefined,
   proResolver = undefined,
   assetsResolver = undefined,
   billingPolicy = undefined,
@@ -32,7 +38,8 @@ export function createAccountApi({
       || endpoint.hash || endpoint.port || endpoint.search)
     throw new Error('Account API requires a credential-free HTTPS catalog URL');
 
-  const cloud = store && issuer ? createCloudHandler({store,issuer,fetchImpl,
+  const cloud = store && issuer ? createCloudHandler({
+    store,issuer,fetchImpl,publicOrigin,browserGateway,snapchainOrigin,hypersnapOrigin,
     ...(topicVerifier ? {verifyTopicOwner:topicVerifier} : {}),
     ...(proResolver ? {resolvePro:proResolver} : {}),
     ...(assetsResolver ? {resolveGenyAssets:assetsResolver} : {}),
@@ -139,6 +146,10 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
   const url=process.env.GENYCASTER_DATABASE_URL;
   const store=url ? await (await import('./pg_store.mjs')).createPgStore(url) : null;
   createAccountApi({catalogUrl: origin,store,
-    issuer:process.env.GENYCASTER_OPENPROOF_ISSUER||'https://openproof.genyleap.com'})
+    issuer:serverDeployment().openProofIssuer,
+    publicOrigin:serverDeployment().publicOrigin,
+    browserGateway:serverDeployment().browserGateway,
+    snapchainOrigin:serverDeployment().snapchainOrigin,
+    hypersnapOrigin:serverDeployment().hypersnapOrigin})
     .listen(port,address);
 }

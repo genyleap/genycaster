@@ -5,6 +5,8 @@
 // composer media blocks all converge on these functions.
 module;
 
+#include "genycaster_deployment.hpp"
+
 #include <array>
 #include <cctype>
 #include <optional>
@@ -257,7 +259,8 @@ struct UrlParts final {
     // These paths serve media bytes, not arbitrary site pages. Recognizing
     // opaque Cast embeds here also works on WASM, where native HTML/HEAD
     // metadata crawling is deliberately unavailable.
-    if (host == "media-farcaster.genyleap.com") {
+    if (host == genycaster::deployment::mediaPublicOrigin.substr(8)
+        || host == "media-farcaster.genyleap.com") {
         const auto parts = parseHttpUrl(rawUrl);
         return parts && parts->path.starts_with("/m/");
     }

@@ -2,6 +2,7 @@
 // + canonical messages + authoritative Snapchain verification.
 // No service ever receives the private Ed25519 key or the custody mnemonic.
 // This is a browser-only asynchronous counterpart to SignerService/WriteService.
+import { deployment } from './deployment_config.mjs';
 import { createBrowserSignerVault } from './secure_signer_vault.mjs';
 import {
     abiMetadata, farcasterTimestamp, fromHex, hex, keyAddTypedData,
@@ -114,7 +115,7 @@ function signerRecord(record,fid,publicKey) {
 
 export function createBrowserProtocolSigner({
     browser=globalThis, fetchImpl=globalThis.fetch,
-    snapchainBase='https://snapchain.genyleap.com',
+    snapchainBase=deployment.snapchainOrigin,
     vault=createBrowserSignerVault(browser), onState=()=>{},
     delay=ms=>new Promise(resolve=>setTimeout(resolve,ms)),
 }={}) {

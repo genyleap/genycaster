@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include "token_preview.hpp"
 
 #include <QJsonDocument>
@@ -26,7 +27,7 @@ BrowserTokenPreviewController::BrowserTokenPreviewController(
     : QObject(parent),
       m_gatewayBase(gatewayBase.isValid() && !gatewayBase.isEmpty()
           ? std::move(gatewayBase)
-          : QUrl{QStringLiteral("https://storage-farcaster.genyleap.com")}),
+          : QUrl{QString::fromUtf8(genycaster::deployment::browserGateway.data())}),
       m_enabled(enabled)
 {
     if (useDirectProxy) m_network.setProxy(QNetworkProxy{QNetworkProxy::NoProxy});

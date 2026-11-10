@@ -1,5 +1,7 @@
 module;
 
+#include "genycaster_deployment.hpp"
+
 // The reviewed third-party BIP39 dictionary is a textual data boundary.
 #include "custody_bip39_english.hpp"
 
@@ -396,8 +398,10 @@ deriveMaterial(const std::string_view phrase)
     if (fid == 0U || message.size() < 80 || message.size() > 8192
         || message.find('\0') != std::string_view::npos)
         return false;
-    constexpr std::string_view heading =
-        "genyleap.com wants you to sign in with your Ethereum account:\n";
+    constexpr std::string_view browserBase = genycaster::deployment::openProofBrowserBase;
+    constexpr auto authorityEnd = browserBase.find('/', 8);
+    const std::string heading = std::string{browserBase.substr(8, authorityEnd - 8)}
+        + " wants you to sign in with your Ethereum account:\n";
     if (!message.starts_with(heading)) return false;
     const auto addressEnd = message.find('\n', heading.size());
     if (addressEnd == std::string_view::npos
@@ -553,9 +557,12 @@ signOneTimeIdentityProof(const std::string_view phrase,
                          const std::string_view challenge)
 {
     // Refuse malformed or unrelated messages before the expensive BIP39 KDF.
+    constexpr std::string_view browserBase = genycaster::deployment::openProofBrowserBase;
+    constexpr auto authorityEnd = browserBase.find('/', 8);
+    const std::string expectedHeading = std::string{browserBase.substr(8, authorityEnd - 8)}
+        + " wants you to sign in with your Ethereum account:\n";
     if (fid == 0U || challenge.size() < 80 || challenge.size() > 8192
-        || !challenge.starts_with(
-            "genyleap.com wants you to sign in with your Ethereum account:\n"))
+        || !challenge.starts_with(expectedHeading))
         return std::unexpected(Error::InvalidChallenge);
     auto custody = deriveMaterial(phrase);
     if (!custody) return std::unexpected(custody.error());

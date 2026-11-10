@@ -36,7 +36,7 @@ test('category and bookmark account transport are compiled into every Qt client,
   const cmake=readFileSync(new URL('../../ui/CMakeLists.txt',import.meta.url),'utf8');
   const bookmarks=readFileSync(new URL('../../ui/components/profile/BookmarksSurface.qml',import.meta.url),'utf8');
   const profile=readFileSync(new URL('../../ui/components/profile/ProfileSurface.qml',import.meta.url),'utf8');
-  const config=readFileSync(new URL('../../ui/config/public_endpoints.json',import.meta.url),'utf8');
+  const config=readFileSync(new URL('../fixtures/public_endpoints.json',import.meta.url),'utf8');
   const nativeBoundary=cmake.indexOf('\nif(EMSCRIPTEN)');
   assert.ok(nativeBoundary>0);
   for(const entry of [

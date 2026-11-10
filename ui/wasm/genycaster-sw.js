@@ -16,6 +16,7 @@ const PUBLIC_FILES=new Set([
     "apple-touch-icon-precomposed.png",
     "secure_signer_vault.mjs","farcaster_protocol.mjs",
     "browser_protocol_signer.mjs","browser_device_session.mjs","browser_account_session.mjs","browser_media_upload.mjs",
+    // Deployment authority is never stored in offline caches.
     "farcaster_recovery.mjs","recovery-phrase-dialog.mjs",
     "vendor/noble-secp256k1.mjs","vendor/bip39-english.mjs",
     "miniapp-host-bridge.mjs",

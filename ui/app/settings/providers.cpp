@@ -1,4 +1,5 @@
 #include "providers.hpp"
+#include "genycaster_deployment.hpp"
 
 #include <QClipboard>
 #include <QGuiApplication>
@@ -144,7 +145,9 @@ ProviderProfilesController::ProviderProfilesController(
       m_appliedReadProfiles(canonicalProfiles(appliedReadProfiles)),
       m_appliedWriteProfiles(canonicalProfiles(appliedWriteProfiles)),
       m_appliedReadId(std::move(appliedReadProviderId)),
-      m_defaultIndexedEndpoint(std::move(defaultIndexedEndpoint)),
+      m_defaultIndexedEndpoint(defaultIndexedEndpoint.isEmpty()
+          ? QString::fromUtf8(genycaster::deployment::hypersnapOrigin.data())
+          : std::move(defaultIndexedEndpoint)),
       m_hostedReadEndpoint(std::move(hostedReadEndpoint)),
       m_appliedCompatibleReadFallback(appliedCompatibleReadFallback),
       m_appliedWriteId(std::move(appliedWriteProviderId))

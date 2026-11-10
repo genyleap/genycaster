@@ -1,3 +1,4 @@
+import {serverDeployment} from '../deployment_config.mjs';
 // Read-only GENY holdings and protocol-verified wallet discovery.
 // No holding amount can grant a GenyCaster Pro subscription.
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -10,7 +11,7 @@ export function createGenyAssetsPolicy(env=process.env) {
   const contract = String(env.GENYCASTER_GENY_CONTRACT_ADDRESS || DEFAULT_TOKEN).toLowerCase();
   if (!ADDRESS.test(contract)) throw new Error('Invalid GENY token address');
   const rpcUrl = String(env.GENYCASTER_GENY_RPC_URL || 'https://mainnet.base.org');
-  const snapchainUrl = String(env.GENYCASTER_SNAPCHAIN_URL || 'https://snapchain.genyleap.com');
+  const snapchainUrl = String(env.GENYCASTER_SNAPCHAIN_URL || serverDeployment(env).snapchainOrigin);
   for (const endpoint of [rpcUrl,snapchainUrl]) {
     const url = new URL(endpoint);
     if (url.protocol!=='https:' || url.username || url.password || url.hash

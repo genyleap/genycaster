@@ -1,4 +1,5 @@
 // Public read-only token insights for the browser's restricted WASM build.
+import {serverDeployment,trustedOrigin} from '../deployment_config.mjs';
 // Inputs are token identities, never arbitrary URLs or user-controlled hosts.
 const upstream = 'https://api.geckoterminal.com/api/v2';
 const evmAddress = /^0x[0-9a-f]{40}$/i;
@@ -29,7 +30,9 @@ async function boundedJson(response, maximumBytes = 256 * 1024) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-export async function publicTokenSnapshot(network, address, fetchImpl = globalThis.fetch) {
+export async function publicTokenSnapshot(network, address, fetchImpl = globalThis.fetch,
+  browserGateway=serverDeployment().browserGateway) {
+  const trustedGateway=trustedOrigin(browserGateway,'GENYCASTER_BROWSER_GATEWAY_ORIGIN');
   const chain = String(network || '').trim().toLowerCase();
   const contract = String(address || '').trim().toLowerCase();
   if (!['base', 'eth'].includes(chain) || !evmAddress.test(contract)) {
@@ -64,7 +67,7 @@ export async function publicTokenSnapshot(network, address, fetchImpl = globalTh
 
     const logo = String(attributes.image_url || '');
     const imageSource = /^https:\/\/assets\.geckoterminal\.com\/[a-zA-Z0-9/_-]+$/.test(logo)
-      ? 'https://storage-farcaster.genyleap.com/v1/browser/images?url=' + encodeURIComponent(logo)
+      ? trustedGateway+'/v1/browser/images?url=' + encodeURIComponent(logo)
       : '';
     const transactions = pool.transactions?.h24 || {};
     const createdAt = Date.parse(String(pool.pool_created_at || ''));

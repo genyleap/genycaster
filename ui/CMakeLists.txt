@@ -713,6 +713,9 @@ if(EMSCRIPTEN)
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/browser_media_upload.mjs"
             "$<TARGET_FILE_DIR:genycaster>/browser_media_upload.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/generated/deployment_config.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/deployment_config.mjs"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/wasm/farcaster_recovery.mjs"
             "$<TARGET_FILE_DIR:genycaster>/farcaster_recovery.mjs"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -825,6 +828,9 @@ if(EMSCRIPTEN)
     # without forcing an expensive C++/WASM relink. Keep the static staging
     # output and content hash metadata coherent on incremental builds.
     add_custom_target(genycaster_wasm_asset_refresh ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_BINARY_DIR}/generated/deployment_config.mjs"
+            "$<TARGET_FILE_DIR:genycaster>/deployment_config.mjs"
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/ci/package_wasm_assets.py"
             --source "${CMAKE_CURRENT_SOURCE_DIR}/wasm"
@@ -1354,11 +1360,11 @@ qt_add_resources(genycaster noto_emoji_metadata
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/emoji/LICENSE.NotoAnimatedEmoji.txt"
 )
 
+set_source_files_properties("${CMAKE_BINARY_DIR}/generated/public_endpoints.json"
+    PROPERTIES QT_RESOURCE_ALIAS "public_endpoints.json")
 qt_add_resources(genycaster openproof_public_endpoints
     PREFIX "/genycaster-config"
-    BASE "${CMAKE_CURRENT_SOURCE_DIR}/config"
-    FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/config/public_endpoints.json"
+    FILES "${CMAKE_BINARY_DIR}/generated/public_endpoints.json"
 )
 
 # One structured multilingual JSON source for all targets; GitHub Markdown is generated.

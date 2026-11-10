@@ -132,7 +132,7 @@ test('pending proof cannot be polled at an unlimited rate', async () => {
 test('recovery signer proves the exact existing Farcaster FID to OpenProof without leaking keys',async()=>{
   const upstream=[];
   let timestamp=0;
-  const message='genyleap.com wants you to sign in with your Ethereum account:\\n0x1111111111111111111111111111111111111111\\n\\nFarcaster Auth\\n\\nURI: https://genyleap.com/account\\nVersion: 1\\nChain ID: 10\\nNonce: abcdefgh12345\\nResources:\\n- farcaster://fid/123';
+  const message='genyleap.com wants you to sign in with your Ethereum account:\n0x1111111111111111111111111111111111111111\n\nFarcaster Auth\n\nURI: https://genyleap.com/account\nVersion: 1\nChain ID: 10\nNonce: abcdefgh12345\nResources:\n- farcaster://fid/123';
   const json=(obj)=>new Response(JSON.stringify(obj),{status:200,headers:{'content-type':'application/json'}});
   const fetchImpl=async(url,opts)=>{
     upstream.push({url,opts});
@@ -200,7 +200,7 @@ test('recovery cannot claim an unrelated OpenProof FID or attacker supplied sign
     if(url.endsWith('/auth/web3/start')){
       const r=json({provider:'farcaster',fid:'123',
         address:'0x1111111111111111111111111111111111111111',
-        message:'Farcaster Auth - farcaster://fid/123 '+'.'.repeat(55),
+        message:'genyleap.com wants you to sign in with your Ethereum account:\n0x1111111111111111111111111111111111111111\n\nFarcaster Auth\n\nURI: https://genyleap.com/account\nVersion: 1\nChain ID: 10\nNonce: abcdefgh12345\nResources:\n- farcaster://fid/123',
         nonce:'abcdefgh12345',domain:'genyleap.com',statement:'Farcaster Auth',
         resource_prefix:'farcaster://fid/',expires_at:'tomorrow'});
       r.headers.getSetCookie=()=>['__Host-openproof-a=aa','__Host-openproof-b=bb',

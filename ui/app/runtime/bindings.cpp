@@ -1,3 +1,4 @@
+#include "genycaster_deployment.hpp"
 #include <QCoreApplication>
 #include <QDateTime>
 #if !defined(Q_OS_WASM)
@@ -761,7 +762,7 @@ void applyProfileVerificationFixture(PresentationBridge& bridge)
         "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/farcaster.svg");
     bridge.applyAuthenticationState(true, QStringLiteral("authenticated"), fixtureFid,
         QStringLiteral("protocolnotes"), QStringLiteral("Protocol Field Notes"), avatar,
-        QStringLiteral("https://openproof.genyleap.com"), {}, {});
+        QString::fromUtf8(genycaster::deployment::openProofIssuer.data()), {}, {});
     bridge.applyDetail(QStringLiteral("profile"), QVariantMap{
         {QStringLiteral("fid"), fixtureFid},
         {QStringLiteral("displayName"), QStringLiteral("Protocol Field Notes")},
@@ -2623,7 +2624,7 @@ void connectRuntime(
             const auto authenticatedAt = foundation::time::now();
             state.phase = application::session::SessionPhase::Authenticated;
             state.session = domain::session::ClientSession{
-                .identityIssuer = std::string{"https://openproof.genyleap.com"},
+                .identityIssuer = std::string{genycaster::deployment::openProofIssuer},
                 .identitySubject = event.subject.toStdString(),
                 .fid = domain::identity::Fid{event.fid},
                 .username = event.username.isEmpty()
@@ -2888,7 +2889,7 @@ void connectRuntime(
                             && state.session && state.session->fid.value == fid
                             && state.session->identityIssuer
                             && *state.session->identityIssuer
-                                == "https://openproof.genyleap.com";
+                                == genycaster::deployment::openProofIssuer;
                         if (nativeRecoveryGeneration->load(std::memory_order_acquire)
                             != generation) {
                             ticket->fill(char{0});
@@ -4848,7 +4849,7 @@ void connectBrowserMediaUpload(
                     static_cast<qulonglong>(event.value(QStringLiteral("total")).toDouble()));
             }else if(kind==QStringLiteral("completed")) {
                 const QString url=event.value(QStringLiteral("assetUrl")).toString();
-                if(!url.startsWith(QStringLiteral("https://media-farcaster.genyleap.com/m/v1/"))) {
+                if(!url.startsWith((QString::fromUtf8(genycaster::deployment::mediaPublicOrigin.data()) + QStringLiteral("/m/v1/")))) {
                     controller.applyFailed(QStringLiteral("Untrusted media asset response"));
                     continue;
                 }

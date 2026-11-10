@@ -2066,7 +2066,7 @@ Item {
                                         const url = String(item && (item.value || item.url) || "")
                                         if (url.length === 0) continue
                                         const isHostedImage = url.startsWith(
-                                            "https://media-farcaster.genyleap.com/m/v1/")
+                                            (deploymentEndpoints.mediaPublicOrigin + "/m/v1/"))
                                         root.submittedReplyEmbeds.push({
                                             "kind": isHostedImage ? "image" : "url",
                                             "url": url, "value": url

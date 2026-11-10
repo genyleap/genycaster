@@ -17,7 +17,7 @@ test('existing Farcaster/OpenProof authorization is reused, never exposed to QML
   assert.doesNotMatch(header,/authorizeCloudAccount\(/);
   assert.doesNotMatch(code,/authorizeCloudAccount\(/);
   assert.match(api,/subject:'farcaster:'\+fid/);
-  assert.match(api,/storage-farcaster\.genyleap\.com\/v1\/browser\/openproof\/connections/);
+  assert.match(api,/trustedBrowserGateway\+'\/v1\/browser\/openproof\/connections'/);
   assert.match(api,/linked\.length!==1/);
   assert.match(code,/request\.setRawHeader\("Authorization", "Bearer " \+ m_accountBearer\)/);
   assert.match(code,/QNetworkRequest::ManualRedirectPolicy/);
