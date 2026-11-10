@@ -36,7 +36,7 @@ def otool_dependencies(output: str, binary: Path) -> list[str]:
     `path (architecture arm64):`. Neither is a linked library.
     """
     binary_header = re.compile(
-        rf"{re.escape(str(binary))}(?: \\(architecture [^)]+\\))?:"
+        rf"{re.escape(str(binary))}(?: \(architecture [^)]+\))?:"
     )
     dependencies = []
     for raw_line in output.splitlines():
