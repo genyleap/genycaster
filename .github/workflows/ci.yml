@@ -226,6 +226,9 @@ jobs:
           # newer GLIBCXX symbol than stock Ubuntu 24.04 provides. Bundle
           # ONLY the matching compiler runtime and launch against it.
           python3 ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16
+          # QtNetwork dlopens libssl/libcrypto and its TLS plugin: linuxdeploy
+          # cannot discover them from the executable's DT_NEEDED list.
+          python3 ci/bundle_linux_tls_runtime.py AppDir --qt-root "$QT_ROOT_DIR"
           python3 ci/audit_linux_appdir.py AppDir
           # Seal the audited runtime, not the unfiltered Qt plugin output.
           ./build/ci-linuxdeploy/linuxdeploy.AppImage \
