@@ -152,6 +152,8 @@ class PackagingTests(unittest.TestCase):
             # Without this dependency an otherwise valid DEB cannot launch
             # in a clean Ubuntu 24.04 install.
             self.assertIn("libopengl0", depends)
+            self.assertIn("libasound2t64", depends)
+            self.assertIn("libpulse0", depends)
             verify("linux-deb", result)
             # Exercise the exact command CI invokes. Calling verify() directly
             # previously hid the missing argparse "linux-deb" choice.
