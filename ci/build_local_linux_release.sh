@@ -17,8 +17,19 @@ if [[ "$(git branch --show-current)" != "main" ]] || [[ -n "$(git status --porce
   echo "Checkout main and commit/stash local edits before release-equivalent builds" >&2
   exit 2
 fi
-if [[ -z "$(printenv QT_ROOT_DIR || true)" ]] || [[ ! -x "$QT_ROOT_DIR/bin/qmake6" ]]; then
-  echo "Set QT_ROOT_DIR to Qt 6.12.0 with Qt Multimedia installed" >&2
+if [[ -z "${QT_ROOT_DIR:-}" ]] || [[ ! -x "$QT_ROOT_DIR/bin/qmake6" ]] ||
+   [[ ! -f "$QT_ROOT_DIR/lib/cmake/Qt6Multimedia/Qt6MultimediaConfig.cmake" ]]; then
+  echo "Qt 6.12.0 with Qt Multimedia is not installed at QT_ROOT_DIR=${QT_ROOT_DIR:-<unset>}" >&2
+  echo "A git clone does not include the Qt SDK. Install aqtinstall into a venv:" >&2
+  echo "  python3 -m venv build/local-release-tools" >&2
+  echo "  build/local-release-tools/bin/python -m pip install 'cmake==4.4.4' aqtinstall" >&2
+  if [[ "$arch" == arm64 ]]; then
+    echo "  build/local-release-tools/bin/aqt install-qt linux_arm64 desktop 6.12.0 linux_gcc_arm64 --modules qtmultimedia --outputdir Qt" >&2
+    echo '  export QT_ROOT_DIR="$PWD/Qt/6.12.0/gcc_arm64"' >&2
+  else
+    echo "  build/local-release-tools/bin/aqt install-qt linux desktop 6.12.0 linux_gcc_64 --modules qtmultimedia --outputdir Qt" >&2
+    echo '  export QT_ROOT_DIR="$PWD/Qt/6.12.0/gcc_64"' >&2
+  fi
   exit 2
 fi
 for command in cmake ninja g++-16 gcc-16 ld.lld curl patchelf zsync zsyncmake dpkg-deb desktop-file-validate docker node; do
