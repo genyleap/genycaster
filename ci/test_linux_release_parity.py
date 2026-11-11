@@ -31,7 +31,9 @@ def install_packages(source: str, marker: str) -> set[str]:
                 raise ValueError(f"Unterminated apt command: {marker}")
             line = lines[index]
             result.append(line.strip())
-        return set(" ".join(result).replace("\\", " ").split())
+        # Dockerfile chains apt install with later apt commands using &&.
+        # Only the first install command's packages belong in the comparison.
+        return set(" ".join(result).replace("\\", " ").split("&&", 1)[0].split())
     raise ValueError(f"apt command not found: {marker}")
 
 
