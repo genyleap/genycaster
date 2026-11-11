@@ -33,11 +33,20 @@ def main() -> None:
     assert "ci/test_linux_cpp_runtime.py" in gate
     assert "ci/test_linux_release_parity.py" in gate
     assert "ci/test_linux_distro_assets.py" in gate
+    assert "ci/test_macos_otool_headers.py" in gate
+    assert "ci/test_release_feature_contract.py" in gate
+    assert "ci/verify_release_feature_contract.py --strict" in gate
     assert "ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16" in workflow
     assert "ci/preflight_linux_qt_runtime.py --qt-root" in workflow
     linux_job = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
     assert linux_job.index("ci/bundle_linux_cpp_runtime.py AppDir") < linux_job.index("--output appimage")
     assert linux_job.count("ci/audit_linux_appdir.py AppDir") == 2
+    assert "ci/preflight_linux_miniapp_host.py --qt-root" in linux_job
+    assert "ci/stage_linux_webengine.py AppDir" in linux_job
+    assert "ci/bundle_linux_webengine_runtime.py AppDir" in linux_job
+    assert linux_job.count("--require-miniapps") >= 2
+    assert "-DFARCASTER_ENABLE_MINIAPPS=ON" in linux_job
+    assert "-DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON" in linux_job
     assert '"dist/$OUTPUT"' in linux_job
     assert "GENYCASTER_APPIMAGE" in Path("ci/smoke_linux_install.sh").read_text()
     assert "desktop-file-validate AppDir/usr/share/applications/genycaster.desktop" in workflow
@@ -69,6 +78,9 @@ def main() -> None:
     assert "FARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON" in workflow
     assert "linux_gcc_arm64" in workflow
     assert "macos-26-intel" in workflow
+    macos_job = workflow.split("  macos:", 1)[1].split("  windows:", 1)[0]
+    assert "-DFARCASTER_ENABLE_MINIAPPS=ON" in macos_job
+    assert "--target farcaster_miniapp_browser" in macos_job
     # macOS 15/Xcode 16.4 Apple SDK headers contain legacy enum arithmetic
     # rejected in C++26 mode. Preserve the C++26 native WebKit boundary on
     # the macOS 26/Xcode 26 SDK/compiler pair until Apple fixes older SDKs.
