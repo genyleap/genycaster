@@ -400,14 +400,14 @@ class CleanLinuxInstallDependencyTests(unittest.TestCase):
             plugin = root / "plugins/multimedia/libffmpegmediaplugin.so"
             for path in (binary, plugin):
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(b"\\x7fELF" + b"fixture")
+                path.write_bytes(b"\x7fELF" + b"fixture")
 
             def fake_ldd(command, **_kwargs):
                 name = Path(command[1]).name
                 missing = ("libasound.so.2" if name == "Genycaster"
                            else "libpulse.so.0")
                 return subprocess.CompletedProcess(
-                    command, 0, f"  {missing} => not found\\n", ""
+                    command, 0, f"  {missing} => not found\n", ""
                 )
 
             with patch("ci.audit_linux_clean_install.subprocess.run",
@@ -423,10 +423,10 @@ class CleanLinuxInstallDependencyTests(unittest.TestCase):
             root = Path(temporary) / "usr"
             binary = root / "bin/Genycaster"
             binary.parent.mkdir(parents=True)
-            binary.write_bytes(b"\\x7fELF" + b"fixture")
+            binary.write_bytes(b"\x7fELF" + b"fixture")
             with patch("ci.audit_linux_clean_install.subprocess.run",
                        return_value=subprocess.CompletedProcess(
-                           ["ldd"], 0, "libc.so.6 => /lib/libc.so.6\\n", ""
+                           ["ldd"], 0, "libc.so.6 => /lib/libc.so.6\n", ""
                        )):
                 self.assertEqual(audit_clean_linux(root), 1)
 
