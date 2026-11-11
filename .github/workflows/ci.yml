@@ -126,7 +126,7 @@ jobs:
             -o Acquire::Retries=1 \
             -o Acquire::http::Timeout=12 \
             -o Acquire::https::Timeout=12 \
-            ninja-build curl file patchelf libfuse2 zsync \
+            curl file patchelf libfuse2 zsync \
             libgl1 libegl1 libgl1-mesa-dev libopengl-dev libglx-dev libegl-dev libx11-dev \
             libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
@@ -136,7 +136,7 @@ jobs:
             libxcb-render0 libxcb-util1 libx11-xcb1 libxcb-dri3-0 \
             libice6 libsm6 libxrandr2 \
             libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
-            libcurl4-openssl-dev libdbus-1-dev software-properties-common \
+            libcurl4-openssl-dev libdbus-1-dev \
             libfontconfig1 libfreetype6 libgstreamer-plugins-bad1.0-0 \
             libgstreamer-plugins-good1.0-0 libpulse0 libasound2t64 \
             libminizip1t64 libsnappy1v5 libwebp7 libwebpdemux2 libwebpmux3 \
