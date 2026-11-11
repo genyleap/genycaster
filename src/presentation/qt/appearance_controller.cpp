@@ -202,6 +202,8 @@ QString AppearanceController::platformIcon() const {
 #elif defined(Q_OS_WIN)
   return QStringLiteral("platforms/windows");
 #elif defined(Q_OS_LINUX)
+  if (QSysInfo::productType().compare(QStringLiteral("ubuntu"), Qt::CaseInsensitive) == 0)
+    return QStringLiteral("platforms/ubuntu");
   return QStringLiteral("platforms/linux");
 #else
   return QStringLiteral("platforms/linux");
