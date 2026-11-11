@@ -17,8 +17,8 @@ key_url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${fingerprint}"
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 
-curl --fail --location --silent --show-error --retry 4 --retry-all-errors \
-  --connect-timeout 15 --max-time 90 "$key_url" -o "$work/key.asc"
+curl --fail --location --silent --show-error --retry 2 --retry-delay 1 \
+  --connect-timeout 5 --max-time 15 "$key_url" -o "$work/key.asc"
 test -s "$work/key.asc"
 # A PPA key may contain subkeys; verify the primary public key fingerprint.
 mapfile -t actual < <(gpg --batch --show-keys --with-colons "$work/key.asc" |
@@ -33,8 +33,19 @@ sudo install -m 0644 "$work/key.gpg" \
 printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\n' \
   "$repo_url" | sudo tee /etc/apt/sources.list.d/genycaster-toolchain-r.list >/dev/null
 
-sudo apt-get update -o Acquire::Retries=4
-sudo apt-get install -y --no-install-recommends gcc-16 g++-16 lld
+# First mirror indices were refreshed in prepare_ubuntu_apt.sh.
+# Fetch just this signed PPA's index, preserving the Ubuntu package cache.
+sudo timeout 90s apt-get update \
+  -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/genycaster-toolchain-r.list \
+  -o Dir::Etc::sourceparts=- \
+  -o APT::Get::List-Cleanup=0 \
+  -o APT::Update::Error-Mode=any \
+  -o Acquire::Retries=0 \
+  -o Acquire::https::Timeout=12
+sudo timeout 180s apt-get install -y --no-install-recommends \
+  -o Acquire::Retries=1 \
+  -o Acquire::https::Timeout=12 \
+  gcc-16 g++-16 lld
 gcc-16 --version | head -1
 g++-16 --version | head -1
 ld.lld --version
