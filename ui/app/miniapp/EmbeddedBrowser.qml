@@ -1,5 +1,6 @@
-// Qt WebEngine Quick presentation is kept out of the common QML module:
-// macOS/Windows/WASM/Android do not need a QtWebEngine dependency.
+// Linux-only Qt WebEngine Quick host. Presentation geometry mirrors the
+// macOS attached drawer: 424px edge panels and a centered 82%-height bottom
+// sheet. The runtime/SDK authority remains in the cross-platform C++ Browser.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -11,6 +12,7 @@ Popup {
     id: root
     required property var adapter
     parent: adapter.hostItem
+    objectName: "linuxMiniAppDrawer"
     popupType: Popup.Item
     modal: false
     dim: true
@@ -18,13 +20,17 @@ Popup {
     padding: 0
     closePolicy: Popup.NoAutoClose
 
-    // 1 Bottom, 2 Left, 3 Right; 0 is reserved for native separate windows.
+    // The public Browser interface uses the same physical presentation modes
+    // as macOS and Windows: 0 Window, 1 Bottom, 2 Left, 3 Right.
     readonly property int edge: adapter.presentationMode
-    width: edge === 1 ? parent.width
-           : Math.min(parent.width, Math.max(360, Math.min(820, parent.width * 0.72)))
-    height: edge === 1 ? Math.min(parent.height * 0.85, 780) : parent.height
-    x: edge === 3 ? parent.width - width : 0
-    y: edge === 1 ? parent.height - height : 0
+    readonly property real preferredWidth: Math.min(parent ? parent.width : 424, 424)
+    width: preferredWidth
+    height: edge === 1
+            ? Math.min(parent ? parent.height : 755, Math.max(420, (parent ? parent.height : 755) * 0.82))
+            : (parent ? parent.height : 0)
+    x: edge === 3 ? (parent ? parent.width : width) - width
+       : edge === 1 ? ((parent ? parent.width : width) - width) / 2 : 0
+    y: edge === 1 ? (parent ? parent.height : height) - height : 0
 
     property bool hostVisible: adapter.initiallyVisible
     property url requestedUrl: ""
@@ -32,55 +38,72 @@ Popup {
     property bool sdkBack: false
     property string statusText: ""
     property alias browserView: web
+    property double rendererPid: web.renderProcessPid
 
     onHostVisibleChanged: {
         if (hostVisible) open()
         else close()
     }
     onRequestedUrlChanged: {
-        if (requestedUrl.toString().length > 0)
+        if (requestedUrl.toString().length)
             web.url = requestedUrl
     }
     onOutboundScriptChanged: {
-        if (outboundScript.length > 0)
+        if (outboundScript.length)
             web.runJavaScript(outboundScript, WebEngineScript.MainWorld)
     }
-    onClosed: {
-        // A hidden task is still alive; only a user-initiated close tears down
-        // the Mini App runtime and its ephemeral WebEngine profile.
-        if (hostVisible) adapter.requestClose()
-    }
-    Component.onCompleted: {
-        if (hostVisible) open()
-    }
+    onClosed: if (hostVisible) adapter.requestClose()
+    onOpened: adapter.requestActivated()
+    Component.onCompleted: if (hostVisible) open()
 
-    background: Rectangle {
-        color: Theme.surfaceElevated
-        border.color: Theme.borderMuted
-        border.width: 1
-        radius: edge === 1 ? Theme.curveContainer : 0
+    enter: Transition {
+        ParallelAnimation {
+            NumberAnimation {
+                property: "opacity"
+                from: 0; to: 1
+                duration: root.adapter.reduceMotion ? 0 : Theme.motionNormal
+            }
+            NumberAnimation {
+                property: root.edge === 1 ? "y" : "x"
+                from: root.edge === 1 ? (root.parent ? root.parent.height : root.height)
+                    : root.edge === 2 ? -root.width
+                    : (root.parent ? root.parent.width : root.width)
+                to: root.edge === 1 ? root.y : root.x
+                duration: root.adapter.reduceMotion ? 0 : Theme.motionNormal
+                easing.type: Easing.OutCubic
+            }
+        }
     }
-
-    WebEngineProfile {
-        id: isolatedProfile
-        offTheRecord: true
-    }
-
-    WebChannel {
-        id: channel
-        Component.onCompleted: {
-            if (root.adapter.miniApp)
-                registerObject("genyMiniAppBridge", root.adapter.transport)
+    exit: Transition {
+        NumberAnimation {
+            property: "opacity"
+            to: 0
+            duration: root.adapter.reduceMotion ? 0 : Theme.motionFast
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 0
+    background: Rectangle {
+        color: Theme.surface
+        radius: root.edge === 1 ? Theme.curveContainer : 0
+        border.color: Theme.borderMuted
+        border.width: 1
+    }
 
+    WebEngineProfile {
+        id: ephemeralProfile
+        offTheRecord: true
+    }
+    WebChannel {
+        id: bridgeChannel
+        Component.onCompleted:
+            registerObject("genyMiniAppBridge", root.adapter.transport)
+    }
+
+    contentItem: ColumnLayout {
+        spacing: 0
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: Theme.scaleUi(51)
+            Layout.preferredHeight: Theme.scaleUi(52)
             color: Theme.surfaceRaised
             RowLayout {
                 anchors.fill: parent
@@ -88,42 +111,55 @@ Popup {
                 anchors.rightMargin: Theme.space3
                 spacing: Theme.space2
 
-                Button {
-                    text: qsTr("Back")
-                    flat: true
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: Theme.iconArrowLeft
+                    text: qsTrId("genycaster.profile.back")
                     enabled: web.canGoBack || root.sdkBack
-                    onClicked: {
-                        if (web.canGoBack) web.goBack()
-                    }
+                    onClicked: if (web.canGoBack) web.goBack()
                 }
-                Label {
+                DirectionAwareLabel {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     text: root.adapter.title
-                    elide: Text.ElideRight
                     color: Theme.ink
                     font.pixelSize: Theme.typeLabelSize
-                    font.weight: Font.DemiBold
+                    font.weight: Theme.weightDemiBold
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideMiddle
                 }
-                Label {
-                    visible: !root.adapter.miniApp
-                    text: root.adapter.hostDomain
-                    color: Theme.inkMuted
-                    elide: Text.ElideRight
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: Theme.iconRefresh
+                    text: qsTrId("genycaster.feed_header.refresh")
+                    onClicked: web.reload()
                 }
-                Button {
-                    text: qsTr("Close")
-                    flat: true
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.shell.close")
                     onClicked: root.close()
                 }
             }
+        }
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.divider
         }
 
         WebEngineView {
             id: web
             Layout.fillWidth: true
             Layout.fillHeight: true
-            profile: isolatedProfile
-            webChannel: root.adapter.miniApp ? channel : null
+            profile: ephemeralProfile
+            webChannel: bridgeChannel
             webChannelWorld: WebEngineScript.ApplicationWorld
             backgroundColor: "#101018"
             settings.javascriptCanOpenWindows: false
@@ -135,9 +171,8 @@ Popup {
             activeFocusOnPress: true
 
             Component.onCompleted: {
-                if (!root.adapter.miniApp) return
-                // The public Farcaster shim runs only in the main world and
-                // only in the top frame. Qt transport stays in ApplicationWorld.
+                // Scripts are injected at DocumentCreation before navigating.
+                // Only the private ApplicationWorld gets the Qt transport.
                 userScripts.collection = [
                     {
                         name: "GenyCasterPrivateMiniAppTransport",
@@ -168,18 +203,20 @@ Popup {
             }
             onPermissionRequested: function(permission) { permission.deny() }
             onFullScreenRequested: function(request) { request.reject() }
-            onFileDialogRequested: function(request) { request.accepted = true }
-            onDesktopMediaRequested: function(request) { request.cancel() }
-            // An untrusted Mini App cannot open unmediated top-level windows.
-            onNewWindowRequested: function(request) { }
+            onFileDialogRequested: function(request) {
+                request.accepted = true
+                request.dialogReject()
+            }
+            // Untrusted documents cannot create independent native windows.
+            onNewWindowRequested: function(request) {}
         }
 
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.statusText.length > 0 ? Theme.scaleUi(26) : 0
             visible: root.statusText.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? Theme.scaleUi(28) : 0
             color: Theme.surfaceRaised
-            Label {
+            DirectionAwareLabel {
                 anchors.fill: parent
                 leftPadding: Theme.space3
                 verticalAlignment: Text.AlignVCenter
