@@ -829,12 +829,16 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
       - uses: jurplel/install-qt-action@v4
         id: qt
+        timeout-minutes: 20
         with:
           version: ${{ env.QT_VERSION }}
           target: android
           arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia qtwebview
           cache: true
+          # Officially mirrored Qt 6.12 SDK; avoid intermittently stalled
+          # direct download.qt.io transfers on hosted Android builders.
+          extra: '--base https://qt.mirror.constant.com --timeout 15'
       - name: Reject Android SDKs without Qt Network TLS
         shell: bash
         run: |
