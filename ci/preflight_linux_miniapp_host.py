@@ -16,9 +16,13 @@ def missing_host_files(root: Path) -> list[str]:
     missing: list[str] = []
     cmake = root / "lib" / "cmake"
     for module in ("Qt6Widgets", "Qt6WebChannel", "Qt6WebEngineCore",
-                   "Qt6WebEngineWidgets"):
+                   "Qt6WebEngineWidgets", "Qt6WebEngineQuick"):
         if not (cmake / module / f"{module}Config.cmake").is_file():
             missing.append(f"Qt CMake module: {module}")
+
+    quick_qml = root / "qml" / "QtWebEngine" / "qmldir"
+    if not quick_qml.is_file():
+        missing.append("Qt WebEngine Quick QML module (qml/QtWebEngine/qmldir)")
 
     subprocess_paths = (
         root / "libexec" / "QtWebEngineProcess",
