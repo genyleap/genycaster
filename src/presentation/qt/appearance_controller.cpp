@@ -21,6 +21,66 @@ constexpr auto kSocialNavigationWidthSetting = "layout/socialNavigationWidth";
 constexpr auto kSocialContextWidthSetting = "layout/socialContextWidth";
 constexpr auto kDefaultCustomAccent = "#FF4FA3";
 
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+// Match /etc/os-release ID via QSysInfo::productType(), never ID_LIKE.
+// A derivative must not inherit a parent distribution's branding unless its
+// own icon is explicitly mapped. Unknown IDs retain the generic Linux mark.
+struct LinuxBrand final {
+  const char* id;
+  const char* name;
+  const char* accent;
+  const char* icon;
+};
+
+constexpr LinuxBrand kLinuxBrands[] = {
+    {"ubuntu", "Ubuntu", "#E95420", "platforms/ubuntu"},
+    {"debian", "Debian", "#D70A53", "platforms/debian"},
+    {"fedora", "Fedora", "#51A2DA", "platforms/fedora"},
+    {"arch", "Arch Linux", "#1793D1", "platforms/archlinux"},
+    {"archlinux", "Arch Linux", "#1793D1", "platforms/archlinux"},
+    {"manjaro", "Manjaro", "#35BF5C", "platforms/manjaro"},
+    {"linuxmint", "Linux Mint", "#87CF3E", "platforms/linuxmint"},
+    {"pop", "Pop!_OS", "#48B9C7", "platforms/popos"},
+    {"popos", "Pop!_OS", "#48B9C7", "platforms/popos"},
+    {"opensuse", "openSUSE", "#73BA25", "platforms/opensuse"},
+    {"opensuse-tumbleweed", "openSUSE Tumbleweed", "#73BA25", "platforms/opensuse"},
+    {"opensuse-leap", "openSUSE Leap", "#73BA25", "platforms/opensuse"},
+    {"opensuse-microos", "openSUSE MicroOS", "#73BA25", "platforms/opensuse"},
+    {"alpine", "Alpine Linux", "#0D597F", "platforms/alpinelinux"},
+    {"nixos", "NixOS", "#5277C3", "platforms/nixos"},
+    {"gentoo", "Gentoo", "#54487A", "platforms/gentoo"},
+    {"kali", "Kali Linux", "#557C94", "platforms/kalilinux"},
+    {"elementary", "elementary OS", "#64BAFF", "platforms/elementary"},
+    {"elementaryos", "elementary OS", "#64BAFF", "platforms/elementary"},
+    {"endeavouros", "EndeavourOS", "#7F3FBF", "platforms/endeavouros"},
+    {"zorin", "Zorin OS", "#15A6F0", "platforms/zorin"},
+    {"zorinos", "Zorin OS", "#15A6F0", "platforms/zorin"},
+    {"rocky", "Rocky Linux", "#10B981", "platforms/rockylinux"},
+    {"rockylinux", "Rocky Linux", "#10B981", "platforms/rockylinux"},
+    {"almalinux", "AlmaLinux", "#0F4266", "platforms/almalinux"},
+    {"centos", "CentOS", "#932279", "platforms/centos"},
+    {"rhel", "Red Hat Enterprise Linux", "#EE0000", "platforms/redhat"},
+    {"neon", "KDE neon", "#3DCEB5", "platforms/kdeneon"},
+    {"raspbian", "Raspberry Pi OS", "#C51A4A", "platforms/raspberrypi"},
+    {"raspberrypi", "Raspberry Pi OS", "#C51A4A", "platforms/raspberrypi"},
+    {"slackware", "Slackware", "#2B2B2B", "platforms/slackware"},
+    {"void", "Void Linux", "#478061", "platforms/voidlinux"},
+    {"solus", "Solus", "#5294E2", "platforms/solus"},
+    {"garuda", "Garuda Linux", "#9B4BCA", "platforms/garudalinux"},
+    {"asahi", "Asahi Linux", "#BE4C7E", "platforms/asahilinux"},
+    {"asahilinux", "Asahi Linux", "#BE4C7E", "platforms/asahilinux"},
+};
+constexpr LinuxBrand kGenericLinuxBrand{"linux", "Linux", "#3584E4", "platforms/linux"};
+
+[[nodiscard]] const LinuxBrand& currentLinuxBrand() {
+  const QString id = QSysInfo::productType().trimmed().toLower();
+  for (const auto& entry : kLinuxBrands) {
+    if (id == QString::fromLatin1(entry.id)) return entry;
+  }
+  return kGenericLinuxBrand;
+}
+#endif
+
 [[nodiscard]] QString canonicalThemeMode(QString value) {
   value = value.trimmed().toLower();
   if (value.isEmpty()) {
@@ -164,11 +224,7 @@ QString AppearanceController::platformName() const {
 #elif defined(Q_OS_WIN)
   return QStringLiteral("Windows");
 #elif defined(Q_OS_LINUX)
-  const QString distro = QSysInfo::productType().toLower();
-  if (distro == QStringLiteral("ubuntu")) return QStringLiteral("Ubuntu");
-  if (distro == QStringLiteral("fedora")) return QStringLiteral("Fedora");
-  if (distro == QStringLiteral("debian")) return QStringLiteral("Debian");
-  return QStringLiteral("Linux");
+  return QString::fromLatin1(currentLinuxBrand().name);
 #elif defined(Q_OS_WASM)
   return QStringLiteral("Web");
 #else
@@ -183,11 +239,7 @@ QString AppearanceController::platformAccentColor() const {
 #elif defined(Q_OS_WIN)
   return QStringLiteral("#0078D4");
 #elif defined(Q_OS_LINUX)
-  const QString distro = QSysInfo::productType().toLower();
-  if (distro == QStringLiteral("ubuntu")) return QStringLiteral("#E95420");
-  if (distro == QStringLiteral("fedora")) return QStringLiteral("#3C6EB4");
-  if (distro == QStringLiteral("debian")) return QStringLiteral("#D70A53");
-  return QStringLiteral("#3584E4");
+  return QString::fromLatin1(currentLinuxBrand().accent);
 #else
   return QStringLiteral("#315CF5");
 #endif
@@ -202,9 +254,7 @@ QString AppearanceController::platformIcon() const {
 #elif defined(Q_OS_WIN)
   return QStringLiteral("platforms/windows");
 #elif defined(Q_OS_LINUX)
-  if (QSysInfo::productType().compare(QStringLiteral("ubuntu"), Qt::CaseInsensitive) == 0)
-    return QStringLiteral("platforms/ubuntu");
-  return QStringLiteral("platforms/linux");
+  return QString::fromLatin1(currentLinuxBrand().icon);
 #else
   return QStringLiteral("platforms/linux");
 #endif
