@@ -59,14 +59,20 @@ class Arm64DispatchTest(unittest.TestCase):
     def test_android_does_not_require_apt_to_use_hosted_tools(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
         android=workflow.split("  android:\n",1)[1].split("  ios:\n",1)[0]
-        setup=android.split("      - name: Verify Android build tools",1)[1].split("      - uses: jurplel/install-qt-action",1)[0]
+        setup=android.split("      - name: Verify Android build tools",1)[1].split("      - name: Install Android Qt host dependencies",1)[0]
         self.assertNotIn("sudo apt-get",setup)
         self.assertNotIn("sudo add-apt-repository",setup)
         self.assertIn("SDK/NDK and build tools already installed",setup)
         self.assertIn("timeout 360s",setup)
         self.assertIn('test -f "$ndk/source.properties"',setup)
         self.assertIn("timeout-minutes: 20",android)
-        self.assertIn("--base https://qt.mirror.constant.com --timeout 15",android)
+        qt_host_deps=android.split("      - name: Install Android Qt host dependencies",1)[1].split("      - uses: jurplel/install-qt-action",1)[0]
+        self.assertIn("bash ci/prepare_ubuntu_apt.sh",qt_host_deps)
+        self.assertIn("sudo timeout 180s apt-get install",qt_host_deps)
+        self.assertIn("libxkbcommon-x11-0",qt_host_deps)
+        qt_action=android.split("      - uses: jurplel/install-qt-action",1)[1].split("      - name: Reject Android SDKs",1)[0]
+        self.assertIn("install-deps: false",qt_action)
+        self.assertNotIn("qt.mirror.constant.com",qt_action)
 
 
     def test_android_manifest_does_not_override_gradle_native_library_packaging(self):
