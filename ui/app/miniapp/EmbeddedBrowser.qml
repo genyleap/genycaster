@@ -23,15 +23,16 @@ Popup {
     // The public Browser interface uses the same physical presentation modes
     // as macOS and Windows: 0 Window, 1 Bottom, 2 Left, 3 Right.
     readonly property int edge: adapter.presentationMode
+    property bool expanded: false
     readonly property real preferredWidth: Math.min(parent ? parent.width : 424, 424)
-    width: preferredWidth
-    height: edge === 1
+    width: expanded && parent ? parent.width : preferredWidth
+    height: expanded && parent ? parent.height : edge === 1
             ? Math.min(parent ? parent.height : 755, 755,
                        Math.max(420, (parent ? parent.height : 755) * 0.82))
             : (parent ? parent.height : 0)
-    x: edge === 3 ? (parent ? parent.width : width) - width
+    x: expanded ? 0 : edge === 3 ? (parent ? parent.width : width) - width
        : edge === 1 ? ((parent ? parent.width : width) - width) / 2 : 0
-    y: edge === 1 ? (parent ? parent.height : height) - height : 0
+    y: expanded ? 0 : edge === 1 ? (parent ? parent.height : height) - height : 0
 
     property bool hostVisible: adapter.initiallyVisible
     property url requestedUrl: ""
@@ -57,6 +58,15 @@ Popup {
     onClosed: if (hostVisible) adapter.requestClose()
     onOpened: adapter.requestActivated()
     Component.onCompleted: if (hostVisible) open()
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.opened
+        onActivated: {
+            if (root.expanded) root.expanded = false
+            else root.close()
+        }
+    }
 
     enter: Transition {
         ParallelAnimation {
@@ -86,7 +96,7 @@ Popup {
 
     background: Rectangle {
         color: Theme.surface
-        radius: root.edge === 1 ? Theme.curveContainer : 0
+        radius: root.edge === 1 && !root.expanded ? Theme.curveContainer : 0
         border.color: Theme.borderMuted
         border.width: 1
     }
@@ -139,6 +149,30 @@ Popup {
                     iconGlyph: Theme.iconRefresh
                     text: qsTrId("genycaster.feed_header.refresh")
                     onClicked: web.reload()
+                }
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: Theme.iconShare
+                    text: qsTrId("genycaster.miniapp.share")
+                    onClicked: root.adapter.requestShare()
+                }
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: "minus"
+                    text: qsTrId("genycaster.miniapp.minimize")
+                    onClicked: root.adapter.requestMinimize()
+                }
+                ActionButton {
+                    iconOnly: true
+                    quiet: true
+                    compact: true
+                    iconGlyph: root.expanded ? Theme.iconCompress : Theme.iconExpand
+                    text: qsTrId("genycaster.player.fullscreen")
+                    onClicked: root.expanded = !root.expanded
                 }
                 ActionButton {
                     iconOnly: true
