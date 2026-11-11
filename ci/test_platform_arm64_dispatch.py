@@ -43,6 +43,18 @@ class Arm64DispatchTest(unittest.TestCase):
         self.assertIn("timeout 360s",setup)
         self.assertIn('test -f "$ndk/source.properties"',setup)
 
+
+    def test_android_manifest_does_not_override_gradle_native_library_packaging(self):
+        # AGP 8+ rejects android:extractNativeLibs in a source manifest.
+        # Let the Gradle plugin select packaging; CI checks page alignment
+        # on the actual signed artifact with zipalign -P 16.
+        manifest=(ROOT/"properties/Android/AndroidManifest.xml").read_text()
+        self.assertNotIn("android:extractNativeLibs=",manifest)
+        workflow=(ROOT/".github/workflows/ci.yml").read_text()
+        android=workflow.split("  android:\n",1)[1].split("  ios:\n",1)[0]
+        self.assertIn('zipalign" -c -P 16 -v 4',android)
+        self.assertIn('"$signer" verify --verbose --print-certs',android)
+
     def test_manual_android_arm64_requests_only_arm64_v8a(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
         android=workflow.split("  android:\n",1)[1].split("  ios:\n",1)[0]
