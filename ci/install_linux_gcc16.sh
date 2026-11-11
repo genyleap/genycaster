@@ -50,7 +50,7 @@ for repo_url in "${candidates[@]}"; do
     echo "::endgroup::"
     continue
   fi
-  printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\\n' \
+  printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\n' \
     "$repo_url" | sudo tee /etc/apt/sources.list.d/genycaster-toolchain-r.list >/dev/null
 
   # First mirror indices were refreshed in prepare_ubuntu_apt.sh.
