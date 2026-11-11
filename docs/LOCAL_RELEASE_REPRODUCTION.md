@@ -35,6 +35,63 @@ recompiling or consuming new hosted CI minutes.
 
 ## Option 2: reproduce the latest Linux ARM64 release locally
 
+## Recommended for Ubuntu 25.10 native ARM64: Ubuntu 24.04 Docker build
+
+Ubuntu 25.10 (Questing) does not provide GCC 16 in its normal package
+sources. **Do not mix Ubuntu 24.04 PPA/deb repositories into Ubuntu 25.10**.
+The local container wrapper reuses the already installed official
+`Qt/6.12.0/gcc_arm64` directory, but builds and packages against **Ubuntu
+24.04 arm64** and GCC 16, like the GitHub Actions runner.
+
+On the **ARM64 host** (not the VPS), install/start Docker if needed:
+
+```bash
+sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+```
+
+The wrapper requires the current account to have access to the Docker
+daemon. If `docker info` says permission denied, an administrator can add
+the account to the Docker group:
+
+```bash
+sudo usermod -aG docker "$USER"
+newgrp docker
+docker info >/dev/null
+```
+
+**Security:** Membership in the Docker group (or granting access to the
+Docker socket) provides effectively root-level control over the host.
+Only enable this for trusted developer accounts.
+
+Then:
+
+```bash
+cd ~/Desktop/genycaster
+git switch main
+git pull --ff-only origin main
+test "$(uname -m)" = aarch64
+test -x Qt/6.12.0/gcc_arm64/bin/qmake6
+BUILD_JOBS=2 bash ci/build_local_linux_arm64_container.sh
+```
+
+The wrapper builds a reusable Ubuntu 24.04 image with GCC 16 and
+CMake 4.4.4, then runs `ci/build_local_linux_release.sh` on the mounted
+host checkout as the **same numeric user**, preserving artifact ownership.
+It mounts the host Docker socket only for the nested fresh-install DEB
+and AppImage acceptance tests. The same host checkout absolute path is used
+inside the build container so nested `docker run --mount` paths resolve
+against the host daemon. The Dockerfile has no source code build context:
+no Qt SDK or private files are sent into an image build context.
+
+If the build succeeds, find the official-format packages in
+`dist/local-linux-arm64/` on the host. Test the **DEB on Ubuntu 25.10**
+as a separate compatibility check using `sudo apt install ./...deb`,
+`/opt/genycaster/AppRun --check-tls` and the actual Qt GUI flow. The
+automated clean-install test itself uses Ubuntu 24.04; it does **not**
+establish that every newer host distribution renders correctly.
+
 **Host:** Native Ubuntu 24.04 **aarch64** (not x64 + QEMU), sufficient disk
 space for Qt/LLVM/C++26, and Docker usable without sudo. Run:
 
