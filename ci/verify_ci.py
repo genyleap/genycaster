@@ -53,7 +53,7 @@ def main() -> None:
     assert '-qmldir="$QML_SCAN"' in workflow
     assert 'rm -f "$QML_SCAN/app/miniapp/EmbeddedBrowser.qml"' in workflow
     assert '--qmldir $scan --dir dist/app' in workflow
-    assert "app\\miniapp\\EmbeddedBrowser.qml" in workflow
+    assert "'app/miniapp/EmbeddedBrowser.qml'" in workflow
     assert 'mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"' in workflow
     assert '--skip-plugin-types sqldrivers,qmltooling' in workflow
     assert 'ci/prune_linux_qt_plugins.py AppDir' in workflow
