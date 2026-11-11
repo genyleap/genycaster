@@ -28,13 +28,13 @@ class Arm64DispatchTest(unittest.TestCase):
 
     def test_android_does_not_require_apt_to_use_hosted_tools(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
-        android=workflow.split("  android:\\n",1)[1].split("  ios:\\n",1)[0]
+        android=workflow.split("  android:\n",1)[1].split("  ios:\n",1)[0]
         setup=android.split("      - name: Verify Android build tools",1)[1].split("      - uses: jurplel/install-qt-action",1)[0]
         self.assertNotIn("sudo apt-get",setup)
         self.assertNotIn("sudo add-apt-repository",setup)
         self.assertIn("SDK/NDK and build tools already installed",setup)
         self.assertIn("timeout 360s",setup)
-        self.assertIn("ndk/source.properties",setup.replace('ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"','ndk/source.properties'))
+        self.assertIn('test -f "$ndk/source.properties"',setup)
 
     def test_manual_android_arm64_requests_only_arm64_v8a(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
