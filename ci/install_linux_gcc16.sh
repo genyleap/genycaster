@@ -118,6 +118,11 @@ for repo_url in "${candidates[@]}"; do
   echo "::endgroup::"
 done
 if [[ -z "$selected" ]]; then
+  if [[ "$(dpkg --print-architecture)" == "arm64" && -n "${GITHUB_ACTIONS:-}" ]]; then
+    echo "::warning::Canonical's GCC16 PPA is unreachable; installing pinned native GCC16 from conda-forge instead"
+    bash "$(dirname "${BASH_SOURCE[0]}")/install_linux_gcc16_conda.sh"
+    exit 0
+  fi
   echo "::error::No reachable, correctly signed GCC16 PPA archive. Refusing to build with the wrong C++26 toolchain." >&2
   exit 1
 fi
