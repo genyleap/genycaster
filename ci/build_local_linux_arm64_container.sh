@@ -35,10 +35,11 @@ fi
 # paths so the nested clean-install Docker smoke can resolve bind sources.
 mkdir -p "$repo/build/arm64-container-home"
 image=genycaster-local-linux-arm64-release:ubuntu24.04
+# No source/context is sent to the Docker build: this Dockerfile needs
+# only upstream Ubuntu packages. Qt and the repository are mounted at run time.
 docker build --platform linux/arm64 \
     --tag "$image" \
-    --file ci/Dockerfile.linux-arm64-release \
-    "$repo"
+    - < ci/Dockerfile.linux-arm64-release
 
 # This socket grants access to the host Docker daemon. Use it only for the
 # trusted project's clean Ubuntu install/graphics/TLS acceptance tests.
