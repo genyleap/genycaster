@@ -249,10 +249,22 @@ jobs:
               opengl_args+=("-DOPENGL_${cmake_name}_LIBRARY:FILEPATH=$library")
             done
           fi
-          # Conda GCC16's sysroot can hide Ubuntu's CMake package
-          # locations. Discover the actual BoostConfig installed by dpkg
-          # instead of hardcoding Boost version or machine architecture.
-          boost_config="$(dpkg -L libboost-dev | grep '/BoostConfig.cmake            -DCMAKE_BUILD_TYPE=Release \
+          # Conda GCC16's sysroot can hide Ubuntu's CMake package config.
+          # Locate the native config rather than assuming a Boost version.
+          boost_config="$(find /usr/lib -path '*/cmake/Boost-*/BoostConfig.cmake' -print -quit)"
+          if [[ -z "$boost_config" || ! -f "$boost_config" ]]; then
+            echo "::error::Ubuntu Boost CMake config missing"
+            exit 1
+          fi
+          test -f /usr/include/boost/json.hpp || {
+            echo "::error::Boost.JSON development header missing"
+            exit 1
+          }
+          echo "::notice::Using Boost config: $boost_config"
+          cmake -S . -B build/native -G Ninja \
+            "${opengl_args[@]}" \
+            "-DBoost_DIR:PATH=$(dirname "$boost_config")" \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
             -DFARCASTER_BUILD_TESTS=OFF \
