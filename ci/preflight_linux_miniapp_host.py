@@ -2,7 +2,7 @@
 """Fail-closed preflight for the optional native Linux Qt WebEngine Mini App host.
 
 This checks the *installed SDK*, not merely CMake target declarations.
-It intentionally does not enable Mini Apps in the normal Linux release path.
+Release CI must enable Mini Apps and call this preflight before building.
 """
 from __future__ import annotations
 
