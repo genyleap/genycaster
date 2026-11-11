@@ -79,6 +79,26 @@ BUILD_JOBS=2 bash ci/build_local_linux_arm64_container.sh
 The wrapper builds a reusable Ubuntu 24.04 image with GCC 16 and
 CMake 4.4.4, then runs `ci/build_local_linux_release.sh` on the mounted
 host checkout as the **same numeric user**, preserving artifact ownership.
+The local ARM64 wrapper uses `docker build --network host` and
+`docker run --network host`, and enables host networking for its nested
+clean-install smoke test. This is specifically to avoid Docker bridge DNS
+failures such as `Temporary failure resolving 'ports.ubuntu.com'`
+on the developer's Ubuntu 25.10 host. It does **not** modify
+`/etc/docker/daemon.json` or change GitHub-hosted CI. Host networking
+reduces network isolation; only run trusted build scripts. If the
+host itself cannot resolve the Ubuntu mirror, fix the host's Internet/DNS
+first; this fallback cannot solve an upstream outage.
+
+Quick check before rebuilding after a DNS failure:
+
+```bash
+getent hosts ports.ubuntu.com
+docker run --rm --network host ubuntu:24.04 \\
+  getent hosts ports.ubuntu.com
+git pull --ff-only origin main
+BUILD_JOBS=2 bash ci/build_local_linux_arm64_container.sh
+```
+
 It mounts the host Docker socket only for the nested fresh-install DEB
 and AppImage acceptance tests. The same host checkout absolute path is used
 inside the build container so nested `docker run --mount` paths resolve
