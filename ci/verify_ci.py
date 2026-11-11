@@ -315,8 +315,9 @@ def main() -> None:
     assert "GenyCaster-linux-arm64" in workflow
     assert "GenyCaster-windows-arm64" in workflow
     assert "GenyCaster-android-armeabi-v7a" in workflow
-    assert "            vcpkg_triplet: x64-windows" in workflow
-    assert "            vcpkg_triplet: arm64-windows" in workflow
+    assert '"vcpkg_triplet":"x64-windows"' in workflow
+    assert '"vcpkg_triplet":"arm64-windows"' in workflow
+    assert "inputs.target_arch == 'arm64'" in workflow
     assert "            vcpkg_triplet: ${{ matrix.vcpkg_triplet }}" not in workflow
     assert "ANDROID_KEYSTORE_BASE64" in workflow
     assert "if-no-files-found: error" in workflow
