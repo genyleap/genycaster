@@ -162,7 +162,7 @@ Popup {
                     iconOnly: true
                     quiet: true
                     compact: true
-                    iconGlyph: "minus"
+                    iconGlyph: Theme.iconChevronDown
                     text: qsTrId("genycaster.miniapp.minimize")
                     onClicked: root.adapter.requestMinimize()
                 }
