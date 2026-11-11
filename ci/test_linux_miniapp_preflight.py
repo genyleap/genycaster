@@ -15,6 +15,7 @@ class LinuxMiniAppSdkPreflightTest(unittest.TestCase):
             self.assertIn("Qt CMake module: Qt6WebChannel", blockers)
             self.assertIn("Qt CMake module: Qt6WebEngineWidgets", blockers)
             self.assertIn("Qt CMake module: Qt6WebEngineQuick", blockers)
+            self.assertIn("Qt CMake module: Qt6SerialPort", blockers)
             self.assertTrue(any("Qt WebEngine Quick QML module" in b for b in blockers))
             self.assertTrue(any("QtWebEngineProcess" in b for b in blockers))
             self.assertTrue(any("ICU" in b for b in blockers))
