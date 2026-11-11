@@ -39,6 +39,20 @@ recompiling or consuming new hosted CI minutes.
 
 ### Native Linux Mini Apps (separate WebEngine dependency)
 
+Before attempting the optional Linux browser build, run the SDK-only
+preflight against the **exact** Qt 6.12 architecture prefix:
+
+```bash
+python3 ci/preflight_linux_miniapp_host.py --qt-root "$QT_ROOT_DIR"
+python3 -m unittest ci.test_linux_miniapp_preflight
+```
+
+This checks WebChannel/WebEngine CMake modules and Chromium's helper
+executable, resources, ICU data, and locales. A passing preflight is
+**not** evidence of ABI compatibility, successful compilation, AppImage/DEB
+packaging, or runtime security; those require separate acceptance tests.
+A failed preflight must never be bypassed to publish wallet-capable Mini Apps.
+
 Qt 6.12 does **not** ship Qt WebEngine 6.12 modules. The native in-app
 Mini App browser requires the separately released, compatible **Qt WebEngine
 6.140**, plus Qt WebChannel. The existing Linux ARM64 AppImage/DEB built
