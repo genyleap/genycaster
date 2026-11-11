@@ -1,0 +1,26 @@
+# Native Linux ARM64 release-build environment matching the hosted Ubuntu 24.04 job.
+# Build this image on an aarch64 machine; Qt 6.12.0 remains in the host checkout
+# and is mounted at the identical path during the build. No proprietary SDK is baked in.
+FROM ubuntu:24.04
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      ca-certificates software-properties-common gnupg git \
+      python3 python3-venv python3-pip \
+      ninja-build curl file patchelf libfuse2 zsync docker.io nodejs \
+      libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+      libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+      libxcb-render-util0 libxcb-xinerama0 \
+      libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
+      libcurl4-openssl-dev libdbus-1-dev libfontconfig1 libfreetype6 \
+      libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-good1.0-0 \
+      desktop-file-utils \
+    && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gcc-16 g++-16 lld \
+    && rm -rf /var/lib/apt/lists/*
+# The actual local pipeline selects CC=gcc-16 and CXX=g++-16 explicitly.
+# This CMake version matches the GitHub-hosted release workflow.
+RUN python3 -m venv /opt/genycaster-release-tools && \
+    /opt/genycaster-release-tools/bin/pip install --no-cache-dir 'cmake==4.4.4'
+ENV PATH="/opt/genycaster-release-tools/bin:$PATH"
