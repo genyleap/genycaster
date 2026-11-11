@@ -45,7 +45,7 @@ git pull --ff-only origin main
 git status --short           # Must be empty
 sudo apt-get update
 sudo apt-get install -y software-properties-common python3-venv \
-  ninja-build curl file patchelf libfuse2 zsync docker.io \
+  ninja-build curl file patchelf libfuse2 zsync docker.io nodejs \
   libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
   libxcb-render-util0 libxcb-xinerama0 \
