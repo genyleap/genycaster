@@ -58,7 +58,7 @@ sudo apt-get update
 sudo apt-get install -y gcc-16 g++-16 lld
 python3 -m venv build/local-release-tools
 build/local-release-tools/bin/python -m pip install 'cmake==4.4.4' aqtinstall
-build/local-release-tools/bin/aqt install-qt linux desktop 6.12.0 \
+build/local-release-tools/bin/aqt install-qt linux_arm64 desktop 6.12.0 \
   linux_gcc_arm64 --modules qtmultimedia --outputdir Qt
 export PATH="$PWD/build/local-release-tools/bin:$PATH"
 export QT_ROOT_DIR="$PWD/Qt/6.12.0/gcc_arm64"
