@@ -2068,6 +2068,8 @@ Item {
                             }
                         }
 
+                        } // Left-aligned name, badges, and follow actions
+
                         Item {
                             id: identityLinkSlot
                             objectName: "profileIdentityLinksSlot"
@@ -2075,17 +2077,18 @@ Item {
                             // Use the text's intrinsic size rather than the implicit width of
                             // a RowLayout containing a width-constrained Button. That cycle
                             // can collapse the link to zero on Linux's Qt Quick layout engine.
-                            // Flow positions this item immediately after the display
-                            // name, wrapping beneath it only when the viewport is narrow.
-                            // Keep an explicit width: Layout attached properties have
-                            // no effect on children of Qt Quick Flow.
-                            width: Math.min(
-                                Math.max(0, root.profileContentWidth * (root.compact ? 0.60 : 0.55)),
+                            // Keep links on the trailing side of the profile identity
+                            // row. Reserve their natural size rather than a fixed 150/230px
+                            // cap; only constrain very long URLs when the viewport is narrow.
+                            Layout.preferredWidth: Math.min(
+                                Math.max(0, root.profileContentWidth * 0.68),
                                 identityLinkIcon.implicitWidth + identityLinks.spacing
                                     + identityLinkText.implicitWidth
                                     + (identityMoreLinks.visible
                                        ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
-                            height: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
+                            Layout.minimumWidth: 0
+                            Layout.alignment: Qt.AlignVCenter
+                            Layout.preferredHeight: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
 
                             RowLayout {
                                 id: identityLinks
@@ -2122,9 +2125,6 @@ Item {
                                             id: identityLinkText
                                             Layout.fillWidth: true
                                             Layout.minimumWidth: 0
-                                            // Favor the full website domain on wide
-                                            // desktops; elide only when the Flow is
-                                            // genuinely space-constrained.
                                             Layout.preferredWidth: implicitWidth
                                             text: root.displayUrl(root.primaryProfileLinkUrl)
                                             horizontalAlignment: Theme.textStartAlignment
@@ -2132,7 +2132,10 @@ Item {
                                             color: Theme.accent
                                             font.family: Theme.latinFontFamily
                                             font.pixelSize: Theme.typeCaptionSize
-                                            elide: Text.ElideRight
+                                            // Show the complete URL. Long addresses wrap
+                                            // instead of being silently replaced by "...".
+                                            elide: Text.ElideNone
+                                            wrapMode: Text.WrapAnywhere
                                             verticalAlignment: Text.AlignVCenter
                                         }
                                     }
@@ -2167,7 +2170,6 @@ Item {
                                 }
                             }
                         }
-                        } // Flow: display name, badges, actions and inline links
 
                     } // Full-width identity row
 
