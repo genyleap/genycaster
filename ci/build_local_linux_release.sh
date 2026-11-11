@@ -21,7 +21,7 @@ if [[ -z "$(printenv QT_ROOT_DIR || true)" ]] || [[ ! -x "$QT_ROOT_DIR/bin/qmake
   echo "Set QT_ROOT_DIR to Qt 6.12.0 with Qt Multimedia installed" >&2
   exit 2
 fi
-for command in cmake ninja g++-16 gcc-16 ld.lld curl patchelf zsync zsyncmake dpkg-deb desktop-file-validate docker; do
+for command in cmake ninja g++-16 gcc-16 ld.lld curl patchelf zsync zsyncmake dpkg-deb desktop-file-validate docker node; do
   command -v "$command" >/dev/null || { echo "Missing: $command" >&2; exit 2; }
 done
 if [[ "$(uname -m)" == "aarch64" ]]; then
