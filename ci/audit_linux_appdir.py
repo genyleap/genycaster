@@ -91,7 +91,8 @@ def validate(appdir: Path, *, inspect_elf: bool = True, require_miniapps: bool =
                 "Linux Mini App release lacks QtWebEngine QML plugin")
         for lib in ("libQt6WebEngineCore.so.6", "libQt6WebEngineQuick.so.6",
                     "libQt6WebEngineWidgets.so.6", "libQt6WebChannel.so.6",
-                    "libQt6Positioning.so.6", "libminizip.so.1",
+                    "libQt6Positioning.so.6", "libQt6SerialPort.so.6",
+                    "libminizip.so.1",
                     "libnss3.so", "libwebp.so.7"):
             require((libraries / lib).is_file(),
                     f"Linux Mini App release lacks bundled runtime {lib}")
