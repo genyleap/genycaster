@@ -192,6 +192,7 @@ Popup {
 
         WebEngineView {
             id: web
+            objectName: "linuxMiniAppWebEngineView"
             Layout.fillWidth: true
             Layout.fillHeight: true
             profile: ephemeralProfile
