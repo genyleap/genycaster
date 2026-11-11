@@ -35,6 +35,14 @@ cxx="$prefix/bin/aarch64-conda-linux-gnu-g++"
 test -x "$compiler"
 test -x "$cxx"
 
+# The native release link uses -fuse-ld=lld. It is an Ubuntu package,
+# available through the signed mirror even when Launchpad is blocked.
+if ! command -v ld.lld >/dev/null; then
+  sudo timeout 90s apt-get install -y --no-install-recommends \
+    -o Acquire::Retries=1 -o Acquire::https::Timeout=12 lld
+fi
+ld.lld --version
+
 # Existing CMake / release scripts select gcc-16 and g++-16 by name.
 # Resolve these only to the verified native GCC16 compiler, never an older
 # system toolchain. Do not modify application features or build flags.
