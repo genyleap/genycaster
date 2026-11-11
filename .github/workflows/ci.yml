@@ -236,13 +236,17 @@ jobs:
           opengl_args=()
           if [[ "${{ matrix.arch }}" == arm64 && -n "${COMPILER_PATH:-}" ]]; then
             multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
-            for lib in OpenGL GLX; do
-              library="/usr/lib/$multiarch/lib${lib}.so"
+            for spec in "opengl:OpenGL" "glx:GLX"; do
+              cmake_name="${spec%%:*}"
+              soname="${spec#*:}"
+              library="/usr/lib/$multiarch/lib${soname}.so"
               if [[ ! -f "$library" ]]; then
                 echo "::error::Missing native GLVND development library: $library"
                 exit 1
               fi
-              opengl_args+=("-DOPENGL_${lib}_LIBRARY=$library")
+              # FindOpenGL uses lowercase 'opengl' and 'glx' in its
+              # cache variable names. Uppercase names are ignored.
+              opengl_args+=("-DOPENGL_${cmake_name}_LIBRARY:FILEPATH=$library")
             done
           fi
           cmake -S . -B build/native -G Ninja \
