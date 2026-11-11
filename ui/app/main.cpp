@@ -8,6 +8,9 @@
 #include <QDebug>
 #include <QFont>
 #include <QGuiApplication>
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS
+#include <QApplication>
+#endif
 #include <QIcon>
 #include <QFile>
 #include <QFileInfo>
@@ -264,7 +267,12 @@ int main(int argc, char* argv[])
     surfaceFormat.setSamples(RenderingController::sampleCountForProfile(startupRenderProfile));
     QSurfaceFormat::setDefaultFormat(surfaceFormat);
 
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS
+    // Qt WebEngine Widgets requires QApplication, not QGuiApplication.
+    QApplication application(argc, argv);
+#else
     QGuiApplication application(argc, argv);
+#endif
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationName(QStringLiteral("Genycaster"));
     QCoreApplication::setApplicationVersion(QString::fromLatin1(GENYCASTER_APP_VERSION));
