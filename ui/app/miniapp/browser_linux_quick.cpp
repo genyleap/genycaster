@@ -185,6 +185,15 @@ public:
     {
         if (m_callbacks.activated) m_callbacks.activated();
     }
+    Q_INVOKABLE void requestMinimize()
+    {
+        if (m_callbacks.minimize) m_callbacks.minimize();
+        else setVisible(false);
+    }
+    Q_INVOKABLE void requestShare()
+    {
+        if (m_callbacks.share) m_callbacks.share();
+    }
 
     void load(const QUrl& url, const QUrl& /*referrer*/) override
     {
