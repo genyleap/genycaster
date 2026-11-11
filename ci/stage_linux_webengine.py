@@ -48,9 +48,14 @@ def install(appdir: Path, qt_root: Path) -> None:
     )
     resource_dir = appdir / "usr/resources"
     resource_dir.mkdir(parents=True, exist_ok=True)
-    for resource in source_resources.glob("qtwebengine_resources*.pak"):
-        shutil.copy2(resource, resource_dir / resource.name)
-    shutil.copy2(source_resources / "icudtl.dat", resource_dir / "icudtl.dat")
+    # Include the complete immutable Chromium resource set (some Qt 6.140
+    # builds also ship V8 snapshots and DevTools resource packs). Omitting
+    # one may work on the build host but fail at runtime on another machine.
+    for resource in source_resources.iterdir():
+        if resource.is_file() and resource.suffix.lower() in {".pak", ".bin", ".dat"}:
+            shutil.copy2(resource, resource_dir / resource.name)
+    require((resource_dir / "icudtl.dat").is_file(),
+            "Chromium ICU data was not staged")
 
     locale_source = next(
         p for p in (qt_root / "translations/qtwebengine_locales",
