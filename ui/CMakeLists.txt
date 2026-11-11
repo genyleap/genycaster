@@ -203,6 +203,9 @@ endif()
 if(NOT ANDROID)
     list(REMOVE_ITEM farcasterDiscoveredQmlFiles components/apps/AndroidWebView.qml)
 endif()
+# The Linux-only WebEngine Quick host is loaded dynamically from a separate
+# qrc resource. Never import QtWebEngine into the common cross-platform QML.
+list(REMOVE_ITEM farcasterDiscoveredQmlFiles app/miniapp/EmbeddedBrowser.qml)
 list(SORT farcasterDiscoveredQmlFiles)
 set(farcasterRegisteredQmlFiles ${farcasterQmlFiles})
 list(SORT farcasterRegisteredQmlFiles)
@@ -524,23 +527,33 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     genycaster_macos_setup_browser()
     set(_genycasterMiniAppBrowserAvailable ON)
 elseif(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    find_package(Qt6 QUIET COMPONENTS Widgets WebChannel WebEngineWidgets)
-    if(TARGET Qt6::Widgets AND TARGET Qt6::WebChannel AND TARGET Qt6::WebEngineWidgets)
-        add_library(farcaster_miniapp_browser STATIC app/miniapp/browser_linux.cpp)
+    find_package(Qt6 QUIET COMPONENTS Widgets WebChannel WebEngineWidgets WebEngineQuick)
+    if(TARGET Qt6::Widgets AND TARGET Qt6::WebChannel
+       AND TARGET Qt6::WebEngineWidgets AND TARGET Qt6::WebEngineQuick)
+        add_library(farcaster_miniapp_browser STATIC
+            app/miniapp/browser_linux.cpp
+            app/miniapp/browser_linux_quick.cpp)
         target_compile_features(farcaster_miniapp_browser PUBLIC cxx_std_26)
         target_link_libraries(farcaster_miniapp_browser PRIVATE
-            Qt6::Core Qt6::Gui Qt6::Network Qt6::Widgets
-            Qt6::WebChannel Qt6::WebEngineWidgets)
+            Qt6::Core Qt6::Gui Qt6::Network Qt6::Widgets Qt6::Quick Qt6::Qml
+            Qt6::WebChannel Qt6::WebEngineWidgets Qt6::WebEngineQuick)
         farcaster_enable_warnings(farcaster_miniapp_browser)
         set(_genycasterMiniAppBrowserAvailable ON)
-        target_link_libraries(genycaster PRIVATE Qt6::Widgets)
+        target_link_libraries(genycaster PRIVATE Qt6::Widgets Qt6::WebEngineQuick)
         target_compile_definitions(genycaster PRIVATE
             GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS=1)
-        message(STATUS "Native Linux Mini App host: Qt WebEngine Widgets + WebChannel")
+        # Qt Quick's WebEngine is used only for in-window Bottom/Left/Right
+        # drawers. Separate Window keeps the existing QWidget engine.
+        set_source_files_properties(app/miniapp/EmbeddedBrowser.qml
+            PROPERTIES QT_RESOURCE_ALIAS "EmbeddedBrowser.qml")
+        qt_add_resources(genycaster genycaster_linux_miniapp_quick
+            PREFIX "/genycaster/miniapp"
+            FILES app/miniapp/EmbeddedBrowser.qml)
+        message(STATUS "Native Linux Mini App host: Qt WebEngine Widgets + Quick + WebChannel")
     elseif(GENYCASTER_REQUIRE_LINUX_MINIAPP_HOST)
         message(FATAL_ERROR
-            "Native Linux Mini Apps need Qt WebEngine (separate Qt 6.12 extension) "
-            "and Qt WebChannel. Install them into the same Qt SDK before building.")
+            "Native Linux Mini Apps need matching Qt WebEngine Widgets, Quick, "
+            "Qt WebChannel and Qt 6.12 runtime resources in one SDK.")
     else()
         message(STATUS "Native Linux Mini App host disabled: Qt WebEngine/WebChannel absent")
     endif()
