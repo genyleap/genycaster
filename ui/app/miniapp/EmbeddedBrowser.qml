@@ -226,17 +226,17 @@ Popup {
             visible: root.pageLoading
             color: Theme.surfaceRaised
             Rectangle {
-                anchors.left: parent.left
+                id: progressStrip
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: parent.width * 0.6
+                width: Math.max(24, parent.width * 0.38)
                 color: Theme.accent
                 SequentialAnimation on x {
                     running: root.pageLoading && !root.adapter.reduceMotion
                     loops: Animation.Infinite
                     NumberAnimation {
-                        from: -parent.width * 0.6
-                        to: parent.width
+                        from: -progressStrip.width
+                        to: progressStrip.parent.width
                         duration: 950
                     }
                 }
