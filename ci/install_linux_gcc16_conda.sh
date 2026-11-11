@@ -87,18 +87,62 @@ g++-16 --version | head -1
   echo "::error::Conda fallback did not provision G++ 16.2.0" >&2
   exit 1
 }
-# Check the actual release linker path before downloading/building Qt.
-# A compiler version check alone does not prove collect2 can find LLD.
-printf 'int main() { return 0; }\n' > "$work/link-smoke.cpp"
-g++-16 -std=c++26 -fuse-ld=lld "$work/link-smoke.cpp" -o "$work/link-smoke"
+# The conda-forge compiler defaults to its bundled glibc/sysroot while
+# the official Qt SDK and Ubuntu development packages target THIS native
+# Ubuntu 24.04 ARM64 environment. Repeated missing OpenGL/Boost/SQLite
+# headers were symptoms of mixing two sysroots, not missing apt packages.
+# Use the Ubuntu sysroot consistently for compilation AND linking.
+# This Linux CI release intentionally targets glibc <= 2.39 (Ubuntu 24.04);
+# do not use these flags for other architectures or cross-compilation.
+for flag_name in CFLAGS CXXFLAGS; do
+  old_flags="${!flag_name:-}"
+  flag_value="${old_flags:+$old_flags }--sysroot=/"
+  export "$flag_name=$flag_value"
+  printf '%s=%s\n' "$flag_name" "$flag_value" >> "${GITHUB_ENV:?}"
+done
+
+# Fail BEFORE the costly Qt download if GCC still picks conda's older glibc.
+native_glibc="$(getconf GNU_LIBC_VERSION)"
+compiler_glibc="$(printf '#include <features.h>\n__GLIBC__ __GLIBC_MINOR__\n' |
+  g++-16 --sysroot=/ -std=c++26 -E -P -x c++ - | tail -1)"
+expected_glibc="${native_glibc#glibc }"
+actual_glibc="${compiler_glibc// /.}"
+if [[ "$actual_glibc" != "$expected_glibc" ]]; then
+  echo "::error::GCC16 sysroot glibc $actual_glibc differs from Ubuntu $expected_glibc" >&2
+  exit 1
+fi
+
+# Compile the external development headers required by the full release.
+# A successful GCC version/module smoke does NOT prove these are reachable.
+cat > "$work/native-headers-smoke.cpp" <<'CPP'
+#include <sqlite3.h>
+#include <boost/json.hpp>
+#include <openssl/ssl.h>
+#include <curl/curl.h>
+#include <GL/gl.h>
+#include <EGL/egl.h>
+static_assert(SQLITE_VERSION_NUMBER >= 3000000);
+CPP
+g++-16 --sysroot=/ -std=c++26 -fsyntax-only "$work/native-headers-smoke.cpp"
+
+# Check native library search as well, not only header preprocessing.
+cat > "$work/link-smoke.cpp" <<'CPP'
+#include <sqlite3.h>
+int main() {
+    if (sqlite3_initialize() != SQLITE_OK) return 1;
+    return sqlite3_shutdown() == SQLITE_OK ? 0 : 2;
+}
+CPP
+g++-16 --sysroot=/ -std=c++26 -fuse-ld=lld \
+  "$work/link-smoke.cpp" -lsqlite3 -o "$work/link-smoke"
 # Smoke-check an actual C++26 Qt-style module so the toolchain cannot
 # pass a basic source file but later fail on C++ module assembly.
 cat > "$work/module-smoke.cppm" <<'CXX_MODULE'
 export module genycaster.toolchain.smoke;
 export int answer() { return 42; }
 CXX_MODULE
-g++-16 -std=c++26 -fmodules-ts -x c++ -c "$work/module-smoke.cppm" \
+g++-16 --sysroot=/ -std=c++26 -fmodules-ts -x c++ -c "$work/module-smoke.cppm" \
   -o "$work/module-smoke.o"
 test -x "$work/link-smoke"
 "$work/link-smoke"
-echo "::notice::Native GCC16 ARM64 and LLD link smoke test passed"
+echo "::notice::Native Ubuntu sysroot glibc $actual_glibc, GCC16, Linux headers, SQLite link and C++26 module smoke passed"
