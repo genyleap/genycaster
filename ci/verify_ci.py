@@ -35,6 +35,7 @@ def main() -> None:
     assert "ci/test_linux_distro_assets.py" in gate
     assert "ci/test_macos_otool_headers.py" in gate
     assert "ci/test_release_feature_contract.py" in gate
+    assert "ci/test_macos_signing_policy.py" in gate
     assert "ci/verify_release_feature_contract.py --strict" in gate
     assert "ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16" in workflow
     assert "ci/preflight_linux_qt_runtime.py --qt-root" in workflow
