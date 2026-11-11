@@ -68,7 +68,6 @@ cmake -S . -B "$build_dir" -G Ninja \
   -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
   -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
 grep -q '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON
-test -x "$build_dir/bin/Genycaster"
 # Inspect the real linked executable before linuxdeploy scans it. Qt can
 # resolve at configure time despite a missing desktop/audio runtime SONAME.
 missing_runtime="$(LD_LIBRARY_PATH="$QT_ROOT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
@@ -133,7 +132,6 @@ bash ci/smoke_linux_install.sh "$deb" "$appimage"
 printf '\nLocal %s release-equivalent packages: %s\n' "$arch" "$outdir"
  "$build_dir/CMakeCache.txt"
 grep -q '^GENYCASTER_REQUIRE_LINUX_MINIAPP_HOST:BOOL=ON
-test -x "$build_dir/bin/Genycaster"
 # Inspect the real linked executable before linuxdeploy scans it. Qt can
 # resolve at configure time despite a missing desktop/audio runtime SONAME.
 missing_runtime="$(LD_LIBRARY_PATH="$QT_ROOT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
@@ -149,6 +147,7 @@ mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
   "$appdir/usr/share/icons/hicolor/512x512/apps" "$appdir/usr/share/doc/genycaster" \
   "$deploy_dir" "$outdir"
 cp "$build_dir/bin/Genycaster" "$appdir/usr/bin/"
+python3 ci/stage_linux_webengine.py "$appdir" --qt-root "$QT_ROOT_DIR"
 install -m 755 /usr/bin/zsync "$appdir/usr/bin/zsync"
 cp /usr/share/doc/zsync/copyright "$appdir/usr/share/doc/genycaster/zsync-copyright"
 cp properties/Linux/genycaster.png "$appdir/usr/share/icons/hicolor/512x512/apps/genycaster.png"
@@ -172,6 +171,7 @@ export PATH="$deploy_dir:$PATH"
 python3 ci/prune_linux_qt_plugins.py "$appdir"
 python3 ci/bundle_linux_cpp_runtime.py "$appdir" --compiler g++-16
 python3 ci/bundle_linux_tls_runtime.py "$appdir" --qt-root "$QT_ROOT_DIR"
+python3 ci/bundle_linux_webengine_runtime.py "$appdir" --qt-root "$QT_ROOT_DIR"
 python3 ci/audit_linux_appdir.py "$appdir" --require-miniapps
 (
   cd "$deploy_dir"
@@ -213,6 +213,7 @@ mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
   "$appdir/usr/share/icons/hicolor/512x512/apps" "$appdir/usr/share/doc/genycaster" \
   "$deploy_dir" "$outdir"
 cp "$build_dir/bin/Genycaster" "$appdir/usr/bin/"
+python3 ci/stage_linux_webengine.py "$appdir" --qt-root "$QT_ROOT_DIR"
 install -m 755 /usr/bin/zsync "$appdir/usr/bin/zsync"
 cp /usr/share/doc/zsync/copyright "$appdir/usr/share/doc/genycaster/zsync-copyright"
 cp properties/Linux/genycaster.png "$appdir/usr/share/icons/hicolor/512x512/apps/genycaster.png"
@@ -236,6 +237,7 @@ export PATH="$deploy_dir:$PATH"
 python3 ci/prune_linux_qt_plugins.py "$appdir"
 python3 ci/bundle_linux_cpp_runtime.py "$appdir" --compiler g++-16
 python3 ci/bundle_linux_tls_runtime.py "$appdir" --qt-root "$QT_ROOT_DIR"
+python3 ci/bundle_linux_webengine_runtime.py "$appdir" --qt-root "$QT_ROOT_DIR"
 python3 ci/audit_linux_appdir.py "$appdir" --require-miniapps
 (
   cd "$deploy_dir"
