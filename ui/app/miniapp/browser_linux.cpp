@@ -59,51 +59,63 @@ namespace {
 
 [[nodiscard]] QString documentBridgeScript()
 {
-    // qwebchannel.js ships as a Qt WebChannel resource. Keep the transport
-    // initialized at document creation: the Farcaster SDK inspects
-    // ReactNativeWebView during JavaScript import, before DOM ready.
+    // Farcaster's SDK must observe ReactNativeWebView in the MAIN frame at
+    // document creation. Do not expose qt.webChannelTransport in MainWorld:
+    // cross-origin iframes must not be able to invoke native QObject methods.
+    return QStringLiteral(R"JS((() => {
+        const token = crypto.randomUUID();
+        let count = 0, since = performance.now();
+        const endpoint = Object.freeze({postMessage(payload) {
+            if (typeof payload !== 'string' || payload.length > 32768)
+                throw new RangeError('Mini App request exceeds the host limit');
+            const now = performance.now();
+            if (now - since >= 1000) { since = now; count = 0; }
+            if (++count > 120) throw new Error('Mini App host rate limit exceeded');
+            window.postMessage({__genyMiniAppRequest: true,
+                document: token, message: payload}, location.origin);
+        }});
+        Object.defineProperty(window, 'ReactNativeWebView', {value: endpoint});
+        Object.defineProperty(window, '__genyMiniAppReply', {value: (doc, data) => {
+            if (doc === token)
+                document.dispatchEvent(new MessageEvent('FarcasterFrameCallback', {data}));
+        }});
+        Object.defineProperty(window, '__genyMiniAppEthProviderEvent', {value: (doc, data) => {
+            if (doc === token)
+                document.dispatchEvent(new MessageEvent('FarcasterFrameEthProviderEvent', {data}));
+        }});
+        Object.defineProperty(window, '__genyMiniAppEvent', {value: (doc, data) => {
+            if (doc === token)
+                document.dispatchEvent(new MessageEvent('FarcasterFrameEvent', {data}));
+        }});
+    })();)JS");
+}
+
+[[nodiscard]] QString isolatedTransportScript()
+{
     QFile library{QStringLiteral(":/qtwebchannel/qwebchannel.js")};
-    if (!library.open(QIODevice::ReadOnly)) {
-        return {};
-    }
+    if (!library.open(QIODevice::ReadOnly)) return {};
     return QString::fromUtf8(library.readAll()) + QStringLiteral(R"JS(
 ;(() => {
-    const token = crypto.randomUUID();
-    let channel = null, calls = 0, windowStart = performance.now();
+    // This code runs in ApplicationWorld on the top-level document only.
+    // The bridge QObject and Qt IPC are invisible in the Mini App MainWorld.
+    let bridge = null;
     const pending = [];
-    const send = (payload) => {
-        if (channel) channel.postMessage(payload, token);
-        else {
-            if (pending.length >= 64) throw new Error('Mini App initialization queue full');
-            pending.push(payload);
-        }
-    };
-    const endpoint = Object.freeze({postMessage(payload) {
-        if (typeof payload !== 'string' || payload.length > 32768)
-            throw new RangeError('Mini App request exceeds the host limit');
-        const now = performance.now();
-        if (now - windowStart >= 1000) { windowStart = now; calls = 0; }
-        if (++calls > 120) throw new Error('Mini App host rate limit exceeded');
-        send(payload);
-    }});
-    Object.defineProperty(window, 'ReactNativeWebView', {value: endpoint});
-    Object.defineProperty(window, '__genyMiniAppReply', {value: (doc, data) => {
-        if (doc === token)
-            document.dispatchEvent(new MessageEvent('FarcasterFrameCallback', {data}));
-    }});
-    Object.defineProperty(window, '__genyMiniAppEthProviderEvent', {value: (doc, data) => {
-        if (doc === token)
-            document.dispatchEvent(new MessageEvent('FarcasterFrameEthProviderEvent', {data}));
-    }});
-    Object.defineProperty(window, '__genyMiniAppEvent', {value: (doc, data) => {
-        if (doc === token)
-            document.dispatchEvent(new MessageEvent('FarcasterFrameEvent', {data}));
-    }});
+    window.addEventListener('message', event => {
+        if (event.source !== window || event.origin !== window.location.origin) return;
+        const value = event.data;
+        if (!value || value.__genyMiniAppRequest !== true
+            || typeof value.message !== 'string'
+            || typeof value.document !== 'string'
+            || value.message.length > 32768 || value.document.length > 64) return;
+        if (bridge) bridge.postMessage(value.message, value.document);
+        else if (pending.length < 64) pending.push([value.message, value.document]);
+    });
     if (typeof QWebChannel !== 'function' || !window.qt?.webChannelTransport) return;
-    new QWebChannel(qt.webChannelTransport, (connection) => {
-        channel = connection.objects.genyMiniAppBridge || null;
-        if (!channel) return;
-        for (const payload of pending.splice(0)) channel.postMessage(payload, token);
+    new QWebChannel(qt.webChannelTransport, connection => {
+        bridge = connection.objects.genyMiniAppBridge || null;
+        if (!bridge) return;
+        for (const [message, document] of pending.splice(0))
+            bridge.postMessage(message, document);
     });
 })();
 )JS");
@@ -274,10 +286,10 @@ public:
             QWebEngineSettings::PlaybackRequiresUserGesture, true);
 
         if (m_role == BrowserRole::MiniApp) {
-            const QString bridgeSource = documentBridgeScript();
-            if (bridgeSource.isEmpty()) {
-                // Factory rejects this instance and tears down its window
-                // before any unbridged document can navigate.
+            const QString transportSource = isolatedTransportScript();
+            if (transportSource.isEmpty()) {
+                // Factory rejects this instance before any unbridged document
+                // can navigate; no fallback to external browser.
                 m_page = nullptr;
                 return;
             }
@@ -286,14 +298,22 @@ public:
                 m_page, origin, m_callbacks.message, m_page};
             m_channel->registerObject(
                 QStringLiteral("genyMiniAppBridge"), m_transport);
-            m_page->setWebChannel(m_channel, QWebEngineScript::MainWorld);
-            QWebEngineScript script{};
-            script.setName(QStringLiteral("GenyCasterMiniAppSdk"));
-            script.setSourceCode(bridgeSource);
-            script.setInjectionPoint(QWebEngineScript::DocumentCreation);
-            script.setWorldId(QWebEngineScript::MainWorld);
-            script.setRunsOnSubFrames(false);
-            m_page->scripts().insert(script);
+            m_page->setWebChannel(m_channel, QWebEngineScript::ApplicationWorld);
+            QWebEngineScript transport{};
+            transport.setName(QStringLiteral("GenyCasterPrivateMiniAppTransport"));
+            transport.setSourceCode(transportSource);
+            transport.setInjectionPoint(QWebEngineScript::DocumentCreation);
+            transport.setWorldId(QWebEngineScript::ApplicationWorld);
+            transport.setRunsOnSubFrames(false);
+            m_page->scripts().insert(transport);
+
+            QWebEngineScript publicSdk{};
+            publicSdk.setName(QStringLiteral("GenyCasterMiniAppSdk"));
+            publicSdk.setSourceCode(documentBridgeScript());
+            publicSdk.setInjectionPoint(QWebEngineScript::DocumentCreation);
+            publicSdk.setWorldId(QWebEngineScript::MainWorld);
+            publicSdk.setRunsOnSubFrames(false);
+            m_page->scripts().insert(publicSdk);
         }
 
         QObject::connect(m_page, &QWebEnginePage::loadStarted,
