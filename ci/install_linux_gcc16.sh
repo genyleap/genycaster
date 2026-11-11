@@ -40,15 +40,63 @@ candidates=(
   https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu
   https://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu
 )
+# Some GitHub ARM runners cannot resolve Canonical-owned domains even
+# though GitHub, Qt and independent Ubuntu mirrors are reachable. Query two
+# HTTPS DNS-over-HTTPS services only after the normal TLS probe fails.
+# /etc/hosts changes are ephemeral to the CI VM; curl still validates the
+# hostname's TLS certificate and APT still verifies signed Release files.
+resolve_ppa_hostname() {
+  local hostname="$1" response="" address="" resolver=""
+  for resolver in \
+      "https://dns.google/resolve?name=${hostname}&type=A" \
+      "https://cloudflare-dns.com/dns-query?name=${hostname}&type=A"; do
+    response="$(curl --fail --location --silent --show-error \
+      --connect-timeout 4 --max-time 10 \
+      -H 'Accept: application/dns-json' "$resolver" || true)"
+    [[ -n "$response" ]] || continue
+    address="$(printf '%s' "$response" | python3 -c '
+import ipaddress
+import json
+import sys
+try:
+    record = json.load(sys.stdin)
+    if record.get("Status") == 0:
+        for item in record.get("Answer", []):
+            if item.get("type") != 1:
+                continue
+            addr = ipaddress.IPv4Address(item["data"])
+            if addr.is_global:
+                print(addr)
+                break
+except (KeyError, ValueError, TypeError):
+    pass
+' || true)"
+    if [[ -n "$address" ]]; then
+      printf '%s %s\n' "$address" "$hostname" | sudo tee -a /etc/hosts >/dev/null
+      echo "::notice::Resolved PPA hostname through verified HTTPS DNS: $hostname"
+      return 0
+    fi
+  done
+  return 1
+}
+
+probe_ppa() {
+  curl --fail --location --silent --show-error \
+    --connect-timeout 4 --max-time 10 \
+    "$1/dists/noble/InRelease" -o /dev/null
+}
+
 selected=""
 for repo_url in "${candidates[@]}"; do
   echo "::group::Checking signed GCC16 PPA archive at $repo_url"
-  if ! curl --fail --location --silent --show-error \
-      --connect-timeout 4 --max-time 10 \
-      "$repo_url/dists/noble/InRelease" -o /dev/null; then
-    echo "::warning::GCC16 PPA endpoint unavailable: $repo_url"
-    echo "::endgroup::"
-    continue
+  if ! probe_ppa "$repo_url"; then
+    ppa_host="${repo_url#https://}"
+    ppa_host="${ppa_host%%/*}"
+    if ! resolve_ppa_hostname "$ppa_host" || ! probe_ppa "$repo_url"; then
+      echo "::warning::GCC16 PPA endpoint unavailable: $repo_url"
+      echo "::endgroup::"
+      continue
+    fi
   fi
   printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\n' \
     "$repo_url" | sudo tee /etc/apt/sources.list.d/genycaster-toolchain-r.list >/dev/null
