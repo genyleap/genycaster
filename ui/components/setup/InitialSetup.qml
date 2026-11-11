@@ -1638,6 +1638,70 @@ Item {
                     }
                 }
             }
+
+            // OS-branded accent is a separate choice from System/Dark/Light.
+            // Only selecting it changes the color preset; appearance mode
+            // remains independent and user overrides stay persistent.
+            Button {
+                id: setupPlatformColor
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.space2
+                implicitHeight: 76
+                focusPolicy: Qt.StrongFocus
+                readonly property bool chosen: appearanceController.colorThemeId === "platform"
+                Accessible.name: Theme.platformName + " " + Theme.platformAccentHex
+                Accessible.checked: chosen
+                onClicked: appearanceController.setColorThemeId("platform")
+                background: Superellipse {
+                    fillColor: setupPlatformColor.chosen ? Theme.surfaceSelected : Theme.surfaceMuted
+                    borderWidth: setupPlatformColor.chosen ? 2 : Theme.strokeHairline
+                    borderColor: setupPlatformColor.chosen ? Theme.accent : Theme.borderSubtle
+                    curveDepth: Theme.curveContainer
+                }
+                contentItem: RowLayout {
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space3
+                    Item {
+                        Layout.preferredWidth: 44
+                        Layout.preferredHeight: 44
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 14
+                            color: Theme.platformAccentColor
+                        }
+                        Icon {
+                            anchors.centerIn: parent
+                            text: Theme.platformIcon
+                            color: Theme.contrastInk(Theme.platformAccentColor)
+                            preferredSize: 24
+                        }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: Theme.platformName
+                            color: Theme.ink
+                            font.weight: Theme.weightDemiBold
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: Theme.platformAccentHex.toUpperCase()
+                            color: Theme.inkMuted
+                            font.family: Theme.latinFontFamily
+                            font.pixelSize: Theme.typeCaptionSize
+                            forceLeftToRight: true
+                        }
+                    }
+                    Icon {
+                        visible: setupPlatformColor.chosen
+                        text: Theme.iconCheck
+                        color: Theme.accent
+                        preferredSize: 21
+                    }
+                }
+            }
         }
     }
 
