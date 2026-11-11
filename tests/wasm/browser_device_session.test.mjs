@@ -74,3 +74,22 @@ test('malformed device identity and unavailable secure storage fail closed',asyn
     await assert.rejects(service.restore(),/Invalid local device session/);
     assert.throws(()=>createDeviceSession({...browser,isSecureContext:false}),/HTTPS/);
 });
+
+test('expired device continuity requires Setup again without retaining an expired FID',async()=>{
+    const {browser,table}=fakeBrowser();
+    const session=createDeviceSession(browser);
+    await session.remember('42');
+    table.set('current',{...table.get('current'),createdAt:Date.now()-31*24*60*60*1000});
+    assert.equal(await session.restore(),null);
+    assert.equal(table.has('current'),false);
+});
+test('future or invalid continuity timestamp is never trusted',async()=>{
+    const {browser,table}=fakeBrowser();
+    const session=createDeviceSession(browser);
+    await session.remember('42');
+    const original=table.get('current');
+    table.set('current',{...original,createdAt:Date.now()+24*60*60*1000});
+    await assert.rejects(session.restore(),/timestamp/);
+    table.set('current',{...original,createdAt:'yesterday'});
+    await assert.rejects(session.restore(),/timestamp/);
+});

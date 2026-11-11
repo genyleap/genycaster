@@ -59,6 +59,18 @@ Authenticated client session + valid protocol signer
 
 Browsing or resolving another Farcaster identity must never establish a client session. A client session must never be treated as a protocol signer.
 
+On WebAssembly, an already authenticated browser may keep an origin-scoped,
+non-extractable WebCrypto Ed25519 device-continuity key and a linked Farcaster FID
+in IndexedDB. A signed local challenge proves possession of that key on reload;
+it is **not** a refreshed OpenProof token or server-authenticated session.
+Remembered continuity expires after 30 days on that browser (subject to the
+limitations of the device clock) and is removed at the next restore. Explicit
+sign-out removes the local continuity record. Clearing browser site data also
+removes it, whereas publishing a new WASM release does not. Reusing the FID
+never authorizes protocol writes: the stored protocol signer must independently
+pass live Snapchain registration, scope, expiry and revocation checks. Other
+Mini App wallet grants and authenticated product-service sessions are distinct.
+
 The normal native sign-in path uses OpenProof OAuth device authorization. Genycaster
 opens the first-party Genyleap account surface with a local `return_to` target;
 an existing identity-provider session is reused by that browser flow, so

@@ -5,6 +5,9 @@ const dbName='org.genycaster.browser-identity';
 const storeName='device';
 const entry='current';
 const fidPattern=/^[1-9][0-9]{0,19}$/;
+// Device-local continuity is not an OpenProof session or signer authorization.
+// Require explicit authentication again after 30 days on this browser.
+const maxDeviceAgeMs=30*24*60*60*1000;
 function requireBrowser(browser) {
     if(!browser.isSecureContext||typeof browser.crypto?.subtle?.generateKey!=='function'
        ||typeof browser.indexedDB?.open!=='function')
@@ -58,6 +61,15 @@ export function createDeviceSession(browser=globalThis) {
         async restore() {
             const row=await access(browser,'readonly',store=>store.get(entry));
             if(!row)return null;
+            if(!Number.isSafeInteger(row.createdAt) || row.createdAt<=0
+                || row.createdAt>Date.now()+5*60*1000)
+                throw new Error('Invalid local device session timestamp; sign in again');
+            if(Date.now()-row.createdAt>maxDeviceAgeMs) {
+                // Remove an expired remembered FID without touching separate
+                // signer keys or user preferences; Setup will require sign-in.
+                await access(browser,'readwrite',store=>store.delete(entry));
+                return null;
+            }
             if(row.version!==1||!validFid(row.fid)
                 ||row.privateKey?.type!=='private'
                 ||row.privateKey?.algorithm?.name!=='Ed25519'

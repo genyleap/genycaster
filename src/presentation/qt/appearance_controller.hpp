@@ -67,7 +67,8 @@ public:
 
   [[nodiscard]] QString themeMode() const;
   [[nodiscard]] QString colorThemeId() const;
-  /** @brief Device OS/distro identity used for the optional native-color preset. */
+  /** @brief Host OS identity for native apps or browser-reported host for WASM.
+   * The browser may withhold or spoof this coarse hint; unknown hosts use Web. */
   [[nodiscard]] QString platformName() const;
   [[nodiscard]] QString platformAccentColor() const;
   [[nodiscard]] QString platformIcon() const;

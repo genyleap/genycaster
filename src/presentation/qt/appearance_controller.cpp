@@ -6,6 +6,10 @@
 #include <QSysInfo>
 #include <QStyleHints>
 
+#if defined(Q_OS_WASM)
+#include <emscripten/emscripten.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 
@@ -21,7 +25,34 @@ constexpr auto kSocialNavigationWidthSetting = "layout/socialNavigationWidth";
 constexpr auto kSocialContextWidthSetting = "layout/socialContextWidth";
 constexpr auto kDefaultCustomAccent = "#FF4FA3";
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+// A WebAssembly binary runs on the browser's virtual platform, not the host
+// OS. Resolve only the coarse, non-identifying host platform exposed by the
+// browser; unknown/obscured platforms remain Web, never fake Linux.
+#if defined(Q_OS_WASM)
+EM_JS(int, browserHostPlatform, (), {
+  const nav = typeof navigator === 'object' ? navigator : null;
+  if (!nav) return 0;
+  const platform = String(nav.userAgentData?.platform || nav.platform || '');
+  const agent = String(nav.userAgent || '');
+  const identity = platform + ' ' + agent;
+  const tabletMac = /Mac/i.test(platform) && Number(nav.maxTouchPoints || 0) > 1;
+  if (/iPad|iPhone|iPod/i.test(identity) || tabletMac) return 2;
+  if (/Android/i.test(identity)) return 5;
+  if (/Mac/i.test(platform) || /Macintosh|Mac OS X/i.test(agent)) return 1;
+  if (/Win/i.test(platform) || /Windows NT/i.test(agent)) return 3;
+  if (/CrOS|Chrome OS/i.test(identity)) return 6;
+  if (/Linux|X11/i.test(identity)) return 4;
+  return 0;
+});
+
+[[nodiscard]] int currentBrowserHostPlatform()
+{
+  static const int host = browserHostPlatform();
+  return host;
+}
+#endif
+
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && !defined(Q_OS_WASM)
 // Match /etc/os-release ID via QSysInfo::productType(), never ID_LIKE.
 // A derivative must not inherit a parent distribution's branding unless its
 // own icon is explicitly mapped. Unknown IDs retain the generic Linux mark.
@@ -215,7 +246,17 @@ AppearanceController::AppearanceController(QSettings &settings,
 QString AppearanceController::themeMode() const { return m_themeMode; }
 QString AppearanceController::colorThemeId() const { return m_colorThemeId; }
 QString AppearanceController::platformName() const {
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_WASM)
+  switch (currentBrowserHostPlatform()) {
+    case 1: return QStringLiteral("macOS");
+    case 2: return QStringLiteral("iOS / iPadOS");
+    case 3: return QStringLiteral("Windows");
+    case 4: return QStringLiteral("Linux");
+    case 5: return QStringLiteral("Android");
+    case 6: return QStringLiteral("ChromeOS");
+    default: return QStringLiteral("Web");
+  }
+#elif defined(Q_OS_ANDROID)
   return QStringLiteral("Android");
 #elif defined(Q_OS_IOS)
   return QStringLiteral("iOS");
@@ -225,14 +266,20 @@ QString AppearanceController::platformName() const {
   return QStringLiteral("Windows");
 #elif defined(Q_OS_LINUX)
   return QString::fromLatin1(currentLinuxBrand().name);
-#elif defined(Q_OS_WASM)
-  return QStringLiteral("Web");
 #else
   return QStringLiteral("GenyCaster");
 #endif
 }
 QString AppearanceController::platformAccentColor() const {
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_WASM)
+  switch (currentBrowserHostPlatform()) {
+    case 1: case 2: return QStringLiteral("#007AFF");
+    case 3: return QStringLiteral("#0078D4");
+    case 4: return QStringLiteral("#3584E4");
+    case 5: return QStringLiteral("#3DDC84");
+    default: return QStringLiteral("#315CF5");
+  }
+#elif defined(Q_OS_ANDROID)
   return QStringLiteral("#3DDC84");
 #elif defined(Q_OS_MACOS) || defined(Q_OS_IOS)
   return QStringLiteral("#007AFF");
@@ -245,7 +292,16 @@ QString AppearanceController::platformAccentColor() const {
 #endif
 }
 QString AppearanceController::platformIcon() const {
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_WASM)
+  switch (currentBrowserHostPlatform()) {
+    case 1: return QStringLiteral("platforms/macos");
+    case 2: return QStringLiteral("platforms/ios");
+    case 3: return QStringLiteral("platforms/windows");
+    case 4: return QStringLiteral("platforms/linux");
+    case 5: return QStringLiteral("platforms/android");
+    default: return QStringLiteral("globe");
+  }
+#elif defined(Q_OS_ANDROID)
   return QStringLiteral("platforms/android");
 #elif defined(Q_OS_IOS)
   return QStringLiteral("platforms/ios");
@@ -256,7 +312,7 @@ QString AppearanceController::platformIcon() const {
 #elif defined(Q_OS_LINUX)
   return QString::fromLatin1(currentLinuxBrand().icon);
 #else
-  return QStringLiteral("platforms/linux");
+  return QStringLiteral("globe");
 #endif
 }
 QString AppearanceController::customAccentColor() const {
