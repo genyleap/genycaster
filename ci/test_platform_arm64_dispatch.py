@@ -18,6 +18,15 @@ class Arm64DispatchTest(unittest.TestCase):
         self.assertIn("https://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu",script)
         self.assertIn("if [[ -z \"$selected\" ]]",script)
         self.assertIn("--max-time 10",script)
+        # DNS outages on Canonical endpoints should not require disabling the
+        # signed PPA or silently falling back to an older compiler. DNS-over-
+        # HTTPS maps public IPv4 addresses only; TLS and APT still authenticate.
+        self.assertIn("https://dns.google/resolve?name=",script)
+        self.assertIn("https://cloudflare-dns.com/dns-query?name=",script)
+        self.assertIn("addr.is_global",script)
+        self.assertIn("sudo tee -a /etc/hosts",script)
+        self.assertIn('if ! resolve_ppa_hostname "$ppa_host" || ! probe_ppa "$repo_url"; then',script)
+        self.assertNotIn("curl -k",script)
         self.assertNotIn("keyserver.ubuntu.com",script)
         self.assertTrue((ROOT/"ci/keys/ubuntu-toolchain-r-test.asc").is_file())
         self.assertIn("signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg",script)
