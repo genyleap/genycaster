@@ -168,6 +168,11 @@ jobs:
             echo "::error::No usable Qt Multimedia backend found in $multimedia"
             exit 1
           fi
+      - name: Preflight Qt XCB QML TLS and multimedia runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/preflight_linux_qt_runtime.py --qt-root "$QT_ROOT_DIR"
       - name: Build Qt client
         shell: bash
         run: |
