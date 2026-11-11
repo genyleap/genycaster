@@ -37,6 +37,40 @@ recompiling or consuming new hosted CI minutes.
 
 ## Recommended for Ubuntu 25.10 native ARM64: Ubuntu 24.04 Docker build
 
+### Native Linux Mini Apps (separate WebEngine dependency)
+
+Qt 6.12 does **not** ship Qt WebEngine 6.12 modules. The native in-app
+Mini App browser requires the separately released, compatible **Qt WebEngine
+6.140**, plus Qt WebChannel. The existing Linux ARM64 AppImage/DEB built
+with the base Qt 6.12 Multimedia SDK has no Qt WebEngine renderer and must
+**not** represent the Mini App as an active, wallet-capable session or
+silently open Firefox instead.
+
+The optional, origin-scoped native Linux browser source is
+`ui/app/miniapp/browser_linux.cpp`. Once matching WebEngine developer
+headers, libraries, native subprocess, resources, ICU data and translations
+have been independently provisioned for the Qt 6.12 ARM64 SDK, it can be
+configured explicitly with:
+
+```bash
+cmake -S . -B build/linux-miniapp-experimental -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+  -DFARCASTER_ENABLE_MINIAPPS=ON \
+  -DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON
+```
+
+**Do not use this command as a release recipe yet.** The experimental Linux
+WebEngine adapter and subprocess/resource packaging have **not** passed a
+native ARM64 compile, security, runtime or clean-install acceptance test.
+The default proven local and GitHub Linux release paths deliberately keep
+the optional browser disabled, preserving their previous compile and
+packaging behavior. A normal `aqt install-qt ... --modules qtwebengine`
+must not be added to the Qt 6.12 job: Qt WebEngine 6.140 is a separate
+extension, not a regular 6.12 add-on. Never combine Ubuntu distro Qt
+WebEngine libraries of a different Qt major/minor version with the Qt
+6.12 application runtime.
+
 Ubuntu 25.10 (Questing) does not provide GCC 16 in its normal package
 sources. **Do not mix Ubuntu 24.04 PPA/deb repositories into Ubuntu 25.10**.
 The local container wrapper reuses the already installed official
