@@ -32,6 +32,7 @@ def main() -> None:
     assert "ci/test_packaging.py" in gate
     assert "ci/test_linux_cpp_runtime.py" in gate
     assert "ci/test_linux_release_parity.py" in gate
+    assert "ci/test_linux_distro_assets.py" in gate
     assert "ci/bundle_linux_cpp_runtime.py AppDir --compiler g++-16" in workflow
     assert "ci/preflight_linux_qt_runtime.py --qt-root" in workflow
     linux_job = workflow.split("  linux:", 1)[1].split("  macos:", 1)[0]
