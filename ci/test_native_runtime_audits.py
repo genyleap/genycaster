@@ -101,9 +101,9 @@ class RuntimePackagingTests(unittest.TestCase):
 
     def test_linux_qt_preflight_collects_all_missing_xcb_sonames(self):
         missing = unresolved_sonames(
-            "  libxcb-shape.so.0 => not found\\n"
-            "  libxcb-randr.so.0 => not found\\n"
-            "  libQt6Core.so.6 => /opt/Qt/libQt6Core.so.6 (0x0)\\n"
+            "  libxcb-shape.so.0 => not found\n"
+            "  libxcb-randr.so.0 => not found\n"
+            "  libQt6Core.so.6 => /opt/Qt/libQt6Core.so.6 (0x0)\n"
         )
         self.assertEqual(missing, {"libxcb-shape.so.0", "libxcb-randr.so.0"})
         with tempfile.TemporaryDirectory() as d:
@@ -122,7 +122,7 @@ class RuntimePackagingTests(unittest.TestCase):
             with patch("ci.preflight_linux_qt_runtime.inspect",
                        side_effect=fake_inspect):
                 with self.assertRaisesRegex(ValueError,
-                                            r"libxcb-randr\\.so\\.0, libxcb-shape\\.so\\.0"):
+                                            r"libxcb-randr\.so\.0, libxcb-shape\.so\.0"):
                     preflight_qt_runtime(root)
 
     def test_linux_qt_preflight_allows_absent_optional_multimedia_backend(self):
