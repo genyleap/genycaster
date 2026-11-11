@@ -137,6 +137,26 @@ class RuntimePackagingTests(unittest.TestCase):
                        return_value=(set(), "")):
                 preflight_qt_runtime(root)
 
+    def test_linux_qt_preflight_rejects_unloadable_installed_ffmpeg(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "lib").mkdir()
+            for _, relative in (*REQUIRED_PLUGINS, *MEDIA_PLUGINS):
+                plugin = root / relative
+                plugin.parent.mkdir(parents=True, exist_ok=True)
+                plugin.write_bytes(b"fixture")
+
+            def fake_inspect(plugin, _env):
+                if plugin.name == "libffmpegmediaplugin.so":
+                    return ({"libXrandr.so.2"}, "")
+                return (set(), "")
+
+            with patch("ci.preflight_linux_qt_runtime.inspect",
+                       side_effect=fake_inspect):
+                with self.assertRaisesRegex(ValueError,
+                                            "FFmpeg: libXrandr.so.2"):
+                    preflight_qt_runtime(root)
+
     def test_linux_launcher_handles_unbundled_wayland_without_overriding_user(self):
         from ci.bundle_linux_cpp_runtime import LAUNCHER
         self.assertIn('WAYLAND_DISPLAY', LAUNCHER)
