@@ -24,7 +24,14 @@ APPIMAGE_FILE="$(basename "$APPIMAGE")"
 # Keep diagnostics outside dist/: they must never enter the release artifacts.
 DIAGNOSTICS="$PWD/build/ci-linux-render-diagnostics"
 mkdir -p "$DIAGNOSTICS"
-docker run --rm \
+# Hosted CI retains bridge isolation. The local Ubuntu 25.10 ARM64 wrapper
+# selects host networking because its Docker bridge cannot resolve Ubuntu
+# package mirrors. Never accept an arbitrary network name from the environment.
+case "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" in
+  bridge|host) ;;
+  *) echo "Unsupported smoke Docker network mode" >&2; exit 2 ;;
+esac
+docker run --rm --network "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" \
   --mount "type=bind,src=$DIRECTORY,dst=/release,readonly" \
   --mount "type=bind,src=$DIAGNOSTICS,dst=/diagnostics" \
   --env "GENYCASTER_DEB=$FILENAME" \
