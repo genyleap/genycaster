@@ -93,6 +93,8 @@ After this Dockerfile change, the Docker package layer is rebuilt; the
 existing C++ object files in `build/local-linux-arm64` are preserved and
 Ninja reuses them instead of recompiling the entire application.
 
+The ARM64 Qt platform plugin also needs the X11 session-management libraries `libice6` (`libICE.so.6`) and `libsm6` (`libSM.so.6`). Qt Multimedia's FFmpeg plugin needs `libxrandr2` (`libXrandr.so.2`). The preflight rejects **any installed multimedia plugin** that cannot load, even when another installed plugin is usable, because Qt may select the broken backend at runtime.
+
 Qt's XCB platform plugin also depends on multiple XCB extension libraries,
 including `libxcb-shape0`, `libxcb-randr0`, `libxcb-shm0`,
 `libxcb-xfixes0`, `libxcb-xkb1`, and `libxcb-xinput0`. The local
@@ -156,6 +158,7 @@ sudo apt-get install -y software-properties-common python3-venv \
   libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
   libxcb-xfixes0 libxcb-xkb1 libxcb-glx0 libxcb-xinput0 \
   libxcb-render0 libxcb-util1 libx11-xcb1 libxcb-dri3-0 \
+  libice6 libsm6 libxrandr2 \
   libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
   libcurl4-openssl-dev libdbus-1-dev libfontconfig1 libfreetype6 \
   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-good1.0-0 \
