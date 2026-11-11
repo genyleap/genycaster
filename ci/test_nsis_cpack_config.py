@@ -44,7 +44,10 @@ class NsisConfigurationTests(unittest.TestCase):
             (src / "CMakeLists.txt").write_text(cmake_source)
             build = root / "build"
             config = subprocess.run(
-                ["cmake", "-S", str(src), "-B", str(build)],
+                # CI uses Ninja; the minimal Ubuntu 24.04 ARM64 release
+                # container deliberately does not ship Unix Makefiles or an
+                # unversioned C++ compiler. Respect CC/CXX from the release job.
+                ["cmake", "-S", str(src), "-B", str(build), "-G", "Ninja"],
                 capture_output=True, text=True, timeout=90)
             self.assertEqual(config.returncode, 0, config.stdout + config.stderr)
             cpack = build / "CPackConfig.cmake"
