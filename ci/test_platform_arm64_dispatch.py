@@ -14,7 +14,27 @@ class Arm64DispatchTest(unittest.TestCase):
         script=(ROOT/"ci/install_linux_gcc16.sh").read_text()
         self.assertIn("C8EC952E2A0E1FBDC5090F6A2C277A0A352154E5",script)
         self.assertIn("signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg",script)
-        self.assertIn("apt-get install -y --no-install-recommends gcc-16 g++-16 lld",script)
+        self.assertIn("apt-get install -y --no-install-recommends",script)
+        self.assertIn("gcc-16 g++-16 lld",script)
+        self.assertIn("timeout 180s",script)
+        self.assertIn("Dir::Etc::sourcelist=/etc/apt/sources.list.d/genycaster-toolchain-r.list",script)
+        self.assertIn("bash ci/prepare_ubuntu_apt.sh",linux)
+        self.assertIn("sudo timeout 240s apt-get install",linux)
+        mirror=(ROOT/"ci/prepare_ubuntu_apt.sh").read_text()
+        self.assertIn("https://us.ports.ubuntu.com/ubuntu-ports",mirror)
+        self.assertIn("Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg",mirror)
+        self.assertIn("APT::Update::Error-Mode=any",mirror)
+        self.assertIn("timeout 100s apt-get update",mirror)
+
+    def test_android_does_not_require_apt_to_use_hosted_tools(self):
+        workflow=(ROOT/".github/workflows/ci.yml").read_text()
+        android=workflow.split("  android:\\n",1)[1].split("  ios:\\n",1)[0]
+        setup=android.split("      - name: Verify Android build tools",1)[1].split("      - uses: jurplel/install-qt-action",1)[0]
+        self.assertNotIn("sudo apt-get",setup)
+        self.assertNotIn("sudo add-apt-repository",setup)
+        self.assertIn("SDK/NDK and build tools already installed",setup)
+        self.assertIn("timeout 360s",setup)
+        self.assertIn("ndk/source.properties",setup.replace('ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"','ndk/source.properties'))
 
     def test_manual_android_arm64_requests_only_arm64_v8a(self):
         workflow=(ROOT/".github/workflows/ci.yml").read_text()
