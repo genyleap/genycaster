@@ -245,10 +245,9 @@ Popup {
             }
             onPermissionRequested: function(permission) { permission.deny() }
             onFullScreenRequested: function(request) { request.reject() }
-            onFileDialogRequested: function(request) {
-                request.accepted = true
-                request.dialogReject()
-            }
+            // User-initiated file selection keeps Qt's native chooser,
+            // matching the existing desktop WebEngine host. No automatic
+            // filesystem access is granted to web content.
             // Untrusted documents cannot create independent native windows.
             onNewWindowRequested: function(request) {}
         }
