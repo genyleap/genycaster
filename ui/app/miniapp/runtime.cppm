@@ -14,9 +14,7 @@
 
 module;
 
-#include "catalog.hpp"
-#include "host.hpp"
-#include "tasks.hpp"
+#include "controllers_fwd.hpp"
 #include <memory>
 #include <string>
 
@@ -44,7 +42,7 @@ public:
         MiniAppCatalogController& catalog,
         MiniAppTaskManagerController& taskManager,
         bool useDirectProxy,
-        qulonglong clientFid,
+        unsigned long long clientFid,
         capability::wallet::IEthereumWalletBridge* walletBridge = nullptr,
         std::string optimismRpcUrl = "https://mainnet.optimism.io");
     ~MiniAppRuntime();
