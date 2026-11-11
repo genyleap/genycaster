@@ -12,7 +12,6 @@ set -euo pipefail
 }
 
 fingerprint=C8EC952E2A0E1FBDC5090F6A2C277A0A352154E5
-repo_url=https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu
 # This is a public key, not a secret. It is stored with the build sources to
 # avoid reaching the network keyserver on every GitHub runner: the
 # keyserver could not be resolved even when Ubuntu package mirrors worked.
@@ -32,18 +31,48 @@ fi
 gpg --batch --yes --dearmor -o "$work/key.gpg" "$key_source"
 sudo install -m 0644 "$work/key.gpg" \
   /usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg
-printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\n' \
-  "$repo_url" | sudo tee /etc/apt/sources.list.d/genycaster-toolchain-r.list >/dev/null
+# Try both Launchpad's current archive endpoint and its legacy official
+# endpoint. Both must serve the exact same PPA-signed InRelease metadata:
+# APT validates signatures with our fingerprint-checked public key.
+# An unhealthy Canonical DNS/network must not strand an ARM64 runner for
+# minutes, and it must never fall back to an unsigned compiler.
+candidates=(
+  https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu
+  https://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu
+)
+selected=""
+for repo_url in "${candidates[@]}"; do
+  echo "::group::Checking signed GCC16 PPA archive at $repo_url"
+  if ! curl --fail --location --silent --show-error \
+      --connect-timeout 4 --max-time 10 \
+      "$repo_url/dists/noble/InRelease" -o /dev/null; then
+    echo "::warning::GCC16 PPA endpoint unavailable: $repo_url"
+    echo "::endgroup::"
+    continue
+  fi
+  printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\\n' \
+    "$repo_url" | sudo tee /etc/apt/sources.list.d/genycaster-toolchain-r.list >/dev/null
 
-# First mirror indices were refreshed in prepare_ubuntu_apt.sh.
-# Fetch just this signed PPA's index, preserving the Ubuntu package cache.
-sudo timeout 90s apt-get update \
-  -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/genycaster-toolchain-r.list \
-  -o Dir::Etc::sourceparts=- \
-  -o APT::Get::List-Cleanup=0 \
-  -o APT::Update::Error-Mode=any \
-  -o Acquire::Retries=0 \
-  -o Acquire::https::Timeout=12
+  # First mirror indices were refreshed in prepare_ubuntu_apt.sh.
+  # Fetch only this PPA index while keeping Ubuntu's normal signed cache.
+  if sudo timeout 70s apt-get update \
+      -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/genycaster-toolchain-r.list \
+      -o Dir::Etc::sourceparts=- \
+      -o APT::Get::List-Cleanup=0 \
+      -o APT::Update::Error-Mode=any \
+      -o Acquire::Retries=0 \
+      -o Acquire::https::Timeout=12; then
+    selected="$repo_url"
+    echo "::endgroup::"
+    break
+  fi
+  echo "::warning::GCC16 PPA signature/index update failed: $repo_url"
+  echo "::endgroup::"
+done
+if [[ -z "$selected" ]]; then
+  echo "::error::No reachable, correctly signed GCC16 PPA archive. Refusing to build with the wrong C++26 toolchain." >&2
+  exit 1
+fi
 sudo timeout 180s apt-get install -y --no-install-recommends \
   -o Acquire::Retries=1 \
   -o Acquire::https::Timeout=12 \
