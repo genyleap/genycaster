@@ -2073,8 +2073,16 @@ Item {
                             id: identityLinkSlot
                             objectName: "profileIdentityLinksSlot"
                             visible: root.primaryProfileLinkUrl.length > 0
-                            Layout.preferredWidth: Math.min(identityLinks.implicitWidth,
-                                Math.max(Theme.scaleUi(100), root.profileContentWidth * 0.48))
+                            // Use the text's intrinsic size rather than the implicit width of
+                            // a RowLayout containing a width-constrained Button. That cycle
+                            // can collapse the link to zero on Linux's Qt Quick layout engine.
+                            Layout.preferredWidth: Math.min(
+                                Math.max(0, root.profileContentWidth * 0.48),
+                                identityLinkIcon.implicitWidth + identityLinks.spacing
+                                    + Math.min(identityLinkText.implicitWidth,
+                                               Theme.scaleUi(root.compact ? 150 : 230))
+                                    + (identityMoreLinks.visible
+                                       ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
                             Layout.minimumWidth: 0
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredHeight: Math.max(profileDisplayName.height, identityLinks.implicitHeight)
@@ -2091,25 +2099,27 @@ Item {
                                 Button {
                                     id: identityPrimaryLink
                                     objectName: "profileIdentityPrimaryLink"
-                                    Layout.fillWidth: false
+                                    Layout.fillWidth: true
                                     Layout.minimumWidth: 0
-                                    Layout.preferredWidth: Math.min(implicitWidth,
-                                        Math.max(Theme.scaleUi(42), identityLinkSlot.width
-                                            - (identityMoreLinks.visible ? identityMoreLinks.implicitWidth
-                                                + identityLinks.spacing : 0)))
+                                    Layout.maximumWidth: Math.max(0, identityLinkSlot.width
+                                        - (identityMoreLinks.visible
+                                           ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
                                     flat: true
                                     hoverEnabled: true
                                     padding: 0
                                     background: Item {}
                                     contentItem: RowLayout {
+                                        id: identityLinkContent
                                         spacing: Theme.space1
                                         layoutDirection: Theme.uiDirection
                                         Icon {
+                                            id: identityLinkIcon
                                             text: Theme.iconLink
                                             color: Theme.accent
                                             preferredSize: Theme.typeCaptionSize
                                         }
                                         Label {
+                                            id: identityLinkText
                                             Layout.fillWidth: true
                                             Layout.minimumWidth: 0
                                             Layout.preferredWidth: Math.min(implicitWidth,
