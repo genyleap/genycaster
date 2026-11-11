@@ -28,7 +28,7 @@ export MAMBA_ROOT_PREFIX="$work/mamba-root"
 # than GCC from the Ubuntu 26.04 archive (which would raise the glibc floor).
 timeout 480s "$work/micromamba" create -y -p "$prefix" \
   --override-channels -c conda-forge \
-  'gcc_linux-aarch64=16.2.0' 'gxx_linux-aarch64=16.2.0'
+  'binutils_linux-aarch64' 'gcc_linux-aarch64=16.2.0' 'gxx_linux-aarch64=16.2.0'
 
 compiler="$prefix/bin/aarch64-conda-linux-gnu-gcc"
 cxx="$prefix/bin/aarch64-conda-linux-gnu-g++"
@@ -42,6 +42,14 @@ if ! command -v ld.lld >/dev/null; then
     -o Acquire::Retries=1 -o Acquire::https::Timeout=12 lld
 fi
 ld.lld --version
+
+# This GCC distribution expects its target binutils under a prefix. On
+# GitHub's Ubuntu ARM runners, GNU collect2 otherwise reports "cannot find
+# 'ld'" despite the system providing /usr/bin/ld.lld.
+# GCC's COMPILER_PATH is honored by collect2 for external executables.
+test -x "$prefix/bin/aarch64-conda-linux-gnu-ld"
+export COMPILER_PATH="$prefix/bin:/usr/bin"
+echo "COMPILER_PATH=$COMPILER_PATH" >> "${GITHUB_ENV:?}"
 
 # Existing CMake / release scripts select gcc-16 and g++-16 by name.
 # Resolve these only to the verified native GCC16 compiler, never an older
@@ -65,4 +73,10 @@ g++-16 --version | head -1
   echo "::error::Conda fallback did not provision G++ 16.2.0" >&2
   exit 1
 }
-echo "::notice::Using native conda-forge GCC 16.2.0 ARM64 fallback"
+# Check the actual release linker path before downloading/building Qt.
+# A compiler version check alone does not prove collect2 can find LLD.
+printf 'int main() { return 0; }\\n' > "$work/link-smoke.cpp"
+g++-16 -std=c++26 -fuse-ld=lld "$work/link-smoke.cpp" -o "$work/link-smoke"
+test -x "$work/link-smoke"
+"$work/link-smoke"
+echo "::notice::Native GCC16 ARM64 and LLD link smoke test passed"
