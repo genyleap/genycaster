@@ -436,7 +436,6 @@ jobs:
           test "$(sed -n 's/^OPENSSL_CRYPTO_LIBRARY:[^=]*=//p' build/native/CMakeCache.txt)" = "$OPENSSL_STAGE/libcrypto.a"
           test "$(sed -n 's/^OPENSSL_SSL_LIBRARY:[^=]*=//p' build/native/CMakeCache.txt)" = "$OPENSSL_STAGE/libssl.a"
           grep -q '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON
-          test -d "$APP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$APP/Contents/Info.plist")" = Genycaster
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" = Genycaster
           test -n "$(find build/native/bin -maxdepth 1 -type d -name 'Genycaster.app' -print -quit)"
@@ -499,9 +498,7 @@ jobs:
           name: GenyCaster-macos-${{ matrix.arch }}
           path: dist/*
           if-no-files-found: error
-          retention-days: 14
-
- build/native/CMakeCache.txt
+          retention-days: 14 build/native/CMakeCache.txt
           cmake --build build/native --target farcaster_miniapp_browser --parallel 3
           cmake --build build/native --target genycaster --parallel 3
           APP=build/native/bin/Genycaster.app
@@ -523,7 +520,17 @@ jobs:
           # Deploy first; macdeployqt may add QtSql even with sqldrivers
           # hidden. Inspect every shipped Mach-O dependency before removing
           # unused QtSql, and do not let a second deployment repopulate it.
-          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$GITHUB_WORKSPACE/ui" -verbose=1
+          # Qt's deployment scanner walks every QML file under -qmldir.
+          # Exclude Linux-only QtWebEngine Quick and Android-only WebView so
+          # a native macOS WKWebView build never acquires another platform's
+          # Qt WebEngine plugin requirements.
+          QML_SCAN="$RUNNER_TEMP/genycaster-macos-qml-scan"
+          mkdir -p "$QML_SCAN"
+          rsync -a --include='*/' --include='*.qml' --include='*.js' \
+            --include='qmldir' --exclude='*' "$GITHUB_WORKSPACE/ui/" "$QML_SCAN/"
+          rm -f "$QML_SCAN/app/miniapp/EmbeddedBrowser.qml"
+          rm -f "$QML_SCAN/components/apps/AndroidWebView.qml"
+          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$QML_SCAN" -verbose=1
           python3 ci/prune_macos_bundle.py "$APP" --qml-source "$GITHUB_WORKSPACE/ui"
           python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
           mkdir -p dist
