@@ -87,8 +87,13 @@ def preflight(qt_root: Path) -> None:
             + ("; ".join(media_failures) or "both plugins absent")
         )
     elif media_failures:
-        print("Optional Qt Multimedia backends unavailable: "
-              + "; ".join(media_failures))
+        # Qt can dynamically select either plugin at runtime; silently
+        # accepting a present but unloadable backend risks breaking video
+        # even when another backend succeeds.
+        failures.append(
+            "Installed Qt Multimedia plugins have unresolved dependencies: "
+            + "; ".join(media_failures)
+        )
 
     if failures:
         raise ValueError(
