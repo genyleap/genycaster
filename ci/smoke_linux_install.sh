@@ -42,6 +42,17 @@ docker run --rm --network "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" \
     apt-get install -y -qq --no-install-recommends \
       "/release/$GENYCASTER_DEB" xvfb xauth python3-pil libgl1-mesa-dri >/dev/null
     test -x /opt/genycaster/AppRun
+    # The Qt 6.12 Linux binary links the vendor-neutral GLVND OpenGL
+    # dispatcher. On a clean Ubuntu host, libgl1 does not guarantee
+    # libOpenGL.so.0; the DEB must declare libopengl0 explicitly.
+    dpkg-query -W -f="${Status}" libopengl0 | grep -qx "install ok installed"
+    ldconfig -p | grep -q "libOpenGL.so.0"
+    unresolved="$(LD_LIBRARY_PATH=/opt/genycaster/usr/lib \
+      ldd /opt/genycaster/usr/bin/Genycaster | grep "not found" || true)"
+    if [ -n "$unresolved" ]; then
+      printf "Unresolved GenyCaster dependencies in clean Ubuntu:\\n%s\\n" "$unresolved" >&2
+      exit 1
+    fi
     # Qt must come from the installer, not from an independently installed
     # distro package. Test the full QML startup on a blank user environment.
     if dpkg -l libqt6quick6 2>/dev/null | grep -q "^ii "; then
