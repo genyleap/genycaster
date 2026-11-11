@@ -513,15 +513,39 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT EMSCRIPTEN)
     )
 endif()
 
-# This optional leaf is composition-owned: core/application/presentation never
-# import WebKit or the Mini App runtime. Other platforms remain explicitly
-# unavailable rather than silently launching an external browser.
+# Platform browser adapters stay separate from the C++26 Mini App runtime.
+# macOS uses WKWebView. Linux uses the separately released Qt WebEngine and
+# refuses to expose a wallet/SDK runtime unless the native adapter is present.
+option(GENYCASTER_REQUIRE_LINUX_MINIAPP_HOST
+    "Require Linux Qt WebEngine Mini App SDK host instead of an external-browser fallback" OFF)
+set(_genycasterMiniAppBrowserAvailable OFF)
 if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    # Keep the platform SDK bridge and its ObjC++ dialect separate from
-    # the shared Qt/C++26 Mini App runtime composition below.
     include("${CMAKE_SOURCE_DIR}/cmake/platform/macOS/configure.cmake")
     genycaster_macos_setup_browser()
-
+    set(_genycasterMiniAppBrowserAvailable ON)
+elseif(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Qt6 QUIET COMPONENTS Widgets WebChannel WebEngineWidgets)
+    if(TARGET Qt6::Widgets AND TARGET Qt6::WebChannel AND TARGET Qt6::WebEngineWidgets)
+        add_library(farcaster_miniapp_browser STATIC app/miniapp/browser_linux.cpp)
+        target_compile_features(farcaster_miniapp_browser PUBLIC cxx_std_26)
+        target_link_libraries(farcaster_miniapp_browser PRIVATE
+            Qt6::Core Qt6::Gui Qt6::Network Qt6::Widgets
+            Qt6::WebChannel Qt6::WebEngineWidgets)
+        farcaster_enable_warnings(farcaster_miniapp_browser)
+        set(_genycasterMiniAppBrowserAvailable ON)
+        target_link_libraries(genycaster PRIVATE Qt6::Widgets)
+        target_compile_definitions(genycaster PRIVATE
+            GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS=1)
+        message(STATUS "Native Linux Mini App host: Qt WebEngine Widgets + WebChannel")
+    elseif(GENYCASTER_REQUIRE_LINUX_MINIAPP_HOST)
+        message(FATAL_ERROR
+            "Native Linux Mini Apps need Qt WebEngine (separate Qt 6.12 extension) "
+            "and Qt WebChannel. Install them into the same Qt SDK before building.")
+    else()
+        message(STATUS "Native Linux Mini App host disabled: Qt WebEngine/WebChannel absent")
+    endif()
+endif()
+if(_genycasterMiniAppBrowserAvailable)
     add_library(farcaster_miniapp_runtime STATIC)
     target_sources(farcaster_miniapp_runtime
         PUBLIC FILE_SET CXX_MODULES FILES app/miniapp/runtime.cppm
@@ -546,6 +570,7 @@ if(FARCASTER_ENABLE_MINIAPPS AND CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 else()
     target_compile_definitions(genycaster PRIVATE GENYCASTER_HAS_MINIAPP_HOST=0)
 endif()
+unset(_genycasterMiniAppBrowserAvailable)
 
 add_library(genycaster_shutdown STATIC)
 target_sources(genycaster_shutdown
