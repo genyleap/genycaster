@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
+from ci.audit_linux_clean_install import audit as audit_clean_linux
 from ci.audit_linux_appdir import validate as validate_linux
 from ci.prune_linux_qt_plugins import prune
 from ci.preflight_linux_qt_runtime import (preflight as preflight_qt_runtime,
@@ -388,6 +389,46 @@ class RuntimePackagingTests(unittest.TestCase):
             (root / "usr/plugins/platforms/libqxcb.so").unlink()
             with self.assertRaisesRegex(ValueError, "XCB"):
                 validate_linux(root, inspect_elf=False)
+
+
+
+class CleanLinuxInstallDependencyTests(unittest.TestCase):
+    def test_reports_every_missing_runtime_not_just_main_executable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "usr"
+            binary = root / "bin/Genycaster"
+            plugin = root / "plugins/multimedia/libffmpegmediaplugin.so"
+            for path in (binary, plugin):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"\\x7fELF" + b"fixture")
+
+            def fake_ldd(command, **_kwargs):
+                name = Path(command[1]).name
+                missing = ("libasound.so.2" if name == "Genycaster"
+                           else "libpulse.so.0")
+                return subprocess.CompletedProcess(
+                    command, 0, f"  {missing} => not found\\n", ""
+                )
+
+            with patch("ci.audit_linux_clean_install.subprocess.run",
+                       side_effect=fake_ldd):
+                with self.assertRaisesRegex(ValueError, "libasound.so.2") as error:
+                    audit_clean_linux(root)
+            self.assertIn("libpulse.so.0", str(error.exception))
+            self.assertIn("plugins/multimedia/libffmpegmediaplugin.so",
+                          str(error.exception))
+
+    def test_complete_runtime_dependency_audit_passes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "usr"
+            binary = root / "bin/Genycaster"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"\\x7fELF" + b"fixture")
+            with patch("ci.audit_linux_clean_install.subprocess.run",
+                       return_value=subprocess.CompletedProcess(
+                           ["ldd"], 0, "libc.so.6 => /lib/libc.so.6\\n", ""
+                       )):
+                self.assertEqual(audit_clean_linux(root), 1)
 
 
 if __name__ == "__main__":
