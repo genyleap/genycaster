@@ -2,6 +2,9 @@
 /graphify-out/
 /build/
 /build-*/
+# Locally downloaded official Qt SDK and unsigned, reproducible release stages
+/Qt/
+/dist/
 /out/
 /cmake-build-*/
 /CMakeFiles/
