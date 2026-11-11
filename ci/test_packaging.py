@@ -148,6 +148,10 @@ class PackagingTests(unittest.TestCase):
                 capture_output=True, text=True, check=True,
             ).stdout
             self.assertIn("libsqlite3-0", depends)
+            # Qt 6's GLVND libOpenGL.so.0 belongs to libopengl0, not libgl1.
+            # Without this dependency an otherwise valid DEB cannot launch
+            # in a clean Ubuntu 24.04 install.
+            self.assertIn("libopengl0", depends)
             verify("linux-deb", result)
             # Exercise the exact command CI invokes. Calling verify() directly
             # previously hid the missing argparse "linux-deb" choice.
