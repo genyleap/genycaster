@@ -26,7 +26,8 @@ Popup {
     readonly property real preferredWidth: Math.min(parent ? parent.width : 424, 424)
     width: preferredWidth
     height: edge === 1
-            ? Math.min(parent ? parent.height : 755, Math.max(420, (parent ? parent.height : 755) * 0.82))
+            ? Math.min(parent ? parent.height : 755, 755,
+                       Math.max(420, (parent ? parent.height : 755) * 0.82))
             : (parent ? parent.height : 0)
     x: edge === 3 ? (parent ? parent.width : width) - width
        : edge === 1 ? ((parent ? parent.width : width) - width) / 2 : 0
@@ -36,6 +37,7 @@ Popup {
     property url requestedUrl: ""
     property string outboundScript: ""
     property bool sdkBack: false
+    property bool pageLoading: false
     property string statusText: ""
     property alias browserView: web
     property double rendererPid: web.renderProcessPid
@@ -196,10 +198,15 @@ Popup {
             }
             onUrlChanged: root.adapter.pageUrlChanged(url)
             onLoadingChanged: function(info) {
-                if (info.status === WebEngineView.LoadStartedStatus)
+                if (info.status === WebEngineView.LoadStartedStatus) {
+                    root.pageLoading = true
                     root.adapter.navigationStarted()
-                else if (info.status === WebEngineView.LoadFailedStatus)
+                } else if (info.status === WebEngineView.LoadFailedStatus) {
+                    root.pageLoading = false
                     root.adapter.loadFailed()
+                } else if (info.status === WebEngineView.LoadSucceededStatus) {
+                    root.pageLoading = false
+                }
             }
             onPermissionRequested: function(permission) { permission.deny() }
             onFullScreenRequested: function(request) { request.reject() }
@@ -209,6 +216,31 @@ Popup {
             }
             // Untrusted documents cannot create independent native windows.
             onNewWindowRequested: function(request) {}
+        }
+
+        Rectangle {
+            // A bounded progress strip avoids displaying an abrupt blank frame
+            // while Chromium constructs a new renderer.
+            Layout.fillWidth: true
+            Layout.preferredHeight: visible ? 2 : 0
+            visible: root.pageLoading
+            color: Theme.surfaceRaised
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: parent.width * 0.6
+                color: Theme.accent
+                SequentialAnimation on x {
+                    running: root.pageLoading && !root.adapter.reduceMotion
+                    loops: Animation.Infinite
+                    NumberAnimation {
+                        from: -parent.width * 0.6
+                        to: parent.width
+                        duration: 950
+                    }
+                }
+            }
         }
 
         Rectangle {
