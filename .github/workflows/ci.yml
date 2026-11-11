@@ -70,7 +70,7 @@ jobs:
         run: python3 ci/release_gate.py
       - name: Validate secure deployment configuration and URL boundaries
         run: |
-          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py
+          python3 -m unittest ci/test_deployment_config.py ci/test_audit_windows_stage.py ci/test_native_runtime_audits.py ci/test_nsis_cpack_config.py ci/test_packaging.py ci/test_linux_cpp_runtime.py ci/test_linux_release_parity.py ci/test_linux_distro_assets.py
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
