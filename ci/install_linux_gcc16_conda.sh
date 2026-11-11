@@ -58,6 +58,8 @@ shim="$work/compiler-binutils"
 mkdir -p "$shim"
 ln -s "$assembler" "$shim/as"
 ln -s "$prefix/bin/aarch64-conda-linux-gnu-ld" "$shim/ld"
+# Keep the requested -fuse-ld=lld explicit and ahead of GNU ld.
+ln -s "$(command -v ld.lld)" "$shim/ld.lld"
 # GCC/collect2 search COMPILER_PATH for as and ld. Include binutils and
 # host's lld but do not allow the old assembler to win the search order.
 export COMPILER_PATH="$shim:$prefix/bin:/usr/bin"
