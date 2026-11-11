@@ -3,7 +3,8 @@
 # and is mounted at the identical path during the build. No proprietary SDK is baked in.
 FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
+# Fail fast on DNS failures rather than reporting dozens of missing packages.
+RUN apt-get -o APT::Update::Error-Mode=any update && \
     apt-get install -y --no-install-recommends \
       ca-certificates software-properties-common gnupg git \
       python3 python3-venv python3-pip \
@@ -16,7 +17,7 @@ RUN apt-get update && \
       libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-good1.0-0 \
       desktop-file-utils \
     && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
-    && apt-get update \
+    && apt-get -o APT::Update::Error-Mode=any update \
     && apt-get install -y --no-install-recommends gcc-16 g++-16 lld \
     && rm -rf /var/lib/apt/lists/*
 # The actual local pipeline selects CC=gcc-16 and CXX=g++-16 explicitly.
