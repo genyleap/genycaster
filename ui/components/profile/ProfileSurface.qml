@@ -2099,8 +2099,7 @@ Item {
                             Layout.preferredWidth: fullLinkWidth
                             Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)
                             Layout.maximumWidth: fullLinkWidth
-                            Layout.alignment: Qt.AlignVCenter
-                                | (Theme.rtl ? Qt.AlignLeft : Qt.AlignRight)
+                            Layout.alignment: Qt.AlignVCenter | (Theme.rtl ? Qt.AlignLeft : Qt.AlignRight)
                             Layout.preferredHeight: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
 
                             RowLayout {
