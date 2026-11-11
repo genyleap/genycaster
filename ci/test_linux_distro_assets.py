@@ -22,6 +22,8 @@ def distro_entries() -> dict[str, tuple[str, str, str]]:
     source = CONTROLLER.read_text(encoding="utf-8")
     mapping = source.split("constexpr LinuxBrand kLinuxBrands[] = {", 1)[1].split("};", 1)[0]
     entries = BRAND.findall(mapping)
+    if len(entries) != len({distro for distro, _, _, _ in entries}):
+        raise ValueError("Duplicate /etc/os-release distribution ID in Linux theme mapping")
     return {distro: (name, accent, icon) for distro, name, accent, icon in entries}
 
 
@@ -44,7 +46,6 @@ class LinuxDistroBrandAssetsTest(unittest.TestCase):
 
     def test_names_and_icons_match_os_release_ids(self):
         entries = distro_entries()
-        self.assertEqual(len(entries), len(set(entries)))
         for distro, expected_icon in (
             ("ubuntu", "ubuntu"),
             ("debian", "debian"),
