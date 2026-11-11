@@ -3,6 +3,7 @@
 #include <QColor>
 #include <QGuiApplication>
 #include <QSettings>
+#include <QSysInfo>
 #include <QStyleHints>
 
 #include <algorithm>
@@ -35,9 +36,9 @@ constexpr auto kDefaultCustomAccent = "#FF4FA3";
 [[nodiscard]] QString canonicalColorTheme(QString value) {
   value = value.trimmed().toLower();
   if (value.isEmpty()) {
-    return QStringLiteral("geny");
+    return QStringLiteral("platform");
   }
-  if (value == QStringLiteral("geny") || value == QStringLiteral("ocean") ||
+  if (value == QStringLiteral("platform") || value == QStringLiteral("geny") || value == QStringLiteral("ocean") ||
       value == QStringLiteral("violet") || value == QStringLiteral("ember") ||
       value == QStringLiteral("rose") || value == QStringLiteral("mint") ||
       value == QStringLiteral("mono") || value == QStringLiteral("custom")) {
@@ -111,11 +112,11 @@ AppearanceController::AppearanceController(QSettings &settings,
       overrides.colorThemeId.isEmpty()
           ? m_settings
                 .value(QString::fromLatin1(kColorThemeSetting),
-                       QStringLiteral("geny"))
+                       QStringLiteral("platform"))
                 .toString()
           : overrides.colorThemeId);
   if (m_colorThemeId.isEmpty()) {
-    m_colorThemeId = QStringLiteral("geny");
+    m_colorThemeId = QStringLiteral("platform");
   }
 
   m_customAccentColor = canonicalAccentColor(
@@ -153,6 +154,59 @@ AppearanceController::AppearanceController(QSettings &settings,
 
 QString AppearanceController::themeMode() const { return m_themeMode; }
 QString AppearanceController::colorThemeId() const { return m_colorThemeId; }
+QString AppearanceController::platformName() const {
+#if defined(Q_OS_ANDROID)
+  return QStringLiteral("Android");
+#elif defined(Q_OS_IOS)
+  return QStringLiteral("iOS");
+#elif defined(Q_OS_MACOS)
+  return QStringLiteral("macOS");
+#elif defined(Q_OS_WIN)
+  return QStringLiteral("Windows");
+#elif defined(Q_OS_LINUX)
+  const QString distro = QSysInfo::productType().toLower();
+  if (distro == QStringLiteral("ubuntu")) return QStringLiteral("Ubuntu");
+  if (distro == QStringLiteral("fedora")) return QStringLiteral("Fedora");
+  if (distro == QStringLiteral("debian")) return QStringLiteral("Debian");
+  return QStringLiteral("Linux");
+#elif defined(Q_OS_WASM)
+  return QStringLiteral("Web");
+#else
+  return QStringLiteral("GenyCaster");
+#endif
+}
+QString AppearanceController::platformAccentColor() const {
+#if defined(Q_OS_ANDROID)
+  return QStringLiteral("#3DDC84");
+#elif defined(Q_OS_MACOS) || defined(Q_OS_IOS)
+  return QStringLiteral("#007AFF");
+#elif defined(Q_OS_WIN)
+  return QStringLiteral("#0078D4");
+#elif defined(Q_OS_LINUX)
+  const QString distro = QSysInfo::productType().toLower();
+  if (distro == QStringLiteral("ubuntu")) return QStringLiteral("#E95420");
+  if (distro == QStringLiteral("fedora")) return QStringLiteral("#3C6EB4");
+  if (distro == QStringLiteral("debian")) return QStringLiteral("#D70A53");
+  return QStringLiteral("#3584E4");
+#else
+  return QStringLiteral("#315CF5");
+#endif
+}
+QString AppearanceController::platformIcon() const {
+#if defined(Q_OS_ANDROID)
+  return QStringLiteral("platforms/android");
+#elif defined(Q_OS_IOS)
+  return QStringLiteral("platforms/ios");
+#elif defined(Q_OS_MACOS)
+  return QStringLiteral("platforms/macos");
+#elif defined(Q_OS_WIN)
+  return QStringLiteral("platforms/windows");
+#elif defined(Q_OS_LINUX)
+  return QStringLiteral("platforms/linux");
+#else
+  return QStringLiteral("platforms/linux");
+#endif
+}
 QString AppearanceController::customAccentColor() const {
   return m_customAccentColor;
 }
@@ -294,12 +348,12 @@ void AppearanceController::resetSocialLayout() {
 
 void AppearanceController::resetAppearance() {
   const bool changed = m_themeMode != QStringLiteral("system") ||
-                       m_colorThemeId != QStringLiteral("geny") ||
+                       m_colorThemeId != QStringLiteral("platform") ||
                        m_customAccentColor != QString::fromLatin1(kDefaultCustomAccent) ||
                        m_reduceMotion || !qFuzzyCompare(m_fontScale, 1.0) ||
                        !qFuzzyCompare(m_interfaceScale, 1.0);
   m_themeMode = QStringLiteral("system");
-  m_colorThemeId = QStringLiteral("geny");
+  m_colorThemeId = QStringLiteral("platform");
   m_customAccentColor = QString::fromLatin1(kDefaultCustomAccent);
   m_reduceMotion = false;
   m_fontScale = 1.0;
