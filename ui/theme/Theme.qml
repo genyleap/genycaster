@@ -50,6 +50,10 @@ QtObject {
     readonly property bool reduceMotion: appearanceController.reduceMotion
     readonly property string mode: appearanceController.themeMode
     readonly property string colorThemeId: appearanceController.colorThemeId
+    readonly property string platformName: appearanceController.platformName
+    readonly property color platformAccentColor: appearanceController.platformAccentColor
+    readonly property string platformAccentHex: appearanceController.platformAccentColor
+    readonly property string platformIcon: appearanceController.platformIcon
     readonly property real fontScale: appearanceController.fontScale
     readonly property real interfaceScale: appearanceController.interfaceScale
     readonly property bool rtl: localizationController.rightToLeft
@@ -154,7 +158,8 @@ QtObject {
     readonly property color fillMonoDay: "#17181B"
     readonly property color fillMonoNight: "#F4F5F8"
 
-    readonly property color presetAccent: colorThemeId === "ocean" ? (dark ? accentOceanNight : accentOceanDay)
+    readonly property color presetAccent: colorThemeId === "platform" ? platformAccentColor
+                                                 : colorThemeId === "ocean" ? (dark ? accentOceanNight : accentOceanDay)
                                                 : colorThemeId === "violet" ? (dark ? accentVioletNight : accentVioletDay)
                                                 : colorThemeId === "ember" ? (dark ? accentEmberNight : accentEmberDay)
                                                 : colorThemeId === "rose" ? (dark ? accentRoseNight : accentRoseDay)
@@ -162,7 +167,8 @@ QtObject {
                                                 : colorThemeId === "mono" ? (dark ? accentMonoNight : accentMonoDay)
                                                 : colorThemeId === "custom" ? customAccent
                                                 : (dark ? accentGenyNight : accentGenyDay)
-    readonly property color presetFill: colorThemeId === "ocean" ? (dark ? fillOceanNight : fillOceanDay)
+    readonly property color presetFill: colorThemeId === "platform" ? platformAccentColor
+                                               : colorThemeId === "ocean" ? (dark ? fillOceanNight : fillOceanDay)
                                               : colorThemeId === "violet" ? (dark ? fillVioletNight : fillVioletDay)
                                               : colorThemeId === "ember" ? (dark ? fillEmberNight : fillEmberDay)
                                               : colorThemeId === "rose" ? (dark ? fillRoseNight : fillRoseDay)
@@ -171,6 +177,7 @@ QtObject {
                                               : colorThemeId === "custom" ? customAccent
                                               : (dark ? fillGenyNight : fillGenyDay)
 
+    readonly property color swatchPlatform: platformAccentColor
     readonly property color swatchGeny: dark ? accentGenyNight : accentGenyDay
     readonly property color swatchOcean: dark ? accentOceanNight : accentOceanDay
     readonly property color swatchViolet: dark ? accentVioletNight : accentVioletDay
