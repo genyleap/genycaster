@@ -1071,6 +1071,7 @@ GenyDrawer {
 
                             Repeater {
                                 model: [
+                                    { id: "platform", label: Theme.platformName, color: Theme.swatchPlatform, icon: Theme.platformIcon },
                                     { id: "geny", label: qsTrId("genycaster.settings.theme_geny"), color: Theme.swatchGeny },
                                     { id: "ocean", label: qsTrId("genycaster.settings.theme_ocean"), color: Theme.swatchOcean },
                                     { id: "violet", label: qsTrId("genycaster.settings.theme_violet"), color: Theme.swatchViolet },
@@ -1117,10 +1118,12 @@ GenyDrawer {
                                                 border.color: Theme.borderStrong
                                                 Icon {
                                                     anchors.centerIn: parent
-                                                    text: Theme.iconCheck
-                                                    color: "#ffffff"
-                                                    preferredSize: 17
-                                                    opacity: themePreset.selected ? 1 : 0
+                                                    text: String(themePreset.modelData.id) === "platform"
+                                                          ? Theme.platformIcon : Theme.iconCheck
+                                                    color: Theme.contrastInk(themePreset.modelData.color)
+                                                    preferredSize: String(themePreset.modelData.id) === "platform" ? 20 : 17
+                                                    opacity: String(themePreset.modelData.id) === "platform"
+                                                             || themePreset.selected ? 1 : 0
                                                     Behavior on opacity {
                                                         NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
                                                     }
