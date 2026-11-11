@@ -11,6 +11,9 @@ from pathlib import Path
 
 from ci.audit_linux_appdir import validate as validate_linux
 from ci.prune_linux_qt_plugins import prune
+from ci.preflight_linux_qt_runtime import (preflight as preflight_qt_runtime,
+                                           REQUIRED_PLUGINS, MEDIA_PLUGINS,
+                                           unresolved_sonames)
 from ci.audit_macos_bundle import audit as validate_macos
 from ci.prune_macos_bundle import prune as prune_macos
 
@@ -95,6 +98,44 @@ class RuntimePackagingTests(unittest.TestCase):
         self.assertIn('key + QLatin1Char(\'@\')', source)
         self.assertIn("target_link_libraries(farcaster_platform_signer PRIVATE advapi32)",
                       cmake)
+
+    def test_linux_qt_preflight_collects_all_missing_xcb_sonames(self):
+        missing = unresolved_sonames(
+            "  libxcb-shape.so.0 => not found\\n"
+            "  libxcb-randr.so.0 => not found\\n"
+            "  libQt6Core.so.6 => /opt/Qt/libQt6Core.so.6 (0x0)\\n"
+        )
+        self.assertEqual(missing, {"libxcb-shape.so.0", "libxcb-randr.so.0"})
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "lib").mkdir()
+            for _, relative in (*REQUIRED_PLUGINS, MEDIA_PLUGINS[0]):
+                plugin = root / relative
+                plugin.parent.mkdir(parents=True, exist_ok=True)
+                plugin.write_bytes(b"fixture")
+
+            def fake_inspect(plugin, _env):
+                if plugin.name == "libqxcb.so":
+                    return ({"libxcb-randr.so.0", "libxcb-shape.so.0"}, "")
+                return (set(), "")
+
+            with patch("ci.preflight_linux_qt_runtime.inspect",
+                       side_effect=fake_inspect):
+                with self.assertRaisesRegex(ValueError,
+                                            r"libxcb-randr\\.so\\.0, libxcb-shape\\.so\\.0"):
+                    preflight_qt_runtime(root)
+
+    def test_linux_qt_preflight_allows_absent_optional_multimedia_backend(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "lib").mkdir()
+            for _, relative in (*REQUIRED_PLUGINS, MEDIA_PLUGINS[0]):
+                plugin = root / relative
+                plugin.parent.mkdir(parents=True, exist_ok=True)
+                plugin.write_bytes(b"fixture")
+            with patch("ci.preflight_linux_qt_runtime.inspect",
+                       return_value=(set(), "")):
+                preflight_qt_runtime(root)
 
     def test_linux_launcher_handles_unbundled_wayland_without_overriding_user(self):
         from ci.bundle_linux_cpp_runtime import LAUNCHER
