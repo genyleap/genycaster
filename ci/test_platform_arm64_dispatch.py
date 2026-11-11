@@ -65,6 +65,8 @@ class Arm64DispatchTest(unittest.TestCase):
         self.assertIn("SDK/NDK and build tools already installed",setup)
         self.assertIn("timeout 360s",setup)
         self.assertIn('test -f "$ndk/source.properties"',setup)
+        self.assertIn("timeout-minutes: 20",android)
+        self.assertIn("--base https://qt.mirror.constant.com --timeout 15",android)
 
 
     def test_android_manifest_does_not_override_gradle_native_library_packaging(self):
