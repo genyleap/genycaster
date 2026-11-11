@@ -79,6 +79,13 @@ BUILD_JOBS=2 bash ci/build_local_linux_arm64_container.sh
 The wrapper builds a reusable Ubuntu 24.04 image with GCC 16 and
 CMake 4.4.4, then runs `ci/build_local_linux_release.sh` on the mounted
 host checkout as the **same numeric user**, preserving artifact ownership.
+The Ubuntu image also installs the OpenGL/GLX **development**
+libraries and tests them with CMake before starting GenyCaster.
+Qt6Gui/QtQuick cannot be configured when only the `libgl1` runtime
+library is installed: the `WrapOpenGL` dependency requires headers and
+development linker libraries. After updating the Dockerfile, the apt layer
+will be rebuilt once; the existing downloaded Qt ARM64 SDK is reused.
+
 The local ARM64 wrapper uses `docker build --network host` and
 `docker run --network host`, and enables host networking for its nested
 clean-install smoke test. This is specifically to avoid Docker bridge DNS
@@ -123,7 +130,8 @@ git status --short           # Must be empty
 sudo apt-get update
 sudo apt-get install -y software-properties-common python3-venv \
   ninja-build curl file patchelf libfuse2 zsync docker.io nodejs \
-  libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+  libgl1 libegl1 libgl1-mesa-dev libopengl-dev libglx-dev libegl-dev libx11-dev \
+  libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
   libxcb-render-util0 libxcb-xinerama0 \
   libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
