@@ -166,7 +166,7 @@ jobs:
           fi
           build/ci-aqt/bin/aqt install-qt "$host" desktop "${{ env.QT_VERSION }}" \
             "${{ matrix.qt_arch }}" \
-            --modules qtwebchannel qtpositioning qtwebengine \
+            --modules qtwebchannel qtpositioning qtserialport qtwebengine \
             --noarchives --outputdir "$qt_base"
           python3 ci/preflight_linux_miniapp_host.py --qt-root "$QT_ROOT_DIR"
       - name: Check Qt Multimedia deployment dependencies
