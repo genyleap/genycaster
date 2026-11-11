@@ -117,7 +117,8 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ninja-build curl file patchelf libfuse2 zsync \
-            libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+            libgl1 libegl1 libgl1-mesa-dev libopengl-dev libglx-dev libegl-dev libx11-dev \
+            libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-render-util0 libxcb-xinerama0 \
             libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
