@@ -228,7 +228,25 @@ jobs:
         run: |
           set -euo pipefail
           export CC=gcc-16 CXX=g++-16
+          # Conda-forge's ARM64 GCC16 provides its own portability sysroot.
+          # CMake's FindOpenGL can therefore overlook the native Ubuntu
+          # GLVND development libraries installed above. Bind the actual
+          # runner-architecture GLVND libraries, without disabling Qt Quick
+          # or substituting software-only rendering.
+          opengl_args=()
+          if [[ "${{ matrix.arch }}" == arm64 && -n "${COMPILER_PATH:-}" ]]; then
+            multiarch="$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
+            for lib in OpenGL GLX; do
+              library="/usr/lib/$multiarch/lib${lib}.so"
+              if [[ ! -f "$library" ]]; then
+                echo "::error::Missing native GLVND development library: $library"
+                exit 1
+              fi
+              opengl_args+=("-DOPENGL_${lib}_LIBRARY=$library")
+            done
+          fi
           cmake -S . -B build/native -G Ninja \
+            "${opengl_args[@]}" \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
