@@ -85,6 +85,14 @@ Qt6Gui/QtQuick cannot be configured when only the `libgl1` runtime
 library is installed: the `WrapOpenGL` dependency requires headers and
 development linker libraries. After updating the Dockerfile, the apt layer
 will be rebuilt once; the existing downloaded Qt ARM64 SDK is reused.
+The minimal container also explicitly includes PulseAudio's `libpulse0`
+(`libpulse.so.0`) and ALSA's `libasound2t64`. Unlike Qt and GCC,
+these runtime libraries are not supplied by the project source and must be
+available while linuxdeploy resolves dependencies of the final ELF binary.
+After this Dockerfile change, the Docker package layer is rebuilt; the
+existing C++ object files in `build/local-linux-arm64` are preserved and
+Ninja reuses them instead of recompiling the entire application.
+
 
 The local ARM64 wrapper uses `docker build --network host` and
 `docker run --network host`, and enables host networking for its nested
@@ -137,7 +145,7 @@ sudo apt-get install -y software-properties-common python3-venv \
   libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
   libcurl4-openssl-dev libdbus-1-dev libfontconfig1 libfreetype6 \
   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-good1.0-0 \
-  desktop-file-utils
+  libpulse0 libasound2t64 desktop-file-utils
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo apt-get update
 sudo apt-get install -y gcc-16 g++-16 lld
