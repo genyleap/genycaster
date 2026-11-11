@@ -118,8 +118,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ninja-build curl file patchelf libfuse2 zsync \
+          # Probe Ubuntu mirrors before APT. The runner previously spent
+          # 17 minutes retrying an unresolvable ports.ubuntu.com hostname.
+          # ci/prepare_ubuntu_apt.sh keeps Ubuntu's signed archive policy.
+          bash ci/prepare_ubuntu_apt.sh
+          sudo timeout 240s apt-get install -y \
+            -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=12 \
+            -o Acquire::https::Timeout=12 \
+            ninja-build curl file patchelf libfuse2 zsync \
             libgl1 libegl1 libgl1-mesa-dev libopengl-dev libglx-dev libegl-dev libx11-dev \
             libxkbcommon-x11-0 libxcb-cursor0 \
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
@@ -778,15 +785,20 @@ jobs:
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: ${{ env.CMAKE_VERSION }}
-      - name: Install Android packages and OpenSSL tools
+      - name: Verify Android build tools and provision missing SDK packages
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ninja-build perl \
-            libdigest-sha-perl make curl tar python3
-          # Android SDK command-line tools live under cmdline-tools, not
-          # the project ci/ directory. Guard this path before sdkmanager.
+          # Hosted ubuntu-24.04 already contains Perl, Make, Curl, Python,
+          # tar and the Ninja installed by lukka/get-cmake. Do not run APT
+          # again: transient Ubuntu mirror DNS failures previously killed
+          # Android builds before Qt/NDK configuration.
+          for tool in perl make curl tar python3 ninja cmake java keytool; do
+            command -v "$tool" >/dev/null || {
+              echo "::error::Android build tool unavailable: $tool"
+              exit 1
+            }
+          done
           sdkmanager_bin="$ANDROID_HOME/cmdline-tools/latest/bin"
           test -x "$sdkmanager_bin/sdkmanager" || {
             echo "::error::Android sdkmanager missing: $sdkmanager_bin/sdkmanager"
@@ -794,11 +806,27 @@ jobs:
           }
           export PATH="$sdkmanager_bin:$PATH"
           echo "$sdkmanager_bin" >> "$GITHUB_PATH"
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "ndk;${ANDROID_NDK_VERSION}" \
-            "platforms;android-${ANDROID_API}" "build-tools;35.0.0" \
-            "platform-tools"
-          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          # An already provisioned runner must not contact Google's SDK
+          # index or accept licenses again just to use the same NDK.
+          ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          if [[ -f "$ndk/source.properties" &&
+                -d "$ANDROID_HOME/platforms/android-${ANDROID_API}" &&
+                -x "$ANDROID_HOME/build-tools/35.0.0/apksigner" &&
+                -x "$ANDROID_HOME/build-tools/35.0.0/zipalign" &&
+                -x "$ANDROID_HOME/platform-tools/adb" ]]; then
+            echo "Android SDK/NDK and build tools already installed"
+          else
+            echo "Installing only missing Android SDK packages"
+            # Running sdkmanager with --install against an unavailable
+            # mirror must fail promptly, not consume the full job timeout.
+            timeout 360s "$sdkmanager_bin/sdkmanager" --install \
+              "ndk;${ANDROID_NDK_VERSION}" \
+              "platforms;android-${ANDROID_API}" \
+              "build-tools;35.0.0" "platform-tools"
+          fi
+          test -f "$ndk/source.properties"
+          test -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
       - uses: jurplel/install-qt-action@v4
         id: qt
         with:
