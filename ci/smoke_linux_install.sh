@@ -18,6 +18,7 @@ command -v docker >/dev/null || {
   exit 1
 }
 DIRECTORY="$(dirname "$PACKAGE")"
+CI_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 FILENAME="$(basename "$PACKAGE")"
 APPIMAGE_FILE="$(basename "$APPIMAGE")"
 
@@ -33,6 +34,7 @@ case "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" in
 esac
 docker run --rm --network "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" \
   --mount "type=bind,src=$DIRECTORY,dst=/release,readonly" \
+  --mount "type=bind,src=$CI_DIRECTORY,dst=/ci,readonly" \
   --mount "type=bind,src=$DIAGNOSTICS,dst=/diagnostics" \
   --env "GENYCASTER_DEB=$FILENAME" \
   --env "GENYCASTER_APPIMAGE=$APPIMAGE_FILE" \
@@ -42,17 +44,18 @@ docker run --rm --network "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" \
     apt-get install -y -qq --no-install-recommends \
       "/release/$GENYCASTER_DEB" xvfb xauth python3-pil libgl1-mesa-dri >/dev/null
     test -x /opt/genycaster/AppRun
-    # The Qt 6.12 Linux binary links the vendor-neutral GLVND OpenGL
-    # dispatcher. On a clean Ubuntu host, libgl1 does not guarantee
-    # libOpenGL.so.0; the DEB must declare libopengl0 explicitly.
-    dpkg-query -W -f="\${Status}" libopengl0 | grep -qx "install ok installed"
-    ldconfig -p | grep -q "libOpenGL.so.0"
-    unresolved="$(LD_LIBRARY_PATH=/opt/genycaster/usr/lib \
-      ldd /opt/genycaster/usr/bin/Genycaster | grep "not found" || true)"
-    if [ -n "$unresolved" ]; then
-      printf "Unresolved GenyCaster dependencies in clean Ubuntu:\\n%s\\n" "$unresolved" >&2
-      exit 1
-    fi
+    # These libraries are system-managed, but the DEB MUST pull them in:
+    # OpenGL/GLVND, ALSA and PulseAudio. A clean desktop install must not
+    # depend on unrelated developer packages from the CI runner.
+    for package in libopengl0 libasound2t64 libpulse0; do
+      dpkg-query -W -f="\${Status}" "$package" | grep -qx "install ok installed"
+    done
+    for soname in libOpenGL.so.0 libasound.so.2 libpulse.so.0; do
+      ldconfig -p | grep -F "$soname" >/dev/null
+    done
+    # The main executable check missed Qt plugin dependencies. Scan every
+    # deployed ELF so one failed run lists ALL missing shared libraries.
+    python3 /ci/audit_linux_clean_install.py /opt/genycaster/usr
     # Qt must come from the installer, not from an independently installed
     # distro package. Test the full QML startup on a blank user environment.
     if dpkg -l libqt6quick6 2>/dev/null | grep -q "^ii "; then
