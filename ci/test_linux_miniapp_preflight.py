@@ -14,6 +14,8 @@ class LinuxMiniAppSdkPreflightTest(unittest.TestCase):
             blockers = missing_host_files(Path(tmp))
             self.assertIn("Qt CMake module: Qt6WebChannel", blockers)
             self.assertIn("Qt CMake module: Qt6WebEngineWidgets", blockers)
+            self.assertIn("Qt CMake module: Qt6WebEngineQuick", blockers)
+            self.assertTrue(any("Qt WebEngine Quick QML module" in b for b in blockers))
             self.assertTrue(any("QtWebEngineProcess" in b for b in blockers))
             self.assertTrue(any("ICU" in b for b in blockers))
 
@@ -21,10 +23,13 @@ class LinuxMiniAppSdkPreflightTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             for module in ("Qt6Widgets", "Qt6WebChannel", "Qt6WebEngineCore",
-                           "Qt6WebEngineWidgets"):
+                           "Qt6WebEngineWidgets", "Qt6WebEngineQuick"):
                 path = root / "lib" / "cmake" / module / f"{module}Config.cmake"
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
+            quick_qml = root / "qml" / "QtWebEngine" / "qmldir"
+            quick_qml.parent.mkdir(parents=True)
+            quick_qml.touch()
             process = root / "libexec" / "QtWebEngineProcess"
             process.parent.mkdir(parents=True)
             process.touch(mode=0o755)
