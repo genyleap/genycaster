@@ -13,21 +13,23 @@ set -euo pipefail
 
 fingerprint=C8EC952E2A0E1FBDC5090F6A2C277A0A352154E5
 repo_url=https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu
-key_url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${fingerprint}"
+# This is a public key, not a secret. It is stored with the build sources to
+# avoid reaching keyserver.ubuntu.com on every GitHub runner: that hostname
+# was unresolvable even when the signed Ubuntu package mirror was healthy.
+key_source="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/keys/ubuntu-toolchain-r-test.asc"
+test -s "$key_source" || { echo "::error::Pinned toolchain signing key missing" >&2; exit 1; }
 work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 
-curl --fail --location --silent --show-error --retry 2 --retry-delay 1 \
-  --connect-timeout 5 --max-time 15 "$key_url" -o "$work/key.asc"
-test -s "$work/key.asc"
-# A PPA key may contain subkeys; verify the primary public key fingerprint.
-mapfile -t actual < <(gpg --batch --show-keys --with-colons "$work/key.asc" |
+# The vendored key is still untrusted until the primary fingerprint matches
+# the independently pinned PPA signing identity. Refuse a key replacement.
+mapfile -t actual < <(gpg --batch --show-keys --with-colons "$key_source" |
   awk -F: '$1 == "pub" {primary=1; next} primary && $1 == "fpr" {print toupper($10); exit}')
 if [[ "${#actual[@]}" -ne 1 || "${actual[0]}" != "$fingerprint" ]]; then
   echo "::error::Unexpected Ubuntu toolchain PPA signing key fingerprint" >&2
   exit 1
 fi
-gpg --batch --yes --dearmor -o "$work/key.gpg" "$work/key.asc"
+gpg --batch --yes --dearmor -o "$work/key.gpg" "$key_source"
 sudo install -m 0644 "$work/key.gpg" \
   /usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg
 printf 'deb [signed-by=/usr/share/keyrings/genycaster-ubuntu-toolchain-r-test.gpg] %s noble main\n' \
