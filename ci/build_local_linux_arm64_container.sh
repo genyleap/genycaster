@@ -37,7 +37,11 @@ mkdir -p "$repo/build/arm64-container-home"
 image=genycaster-local-linux-arm64-release:ubuntu24.04
 # No source/context is sent to the Docker build: this Dockerfile needs
 # only upstream Ubuntu packages. Qt and the repository are mounted at run time.
+# Use host networking only for this local ARM64 build: some Ubuntu hosts
+# resolve ports.ubuntu.com normally but Docker's default bridge DNS fails.
+# This does not change Docker's global daemon DNS or GitHub CI behavior.
 docker build --platform linux/arm64 \
+    --network host \
     --tag "$image" \
     - < ci/Dockerfile.linux-arm64-release
 
@@ -46,6 +50,7 @@ docker build --platform linux/arm64 \
 # The numeric user and Docker socket group preserve ownership of outputs.
 socket_gid="$(stat -c '%g' /var/run/docker.sock)"
 docker run --rm --platform linux/arm64 \
+    --network host \
     --mount "type=bind,source=$repo,target=$repo" \
     --mount "type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock" \
     --workdir "$repo" \
@@ -55,6 +60,7 @@ docker run --rm --platform linux/arm64 \
     --env "QT_ROOT_DIR=$qt" \
     --env "BUILD_JOBS=$(printenv BUILD_JOBS || echo 2)" \
     --env PYTHONDONTWRITEBYTECODE=1 \
+    --env GENYCASTER_SMOKE_DOCKER_NETWORK=host \
     "$image" \
     bash ci/build_local_linux_release.sh
 
