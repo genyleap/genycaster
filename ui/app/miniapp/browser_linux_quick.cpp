@@ -117,6 +117,8 @@ public:
         QQmlEngine::setObjectOwnership(m_popup, QQmlEngine::CppOwnership);
         m_popup->setParent(applicationWindow.data());
         m_view = m_popup->property("browserView").value<QObject*>();
+        if (!m_view)
+            m_view = m_popup->findChild<QObject*>("linuxMiniAppWebEngineView");
         if (!m_view) {
             qWarning() << "GenyCaster Linux Mini App drawer lacks WebEngineView";
             delete m_popup;
