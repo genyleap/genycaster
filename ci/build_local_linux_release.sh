@@ -62,6 +62,15 @@ cmake -S . -B "$build_dir" -G Ninja \
   -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
 cmake --build "$build_dir" --target genycaster --parallel "$jobs"
 test -x "$build_dir/bin/Genycaster"
+# Inspect the real linked executable before linuxdeploy scans it. Qt can
+# resolve at configure time despite a missing desktop/audio runtime SONAME.
+missing_runtime="$(LD_LIBRARY_PATH="$QT_ROOT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+  ldd "$build_dir/bin/Genycaster" | grep 'not found' || true)"
+if [[ -n "$missing_runtime" ]]; then
+  printf 'Unresolved Linux runtime dependencies before packaging:\n%s\n' "$missing_runtime" >&2
+  echo 'Install matching Ubuntu 24.04 runtime libraries in the build container.' >&2
+  exit 1
+fi
 # A fresh AppDir is necessary; reusing a prior stage masks missing libraries.
 if [[ -d "$appdir" ]]; then rm -rf -- "$appdir"; fi
 mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
