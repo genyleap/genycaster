@@ -42,7 +42,9 @@ class Arm64DispatchTest(unittest.TestCase):
         self.assertIn('ln -s "$assembler" "$shim/as"',fallback)
         self.assertIn('ln -s "$(command -v ld.lld)" "$shim/ld.lld"',fallback)
         self.assertIn('export module genycaster.toolchain.smoke;',fallback)
-        self.assertIn('g++-16 -std=c++26 -fuse-ld=lld',fallback)
+        # The fallback must link against Ubuntu's native sysroot, not
+        # Conda's independent glibc headers/libraries.
+        self.assertIn('g++-16 --sysroot=/ -std=c++26 -fuse-ld=lld',fallback)
         self.assertIn('"$work/link-smoke"',fallback)
         self.assertNotIn('no-tests',fallback)
         self.assertNotIn("keyserver.ubuntu.com",script)
