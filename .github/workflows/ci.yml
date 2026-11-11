@@ -827,18 +827,38 @@ jobs:
           test -f "$ndk/source.properties"
           test -x "$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
           echo "ANDROID_NDK_ROOT=$ndk" >> "$GITHUB_ENV"
+      # install-qt-action defaults install-deps=true, which performs an
+      # unbounded apt-get update against azure.archive.ubuntu.com. Hosted
+      # runners repeatedly hung there for twenty minutes. Prepare a signed,
+      # reachable Ubuntu mirror and provision the *same* Qt host libraries
+      # explicitly with bounded network operations instead.
+      - name: Install Android Qt host dependencies from signed Ubuntu mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash ci/prepare_ubuntu_apt.sh
+          sudo timeout 180s apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=12 \
+            -o Acquire::https::Timeout=12 \
+            build-essential libgl1-mesa-dev libgstreamer-gl1.0-0 libpulse-dev \
+            libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 \
+            libxcb-shm0 libxcb-sync1 libxcb-util1 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb1 libxkbcommon-dev libxkbcommon-x11-0 \
+            libxcb-xkb-dev libxcb-cursor0
       - uses: jurplel/install-qt-action@v4
         id: qt
         timeout-minutes: 20
         with:
+          install-deps: false
           version: ${{ env.QT_VERSION }}
           target: android
           arch: ${{ matrix.qt_arch }}
           modules: qtmultimedia qtwebview
           cache: true
-          # Officially mirrored Qt 6.12 SDK; avoid intermittently stalled
-          # direct download.qt.io transfers on hosted Android builders.
-          extra: '--base https://qt.mirror.constant.com --timeout 15'
+          # Qt SDK remains the official 6.12.0 distribution; only its
+          # system-dependency installer is bypassed.
       - name: Reject Android SDKs without Qt Network TLS
         shell: bash
         run: |
