@@ -56,7 +56,7 @@ def build(appdir: Path, output: Path, version: str, arch: str) -> Path:
             f"Priority: optional\n"
             f"Architecture: {deb_arch}\n"
             f"Maintainer: Genyleap <info@genyleap.com>\n"
-            f"Depends: libc6, libgl1, libegl1, libxkbcommon0, "
+            f"Depends: libc6, libgl1, libopengl0, libegl1, libxkbcommon0, "
             f"libxkbcommon-x11-0, libxcb1, libxcb-cursor0, "
             f"libxcb-icccm4, libxcb-image0, libxcb-keysyms1, "
             f"libxcb-render-util0, libxcb-xinerama0, libfontconfig1, "
