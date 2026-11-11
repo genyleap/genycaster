@@ -42,6 +42,10 @@ fi
 # configuration contract); export the release compiler before the gate.
 # Ubuntu 24.04's minimal container does not install an unversioned c++ alias.
 export CC=gcc-16 CXX=g++-16
+# The Qt SDK's XCB platform, Controls, TLS and Multimedia plugins carry
+# dependencies that CMake does not check and linuxdeploy needs later.
+# Resolve all missing SONAMEs now, before the expensive incremental C++ build.
+python3 ci/preflight_linux_qt_runtime.py --qt-root "$QT_ROOT_DIR"
 python3 ci/release_gate.py --ref refs/heads/main --event workflow_dispatch
 version="$(python3 -c 'from pathlib import Path; from ci.release_gate import release_designation; print(release_designation(Path.cwd()))')"
 python3 -m unittest ci.test_deployment_config ci.test_audit_windows_stage ci.test_native_runtime_audits ci.test_nsis_cpack_config ci.test_packaging ci.test_linux_cpp_runtime
