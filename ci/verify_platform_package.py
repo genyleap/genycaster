@@ -40,6 +40,17 @@ def validate_linux_deb(path: Path) -> None:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError("dpkg-deb is required to validate Linux installers") from exc
     require(result.returncode == 0, "Invalid Linux Debian installer")
+    # Structural files alone are insufficient: the Qt 6 executable needs
+    # libOpenGL.so.0, shipped by Ubuntu's libopengl0 (not libgl1).
+    control = subprocess.run(
+        ["dpkg-deb", "-f", str(path), "Depends"],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    require(control.returncode == 0, "Cannot inspect Linux DEB dependencies")
+    dependencies = {entry.strip().split()[0]
+                    for entry in control.stdout.split(",") if entry.strip()}
+    require("libopengl0" in dependencies,
+            "Linux DEB missing libopengl0 dependency for GLVND libOpenGL.so.0")
     listing = result.stdout
     for required in (
         "./opt/genycaster/AppRun",
