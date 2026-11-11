@@ -93,6 +93,17 @@ After this Dockerfile change, the Docker package layer is rebuilt; the
 existing C++ object files in `build/local-linux-arm64` are preserved and
 Ninja reuses them instead of recompiling the entire application.
 
+Qt's XCB platform plugin also depends on multiple XCB extension libraries,
+including `libxcb-shape0`, `libxcb-randr0`, `libxcb-shm0`,
+`libxcb-xfixes0`, `libxcb-xkb1`, and `libxcb-xinput0`. The local
+Ubuntu 24.04 image and hosted Linux workflow install the complete platform
+dependency set. Before CMake configures the product, the local build now runs
+`ci/preflight_linux_qt_runtime.py --qt-root "$QT_ROOT_DIR"` to collect **all**
+unresolved `ldd` dependencies from Qt's required XCB, Quick Controls,
+Basic style, and TLS plugins, and checks for a usable multimedia backend.
+If it fails, fix that dependency list rather than repeatedly launching an
+expensive C++26 compile. The previous Ninja object cache remains untouched.
+
 
 The local ARM64 wrapper uses `docker build --network host` and
 `docker run --network host`, and enables host networking for its nested
@@ -142,6 +153,9 @@ sudo apt-get install -y software-properties-common python3-venv \
   libxkbcommon-x11-0 libxcb-cursor0 \
   libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
   libxcb-render-util0 libxcb-xinerama0 \
+  libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
+  libxcb-xfixes0 libxcb-xkb1 libxcb-glx0 libxcb-xinput0 \
+  libxcb-render0 libxcb-util1 libx11-xcb1 libxcb-dri3-0 \
   libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
   libcurl4-openssl-dev libdbus-1-dev libfontconfig1 libfreetype6 \
   libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-good1.0-0 \
