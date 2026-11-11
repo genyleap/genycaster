@@ -64,6 +64,7 @@ def install(appdir: Path, qt_root: Path) -> None:
         "libQt6WebEngineWidgets.so.6",
         "libQt6WebChannel.so.6",
         "libQt6Positioning.so.6",
+        "libQt6SerialPort.so.6",
     )
     for name in module_names:
         source = qt_root / "lib" / name
