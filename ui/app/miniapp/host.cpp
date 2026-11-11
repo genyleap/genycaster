@@ -476,11 +476,14 @@ void MiniAppHostController::openWithMetadata(const QString& url,
         return;
     }
     if (!m_available) {
-        // A supported system browser is safer than pretending Windows/Linux
-        // ship an embedded SDK runtime. Never bridge signer/wallet permissions.
-        // The Open button remains functional without weakening the native
-        // sandbox or silently marking a session active.
-#if !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
+        // The Mini App "Open" control is for the in-app SDK host. Linux
+        // must not silently delegate an untrusted app to Firefox and bypass
+        // the origin-bound host, wallet-consent and session lifecycle.
+        // A separate, explicit "Open in browser" action may use the OS
+        // browser, but must never be conflated with opening a Mini App.
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+        setState(false, qtTrId("genycaster.miniapp.unavailable"));
+#elif !defined(Q_OS_WASM) && !defined(Q_OS_ANDROID)
         if (QDesktopServices::openUrl(destination)) {
             emit externalLaunchSucceeded();
             setState(false);
