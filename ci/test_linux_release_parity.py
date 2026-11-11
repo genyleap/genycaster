@@ -83,7 +83,7 @@ class LinuxReleaseParityTests(unittest.TestCase):
             self.assertIn(required, local)
         self.assertLess(linux.index("ci/preflight_linux_miniapp_host.py --qt-root"),
                         linux.index("cmake --build build/native"))
-        self.assertIn("qtwebchannel qtpositioning qtwebengine", linux)
+        self.assertIn("qtwebchannel qtpositioning qtserialport qtwebengine", linux)
 
     def test_release_baseline_and_cmake_version_are_pinned(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
