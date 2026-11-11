@@ -13,7 +13,7 @@ LOCAL_SCRIPT = ROOT / "ci/build_local_linux_release.sh"
 # Tools available on a hosted Ubuntu runner but installed explicitly inside
 # the minimal local Ubuntu image. The remaining package set must match exactly.
 CONTAINER_ONLY = {
-    "ca-certificates", "gnupg", "git", "python3-venv", "python3-pip",
+    "ca-certificates", "gnupg", "git", "python3-pip",
     "docker.io", "nodejs",
 }
 
@@ -56,12 +56,34 @@ class LinuxReleaseParityTests(unittest.TestCase):
         preflight = "python3 ci/preflight_linux_qt_runtime.py --qt-root"
         self.assertLess(linux.index(preflight), linux.index("Build Qt client"))
         self.assertLess(local.index(preflight), local.index("cmake --build"))
-        for name in ("ci/bundle_linux_cpp_runtime.py",
+        for name in ("ci/preflight_linux_miniapp_host.py",
+                     "ci/stage_linux_webengine.py",
+                     "ci/bundle_linux_cpp_runtime.py",
                      "ci/bundle_linux_tls_runtime.py",
+                     "ci/bundle_linux_webengine_runtime.py",
                      "ci/audit_linux_appdir.py",
                      "ci/smoke_linux_install.sh"):
             self.assertIn(name, linux)
             self.assertIn(name, local)
+
+
+    def test_release_requires_native_mini_apps_and_packaged_chromium(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        linux = workflow.split("  linux:\\n", 1)[1].split("  macos:\\n", 1)[0]
+        local = LOCAL_SCRIPT.read_text(encoding="utf-8")
+        for required in (
+            "-DFARCASTER_ENABLE_MINIAPPS=ON",
+            "-DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON",
+            "ci/preflight_linux_miniapp_host.py --qt-root",
+            "ci/stage_linux_webengine.py",
+            "ci/bundle_linux_webengine_runtime.py",
+            "--require-miniapps",
+        ):
+            self.assertIn(required, linux)
+            self.assertIn(required, local)
+        self.assertLess(linux.index("ci/preflight_linux_miniapp_host.py --qt-root"),
+                        linux.index("cmake --build build/native"))
+        self.assertIn("qtwebchannel qtpositioning qtwebengine", linux)
 
     def test_release_baseline_and_cmake_version_are_pinned(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
