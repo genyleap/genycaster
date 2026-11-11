@@ -15,6 +15,9 @@ LOCAL_SCRIPT = ROOT / "ci/build_local_linux_release.sh"
 CONTAINER_ONLY = {
     "ca-certificates", "gnupg", "git", "python3-pip",
     "docker.io", "nodejs",
+    # The hosted runner already has Ninja from get-cmake and the Linux PPA
+    # is installed via a pinned-key apt source rather than add-apt-repository.
+    "ninja-build", "software-properties-common",
 }
 
 
@@ -33,7 +36,20 @@ def install_packages(source: str, marker: str) -> set[str]:
             result.append(line.strip())
         # Dockerfile chains apt install with later apt commands using &&.
         # Only the first install command's packages belong in the comparison.
-        return set(" ".join(result).replace("\\", " ").split("&&", 1)[0].split())
+        tokens = " ".join(result).replace("\\", " ").split("&&", 1)[0].split()
+        # CI bounds APT network access with -o Acquire::... settings. Those
+        # are options, not packages, so compare the normalized package list.
+        packages: set[str] = set()
+        index = 0
+        while index < len(tokens):
+            item = tokens[index]
+            if item == "-o":
+                index += 2
+                continue
+            if item and not item.startswith("-"):
+                packages.add(item)
+            index += 1
+        return packages
     raise ValueError(f"apt command not found: {marker}")
 
 
@@ -42,7 +58,7 @@ class LinuxReleaseParityTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
         linux = workflow.split("  linux:\n", 1)[1].split("  macos:\n", 1)[0]
-        hosted = install_packages(linux, "sudo apt-get install -y")
+        hosted = install_packages(linux, "apt-get install -y")
         local = install_packages(
             dockerfile, "apt-get install -y --no-install-recommends"
         )
