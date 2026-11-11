@@ -276,8 +276,9 @@ public:
         if (m_role == BrowserRole::MiniApp) {
             const QString bridgeSource = documentBridgeScript();
             if (bridgeSource.isEmpty()) {
+                // Factory rejects this instance and tears down its window
+                // before any unbridged document can navigate.
                 m_page = nullptr;
-                m_web->setPage(nullptr);
                 return;
             }
             m_channel = new QWebChannel{m_page};
@@ -347,7 +348,7 @@ public:
     {
         if (!m_window) return;
         m_window->statusBar()->showMessage(message);
-        if (failed && m_page) m_page->stop();
+        if (failed && m_page) m_page->triggerAction(QWebEnginePage::Stop);
     }
 
     void ready(bool /*disableNativeGestures*/) override
