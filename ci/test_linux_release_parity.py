@@ -69,7 +69,7 @@ class LinuxReleaseParityTests(unittest.TestCase):
 
     def test_release_requires_native_mini_apps_and_packaged_chromium(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
-        linux = workflow.split("  linux:\\n", 1)[1].split("  macos:\\n", 1)[0]
+        linux = workflow.split("  linux:\n", 1)[1].split("  macos:\n", 1)[0]
         local = LOCAL_SCRIPT.read_text(encoding="utf-8")
         for required in (
             "-DFARCASTER_ENABLE_MINIAPPS=ON",
