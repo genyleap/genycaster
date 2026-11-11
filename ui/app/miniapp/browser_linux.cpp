@@ -28,6 +28,7 @@
 #include <QToolBar>
 #include <QWebChannel>
 #include <QWebEngineHttpRequest>
+#include <QWebEngineHistory>
 #include <QWebEnginePage>
 #include <QWebEnginePermission>
 #include <QWebEngineProfile>
@@ -329,11 +330,11 @@ public:
         QObject::connect(m_page, &QWebEnginePage::urlChanged,
                          m_window.get(), [this](const QUrl&) {
             if (m_back && m_page)
-                m_back->setEnabled(m_sdkBack || m_page->canGoBack());
+                m_back->setEnabled(m_sdkBack || m_page->history()->canGoBack());
         });
         QObject::connect(m_back, &QAction::triggered,
                          m_window.get(), [this] {
-            if (m_page && m_page->canGoBack()) m_page->triggerAction(QWebEnginePage::Back);
+            if (m_page && m_page->history()->canGoBack()) m_page->triggerAction(QWebEnginePage::Back);
         });
         m_back->setEnabled(false);
         m_window->onClose = m_callbacks.closed;
@@ -380,7 +381,7 @@ public:
     {
         m_sdkBack = visible;
         if (m_back && m_page)
-            m_back->setEnabled(visible || m_page->canGoBack());
+            m_back->setEnabled(visible || m_page->history()->canGoBack());
     }
 
     void reply(const QJsonObject& value, const QString& document) override
