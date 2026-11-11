@@ -2074,18 +2074,24 @@ Item {
                             id: identityLinkSlot
                             objectName: "profileIdentityLinksSlot"
                             visible: root.primaryProfileLinkUrl.length > 0
-                            // Use the text's intrinsic size rather than the implicit width of
-                            // a RowLayout containing a width-constrained Button. That cycle
-                            // can collapse the link to zero on Linux's Qt Quick layout engine.
-                            // Keep links on the trailing side of the profile identity
-                            // row. Reserve their natural size rather than a fixed 150/230px
-                            // cap; only constrain very long URLs when the viewport is narrow.
-                            Layout.preferredWidth: Math.min(
-                                Math.max(0, root.profileContentWidth * 0.68),
+                            // The URL and "and more" form one unbroken inline row.
+                            // Measure the *unwrapped* text independently of the layout:
+                            // using Label.implicitWidth here caused Qt Quick to shrink
+                            // the URL to a two-line fragment on desktop Linux and WASM.
+                            TextMetrics {
+                                id: profileLinkMetrics
+                                font.family: Theme.latinFontFamily
+                                font.pixelSize: Theme.typeCaptionSize
+                                text: root.displayUrl(root.primaryProfileLinkUrl)
+                            }
+                            readonly property real fullLinkWidth:
                                 identityLinkIcon.implicitWidth + identityLinks.spacing
-                                    + identityLinkText.implicitWidth
-                                    + (identityMoreLinks.visible
-                                       ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
+                                + Math.ceil(profileLinkMetrics.advanceWidth)
+                                + (identityMoreLinks.visible
+                                   ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0)
+                            Layout.preferredWidth: Math.min(
+                                fullLinkWidth,
+                                Math.max(0, root.profileContentWidth * 0.76))
                             Layout.minimumWidth: 0
                             Layout.alignment: Qt.AlignVCenter
                             Layout.preferredHeight: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
@@ -2125,20 +2131,25 @@ Item {
                                             id: identityLinkText
                                             Layout.fillWidth: true
                                             Layout.minimumWidth: 0
-                                            Layout.preferredWidth: implicitWidth
+                                            Layout.preferredWidth: Math.ceil(profileLinkMetrics.advanceWidth)
                                             text: root.displayUrl(root.primaryProfileLinkUrl)
                                             horizontalAlignment: Theme.textStartAlignment
                                             LayoutMirroring.enabled: false
                                             color: Theme.accent
                                             font.family: Theme.latinFontFamily
                                             font.pixelSize: Theme.typeCaptionSize
-                                            // Show the complete URL. Long addresses wrap
-                                            // instead of being silently replaced by "...".
+                                            // Never wrap or add ellipses. On exceptionally
+                                            // narrow screens, clip and expose the complete
+                                            // address through the accessible tooltip.
+                                            wrapMode: Text.NoWrap
                                             elide: Text.ElideNone
-                                            wrapMode: Text.WrapAnywhere
+                                            clip: true
                                             verticalAlignment: Text.AlignVCenter
                                         }
                                     }
+                                    ToolTip.visible: hovered
+                                        && identityLinkText.width + 1 < profileLinkMetrics.advanceWidth
+                                    ToolTip.text: root.displayUrl(root.primaryProfileLinkUrl)
                                     Accessible.role: Accessible.Link
                                     Accessible.name: root.primaryProfileLinkUrl
                                     onClicked: root.externalRequested(root.primaryProfileLinkUrl)
@@ -2148,6 +2159,8 @@ Item {
                                     objectName: "profileMoreLinksInline"
                                     visible: root.isOwnProfile && root.additionalProfileLinksCount > 0
                                     Layout.alignment: Qt.AlignVCenter
+                                    Layout.minimumWidth: implicitWidth
+                                    Layout.fillWidth: false
                                     flat: true
                                     hoverEnabled: true
                                     padding: 0
