@@ -136,10 +136,10 @@ jobs:
             libnss3 libnspr4 libxfixes3 libxdamage1 libxcomposite1 \
             liblcms2-2 libxtst6 libxkbfile1 \
             desktop-file-utils python3 python3-venv
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get update
-          sudo apt-get install -y gcc-16 g++-16 lld
-          ld.lld --version
+          # Avoid Launchpad's REST API: ARM runners intermittently have
+          # no route to it even when apt mirrors are reachable. Validate the
+          # actual PPA key fingerprint and use a signed apt source directly.
+          bash ci/install_linux_gcc16.sh
       - uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -761,15 +761,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - abi: arm64-v8a
-            qt_arch: android_arm64_v8a
-            openssl_arch: arm64
-            machine: AArch64
-          - abi: armeabi-v7a
-            qt_arch: android_armv7
-            openssl_arch: arm
-            machine: ARM
+        # A manual Android ARM64 dispatch must build exactly arm64-v8a,
+        # not silently spend another runner on armeabi-v7a.
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platform == 'android' && inputs.target_arch == 'arm64' && '[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"}]' || '[{"abi":"arm64-v8a","qt_arch":"android_arm64_v8a","openssl_arch":"arm64","machine":"AArch64"},{"abi":"armeabi-v7a","qt_arch":"android_armv7","openssl_arch":"arm","machine":"ARM"}]') }}
     if: github.event_name == 'push' || inputs.platform == 'all' || inputs.platform == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
