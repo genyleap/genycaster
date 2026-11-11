@@ -229,6 +229,23 @@ QMutex imageCacheMutex{};
 QCache<QString, CachedImage> imageCache{imageCacheCapacityKiB};
 QCache<QString, FailedRequest> failedRequests{failedRequestCacheCapacity};
 QCache<QString, FailedRequest> forbiddenOrigins{forbiddenOriginCapacity};
+// Independent of the per-URL retry backoff: feeds can reference hundreds of
+// distinct bad image URLs on the same host. Emit one useful warning per host
+// per minute, not hundreds of repeated warnings while scrolling.
+QCache<QString, FailedRequest> warnedDecodeOrigins{64};
+
+[[nodiscard]] bool shouldWarnAboutDecodeOrigin(const QString& source)
+{
+    const QString host = QUrl{source}.host().toLower();
+    if (host.isEmpty()) return false;
+    const QMutexLocker lock{&imageCacheMutex};
+    const auto now = std::chrono::steady_clock::now();
+    if (const auto* entry = warnedDecodeOrigins.object(host);
+        entry && entry->retryAfter > now) return false;
+    warnedDecodeOrigins.insert(
+        host, new FailedRequest{.retryAfter = now + std::chrono::minutes{1}}, 1);
+    return true;
+}
 
 [[nodiscard]] QString imageOriginKey(const QString& source)
 {
@@ -1179,9 +1196,11 @@ void RemoteImageProvider::Impl::decodeNetworkResponse(
                     return;
                 }
                 rememberFailure(urlText);
-                qWarning().noquote()
-                    << "Remote image decode failed after compatibility retry:"
-                    << QUrl{urlText}.host() << decodeError;
+                if (shouldWarnAboutDecodeOrigin(urlText)) {
+                    qWarning().noquote()
+                        << "Remote image decode failed after compatibility retry:"
+                        << QUrl{urlText}.host() << decodeError;
+                }
                 deliverResponse(control, transparentFailureImage(nullptr));
                 return;
             }
