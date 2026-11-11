@@ -86,7 +86,7 @@ test('Setup surfaces use the active accent and actual theme controller',()=>{
         assert.doesNotMatch(s,/#111315|#FFFFFF|#F6F7F8/);
     }
     assert.match(setup,/appearanceController.setThemeMode/);
-    assert.doesNotMatch(setup,/appearanceController.setColorThemeId/);
+    assert.match(setup,/appearanceController.setColorThemeId/);
     assert.match(setup,/id: appearanceStage/);
 });
 

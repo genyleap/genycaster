@@ -15,7 +15,9 @@ test('official GENY token assets are bundled and consistently selected on home a
  const home=file('ui/components/home/HomeDashboard.qml');
  const rail=file('ui/components/navigation/ContextRail.qml');
  const asset=file('ui/components/content/MarketAssetIcon.qml');
- assert.match(home,/geny-token-mark-dark\.svg/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
+ assert.match(home,/notificationUnreadCount/);
+ assert.doesNotMatch(home,/geny-token-mark-dark\.svg/);
  assert.match(rail,/geny-token-mark-dark\.svg/);
  assert.match(asset,/canonicalGenyAsset: root\.symbol === "GENY"/);
   assert.match(asset,/readonly property bool verifiedRemoteArtwork: root\.canonicalGenyAsset/);

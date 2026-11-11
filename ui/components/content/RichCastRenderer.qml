@@ -27,7 +27,7 @@ ColumnLayout {
         return root.castId.length > 0 ? richComposer.richBlocksForCast(root.castId) : []
     }
     readonly property bool enhanced: richBlocks && richBlocks.length > 0
-    spacing: Theme.space2
+    spacing: Theme.space1
 
     // Feed casts without a rich-composer sidecar still render through the
     // native inline pipeline (RichInlineTextItem) so emoji boxes are laid out

@@ -128,7 +128,13 @@ Item {
     function notificationImageUrl(value) {
         const url = String(value || "")
         const path = url.split("?")[0].split("#")[0].toLowerCase()
-        return url.startsWith("https://") && [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"].some(ext => path.endsWith(ext)) ? url : ""
+        // Image-delivery CDNs use opaque IDs and transform variants rather
+        // than file extensions; treating those assets as generic website
+        // links showed a meaningless "imagedelivery.net" chip instead of art.
+        const imageDelivery = /^https:\/\/(?:imagedelivery\.net|imagedelivery\.cloudflare\.com)\//i.test(url)
+        return /^https:\/\//i.test(url)
+               && (imageDelivery || [".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"]
+                   .some(ext => path.endsWith(ext))) ? url : ""
     }
 
     function notificationLinkHost(value) {
@@ -144,6 +150,10 @@ Item {
 
     function notificationKey(row, index) {
         const value = row || ({})
+        const kind = String(value.kind || "")
+        const target = String(value.castId || "")
+        if (target.length > 0 && (kind === "reaction" || kind === "recast"))
+            return "notif-group:" + kind + ":" + target
         const id = String(value.id || value.castId || "")
         return id.length > 0 ? "notif:" + id : "notif-index:" + index
     }
@@ -156,7 +166,8 @@ Item {
                 String(value.castParentId || ""), String(value.parentCastId || ""),
                 String(value.quotedCastId || ""), String(value.parentText || ""), String(value.parentAvatarUrl || ""),
                 String(value.castEmbedUrl || ""), String(value.parentEmbedUrl || ""),
-                String(value.castChannel || "")].join("\u001f")
+                String(value.castChannel || ""),
+                root.asList(value.actors).map(actor => String(actor.fid || 0)).join(",")].join("\u001f")
     }
 
     // ---- Farcaster-style aggregation ---------------------------------------
@@ -300,21 +311,12 @@ Item {
     function mergeNotificationInto(target, row, counter) {
         if (!target || !row || !counter)
             return target
-        const kind = String(target.kind || "")
-        if (kind === "reaction") {
-            const likes = Number(row.castLikeCount || 0)
-            if (likes > counter.engagement)
-                counter.engagement = likes
-        } else if (kind === "recast") {
-            const recasts = Number(row.castRecastCount || 0)
-            if (recasts > counter.engagement)
-                counter.engagement = recasts
-        }
         const provided = Math.max(1, Number(row.aggregateCount || 1))
         if (provided > counter.provided)
             counter.provided = provided
-        // Keep at most 8 faces; anything beyond that is summarized by the title.
-        target.actors = root.mergeNotificationActors(target.actors, root.actorsForMerge(row)).slice(0, 8)
+        // Preserve the distinct provided actors, bounded for QML list memory.
+        // Only the avatar viewport limits how many can appear at once.
+        target.actors = root.mergeNotificationActors(target.actors, root.actorsForMerge(row)).slice(0, 32)
         const observed = Number(row.observedAtMs || 0)
         if (observed > Number(target.observedAtMs || 0))
             target.observedAtMs = observed
@@ -333,8 +335,7 @@ Item {
             return
         const actorTotal = root.asList(row.actors).length
         const provided = Math.max(1, counter.provided || 1)
-        const engagement = counter.engagement || 0
-        row.aggregateCount = Math.max(1, actorTotal, provided, engagement)
+        row.aggregateCount = Math.max(1, actorTotal, provided)
     }
 
     function groupNotificationRows(source) {
@@ -363,7 +364,7 @@ Item {
                 targetIndex = groups.length
                 indexByKey[key] = targetIndex
                 groups.push(root.cloneNotificationRow(row))
-                counters.push({ provided: 0, engagement: 0 })
+                counters.push({ provided: 0 })
             }
             root.mergeNotificationInto(groups[targetIndex], row, counters[targetIndex])
         }
@@ -875,6 +876,7 @@ Item {
                     // keeps its reaction symbol in the gutter and lays actors
                     // out above the title, without overlapping its text.
                     Item {
+                        id: actorPortraitSlot
                         readonly property var firstActor: {
                             const actors = root.actorRows(notificationRow.modelData)
                             return actors.length > 0 ? actors[0] : ({})
@@ -936,14 +938,19 @@ Item {
                         // Bounded horizontal actor stack: each portrait is
                         // distinct, fully visible and never overflows its own
                         // slot into the notification title or quoted cast.
+                        // One inline actor strip per cast, with a truthful
+                        // group count. Portraits are individually hit-testable.
                         Item {
                             id: actorStack
-                            readonly property int count: Math.min(6, notificationRow.visibleActors.length)
                             readonly property real avatarSpacing: root.compact ? 7 : 10
                             readonly property real avatarDiameter: root.compact ? 32 : 36
-                            visible: count > 1
+                            readonly property int count: Math.min(
+                                notificationRow.visibleActors.length,
+                                Math.max(1, Math.floor((width - Theme.scaleUi(56))
+                                               / (avatarDiameter + avatarSpacing))))
+                            visible: notificationRow.visibleActors.length > 1
                             Layout.fillWidth: true
-                            Layout.preferredHeight: visible ? (root.compact ? 34 : 38) : 0
+                            Layout.preferredHeight: visible ? avatarDiameter + Theme.space1 : 0
 
                             Repeater {
                                 model: actorStack.visible ? actorStack.count : 0
@@ -955,6 +962,33 @@ Item {
                                     avatarSize: actorStack.avatarDiameter
                                     sourceUrl: String(actor.avatarUrl || "")
                                     displayName: String(actor.displayName || actor.username || "")
+                                    Accessible.role: Accessible.Button
+                                    Accessible.name: String(actor.displayName || actor.username || "")
+                                    Accessible.onPressAction: {
+                                        const fid=Number(actor.fid || 0)
+                                        if (fid > 0) root.profileRequested(fid)
+                                    }
+                                }
+                            }
+                            Superellipse {
+                                id: actorCountBadge
+                                readonly property int groupCount: Math.max(
+                                    notificationRow.visibleActors.length,
+                                    Number(notificationRow.modelData.aggregateCount || 1))
+                                x: actorStack.count * (actorStack.avatarDiameter + actorStack.avatarSpacing)
+                                y: 3
+                                width: Math.max(34, actorCountText.implicitWidth + Theme.space2)
+                                height: actorStack.avatarDiameter - 5
+                                fillColor: Theme.surfaceSelected
+                                borderWidth: 0
+                                curveDepth: height / 2
+                                DirectionAwareLabel {
+                                    id: actorCountText
+                                    anchors.centerIn: parent
+                                    text: LocaleFormat.formatInteger(actorCountBadge.groupCount)
+                                    color: Theme.accent
+                                    font.pixelSize: Theme.typeCaptionSize
+                                    font.weight: Theme.weightBold
                                 }
                             }
                         }
@@ -1096,48 +1130,18 @@ Item {
                         // not reserve a 172px media/link card for a URL whose
                         // metadata often has no thumbnail. Keep the full link
                         // discoverable without pushing the next activity away.
-                        Superellipse {
+                        LinkPreview {
                             id: notificationLink
                             readonly property string linkUrl: String(
                                 notificationRow.modelData.castEmbedUrl || "")
-                            readonly property string host: root.notificationLinkHost(linkUrl)
-                            visible: host.length > 0
+                            visible: root.notificationLinkHost(linkUrl).length > 0
                                      && root.notificationImageUrl(linkUrl).length === 0
                             Layout.fillWidth: true
-                            Layout.preferredHeight: visible ? 40 : 0
-                            fillColor: Theme.surfaceMuted
-                            borderColor: Theme.borderSubtle
-                            borderWidth: 1
-                            curveDepth: Theme.curveCompact
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.space2
-                                anchors.rightMargin: Theme.space2
-                                spacing: Theme.space2
-                                Icon {
-                                    text: Theme.iconLink
-                                    color: Theme.textTertiary
-                                    preferredSize: 16
-                                }
-                                DirectionAwareLabel {
-                                    Layout.fillWidth: true
-                                    text: notificationLink.host
-                                    elide: Text.ElideMiddle
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.typeMetaSize
-                                }
-                                Icon {
-                                    text: Theme.iconArrowUpRight
-                                    color: Theme.textTertiary
-                                    preferredSize: 14
-                                }
-                            }
-
-                            TapHandler {
-                                gesturePolicy: TapHandler.ReleaseWithinBounds
-                                onTapped: Qt.openUrlExternally(notificationLink.linkUrl)
-                            }
+                            embed: ({ kind: "external", url: linkUrl })
+                            compact: true
+                            embeddedInCard: true
+                            suppressArtwork: true
+                            onOpenRequested: url => Qt.openUrlExternally(url)
                         }
 
                         Superellipse {
@@ -1334,7 +1338,36 @@ Item {
                              || (notificationRow.kindKey === "follow"
                                  && Number(notificationRow.modelData.actorFid || 0) > 0)
                     gesturePolicy: TapHandler.ReleaseWithinBounds
-                    onTapped: {
+                    onTapped: point => {
+                        const pos = point.position
+                        const actorFid = Number(notificationRow.modelData.actorFid || 0)
+                        // The left portrait always opens that person's profile.
+                        const portrait = actorPortraitSlot.mapFromItem(
+                            notificationRow, pos.x, pos.y)
+                        if (actorFid > 0 && !actorStack.visible
+                                && portrait.x >= 0 && portrait.y >= 0
+                                && portrait.x < actorPortraitSlot.width
+                                && portrait.y < actorPortraitSlot.height) {
+                            root.profileRequested(actorFid)
+                            return
+                        }
+                        if (actorStack.visible) {
+                            const local = actorStack.mapFromItem(notificationRow, pos.x, pos.y)
+                            if (local.y >= 0 && local.y < actorStack.avatarDiameter
+                                    && local.x >= 0) {
+                                const stride = actorStack.avatarDiameter + actorStack.avatarSpacing
+                                const index = Math.floor(local.x / stride)
+                                if (index < actorStack.count
+                                        && local.x - index * stride < actorStack.avatarDiameter) {
+                                    const actor = notificationRow.visibleActors[index] || ({})
+                                    const fid = Number(actor.fid || 0)
+                                    if (fid > 0) {
+                                        root.profileRequested(fid)
+                                        return
+                                    }
+                                }
+                            }
+                        }
                         const castId = String(notificationRow.modelData.castId || "")
                         if (castId.length > 0) root.castRequested(castId)
                         else root.profileRequested(Number(notificationRow.modelData.actorFid || 0))

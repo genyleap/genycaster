@@ -96,14 +96,15 @@ test('story photo and border share superellipse geometry, with no protruding red
     assert.match(item, /borderColor: root.addStory \|\| root.storyState === "active"/);
 });
 
-test('notification activity uses one actor, a bounded excerpt and compact tappable links', () => {
+test('notification activity has bounded excerpts and semantic link/media previews', () => {
     const ui = read('ui/components/feed/NotificationSurface.qml');
     assert.match(ui, /readonly property var firstActor:/);
     assert.doesNotMatch(ui, /Repeater \{\s+model: parent.visibleActors/);
     assert.doesNotMatch(ui, /Layout.fillHeight: true\s+color: notificationRow.kindColor/);
     assert.match(ui, /id: castExcerpt/);
     assert.match(ui, /maximumLineCount: castExcerpt.isEngagement \? 3 : 7/);
-    assert.match(ui, /Layout.preferredHeight: visible \? 40 : 0/);
-    assert.match(ui, /Qt.openUrlExternally\(notificationLink.linkUrl\)/);
+    assert.match(ui, /LinkPreview \{/);
+    assert.match(ui, /onOpenRequested: url => Qt.openUrlExternally\(url\)/);
+    assert.match(ui, /id: actorCountBadge/);
     assert.doesNotMatch(ui, /id: notificationLinkLoader/);
 });

@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = file => readFileSync(new URL('../../'+file,import.meta.url),'utf8');
 
-test('Home has GENY promo carousel and Wallet instead of Trends',()=>{
+test('Home offers live activity actions and Wallet remains unavailable',()=>{
  const home=read('ui/components/home/HomeDashboard.qml');
  for(const key of ['explorer','search','apps','wallet'])
    assert.match(home,new RegExp('destination: "'+key+'"'));
  assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
- assert.match(home,/component GenyTokenBanner: Superellipse/);
- assert.match(home,/geny_token_slide_two/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
+ assert.match(home,/onClicked: root.notificationsRequested\(\)/);
  assert.match(home,/enabled: !shortcut.locked/);
 });
 test('reply rail and count use aligned, solid geometry and incoming highlight',()=>{

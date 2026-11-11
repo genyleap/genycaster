@@ -3,9 +3,9 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-// Lightweight release notice. Instantiates only one drawer per AppShell,
+// Bounded, centered release notice. Instantiates one popup per AppShell,
 // and opens once per newly discovered version; no forced downloads.
-Drawer {
+Popup {
     id: root
     objectName: "updateNoticeDrawer"
     property string lastPresentedVersion: ""
@@ -31,23 +31,23 @@ Drawer {
     modal: true
     focus: true
     dim: true
-    interactive: false
-    edge: Qt.TopEdge
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    width: parent ? Math.min(580, parent.width) : 520
+    width: parent ? Math.min(600, Math.max(0, parent.width - Theme.space4 * 2)) : 560
     // The footer must stay inside the modal even with very long release notes.
     // Leave room for the system safe area; scroll the notes, not the actions.
     height: parent ? Math.max(0, Math.min(parent.height - Theme.space4 * 2,
                                           Math.max(340, Math.min(640, parent.height * 0.86)))) : 560
     x: parent ? Math.max(0, (parent.width - width) / 2) : 0
-    padding: Theme.space3
+    y: parent ? Math.max(0, (parent.height - height) / 2) : 0
+    padding: Theme.space4
     // A bounded viewport: header and actions never become part of the
     // scrollable release notes, even when the translated notes are lengthy.
 
-    // Animate Drawer.position, never its x/y: Qt owns edge anchoring.
+    // A centered Popup avoids Qt TopEdge Drawer geometry fighting x/y
+    // centering on desktop and clipping its fixed header into the titlebar.
     enter: Transition {
         NumberAnimation {
-            property: "position"
+            property: "opacity"
             from: 0
             to: 1
             duration: Theme.reduceMotion ? 0 : Theme.motionStandard
@@ -56,10 +56,10 @@ Drawer {
     }
     exit: Transition {
         NumberAnimation {
-            property: "position"
+            property: "opacity"
+            from: 1
             to: 0
-            duration: Theme.reduceMotion ? 0 : Theme.motionStandard
-            easing.type: Easing.InOutCubic
+            duration: Theme.reduceMotion ? 0 : Theme.motionFast
         }
     }
 

@@ -8,7 +8,7 @@ const qml = name => readFileSync(new URL('../../ui/components/' + componentPath(
 test('Home keeps active shortcuts, locked Wallet and GENY announcement', () => {
  const home=qml('HomeDashboard');
  assert.match(home,/component HubWorkspace: ColumnLayout/);
- assert.match(home,/component GenyTokenBanner: Superellipse/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
  assert.match(home,/destination: "wallet"/);
  assert.match(home,/enabled: !shortcut.locked/);
  assert.doesNotMatch(home,/key: "agent"|key: "studio"|CastIdeaSection/);

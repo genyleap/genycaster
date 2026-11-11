@@ -26,13 +26,16 @@ test('Home routes Explorer, Search, Apps and keeps Wallet disabled', () => {
  assert.match(shell,/onAppsRequested: root.openShellRoute\("apps"\)/);
 });
 
-test('GENY banners rotate without token price claims or fake navigation',()=>{
+test('Home activity card replaces inert token promotions with live, navigable actions',()=>{
  const home=qml('HomeDashboard');
- assert.match(home,/component GenyTokenBanner: Superellipse/);
- assert.equal((home.match(/GenyTokenBanner \{/g)||[]).length,2);
- assert.match(home,/interval: 6200/);
- assert.match(home,/objectName: "genyTokenBanner"/);
- assert.doesNotMatch(home,/tokenPrice|GENY.*price/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
+ assert.equal((home.match(/HomeActivityCard \{/g)||[]).length,2);
+ assert.match(home,/objectName: "homeActivityCard"/);
+ assert.match(home,/root\.notificationUnreadCount > 0/);
+ assert.match(home,/onClicked: root\.notificationsRequested\(\)/);
+ assert.match(home,/onClicked: root\.exploreRequested\(\)/);
+ assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
+ assert.doesNotMatch(home,/genyTokenBanner|tokenPrice|GENY.*price|interval: 6200/);
 });
 
 test('five new shortcut and wallet strings exist in every supported locale', () => {

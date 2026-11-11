@@ -452,7 +452,9 @@ Item {
                 anchors.rightMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
                 anchors.topMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
                 anchors.bottomMargin: root.magazineCard ? Theme.space4 : root.compact ? Theme.space2 : Theme.space4
-                spacing: Theme.space2
+                // Media and its caption share a compact vertical cadence;
+                // separate supporting cards retain normal breathing room.
+                spacing: root.mediaFirst ? Theme.space1 : Theme.space2
                 layoutDirection: Theme.uiDirection
 
                 RowLayout {

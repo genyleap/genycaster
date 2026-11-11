@@ -27,11 +27,11 @@ test('provider and node names follow UI edge regardless of Latin content', () =>
   assert.match(nodes, /text: String\(modelData\.label\)\s*alignToUi: true/);
   assert.match(composer, /text: channelRow\.isHome[\s\S]*?alignToUi: true/);
 });
-test('homepage promotions and greetings preserve mixed-script chrome', () => {
+test('home activity actions and greetings preserve mixed-script chrome', () => {
   const home = read('ui/components/home/HomeDashboard.qml');
   const profile = read('ui/components/profile/ProfileSurface.qml');
   const fa = read('ui/i18n/qml_fa_IR.ts');
-  assert.match(home, /genycaster\.home\.geny_token_title/);
+  assert.match(home, /genycaster\.home\.catch_up/);
   assert.match(home, /"\\u2066" \+ root\.welcomeName \+ "\\u2069"/);
   assert.match(profile, /objectName: "profileProfessionalCategory"[\s\S]*?layoutDirection: Theme\.uiDirection/);
   assert.match(fa, /<translation>یک نشر یا پیام جدید بنویسید…<\/translation>/);

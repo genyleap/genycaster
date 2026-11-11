@@ -46,7 +46,7 @@ test("phone Home is focused on three active actions and a locked Wallet",()=>{
  assert.match(home,/"homeShortcut_" \+ modelData.destination/);
  assert.match(home,/destination: "wallet"/);
  assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
- assert.match(home,/GenyTokenBanner \{/);
+ assert.match(home,/HomeActivityCard \{/);
 });
 
 test("Boot Beta badge and footer remain in separate non-overlapping rows",()=>{

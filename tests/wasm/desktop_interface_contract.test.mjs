@@ -33,7 +33,7 @@ test('desktop Home presents one bounded content column', () => {
     assert.match(home, /Math\.min\(root\.homeContentMaxWidth,/);
     assert.match(home, /anchors\.horizontalCenter: parent\.horizontalCenter/);
     assert.match(home, /objectName: "homeComposerLauncher"/);
-    assert.equal((home.match(/GenyTokenBanner \{/g) || []).length, 2);
+    assert.equal((home.match(/HomeActivityCard \{/g) || []).length, 2);
 });
 
 test('desktop store uses borderless app rows and compact Open buttons', () => {
@@ -126,10 +126,11 @@ test('cast backgrounds and floating compose use page canvas and physical right e
     assert.doesNotMatch(shell, /root\.width - root\.railReservation - Theme\.space5 - width/);
 });
 
-test('release updates use a top-edge drawer with real versions and actions', () => {
+test('release updates use a bounded centered popup with real versions and actions', () => {
     const notice = read('ui/components/settings/UpdateNoticeDrawer.qml');
     const shell = read('ui/components/shell/AppShell.qml');
-    assert.match(notice, /edge: Qt\.TopEdge/);
+    assert.match(notice, /Popup \{/);
+    assert.match(notice, /y: parent \? Math\.max\(0, \(parent\.height - height\) \/ 2\)/);
     assert.match(notice, /updateController\.updateAvailable/);
     assert.match(notice, /updateController\.appVersion/);
     assert.match(notice, /updateController\.latestVersion/);
@@ -164,12 +165,12 @@ test('mobile Apps show the same compact store rows as desktop with topic filters
     assert.match(library,/orientation: ListView\.Horizontal/);
 });
 
-test('native update sheet shows published release metadata with vertical drawer motion', () => {
+test('native update popup shows published release metadata with opacity motion', () => {
     const drawer=read('ui/components/settings/UpdateNoticeDrawer.qml');
     const header=read('ui/app/update/controller.hpp');
     const cpp=read('ui/app/update/controller.cpp');
-    assert.match(drawer,/edge: Qt\.TopEdge/);
-    assert.match(drawer,/property: "position"/);
+    assert.match(drawer,/Popup \{/);
+    assert.match(drawer,/property: "opacity"/);
     assert.match(drawer,/updateController\.releaseTitle/);
     assert.match(drawer,/updateController\.releaseNotes/);
     assert.match(drawer,/updateController\.releasePublishedAt/);

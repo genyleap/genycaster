@@ -48,7 +48,7 @@ test('drawers animate from owning edge with reduced-motion safe transitions',()=
 
 test('Home presents a compact banner, three navigation cards and passive Wallet',()=>{
  const home=qml('HomeDashboard');
- assert.match(home,/component GenyTokenBanner: Superellipse/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
  assert.match(home,/destination: "wallet"/);
  assert.match(home,/enabled: !shortcut.locked/);
  assert.doesNotMatch(home,/key: "agent"|key: "studio"/);

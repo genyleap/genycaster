@@ -55,11 +55,12 @@ test('profile editors, app details, account and settings inherit the shared edge
   assert.match(profile,/layoutDirection:\s*Theme\.uiDirection/);
 });
 
-test('mobile bottom sheets and dedicated top overlays remain bottom or top',()=>{
+test('mobile bottom sheets remain bottom, updates open as centered popups',()=>{
   const drawer=qml('components/controls/GenyDrawer.qml');
   assert.match(drawer,/edge:\s*bottomSheet\s*\?\s*Qt\.BottomEdge/);
   assert.match(qml('components/navigation/SearchPalette.qml'),/edge:\s*Qt\.TopEdge/);
-  assert.match(qml('components/settings/UpdateNoticeDrawer.qml'),/edge:\s*Qt\.TopEdge/);
+  assert.match(qml('components/settings/UpdateNoticeDrawer.qml'),/Popup \{/);
+  assert.doesNotMatch(qml('components/settings/UpdateNoticeDrawer.qml'),/edge:\s*Qt\.TopEdge/);
   for (const name of ['MobileCreateMenu','ComposerDrawer','GenyAdaptiveDialog'])
     assert.match(qml('components/'+componentPath(name)+'.qml'),/bottomSheet:\s*true/);
 });

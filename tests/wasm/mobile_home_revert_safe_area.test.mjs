@@ -13,7 +13,7 @@ test('Home keeps original layout with GENY banner and four compact slots', () =>
  assert.match(home,/avatarSize: root\.androidCompact\s*\? \(root\.densePhone \? 50 : 64\)\s*: \(root\.densePhone \? 56 : 76\)/);
  for(const id of ['explorer','search','apps','wallet'])
    assert.match(home,new RegExp('destination: "'+id+'"'));
- assert.match(home,/GenyTokenBanner \{/);
+ assert.match(home,/HomeActivityCard \{/);
  assert.doesNotMatch(home,/key: "agent"|key: "studio"/);
 });
 

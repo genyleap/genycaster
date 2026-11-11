@@ -11,7 +11,7 @@ test('Home replaces Trends with locked Wallet and removes Agent and Studio', () 
  for(const id of ['explorer','search','apps','wallet'])
    assert.match(home,new RegExp('destination: "'+id+'"'));
  assert.doesNotMatch(home,/destination: "trends"|key: "agent"|key: "studio"/);
- assert.match(home,/objectName: "genyTokenBanner"/);
+ assert.match(home,/objectName: "homeActivityCard"/);
  assert.match(home,/enabled: !shortcut.locked/);
 });
 

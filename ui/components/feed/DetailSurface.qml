@@ -474,7 +474,9 @@ ListView {
                             : Theme.readingWidth)
         x: Math.max(root.compact ? Theme.space2 : Theme.contentGutter, (root.width - width) / 2)
         y: root.compact ? Theme.space3 : Theme.space4
-        spacing: root.compact ? Theme.space2 : Theme.space3
+        // A single reading rhythm between body, attachment and actions.
+        // The old desktop space3 accumulated conspicuous gaps on lone casts.
+        spacing: Theme.space2
 
         // Contextual conversation toolbar. Keep a real back action, but name
         // the destination and make its channel navigable independently.

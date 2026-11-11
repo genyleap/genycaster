@@ -13,7 +13,7 @@ const bootstrap = read('ui/app/bootstrap/profiles.cpp');
 test('Node Management is its own settings destination on desktop and mobile', () => {
   assert.match(settings, /root\.currentSection = Number\(modelData\.section\)/);
   assert.match(settings, /id: settingsNavigation/);
-  assert.match(settings, /Layout\.preferredWidth: Math\.min\(208, Math\.max\(184/);
+  assert.match(settings, /Layout\.preferredWidth: Math\.min\(224, Math\.max\(188/);
   assert.match(settings, /section: 6/);
   assert.match(settings, /id: nodeSettingsScroll/);
   assert.match(settings, /NodeManagementPanel\s*\{/);

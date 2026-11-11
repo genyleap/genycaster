@@ -16,11 +16,12 @@ test('Home hub replaces the duplicate cast timeline and prompt carousel', () => 
     assert.doesNotMatch(home, /Math.max\(108, Theme.touchTarget/);
 });
 
-test('Wallet is noninteractive and the GENY banner makes no network requests', () => {
+test('Wallet remains noninteractive and the home activity card performs no network requests', () => {
  const home=read('HomeDashboard');
  assert.match(home,/destination: "wallet"/);
  assert.match(home,/enabled: !shortcut.locked/);
- assert.match(home,/geny_token_slide_one/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
+ assert.match(home,/root.notificationUnreadCount > 0/);
  assert.doesNotMatch(home,/fetch\(|XMLHttpRequest\(|publishCast\(/);
 });
 

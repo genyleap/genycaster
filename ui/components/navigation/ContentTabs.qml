@@ -7,7 +7,6 @@ import Farcaster.Client
 Item {
     id: root
     property string currentMode: "for-you"
-    property bool motionReady: false
     signal modeRequested(string mode)
     implicitHeight: 48
     readonly property var tabModel: [
@@ -21,7 +20,6 @@ Item {
             if (tabModel[i].id === currentMode) return i
         return 0
     }
-    Component.onCompleted: motionReady = true
 
     RowLayout {
         id: tabs
@@ -69,6 +67,22 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.NoWrap
                 }
+                // Own the underline in each tab's coordinate system. A shared
+                // sibling underline can bind before Repeater.itemAt(0) exists,
+                // leaving the first selection stuck at the left edge.
+                Rectangle {
+                    objectName: "contentTabUnderline"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    width: Math.min(42, Math.max(20, parent.width - Theme.space3 * 2))
+                    height: 3
+                    radius: 1.5
+                    color: Theme.accent
+                    opacity: tabButton.selected ? 1 : 0
+                    Behavior on opacity {
+                        NumberAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+                    }
+                }
                 TapHandler {
                     gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: {
@@ -76,26 +90,6 @@ Item {
                             root.modeRequested(String(tabButton.modelData.id || ""))
                     }
                 }
-            }
-        }
-    }
-    Rectangle {
-        id: activeUnderline
-        z: 3
-        y: root.height - 3
-        height: 3
-        width: 36
-        radius: 1.5
-        color: Theme.accent
-        x: {
-            const item = tabRepeater.itemAt(root.selectedIndex)
-            return item ? item.x + (item.width - width) / 2 : 0
-        }
-        Behavior on x {
-            enabled: root.motionReady && !Theme.reduceMotion
-            NumberAnimation {
-                duration: Theme.motionStandard
-                easing.type: Easing.OutCubic
             }
         }
     }

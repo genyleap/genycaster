@@ -272,94 +272,118 @@ Item {
 
     }
 
-    component GenyTokenBanner: Superellipse {
-                id: genyTokenBanner
-                objectName: "genyTokenBanner"
-                Layout.fillWidth: true
-                Layout.leftMargin: root.compact ? Theme.space3 : 0
-                Layout.rightMargin: root.compact ? Theme.space3 : 0
-                Layout.preferredHeight: root.compact ? (root.androidCompact ? 84 : 96) : 108
-                fillColor: Theme.primarySurface
-                borderWidth: 1
-                borderColor: Theme.borderMuted
-                curveDepth: Theme.curveContainer
-                clip: true
+    // Replaces the promotional GENY carousel with an actionable, live inbox
+    // entry. No fabricated prices, counters, or automatic animation loops.
+    component HomeActivityCard: Superellipse {
+        id: activityCard
+        objectName: "homeActivityCard"
+        Layout.fillWidth: true
+        Layout.leftMargin: root.compact ? Theme.space3 : 0
+        Layout.rightMargin: root.compact ? Theme.space3 : 0
+        Layout.preferredHeight: root.compact ? 142 : 124
+        fillColor: Theme.surfaceRaised
+        borderWidth: Theme.strokeHairline
+        borderColor: Theme.borderSubtle
+        curveDepth: Theme.curveContainer
 
-                property int slideIndex: 0
-                Timer {
-                    interval: 6200
-                    repeat: true
-                    running: genyTokenBanner.visible && !root.busy
-                    onTriggered: genyTokenBanner.slideIndex = (genyTokenBanner.slideIndex + 1) % 2
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Theme.space3
+            spacing: Theme.space2
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                layoutDirection: Theme.uiDirection
+
+                Superellipse {
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: 44
+                    fillColor: Theme.primarySurface
+                    borderWidth: 0
+                    curveDepth: Theme.curveControl
+                    Icon {
+                        anchors.centerIn: parent
+                        text: Theme.iconNotification
+                        preferredSize: Theme.iconSize
+                        color: Theme.accent
+                    }
                 }
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: Theme.space3
-                    spacing: Theme.space3
-                    layoutDirection: Theme.uiDirection
-                    Superellipse {
-                        Layout.preferredWidth: 52
-                        Layout.preferredHeight: 52
-                        curveDepth: Theme.curveControl
-                        fillColor: Theme.surfaceRaised
-                        Image {
-                            anchors.centerIn: parent
-                            width: 36
-                            height: 40
-                            source: Theme.dark
-                                ? "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-dark.svg"
-                                : "qrc:/qt/qml/Farcaster/Client/assets/icons/genyleap/icons/brands/geny-token-mark-light.svg"
-                            sourceSize.width: 120
-                            sourceSize.height: 120
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            // Small theme-switching vector glyphs are already rasterized at
-        // a bounded sourceSize. Switching mipmapping before their first
-        // texture upload produces QSGPlainTexture warnings on Qt 6.12.
-        mipmap: false
-                        }
-                    }
-                    ColumnLayout {
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: Theme.space1
+                    DirectionAwareLabel {
                         Layout.fillWidth: true
-                        spacing: Theme.space1
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            text: qsTrId("genycaster.home.geny_token_title")
-                            alignToUi: true
-                            color: Theme.textPrimary
-                            font.weight: Theme.weightBold
-                            font.pixelSize: Theme.typeLabelSize
-                        }
-                        DirectionAwareLabel {
-                            Layout.fillWidth: true
-                            alignToUi: true
-                            text: genyTokenBanner.slideIndex === 0
-                                  ? qsTrId("genycaster.home.geny_token_slide_one")
-                                  : qsTrId("genycaster.home.geny_token_slide_two")
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.typeCaptionSize
-                            maximumLineCount: 2
-                            wrapMode: Text.Wrap
-                            elide: Text.ElideRight
-                        }
+                        text: qsTrId("genycaster.home.catch_up")
+                        color: Theme.ink
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                        elide: Text.ElideRight
                     }
-                    ColumnLayout {
-                        Layout.alignment: Qt.AlignBottom
-                        spacing: Theme.space1
-                        Repeater {
-                            model: 2
-                            delegate: Superellipse {
-                                required property int index
-                                Layout.preferredWidth: 5
-                                Layout.preferredHeight: 5
-                                curveDepth: 3
-                                fillColor: index === genyTokenBanner.slideIndex ? Theme.accent : Theme.textTertiary
-                                borderWidth: 0
-                            }
-                        }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: !root.authenticated
+                              ? qsTrId("genycaster.notifications.sign_in_description")
+                              : root.notificationUnreadCount > 0
+                                ? LocaleFormat.formatInteger(root.notificationUnreadCount)
+                                  + " · " + qsTrId("genycaster.notifications.title")
+                                : qsTrId("genycaster.notifications.empty_title")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
+                    }
+                }
+                Superellipse {
+                    visible: root.authenticated && root.notificationUnreadCount > 0
+                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: Math.max(32, activityCount.implicitWidth + Theme.space3)
+                    fillColor: Theme.surfaceSelected
+                    curveDepth: 16
+                    DirectionAwareLabel {
+                        id: activityCount
+                        anchors.centerIn: parent
+                        text: LocaleFormat.formatInteger(root.notificationUnreadCount)
+                        color: Theme.accent
+                        font.weight: Theme.weightBold
+                        font.pixelSize: Theme.typeMetaSize
                     }
                 }
             }
+
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space2
+
+                ActionButton {
+                    compact: true
+                    prominent: true
+                    Layout.fillWidth: true
+                    iconGlyph: Theme.iconNotification
+                    text: qsTrId("genycaster.side_nav.notifications")
+                    onClicked: root.notificationsRequested()
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    Layout.fillWidth: true
+                    iconGlyph: Theme.iconSearch
+                    text: qsTrId("genycaster.side_nav.explorer")
+                    onClicked: root.exploreRequested()
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    Layout.fillWidth: true
+                    iconGlyph: Theme.iconCompose
+                    text: qsTrId("genycaster.header.new_cast")
+                    iconOnly: root.compact
+                    onClicked: root.composeRequested(root.draftText)
+                }
+            }
+        }
+    }
 
     RowLayout {
         id: desktopLayout
@@ -502,7 +526,7 @@ Item {
                         }
                     }
                 }
-GenyTokenBanner {
+HomeActivityCard {
                     visible: root.activeTab === "overview"
                 }
 
@@ -683,7 +707,7 @@ GenyTokenBanner {
                 text: root.draftText
                 onTextChanged: root.draftText = text
             }
-GenyTokenBanner {
+HomeActivityCard {
                 visible: root.activeTab === "overview"
             }
 

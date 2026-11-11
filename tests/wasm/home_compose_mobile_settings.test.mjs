@@ -9,7 +9,7 @@ test('Home quick composer transfers text to the rich Cast paragraph', () => {
     const home = source('HomeDashboard.qml');
     const shell = source('AppShell.qml');
     const composer = source('ComposerDrawer.qml');
-    assert.equal((home.match(/onClicked: root\.composeRequested\(root\.draftText\)/g) || []).length, 2);
+    assert.equal((home.match(/onClicked: root\.composeRequested\(root\.draftText\)/g) || []).length, 3);
     assert.match(shell, /onComposeRequested: text => root\.openComposer\(null, "", text\)/);
     assert.match(shell, /composerDrawer\.suggestedText = String\(suggestedText \|\| ""\)/);
     assert.match(composer, /!root\.parentCast && root\.suggestedText\.length > 0/);

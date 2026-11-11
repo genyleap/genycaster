@@ -20,10 +20,10 @@ test('reaction actions have touch-safe hit targets without permanent card border
         assert.ok(bar.includes(kind),kind);
 });
 
-test('Home uses Superellipse banner and a disabled Wallet in its shortcuts', () => {
+test('Home uses an actionable activity card and a disabled Wallet in its shortcuts', () => {
  const home=read('ui/components/home/HomeDashboard.qml');
  assert.match(home,/component HubWorkspace: ColumnLayout/);
- assert.match(home,/component GenyTokenBanner: Superellipse/);
+ assert.match(home,/component HomeActivityCard: Superellipse/);
  assert.match(home,/destination: "wallet"/);
  assert.match(home,/enabled: !shortcut.locked/);
  assert.match(home,/curveDepth: Theme.curveContainer/);

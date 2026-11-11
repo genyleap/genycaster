@@ -1039,9 +1039,9 @@ void applyNotificationState(
             {QStringLiteral("aggregateCount"), static_cast<qulonglong>(item.aggregateCount)},
         };
         QVariantList actorRows{};
-        actorRows.reserve(static_cast<qsizetype>(std::min<std::size_t>(item.actors.size(), 3U)));
+        actorRows.reserve(static_cast<qsizetype>(std::min<std::size_t>(item.actors.size(), 16U)));
         for (std::size_t actorIndex = 0;
-             actorIndex < std::min<std::size_t>(item.actors.size(), 3U);
+             actorIndex < std::min<std::size_t>(item.actors.size(), 16U);
              ++actorIndex) {
             const auto& actor = item.actors[actorIndex];
             actorRows.push_back(QVariantMap{

@@ -122,9 +122,11 @@ GenyDrawer {
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     showHandle: false
     dimBackground: true
-    contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space4
+    contentPadding: mobilePresentation ? Theme.mobileGutter : Theme.space3
+    // The desktop inspector needs enough width for a real preferences rail
+    // and controls at normal font scaling. Phones retain their full viewport.
     width: parent ? (mobilePresentation ? parent.width
-                    : Math.min(640, parent.width)) : 640
+                    : Math.min(920, Math.max(0, parent.width - Theme.space4 * 2))) : 880
     // The overlay already represents the Qt-safe content viewport. Reserve
     // system status/navigation insets through padding, not a fake blank strip
     // above the drawer. Full height also works after orientation changes.
@@ -472,6 +474,65 @@ GenyDrawer {
     }
 
         // Account identity is the entry point to Settings on both phone and desktop.
+    // A single navigation treatment for desktop Settings. Active sections
+    // use a quiet tinted surface and a slim direction-aware accent marker,
+    // rather than unrelated full-blue ActionButton rectangles.
+    component SettingsNavigationTab: Button {
+        id: navTab
+        property bool selected: false
+        property string iconGlyph: Theme.iconSettings
+        implicitHeight: 46
+        hoverEnabled: true
+        flat: true
+        focusPolicy: Qt.StrongFocus
+        Accessible.role: Accessible.PageTab
+        Accessible.selected: selected
+
+        contentItem: RowLayout {
+            spacing: Theme.space2
+            layoutDirection: Theme.uiDirection
+            Icon {
+                Layout.preferredWidth: Theme.scaleUi(22)
+                preferredSize: Theme.iconSizeSmall
+                text: navTab.iconGlyph
+                color: navTab.selected ? Theme.accent : Theme.inkMuted
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                text: navTab.text
+                font.pixelSize: Theme.typeMetaSize
+                font.weight: navTab.selected ? Theme.weightDemiBold : Theme.weightMedium
+                color: navTab.selected ? Theme.accent
+                      : navTab.hovered ? Theme.ink : Theme.inkMuted
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
+            }
+        }
+        background: Superellipse {
+            fillColor: navTab.selected ? Theme.surfaceSelected
+                       : navTab.hovered ? Theme.surfaceHover : "transparent"
+            borderWidth: navTab.activeFocus && Theme.keyboardFocusVisible(navTab) ? 1 : 0
+            borderColor: Theme.focus
+            curveDepth: Theme.curveControl
+            Behavior on fillColor {
+                ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
+            }
+            Rectangle {
+                visible: navTab.selected
+                width: 3
+                radius: 1.5
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.topMargin: Theme.space2
+                anchors.bottomMargin: Theme.space2
+                x: Theme.rtl ? parent.width - width : 0
+                color: Theme.accent
+            }
+        }
+    }
+
     component SettingsProfileCard: Superellipse {
             objectName: "settingsProfileCard"
             visible: presentationBridge.isAuthenticated
@@ -644,12 +705,11 @@ GenyDrawer {
 
             Superellipse {
                 visible: !root.mobilePresentation
-                Layout.preferredWidth: Math.min(208, Math.max(184, root.width * 0.32))
+                Layout.preferredWidth: Math.min(224, Math.max(188, root.width * 0.28))
                 Layout.fillHeight: true
-                fillColor: Theme.surfaceMuted
+                fillColor: "transparent"
                 curveDepth: Theme.curveContainer
-                borderWidth: Theme.strokeHairline
-                borderColor: Theme.borderSubtle
+                borderWidth: 0
                 ScrollView {
                     anchors.fill: parent
                     anchors.margins: Theme.space2
@@ -675,16 +735,13 @@ GenyDrawer {
                     Repeater {
                         model: [{ section: 0, label: qsTrId("genycaster.settings.appearance"), glyph: Theme.iconPalette },
                                 { section: 1, label: qsTrId("genycaster.settings.language_region"), glyph: Theme.iconLanguage }]
-                        delegate: ActionButton {
+                        delegate: SettingsNavigationTab {
                             id: navigationEntry1
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            wrapText: true
-                            quiet: true
-                            alignStart: true
                             iconGlyph: String(modelData.glyph)
                             selected: root.currentSection === Number(modelData.section)
                             text: String(modelData.label)
@@ -702,16 +759,13 @@ GenyDrawer {
                         model: [{ section: 2, label: qsTrId("genycaster.settings.market_pulse"), glyph: Theme.iconChart },
                                 { section: 3, label: qsTrId("genycaster.settings.content_loading"), glyph: Theme.iconDownload },
                                 { section: 6, label: qsTrId("genycaster.nodes.title"), glyph: Theme.iconCloud }]
-                        delegate: ActionButton {
+                        delegate: SettingsNavigationTab {
                             id: navigationEntry2
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            wrapText: true
-                            quiet: true
-                            alignStart: true
                             iconGlyph: String(modelData.glyph)
                             selected: root.currentSection === Number(modelData.section)
                             text: String(modelData.label)
@@ -728,16 +782,13 @@ GenyDrawer {
                     Repeater {
                         model: [{ section: 4, label: qsTrId("genycaster.settings.updates"), glyph: Theme.iconRefresh },
                                 { section: 5, label: qsTrId("genycaster.setup.recovery_title"), glyph: "system/lock" }]
-                        delegate: ActionButton {
+                        delegate: SettingsNavigationTab {
                             id: navigationEntry3
                             required property var modelData
                             visible: Number(modelData.section) !== 5 || presentationBridge.isAuthenticated
                             objectName: Number(modelData.section) === 5 ? "settingsRecoveryTab" : "settingsNavigationItem"
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
-                            wrapText: true
-                            quiet: true
-                            alignStart: true
                             iconGlyph: String(modelData.glyph)
                             selected: root.currentSection === Number(modelData.section)
                             text: String(modelData.label)
