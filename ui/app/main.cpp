@@ -10,6 +10,8 @@
 #include <QGuiApplication>
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
 #include <QApplication>
+#include <QtWebEngineQuick>
+#include "miniapp/browser_linux_quick.hpp"
 #endif
 #include <QIcon>
 #include <QFile>
@@ -268,7 +270,9 @@ int main(int argc, char* argv[])
     QSurfaceFormat::setDefaultFormat(surfaceFormat);
 
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
-    // Qt WebEngine Widgets requires QApplication, not QGuiApplication.
+    // WebEngine Quick's shared context must exist before QApplication.
+    // QWidget is still used exclusively for Separate Window presentation.
+    QtWebEngineQuick::initialize();
     QApplication application(argc, argv);
 #else
     QGuiApplication application(argc, argv);
@@ -1272,6 +1276,11 @@ int main(int argc, char* argv[])
     desktopInstance.setWindow(mainWindow);
 #endif
     renderingController.attachWindow(mainWindow);
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID) && defined(GENYCASTER_HAS_LINUX_MINIAPP_WIDGETS)
+    // Native in-window Mini App drawers must use the stable Qt Quick host,
+    // not whichever transient Mini App window most recently gained focus.
+    farcaster::platform::miniapp::setLinuxMiniAppQuickHost(mainWindow, &engine);
+#endif
 #if defined(Q_OS_WASM)
     genycaster::ui::web::installWheelBridge(mainWindow);
     genycasterInstallBrowserEmojiRecovery();
