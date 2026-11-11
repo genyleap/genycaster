@@ -21,11 +21,14 @@ test -f /etc/apt/sources.list.d/ubuntu.sources || {
 
 case "$(dpkg --print-architecture)" in
   arm64)
-    # These are all official Ubuntu Ports mirrors with noble arm64 indices.
+    # Try official Ubuntu Ports hosts first, then independent mirrors.
+    # Third-party mirrors still use the pinned Ubuntu archive signing key.
     mirrors=(
       https://us.ports.ubuntu.com/ubuntu-ports
       https://ports.ubuntu.com/ubuntu-ports
       https://ftp.ports.ubuntu.com/ubuntu-ports
+      https://mirrors.xmission.com/ubuntu/ubuntu-ports
+      https://mirror.nju.edu.cn/ubuntu-ports
     )
     ;;
   amd64)
@@ -33,6 +36,8 @@ case "$(dpkg --print-architecture)" in
       https://archive.ubuntu.com/ubuntu
       https://us.archive.ubuntu.com/ubuntu
       https://security.ubuntu.com/ubuntu
+      https://mirror.umd.edu/ubuntu
+      https://mirrors.xmission.com/ubuntu
     )
     ;;
   *)
