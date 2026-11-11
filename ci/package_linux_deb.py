@@ -61,6 +61,7 @@ def build(appdir: Path, output: Path, version: str, arch: str) -> Path:
             f"libxcb-icccm4, libxcb-image0, libxcb-keysyms1, "
             f"libxcb-render-util0, libxcb-xinerama0, libfontconfig1, "
             f"libfreetype6, libsqlite3-0, libdbus-1-3, libsecret-1-0, "
+            f"libasound2t64, libpulse0, "
             f"ca-certificates, xdg-utils\n"
             f"Description: GenyCaster decentralized social client\n"
             f" Native local-first application with bundled Qt and QML runtime.\n",
