@@ -2067,7 +2067,6 @@ Item {
                                     Number(root.activeDetail.fid), !Boolean(root.activeDetail.followingByMe))
                             }
                         }
-                        } // Left-aligned name, badges, and follow actions
 
                         Item {
                             id: identityLinkSlot
@@ -2076,16 +2075,17 @@ Item {
                             // Use the text's intrinsic size rather than the implicit width of
                             // a RowLayout containing a width-constrained Button. That cycle
                             // can collapse the link to zero on Linux's Qt Quick layout engine.
-                            Layout.preferredWidth: Math.min(
-                                Math.max(0, root.profileContentWidth * 0.48),
+                            // Flow positions this item immediately after the display
+                            // name, wrapping beneath it only when the viewport is narrow.
+                            // Keep an explicit width: Layout attached properties have
+                            // no effect on children of Qt Quick Flow.
+                            width: Math.min(
+                                Math.max(0, root.profileContentWidth * (root.compact ? 0.60 : 0.55)),
                                 identityLinkIcon.implicitWidth + identityLinks.spacing
-                                    + Math.min(identityLinkText.implicitWidth,
-                                               Theme.scaleUi(root.compact ? 150 : 230))
+                                    + identityLinkText.implicitWidth
                                     + (identityMoreLinks.visible
                                        ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
-                            Layout.minimumWidth: 0
-                            Layout.alignment: Qt.AlignVCenter
-                            Layout.preferredHeight: Math.max(profileDisplayName.height, identityLinks.implicitHeight)
+                            height: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
 
                             RowLayout {
                                 id: identityLinks
@@ -2122,8 +2122,10 @@ Item {
                                             id: identityLinkText
                                             Layout.fillWidth: true
                                             Layout.minimumWidth: 0
-                                            Layout.preferredWidth: Math.min(implicitWidth,
-                                                Theme.scaleUi(root.compact ? 150 : 230))
+                                            // Favor the full website domain on wide
+                                            // desktops; elide only when the Flow is
+                                            // genuinely space-constrained.
+                                            Layout.preferredWidth: implicitWidth
                                             text: root.displayUrl(root.primaryProfileLinkUrl)
                                             horizontalAlignment: Theme.textStartAlignment
                                             LayoutMirroring.enabled: false
@@ -2165,6 +2167,7 @@ Item {
                                 }
                             }
                         }
+                        } // Flow: display name, badges, actions and inline links
 
                     } // Full-width identity row
 
