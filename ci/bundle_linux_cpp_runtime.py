@@ -18,6 +18,13 @@ LAUNCHER = """#!/bin/sh
 set -eu
 appdir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 export LD_LIBRARY_PATH="$appdir/usr/lib{{EXISTING_LIBRARY_PATH}}"
+# Qt WebEngine uses an out-of-process Chromium renderer with its own resources.
+# Resolve every path relative to the installed AppDir, never the CI Qt SDK.
+if [ -x "$appdir/usr/libexec/QtWebEngineProcess" ]; then
+    export QTWEBENGINEPROCESS_PATH="$appdir/usr/libexec/QtWebEngineProcess"
+    export QTWEBENGINE_RESOURCES_PATH="$appdir/usr/resources"
+    export QTWEBENGINE_LOCALES_PATH="$appdir/usr/translations/qtwebengine_locales"
+fi
 # Qt may prefer native Wayland on the host, although the portable package
 # only includes XCB. Use XWayland when available instead of failing QPA init.
 # Respect explicit user/application platform overrides.
