@@ -124,6 +124,7 @@ jobs:
             libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
             libxcb-xfixes0 libxcb-xkb1 libxcb-glx0 libxcb-xinput0 \
             libxcb-render0 libxcb-util1 libx11-xcb1 libxcb-dri3-0 \
+            libice6 libsm6 libxrandr2 \
             libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
             libcurl4-openssl-dev libdbus-1-dev software-properties-common \
             libfontconfig1 libfreetype6 libgstreamer-plugins-bad1.0-0 \
