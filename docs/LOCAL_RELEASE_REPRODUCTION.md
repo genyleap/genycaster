@@ -93,7 +93,7 @@ Quick check before rebuilding after a DNS failure:
 
 ```bash
 getent hosts ports.ubuntu.com
-docker run --rm --network host ubuntu:24.04 \\
+docker run --rm --network host ubuntu:24.04 \
   getent hosts ports.ubuntu.com
 git pull --ff-only origin main
 BUILD_JOBS=2 bash ci/build_local_linux_arm64_container.sh
