@@ -49,8 +49,13 @@ def validate_linux_deb(path: Path) -> None:
     require(control.returncode == 0, "Cannot inspect Linux DEB dependencies")
     dependencies = {entry.strip().split()[0]
                     for entry in control.stdout.split(",") if entry.strip()}
-    require("libopengl0" in dependencies,
-            "Linux DEB missing libopengl0 dependency for GLVND libOpenGL.so.0")
+    for package, soname in (
+        ("libopengl0", "libOpenGL.so.0"),
+        ("libasound2t64", "libasound.so.2"),
+        ("libpulse0", "libpulse.so.0"),
+    ):
+        require(package in dependencies,
+                f"Linux DEB missing {package} dependency for {soname}")
     listing = result.stdout
     for required in (
         "./opt/genycaster/AppRun",
