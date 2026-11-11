@@ -75,7 +75,7 @@ g++-16 --version | head -1
 }
 # Check the actual release linker path before downloading/building Qt.
 # A compiler version check alone does not prove collect2 can find LLD.
-printf 'int main() { return 0; }\\n' > "$work/link-smoke.cpp"
+printf 'int main() { return 0; }\n' > "$work/link-smoke.cpp"
 g++-16 -std=c++26 -fuse-ld=lld "$work/link-smoke.cpp" -o "$work/link-smoke"
 test -x "$work/link-smoke"
 "$work/link-smoke"
