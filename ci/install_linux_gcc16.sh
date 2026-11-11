@@ -20,8 +20,9 @@ trap 'rm -rf -- "$work"' EXIT
 curl --fail --location --silent --show-error --retry 4 --retry-all-errors \
   --connect-timeout 15 --max-time 90 "$key_url" -o "$work/key.asc"
 test -s "$work/key.asc"
+# A PPA key may contain subkeys; verify the primary public key fingerprint.
 mapfile -t actual < <(gpg --batch --show-keys --with-colons "$work/key.asc" |
-  awk -F: '$1 == "fpr" {print toupper($10)}')
+  awk -F: '$1 == "pub" {primary=1; next} primary && $1 == "fpr" {print toupper($10); exit}')
 if [[ "${#actual[@]}" -ne 1 || "${actual[0]}" != "$fingerprint" ]]; then
   echo "::error::Unexpected Ubuntu toolchain PPA signing key fingerprint" >&2
   exit 1
