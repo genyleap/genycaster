@@ -7,6 +7,7 @@
  * a raw wallet handle, secure-vault key, or permission without the runtime.
  */
 #include "browser.hpp"
+#include "browser_linux_quick.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -241,6 +242,13 @@ protected:
 } // namespace
 
 namespace farcaster::platform::miniapp {
+
+// The embedded Quick drawer must enforce the same origin and bridge contract
+// as the separate-window QWidget browser. Keep all policies in one place.
+bool linuxBrowserPublicHttps(const QUrl& url) { return publicHttps(url); }
+QString linuxBrowserPublicScript() { return documentBridgeScript(); }
+QString linuxBrowserTransportScript() { return isolatedTransportScript(); }
+
 namespace {
 class LinuxBrowser final : public Browser {
 public:
@@ -452,6 +460,12 @@ std::unique_ptr<Browser> createBrowser(
     const QString& title, const QUrl& origin, BrowserCallbacks callbacks,
     PresentationMode mode, bool reduceMotion, bool initiallyVisible, BrowserRole role)
 {
+    // Separate Window stays native; Bottom/Left/Right live in the same
+    // QQuickWindow as the rest of GenyCaster, exactly as on macOS.
+    if (role == BrowserRole::MiniApp && mode != PresentationMode::Window)
+        return createLinuxQuickBrowser(title, origin, std::move(callbacks),
+                                       mode, reduceMotion, initiallyVisible);
+
     auto browser = std::make_unique<LinuxBrowser>(
         title, origin, std::move(callbacks), mode, reduceMotion,
         initiallyVisible, role);
