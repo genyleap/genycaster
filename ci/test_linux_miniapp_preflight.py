@@ -23,7 +23,7 @@ class LinuxMiniAppSdkPreflightTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             for module in ("Qt6Widgets", "Qt6WebChannel", "Qt6WebEngineCore",
-                           "Qt6WebEngineWidgets", "Qt6WebEngineQuick"):
+                           "Qt6WebEngineWidgets", "Qt6WebEngineQuick", "Qt6SerialPort"):
                 path = root / "lib" / "cmake" / module / f"{module}Config.cmake"
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.touch()
