@@ -33,6 +33,9 @@ class AppearanceController final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString themeMode READ themeMode NOTIFY appearanceChanged)
   Q_PROPERTY(QString colorThemeId READ colorThemeId NOTIFY appearanceChanged)
+  Q_PROPERTY(QString platformName READ platformName CONSTANT)
+  Q_PROPERTY(QString platformAccentColor READ platformAccentColor CONSTANT)
+  Q_PROPERTY(QString platformIcon READ platformIcon CONSTANT)
   Q_PROPERTY(QString customAccentColor READ customAccentColor NOTIFY appearanceChanged)
   Q_PROPERTY(bool effectiveDark READ effectiveDark NOTIFY appearanceChanged)
   Q_PROPERTY(bool reduceMotion READ reduceMotion NOTIFY appearanceChanged)
@@ -64,6 +67,10 @@ public:
 
   [[nodiscard]] QString themeMode() const;
   [[nodiscard]] QString colorThemeId() const;
+  /** @brief Device OS/distro identity used for the optional native-color preset. */
+  [[nodiscard]] QString platformName() const;
+  [[nodiscard]] QString platformAccentColor() const;
+  [[nodiscard]] QString platformIcon() const;
   [[nodiscard]] QString customAccentColor() const;
   [[nodiscard]] bool effectiveDark() const noexcept;
   [[nodiscard]] bool reduceMotion() const noexcept;
