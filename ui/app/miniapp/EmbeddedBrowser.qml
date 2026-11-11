@@ -61,7 +61,7 @@ Popup {
             NumberAnimation {
                 property: "opacity"
                 from: 0; to: 1
-                duration: root.adapter.reduceMotion ? 0 : Theme.motionNormal
+                duration: root.adapter.reduceMotion ? 0 : Theme.motionStandard
             }
             NumberAnimation {
                 property: root.edge === 1 ? "y" : "x"
@@ -69,7 +69,7 @@ Popup {
                     : root.edge === 2 ? -root.width
                     : (root.parent ? root.parent.width : root.width)
                 to: root.edge === 1 ? root.y : root.x
-                duration: root.adapter.reduceMotion ? 0 : Theme.motionNormal
+                duration: root.adapter.reduceMotion ? 0 : Theme.motionStandard
                 easing.type: Easing.OutCubic
             }
         }
