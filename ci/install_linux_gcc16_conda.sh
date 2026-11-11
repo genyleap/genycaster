@@ -48,7 +48,19 @@ ld.lld --version
 # 'ld'" despite the system providing /usr/bin/ld.lld.
 # GCC's COMPILER_PATH is honored by collect2 for external executables.
 test -x "$prefix/bin/aarch64-conda-linux-gnu-ld"
-export COMPILER_PATH="$prefix/bin:/usr/bin"
+# GCC 16.2 emits new AArch64 .aeabi_* directives which Ubuntu Noble's
+# stock GNU as does not understand. Use the matching conda-forge
+# binutils 2.46 assembler, never the system /usr/bin/as.
+assembler="$prefix/bin/aarch64-conda-linux-gnu-as"
+test -x "$assembler"
+"$assembler" --version | head -1
+shim="$work/compiler-binutils"
+mkdir -p "$shim"
+ln -s "$assembler" "$shim/as"
+ln -s "$prefix/bin/aarch64-conda-linux-gnu-ld" "$shim/ld"
+# GCC/collect2 search COMPILER_PATH for as and ld. Include binutils and
+# host's lld but do not allow the old assembler to win the search order.
+export COMPILER_PATH="$shim:$prefix/bin:/usr/bin"
 echo "COMPILER_PATH=$COMPILER_PATH" >> "${GITHUB_ENV:?}"
 
 # Existing CMake / release scripts select gcc-16 and g++-16 by name.
@@ -77,6 +89,14 @@ g++-16 --version | head -1
 # A compiler version check alone does not prove collect2 can find LLD.
 printf 'int main() { return 0; }\n' > "$work/link-smoke.cpp"
 g++-16 -std=c++26 -fuse-ld=lld "$work/link-smoke.cpp" -o "$work/link-smoke"
+# Smoke-check an actual C++26 Qt-style module so the toolchain cannot
+# pass a basic source file but later fail on C++ module assembly.
+cat > "$work/module-smoke.cppm" <<'CXX_MODULE'
+export module genycaster.toolchain.smoke;
+export int answer() { return 42; }
+CXX_MODULE
+g++-16 -std=c++26 -fmodules-ts -x c++ -c "$work/module-smoke.cppm" \
+  -o "$work/module-smoke.o"
 test -x "$work/link-smoke"
 "$work/link-smoke"
 echo "::notice::Native GCC16 ARM64 and LLD link smoke test passed"
