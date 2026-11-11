@@ -9,7 +9,8 @@ RUN apt-get -o APT::Update::Error-Mode=any update && \
       ca-certificates software-properties-common gnupg git \
       python3 python3-venv python3-pip \
       ninja-build curl file patchelf libfuse2 zsync docker.io nodejs \
-      libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0 \
+      libgl1 libegl1 libgl1-mesa-dev libopengl-dev libglx-dev libegl-dev libx11-dev \
+      libxkbcommon-x11-0 libxcb-cursor0 \
       libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
       libxcb-render-util0 libxcb-xinerama0 \
       libboost-dev libsqlite3-dev libssl-dev libsecret-1-dev \
@@ -25,3 +26,14 @@ RUN apt-get -o APT::Update::Error-Mode=any update && \
 RUN python3 -m venv /opt/genycaster-release-tools && \
     /opt/genycaster-release-tools/bin/pip install --no-cache-dir 'cmake==4.4.4'
 ENV PATH="/opt/genycaster-release-tools/bin:$PATH"
+# Check the exact GL/GLX CMake discovery needed by Qt6Gui *before* the
+# expensive C++26 product build. Catch missing development symlinks early.
+RUN mkdir -p /tmp/genycaster-gl-probe && \
+    printf '%s\n' \
+      'cmake_minimum_required(VERSION 3.25)' \
+      'project(GenyCasterGraphicsPreflight LANGUAGES CXX)' \
+      'find_package(OpenGL REQUIRED COMPONENTS OpenGL GLX)' \
+      > /tmp/genycaster-gl-probe/CMakeLists.txt && \
+    CC=gcc-16 CXX=g++-16 cmake -S /tmp/genycaster-gl-probe \
+      -B /tmp/genycaster-gl-probe/build -G Ninja && \
+    rm -rf /tmp/genycaster-gl-probe
