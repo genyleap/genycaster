@@ -1939,10 +1939,14 @@ Item {
                     x: root.profileContentX
                     spacing: Theme.space1
 
-                    RowLayout {
+                    GridLayout {
                         objectName: "profileIdentityRow"
                         Layout.fillWidth: true
-                        spacing: Theme.space3
+                        columns: root.profileContentWidth >=
+                            profileDisplayName.implicitWidth + identityLinkSlot.fullLinkWidth
+                                + Theme.space3 ? 2 : 1
+                        columnSpacing: Theme.space3
+                        rowSpacing: Theme.space1
                         layoutDirection: Theme.uiDirection
 
                         Flow {
@@ -2074,26 +2078,29 @@ Item {
                             id: identityLinkSlot
                             objectName: "profileIdentityLinksSlot"
                             visible: root.primaryProfileLinkUrl.length > 0
-                            // The URL and "and more" form one unbroken inline row.
-                            // Measure the *unwrapped* text independently of the layout:
-                            // using Label.implicitWidth here caused Qt Quick to shrink
-                            // the URL to a two-line fragment on desktop Linux and WASM.
+                            // Keep the URL and the "and more" action together.
+                            // Reserve the rendered text's intrinsic width plus a small
+                            // bearing allowance. A zero minimum width previously let
+                            // Grid/RowLayout silently clip even short desktop links.
                             TextMetrics {
                                 id: profileLinkMetrics
                                 font.family: Theme.latinFontFamily
                                 font.pixelSize: Theme.typeCaptionSize
                                 text: root.displayUrl(root.primaryProfileLinkUrl)
                             }
+                            readonly property real primaryButtonWidth:
+                                Math.ceil(identityLinkIcon.implicitWidth + identityLinkContent.spacing
+                                    + Math.max(profileLinkMetrics.advanceWidth, identityLinkText.implicitWidth)
+                                    + Theme.scaleUi(8))
                             readonly property real fullLinkWidth:
-                                identityLinkIcon.implicitWidth + identityLinks.spacing
-                                + Math.ceil(profileLinkMetrics.advanceWidth)
+                                primaryButtonWidth
                                 + (identityMoreLinks.visible
                                    ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0)
-                            Layout.preferredWidth: Math.min(
-                                fullLinkWidth,
-                                Math.max(0, root.profileContentWidth * 0.76))
-                            Layout.minimumWidth: 0
+                            Layout.preferredWidth: fullLinkWidth
+                            Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)
+                            Layout.maximumWidth: fullLinkWidth
                             Layout.alignment: Qt.AlignVCenter
+                                | (Theme.rtl ? Qt.AlignLeft : Qt.AlignRight)
                             Layout.preferredHeight: Math.max(profileDisplayName.implicitHeight, identityLinks.implicitHeight)
 
                             RowLayout {
@@ -2108,11 +2115,10 @@ Item {
                                 Button {
                                     id: identityPrimaryLink
                                     objectName: "profileIdentityPrimaryLink"
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                    Layout.maximumWidth: Math.max(0, identityLinkSlot.width
-                                        - (identityMoreLinks.visible
-                                           ? identityMoreLinks.implicitWidth + identityLinks.spacing : 0))
+                                    Layout.fillWidth: false
+                                    Layout.preferredWidth: identityLinkSlot.primaryButtonWidth
+                                    Layout.minimumWidth: Layout.preferredWidth
+                                    Layout.maximumWidth: Layout.preferredWidth
                                     flat: true
                                     hoverEnabled: true
                                     padding: 0
@@ -2129,21 +2135,21 @@ Item {
                                         }
                                         Label {
                                             id: identityLinkText
-                                            Layout.fillWidth: true
-                                            Layout.minimumWidth: 0
-                                            Layout.preferredWidth: Math.ceil(profileLinkMetrics.advanceWidth)
+                                            Layout.fillWidth: false
+                                            Layout.preferredWidth: Math.ceil(
+                                                Math.max(profileLinkMetrics.advanceWidth, implicitWidth)
+                                                + Theme.scaleUi(4))
+                                            Layout.minimumWidth: Layout.preferredWidth
                                             text: root.displayUrl(root.primaryProfileLinkUrl)
                                             horizontalAlignment: Theme.textStartAlignment
                                             LayoutMirroring.enabled: false
                                             color: Theme.accent
                                             font.family: Theme.latinFontFamily
                                             font.pixelSize: Theme.typeCaptionSize
-                                            // Never wrap or add ellipses. On exceptionally
-                                            // narrow screens, clip and expose the complete
-                                            // address through the accessible tooltip.
+                                            // URL is one logical line, not clipped or elided.
                                             wrapMode: Text.NoWrap
                                             elide: Text.ElideNone
-                                            clip: true
+                                            clip: false
                                             verticalAlignment: Text.AlignVCenter
                                         }
                                     }
