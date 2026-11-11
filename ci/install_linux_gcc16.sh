@@ -14,8 +14,8 @@ set -euo pipefail
 fingerprint=C8EC952E2A0E1FBDC5090F6A2C277A0A352154E5
 repo_url=https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu
 # This is a public key, not a secret. It is stored with the build sources to
-# avoid reaching keyserver.ubuntu.com on every GitHub runner: that hostname
-# was unresolvable even when the signed Ubuntu package mirror was healthy.
+# avoid reaching the network keyserver on every GitHub runner: the
+# keyserver could not be resolved even when Ubuntu package mirrors worked.
 key_source="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/keys/ubuntu-toolchain-r-test.asc"
 test -s "$key_source" || { echo "::error::Pinned toolchain signing key missing" >&2; exit 1; }
 work="$(mktemp -d)"
