@@ -35,13 +35,18 @@ def otool_dependencies(output: str, binary: Path) -> list[str]:
     On some macOS versions, `otool -L` emits both `path:` and
     `path (architecture arm64):`. Neither is a linked library.
     """
-    binary_header = re.compile(
-        rf"{re.escape(str(binary))}(?: \(architecture [^)]+\))?:"
-    )
     dependencies = []
     for raw_line in output.splitlines():
         line = raw_line.strip()
-        if not line or binary_header.fullmatch(line):
+        if not line:
+            continue
+        # On arm64 otool can print each Mach-O slice's filename as a
+        # separate header, sometimes using a fully resolved path different
+        # from the argument (especially when the .app is mounted from DMG).
+        # Headers terminate in ':'; actual install-name lines include
+        # ' (compatibility version ...)' or ' (current version ...)'.
+        # Do not interpret the executable/header path as a dependency.
+        if line.endswith(":") and not line.startswith("@"):
             continue
         dependencies.append(line.split(" (compatibility version", 1)[0])
     return dependencies
