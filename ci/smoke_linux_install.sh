@@ -45,7 +45,7 @@ docker run --rm --network "${GENYCASTER_SMOKE_DOCKER_NETWORK:-bridge}" \
     # The Qt 6.12 Linux binary links the vendor-neutral GLVND OpenGL
     # dispatcher. On a clean Ubuntu host, libgl1 does not guarantee
     # libOpenGL.so.0; the DEB must declare libopengl0 explicitly.
-    dpkg-query -W -f="${Status}" libopengl0 | grep -qx "install ok installed"
+    dpkg-query -W -f="\${Status}" libopengl0 | grep -qx "install ok installed"
     ldconfig -p | grep -q "libOpenGL.so.0"
     unresolved="$(LD_LIBRARY_PATH=/opt/genycaster/usr/lib \
       ldd /opt/genycaster/usr/bin/Genycaster | grep "not found" || true)"
