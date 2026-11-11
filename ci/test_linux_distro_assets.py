@@ -80,6 +80,11 @@ class LinuxDistroBrandAssetsTest(unittest.TestCase):
         self.assertIn("elide: Text.ElideNone", link)
         self.assertIn("profileLinkMetrics.advanceWidth", link)
         self.assertNotIn("Text.WrapAnywhere", link)
+        self.assertIn("clip: false", link)
+        self.assertIn("Layout.minimumWidth: Layout.preferredWidth", link)
+        self.assertIn("Layout.minimumWidth: Math.min(fullLinkWidth, root.profileContentWidth)", qml)
+        self.assertIn("columns: root.profileContentWidth >=", qml)
+        self.assertNotIn("root.profileContentWidth * 0.76", qml)
         self.assertIn("Layout.minimumWidth: implicitWidth", qml[end:end + 500])
 
 
