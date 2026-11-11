@@ -435,70 +435,7 @@ jobs:
           # their resolved values, not the incidental CMake cache type.
           test "$(sed -n 's/^OPENSSL_CRYPTO_LIBRARY:[^=]*=//p' build/native/CMakeCache.txt)" = "$OPENSSL_STAGE/libcrypto.a"
           test "$(sed -n 's/^OPENSSL_SSL_LIBRARY:[^=]*=//p' build/native/CMakeCache.txt)" = "$OPENSSL_STAGE/libssl.a"
-          grep -q '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$APP/Contents/Info.plist")" = Genycaster
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Contents/Info.plist")" = Genycaster
-          test -n "$(find build/native/bin -maxdepth 1 -type d -name 'Genycaster.app' -print -quit)"
-          # Fail if a cross-architecture Qt library or toolchain leaked in.
-          /usr/bin/lipo "$APP/Contents/MacOS/Genycaster" -verify_arch "${{ matrix.arch }}"
-          # Qt's SDK ships SQL drivers for PostgreSQL, ODBC, Mimer etc.
-          # GenyCaster uses its native SQLite storage and never links QtSql.
-          # macdeployqt has no selective SQL-plugin switch, so hide ONLY the
-          # unused SDK sqldrivers before it scans/copies plugins. Do not copy
-          # missing system libpq/libiodbc or relax the dependency audit.
-          SQL_DRIVERS="$QT_ROOT_DIR/plugins/sqldrivers"
-          if [[ -d "$SQL_DRIVERS" ]]; then
-            mv "$SQL_DRIVERS" "$RUNNER_TEMP/genycaster-unused-qt-sqldrivers"
-          fi
-          # Deploy first; macdeployqt may add QtSql even with sqldrivers
-          # hidden. Inspect every shipped Mach-O dependency before removing
-          # unused QtSql, and do not let a second deployment repopulate it.
-          # Qt's deployment scanner walks every QML file under -qmldir.
-          # Exclude Linux-only QtWebEngine Quick and Android-only WebView so
-          # a native macOS WKWebView build never acquires another platform's
-          # Qt WebEngine plugin requirements.
-          QML_SCAN="$RUNNER_TEMP/genycaster-macos-qml-scan"
-          mkdir -p "$QML_SCAN"
-          rsync -a --include='*/' --include='*.qml' --include='*.js' \
-            --include='qmldir' --exclude='*' "$GITHUB_WORKSPACE/ui/" "$QML_SCAN/"
-          rm -f "$QML_SCAN/app/miniapp/EmbeddedBrowser.qml"
-          rm -f "$QML_SCAN/components/apps/AndroidWebView.qml"
-          "$QT_ROOT_DIR/bin/macdeployqt" "$APP" -qmldir="$QML_SCAN" -verbose=1
-          python3 ci/prune_macos_bundle.py "$APP" --qml-source "$GITHUB_WORKSPACE/ui"
-          python3 ci/audit_macos_bundle.py "$APP" "${{ matrix.arch }}" --smoke
-          mkdir -p dist
-          DMG=build/native/bin/Genycaster.dmg
-          # Seal EXACTLY the audited application. macdeployqt -dmg would
-          # run deployment again and re-introduce optional SDK frameworks.
-          hdiutil create -ov -volname GenyCaster -srcfolder "$APP" -format UDZO "$DMG"
-          test -s "$DMG"
-          hdiutil verify "$DMG"
-          # Inspect and run the ACTUAL mounted DMG payload, not just the build
-          # tree; this catches incomplete DMG copies and Qt SDK fallbacks.
-          MOUNT="$RUNNER_TEMP/genycaster-dmg-${{ matrix.arch }}"
-          mkdir -p "$MOUNT"
-          hdiutil attach -readonly -nobrowse -mountpoint "$MOUNT" "$DMG"
-          trap 'hdiutil detach "$MOUNT" -quiet || true' EXIT
-          test -d "$MOUNT/Genycaster.app"
-          python3 ci/audit_macos_bundle.py "$MOUNT/Genycaster.app" "${{ matrix.arch }}" --smoke
-          hdiutil detach "$MOUNT"
-          trap - EXIT
-          cp "$DMG" "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
-          python3 ci/verify_platform_package.py macos "dist/GenyCaster-v${VERSION}-macos-${{ matrix.arch }}.dmg"
-          # Independent runtime snapshot for an eventual supervised updater.
-          # Not advertised to the current UpdateController as an installer.
-          python3 ci/package_selfupdate.py --platform macos \
-            --arch "${{ matrix.arch }}" --version "$VERSION" \
-            --source "$APP" --output dist/selfupdate
-          python3 ci/verify_selfupdate_snapshot.py \
-            "dist/selfupdate/GenyCaster-selfupdate-v${VERSION}-macos-${{ matrix.arch }}.tar.gz"
-          (cd dist && shasum -a 256 *.dmg > SHA256SUMS)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: GenyCaster-macos-${{ matrix.arch }}
-          path: dist/*
-          if-no-files-found: error
-          retention-days: 14 build/native/CMakeCache.txt
+          grep -q '^FARCASTER_ENABLE_MINIAPPS:BOOL=ON$' build/native/CMakeCache.txt
           cmake --build build/native --target farcaster_miniapp_browser --parallel 3
           cmake --build build/native --target genycaster --parallel 3
           APP=build/native/bin/Genycaster.app
