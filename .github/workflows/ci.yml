@@ -139,7 +139,8 @@ jobs:
           version: ${{ env.QT_VERSION }}
           target: desktop
           arch: ${{ matrix.qt_arch }}
-          modules: qtmultimedia
+          # Qt WebEngine is a separately distributed Qt 6.12 extension.
+          modules: qtmultimedia qtwebchannel qtwebengine
           cache: true
       - name: Check Qt Multimedia deployment dependencies
         shell: bash
@@ -184,6 +185,8 @@ jobs:
             -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
             -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
             -DFARCASTER_BUILD_TESTS=OFF \
+            -DFARCASTER_ENABLE_MINIAPPS=ON \
+            -DGENYCASTER_REQUIRE_LINUX_MINIAPP_HOST=ON \
             -DGENYCASTER_FETCH_QTKEYCHAIN=ON \
             -DFARCASTER_REQUIRE_SECURE_SIGNER_VAULT=ON
           # lld avoids expensive GNU ld final-link memory use for the large Qt/C++26 app.
