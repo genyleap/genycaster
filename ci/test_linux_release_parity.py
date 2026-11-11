@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 DOCKERFILE = ROOT / "ci/Dockerfile.linux-arm64-release"
 LOCAL_SCRIPT = ROOT / "ci/build_local_linux_release.sh"
+CONDA_BOOTSTRAP = ROOT / "ci/install_linux_gcc16_conda.sh"
 
 # Tools available on a hosted Ubuntu runner but installed explicitly inside
 # the minimal local Ubuntu image. The remaining package set must match exactly.
@@ -100,6 +101,25 @@ class LinuxReleaseParityTests(unittest.TestCase):
         self.assertLess(linux.index("ci/preflight_linux_miniapp_host.py --qt-root"),
                         linux.index("cmake --build build/native"))
         self.assertIn("qtwebchannel qtpositioning qtserialport qtwebengine", linux)
+
+    def test_conda_arm64_fallback_uses_native_system_sysroot(self):
+        """Avoid another missing Ubuntu dependency after CMake config succeeds."""
+        fallback = CONDA_BOOTSTRAP.read_text(encoding="utf-8")
+        for required in (
+            'flag_value="${old_flags:+$old_flags }--sysroot=/"',
+            'printf \'%s=%s\\n\' "$flag_name" "$flag_value" >> "${GITHUB_ENV:?}"',
+            "getconf GNU_LIBC_VERSION",
+            "native-headers-smoke.cpp",
+            "#include <sqlite3.h>",
+            "#include <boost/json.hpp>",
+            "#include <openssl/ssl.h>",
+            "#include <curl/curl.h>",
+            "#include <GL/gl.h>",
+            "#include <EGL/egl.h>",
+            '"$work/link-smoke.cpp" -lsqlite3 -o "$work/link-smoke"',
+            "g++-16 --sysroot=/ -std=c++26 -fmodules-ts",
+        ):
+            self.assertIn(required, fallback)
 
     def test_release_baseline_and_cmake_version_are_pinned(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
