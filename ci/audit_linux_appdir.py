@@ -23,7 +23,7 @@ def require(condition: bool, reason: str) -> None:
         raise ValueError(reason)
 
 
-def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
+def validate(appdir: Path, *, inspect_elf: bool = True, require_miniapps: bool = False) -> None:
     root = appdir / "usr"
     executable = root / "bin/Genycaster"
     require(executable.is_file(), "Linux AppDir missing Genycaster executable")
@@ -75,6 +75,31 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
     ]
     require(any(path.is_file() for path in multimedia),
             "Linux AppDir missing Qt Multimedia runtime backend")
+    if require_miniapps:
+        process = root / "libexec/QtWebEngineProcess"
+        require(process.is_file() and bool(process.stat().st_mode & 0o111),
+                "Linux Mini App release lacks executable QtWebEngineProcess")
+        require((root / "resources/icudtl.dat").is_file(),
+                "Linux Mini App release lacks Chromium ICU data")
+        require(any((root / "resources").glob("qtwebengine_resources*.pak")),
+                "Linux Mini App release lacks Qt WebEngine resource packs")
+        require(any((root / "translations/qtwebengine_locales").glob("*.pak")),
+                "Linux Mini App release lacks Chromium locale packs")
+        require((qml / "QtWebEngine/qmldir").is_file(),
+                "Linux Mini App release lacks QtWebEngine QML module")
+        require(any((qml / "QtWebEngine").rglob("*.so")),
+                "Linux Mini App release lacks QtWebEngine QML plugin")
+        for lib in ("libQt6WebEngineCore.so.6", "libQt6WebEngineQuick.so.6",
+                    "libQt6WebEngineWidgets.so.6", "libQt6WebChannel.so.6",
+                    "libQt6Positioning.so.6", "libminizip.so.1",
+                    "libnss3.so", "libwebp.so.7"):
+            require((libraries / lib).is_file(),
+                    f"Linux Mini App release lacks bundled runtime {lib}")
+        launcher_text = launcher.read_text(encoding="utf-8")
+        for variable in ("QTWEBENGINEPROCESS_PATH", "QTWEBENGINE_RESOURCES_PATH",
+                         "QTWEBENGINE_LOCALES_PATH"):
+            require(variable in launcher_text,
+                    f"Linux Mini App launcher does not configure {variable}")
     if not inspect_elf:
         return
     for dependency in (cpp_runtime, tls_plugin,
@@ -108,6 +133,19 @@ def validate(appdir: Path, *, inspect_elf: bool = True) -> None:
         if binary == executable:
             require(str(cpp_runtime) in result.stdout,
                     "Executable is loading system libstdc++ rather than bundled C++ runtime")
+    if require_miniapps:
+        for binary in (root / "libexec/QtWebEngineProcess",
+                       libraries / "libQt6WebEngineCore.so.6",
+                       libraries / "libQt6WebEngineQuick.so.6",
+                       *tuple((qml / "QtWebEngine").rglob("*.so"))):
+            require(elf_machine(binary) == elf_machine(executable),
+                    f"Linux Mini App runtime architecture mismatch: {binary}")
+            proc = subprocess.run(["ldd", str(binary)], env=env,
+                                  capture_output=True, text=True, check=False)
+            output = proc.stdout + proc.stderr
+            require(proc.returncode == 0 and "not found" not in output
+                    and "version `GLIBC" not in output,
+                    f"Linux Mini App runtime has unresolved dependency: {binary}: {output}")
     print(f"Linux Qt/QML AppDir dependencies resolved: {appdir}")
 
 
@@ -116,8 +154,11 @@ def main() -> None:
     parser.add_argument("appdir", type=Path)
     parser.add_argument("--skip-elf", action="store_true",
                         help="Synthetic tests only, not release CI")
+    parser.add_argument("--require-miniapps", action="store_true",
+                        help="Require Chromium subprocess, Qt WebEngine Quick and all resources")
     args = parser.parse_args()
-    validate(args.appdir, inspect_elf=not args.skip_elf)
+    validate(args.appdir, inspect_elf=not args.skip_elf,
+             require_miniapps=args.require_miniapps)
 
 
 if __name__ == "__main__":
