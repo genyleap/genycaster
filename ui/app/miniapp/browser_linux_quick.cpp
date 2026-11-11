@@ -83,6 +83,7 @@ public:
           m_callbacks{std::move(callbacks)}, m_mode{mode},
           m_reduceMotion{reduceMotion}, m_initiallyVisible{initiallyVisible}
     {
+        QQmlEngine::setObjectOwnership(this, QQmlEngine::CppOwnership);
         if (!applicationWindow || !applicationEngine || !linuxBrowserPublicHttps(origin))
             return;
         m_publicScript = linuxBrowserPublicScript();
@@ -111,6 +112,10 @@ public:
                                  << component.errorString();
             return;
         }
+        // Tie visual object lifetime to the real application window, not
+        // QQmlEngine's temporary JavaScript wrappers or another Mini App.
+        QQmlEngine::setObjectOwnership(m_popup, QQmlEngine::CppOwnership);
+        m_popup->setParent(applicationWindow.data());
         m_view = m_popup->property("browserView").value<QObject*>();
         if (!m_view) {
             qWarning() << "GenyCaster Linux Mini App drawer lacks WebEngineView";
