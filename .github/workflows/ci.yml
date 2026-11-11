@@ -634,10 +634,9 @@ jobs:
             Where-Object { $_.Extension -in '.qml', '.js' -or $_.Name -eq 'qmldir' } |
             ForEach-Object {
               $relative = [System.IO.Path]::GetRelativePath($source, $_.FullName)
-              if ($relative -eq 'app/miniapp/EmbeddedBrowser.qml' -or
-                  $relative -eq 'app\\miniapp\\EmbeddedBrowser.qml' -or
-                  $relative -eq 'components/apps/AndroidWebView.qml' -or
-                  $relative -eq 'components\\apps\\AndroidWebView.qml') { return }
+              $normalized = $relative.Replace([char]92, [char]47)
+              if ($normalized -in @('app/miniapp/EmbeddedBrowser.qml',
+                                    'components/apps/AndroidWebView.qml')) { return }
               $destination = Join-Path $scan $relative
               New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
               Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
