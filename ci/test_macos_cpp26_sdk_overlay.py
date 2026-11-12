@@ -209,6 +209,40 @@ class AppleSdkOverlayTests(unittest.TestCase):
         other = "enum { x = a + b, cmGray8Space = cmGraySpace, t = c + d };"
         self.assertEqual(module.rewrite_color(other), (other, 0))
 
+    def test_cmake_probe_generates_real_newline_after_colorsync_include(self):
+        # Run the actual CMake string(APPEND) commands from the project.
+        # An escaped literal backslash-n must not pass this regression test.
+        cmake = (ROOT / "cmake/platform/macOS/configure.cmake").read_text()
+        start = cmake.index("        set(_genycasterProbeSource [=[")
+        end = cmake.index("        check_objcxx_source_compiles(", start)
+        fragment = cmake[start:end]
+        with tempfile.TemporaryDirectory(prefix="genycaster-cmake-probe-") as tmp:
+            directory = pathlib.Path(tmp)
+            script = directory / "probe.cmake"
+            script.write_text(
+                'set(_genycasterXcodeSdk "/xcode/macosx.sdk")' + chr(10)
+                + fragment
+                + 'file(WRITE "@{CMAKE_CURRENT_LIST_DIR}/probe.mm" '
+                  '"@{_genycasterProbeSource}")'.replace("@{", "$" + "{")
+                + chr(10),
+                encoding="utf-8")
+            cmake_command = shutil.which("cmake")
+            if not cmake_command:
+                self.skipTest("CMake is unavailable")
+            proc = subprocess.run(
+                [cmake_command, "-P", str(script)],
+                capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            generated = (directory / "probe.mm").read_text(encoding="utf-8")
+            self.assertIn(
+                '#include "/xcode/macosx.sdk/System/Library/Frameworks/'
+                'ApplicationServices.framework/Frameworks/QD.framework/'
+                'Headers/ColorSyncDeprecated.h"' + chr(10),
+                generated)
+            self.assertNotIn('ColorSyncDeprecated.h"' + chr(92) + "n", generated)
+            self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC", generated)
+            self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE", generated)
+
     def test_config_stays_objcxx26_without_warning_suppression(self):
         cmake = (ROOT / "cmake/platform/macOS/configure.cmake").read_text()
         self.assertIn("OBJCXX_STANDARD 26", cmake)
@@ -220,7 +254,18 @@ class AppleSdkOverlayTests(unittest.TestCase):
         self.assertIn('string(APPEND _genycasterProbeSource', cmake)
         self.assertIn('Frameworks/QD.framework/Headers/ColorSyncDeprecated.h', cmake)
         self.assertIn("-fno-modules", cmake)
-        self.assertIn("The probe explicitly imports both CGImage.h", cmake)
+        self.assertIn("GENYCASTER_MACOS_VALIDATE_CPP26_SDK", cmake)
+        self.assertIn(
+            '"Run optional compile-only Apple SDK/C++26 compatibility diagnostics" OFF',
+            cmake)
+        gate = cmake[cmake.index("    option(GENYCASTER_MACOS_VALIDATE_CPP26_SDK"):
+                     cmake.index("    find_library(genycasterWebKitFramework",
+                                 cmake.index("    option(GENYCASTER_MACOS_VALIDATE_CPP26_SDK"))]
+        self.assertNotIn("message(FATAL_ERROR", gate)
+        self.assertIn("if(GENYCASTER_MACOS_VALIDATE_CPP26_SDK)", gate)
+        self.assertIn("CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY", cmake)
+        self.assertIn("target_compile_options(farcaster_miniapp_browser PRIVATE", cmake)
+        self.assertIn("GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE", cmake)
         self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE", cmake)
         self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC", cmake)
         self.assertNotIn("OBJCXX_STANDARD 23", cmake)

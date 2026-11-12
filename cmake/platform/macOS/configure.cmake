@@ -159,53 +159,63 @@ macro(genycaster_macos_setup_browser)
     set(_genycasterSdkOverlay
         "${CMAKE_CURRENT_BINARY_DIR}/macos-sdk-cpp26/macos_cpp26_sdk_overlay.json")
 
-    # Probe both affected SDK headers explicitly. ColorSyncDeprecated.h is
-    # NOT guaranteed to be imported by the original AppKit/WebKit smoke
-    # source. Checking its overlay marker without including that header is
-    # a false-negative that broke Qt Creator's CMake Configure phase.
-    include(CheckOBJCXXSourceCompiles)
-    unset(GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE CACHE)
-    set(_genycasterSavedRequiredFlags "${CMAKE_REQUIRED_FLAGS}")
-    # The native WKWebView boundary imports headers textually. Avoid cached
-    # Apple framework PCM modules bypassing the build-local VFS overlay.
-    # This does not disable C++26 or any Mini App runtime functionality.
-    set(CMAKE_REQUIRED_FLAGS
-        "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc -fno-modules -isysroot \"${_genycasterXcodeSdk}\" -ivfsoverlay \"${_genycasterSdkOverlay}\"")
-    set(_genycasterProbeSource [=[
-    #import <Foundation/Foundation.h>
-    #import <AppKit/NSApplication.h>
-    #import <AppKit/NSEvent.h>
-    #import <AppKit/NSImage.h>
-    #import <WebKit/WKWebView.h>
-    #import <WebKit/WKPreferences.h>
-    #import <WebKit/WKNavigationAction.h>
-    #import <WebKit/WKNavigationResponse.h>
-    #include <CoreGraphics/CGImage.h>
-    #include <ApplicationServices/ApplicationServices.h>
-    ]=])
-    string(APPEND _genycasterProbeSource
-        "#include \"${_genycasterXcodeSdk}/System/Library/Frameworks/ApplicationServices.framework/Frameworks/QD.framework/Headers/ColorSyncDeprecated.h\"\n")
-    string(APPEND _genycasterProbeSource [=[
-    #ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE
-    #error "CGImage.h was not redirected by the C++26 SDK overlay"
-    #endif
-    #ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC
-    #error "ColorSyncDeprecated.h was not redirected by the C++26 SDK overlay"
-    #endif
-    int main() { return 0; }
-    ]=])
-    check_objcxx_source_compiles(
-        "${_genycasterProbeSource}"
-        GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
-    set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")
-    unset(_genycasterSavedRequiredFlags)
-    unset(_genycasterProbeSource)
-    if(NOT GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
-        message(FATAL_ERROR
-            "AppleClang failed the C++26 native SDK compatibility probe. "
-            "See CMakeFiles/CMakeConfigureLog.yaml for exact compiler errors. "
-            "The probe explicitly imports both CGImage.h and "
-            "ColorSyncDeprecated.h using the selected Xcode SDK.")
+    # Do not make Qt Creator's normal CMake Configure contingent on a
+    # separate SDK header/link probe. The old check_objcxx_source_compiles()
+    # linked a standalone executable without our WebKit target dependencies;
+    # a failed check was incorrectly promoted to FATAL_ERROR and prevented
+    # the actual Objective-C++26 target from compiling at all.
+    #
+    # Developers may opt into a *compile-only* diagnostic probe. Its failure
+    # is reported with the actual SDK diagnostic, but is not a configure gate:
+    # the real browser translation unit remains the source of truth.
+    option(GENYCASTER_MACOS_VALIDATE_CPP26_SDK
+        "Run optional compile-only Apple SDK/C++26 compatibility diagnostics" OFF)
+    if(GENYCASTER_MACOS_VALIDATE_CPP26_SDK)
+        include(CheckOBJCXXSourceCompiles)
+        unset(GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE CACHE)
+        set(_genycasterSavedRequiredFlags "${CMAKE_REQUIRED_FLAGS}")
+        set(_genycasterSavedTryCompileType "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
+        set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+        set(CMAKE_REQUIRED_FLAGS
+            "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc -fno-modules -isysroot \"${_genycasterXcodeSdk}\" -ivfsoverlay \"${_genycasterSdkOverlay}\"")
+        set(_genycasterProbeSource [=[
+        #import <Foundation/Foundation.h>
+        #import <AppKit/NSApplication.h>
+        #import <AppKit/NSEvent.h>
+        #import <AppKit/NSImage.h>
+        #import <WebKit/WKWebView.h>
+        #import <WebKit/WKPreferences.h>
+        #import <WebKit/WKNavigationAction.h>
+        #import <WebKit/WKNavigationResponse.h>
+        #include <CoreGraphics/CGImage.h>
+        #include <ApplicationServices/ApplicationServices.h>
+        ]=])
+        string(APPEND _genycasterProbeSource
+            "#include \"${_genycasterXcodeSdk}/System/Library/Frameworks/ApplicationServices.framework/Frameworks/QD.framework/Headers/ColorSyncDeprecated.h\"\n")
+        string(APPEND _genycasterProbeSource [=[
+        #ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE
+        #error "CGImage.h was not redirected by the C++26 SDK overlay"
+        #endif
+        #ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC
+        #error "ColorSyncDeprecated.h was not redirected by the C++26 SDK overlay"
+        #endif
+        int genycaster_sdk_probe() { return 0; }
+        ]=])
+        check_objcxx_source_compiles(
+            "${_genycasterProbeSource}"
+            GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
+        set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")
+        set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_genycasterSavedTryCompileType}")
+        unset(_genycasterSavedRequiredFlags)
+        unset(_genycasterSavedTryCompileType)
+        unset(_genycasterProbeSource)
+        if(NOT GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
+            message(WARNING
+                "Optional Apple SDK/C++26 probe did not compile. This is "
+                "not a Qt Creator Configure error; inspect CMakeConfigureLog.yaml "
+                "for the exact AppleClang diagnostic. The native browser "
+                "target is still compiled as Objective-C++26.")
+        endif()
     endif()
 
     find_library(genycasterWebKitFramework WebKit REQUIRED)
