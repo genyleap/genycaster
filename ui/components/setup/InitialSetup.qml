@@ -890,6 +890,10 @@ Item {
         Flickable {
             id: stageScroll
             anchors.top: root.phone ? mobileSetupNav.bottom : parent.top
+            // Reserve the desktop progress/header lane *outside* the scroll
+            // viewport, including when a long recovery form is scrolled.
+            // Previously the fixed step dots overlaid the scrolling title.
+            anchors.topMargin: !root.phone && root.currentStep > 0 ? Theme.scaleUi(84) : 0
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -913,7 +917,9 @@ Item {
                 x: desktopBrandPane.visible
                    ? desktopBrandPane.width + (stageScroll.width - desktopBrandPane.width - width) / 2
                    : (stageScroll.width - width) / 2
-                y: root.currentStep === 0 || root.currentStep === 7
+                y: !root.phone && root.currentStep > 0 && root.currentStep < 7
+                   ? Math.max(Theme.space3, Math.min(Theme.space6, stageScroll.height * 0.04))
+                   : root.currentStep === 0 || root.currentStep === 7
                    ? Math.max(root.phone ? 110 : 52, (stageScroll.height - stageLoader.implicitHeight) * 0.39)
                    : root.currentStep === 5
                    ? Math.max(96, (stageScroll.height - stageLoader.implicitHeight) * 0.38)
@@ -1504,6 +1510,7 @@ Item {
                 Layout.fillWidth: true
                 compactCard: true
                 title: qsTrId("genycaster.shell.enable_interactions")
+                subtitle: qsTrId("genycaster.setup.recovery_signer_consent")
                 busy: root.signerBusy
                 enabled: !root.signerBusy && root.runtimeReady
                 onClicked: root.authorizeSigner()

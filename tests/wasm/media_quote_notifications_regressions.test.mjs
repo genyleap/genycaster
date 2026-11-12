@@ -120,5 +120,6 @@ test('newest activity is tinted and grouped actors get a separate nonoverlapping
     assert.match(qml, /x: index \* \(actorStack\.avatarDiameter \+ actorStack\.avatarSpacing\)/);
     assert.match(qml, /id: actorStack/);
     assert.match(qml, /model: actorStack\.visible \? actorStack\.count : 0/);
-    assert.match(qml, /visible: notificationRow\.visibleActors\.length <= 1/);
+    assert.match(qml, /visible: !notificationRow\.groupedReaction/);
+    assert.match(qml, /visible: notificationRow\.groupedReaction/);
 });

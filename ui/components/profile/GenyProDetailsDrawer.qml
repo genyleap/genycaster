@@ -10,6 +10,7 @@ GenyDrawer {
     objectName: "genyProDetailsDrawer"
     property bool compact: false
     signal accountRequested()
+    signal signerRequested()
     property string selectedAsset: "GENY"
     property bool checkoutOpen: false
     // Opening membership details is read-only; never initiate a payment
@@ -31,6 +32,11 @@ GenyDrawer {
     readonly property var paymentQuote: openProofConnections
         ? (openProofConnections.proPaymentQuote || ({})) : ({})
     readonly property bool membershipVerified: membership.status === "verified"
+    readonly property string proofError: openProofConnections
+        ? String(openProofConnections.accountProofError || "") : ""
+    readonly property bool signerAuthorizationNeeded: !membershipVerified && appSignedIn
+        && (proofError === "account_signer_unavailable"
+            || proofError === "account_proof_not_accepted")
     readonly property bool eligible: membershipVerified
         && membership.tier === "pro" && membership.eligible === true
     readonly property bool appSignedIn: presentationBridge
@@ -115,6 +121,10 @@ GenyDrawer {
         // Unknown entitlements are not a Basic subscription. Recheck the
         // signed-in account before ever presenting a purchase flow.
         if (!root.membershipVerified) {
+            if (root.signerAuthorizationNeeded) {
+                root.signerRequested()
+                return
+            }
             if (!root.restoringSession && openProofConnections) {
                 if (root.cloudReady)
                     openProofConnections.fetchProEntitlements(true)
@@ -164,6 +174,7 @@ GenyDrawer {
         if (eligible) return qsTrId("genycaster.pro.checkout_done")
         if (!appSignedIn) return qsTrId("genycaster.pro.connect_to_pay")
         if (restoringSession) return qsTrId("genycaster.pro.check_status")
+        if (signerAuthorizationNeeded) return qsTrId("genycaster.shell.enable_interactions")
         if (!membershipVerified) return qsTrId("genycaster.pro.check_status")
         if (monthlyUsdCents <= 0) return qsTrId("genycaster.pro.refresh_price")
         if (!cloudReady) return qsTrId("genycaster.pro.restore_secure_session")
@@ -192,9 +203,14 @@ GenyDrawer {
     edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
     width: parent ? (root.compact ? parent.width
         : Math.min(500, Math.max(360, parent.width * 0.40))) : 468
-    // On desktop this is a true edge-to-edge side panel, not a short
-    // floating sheet clipped midway through the window.
-    height: parent ? (!root.compact || root.fullScreen ? parent.height
+    // The informational state is content-sized on desktop. The former
+    // unconditional full-height drawer showed two error lines above a giant
+    // empty panel. Expand only for the checkout's multi-step form.
+    height: parent ? (!root.compact
+        ? Math.min(parent.height, root.checkoutActive ? parent.height
+            : root.eligible ? Theme.scaleUi(620)
+            : root.membershipVerified ? Theme.scaleUi(610) : Theme.scaleUi(430))
+        : root.fullScreen ? parent.height
         : Math.min(parent.height, Math.max(Theme.scaleUi(380),
             fixedHeader.height + detailsColumn.implicitHeight + fixedActions.height
             + Theme.space4 * 5))) : 640
@@ -416,14 +432,98 @@ GenyDrawer {
                 // A missing account grant is not evidence that an existing
                 // Pro membership expired. Do not show the purchase chooser or
                 // the next renewal price until the server verifies this FID.
-                DirectionAwareLabel {
+                Superellipse {
                     objectName: "genyProMembershipUnknownNotice"
-                    Layout.fillWidth: true
                     visible: root.appSignedIn && !root.membershipVerified
-                    text: qsTrId("genycaster.pro.verification_unavailable")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.typeBodySize
-                    wrapMode: Text.Wrap
+                    Layout.fillWidth: true
+                    implicitHeight: membershipRecoveryColumn.implicitHeight + Theme.space3 * 2
+                    fillColor: Theme.surfaceMuted
+                    borderColor: Theme.borderSubtle
+                    borderWidth: Theme.strokeHairline
+                    curveDepth: Theme.curveContainer
+                    ColumnLayout {
+                        id: membershipRecoveryColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space2
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                text: Theme.iconSpark
+                                color: Theme.proAccent
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: qsTrId("genycaster.pro.check_status")
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeLabelSize
+                                font.weight: Theme.weightDemiBold
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.signerAuthorizationNeeded
+                                ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                                : qsTrId("genycaster.pro.verification_unavailable")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                        DirectionAwareLabel {
+                            visible: root.signerAuthorizationNeeded
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.recovery_signer_consent")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                }
+                // Even when the account proof is unavailable, the sheet
+                // should remain useful without claiming Pro is active.
+                ColumnLayout {
+                    objectName: "genyProPreviewBenefits"
+                    visible: root.appSignedIn && !root.membershipVerified
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.pro.checkout_benefits")
+                        color: Theme.textPrimary
+                        font.pixelSize: Theme.typeLabelSize
+                        font.weight: Theme.weightDemiBold
+                    }
+                    Repeater {
+                        model: [
+                            qsTrId("genycaster.pro.feature_miniapps_title"),
+                            qsTrId("genycaster.pro.market_pulse"),
+                            qsTrId("genycaster.pro.feature_composer_title")
+                        ]
+                        delegate: RowLayout {
+                            required property string modelData
+                            Layout.fillWidth: true
+                            spacing: Theme.space2
+                            layoutDirection: Theme.uiDirection
+                            Icon {
+                                text: Theme.iconCheck
+                                color: Theme.proAccent
+                                preferredSize: Theme.iconSizeSmall
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: modelData
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                wrapMode: Text.Wrap
+                            }
+                        }
+                    }
                 }
 
                 // Active membership needs a useful, compact benefits summary
@@ -938,6 +1038,7 @@ GenyDrawer {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     visible: root.appSignedIn && !root.cloudReady && !root.eligible
+                             && root.restoringSession
                     text: root.restoringSession
                         ? qsTrId("genycaster.pro.secure_session_hint")
                         : openProofConnections && String(openProofConnections.accountProofError || "").length > 0

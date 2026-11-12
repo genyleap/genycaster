@@ -19,10 +19,82 @@ Item {
         return Math.max(0, surface.height - composeTop)
     }
 
+    // Signing in authenticates the Farcaster identity; publishing requires a
+    // separate device signer. Explain the external approval before opening it.
+    function requestInteractionAuthorization() {
+        if (!presentationBridge.isAuthenticated || presentationBridge.signerBusy
+            || presentationBridge.writeReady) return
+        interactionAuthorizationDialog.open()
+    }
+    GenyModal {
+        id: interactionAuthorizationDialog
+        objectName: "interactionAuthorizationExplanation"
+        parent: Overlay.overlay
+        width: parent ? Math.min(450, parent.width - Theme.space4 * 2) : 430
+        height: parent ? Math.min(parent.height - Theme.space4 * 2,
+                                  confirmationContent.implicitHeight + Theme.space5 * 2)
+                       : confirmationContent.implicitHeight + Theme.space5 * 2
+        padding: Theme.space4
+        ColumnLayout {
+            id: confirmationContent
+            width: parent.width
+            spacing: Theme.space3
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.shell.enable_interactions")
+                color: Theme.textPrimary
+                font.pixelSize: Theme.typeTitle2Size
+                font.weight: Theme.weightBold
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeBodySize
+                wrapMode: Text.Wrap
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.recovery_signer_consent")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.Wrap
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space2
+                layoutDirection: Theme.uiDirection
+                ActionButton {
+                    Layout.fillWidth: true
+                    quiet: true
+                    compact: true
+                    text: qsTrId("genycaster.settings.cancel")
+                    onClicked: interactionAuthorizationDialog.close()
+                }
+                ActionButton {
+                    Layout.fillWidth: true
+                    prominent: true
+                    compact: true
+                    iconGlyph: Theme.iconArrowUpRight
+                    text: qsTrId("genycaster.shell.open_farcaster")
+                    onClicked: {
+                        interactionAuthorizationDialog.close()
+                        presentationBridge.provisionSigner()
+                    }
+                }
+            }
+        }
+    }
+
     GenyProDetailsDrawer {
         id: genyProDetailsDrawer
         compact: root.compact
         onAccountRequested: root.openAccountPopup()
+        onSignerRequested: {
+            genyProDetailsDrawer.close()
+            root.requestInteractionAuthorization()
+        }
     }
 
     readonly property bool isReady: presentationBridge.architectureState.length > 0
@@ -3025,7 +3097,7 @@ Item {
                         // disable the browser custody approval workflow.
                         enabled: !presentationBridge.signerBusy
                         onClicked: canRetryVerification ? presentationBridge.refreshSigner()
-                                                        : presentationBridge.provisionSigner()
+                                                        : root.requestInteractionAuthorization()
                     }
 
                     ActionButton {
@@ -3248,7 +3320,7 @@ Item {
         onOpenRegistration: presentationBridge.openExternalUrl("https://farcaster.xyz/~/signup")
         onOpenApproval: presentationBridge.openAuthenticationApproval()
         onCancelAuthentication: presentationBridge.cancelSignIn()
-        onAuthorizeSigner: presentationBridge.provisionSigner()
+        onAuthorizeSigner: root.requestInteractionAuthorization()
         onRecoverAccount: presentationBridge.beginRecoverySetup()
         onNativeRecoverAccount: (recoveryWords) =>
             presentationBridge.beginNativeRecoverySetup(recoveryWords)

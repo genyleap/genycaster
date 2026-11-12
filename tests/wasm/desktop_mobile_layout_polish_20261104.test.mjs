@@ -55,7 +55,8 @@ test('desktop profile card keeps compact Pro/Profile actions without redundant a
  assert.match(card,/Math\.max\(frontContent\.implicitHeight, backContent\.implicitHeight, 200\)/);
  assert.match(card,/maximumLineCount: root\.compact \? 1 : 3/);
  const beforeBack=card.slice(0,card.indexOf('id: backFace'));
- assert.match(beforeBack,/onClicked: root\.proRequested\(\)/);
+ assert.match(beforeBack,/Accessible\.onPressAction: root\.proRequested\(\)/);
+ assert.match(beforeBack,/TapHandler \{ onTapped: root\.proRequested\(\) \}/);
  assert.doesNotMatch(beforeBack,/profileTrustCardAccountButton|iconGlyph: Theme\.iconSettings/);
  assert.match(beforeBack,/onClicked: root\.requestProfile\(\)/);
  assert.match(card,/root\.streakDetailsExpanded\s*\? backContent\.implicitHeight : frontContent\.implicitHeight/);

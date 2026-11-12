@@ -526,6 +526,12 @@ void OpenProofConnectionsController::restoreAccountSession()
         if (status != 200) {
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
+            else {
+                m_accountProofError = status == 401 && !m_accountProofSigner
+                    ? QStringLiteral("account_signer_unavailable")
+                    : QStringLiteral("account_session_unavailable");
+                emit stateChanged();
+            }
             return;
         }
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -605,6 +611,12 @@ void OpenProofConnectionsController::bootstrapAccountSession()
         if (status != 200) {
             if (status == 401 && m_accountProofSigner && !m_accountProofAttempted)
                 beginSignedAccountSession();
+            else {
+                m_accountProofError = status == 401 && !m_accountProofSigner
+                    ? QStringLiteral("account_signer_unavailable")
+                    : QStringLiteral("account_session_unavailable");
+                emit stateChanged();
+            }
             return;
         }
         const auto doc=QJsonDocument::fromJson(bytes);
@@ -1746,7 +1758,17 @@ void OpenProofConnectionsController::retryProEntitlements()
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl) || m_sessionRevoking)
         return;
     if (cloudAuthorizationReady()) {
-        fetchProEntitlements(true);
+        // A locally valid OpenProof bearer is not itself proof that the
+        // account-sync service accepted it. After an entitlement 401, retry
+        // through the first-party session endpoint, then signed FID proof
+        // when available. Merely repeating GET entitlements loops forever.
+        if (!m_cloudSessionVerified && !m_accountBearer.isEmpty()
+            && (m_verified || m_accountBearer.startsWith("recovery."))) {
+            m_accountProofAttempted = false;
+            bootstrapAccountSession();
+        } else {
+            fetchProEntitlements(true);
+        }
         return;
     }
     // A signed-in Farcaster user may already have a verified GenyCaster
@@ -1879,6 +1901,15 @@ void OpenProofConnectionsController::fetchProEntitlements(const bool force)
             m_proEntitlementsFid = viewer;
         }
         if (!verified) {
+            // A rejected session is not still authenticated just because its
+            // cookie was accepted on an earlier request. Invalidate only the
+            // first-party cookie proof; preserve the account-scoped Pro cache
+            // until another authoritative response arrives.
+            if (status == 401 && m_cloudSessionVerified) {
+                m_cloudSessionVerified = false;
+                m_cloudCsrf.clear();
+                emit stateChanged();
+            }
             // No bearer, cookie, wallet address or response body in logs.
             // HTTP status differentiates a missing Genycaster session (401)
             // from an unavailable balance/eligibility provider (200).

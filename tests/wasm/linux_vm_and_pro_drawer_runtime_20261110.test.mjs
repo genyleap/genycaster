@@ -33,7 +33,8 @@ test('Pro drawer never presents payment before FID-scoped entitlement is verifie
   assert.match(drawer, /!root.opened \|\| !root.purchaseIntent/);
   assert.match(drawer, /visible: !root.checkoutActive && !root.eligible && root.membershipVerified/);
   assert.match(drawer, /objectName: "genyProMembershipUnknownNotice"/);
-  assert.match(drawer, /height: parent \? \(!root.compact \|\| root.fullScreen \? parent.height/);
+  assert.match(drawer, /root\.checkoutActive \? parent\.height/);
+  assert.match(drawer, /root\.fullScreen \? parent\.height/);
   assert.match(drawer, /edge: root.compact \? Qt.BottomEdge : Qt.RightEdge/);
   assert.match(drawer, /interactive: false/);
   assert.match(drawer, /onClicked: root.cancelPayment\(\)/);

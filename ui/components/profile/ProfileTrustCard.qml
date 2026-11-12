@@ -333,9 +333,9 @@ Superellipse {
                 objectName: "sidebarProMembershipCard"
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.compact ? 54 : 60
-                fillColor: Theme.proSurface
+                fillColor: root.proEligible ? Theme.proSurface : Theme.surfaceRaised
                 borderWidth: Theme.strokeHairline
-                borderColor: Theme.proBorder
+                borderColor: root.proEligible ? Theme.proBorder : Theme.borderMuted
                 curveDepth: Theme.curveControl
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Button
@@ -356,7 +356,7 @@ Superellipse {
                     spacing: Theme.space2
                     Icon {
                         text: Theme.iconSpark
-                        color: Theme.proAccent
+                        color: root.proEligible ? Theme.proAccent : Theme.textSecondary
                         preferredSize: Theme.iconSize
                     }
                     ColumnLayout {
@@ -376,7 +376,7 @@ Superellipse {
                             text: root.proEligible ? qsTrId("genycaster.pro.short")
                                 : root.proChecking ? qsTrId("genycaster.pro.check_status")
                                 : root.proStatus === "verified" ? qsTrId("genycaster.pro.get_pro")
-                                : qsTrId("genycaster.pro.verification_unavailable")
+                                : qsTrId("genycaster.pro.check_status")
                             color: Theme.textSecondary
                             font.pixelSize: Theme.typeCaptionSize
                             maximumLineCount: 1
@@ -385,7 +385,7 @@ Superellipse {
                     }
                     Icon {
                         text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
-                        color: Theme.proAccent
+                        color: root.proEligible ? Theme.proAccent : Theme.textSecondary
                         preferredSize: Theme.iconSizeSmall
                     }
                 }

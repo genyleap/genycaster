@@ -10,6 +10,10 @@ Item {
     property var channelInfo: ({})
     property bool compact: false
     property string activeTab: "overview"
+    readonly property real preferredDialogHeight: root.compact ? 580
+        : root.activeTab === "members" ? 470
+        : root.activeTab === "moderate" ? 380
+        : root.activeTab === "invites" ? 355 : 335
     property string pendingAction: ""
     property string pendingChannelId: ""
     property double pendingFid: 0
@@ -132,13 +136,15 @@ Item {
             }
         }
         ScrollView {
+            id: channelDetailsScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumHeight: 0
+            contentWidth: availableWidth
             clip: true
             ScrollBar.vertical: GenyScrollBar {}
             ColumnLayout {
-                width: Math.max(1, parent.width - Theme.space2)
+                width: Math.max(1, channelDetailsScroll.availableWidth - Theme.space2)
                 spacing: Theme.space3
                 ColumnLayout {
                     visible: root.activeTab === "overview"
@@ -152,7 +158,9 @@ Item {
                         color: Theme.inkMuted
                     }
                     ActionButton {
-                        Layout.fillWidth: true
+                        Layout.alignment: Theme.rtl ? Qt.AlignRight : Qt.AlignLeft
+                        Layout.preferredWidth: Math.min(260, channelDetailsScroll.availableWidth - Theme.space4)
+                        compact: true
                         prominent: true
                         iconGlyph: Theme.iconArrowRight
                         text: qsTrId("genycaster.channels.open_feed")
@@ -291,7 +299,7 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: text.length > 0
+                    visible: root.activeTab !== "overview" && text.length > 0
                     text: root.manager ? String(root.manager.message || "") : ""
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeMetaSize
@@ -299,7 +307,8 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: text.length > 0
+                    visible: (root.activeTab === "moderate" || root.activeTab === "invites")
+                             && text.length > 0
                     text: root.manager ? String(root.manager.providerNotice || "") : ""
                     color: Theme.inkSubtle
                     font.pixelSize: Theme.typeCaptionSize

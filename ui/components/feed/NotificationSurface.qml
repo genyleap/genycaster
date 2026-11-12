@@ -850,6 +850,10 @@ Item {
                 }
                 readonly property string kindKey: String(modelData.kind || "")
                 readonly property var visibleActors: root.actorRows(notificationRow.modelData)
+                readonly property int groupTotal: Math.max(visibleActors.length,
+                    Number(modelData.aggregateCount || 1))
+                readonly property bool groupedReaction:
+                    (kindKey === "reaction" || kindKey === "recast") && groupTotal > 1
                 readonly property bool latestActivity: root.visibleRows.length > 0
                     && notificationRow.stableKey === root.notificationKey(root.visibleRows[0], 0)
                 readonly property color kindColor: root.kindColor(kindKey)
@@ -898,7 +902,7 @@ Item {
                         Layout.preferredHeight: root.compact ? 42 : 46
 
                         Avatar {
-                            visible: notificationRow.visibleActors.length <= 1
+                            visible: !notificationRow.groupedReaction
                             anchors.left: parent.left
                             anchors.top: parent.top
                             avatarSize: root.compact ? 40 : 44
@@ -908,7 +912,7 @@ Item {
                         }
 
                         Superellipse {
-                            visible: notificationRow.visibleActors.length > 1
+                            visible: notificationRow.groupedReaction
                             anchors.centerIn: parent
                             width: root.compact ? 36 : 40
                             height: width
@@ -925,7 +929,7 @@ Item {
 
                         // A small reaction chip is useful on singular activities.
                         Superellipse {
-                            visible: notificationRow.visibleActors.length <= 1
+                            visible: !notificationRow.groupedReaction
                             width: 19
                             height: 19
                             anchors.right: parent.right
@@ -956,11 +960,17 @@ Item {
                             id: actorStack
                             readonly property real avatarSpacing: root.compact ? 7 : 10
                             readonly property real avatarDiameter: root.compact ? 32 : 36
+                            // Reserve a persistent trailing +N action. Showing
+                            // every available avatar made it disappear exactly
+                            // when the provider returned a complete group.
+                            readonly property int maximumPreview: root.compact ? 4 : 7
                             readonly property int count: Math.min(
                                 notificationRow.visibleActors.length,
-                                Math.max(1, Math.floor((width - Theme.scaleUi(56))
+                                Math.max(1, notificationRow.groupTotal - 1),
+                                maximumPreview,
+                                Math.max(1, Math.floor((width - Theme.scaleUi(76))
                                                / (avatarDiameter + avatarSpacing))))
-                            visible: notificationRow.visibleActors.length > 1
+                            visible: notificationRow.groupedReaction
                             Layout.fillWidth: true
                             Layout.preferredHeight: visible ? avatarDiameter + Theme.space1 : 0
 
@@ -984,9 +994,7 @@ Item {
                             }
                             Superellipse {
                                 id: actorCountBadge
-                                readonly property int groupCount: Math.max(
-                                    notificationRow.visibleActors.length,
-                                    Number(notificationRow.modelData.aggregateCount || 1))
+                                readonly property int groupCount: notificationRow.groupTotal
                                 readonly property int additionalCount: Math.max(0, groupCount - actorStack.count)
                                 visible: additionalCount > 0
                                 x: actorStack.count * (actorStack.avatarDiameter + actorStack.avatarSpacing)
@@ -1007,7 +1015,15 @@ Item {
                                 Accessible.role: Accessible.Button
                                 Accessible.name: "+" + LocaleFormat.formatInteger(additionalCount)
                                                  + " " + qsTrId("genycaster.notifications.someone")
+                                activeFocusOnTab: visible
+                                Accessible.onPressAction: root.inspectActors(notificationRow.modelData)
+                                Keys.onReturnPressed: root.inspectActors(notificationRow.modelData)
+                                Keys.onSpacePressed: root.inspectActors(notificationRow.modelData)
                                 HoverHandler { cursorShape: Qt.PointingHandCursor }
+                                TapHandler {
+                                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                                    onTapped: root.inspectActors(notificationRow.modelData)
+                                }
                             }
                         }
 
@@ -1425,7 +1441,10 @@ Item {
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         width: parent ? Math.min(Theme.scaleUi(430), parent.width - Theme.space4 * 2) : Theme.scaleUi(390)
-        height: parent ? Math.min(Theme.scaleUi(540), parent.height - Theme.space5 * 2) : Theme.scaleUi(450)
+        height: parent ? Math.min(parent.height - Theme.space5 * 2,
+            Theme.scaleUi(145) + Math.min(8, root.expandedActors.length) * Theme.scaleUi(56)
+            + (root.expandedActorCount > root.expandedActors.length ? Theme.scaleUi(42) : 0))
+            : Theme.scaleUi(410)
         x: parent ? Math.max(Theme.space2, (parent.width - width) / 2) : 0
         y: parent ? Math.max(Theme.space2, (parent.height - height) / 2) : 0
         padding: Theme.space3

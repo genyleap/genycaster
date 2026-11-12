@@ -345,9 +345,12 @@ Item {
         id: channelManagerPopup
         objectName: "channelManagementPopup"
         parent: root
-        width: Math.min(720, Math.max(320, root.width - Theme.space4 * 2))
-        height: Math.min(root.compact ? 760 : 580,
-                         Math.max(320, root.height - Theme.space4 * 2))
+        // Content-sized on desktop. A large fixed modal previously occupied
+        // nearly the entire display even when Overview had one action only.
+        width: Math.min(root.compact ? 590 : 620,
+                        Math.max(280, root.width - Theme.space4 * 2))
+        height: Math.min(Math.max(280, root.height - Theme.space4 * 2),
+                         channelManager.preferredDialogHeight)
         padding: Theme.space4
         ChannelManagementPanel {
             id: channelManager

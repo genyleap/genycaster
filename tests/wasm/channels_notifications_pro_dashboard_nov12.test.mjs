@@ -48,7 +48,7 @@ test('Home shortcuts and premium sidebar actions are working and scoped',()=>{
  assert.match(side,/openProofConnections\.retryProEntitlements\(\)/);
  assert.match(side,/proChecking: openProofConnections/);
  assert.match(card,/objectName: "sidebarProMembershipCard"/);
- assert.match(card,/fillColor: Theme\.proSurface/);
+ assert.match(card,/fillColor: root\.proEligible \? Theme\.proSurface : Theme\.surfaceRaised/);
  assert.match(card,/text: "FID " \+ LocaleFormat\.formatInteger\(root\.fid\)/);
  assert.match(card,/Accessible\.onPressAction: root\.proRequested\(\)/);
 });
