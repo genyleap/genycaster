@@ -143,6 +143,9 @@ macro(genycaster_macos_setup_browser)
     # Apple's SDK contains legacy mixed-enum arithmetic that C++26 rejects.
     # Build a local VFS overlay with explicit enum-to-integer conversions.
     # Never modify installed SDK files, lower the standard or hide diagnostics.
+    # A generator fix must refresh existing Qt Creator build trees as well.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/ci/prepare_macos_sdk_cpp26.py")
     execute_process(
         COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/ci/prepare_macos_sdk_cpp26.py"

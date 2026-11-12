@@ -34,9 +34,12 @@ CG_REWRITTEN = (
 # Apple's ColorSync enum initializer combines distinct anonymous C enums. An
 # explicit integral conversion of the first enumerator is enough: the remaining
 # C enum operands undergo ordinary integral promotions, preserving every value.
+# The SDK uses both Space + Packing and Packing + Space (including a third
+# little-endian packing term). Matching only Space leaves seven C++26 errors.
 COLOR_SUM = re.compile(
     r"(?P<before>^[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)"
-    r"(?P<space>cm[A-Za-z0-9_]+Space)(?P<plus>[ \t]*\+[ \t]*cm[A-Za-z0-9_]+)",
+    r"(?P<operand>cm[A-Za-z0-9_]+(?:Space|Packing))"
+    r"(?P<plus>[ \t]*\+[ \t]*cm[A-Za-z0-9_]+)",
     re.MULTILINE,
 )
 def rewrite_cg(data: str) -> tuple[str, int]:
@@ -51,7 +54,7 @@ def rewrite_cg(data: str) -> tuple[str, int]:
 
 def rewrite_color(data: str) -> tuple[str, int]:
     updated, count = COLOR_SUM.subn(
-        lambda m: f"{m['before']}static_cast<int>({m['space']}){m['plus']}",
+        lambda m: f"{m['before']}static_cast<int>({m['operand']}){m['plus']}",
         data,
     )
     # A future SDK may have already fixed this; emit the unchanged header.

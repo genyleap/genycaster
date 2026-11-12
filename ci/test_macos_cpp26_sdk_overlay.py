@@ -23,12 +23,25 @@ inline CGBitmapInfo info() {
 }
 """
 CS_HEADER = """#pragma once
-enum {cmGraySpace = 3, cmRGBSpace = 4};
-enum {cm8_8ColorPacking = 2, cmLittleEndianPacking = 8};
+enum {cmGraySpace = 3, cmRGBSpace = 4,
+      cmGamutResultSpace = 0xC, cmNamedIndexedSpace = 0x10,
+      cmMCFiveSpace = 0x11, cmMCSixSpace = 0x12,
+      cmMCSevenSpace = 0x13, cmMCEightSpace = 0x14};
+enum {cm8_8ColorPacking = 2, cmLittleEndianPacking = 8,
+      cmOneBitDirectPacking = 0xB00, cm32_32ColorPacking = 0x2700,
+      cm40_8ColorPacking = 0x2200, cm48_8ColorPacking = 0x2300,
+      cm56_8ColorPacking = 0x2400, cm64_8ColorPacking = 0x2500};
 enum {
     cmGray8Space = cmGraySpace + cm8_8ColorPacking,
     cmGray16LSpace = cmGraySpace + cmLittleEndianPacking,
     cmRGB16LSpace = cmRGBSpace + cm8_8ColorPacking + cmLittleEndianPacking,
+    cmGamutResult1Space = cmOneBitDirectPacking + cmGamutResultSpace,
+    cmNamedIndexed32Space = cm32_32ColorPacking + cmNamedIndexedSpace,
+    cmNamedIndexed32LSpace = cm32_32ColorPacking + cmNamedIndexedSpace + cmLittleEndianPacking,
+    cmMCFive8Space = cm40_8ColorPacking + cmMCFiveSpace,
+    cmMCSix8Space = cm48_8ColorPacking + cmMCSixSpace,
+    cmMCSeven8Space = cm56_8ColorPacking + cmMCSevenSpace,
+    cmMCEight8Space = cm64_8ColorPacking + cmMCEightSpace
 };
 """
 
@@ -45,7 +58,7 @@ class AppleSdkOverlayTests(unittest.TestCase):
             output = root / "generated"
             changes = module.prepare(sdk, output)
             self.assertEqual(changes["CGImage.h"], 1)
-            self.assertEqual(changes["ColorSyncDeprecated.h"], 3)
+            self.assertEqual(changes["ColorSyncDeprecated.h"], 10)
             self.assertEqual((sdk / module.COREGRAPHICS).read_text(), CG_HEADER)
             self.assertEqual((sdk / module.COLORSYNC).read_text(), CS_HEADER)
             generated = (output / "macos_cpp26_sdk_overlay.json")
@@ -62,6 +75,13 @@ class AppleSdkOverlayTests(unittest.TestCase):
                 '#include "CGImage.h"\n#include "ColorSyncDeprecated.h"\n'
                 "static_assert(cmRGB16LSpace == 14);\n"
                 "static_assert(cmGray8Space == 5);\n"
+                "static_assert(cmGamutResult1Space == 0xB0C);\n"
+                "static_assert(cmNamedIndexed32Space == 0x2710);\n"
+                "static_assert(cmNamedIndexed32LSpace == 0x2718);\n"
+                "static_assert(cmMCFive8Space == 0x2211);\n"
+                "static_assert(cmMCSix8Space == 0x2312);\n"
+                "static_assert(cmMCSeven8Space == 0x2413);\n"
+                "static_assert(cmMCEight8Space == 0x2514);\n"
                 "int main() { return info() == 15 ? 0 : 1; }\n",
                 encoding="utf-8")
             includes = [
@@ -204,6 +224,9 @@ class AppleSdkOverlayTests(unittest.TestCase):
         converted, count = module.rewrite_cg(newest)
         self.assertEqual(count, 1)
         self.assertIn(module.CG_REWRITTEN, converted)
+        fixed_color, count = module.rewrite_color(CS_HEADER)
+        self.assertEqual(count, 10)
+        self.assertEqual(module.rewrite_color(fixed_color), (fixed_color, 0))
 
     def test_does_not_rewrite_unrelated_enum_expressions(self):
         other = "enum { x = a + b, cmGray8Space = cmGraySpace, t = c + d };"
