@@ -78,9 +78,51 @@ class AppleSdkOverlayTests(unittest.TestCase):
                 capture_output=True, text=True)
             self.assertEqual(after.returncode, 0, after.stderr)
 
+    def test_versioned_sdk_and_macosx_alias_are_both_redirected(self):
+        with tempfile.TemporaryDirectory(prefix="genycaster-sdk-link-") as tmp:
+            root = pathlib.Path(tmp)
+            sdk = root / "MacOSX26.5.sdk"
+            for relative, body in ((module.COREGRAPHICS, CG_HEADER),
+                                   (module.COLORSYNC, CS_HEADER)):
+                file = sdk / relative
+                file.parent.mkdir(parents=True, exist_ok=True)
+                file.write_text(body, encoding="utf-8")
+            alias = root / "MacOSX.sdk"
+            alias.symlink_to(sdk, target_is_directory=True)
+            generated = root / "generated"
+            module.prepare(sdk, generated)
+            import json
+            overlay = json.loads(
+                (generated / "macos_cpp26_sdk_overlay.json").read_text())
+            self.assertEqual(len(overlay["roots"]), 4)
+            names = [x["name"] for x in overlay["roots"]]
+            self.assertTrue(any("/MacOSX.sdk/" in x for x in names))
+            self.assertTrue(any("/MacOSX26.5.sdk/" in x for x in names))
+            compiler = shutil.which("clang++")
+            if not compiler:
+                return
+            probe = root / "probe.cpp"
+            probe.write_text(
+                '#include "CGImage.h"\n#include "ColorSyncDeprecated.h"\n'
+                'static_assert(cmGray8Space == 5);\n'
+                'int main(){return info() == 15 ? 0 : 1;}\n',
+                encoding="utf-8")
+            cmd = [compiler, "-std=c++2c", "-Wall", "-Wextra", "-Wpedantic",
+                   "-fsyntax-only",
+                   "-I", str(alias / pathlib.Path(module.COREGRAPHICS).parent),
+                   "-I", str(alias / pathlib.Path(module.COLORSYNC).parent),
+                   "-ivfsoverlay", str(generated / "macos_cpp26_sdk_overlay.json"),
+                   str(probe)]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_header_already_fixed_is_left_unchanged(self):
-        safe = CG_HEADER.replace(module.CG_EXPRESSION, module.CG_REWRITTEN)
+        safe = CG_HEADER.replace(module.CG_EXPRESSIONS[0], module.CG_REWRITTEN)
         self.assertEqual(module.rewrite_cg(safe), (safe, 0))
+        newest = CG_HEADER.replace(module.CG_EXPRESSIONS[0], module.CG_EXPRESSIONS[1])
+        converted, count = module.rewrite_cg(newest)
+        self.assertEqual(count, 1)
+        self.assertIn(module.CG_REWRITTEN, converted)
 
     def test_does_not_rewrite_unrelated_enum_expressions(self):
         other = "enum { x = a + b, cmGray8Space = cmGraySpace, t = c + d };"

@@ -20,9 +20,13 @@ COLORSYNC = (
     "System/Library/Frameworks/ApplicationServices.framework/"
     "Frameworks/QD.framework/Headers/ColorSyncDeprecated.h"
 )
-CG_EXPRESSION = "return (CGBitmapInfo)(alpha | component | byteOrder | pixelFormat);"
+# Two known Xcode SDK spellings: macOS 26.5 has no outer C-style cast.
+CG_EXPRESSIONS = (
+    "return (CGBitmapInfo)(alpha | component | byteOrder | pixelFormat);",
+    "return alpha | component | byteOrder | pixelFormat;",
+)
 CG_REWRITTEN = (
-    "return (CGBitmapInfo)("
+    "return static_cast<CGBitmapInfo>("
     "static_cast<unsigned int>(alpha) | static_cast<unsigned int>(component)"
     " | static_cast<unsigned int>(byteOrder)"
     " | static_cast<unsigned int>(pixelFormat));"
@@ -36,13 +40,14 @@ COLOR_SUM = re.compile(
     re.MULTILINE,
 )
 def rewrite_cg(data: str) -> tuple[str, int]:
-    hits = data.count(CG_EXPRESSION)
-    if hits == 1:
-        return data.replace(CG_EXPRESSION, CG_REWRITTEN), hits
-    if hits == 0:
-        # A newer Apple SDK may already have repaired the expression.
-        return data, 0
-    raise ValueError(f"Ambiguous CGImage SDK signature ({hits} matches)")
+    counts = [data.count(expr) for expr in CG_EXPRESSIONS]
+    if sum(counts) > 1:
+        raise ValueError(f"Ambiguous CGImage SDK signatures ({counts})")
+    for expr, count in zip(CG_EXPRESSIONS, counts):
+        if count:
+            return data.replace(expr, CG_REWRITTEN), count
+    # A newer SDK may have already made the enum cast explicit.
+    return data, 0
 
 def rewrite_color(data: str) -> tuple[str, int]:
     updated, count = COLOR_SUM.subn(
@@ -69,12 +74,17 @@ def prepare(sdk: pathlib.Path, destination: pathlib.Path) -> dict[str, int]:
         output, rewritten = transform(content)
         destination_file = destination / name
         destination_file.write_text(output, encoding="utf-8")
-        details.append((original, destination_file))
-        # Header search sometimes reports the SDK via a versioned symlink
-        # instead of MacOSX.sdk; map both spellings to the same local fix.
-        resolved_original = original.resolve()
-        if resolved_original != original:
-            details.append((resolved_original, destination_file))
+        # Xcode alternates between the versioned SDK (MacOSX26.5.sdk) and
+        # the MacOSX.sdk symlink for framework -F and -isysroot paths. Clang
+        # uses the *spelling of the include path*, not just its realpath, in
+        # the VFS lookup. Redirect both names to the same generated file.
+        aliases = (sdk, sdk.resolve(), sdk.parent / "MacOSX.sdk")
+        for sdk_alias in aliases:
+            if not sdk_alias.exists() or sdk_alias.resolve() != sdk.resolve():
+                continue
+            alias = sdk_alias / relative
+            if all(existing != alias for existing, _ in details):
+                details.append((alias, destination_file))
         counts[name] = rewritten
 
     # Clang recognizes the JSON representation of its YAML VFS overlay.
