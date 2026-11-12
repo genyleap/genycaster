@@ -5632,6 +5632,46 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>使用 Farcaster 身份或 Genyleap 账户。每次登录都会独立验证，且不会改变读取网络。</translation>
         </message>
+        <message id="genycaster.setup.registration_choose_provider">
+            <source>Choose an account provider</source>
+            <translation>选择账户服务提供方</translation>
+        </message>
+        <message id="genycaster.setup.registration_shared_fid">
+            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
+            <translation>Farcaster 只发行一个 FID。请选择 GenyCaster 用来读取新账户的服务提供方。</translation>
+        </message>
+        <message id="genycaster.setup.registration_hypersnap_description">
+            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
+            <translation>自主保管的 Farcaster 身份，通过 HyperSnap 读取。</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_label">
+            <source>Neynar (Farcaster)</source>
+            <translation>Neynar (Farcaster)</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_description">
+            <source>Farcaster identity read through your configured Neynar API.</source>
+            <translation>通过已配置的 Neynar API 读取 Farcaster 身份。</translation>
+        </message>
+        <message id="genycaster.setup.registration_storage_note">
+            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
+            <translation>注册发生在 Farcaster 的 IdRegistry 上，而非独立的 HyperSnap 身份网络。请妥善保护钱包和恢复助记词。</translation>
+        </message>
+        <message id="genycaster.setup.registration_provider_missing">
+            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
+            <translation>Neynar 需要配置兼容的读取端点。你可以先使用 HyperSnap，之后再切换。</translation>
+        </message>
+        <message id="genycaster.setup.registration_start">
+            <source>Continue to Farcaster registration</source>
+            <translation>继续前往 Farcaster 注册</translation>
+        </message>
+        <message id="genycaster.setup.registration_connect">
+            <source>I&#x27;ve registered — connect my account</source>
+            <translation>已完成注册 — 连接账户</translation>
+        </message>
+        <message id="genycaster.setup.registration_restart_notice">
+            <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
+            <translation>设置完成后重启 GenyCaster，以启用所选读取服务。你的 Farcaster 身份不会改变。</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>创建新资料</translation>

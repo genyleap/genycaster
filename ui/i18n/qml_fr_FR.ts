@@ -5633,6 +5633,46 @@ Entreprise | https://company.com</translation>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>Utilisez votre identité Farcaster ou votre compte Genyleap. Chaque connexion est vérifiée indépendamment et ne modifie pas votre réseau de lecture.</translation>
         </message>
+        <message id="genycaster.setup.registration_choose_provider">
+            <source>Choose an account provider</source>
+            <translation>Choisir un fournisseur de compte</translation>
+        </message>
+        <message id="genycaster.setup.registration_shared_fid">
+            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
+            <translation>Farcaster attribue un seul FID. Choisissez le fournisseur utilisé par GenyCaster pour lire votre nouveau compte.</translation>
+        </message>
+        <message id="genycaster.setup.registration_hypersnap_description">
+            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
+            <translation>Identité Farcaster auto-hébergée, consultée via HyperSnap.</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_label">
+            <source>Neynar (Farcaster)</source>
+            <translation>Neynar (Farcaster)</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_description">
+            <source>Farcaster identity read through your configured Neynar API.</source>
+            <translation>Identité Farcaster consultée via votre API Neynar configurée.</translation>
+        </message>
+        <message id="genycaster.setup.registration_storage_note">
+            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
+            <translation>L&#x27;inscription se fait dans l&#x27;IdRegistry de Farcaster, et non dans un réseau d&#x27;identité HyperSnap distinct. Protégez votre portefeuille et phrase de récupération.</translation>
+        </message>
+        <message id="genycaster.setup.registration_provider_missing">
+            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
+            <translation>Neynar exige un point de lecture compatible configuré. Vous pouvez commencer avec HyperSnap puis changer.</translation>
+        </message>
+        <message id="genycaster.setup.registration_start">
+            <source>Continue to Farcaster registration</source>
+            <translation>Continuer vers l&#x27;inscription Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.registration_connect">
+            <source>I&#x27;ve registered — connect my account</source>
+            <translation>Compte créé — connecter mon compte</translation>
+        </message>
+        <message id="genycaster.setup.registration_restart_notice">
+            <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
+            <translation>Redémarrez GenyCaster après la configuration pour activer le fournisseur de lecture choisi. Votre identité Farcaster reste la même.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Créer un profil</translation>

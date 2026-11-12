@@ -5632,6 +5632,46 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>Farcaster ID または Genyleap アカウントを使用してください。各サインインは個別に検証され、読み取りネットワークは変更されません。</translation>
         </message>
+        <message id="genycaster.setup.registration_choose_provider">
+            <source>Choose an account provider</source>
+            <translation>アカウントのプロバイダーを選択</translation>
+        </message>
+        <message id="genycaster.setup.registration_shared_fid">
+            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
+            <translation>Farcaster の FID は共通です。GenyCaster が新しいアカウントを読み込むプロバイダーを選択してください。</translation>
+        </message>
+        <message id="genycaster.setup.registration_hypersnap_description">
+            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
+            <translation>自己管理の Farcaster ID を HyperSnap 経由で読み込みます。</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_label">
+            <source>Neynar (Farcaster)</source>
+            <translation>Neynar (Farcaster)</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_description">
+            <source>Farcaster identity read through your configured Neynar API.</source>
+            <translation>設定済みの Neynar API を通じて Farcaster ID を読み込みます。</translation>
+        </message>
+        <message id="genycaster.setup.registration_storage_note">
+            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
+            <translation>登録先は Farcaster の IdRegistry であり、HyperSnap 独自の ID ネットワークではありません。ウォレットとリカバリーフレーズを守ってください。</translation>
+        </message>
+        <message id="genycaster.setup.registration_provider_missing">
+            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
+            <translation>Neynar には互換性のある読み取りエンドポイントが必要です。HyperSnap で開始し、後で変更できます。</translation>
+        </message>
+        <message id="genycaster.setup.registration_start">
+            <source>Continue to Farcaster registration</source>
+            <translation>Farcaster の登録に進む</translation>
+        </message>
+        <message id="genycaster.setup.registration_connect">
+            <source>I&#x27;ve registered — connect my account</source>
+            <translation>登録済み — アカウントを接続</translation>
+        </message>
+        <message id="genycaster.setup.registration_restart_notice">
+            <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
+            <translation>選択した読み取りプロバイダーを有効にするには、セットアップ後に GenyCaster を再起動してください。Farcaster ID は変わりません。</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>新規作成</translation>

@@ -56,6 +56,25 @@ Item {
         }
     }
     property string accountIntent: ""
+    property bool choosingRegistrationProvider: false
+    property string registrationProviderId: "hypersnap-v2"
+    property bool registrationLaunched: false
+    property string registrationError: ""
+    function beginAccountRegistration() {
+        // Both choices register the SAME Farcaster FID via IdRegistry. The
+        // selected read service must not change before registration and
+        // authentication succeed. Persist it only after verified sign-in.
+        if (registrationProviderId === "farcaster-snapchain"
+                && !providerProfiles.hostedReadSupported) {
+            registrationError = qsTrId("genycaster.setup.registration_provider_missing")
+            return
+        }
+        if (registrationProviderId === "hypersnap-v2"
+                && !providerProfiles.indexedReadSupported) return
+        registrationError = ""
+        registrationLaunched = true
+        root.openRegistration()
+    }
     property bool showRecovery: false
     property string legalDocument: ""
     property bool recoverySubmitPending: false
@@ -168,7 +187,8 @@ Item {
             return
         }
         if (currentStep === 3) {
-            if (accountIntent === "existing") switchStep(4)
+            if (accountIntent === "existing" || (accountIntent === "new" && registrationLaunched))
+                switchStep(4)
             return
         }
         if (currentStep === 4) {
@@ -186,6 +206,13 @@ Item {
         }
     }
     function previousStep() {
+        if (currentStep === 3 && choosingRegistrationProvider) {
+            choosingRegistrationProvider = false
+            registrationError = ""
+            registrationLaunched = false
+            accountIntent = ""
+            return
+        }
         if (currentStep === 0) {
             if (reviewMode) closeReviewRequested()
             return
@@ -205,6 +232,7 @@ Item {
     function actionEnabled() {
         if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
+            || (accountIntent === "new" && registrationLaunched)
         if (currentStep === 4) return authenticated
         if (currentStep === 5) return authenticated || reviewMode
         if (currentStep === 7) return reviewMode || (legalConsentAccepted && authenticated)
@@ -216,6 +244,9 @@ Item {
             stageTransitioning = false
             pendingStep = -1
             stageOpacity = 1
+            choosingRegistrationProvider = false
+            registrationLaunched = false
+            registrationError = ""
             return
         }
         if (reviewMode) {
@@ -259,6 +290,12 @@ Item {
         }
     }
     onAuthenticatedChanged: {
+        // Registration is verified by the normal sign-in gate. Only AFTER a
+        // real authenticated Farcaster FID exists may the selected read
+        // provider preference be persisted. No account is created by UI state.
+        if (authenticated && accountIntent === "new" && registrationLaunched
+            && !providerProfiles.selectReadProvider(registrationProviderId))
+            registrationError = qsTrId("genycaster.setup.registration_provider_missing")
         if (visible && authenticated && currentStep >= 3 && currentStep <= 5) {
             recoverySubmitPending = false
             switchStep(5)
@@ -1137,12 +1174,17 @@ Item {
                 compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
                 iconGlyph: Theme.iconUser
-                title: qsTrId("genycaster.setup.design_account_title")
-                subtitle: qsTrId("genycaster.setup.design_account_description")
+                title: root.choosingRegistrationProvider
+                    ? qsTrId("genycaster.setup.registration_choose_provider")
+                    : qsTrId("genycaster.setup.design_account_title")
+                subtitle: root.choosingRegistrationProvider
+                    ? qsTrId("genycaster.setup.registration_shared_fid")
+                    : qsTrId("genycaster.setup.design_account_description")
                 centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
             GridLayout {
+                visible: !root.choosingRegistrationProvider
                 Layout.fillWidth: true
                 columns: root.phone ? 1 : 2
                 rowSpacing: Theme.space3
@@ -1151,14 +1193,18 @@ Item {
                 SetupActionCard {
                     Layout.fillWidth: true
                     onboardingStyle: true
-                    objectName: "setupCreateAccountUnavailable"
+                    objectName: "setupCreateAccount"
                     accountShowcase: true
-                    unavailable: true
                     title: qsTrId("genycaster.setup.design_create_account")
                     subtitle: qsTrId("genycaster.setup.new_profile_body")
                     iconGlyph: Theme.iconUser
-                    showChevron: false
-                    enabled: false
+                    showChevron: true
+                    onClicked: {
+                        root.accountIntent = "new"
+                        root.choosingRegistrationProvider = true
+                        root.registrationLaunched = false
+                        root.registrationError = ""
+                    }
                 }
                 SetupActionCard {
                     Layout.fillWidth: true
@@ -1167,11 +1213,99 @@ Item {
                     title: qsTrId("genycaster.setup.design_existing_account")
                     subtitle: qsTrId("genycaster.setup.design_existing_description")
                     iconGlyph: Theme.iconLink
-                    showChevron: false
+                    showChevron: true
                     onClicked: {
                         root.accountIntent = "existing"
                         root.switchStep(4)
                     }
+                }
+            }
+            ColumnLayout {
+                visible: root.choosingRegistrationProvider
+                Layout.fillWidth: true
+                spacing: Theme.space3
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: root.phone ? 1 : 2
+                    rowSpacing: Theme.space3
+                    columnSpacing: Theme.space3
+                    layoutDirection: Theme.uiDirection
+                    SetupActionCard {
+                        objectName: "setupRegisterHyperSnap"
+                        Layout.fillWidth: true
+                        onboardingStyle: true
+                        title: qsTrId("genycaster.settings.hypersnap_label")
+                        subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
+                        iconGlyph: Theme.iconGlobe
+                        selected: root.registrationProviderId === "hypersnap-v2"
+                        enabled: providerProfiles.indexedReadSupported
+                        onClicked: {
+                            root.registrationProviderId = "hypersnap-v2"
+                            root.registrationError = ""
+                        }
+                    }
+                    SetupActionCard {
+                        objectName: "setupRegisterNeynar"
+                        Layout.fillWidth: true
+                        onboardingStyle: true
+                        title: qsTrId("genycaster.setup.registration_neynar_label")
+                        subtitle: qsTrId("genycaster.setup.registration_neynar_description")
+                        iconGlyph: Theme.iconLink
+                        selected: root.registrationProviderId === "farcaster-snapchain"
+                        enabled: providerProfiles.hostedReadSupported
+                        onClicked: {
+                            root.registrationProviderId = "farcaster-snapchain"
+                            root.registrationError = ""
+                        }
+                    }
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.registration_storage_note")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: !providerProfiles.hostedReadSupported
+                    text: qsTrId("genycaster.setup.registration_provider_missing")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.warning
+                    wrapMode: Text.WordWrap
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.registrationError.length > 0
+                    text: root.registrationError
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.danger
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    objectName: "setupBeginRegistration"
+                    Layout.fillWidth: true
+                    prominent: true
+                    text: qsTrId("genycaster.setup.registration_start")
+                    enabled: root.registrationProviderId === "hypersnap-v2"
+                        ? providerProfiles.indexedReadSupported
+                        : providerProfiles.hostedReadSupported
+                    onClicked: root.beginAccountRegistration()
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.registrationLaunched
+                    text: qsTrId("genycaster.setup.registration_handoff")
+                    font.pixelSize: Theme.typeCaptionSize
+                    color: Theme.inkMuted
+                    wrapMode: Text.WordWrap
+                }
+                ActionButton {
+                    objectName: "setupRegistrationCompleted"
+                    visible: root.registrationLaunched
+                    Layout.fillWidth: true
+                    text: qsTrId("genycaster.setup.registration_connect")
+                    onClicked: root.switchStep(4)
                 }
             }
         }
@@ -1749,6 +1883,17 @@ Item {
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeLabelSize
                 lineHeight: 1.35
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+            DirectionAwareLabel {
+                objectName: "registrationProviderRestartNotice"
+                visible: root.accountIntent === "new" && providerProfiles.readRestartRequired
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.space3
+                text: qsTrId("genycaster.setup.registration_restart_notice")
+                color: Theme.warning
+                font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }

@@ -45,29 +45,36 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /finishSetup\(\)/);
 });
 
-test('new-account registration is muted, clearly unavailable, and never clickable', () => {
+test('account creation is actionable, selects the indexed provider and completes only after verified sign-in', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
-  const create=account.slice(account.indexOf('objectName: "setupCreateAccountUnavailable"'),
+  const create=account.slice(account.indexOf('objectName: "setupCreateAccount"'),
                              account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
-  const card=source('ui/components/setup/SetupActionCard.qml');
   assert.match(create,/accountShowcase: true/);
-  assert.match(create,/unavailable: true/);
-  assert.match(create,/enabled: false/);
-  assert.doesNotMatch(create,/setupEmphasis: true|onClicked:|root.openRegistration/);
-  assert.match(card,/property bool unavailable: false/);
-  assert.match(card,/root.unavailable \? \(Theme.dark/);
-  assert.match(card,/id: unavailableBadge/);
-  assert.match(card,/text: qsTrId\("genycaster.setup.temporarily_unavailable"\)/);
-  assert.match(card,/x: Theme.rtl \? 0 : parent.width - width/);
-  assert.match(account,/root.accountIntent = "existing"/);
+  assert.match(create,/onClicked:/);
+  assert.match(create,/root.accountIntent = "new"/);
+  assert.match(create,/root.choosingRegistrationProvider = true/);
+  assert.doesNotMatch(create,/unavailable: true|enabled: false/);
+  assert.match(account,/objectName: "setupRegisterHyperSnap"/);
+  assert.match(account,/objectName: "setupRegisterNeynar"/);
+  assert.match(account,/enabled: providerProfiles.indexedReadSupported/);
+  assert.match(account,/enabled: providerProfiles.hostedReadSupported/);
+  assert.match(account,/objectName: "setupBeginRegistration"/);
+  assert.match(account,/root.beginAccountRegistration\(\)/);
+  assert.match(account,/objectName: "setupRegistrationCompleted"/);
   assert.match(account,/root.switchStep\(4\)/);
+  assert.match(setup,/onAuthenticatedChanged:[\s\S]*?providerProfiles.selectReadProvider\(registrationProviderId\)/);
+  const launch=setup.slice(setup.indexOf('function beginAccountRegistration()'),setup.indexOf('onAuthenticatedChanged:'));
+  assert.doesNotMatch(launch,/selectReadProvider\(/);
+  assert.match(launch,/root.openRegistration\(\)/);
+  assert.match(setup,/accountIntent === "new" && registrationLaunched/);
+  assert.match(source('ui/components/shell/AppShell.qml'),/onOpenRegistration: presentationBridge.openExternalUrl\("https:\/\/farcaster.xyz\/\~\/signup"\)/);
   for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
     const translation=source('ui/i18n/qml_'+locale+'.ts');
-    assert.match(translation,/<message id="genycaster.setup.temporarily_unavailable">/);
-    assert.match(translation,/<source>Temporarily unavailable<\/source>\s*<translation>[^<]+<\/translation>/);
+    for(const key of ['registration_choose_provider','registration_shared_fid','registration_start','registration_connect']) {
+      assert.match(translation,new RegExp('<message id="genycaster.setup.'+key+'">'));
+    }
   }
-  assert.match(source('ui/i18n/qml_fa_IR.ts'),/<translation>فعلاً غیرفعال<\/translation>/);
 });
 
 test('native recovery authorizes a device signer only with explicit user consent', () => {
@@ -274,14 +281,16 @@ test('acceptance toggle is borderless unless keyboard focused', () => {
   assert.match(terms,/onClicked: root\.consentChecked = !root\.consentChecked/);
 });
 
-test('desktop account is a balanced editorial dark/light pair, with no fake new signup', () => {
+test('desktop account keeps editorial cards while enabling registration provider choice', () => {
   const s=source('ui/components/setup/InitialSetup.qml');
   const card=source('ui/components/setup/SetupActionCard.qml');
   const account=s.slice(s.indexOf('id: accountStage'),s.indexOf('id: signInStage'));
-  assert.match(account,/accountShowcase: true[\s\S]*?unavailable: true/);
-  assert.match(account,/objectName: "setupCreateAccountUnavailable"/);
+  assert.match(account,/accountShowcase: true/);
+  assert.match(account,/objectName: "setupCreateAccount"/);
   assert.match(account,/iconGlyph: Theme\.iconUser/);
-  assert.match(account,/enabled: false/);
+  assert.match(account,/root\.choosingRegistrationProvider = true/);
+  assert.match(account,/objectName: "setupRegisterHyperSnap"/);
+  assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
   assert.match(account,/onClicked: \{\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);

@@ -5632,6 +5632,46 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>كيف تريد المتابعة مع جني‌كاستر؟</translation>
         </message>
+        <message id="genycaster.setup.registration_choose_provider">
+            <source>Choose an account provider</source>
+            <translation>اختر موفّر الحساب</translation>
+        </message>
+        <message id="genycaster.setup.registration_shared_fid">
+            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
+            <translation>تصدر Farcaster معرّف FID واحدًا. اختر الموفّر الذي سيستخدمه GenyCaster لقراءة حسابك الجديد.</translation>
+        </message>
+        <message id="genycaster.setup.registration_hypersnap_description">
+            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
+            <translation>هوية Farcaster ذاتية الحفظ، يقرأها GenyCaster عبر HyperSnap.</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_label">
+            <source>Neynar (Farcaster)</source>
+            <translation>Neynar (Farcaster)</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_description">
+            <source>Farcaster identity read through your configured Neynar API.</source>
+            <translation>هوية Farcaster تتم قراءتها عبر واجهة Neynar المُعدّة.</translation>
+        </message>
+        <message id="genycaster.setup.registration_storage_note">
+            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
+            <translation>يتم التسجيل على عقد IdRegistry الخاص بـ Farcaster، وليس على شبكة هوية منفصلة لـ HyperSnap. احمِ محفظتك وعبارة الاسترداد.</translation>
+        </message>
+        <message id="genycaster.setup.registration_provider_missing">
+            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
+            <translation>يتطلب Neynar نقطة وصول قراءة متوافقة. يمكنك التسجيل باستخدام HyperSnap والتبديل لاحقًا.</translation>
+        </message>
+        <message id="genycaster.setup.registration_start">
+            <source>Continue to Farcaster registration</source>
+            <translation>المتابعة إلى تسجيل Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.registration_connect">
+            <source>I&#x27;ve registered — connect my account</source>
+            <translation>أنشأت الحساب — ربط الحساب</translation>
+        </message>
+        <message id="genycaster.setup.registration_restart_notice">
+            <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
+            <translation>أعِد تشغيل GenyCaster بعد الإعداد لتفعيل موفّر القراءة المختار. تظل هوية Farcaster كما هي.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>إنشاء حساب جديد</translation>

@@ -33,9 +33,8 @@ test('Pro side drawer must retain explicit Escape, outside and cancel paths with
   assert.match(pro, /onClicked:\s*root\.cancelPayment\(\)/);
   assert.match(pro, /interactive:\s*false/);
   assert.match(pro, /edge:\s*root\.compact\s*\?\s*Qt\.BottomEdge\s*:\s*Qt\.RightEdge/);
-  assert.match(pro, /height:\s*parent\s*\?\s*\(!root\.compact/);
-  assert.match(pro, /root\.checkoutActive \? parent\.height/);
-  assert.match(pro, /root\.fullScreen \? parent\.height/);
+  assert.match(pro, /height:\s*parent\s*\?\s*\(root\.compact && !root\.fullScreen/);
+  assert.match(pro, /: parent\.height\) : 640/);
 });
 
 test('native visual diagnostic cycles the real Pro drawer without initiating billing', () => {

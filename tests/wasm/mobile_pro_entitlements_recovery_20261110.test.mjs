@@ -36,7 +36,8 @@ test('Pro checkout refresh is explicit; adaptive sheet gives every screen a clos
   assert.match(pro, /objectName: "genyProManualStatusRefresh"/);
   assert.match(pro, /onClicked:[\s\S]*?fetchProEntitlements\(true\)/);
   assert.match(pro, /fullScreen: root\.compact && root\.manualExpanded && root\.checkoutActive/);
-  assert.match(pro, /root\.fullScreen \? parent\.height/);
+  assert.match(pro, /height: parent \? \(root\.compact && !root\.fullScreen/);
+  assert.match(pro, /: parent\.height\) : 640/);
   assert.match(pro, /iconGlyph: Theme\.iconClose[\s\S]*?onClicked: root\.cancelPayment\(\)/);
 });
 

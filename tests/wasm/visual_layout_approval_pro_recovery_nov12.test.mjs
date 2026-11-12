@@ -40,7 +40,8 @@ test('Pro authorization recovers a rejected bearer before treating status as una
   assert.match(drawer,/signal signerRequested\(\)/);
   assert.match(drawer,/root\.signerRequested\(\)/);
   assert.match(drawer,/objectName: "genyProPreviewBenefits"/);
-  assert.match(drawer,/root\.checkoutActive \? parent\.height/);
+  assert.match(drawer,/height: parent \? \(root\.compact && !root\.fullScreen/);
+  assert.match(drawer,/: parent\.height\) : 640/);
   assert.match(drawer,/qsTrId\("genycaster\.pro\.check_status"\)/);
 });
 

@@ -203,17 +203,15 @@ GenyDrawer {
     edge: root.compact ? Qt.BottomEdge : Qt.RightEdge
     width: parent ? (root.compact ? parent.width
         : Math.min(500, Math.max(360, parent.width * 0.40))) : 468
-    // The informational state is content-sized on desktop. The former
-    // unconditional full-height drawer showed two error lines above a giant
-    // empty panel. Expand only for the checkout's multi-step form.
-    height: parent ? (!root.compact
-        ? Math.min(parent.height, root.checkoutActive ? parent.height
-            : root.eligible ? Theme.scaleUi(620)
-            : root.membershipVerified ? Theme.scaleUi(610) : Theme.scaleUi(430))
-        : root.fullScreen ? parent.height
-        : Math.min(parent.height, Math.max(Theme.scaleUi(380),
+    // A Qt Drawer is edge anchored: its height MUST match the parent height
+    // on desktop. A shorter height leaves it top-aligned, visually broken,
+    // and outside of the edge-to-edge drawer contract. Sparse Pro content
+    // stays at the top; scroll controls and footer remain correctly pinned.
+    height: parent ? (root.compact && !root.fullScreen
+        ? Math.min(parent.height, Math.max(Theme.scaleUi(380),
             fixedHeader.height + detailsColumn.implicitHeight + fixedActions.height
-            + Theme.space4 * 5))) : 640
+            + Theme.space4 * 5))
+        : parent.height) : 640
     contentPadding: root.compact ? Theme.space3 : Theme.space4
 
     Timer {

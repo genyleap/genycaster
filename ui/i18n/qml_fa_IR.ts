@@ -5657,6 +5657,46 @@ Company | https://company.com</source>
             <source>How do you want to continue with GenyCaster?</source>
             <translation>چگونه می‌خواهید در جنی‌کستر ادامه دهید؟</translation>
         </message>
+        <message id="genycaster.setup.registration_choose_provider">
+            <source>Choose an account provider</source>
+            <translation>انتخاب سرویس حساب</translation>
+        </message>
+        <message id="genycaster.setup.registration_shared_fid">
+            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
+            <translation>فارکستر فقط یک شناسهٔ FID صادر می‌کند. انتخاب کنید جنی‌کستر اطلاعات حساب جدید را از کدام سرویس بخواند.</translation>
+        </message>
+        <message id="genycaster.setup.registration_hypersnap_description">
+            <source>Self-custody Farcaster identity. GenyCaster reads it through هایپراسنپ.</source>
+            <translation>هویت فارکستر با مالکیت مستقیم شما؛ جنی‌کستر اطلاعات را از هایپراسنپ دریافت می‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_label">
+            <source>نینار (Farcaster)</source>
+            <translation>نینار (فارکستر)</translation>
+        </message>
+        <message id="genycaster.setup.registration_neynar_description">
+            <source>Farcaster identity read through your configured نینار API.</source>
+            <translation>هویت فارکستر با خواندن اطلاعات از API پیکربندی‌شدهٔ نینار.</translation>
+        </message>
+        <message id="genycaster.setup.registration_storage_note">
+            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate هایپراسنپ identity system. Protect your wallet and recovery words.</source>
+            <translation>ثبت هویت روی قرارداد IdRegistry فارکستر انجام می‌شود، نه شبکهٔ هویت جداگانهٔ هایپراسنپ. از کیف پول و عبارت بازیابی خود محافظت کنید.</translation>
+        </message>
+        <message id="genycaster.setup.registration_provider_missing">
+            <source>نینار requires a compatible hosted read endpoint. You can create a Farcaster FID with هایپراسنپ selected and switch after setup.</source>
+            <translation>برای نینار باید سرویس خواندن سازگار پیکربندی شده باشد. می‌توانید با هایپراسنپ ثبت‌نام کنید و بعداً سرویس را تغییر دهید.</translation>
+        </message>
+        <message id="genycaster.setup.registration_start">
+            <source>Continue to Farcaster registration</source>
+            <translation>ادامه به ثبت‌نام فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.registration_connect">
+            <source>I&#x27;ve registered — connect my account</source>
+            <translation>حسابم را ساخته‌ام؛ اتصال حساب</translation>
+        </message>
+        <message id="genycaster.setup.registration_restart_notice">
+            <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
+            <translation>پس از پایان راه‌اندازی، جنی‌کستر را یک‌بار از نو اجرا کنید تا سرویس خواندن انتخاب‌شده فعال شود. هویت فارکستر شما تغییر نمی‌کند.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>ایجاد حساب جدید</translation>
