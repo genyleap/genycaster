@@ -1438,6 +1438,11 @@ Item {
                                         sourceComponent: Component {
                                             ChannelsSurface {
                                                 channelSource: channelBrowser
+                                                adminSource: channelAdmin
+                                                readContract: providerProfiles.activeReadContract
+                                                readEndpoint: providerProfiles.activeReadEndpoint
+                                                appliedWriteProvider: providerProfiles.writeRestartRequired
+                                                    ? "pending" : providerProfiles.selectedWriteProviderId
                                                 accountFid: presentationBridge.isAuthenticated
                                                             ? presentationBridge.accountFid : 0
                                                 authenticated: presentationBridge.isAuthenticated

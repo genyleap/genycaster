@@ -7432,5 +7432,97 @@ Company | https://company.com</source>
             <source>Reading is public. Publishing requires verified channel membership.</source>
             <translation>읽기는 공개됩니다. 게시하려면 확인된 채널 멤버십이 필요합니다.</translation>
         </message>
+        <message id="genycaster.channels.accept">
+            <source>Accept</source>
+            <translation>수락</translation>
+        </message>
+        <message id="genycaster.channels.confirm">
+            <source>Confirm</source>
+            <translation>확인</translation>
+        </message>
+        <message id="genycaster.channels.confirm_detail">
+            <source>This action changes channel membership or following. Proceed only if you have permission.</source>
+            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+        </message>
+        <message id="genycaster.channels.confirm_title">
+            <source>Confirm channel action</source>
+            <translation>Confirm channel action</translation>
+        </message>
+        <message id="genycaster.channels.follow">
+            <source>Follow channel</source>
+            <translation>채널 팔로우</translation>
+        </message>
+        <message id="genycaster.channels.following">
+            <source>Following</source>
+            <translation>팔로잉</translation>
+        </message>
+        <message id="genycaster.channels.following_empty">
+            <source>You are not following any channels yet.</source>
+            <translation>You are not following any channels yet.</translation>
+        </message>
+        <message id="genycaster.channels.following_unavailable">
+            <source>The selected provider cannot verify followed channels.</source>
+            <translation>The selected provider cannot verify followed channels.</translation>
+        </message>
+        <message id="genycaster.channels.invite">
+            <source>Invite</source>
+            <translation>초대</translation>
+        </message>
+        <message id="genycaster.channels.invite_fid">
+            <source>User FID</source>
+            <translation>User FID</translation>
+        </message>
+        <message id="genycaster.channels.invites">
+            <source>Invitations</source>
+            <translation>초대장</translation>
+        </message>
+        <message id="genycaster.channels.invites_unavailable">
+            <source>Invitations are unavailable on this provider.</source>
+            <translation>Invitations are unavailable on this provider.</translation>
+        </message>
+        <message id="genycaster.channels.member">
+            <source>Member</source>
+            <translation>회원</translation>
+        </message>
+        <message id="genycaster.channels.members">
+            <source>Members</source>
+            <translation>회원</translation>
+        </message>
+        <message id="genycaster.channels.moderate">
+            <source>Moderate</source>
+            <translation>관리</translation>
+        </message>
+        <message id="genycaster.channels.moderate_hint">
+            <source>Select a joined channel to check your moderation privileges.</source>
+            <translation>Select a joined channel to check your moderation privileges.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_required">
+            <source>Only verified channel moderators can manage members.</source>
+            <translation>Only verified channel moderators can manage members.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_verified">
+            <source>Moderator permissions verified for this account.</source>
+            <translation>Moderator permissions verified for this account.</translation>
+        </message>
+        <message id="genycaster.channels.open_feed">
+            <source>View channel feed</source>
+            <translation>채널 피드 보기</translation>
+        </message>
+        <message id="genycaster.channels.overview">
+            <source>Overview</source>
+            <translation>개요</translation>
+        </message>
+        <message id="genycaster.channels.reject">
+            <source>Reject</source>
+            <translation>거절</translation>
+        </message>
+        <message id="genycaster.channels.remove_member">
+            <source>Remove member</source>
+            <translation>회원 삭제</translation>
+        </message>
+        <message id="genycaster.channels.unfollow">
+            <source>Unfollow channel</source>
+            <translation>팔로우 취소</translation>
+        </message>
     </context>
 </TS>

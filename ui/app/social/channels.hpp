@@ -73,7 +73,7 @@ public:
     ChannelPickerController(QSettings& settings, QString readNodeBaseUrl,
                             QString directoryBaseUrl, bool directProxy,
                             bool networkEnabled, bool discoveryMode = false,
-                            QObject* parent = nullptr);
+                            QObject* parent = nullptr, QString neynarApiKey = {});
 
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] QAbstractItemModel* channelModel() noexcept;
@@ -95,6 +95,7 @@ public:
     // The public browse surface has its own instance. Composer membership
     // selection stays isolated and never gains a public-channel write path.
     Q_INVOKABLE void refreshDiscovery();
+    Q_INVOKABLE void configureReadSource(const QString& contract, const QString& endpoint);
 
 signals:
     void rowsChanged();
@@ -139,6 +140,8 @@ private:
     QTimer m_debounce{};
     QTimer m_initialPresentation{};
     QString m_baseUrl;
+    QString m_readContract{QStringLiteral("hypersnap-v2")};
+    QString m_neynarApiKey{};
     QString m_directoryBaseUrl;
     QHash<QString, QVariantMap> m_directoryMetadata{};
     int m_imageRevision{0};

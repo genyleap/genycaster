@@ -7432,5 +7432,97 @@ Company | https://company.com</source>
             <source>Reading is public. Publishing requires verified channel membership.</source>
             <translation>閲覧は公開されています。投稿には確認済みのチャンネル参加が必要です。</translation>
         </message>
+        <message id="genycaster.channels.accept">
+            <source>Accept</source>
+            <translation>承認</translation>
+        </message>
+        <message id="genycaster.channels.confirm">
+            <source>Confirm</source>
+            <translation>確認</translation>
+        </message>
+        <message id="genycaster.channels.confirm_detail">
+            <source>This action changes channel membership or following. Proceed only if you have permission.</source>
+            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+        </message>
+        <message id="genycaster.channels.confirm_title">
+            <source>Confirm channel action</source>
+            <translation>Confirm channel action</translation>
+        </message>
+        <message id="genycaster.channels.follow">
+            <source>Follow channel</source>
+            <translation>チャンネルをフォロー</translation>
+        </message>
+        <message id="genycaster.channels.following">
+            <source>Following</source>
+            <translation>フォロー中</translation>
+        </message>
+        <message id="genycaster.channels.following_empty">
+            <source>You are not following any channels yet.</source>
+            <translation>You are not following any channels yet.</translation>
+        </message>
+        <message id="genycaster.channels.following_unavailable">
+            <source>The selected provider cannot verify followed channels.</source>
+            <translation>The selected provider cannot verify followed channels.</translation>
+        </message>
+        <message id="genycaster.channels.invite">
+            <source>Invite</source>
+            <translation>招待</translation>
+        </message>
+        <message id="genycaster.channels.invite_fid">
+            <source>User FID</source>
+            <translation>User FID</translation>
+        </message>
+        <message id="genycaster.channels.invites">
+            <source>Invitations</source>
+            <translation>招待</translation>
+        </message>
+        <message id="genycaster.channels.invites_unavailable">
+            <source>Invitations are unavailable on this provider.</source>
+            <translation>Invitations are unavailable on this provider.</translation>
+        </message>
+        <message id="genycaster.channels.member">
+            <source>Member</source>
+            <translation>メンバー</translation>
+        </message>
+        <message id="genycaster.channels.members">
+            <source>Members</source>
+            <translation>メンバー</translation>
+        </message>
+        <message id="genycaster.channels.moderate">
+            <source>Moderate</source>
+            <translation>管理</translation>
+        </message>
+        <message id="genycaster.channels.moderate_hint">
+            <source>Select a joined channel to check your moderation privileges.</source>
+            <translation>Select a joined channel to check your moderation privileges.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_required">
+            <source>Only verified channel moderators can manage members.</source>
+            <translation>Only verified channel moderators can manage members.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_verified">
+            <source>Moderator permissions verified for this account.</source>
+            <translation>Moderator permissions verified for this account.</translation>
+        </message>
+        <message id="genycaster.channels.open_feed">
+            <source>View channel feed</source>
+            <translation>チャンネルを見る</translation>
+        </message>
+        <message id="genycaster.channels.overview">
+            <source>Overview</source>
+            <translation>概要</translation>
+        </message>
+        <message id="genycaster.channels.reject">
+            <source>Reject</source>
+            <translation>拒否</translation>
+        </message>
+        <message id="genycaster.channels.remove_member">
+            <source>Remove member</source>
+            <translation>メンバーを削除</translation>
+        </message>
+        <message id="genycaster.channels.unfollow">
+            <source>Unfollow channel</source>
+            <translation>フォロー解除</translation>
+        </message>
     </context>
 </TS>

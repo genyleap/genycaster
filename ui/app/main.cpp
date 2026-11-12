@@ -77,6 +77,7 @@
 #include "rich_inline_text_item.hpp"
 #include "rich_composer_controller.hpp"
 #include "social/channels.hpp"
+#include "social/channel_administration.hpp"
 #include "settings/selection.hpp"
 #include "appearance_controller.hpp"
 #include "localization_controller.hpp"
@@ -571,6 +572,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
     std::unique_ptr<ChannelPickerController> channelPickerControllerOwner{};
     std::unique_ptr<ChannelPickerController> channelBrowserControllerOwner{};
+    std::unique_ptr<ChannelAdministrationController> channelAdministrationControllerOwner{};
     std::unique_ptr<MiniAppTaskManagerController> miniAppTaskManagerControllerOwner{};
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
@@ -837,8 +839,16 @@ int main(int argc, char* argv[])
     channelBrowserControllerOwner = std::make_unique<ChannelPickerController>(
         settings, appliedNodeEndpoint, channelDirectoryBaseUrl,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
-        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, true);
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, true, nullptr,
+        farcasterReadApiKeyText);
     ChannelPickerController& channelBrowser = *channelBrowserControllerOwner;
+    // Managed-signer UUIDs are injected only through the native bootstrap;
+    // neither credentials nor signer ownership are writable from QML.
+    channelAdministrationControllerOwner = std::make_unique<ChannelAdministrationController>(
+        farcasterReadApiKeyText, qEnvironmentVariable("GENYCASTER_NEYNAR_SIGNER_UUID"),
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest,
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct);
+    ChannelAdministrationController& channelAdmin = *channelAdministrationControllerOwner;
     miniAppTaskManagerControllerOwner = std::make_unique<MiniAppTaskManagerController>();
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
 
@@ -1211,6 +1221,7 @@ int main(int argc, char* argv[])
         {"presentationBridge", &presentationBridge},
         {"channelDirectory", &channelPickerController},
         {"channelBrowser", &channelBrowser},
+        {"channelAdmin", &channelAdmin},
         {"dataStorage", &dataStorageController},
         {"richComposer", &richComposerController},
         {"emojiController", &emojiController},

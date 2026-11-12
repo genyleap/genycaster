@@ -7432,5 +7432,97 @@ Company | https://company.com</source>
             <source>Reading is public. Publishing requires verified channel membership.</source>
             <translation>所有人都可以阅读。发布内容需要经过验证的频道成员资格。</translation>
         </message>
+        <message id="genycaster.channels.accept">
+            <source>Accept</source>
+            <translation>接受</translation>
+        </message>
+        <message id="genycaster.channels.confirm">
+            <source>Confirm</source>
+            <translation>确认</translation>
+        </message>
+        <message id="genycaster.channels.confirm_detail">
+            <source>This action changes channel membership or following. Proceed only if you have permission.</source>
+            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+        </message>
+        <message id="genycaster.channels.confirm_title">
+            <source>Confirm channel action</source>
+            <translation>Confirm channel action</translation>
+        </message>
+        <message id="genycaster.channels.follow">
+            <source>Follow channel</source>
+            <translation>关注频道</translation>
+        </message>
+        <message id="genycaster.channels.following">
+            <source>Following</source>
+            <translation>已关注</translation>
+        </message>
+        <message id="genycaster.channels.following_empty">
+            <source>You are not following any channels yet.</source>
+            <translation>You are not following any channels yet.</translation>
+        </message>
+        <message id="genycaster.channels.following_unavailable">
+            <source>The selected provider cannot verify followed channels.</source>
+            <translation>The selected provider cannot verify followed channels.</translation>
+        </message>
+        <message id="genycaster.channels.invite">
+            <source>Invite</source>
+            <translation>邀请</translation>
+        </message>
+        <message id="genycaster.channels.invite_fid">
+            <source>User FID</source>
+            <translation>User FID</translation>
+        </message>
+        <message id="genycaster.channels.invites">
+            <source>Invitations</source>
+            <translation>邀请</translation>
+        </message>
+        <message id="genycaster.channels.invites_unavailable">
+            <source>Invitations are unavailable on this provider.</source>
+            <translation>Invitations are unavailable on this provider.</translation>
+        </message>
+        <message id="genycaster.channels.member">
+            <source>Member</source>
+            <translation>成员</translation>
+        </message>
+        <message id="genycaster.channels.members">
+            <source>Members</source>
+            <translation>成员</translation>
+        </message>
+        <message id="genycaster.channels.moderate">
+            <source>Moderate</source>
+            <translation>管理</translation>
+        </message>
+        <message id="genycaster.channels.moderate_hint">
+            <source>Select a joined channel to check your moderation privileges.</source>
+            <translation>Select a joined channel to check your moderation privileges.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_required">
+            <source>Only verified channel moderators can manage members.</source>
+            <translation>Only verified channel moderators can manage members.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_verified">
+            <source>Moderator permissions verified for this account.</source>
+            <translation>Moderator permissions verified for this account.</translation>
+        </message>
+        <message id="genycaster.channels.open_feed">
+            <source>View channel feed</source>
+            <translation>查看频道动态</translation>
+        </message>
+        <message id="genycaster.channels.overview">
+            <source>Overview</source>
+            <translation>概览</translation>
+        </message>
+        <message id="genycaster.channels.reject">
+            <source>Reject</source>
+            <translation>拒绝</translation>
+        </message>
+        <message id="genycaster.channels.remove_member">
+            <source>Remove member</source>
+            <translation>移除成员</translation>
+        </message>
+        <message id="genycaster.channels.unfollow">
+            <source>Unfollow channel</source>
+            <translation>取消关注</translation>
+        </message>
     </context>
 </TS>

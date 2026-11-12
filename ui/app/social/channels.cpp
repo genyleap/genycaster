@@ -133,10 +133,12 @@ void ChannelListModel::synchronize(const QVariantList& rows)
 
 ChannelPickerController::ChannelPickerController(
     QSettings& settings, QString readNodeBaseUrl, QString directoryBaseUrl,
-    bool directProxy, bool networkEnabled, bool discoveryMode, QObject* parent)
+    bool directProxy, bool networkEnabled, bool discoveryMode, QObject* parent,
+    QString neynarApiKey)
     : QObject(parent),
       m_settings(settings),
       m_baseUrl(std::move(readNodeBaseUrl)),
+      m_neynarApiKey(std::move(neynarApiKey)),
       m_directoryBaseUrl(std::move(directoryBaseUrl)),
       m_networkEnabled(networkEnabled),
       m_discoveryMode(discoveryMode)
@@ -266,8 +268,27 @@ QVariantMap ChannelPickerController::channelProjection(const QJsonObject& channe
     // show the channel's initial, not a fabricated asset from a static JSON.
     const QString image = firstString(channel,
         {"image_url", "imageUrl", "icon_url", "iconUrl"});
+    QVariantList moderatorFids;
+    for (const auto& value : channel.value(QStringLiteral("moderator_fids")).toArray()) {
+        const qint64 fid = value.toInteger();
+        if (fid > 0) moderatorFids.append(fid);
+    }
+    for (const auto& value : channel.value(QStringLiteral("moderators")).toArray()) {
+        const qint64 fid = value.isObject()
+            ? value.toObject().value(QStringLiteral("fid")).toInteger()
+            : value.toInteger();
+        if (fid > 0 && !moderatorFids.contains(fid)) moderatorFids.append(fid);
+    }
+    const qint64 leadFid = channel.value(QStringLiteral("lead")).toObject()
+        .value(QStringLiteral("fid")).toInteger(0);
+    const bool roleKnown = channel.contains(QStringLiteral("lead"))
+        || channel.contains(QStringLiteral("moderator_fids"))
+        || channel.contains(QStringLiteral("moderators"));
     QVariantMap row{
         {QStringLiteral("id"), id},
+        {QStringLiteral("leadFid"), leadFid},
+        {QStringLiteral("moderatorFids"), moderatorFids},
+        {QStringLiteral("roleKnown"), roleKnown},
         {QStringLiteral("name"), firstString(channel, {"name", "id"})},
         {QStringLiteral("parentUrl"), parentUrl},
         {QStringLiteral("description"), firstString(channel, {"description"})},
@@ -303,7 +324,19 @@ void ChannelPickerController::request(
         done({}, QStringLiteral("Network unavailable"));
         return;
     }
-    QUrl url{m_baseUrl + QStringLiteral("/v2/farcaster/") + path};
+    const QUrl origin{m_baseUrl};
+    const bool neynar = m_discoveryMode
+        && m_readContract == QLatin1String("neynar-v2");
+    const bool supported = !m_discoveryMode
+        || m_readContract == QLatin1String("hypersnap-v2") || neynar;
+    if (!supported || (neynar && (origin.scheme() != QLatin1String("https")
+        || origin.host() != QLatin1String("api.neynar.com")
+        || m_neynarApiKey.isEmpty()))) {
+        done({}, QStringLiteral("Selected channel read provider is not configured"));
+        return;
+    }
+    QUrl url{m_baseUrl + QStringLiteral("/v2/farcaster/") + path
+             + (neynar ? QStringLiteral("/") : QString{})};
     QUrlQuery query;
     for (auto it = args.cbegin(); it != args.cend(); ++it)
         query.addQueryItem(it.key(), it.value().toString());
@@ -317,7 +350,10 @@ void ChannelPickerController::request(
     }
     QNetworkRequest request{url};
     request.setTransferTimeout(11000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
     request.setRawHeader("Accept", "application/json");
+    if (neynar) request.setRawHeader("x-api-key", m_neynarApiKey.toUtf8());
     auto* reply = m_network.get(request);
     connect(reply, &QNetworkReply::finished, this,
         [reply, done = std::move(done)]() {
@@ -418,7 +454,9 @@ void ChannelPickerController::mergeMetadata(QVariantMap& channel) const
 void ChannelPickerController::retrieveDirectoryResults(
     QString query, quint64 nodeGeneration, quint64 searchGeneration)
 {
-    if (m_directoryBaseUrl.isEmpty()) return;
+    if (m_directoryBaseUrl.isEmpty()
+        || (m_discoveryMode && m_readContract != QLatin1String("hypersnap-v2")))
+        return;
     requestDirectory(QStringLiteral("search-channels"),
         {{QStringLiteral("q"), query}, {QStringLiteral("limit"), 40}},
         [this, nodeGeneration, searchGeneration](
@@ -456,7 +494,9 @@ void ChannelPickerController::retrieveDirectoryResults(
 
 void ChannelPickerController::hydrateMemberImages()
 {
-    if (m_directoryBaseUrl.isEmpty() || m_members.isEmpty()) return;
+    if (m_directoryBaseUrl.isEmpty() || m_members.isEmpty()
+        || (m_discoveryMode && m_readContract != QLatin1String("hypersnap-v2")))
+        return;
     // Fetch metadata only for visible/recent joined channels; bounded and
     // deduplicated. Keep caches in C++ and let Qt's image provider cache bytes.
     QList<QString> ids = m_members.keys();
@@ -595,6 +635,20 @@ void ChannelPickerController::openForViewer(qulonglong fid)
         requestTrending();
 }
 
+void ChannelPickerController::configureReadSource(
+    const QString& contract, const QString& rawEndpoint)
+{
+    if (!m_discoveryMode) return; // the signer-bound composer is independent
+    QString endpoint = rawEndpoint.trimmed();
+    while (endpoint.endsWith(QLatin1Char('/'))) endpoint.chop(1);
+    if (m_readContract == contract && m_baseUrl == endpoint) return;
+    m_readContract = contract;
+    m_baseUrl = std::move(endpoint);
+    const qulonglong viewer = m_viewerFid;
+    m_viewerFid = std::numeric_limits<qulonglong>::max();
+    openForViewer(viewer);
+}
+
 void ChannelPickerController::refreshDiscovery()
 {
     if (!m_discoveryMode) return;
@@ -647,7 +701,13 @@ void ChannelPickerController::requestMembershipPage(
     request(QStringLiteral("user/memberships/list"), args,
         [this, generation, page](const QJsonObject& body, const QString& error) {
             if (generation != m_membershipGeneration) return;
-            if (!error.isEmpty() || !body.contains(QStringLiteral("channels"))) {
+            // HyperSnap returns channels[]; Neynar returns members[],
+            // with a nested channel projection per verified membership.
+            const bool neynarBrowse = m_discoveryMode
+                && m_readContract == QLatin1String("neynar-v2");
+            if (!error.isEmpty()
+                || !(neynarBrowse ? body.contains(QStringLiteral("members"))
+                                 : body.contains(QStringLiteral("channels")))) {
                 m_members.clear();
                 m_membershipReady = false; // fail closed, never infer membership
                 const bool wasBusy = busy();
@@ -658,9 +718,20 @@ void ChannelPickerController::requestMembershipPage(
                 rebuildRows();
                 return;
             }
-            for (const QVariant& item : channelsFromResponse(body, this)) {
-                const QVariantMap row = item.toMap();
-                m_members.insert(row.value(QStringLiteral("id")).toString(), row);
+            if (neynarBrowse) {
+                const QJsonArray members = body.value(QStringLiteral("members")).toArray();
+                for (const QJsonValue& member : members) {
+                    if (!member.isObject()) continue;
+                    const QVariantMap row = channelProjection(
+                        member.toObject().value(QStringLiteral("channel")).toObject());
+                    const QString channelId = row.value(QStringLiteral("id")).toString();
+                    if (isSocialChannel(channelId)) m_members.insert(channelId, row);
+                }
+            } else {
+                for (const QVariant& item : channelsFromResponse(body, this)) {
+                    const QVariantMap row = item.toMap();
+                    m_members.insert(row.value(QStringLiteral("id")).toString(), row);
+                }
             }
             const QString next = body.value(QStringLiteral("next")).toObject()
                                      .value(QStringLiteral("cursor")).toString();
@@ -829,6 +900,13 @@ void ChannelPickerController::rebuildRows()
                        m_members.value(id).value(QStringLiteral("parentUrl")));
         mergeMetadata(row);
         row.insert(QStringLiteral("isMember"), isJoined);
+        const bool roleKnown = row.value(QStringLiteral("roleKnown")).toBool();
+        const bool host = row.value(QStringLiteral("leadFid")).toLongLong()
+            == static_cast<qint64>(m_viewerFid);
+        const bool moderator = row.value(QStringLiteral("moderatorFids")).toList()
+            .contains(static_cast<qint64>(m_viewerFid));
+        row.insert(QStringLiteral("isModerator"),
+            roleKnown && m_viewerFid > 0 && (host || moderator));
         row.insert(QStringLiteral("selectable"), isJoined
             && validParentUrl(row.value(QStringLiteral("parentUrl")).toString()));
         row.insert(QStringLiteral("usedCount"), m_usage.value(id));
@@ -847,7 +925,19 @@ void ChannelPickerController::rebuildRows()
         if (!m_presentationOrder.contains(id))
             m_presentationOrder.insert(id, m_nextPresentationOrder++);
     }
-    std::stable_sort(found.begin(), found.end(), [this](const QVariantMap& a, const QVariantMap& b) {
+    QSet<QString> featuredIds{};
+    if (m_discoveryMode && m_query.isEmpty()) {
+        for (const QVariant& item : std::as_const(m_trendingResults))
+            featuredIds.insert(item.toMap().value(QStringLiteral("id")).toString());
+    }
+    std::stable_sort(found.begin(), found.end(), [this, &featuredIds](const QVariantMap& a, const QVariantMap& b) {
+        // Discover must actually discover. The old membership-first ranking
+        // filled all ninety rows with Joined entries and hid public trending.
+        if (m_discoveryMode && m_query.isEmpty()) {
+            const bool featuredA = featuredIds.contains(a.value(QStringLiteral("id")).toString());
+            const bool featuredB = featuredIds.contains(b.value(QStringLiteral("id")).toString());
+            if (featuredA != featuredB) return featuredA;
+        }
         const int rankA = a.value(QStringLiteral("matchRank")).toInt();
         const int rankB = b.value(QStringLiteral("matchRank")).toInt();
         if (rankA != rankB) return rankA < rankB;

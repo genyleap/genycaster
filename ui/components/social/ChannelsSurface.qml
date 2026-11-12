@@ -8,6 +8,10 @@ Item {
     id: root
     objectName: "channelsSurface"
     property var channelSource: null
+    property var adminSource: null
+    property string readContract: "hypersnap-v2"
+    property string readEndpoint: ""
+    property string appliedWriteProvider: ""
     property double accountFid: 0
     property bool authenticated: false
     property bool compact: false
@@ -18,12 +22,19 @@ Item {
     readonly property bool busy: channelSource ? channelSource.busy : false
     readonly property string sourceError: channelSource ? channelSource.errorText : ""
     readonly property var shownChannels: {
-        const values = channelSource ? channelSource.rows : []
+        const values = scope === "following"
+            ? (adminSource ? adminSource.following : [])
+            : channelSource ? channelSource.rows : []
         const result = []
         for (let index = 0; index < Number(values.length || 0); ++index) {
             const channel = values[index] || ({})
             if (!String(channel.id || "").length) continue // Home belongs only in the composer.
-            if (root.scope === "joined" && !Boolean(channel.isMember)) continue
+            const filter = channelSearch.text.trim().toLocaleLowerCase()
+            if (root.scope === "following" && filter.length > 0
+                && !String(channel.name || "").toLocaleLowerCase().includes(filter)
+                && !String(channel.id || "").toLocaleLowerCase().includes(filter)) continue
+            if ((root.scope === "joined" || root.scope === "moderate")
+                && !Boolean(channel.isMember)) continue
             result.push(channel)
         }
         return result
@@ -34,11 +45,30 @@ Item {
         if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(id)) return
         root.channelRequested(channel)
     }
-    Component.onCompleted: {
-        if (channelSource) channelSource.openForViewer(Math.max(0, Math.floor(accountFid)))
+    function configureProviders() {
+        const fid = Math.max(0, Math.floor(accountFid))
+        if (channelSource) {
+            channelSource.configureReadSource(readContract, readEndpoint)
+            channelSource.openForViewer(fid)
+        }
+        if (adminSource) adminSource.configureSession(
+            readContract, readEndpoint, fid, appliedWriteProvider)
     }
-    onAccountFidChanged: {
-        if (channelSource) channelSource.openForViewer(Math.max(0, Math.floor(accountFid)))
+    Component.onCompleted: root.configureProviders()
+    onAccountFidChanged: root.configureProviders()
+    onReadContractChanged: root.configureProviders()
+    onReadEndpointChanged: root.configureProviders()
+    onAppliedWriteProviderChanged: root.configureProviders()
+
+    function showManagement(info) {
+        if (!info || !info.id) return
+        channelManager.channelInfo = info
+        channelManager.present()
+        channelManagerPopup.open()
+    }
+    onScopeChanged: {
+        channelSearch.clear()
+        if (scope === "following" && adminSource) adminSource.loadFollowing()
     }
 
     ColumnLayout {
@@ -120,7 +150,8 @@ Item {
                     placeholderText: qsTrId("genycaster.composer.channel_search")
                     Accessible.name: placeholderText
                     onTextChanged: {
-                        if (root.channelSource) root.channelSource.search(text)
+                        if (root.scope !== "following" && root.channelSource)
+                            root.channelSource.search(text)
                     }
                 }
                 ActionButton {
@@ -135,25 +166,53 @@ Item {
             }
         }
 
-        RowLayout {
+        Flickable {
+            id: categoryTabs
+            objectName: "channelManagementCategories"
             Layout.fillWidth: true
-            spacing: Theme.space2
-            layoutDirection: Theme.uiDirection
-            GenyTabButton {
-                objectName: "channelsDiscoverTab"
-                Layout.fillWidth: true
-                selected: root.scope === "discover"
-                text: qsTrId("genycaster.channels.discover")
-                iconGlyph: Theme.iconExplore
-                onClicked: root.scope = "discover"
-            }
-            GenyTabButton {
-                objectName: "channelsJoinedTab"
-                Layout.fillWidth: true
-                selected: root.scope === "joined"
-                text: qsTrId("genycaster.composer.joined_channel")
-                iconGlyph: Theme.iconUser
-                onClicked: root.scope = "joined"
+            Layout.preferredHeight: 43
+            contentWidth: categoryRow.implicitWidth
+            contentHeight: height
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            RowLayout {
+                id: categoryRow
+                height: categoryTabs.height
+                layoutDirection: Theme.uiDirection
+                spacing: Theme.space1
+                GenyTabButton {
+                    objectName: "channelsDiscoverTab"
+                    minimumWidth: 100
+                    selected: root.scope === "discover"
+                    text: qsTrId("genycaster.channels.discover")
+                    iconGlyph: Theme.iconExplore
+                    onClicked: root.scope = "discover"
+                }
+                GenyTabButton {
+                    objectName: "channelsFollowingTab"
+                    minimumWidth: 100
+                    selected: root.scope === "following"
+                    text: qsTrId("genycaster.channels.following")
+                    iconGlyph: Theme.iconUser
+                    onClicked: root.scope = "following"
+                }
+                GenyTabButton {
+                    objectName: "channelsJoinedTab"
+                    minimumWidth: 100
+                    selected: root.scope === "joined"
+                    text: qsTrId("genycaster.channels.member")
+                    iconGlyph: Theme.iconUser
+                    onClicked: root.scope = "joined"
+                }
+                GenyTabButton {
+                    objectName: "channelsModerateTab"
+                    minimumWidth: 100
+                    selected: root.scope === "moderate"
+                    text: qsTrId("genycaster.channels.moderate")
+                    iconGlyph: Theme.iconUser
+                    onClicked: root.scope = "moderate"
+                }
             }
         }
 
@@ -162,8 +221,10 @@ Item {
             layoutDirection: Theme.uiDirection
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.scope === "joined" ? qsTrId("genycaster.composer.joined_channel")
-                                              : qsTrId("genycaster.channels.discover")
+                text: root.scope === "joined" ? qsTrId("genycaster.channels.member")
+                      : root.scope === "following" ? qsTrId("genycaster.channels.following")
+                      : root.scope === "moderate" ? qsTrId("genycaster.channels.moderate")
+                      : qsTrId("genycaster.channels.discover")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeMetaSize
             }
@@ -183,7 +244,9 @@ Item {
                 id: channelList
                 objectName: "channelsList"
                 anchors.fill: parent
-                model: root.channelSource ? root.channelSource.channelModel : null
+                model: root.scope === "following"
+                    ? (root.adminSource ? root.adminSource.following : [])
+                    : root.channelSource ? root.channelSource.channelModel : null
                 reuseItems: true
                 cacheBuffer: Math.max(320, height)
                 clip: true
@@ -195,16 +258,24 @@ Item {
                     width: channelList.width
                     channelData: modelData
                     compact: root.compact
-                    allowed: root.scope !== "joined" || Boolean(modelData.isMember)
+                    allowed: ((root.scope !== "joined" && root.scope !== "moderate")
+                             || Boolean(modelData.isMember))
+                             && (root.scope !== "following"
+                                 || channelSearch.text.length === 0
+                                 || String(modelData.name || "").toLocaleLowerCase()
+                                    .includes(channelSearch.text.toLocaleLowerCase())
+                                 || String(modelData.id || "").toLocaleLowerCase()
+                                    .includes(channelSearch.text.toLocaleLowerCase()))
                     scrolling: channelList.moving
-                    onOpenRequested: info => root.openChannel(info)
+                    onOpenRequested: info => root.showManagement(info)
                 }
             }
             ColumnLayout {
                 anchors.centerIn: parent
                 width: Math.max(0, Math.min(parent.width - Theme.space4 * 2, 390))
                 spacing: Theme.space3
-                visible: !root.busy && root.shownChannels.length === 0
+                visible: !root.busy && !(root.adminSource && root.adminSource.busy)
+                         && root.shownChannels.length === 0
                 Icon {
                     Layout.alignment: Qt.AlignHCenter
                     text: root.scope === "joined" ? Theme.iconUser : Theme.iconSearch
@@ -213,9 +284,15 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: root.scope === "joined"
-                          ? (root.authenticated ? qsTrId("genycaster.channels.joined_empty")
-                             : qsTrId("genycaster.channels.sign_in_hint"))
+                    text: root.scope === "following"
+                          ? (root.adminSource && root.adminSource.followsAvailable
+                             ? qsTrId("genycaster.channels.following_empty")
+                             : qsTrId("genycaster.channels.following_unavailable"))
+                          : root.scope === "moderate"
+                            ? qsTrId("genycaster.channels.moderate_hint")
+                          : root.scope === "joined"
+                            ? (root.authenticated ? qsTrId("genycaster.channels.joined_empty")
+                               : qsTrId("genycaster.channels.sign_in_hint"))
                           : root.sourceError.length > 0 ? root.sourceError
                             : channelSearch.text.length > 0 ? qsTrId("genycaster.composer.channel_no_results")
                             : qsTrId("genycaster.channels.search_hint")
@@ -225,7 +302,8 @@ Item {
                     font.pixelSize: Theme.typeMetaSize
                 }
                 ActionButton {
-                    visible: root.scope === "joined" && !root.authenticated
+                    visible: (root.scope === "joined" || root.scope === "following"
+                              || root.scope === "moderate") && !root.authenticated
                     Layout.alignment: Qt.AlignHCenter
                     prominent: true
                     text: qsTrId("genycaster.notifications.sign_in")
@@ -240,18 +318,30 @@ Item {
             }
             GenySpinner {
                 anchors.centerIn: parent
-                visible: root.busy && root.shownChannels.length === 0
+                visible: (root.busy || (root.scope === "following" && root.adminSource && root.adminSource.busy))
+                          && root.shownChannels.length === 0
                 running: visible
             }
         }
-        DirectionAwareLabel {
-            Layout.fillWidth: true
-            text: qsTrId("genycaster.channels.read_note")
-            color: Theme.inkSubtle
-            font.pixelSize: Theme.typeCaptionSize
-            maximumLineCount: 2
-            elide: Text.ElideRight
-            wrapMode: Text.Wrap
+    }
+    GenyModal {
+        id: channelManagerPopup
+        objectName: "channelManagementPopup"
+        parent: root
+        width: Math.min(720, Math.max(320, root.width - Theme.space4 * 2))
+        height: Math.min(760, Math.max(360, root.height - Theme.space4 * 2))
+        padding: Theme.space4
+        ChannelManagementPanel {
+            id: channelManager
+            anchors.fill: parent
+            manager: root.adminSource
+            compact: root.compact
+            onCloseRequested: channelManagerPopup.close()
+            onFeedRequested: info => {
+                channelManagerPopup.close()
+                root.openChannel(info)
+            }
         }
     }
+
 }

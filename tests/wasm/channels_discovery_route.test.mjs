@@ -12,6 +12,8 @@ test('Channels is a real route, not a placeholder, with a working scoped feed',(
   assert.match(shell,/active: root.shellRoute === "channels"/);
   assert.match(shell,/ChannelsSurface \{/);
   assert.match(shell,/channelSource: channelBrowser/);
+  assert.match(shell,/adminSource: channelAdmin/);
+  assert.match(cmake,/components\/social\/ChannelManagementPanel\.qml/);
   assert.match(shell,/presentationBridge.openChannel\(id\)/);
   assert.match(shell,/objectName: "channelReturnToDirectory"/);
   assert.match(shell,/objectName: "mobileExplorerChannelsEntry"/);
@@ -28,7 +30,7 @@ test('public discovery and joined composer selection have separate state owners'
   assert.match(main,/channelBrowserControllerOwner/);
   assert.match(main,/\{"channelDirectory", &channelPickerController\}/);
   assert.match(main,/\{"channelBrowser", &channelBrowser\}/);
-  assert.match(main,/!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, true/);
+  assert.match(main,/!isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, true, nullptr/);
   assert.match(hpp,/bool discoveryMode = false/);
   assert.match(hpp,/Q_INVOKABLE void refreshDiscovery\(\)/);
   assert.match(cpp,/if \(m_discoveryMode && m_trendingResults.isEmpty\(\) && !m_trendingBusy\)/);
@@ -46,9 +48,12 @@ test('channel browser provides live search, clear, refresh, joined filter, and r
   assert.match(page,/root.channelSource.refreshDiscovery\(\)/);
   assert.match(page,/objectName: "channelsJoinedTab"/);
   assert.match(page,/Boolean\(channel.isMember\)/);
-  assert.match(page,/model: root.channelSource \? root.channelSource.channelModel : null/);
+  assert.match(page,/root.channelSource \? root.channelSource.channelModel : null/);
+  assert.match(page,/root.scope === "following"/);
+  assert.match(page,/objectName: "channelsFollowingTab"/);
+  assert.match(page,/objectName: "channelsModerateTab"/);
   assert.match(page,/reuseItems: true/);
-  assert.match(page,/onOpenRequested: info => root.openChannel\(info\)/);
+  assert.match(page,/onOpenRequested: info => root.showManagement\(info\)/);
   assert.match(row,/forceAutomaticDownload: true/);
   assert.match(row,/Theme.rtl \? Theme.iconArrowLeft : Theme.iconArrowRight/);
   assert.match(row,/Keys.onReturnPressed: root.openRequested/);
@@ -58,7 +63,7 @@ test('channel browser provides live search, clear, refresh, joined filter, and r
 test('public channel reads validate slug IDs and never assume membership',()=>{
   const page=read('ui/components/social/ChannelsSurface.qml');
   const start=page.indexOf('function openChannel(channel)');
-  const end=page.indexOf('Component.onCompleted:',start);
+  const end=page.indexOf('function configureProviders()',start);
   assert.ok(start>0 && end>start);
   const expression=page.slice(start,end).trim();
   const observed=[];

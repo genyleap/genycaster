@@ -40,6 +40,7 @@ set(farcasterQmlFiles
     components/profile/BookmarksSurface.qml
     components/social/ChannelsSurface.qml
     components/social/ChannelRow.qml
+    components/social/ChannelManagementPanel.qml
     components/feed/ContentFilterSheet.qml
     components/profile/CollectionChooser.qml
     components/navigation/ContextRail.qml
@@ -419,6 +420,8 @@ qt_add_executable(genycaster
     app/miniapp/catalog.hpp
     app/social/channels.cpp
     app/social/channels.hpp
+    app/social/channel_administration.cpp
+    app/social/channel_administration.hpp
     app/settings/selection.cpp
     app/settings/selection.hpp
     app/miniapp/tasks.cpp

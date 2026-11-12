@@ -7432,5 +7432,97 @@ Company | https://company.com</source>
             <source>Reading is public. Publishing requires verified channel membership.</source>
             <translation>القراءة عامة، أما النشر فيتطلب عضوية قناة مؤكدة.</translation>
         </message>
+        <message id="genycaster.channels.accept">
+            <source>Accept</source>
+            <translation>قبول</translation>
+        </message>
+        <message id="genycaster.channels.confirm">
+            <source>Confirm</source>
+            <translation>تأكيد</translation>
+        </message>
+        <message id="genycaster.channels.confirm_detail">
+            <source>This action changes channel membership or following. Proceed only if you have permission.</source>
+            <translation>This action changes channel membership or following. Proceed only if you have permission.</translation>
+        </message>
+        <message id="genycaster.channels.confirm_title">
+            <source>Confirm channel action</source>
+            <translation>Confirm channel action</translation>
+        </message>
+        <message id="genycaster.channels.follow">
+            <source>Follow channel</source>
+            <translation>متابعة القناة</translation>
+        </message>
+        <message id="genycaster.channels.following">
+            <source>Following</source>
+            <translation>المتابَعة</translation>
+        </message>
+        <message id="genycaster.channels.following_empty">
+            <source>You are not following any channels yet.</source>
+            <translation>You are not following any channels yet.</translation>
+        </message>
+        <message id="genycaster.channels.following_unavailable">
+            <source>The selected provider cannot verify followed channels.</source>
+            <translation>The selected provider cannot verify followed channels.</translation>
+        </message>
+        <message id="genycaster.channels.invite">
+            <source>Invite</source>
+            <translation>دعوة</translation>
+        </message>
+        <message id="genycaster.channels.invite_fid">
+            <source>User FID</source>
+            <translation>User FID</translation>
+        </message>
+        <message id="genycaster.channels.invites">
+            <source>Invitations</source>
+            <translation>الدعوات</translation>
+        </message>
+        <message id="genycaster.channels.invites_unavailable">
+            <source>Invitations are unavailable on this provider.</source>
+            <translation>Invitations are unavailable on this provider.</translation>
+        </message>
+        <message id="genycaster.channels.member">
+            <source>Member</source>
+            <translation>عضو</translation>
+        </message>
+        <message id="genycaster.channels.members">
+            <source>Members</source>
+            <translation>الأعضاء</translation>
+        </message>
+        <message id="genycaster.channels.moderate">
+            <source>Moderate</source>
+            <translation>إدارة</translation>
+        </message>
+        <message id="genycaster.channels.moderate_hint">
+            <source>Select a joined channel to check your moderation privileges.</source>
+            <translation>Select a joined channel to check your moderation privileges.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_required">
+            <source>Only verified channel moderators can manage members.</source>
+            <translation>Only verified channel moderators can manage members.</translation>
+        </message>
+        <message id="genycaster.channels.moderator_verified">
+            <source>Moderator permissions verified for this account.</source>
+            <translation>Moderator permissions verified for this account.</translation>
+        </message>
+        <message id="genycaster.channels.open_feed">
+            <source>View channel feed</source>
+            <translation>عرض محتوى القناة</translation>
+        </message>
+        <message id="genycaster.channels.overview">
+            <source>Overview</source>
+            <translation>نظرة عامة</translation>
+        </message>
+        <message id="genycaster.channels.reject">
+            <source>Reject</source>
+            <translation>رفض</translation>
+        </message>
+        <message id="genycaster.channels.remove_member">
+            <source>Remove member</source>
+            <translation>إزالة العضو</translation>
+        </message>
+        <message id="genycaster.channels.unfollow">
+            <source>Unfollow channel</source>
+            <translation>إلغاء المتابعة</translation>
+        </message>
     </context>
 </TS>
