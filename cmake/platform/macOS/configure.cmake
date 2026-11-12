@@ -159,45 +159,53 @@ macro(genycaster_macos_setup_browser)
     set(_genycasterSdkOverlay
         "${CMAKE_CURRENT_BINARY_DIR}/macos-sdk-cpp26/macos_cpp26_sdk_overlay.json")
 
-    # Verify the actual compiler/SDK pair now, rather than allowing a full native
-    # build to fail deep inside Apple headers with an obscure enum diagnostic.
-    # C++26 type safety and compiler warnings are not relaxed in this probe.
+    # Probe both affected SDK headers explicitly. ColorSyncDeprecated.h is
+    # NOT guaranteed to be imported by the original AppKit/WebKit smoke
+    # source. Checking its overlay marker without including that header is
+    # a false-negative that broke Qt Creator's CMake Configure phase.
     include(CheckOBJCXXSourceCompiles)
     unset(GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE CACHE)
     set(_genycasterSavedRequiredFlags "${CMAKE_REQUIRED_FLAGS}")
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc -isysroot \"${_genycasterXcodeSdk}\" -ivfsoverlay \"${_genycasterSdkOverlay}\"")
-    check_objcxx_source_compiles([=[
+    # The native WKWebView boundary imports headers textually. Avoid cached
+    # Apple framework PCM modules bypassing the build-local VFS overlay.
+    # This does not disable C++26 or any Mini App runtime functionality.
+    set(CMAKE_REQUIRED_FLAGS
+        "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc -fno-modules -isysroot \"${_genycasterXcodeSdk}\" -ivfsoverlay \"${_genycasterSdkOverlay}\"")
+    set(_genycasterProbeSource [=[
     #import <Foundation/Foundation.h>
     #import <AppKit/NSApplication.h>
-    // These actual Mini App imports transitively enter CoreGraphics, QD and
-    // ColorSync, unlike the earlier incomplete configure-only smoke probe.
     #import <AppKit/NSEvent.h>
+    #import <AppKit/NSImage.h>
     #import <WebKit/WKWebView.h>
     #import <WebKit/WKPreferences.h>
     #import <WebKit/WKNavigationAction.h>
     #import <WebKit/WKNavigationResponse.h>
     #include <CoreGraphics/CGImage.h>
     #include <ApplicationServices/ApplicationServices.h>
-    // Do not accept a successful compile unless Clang actually loaded BOTH
-    // modified SDK headers through the overlay. A syntactically valid JSON
-    // overlay that is ignored by framework lookup must fail at configure time.
+    ]=])
+    string(APPEND _genycasterProbeSource
+        "#include \"${_genycasterXcodeSdk}/System/Library/Frameworks/ApplicationServices.framework/Frameworks/QD.framework/Headers/ColorSyncDeprecated.h\"\n")
+    string(APPEND _genycasterProbeSource [=[
     #ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE
-    #error "Clang skipped the CGImage.h C++26 VFS overlay"
+    #error "CGImage.h was not redirected by the C++26 SDK overlay"
     #endif
     #ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC
-    #error "Clang skipped the ColorSyncDeprecated.h C++26 VFS overlay"
+    #error "ColorSyncDeprecated.h was not redirected by the C++26 SDK overlay"
     #endif
     int main() { return 0; }
-    ]=] GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
+    ]=])
+    check_objcxx_source_compiles(
+        "${_genycasterProbeSource}"
+        GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
     set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")
     unset(_genycasterSavedRequiredFlags)
+    unset(_genycasterProbeSource)
     if(NOT GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
         message(FATAL_ERROR
-            "The configured Objective-C++ compiler and Apple macOS SDK cannot "
-            "compile SDK headers in C++26 mode. Keep OBJCXX_STANDARD=26 and "
-            "select a matching Xcode/AppleClang SDK in Qt Creator. Check "
-            "xcode-select -p, xcrun --sdk macosx --show-sdk-path and "
-            "CMakeFiles/CMakeError.log (or CMakeConfigureLog.yaml).")
+            "AppleClang failed the C++26 native SDK compatibility probe. "
+            "See CMakeFiles/CMakeConfigureLog.yaml for exact compiler errors. "
+            "The probe explicitly imports both CGImage.h and "
+            "ColorSyncDeprecated.h using the selected Xcode SDK.")
     endif()
 
     find_library(genycasterWebKitFramework WebKit REQUIRED)
@@ -215,6 +223,7 @@ macro(genycaster_macos_setup_browser)
     # Place the matching Xcode SDK after cached CLT Kit flags.
     target_compile_options(farcaster_miniapp_browser PRIVATE
         -fobjc-arc
+        -fno-modules
         -isysroot "${_genycasterXcodeSdk}"
         -ivfsoverlay "${_genycasterSdkOverlay}")
     target_link_libraries(farcaster_miniapp_browser PRIVATE

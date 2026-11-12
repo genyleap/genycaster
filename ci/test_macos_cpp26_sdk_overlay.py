@@ -181,6 +181,22 @@ class AppleSdkOverlayTests(unittest.TestCase):
                      str(program)], capture_output=True, text=True)
                 self.assertEqual(patched.returncode, 0, patched.stderr)
 
+                # Qt Creator's configure probe includes ColorSyncDeprecated.h
+                # by its *absolute* Xcode SDK path, not via -F/QD.
+                absolute_source = root / "absolute-sdk-import.cpp"
+                absolute_source.write_text(
+                    program.read_text(encoding="utf-8").replace(
+                        "#include <QD/ColorSyncDeprecated.h>",
+                        f'#include "{sdk_root / module.COLORSYNC}"'),
+                    encoding="utf-8")
+                direct = subprocess.run(
+                    [clang, "-std=c++2c", "-fno-modules", "-fsyntax-only",
+                     "-isysroot", str(sdk_root), "-F", str(frameworks),
+                     "-F", str(nested), "-ivfsoverlay",
+                     str(out / "macos_cpp26_sdk_overlay.json"),
+                     str(absolute_source)], capture_output=True, text=True)
+                self.assertEqual(direct.returncode, 0, direct.stderr)
+
     def test_header_already_fixed_is_left_unchanged(self):
         safe = CG_HEADER.replace(module.CG_EXPRESSIONS[0], module.CG_REWRITTEN)
         self.assertEqual(module.rewrite_cg(safe), (safe, 0))
@@ -200,6 +216,11 @@ class AppleSdkOverlayTests(unittest.TestCase):
         self.assertIn("prepare_macos_sdk_cpp26.py", cmake)
         self.assertIn("-ivfsoverlay", cmake)
         self.assertIn("#import <AppKit/NSEvent.h>", cmake)
+        self.assertIn("#import <AppKit/NSImage.h>", cmake)
+        self.assertIn('string(APPEND _genycasterProbeSource', cmake)
+        self.assertIn('Frameworks/QD.framework/Headers/ColorSyncDeprecated.h', cmake)
+        self.assertIn("-fno-modules", cmake)
+        self.assertIn("The probe explicitly imports both CGImage.h", cmake)
         self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE", cmake)
         self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC", cmake)
         self.assertNotIn("OBJCXX_STANDARD 23", cmake)
