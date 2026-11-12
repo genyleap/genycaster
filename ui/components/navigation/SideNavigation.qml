@@ -53,6 +53,23 @@ Rectangle {
     // The bottom account card is account-scoped, never another person's streak.
     // Fetch verified activity when a session is ready, even before opening Profile.
     property double streakRequestedFid: 0
+    // A Farcaster session can exist before the app-owned membership proof is
+    // restored. Make one account-scoped silent recovery attempt, never convert
+    // missing authority into an invented Basic status.
+    property double proRecoveryAttemptedFid: 0
+    function requestSidebarPro() {
+        if (!root.isAuthenticated || !openProofConnections
+            || Number(root.accountFid) <= 0
+            || Number(openProofConnections.activeAccountFid) !== Number(root.accountFid)
+            || root.proRecoveryAttemptedFid === Number(root.accountFid))
+            return
+        if (openProofConnections.proEntitlements.status === "verified")
+            return
+        if (openProofConnections.cloudSessionBusy || openProofConnections.accountProofBusy)
+            return
+        root.proRecoveryAttemptedFid = Number(root.accountFid)
+        openProofConnections.retryProEntitlements()
+    }
     function requestSidebarStreak() {
         if(!root.isAuthenticated || !openProofConnections || !openProofConnections.cloudAuthorizationReady
             || Number(root.accountFid)<=0 || openProofConnections.streakBusy)
@@ -64,16 +81,29 @@ Rectangle {
     }
     onAccountFidChanged: {
         root.streakRequestedFid=0
+        root.proRecoveryAttemptedFid=0
         requestSidebarStreak()
+        requestSidebarPro()
     }
     onIsAuthenticatedChanged: {
-        if(!root.isAuthenticated)root.streakRequestedFid=0
-        else requestSidebarStreak()
+        if(!root.isAuthenticated) {
+            root.streakRequestedFid=0
+            root.proRecoveryAttemptedFid=0
+        } else {
+            requestSidebarStreak()
+            requestSidebarPro()
+        }
     }
-    Component.onCompleted: requestSidebarStreak()
+    Component.onCompleted: {
+        requestSidebarStreak()
+        requestSidebarPro()
+    }
     Connections {
         target: openProofConnections ? openProofConnections : null
-        function onStateChanged() { root.requestSidebarStreak() }
+        function onStateChanged() {
+            root.requestSidebarStreak()
+            root.requestSidebarPro()
+        }
     }
 
     signal trendingRequested()
@@ -291,6 +321,12 @@ Rectangle {
             proEligible: openProofConnections
                 && openProofConnections.proEntitlements.status === "verified"
                 && openProofConnections.proEntitlements.eligible === true
+            proStatus: openProofConnections
+                ? String(openProofConnections.proEntitlements.status || "unavailable") : "unavailable"
+            proChecking: openProofConnections
+                && (openProofConnections.proEntitlementsBusy
+                    || openProofConnections.accountProofBusy
+                    || openProofConnections.cloudSessionBusy)
             following: root.profileFollowing
             followers: root.profileFollowers
             streakSnapshot: openProofConnections ? openProofConnections.streak : ({})

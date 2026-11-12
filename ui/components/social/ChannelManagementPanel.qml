@@ -160,7 +160,8 @@ Item {
                     }
                     ActionButton {
                         Layout.fillWidth: true
-                        visible: root.manager && root.manager.followsAvailable
+                        visible: root.manager && root.manager.activeReadContract === "neynar-v2"
+                                         && root.manager.followsAvailable
                         enabled: root.writeReady
                         iconGlyph: Theme.iconUser
                         text: root.following ? qsTrId("genycaster.channels.unfollow")

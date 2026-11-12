@@ -74,7 +74,8 @@ test('notification portraits route to the exact FID and groups use one counter r
     assert.match(notifications,/actorStack\.mapFromItem\(notificationRow, pos\.x, pos\.y\)/);
     assert.match(notifications,/root\.profileRequested\(fid\)/);
     assert.match(notifications,/id: actorCountBadge/);
-    assert.match(notifications,/LocaleFormat\.formatInteger\(actorCountBadge\.groupCount\)/);
+    assert.match(notifications,/LocaleFormat\.formatInteger\(actorCountBadge\.additionalCount\)/);
+    assert.match(notifications,/root\.inspectActors\(notificationRow\.modelData\)/);
 });
 
 test('Explorer underline is owned by each selected tab and mirrors naturally',()=>{
@@ -103,7 +104,7 @@ test('Settings uses shared responsive navigation and Home has functional activit
     assert.match(home,/component HomeActivityCard: Superellipse/);
     assert.match(home,/root\.notificationUnreadCount > 0/);
     assert.match(home,/onClicked: root\.notificationsRequested\(\)/);
-    assert.match(home,/onClicked: root\.exploreRequested\(\)/);
+    assert.match(home,/onClicked: root\.channelsRequested\(\)/);
     assert.match(home,/onClicked: root\.composeRequested\(root\.draftText\)/);
     assert.doesNotMatch(home,/interval: 6200/);
 });

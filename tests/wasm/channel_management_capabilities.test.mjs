@@ -24,8 +24,11 @@ test('WASM build remains an explicit separate action; channels are native module
 test('management has Following / Membership / Moderate as separate scopes',()=>{
   for(const key of ['channelsDiscoverTab','channelsFollowingTab','channelsJoinedTab','channelsModerateTab'])
     assert.match(page,new RegExp('objectName: "'+key+'"'));
-  assert.match(page,/root\.scope === "following"[\s\S]*?root\.adminSource\.following/);
-  assert.match(page,/root\.scope === "joined" \|\| root\.scope === "moderate"/);
+  assert.match(page,/scope === "following"/);
+  assert.match(page,/adminSource \? adminSource\.following : \[\]/);
+  assert.match(page,/model: root\.scope === "following"[\s\S]*?root\.shownChannels/);
+  assert.match(page,/root\.scope === "joined" && !Boolean\(channel\.isMember\)/);
+  assert.match(page,/Boolean\(channel\.roleKnown\) && Boolean\(channel\.isModerator\)/);
   assert.match(page,/objectName: "channelManagementPopup"/);
   for(const t of ['overview','members','moderate','invites'])
     assert.match(manage,new RegExp('key: "'+t+'"'));
@@ -40,7 +43,9 @@ test('no clipped footer and public discovery promotes trending above already joi
 });
 
 test('HyperSnap 501 endpoints are not treated as valid management writes',()=>{
-  assert.match(cpp,/HyperSnap: channel follow and invite REST writes return 501/);
+  assert.match(cpp,/HyperSnap does not support channel follow or invitation writes/);
+  assert.match(cpp,/loadFollowingPage\(\{\}, 0, generation\)/);
+  assert.match(cpp,/x-api-key/);
   assert.match(cpp,/m_contract != QLatin1String\("neynar-v2"\)/);
   assert.match(cpp,/m_writeProviderId != QLatin1String\("neynar-managed"\)/);
   assert.match(cpp,/No approved Neynar managed signer for this account/);

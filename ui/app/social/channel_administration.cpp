@@ -59,21 +59,28 @@ bool ChannelAdministrationController::followsAvailable() const noexcept
 {
     // HyperSnap's documented /user-active route means activity, not follows.
     // Reusing it as 'Following' would be factually wrong.
-    return m_networkEnabled && m_contract == QLatin1String("neynar-v2")
-        && !m_neynarApiKey.isEmpty();
+    // Following is a client-indexed channel relationship, not equivalent to
+    // the protocol's verified channel membership list. A separately configured
+    // Neynar read credential may supply it alongside HyperSnap public reads.
+    return m_networkEnabled && !m_neynarApiKey.isEmpty()
+        && (m_contract == QLatin1String("neynar-v2")
+            || m_contract == QLatin1String("hypersnap-v2"));
 }
 
 bool ChannelAdministrationController::invitesAvailable() const noexcept
 {
     // Hypersnap's compatibility endpoint returns an empty list even for users
     // with real invites in other networks. Never turn that into 'no invites'.
-    return followsAvailable() && m_viewerFid > 0;
+    return followsAvailable() && m_contract == QLatin1String("neynar-v2")
+        && m_viewerFid > 0;
 }
 
 QString ChannelAdministrationController::providerNotice() const
 {
     if (m_contract == QLatin1String("hypersnap-v2"))
-        return QStringLiteral("HyperSnap: channel follow and invite REST writes return 501. Only supported, signed protocol writes can change network state.");
+        return followsAvailable()
+            ? QStringLiteral("Channel follows are read from Neynar. HyperSnap does not support channel follow or invitation writes; no signing permission is implied.")
+            : QStringLiteral("HyperSnap provides channel memberships and feeds, but not a verified Following or invitation list. Configure a Neynar read credential to see channel follows.");
     if (m_contract == QLatin1String("neynar-v2")) {
         if (m_neynarApiKey.isEmpty())
             return QStringLiteral("Neynar requires an API credential for channel management.");
@@ -122,6 +129,7 @@ void ChannelAdministrationController::configureSession(
     if (same) return;
     ++m_generation;
     ++m_channelGeneration;
+    ++m_followingGeneration;
     m_activeReads = 0;
     m_contract = std::move(contract);
     m_endpoint = std::move(endpoint);
@@ -355,30 +363,86 @@ void ChannelAdministrationController::verifyManagedSigner(quint64 generation)
 
 void ChannelAdministrationController::loadFollowing()
 {
+    ++m_followingGeneration;
     m_following.clear();
     emit changed();
-    if (!followsAvailable()) {
-        setMessage(QStringLiteral("This provider does not expose a verified Following list."));
+    if (m_viewerFid == 0) {
+        setMessage(QStringLiteral("Sign in to see followed channels."));
         return;
     }
-    if (m_viewerFid == 0) {
-        setMessage(QStringLiteral("Sign in to see your followed channels."));
+    if (!followsAvailable()) {
+        setMessage(providerNotice());
         return;
     }
     const quint64 generation = m_generation;
     beginRead();
-    get(QStringLiteral("user/channels"),
-        {{QStringLiteral("fid"), QString::number(m_viewerFid)},
-         {QStringLiteral("limit"), 100}}, generation,
-        [this, generation](const QJsonObject& body, const QString& error) {
+    loadFollowingPage({}, 0, generation);
+}
+
+// The channel-follows directory is an optional independent READ source;
+// selecting HyperSnap never silently turns it into a Neynar signing backend.
+void ChannelAdministrationController::loadFollowingPage(
+    QString cursor, int page, quint64 generation)
+{
+    if (generation != m_generation || page >= 8) return;
+    QUrl url{QStringLiteral("https://api.neynar.com/v2/farcaster/user/channels/")};
+    QUrlQuery parameters{};
+    parameters.addQueryItem(QStringLiteral("fid"), QString::number(m_viewerFid));
+    parameters.addQueryItem(QStringLiteral("limit"), QStringLiteral("100"));
+    if (!cursor.isEmpty())
+        parameters.addQueryItem(QStringLiteral("cursor"), cursor);
+    url.setQuery(parameters);
+    QNetworkRequest request{url};
+    request.setTransferTimeout(requestTimeoutMs);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::ManualRedirectPolicy);
+    request.setRawHeader("Accept", "application/json");
+    request.setRawHeader("x-api-key", m_neynarApiKey.toUtf8());
+    auto* reply = m_network.get(request);
+    const quint64 followingGeneration = m_followingGeneration;
+    connect(reply, &QNetworkReply::finished, this,
+        [this, reply, page, generation, followingGeneration] {
+            const auto status =
+                reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            const QByteArray bytes = reply->bytesAvailable() <= maxReplyBytes
+                ? reply->readAll() : QByteArray{};
+            const auto networkError = reply->error();
+            reply->deleteLater();
             if (generation != m_generation) return;
-            finishRead();
-            if (!error.isEmpty() || !body.contains(QStringLiteral("channels"))) {
-                setMessage(error.isEmpty() ? QStringLiteral("Unable to load followed channels") : error);
+            if (followingGeneration != m_followingGeneration) {
+                finishRead();
                 return;
             }
-            m_following = projectChannels(body.value(QStringLiteral("channels")).toArray());
-            setMessage({});
+            const QJsonDocument doc = QJsonDocument::fromJson(bytes);
+            if (networkError != QNetworkReply::NoError || status != 200
+                || !doc.isObject()
+                || !doc.object().value(QStringLiteral("channels")).isArray()) {
+                m_following.clear();
+                finishRead();
+                setMessage(QStringLiteral("Unable to verify followed channels through the configured read source (HTTP %1).")
+                           .arg(status));
+                emit changed();
+                return;
+            }
+            for (const auto& item : projectChannels(
+                     doc.object().value(QStringLiteral("channels")).toArray())) {
+                const auto id = item.toMap().value(QStringLiteral("id")).toString();
+                const auto exists = std::any_of(m_following.cbegin(), m_following.cend(),
+                    [&id](const QVariant& row) {
+                        return row.toMap().value(QStringLiteral("id")).toString() == id;
+                    });
+                if (!exists) m_following.append(item);
+            }
+            const QString next = doc.object().value(QStringLiteral("next")).toObject()
+                                     .value(QStringLiteral("cursor")).toString();
+            if (!next.isEmpty() && page + 1 < 8) {
+                loadFollowingPage(next, page + 1, generation);
+                return;
+            }
+            finishRead();
+            setMessage(next.isEmpty()
+                ? QString{}
+                : QStringLiteral("Additional followed channels are available; showing the first verified 800."));
             emit changed();
         });
 }

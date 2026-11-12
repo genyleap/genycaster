@@ -139,6 +139,8 @@ Item {
         if (destination === "search") root.searchRequested()
         else if (destination === "apps") root.appsRequested()
         else if (destination === "explorer") root.exploreRequested()
+        else if (destination === "channels") root.channelsRequested()
+        else if (destination === "pro") root.proRequested()
     }
 
     component HomeTabs: Item {
@@ -190,9 +192,13 @@ Item {
             Repeater {
                 model: [
                     { destination: "explorer", name: qsTrId("genycaster.side_nav.explorer"), description: qsTrId("genycaster.home.hub_discover_detail"), glyph: Theme.iconCompass },
-                    { destination: "search", name: qsTrId("genycaster.feed_header.universal_search"), description: qsTrId("genycaster.home.search_description"), glyph: Theme.iconSearch },
+                    { destination: "channels", name: qsTrId("genycaster.side_nav.channels"), description: qsTrId("genycaster.channels.intro"), glyph: Theme.iconGlobe },
                     { destination: "apps", name: qsTrId("genycaster.apps.title"), description: qsTrId("genycaster.home.apps_description"), glyph: Theme.iconApps },
-                    { destination: "wallet", name: qsTrId("genycaster.home.hub_wallet"), description: qsTrId("genycaster.home.hub_coming_soon"), glyph: Theme.iconWallet }
+                    { destination: "pro", name: qsTrId("genycaster.pro.title"), description: root.verifiedGenyPro
+                          ? qsTrId("genycaster.pro.short")
+                          : root.proMembership.status === "verified"
+                            ? qsTrId("genycaster.pro.get_pro")
+                            : qsTrId("genycaster.pro.check_status"), glyph: Theme.iconSpark }
                 ]
                 delegate: Superellipse {
                     id: shortcut
@@ -201,7 +207,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 0
                     Layout.preferredHeight: root.compact ? (root.androidCompact ? 104 : 116) : 120
-                    readonly property bool locked: modelData.destination === "wallet"
+                    readonly property bool locked: false
                     fillColor: locked ? Theme.surfaceMuted
                                : actionMouse.pressed ? Theme.surfacePressed
                                : actionMouse.containsMouse ? Theme.surfaceHover : Theme.surface
@@ -368,9 +374,9 @@ Item {
                     compact: true
                     quiet: true
                     Layout.fillWidth: true
-                    iconGlyph: Theme.iconSearch
-                    text: qsTrId("genycaster.side_nav.explorer")
-                    onClicked: root.exploreRequested()
+                    iconGlyph: Theme.iconGlobe
+                    text: qsTrId("genycaster.side_nav.channels")
+                    onClicked: root.channelsRequested()
                 }
                 ActionButton {
                     compact: true
@@ -439,7 +445,7 @@ Item {
                         curveDepth: 33
                         Avatar {
                             anchors.centerIn: parent
-                            avatarSize: 62
+                            avatarSize: 52
                             sourceUrl: root.avatarUrl
                             displayName: root.displayName || root.username
                             visible: root.authenticated && root.avatarUrl.length > 0
@@ -458,7 +464,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         text: root.greetingText
                         color: Theme.textPrimary
-                        font.pixelSize: Theme.typeDisplaySize
+                        font.pixelSize: Theme.typeTitle1Size
                         font.weight: Theme.weightBold
                         wrapMode: Text.Wrap
                     }

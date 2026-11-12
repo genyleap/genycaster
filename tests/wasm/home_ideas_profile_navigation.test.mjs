@@ -5,11 +5,13 @@ import {readFileSync} from 'node:fs';
 
 const qml = name => readFileSync(new URL('../../ui/components/' + componentPath(name) + '.qml', import.meta.url), 'utf8');
 
-test('Home keeps active shortcuts, locked Wallet and GENY announcement', () => {
+test('Home offers active Channels and Pro shortcuts without inert Wallet tiles', () => {
  const home=qml('HomeDashboard');
  assert.match(home,/component HubWorkspace: ColumnLayout/);
  assert.match(home,/component HomeActivityCard: Superellipse/);
- assert.match(home,/destination: "wallet"/);
+ assert.match(home,/destination: "channels"/);
+ assert.match(home,/destination: "pro"/);
+ assert.doesNotMatch(home,/destination: "wallet"/);
  assert.match(home,/enabled: !shortcut.locked/);
  assert.doesNotMatch(home,/key: "agent"|key: "studio"|CastIdeaSection/);
  assert.equal((home.match(/HubWorkspace \{/g)||[]).length,2);

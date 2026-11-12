@@ -844,8 +844,15 @@ int main(int argc, char* argv[])
     ChannelPickerController& channelBrowser = *channelBrowserControllerOwner;
     // Managed-signer UUIDs are injected only through the native bootstrap;
     // neither credentials nor signer ownership are writable from QML.
+    // Public channel-follows reads may use the explicitly configured Neynar
+    // catalogue credential when the active HyperSnap provider has no Neynar
+    // read key. Never fall back to the public documentation token, and never
+    // treat this read credential as a channel write authorization.
+    const QString channelReadApiKey = farcasterReadApiKeyText.isEmpty()
+        ? QString::fromUtf8(configuredMiniAppDiscoveryApiKey)
+        : farcasterReadApiKeyText;
     channelAdministrationControllerOwner = std::make_unique<ChannelAdministrationController>(
-        farcasterReadApiKeyText, qEnvironmentVariable("GENYCASTER_NEYNAR_SIGNER_UUID"),
+        channelReadApiKey, qEnvironmentVariable("GENYCASTER_NEYNAR_SIGNER_UUID"),
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest,
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct);
     ChannelAdministrationController& channelAdmin = *channelAdministrationControllerOwner;

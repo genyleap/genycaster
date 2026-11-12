@@ -165,7 +165,9 @@ test("verified Geny Pro admission recovers saved sessions before rejecting anoth
     assert.match(startup,/status\.value\(QStringLiteral\("status"\)\)\.toString\(\) != QStringLiteral\("verified"\)/);
     assert.match(startup,/miniAppRuntimeOwner->setSessionLimit\(/);
     assert.match(startup,/miniAppHost\.setSessionLimit\(/);
-    assert.match(card,/root\.compact && root\.proEligible/);
+    assert.match(card,/objectName: "sidebarProMembershipCard"/);
+    assert.match(card,/root\.proEligible/);
+    assert.match(card,/fillColor: Theme\.proSurface/);
     assert.match(sidebar,/proEligible: openProofConnections/);
     assert.match(openproof,/m_proEntitlementsFetchedAt = verified/);
 });

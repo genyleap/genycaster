@@ -27,6 +27,18 @@ Item {
     property string pendingRestoreKey: ""
     property real pendingRestoreOffset: 0
     property bool pendingRestoreCapture: false
+    // A local snapshot of verified actor identities; never invent names for
+    // counts that the provider reports without their corresponding profiles.
+    property var expandedActors: []
+    property int expandedActorCount: 0
+    property string expandedActorKind: ""
+    function inspectActors(row) {
+        if (!row || (row.kind !== "reaction" && row.kind !== "recast")) return
+        expandedActors = root.asList(row.actors)
+        expandedActorCount = Math.max(expandedActors.length, Number(row.aggregateCount || 0))
+        expandedActorKind = String(row.kind || "")
+        reactionActorsPopup.open()
+    }
 
     signal refreshRequested()
     signal loadMoreRequested()
@@ -975,6 +987,8 @@ Item {
                                 readonly property int groupCount: Math.max(
                                     notificationRow.visibleActors.length,
                                     Number(notificationRow.modelData.aggregateCount || 1))
+                                readonly property int additionalCount: Math.max(0, groupCount - actorStack.count)
+                                visible: additionalCount > 0
                                 x: actorStack.count * (actorStack.avatarDiameter + actorStack.avatarSpacing)
                                 y: 3
                                 width: Math.max(34, actorCountText.implicitWidth + Theme.space2)
@@ -985,11 +999,15 @@ Item {
                                 DirectionAwareLabel {
                                     id: actorCountText
                                     anchors.centerIn: parent
-                                    text: LocaleFormat.formatInteger(actorCountBadge.groupCount)
+                                    text: "+" + LocaleFormat.formatInteger(actorCountBadge.additionalCount)
                                     color: Theme.accent
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightBold
                                 }
+                                Accessible.role: Accessible.Button
+                                Accessible.name: "+" + LocaleFormat.formatInteger(additionalCount)
+                                                 + " " + qsTrId("genycaster.notifications.someone")
+                                HoverHandler { cursorShape: Qt.PointingHandCursor }
                             }
                         }
 
@@ -1352,6 +1370,13 @@ Item {
                             return
                         }
                         if (actorStack.visible) {
+                            const badgePoint = actorCountBadge.mapFromItem(notificationRow, pos.x, pos.y)
+                            if (actorCountBadge.visible && badgePoint.x >= 0
+                                    && badgePoint.y >= 0 && badgePoint.x < actorCountBadge.width
+                                    && badgePoint.y < actorCountBadge.height) {
+                                root.inspectActors(notificationRow.modelData)
+                                return
+                            }
                             const local = actorStack.mapFromItem(notificationRow, pos.x, pos.y)
                             if (local.y >= 0 && local.y < actorStack.avatarDiameter
                                     && local.x >= 0) {
@@ -1388,6 +1413,125 @@ Item {
                 onRefreshRequested: root.refreshRequested()
             }
         } // notificationBody
+    }
+
+
+    Popup {
+        id: reactionActorsPopup
+        objectName: "notificationReactionActorsPopup"
+        parent: Overlay.overlay
+        popupType: Popup.Item
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        width: parent ? Math.min(Theme.scaleUi(430), parent.width - Theme.space4 * 2) : Theme.scaleUi(390)
+        height: parent ? Math.min(Theme.scaleUi(540), parent.height - Theme.space5 * 2) : Theme.scaleUi(450)
+        x: parent ? Math.max(Theme.space2, (parent.width - width) / 2) : 0
+        y: parent ? Math.max(Theme.space2, (parent.height - height) / 2) : 0
+        padding: Theme.space3
+        background: PopupSurface { curveDepth: Theme.curveModal }
+        contentItem: ColumnLayout {
+            spacing: Theme.space3
+            RowLayout {
+                Layout.fillWidth: true
+                layoutDirection: Theme.uiDirection
+                Icon {
+                    text: root.expandedActorKind === "reaction" ? Theme.iconHeart : Theme.iconRepost
+                    color: Theme.accent
+                    preferredSize: Theme.iconSize
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    text: LocaleFormat.formatInteger(root.expandedActorCount)
+                          + " · " + qsTrId("genycaster.notifications.activity")
+                    font.pixelSize: Theme.typeTitle3Size
+                    font.weight: Theme.weightDemiBold
+                    color: Theme.textPrimary
+                }
+                ActionButton {
+                    compact: true
+                    quiet: true
+                    iconOnly: true
+                    iconGlyph: Theme.iconClose
+                    text: qsTrId("genycaster.settings.done")
+                    onClicked: reactionActorsPopup.close()
+                }
+            }
+            ListView {
+                id: reactionActorsList
+                objectName: "notificationReactionActorsList"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: Theme.space2
+                model: root.expandedActors
+                reuseItems: true
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: GenyScrollBar {}
+                delegate: Item {
+                    id: actorEntry
+                    required property var modelData
+                    width: reactionActorsList.width
+                    height: Theme.scaleUi(55)
+                    RowLayout {
+                        anchors.fill: parent
+                        layoutDirection: Theme.uiDirection
+                        spacing: Theme.space3
+                        Avatar {
+                            avatarSize: 40
+                            sourceUrl: String(actorEntry.modelData.avatarUrl || "")
+                            displayName: String(actorEntry.modelData.displayName || actorEntry.modelData.username || "")
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            spacing: 0
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: String(actorEntry.modelData.displayName
+                                             || actorEntry.modelData.username || actorEntry.modelData.fid || "")
+                                color: Theme.textPrimary
+                                font.pixelSize: Theme.typeLabelSize
+                                elide: Text.ElideRight
+                            }
+                            DirectionAwareLabel {
+                                Layout.fillWidth: true
+                                text: "@" + String(actorEntry.modelData.username || actorEntry.modelData.fid || "")
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.typeCaptionSize
+                                elide: Text.ElideRight
+                            }
+                        }
+                        Icon {
+                            text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                            color: Theme.textTertiary
+                            preferredSize: Theme.iconSizeSmall
+                        }
+                    }
+                    TapHandler {
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
+                        onTapped: {
+                            const fid = Number(actorEntry.modelData.fid || 0)
+                            if (fid > 0) {
+                                reactionActorsPopup.close()
+                                root.profileRequested(fid)
+                            }
+                        }
+                    }
+                    HoverHandler { cursorShape: Qt.PointingHandCursor }
+                }
+            }
+            DirectionAwareLabel {
+                Layout.fillWidth: true
+                visible: root.expandedActorCount > root.expandedActors.length
+                text: qsTrId("genycaster.notifications.content_unavailable")
+                      + " · " + LocaleFormat.formatInteger(
+                          root.expandedActorCount - root.expandedActors.length)
+                font.pixelSize: Theme.typeCaptionSize
+                color: Theme.textSecondary
+                wrapMode: Text.Wrap
+            }
+        }
     }
 
     ScrollToTopButton {

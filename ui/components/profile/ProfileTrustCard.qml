@@ -17,6 +17,8 @@ Superellipse {
     // The compact PRO label denotes a verified membership, not merely
     // a shortcut into the Pro explainer.
     property bool proEligible: false
+    property string proStatus: "unavailable"
+    property bool proChecking: false
     property int following: -1
     property int followers: -1
     property var streakSnapshot: ({})
@@ -221,6 +223,21 @@ Superellipse {
                     }
 
                     DirectionAwareLabel {
+                        id: sidebarFidValue
+                        objectName: "sidebarFidMetric"
+                        visible: Number(root.fid) > 0
+                        Layout.fillWidth: true
+                        text: "FID " + LocaleFormat.formatInteger(root.fid)
+                        color: Theme.textTertiary
+                        font.pixelSize: Theme.typeCaptionSize
+                        elide: Text.ElideRight
+                        Accessible.role: Accessible.Button
+                        Accessible.name: text
+                        Accessible.onPressAction: root.requestProfile()
+                        TapHandler { onTapped: root.requestProfile() }
+                    }
+
+                    DirectionAwareLabel {
                         visible: root.location.length > 0 && !root.compact
                         Layout.fillWidth: true
                         text: root.location
@@ -305,49 +322,83 @@ Superellipse {
                         iconGlyph: Theme.iconStreakFlame
                         valueColor: root.streakActive ? Theme.streak : Theme.inkMuted
                     }
-                    Rectangle {
-                        Layout.preferredWidth: Theme.strokeHairline
-                        Layout.preferredHeight: 28
-                        color: Theme.divider
-                    }
-                    Metric {
-                        objectName: "sidebarFidMetric"
-                        Layout.fillWidth: true
-                        valueText: Number(root.fid) > 0
-                            ? LocaleFormat.formatInteger(root.fid) : "—"
-                        labelText: "FID"
-                        interactive: true
-                        onActivated: root.requestProfile()
-                    }
                 }
             }
 
-            RowLayout {
+            // Account controls are full-width in the narrow sidebar. The
+            // old 50/50 row ellipsized both "GenyCaster Pro" and "Profile".
+            // Membership is never inferred from FID or signing readiness.
+            Superellipse {
+                id: proMembershipCard
+                objectName: "sidebarProMembershipCard"
                 Layout.fillWidth: true
-                layoutDirection: Theme.uiDirection
-                spacing: Theme.space2
-
-                ActionButton {
-                    Layout.fillWidth: true
-                    compact: true
-                    quiet: true
-                    iconGlyph: Theme.iconSpark
-                    balancedIcon: true
-                    text: root.compact && root.proEligible
-                          ? qsTrId("genycaster.pro.short")
-                          : qsTrId("genycaster.pro.title")
-                    onClicked: root.proRequested()
+                Layout.preferredHeight: root.compact ? 54 : 60
+                fillColor: Theme.proSurface
+                borderWidth: Theme.strokeHairline
+                borderColor: Theme.proBorder
+                curveDepth: Theme.curveControl
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTrId("genycaster.pro.title")
+                Accessible.description: root.proEligible
+                    ? qsTrId("genycaster.pro.short")
+                    : root.proStatus !== "verified"
+                        ? qsTrId("genycaster.pro.verification_unavailable")
+                        : qsTrId("genycaster.pro.get_pro")
+                Accessible.onPressAction: root.proRequested()
+                Keys.onReturnPressed: root.proRequested()
+                Keys.onSpacePressed: root.proRequested()
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.space3
+                    anchors.rightMargin: Theme.space3
+                    layoutDirection: Theme.uiDirection
+                    spacing: Theme.space2
+                    Icon {
+                        text: Theme.iconSpark
+                        color: Theme.proAccent
+                        preferredSize: Theme.iconSize
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        spacing: 0
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.pro.title")
+                            color: Theme.textPrimary
+                            font.pixelSize: Theme.typeLabelSize
+                            font.weight: Theme.weightDemiBold
+                            elide: Text.ElideRight
+                        }
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: root.proEligible ? qsTrId("genycaster.pro.short")
+                                : root.proChecking ? qsTrId("genycaster.pro.check_status")
+                                : root.proStatus === "verified" ? qsTrId("genycaster.pro.get_pro")
+                                : qsTrId("genycaster.pro.verification_unavailable")
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.typeCaptionSize
+                            maximumLineCount: 1
+                            elide: Text.ElideRight
+                        }
+                    }
+                    Icon {
+                        text: Theme.rtl ? Theme.iconArrowLeft : Theme.iconArrowRight
+                        color: Theme.proAccent
+                        preferredSize: Theme.iconSizeSmall
+                    }
                 }
-                ActionButton {
-                    Layout.fillWidth: true
-                    Layout.minimumWidth: root.compact ? 84 : 0
-                    compact: true
-                    iconGlyph: Theme.iconProfile
-                    balancedIcon: true
-                    text: qsTrId("genycaster.side_nav.profile")
-                    onClicked: root.requestProfile()
-                }
-
+                HoverHandler { cursorShape: Qt.PointingHandCursor }
+                TapHandler { onTapped: root.proRequested() }
+            }
+            ActionButton {
+                Layout.fillWidth: true
+                compact: true
+                quiet: true
+                iconGlyph: Theme.iconProfile
+                text: qsTrId("genycaster.side_nav.profile")
+                onClicked: root.requestProfile()
             }
         }
     }

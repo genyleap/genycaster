@@ -79,6 +79,7 @@ private:
     void get(QString path, QVariantMap query, quint64 generation, JsonCallback callback);
     void submit(QString action, QString path, QJsonObject body);
     void verifyManagedSigner(quint64 generation);
+    void loadFollowingPage(QString cursor, int page, quint64 generation);
     void request(QString method, QString path, QVariantMap query, QJsonObject body,
                  quint64 generation, JsonCallback callback, bool managedWrite = false);
     void setMessage(QString value);
@@ -109,6 +110,7 @@ private:
     qulonglong m_viewerFid{0};
     quint64 m_generation{0};
     quint64 m_channelGeneration{0};
+    quint64 m_followingGeneration{0};
     int m_activeReads{0};
     bool m_networkEnabled{false};
     bool m_busy{false};

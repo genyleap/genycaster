@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read = name => readFileSync(new URL('../../'+name,import.meta.url),'utf8');
 
-test('sidebar account card presents four factual metrics including tappable full FID',()=>{
+test('sidebar account card presents three readable metrics and tappable full FID',()=>{
  const qml=read('ui/components/profile/ProfileTrustCard.qml');
  const face=qml.slice(qml.indexOf('id: frontFace'),qml.indexOf('id: backFace'));
  assert.match(face,/objectName: "sidebarFidMetric"/);
- assert.match(face,/valueText: Number\(root\.fid\) > 0\s*\? LocaleFormat\.formatInteger\(root\.fid\)/);
- assert.match(face,/labelText: "FID"/);
- assert.match(face,/interactive: true\s*onActivated: root\.requestProfile\(\)/);
+ assert.match(face,/text: "FID " \+ LocaleFormat\.formatInteger\(root\.fid\)/);
+ assert.match(face,/Accessible\.role: Accessible\.Button/);
+ assert.match(face,/TapHandler \{ onTapped: root\.requestProfile\(\) \}/);
  assert.match(face,/visible: !root\.compact && root\.bio\.length > 0/);
- assert.match(face,/text: root\.compact && root\.proEligible\s*\? qsTrId\("genycaster\.pro\.short"\)/);
- assert.match(face,/Layout\.minimumWidth: root\.compact \? 84 : 0/);
+ assert.match(face,/objectName: "sidebarProMembershipCard"/);
+ assert.match(face,/Layout\.preferredHeight: root\.compact \? 54 : 60/);
  assert.match(face,/wrapMode: Text\.WrapAnywhere/);
  assert.match(face,/maximumLineCount: 2\s*elide: Text\.ElideNone/);
  assert.match(qml,/text: parent\.labelText[\s\S]*?wrapMode: Text\.Wrap[\s\S]*?elide: Text\.ElideNone/);

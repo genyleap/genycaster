@@ -19,7 +19,9 @@ Item {
     signal channelRequested(var channelInfo)
     signal signInRequested()
 
-    readonly property bool busy: channelSource ? channelSource.busy : false
+    readonly property bool busy: root.scope === "following"
+        ? (adminSource ? adminSource.busy : false)
+        : (channelSource ? channelSource.busy : false)
     readonly property string sourceError: channelSource ? channelSource.errorText : ""
     readonly property var shownChannels: {
         const values = scope === "following"
@@ -33,8 +35,12 @@ Item {
             if (root.scope === "following" && filter.length > 0
                 && !String(channel.name || "").toLocaleLowerCase().includes(filter)
                 && !String(channel.id || "").toLocaleLowerCase().includes(filter)) continue
-            if ((root.scope === "joined" || root.scope === "moderate")
-                && !Boolean(channel.isMember)) continue
+            if (root.scope === "joined" && !Boolean(channel.isMember)) continue
+            // A signed-in member is NOT necessarily a moderator. Missing
+            // role metadata is unknown, never permission to moderate.
+            if (root.scope === "moderate"
+                && !(Boolean(channel.roleKnown) && Boolean(channel.isModerator)))
+                continue
             result.push(channel)
         }
         return result
@@ -121,8 +127,15 @@ Item {
                 text: qsTrId("genycaster.feed_header.refresh")
                 busy: root.busy
                 spinIconWhileBusy: true
-                enabled: !root.busy && root.channelSource !== null
-                onClicked: root.channelSource.refreshDiscovery()
+                enabled: !root.busy
+                         && (root.scope === "following" ? root.adminSource !== null
+                                                         : root.channelSource !== null)
+                onClicked: {
+                    if (root.scope === "following" && root.adminSource)
+                        root.adminSource.loadFollowing()
+                    else if (root.channelSource)
+                        root.channelSource.refreshDiscovery()
+                }
             }
         }
 
@@ -245,7 +258,7 @@ Item {
                 objectName: "channelsList"
                 anchors.fill: parent
                 model: root.scope === "following"
-                    ? (root.adminSource ? root.adminSource.following : [])
+                    ? root.shownChannels
                     : root.channelSource ? root.channelSource.channelModel : null
                 reuseItems: true
                 cacheBuffer: Math.max(320, height)
@@ -258,8 +271,10 @@ Item {
                     width: channelList.width
                     channelData: modelData
                     compact: root.compact
-                    allowed: ((root.scope !== "joined" && root.scope !== "moderate")
-                             || Boolean(modelData.isMember))
+                    allowed: (root.scope !== "joined" || Boolean(modelData.isMember))
+                             && (root.scope !== "moderate"
+                                 || (Boolean(modelData.roleKnown)
+                                     && Boolean(modelData.isModerator)))
                              && (root.scope !== "following"
                                  || channelSearch.text.length === 0
                                  || String(modelData.name || "").toLocaleLowerCase()
@@ -285,9 +300,11 @@ Item {
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: root.scope === "following"
-                          ? (root.adminSource && root.adminSource.followsAvailable
-                             ? qsTrId("genycaster.channels.following_empty")
-                             : qsTrId("genycaster.channels.following_unavailable"))
+                          ? (root.adminSource && root.adminSource.message.length > 0
+                             ? root.adminSource.message
+                             : root.adminSource && root.adminSource.followsAvailable
+                               ? qsTrId("genycaster.channels.following_empty")
+                               : qsTrId("genycaster.channels.following_unavailable"))
                           : root.scope === "moderate"
                             ? qsTrId("genycaster.channels.moderate_hint")
                           : root.scope === "joined"
@@ -329,7 +346,8 @@ Item {
         objectName: "channelManagementPopup"
         parent: root
         width: Math.min(720, Math.max(320, root.width - Theme.space4 * 2))
-        height: Math.min(760, Math.max(360, root.height - Theme.space4 * 2))
+        height: Math.min(root.compact ? 760 : 580,
+                         Math.max(320, root.height - Theme.space4 * 2))
         padding: Theme.space4
         ChannelManagementPanel {
             id: channelManager
