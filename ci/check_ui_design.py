@@ -616,14 +616,15 @@ if 'GenyDrawer {' not in locale_popup or 'bottomSheet:' not in locale_popup:
 # Mini App multi-window lifecycle and media hot-path regression contracts.
 miniapp_runtime = (ui/'app'/'miniapp'/'runtime.cpp').read_text(encoding='utf-8')
 miniapp_browser = (ui/'app'/'miniapp'/'browser.hpp').read_text(encoding='utf-8')
-miniapp_macos = (ui/'app'/'miniapp'/'browser_macos.mm').read_text(encoding='utf-8')
+miniapp_macos = (ui/'app'/'miniapp'/'browser_macos.m').read_text(encoding='utf-8')
+miniapp_macos_bridge = (ui/'app'/'miniapp'/'browser_macos.cpp').read_text(encoding='utf-8')
 if ('supportsParallelWindowVisibility' not in miniapp_runtime
         or 'activate(*target, false)' not in miniapp_runtime
         or 'QStringLiteral("background")' not in miniapp_runtime):
     errors.append('Mini App Window presentation must preserve parallel visible sessions while tracking one active task')
 if ('std::function<void()> activated' not in miniapp_browser
         or 'windowDidBecomeKey' not in miniapp_macos
-        or 'm_callbacks.activated' not in miniapp_macos):
+        or 'GENY_MAC_ACTIVATED' not in miniapp_macos):
     errors.append('Native Mini App windows must report activation so foreground authority follows the focused window')
 video_preview = (ui/'components'/'media'/'VideoPreview.qml').read_text(encoding='utf-8')
 media_preview = (ui/'components'/'media'/'MediaPreview.qml').read_text(encoding='utf-8')
@@ -777,8 +778,9 @@ if ('genycasterHostWindow()' not in miniapp_macos
 if ('m_web = nil;' in show_status_block
         or 'removeScriptMessageHandlerForName' in show_status_block):
     errors.append('WKWebView teardown must not happen reentrantly inside WebKit failure callbacks; cleanup belongs to dispose')
-if ('[[nodiscard]] bool valid() const noexcept' not in miniapp_macos
-        or 'if (!browser->valid())' not in miniapp_macos):
+if ('[[nodiscard]] bool valid() const noexcept' not in miniapp_macos_bridge
+        or 'if (!browser->valid())' not in miniapp_macos_bridge
+        or 'geny_mac_browser_valid' not in miniapp_macos_bridge):
     errors.append('macOS Mini App browser construction must fail closed before dereferencing an unavailable native window/WebView')
 
 # Dynamic strokes update far more often than card silhouettes. Keep them on

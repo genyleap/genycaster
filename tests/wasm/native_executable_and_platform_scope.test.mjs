@@ -101,7 +101,8 @@ test("legacy macOS bundle directory is normalized without losing executable data
 });
 
 test("our Apple Mini App code avoids deprecated NSBox border types and keeps warnings enabled", () => {
-    const objc = source("ui/app/miniapp/browser_macos.mm");
+    const objc = source("ui/app/miniapp/browser_macos.m");
+    const nativeCpp = source("ui/app/miniapp/browser_macos.cpp");
     assert.match(objc, /GenyMiniAppLoadingSurface : NSView/);
     assert.match(objc, /viewDidChangeEffectiveAppearance/);
     assert.doesNotMatch(objc, /borderType\s*=/);
@@ -118,18 +119,21 @@ test("our Apple Mini App code avoids deprecated NSBox border types and keeps war
     const sdkBridge = source("cmake/platform/macOS/configure.cmake");
     assert.match(source("ui/CMakeLists.txt"),
         /include\("\$\{CMAKE_SOURCE_DIR\}\/cmake\/platform\/macOS\/configure\.cmake"\)/);
-    assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
-    assert.match(sdkBridge, /OBJCXX_STANDARD_REQUIRED ON/);
-    assert.match(sdkBridge, /OBJCXX_EXTENSIONS OFF/);
-    assert.match(sdkBridge, /xcrun --sdk macosx --find clang\+\+/);
-    assert.match(sdkBridge, /check_objcxx_source_compiles/);
-    assert.match(sdkBridge, /GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE/);
-    assert.match(sdkBridge, /CMAKE_OBJCXX_COMPILER_LOADED/);
-    assert.match(sdkBridge, /set\(CMAKE_OBJCXX_COMPILER.*?CACHE FILEPATH/s);
+    assert.match(sdkBridge, /CXX_STANDARD 26/);
+    assert.match(sdkBridge, /CXX_STANDARD_REQUIRED ON/);
+    assert.match(sdkBridge, /CXX_EXTENSIONS OFF/);
+    assert.match(sdkBridge, /xcrun --sdk macosx --find clang/);
+    assert.match(sdkBridge, /enable_language\(OBJC\)/);
+    assert.match(sdkBridge, /OBJC_STANDARD 11/);
+    assert.match(nativeCpp, /std::unique_ptr<Browser> createBrowser/);
+    assert.match(sdkBridge, /CMAKE_OBJC_COMPILER_LOADED/);
+    assert.match(sdkBridge, /set\(CMAKE_OBJC_COMPILER.*?CACHE FILEPATH/s);
     assert.match(sdkBridge, /FORCE\)/);
-    assert.match(sdkBridge, /get_filename_component\(_genycasterExpectedObjcxx/);
-    assert.match(sdkBridge, /Clear CMake Configuration/);
+    assert.match(sdkBridge, /get_filename_component\(_genycasterExpectedObjc/);
+    assert.match(sdkBridge, /Clear the CMake cache/);
     assert.match(sdkBridge, /-fobjc-arc/);
+    assert.doesNotMatch(sdkBridge, /-ivfsoverlay|prepare_macos_sdk_cpp26/);
+    assert.doesNotMatch(objc, /#include <Q|namespace farcaster|std::|QJsonDocument/);
     assert.match(source("ui/CMakeLists.txt"),
         /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);
     assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|#pragma clang diagnostic ignored/);

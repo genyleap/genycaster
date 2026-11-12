@@ -151,7 +151,7 @@ test('wallet approval follows the active Persian and Arabic direction without ch
 });
 
 test('native Mini App toolbar titles take the remaining span instead of collapsing to ellipses',()=>{
-  const native=readFileSync(new URL('../../ui/app/miniapp/browser_macos.mm',import.meta.url),'utf8');
+  const native=readFileSync(new URL('../../ui/app/miniapp/browser_macos.m',import.meta.url),'utf8');
   assert.match(native,/\[identity\.leadingAnchor constraintEqualToAnchor:m_back\.trailingAnchor constant:8\]/);
   assert.match(native,/\[identity\.trailingAnchor constraintEqualToAnchor:reload\.leadingAnchor constant:-8\]/);
   assert.doesNotMatch(native,/identity\.centerXAnchor constraintEqualToAnchor:toolbar\.centerXAnchor/);

@@ -372,7 +372,7 @@ Performance testing should eventually cover:
 
 ## Apple SDK build warnings and native Mini App integration
 
-The macOS adapter at `ui/app/miniapp/browser_macos.mm` uses Apple's modern
+The macOS adapter at `ui/app/miniapp/browser_macos.m` uses Apple's modern
 `WKWebView`, **not** the deprecated `WebView`/WebKitLegacy class. Earlier
 umbrella imports (`AppKit.h` and `WebKit.h`) pulled unrelated legacy SDK
 symbols, including OpenGL/ColorSync declarations, into the translation unit.
@@ -390,20 +390,17 @@ running in C++26 mode, diagnosed mixed-enum operations in Apple
 (P2864R2) removed these implicit mixed-enum operations, so this is not
 a missing cast in GenyCaster's Mini App logic.
 
-The macOS-specific SDK adapter now keeps `OBJCXX_STANDARD 26` (with the
-requirement enabled) and selects **Apple Clang from the active Xcode SDK**
-for this Objective-C++ compilation boundary, including when Qt Creator
-prepopulated an LLVM compiler before the language was enabled. A previously
-enabled, incompatible compiler in an existing CMake cache is rejected with
-an explicit cache-reset instruction rather than silently reused.
-The shared project C++26 compiler, named modules and Mini App runtime
-remain unchanged. CMake verifies a small
-Objective-C++26 AppKit/WebKit header compilation at configuration time
-and fails with an explicit toolchain/SDK message if unsupported rather
-than starting a long, doomed build. This is an SDK/compiler compatibility
-boundary, not a downgrade to C++23. Because two compiler vendors may
-share this C++ ABI boundary, the resulting `Genycaster.app` still requires
-full macOS link and runtime verification. Linux cannot validate it.
+The macOS adapter now separates the C++26 Qt host from the pure
+Objective-C AppKit/WebKit implementation using a narrow opaque C ABI.
+The C++26 file browser_macos.cpp owns Qt URLs, JSON validation, localization,
+origin policy, and Mini App callbacks. browser_macos.m owns WKWebView and
+the native view lifecycle. browser_macos_native.h defines the GUI-thread-only
+handle and borrowed-string callback contract.
+
+AppleClang compiles the native implementation in Objective-C mode, avoiding
+C++26 mixed-enum restrictions on legacy SDK headers. Core and bridge C++
+remain C++26. No Python-generated SDK copies or Clang VFS overlays are needed.
+macOS builds and runtime tests must still verify both supported architectures.
 
 **No `#pragma clang diagnostic ignored`, `-Wno-deprecated-declarations`,
 or other diagnostic-suppression workaround is used.** A warning in Apple's

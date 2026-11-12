@@ -34,7 +34,7 @@ test('Mini App web presents in configured mode with independent fullscreen and n
  const web=source('ui/wasm/miniapp-host-pre.js');
  const host=source('ui/app/miniapp/host.cpp');
  const android=source('ui/components/apps/AndroidWebView.qml');
- const macos=source('ui/app/miniapp/browser_macos.mm');
+ const macos=source('ui/app/miniapp/browser_macos.m');
  for(const mode of ['window','bottom','left','right'])assert.ok(web.includes('"'+mode+'"'));
  assert.match(web,/function applyPresentation\(\)/);
  assert.match(web,/function setMode\(mode\)/);

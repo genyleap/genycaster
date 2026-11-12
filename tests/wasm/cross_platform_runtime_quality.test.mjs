@@ -72,7 +72,8 @@ test("market rows rearrange the sparkline and truncate names at constrained rail
 });
 
 test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrella APIs", () => {
-    const native = read("ui/app/miniapp/browser_macos.mm");
+    const native = read("ui/app/miniapp/browser_macos.m");
+    const cppBridge = read("ui/app/miniapp/browser_macos.cpp");
     assert.doesNotMatch(native, /#pragma clang diagnostic ignored/);
     assert.doesNotMatch(native, /<AppKit\/AppKit\.h>|<WebKit\/WebKit\.h>|<QuartzCore\/QuartzCore\.h>/);
     assert.match(native, /#import <AppKit\/NSView\.h>/);
@@ -82,8 +83,13 @@ test("Apple SDK fixes remove blanket diagnostics suppression and imported umbrel
     assert.match(native, /#import <WebKit\/WKNavigationResponse\.h>/);
     assert.match(native, /GenyMiniAppLoadingSurface : NSView/);
     const sdkBridge = read("cmake/platform/macOS/configure.cmake");
-    assert.match(sdkBridge, /OBJCXX_STANDARD 26/);
-    assert.match(sdkBridge, /check_objcxx_source_compiles/);
+    assert.match(sdkBridge, /CXX_STANDARD 26/);
+    assert.match(sdkBridge, /OBJC_STANDARD 11/);
+    assert.match(sdkBridge, /enable_language\(OBJC\)/);
+    assert.doesNotMatch(sdkBridge, /-ivfsoverlay|prepare_macos_sdk_cpp26|check_objcxx_source_compiles/);
+    assert.match(cppBridge, /geny_mac_browser_create/);
+    assert.match(native, /geny_mac_browser_destroy/);
+    assert.doesNotMatch(native, /#include <Q|namespace farcaster|std::/);
     assert.doesNotMatch(sdkBridge, /OBJCXX_STANDARD 23|-Wno-|diagnostic ignored/);
     assert.match(read("ui/CMakeLists.txt"), /target_compile_features\(farcaster_miniapp_runtime PUBLIC cxx_std_26\)/);
     const qml = read("ui/components/setup/InitialSetup.qml");

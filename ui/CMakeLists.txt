@@ -1502,7 +1502,7 @@ set(farcasterTranslationSources
     app/miniapp/catalog.cpp
     app/miniapp/tasks.cpp
     app/miniapp/runtime.cpp
-    app/miniapp/browser_macos.mm
+    app/miniapp/browser_macos.cpp
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/presentation_bridge.cpp"
     "${CMAKE_SOURCE_DIR}/src/presentation/qt/localization_controller.cpp"
     i18n/catalog.cpp

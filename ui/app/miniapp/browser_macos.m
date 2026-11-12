@@ -1,19 +1,6 @@
-#include "browser.hpp"
-
-#include <QHostAddress>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QRegularExpression>
-#include <QStringList>
-#include <QUrlQuery>
-#include <QtTranslation>
-#include <initializer_list>
-#include <utility>
-
-// Import only the API owners used by this adapter. AppKit's umbrella
-// header transitively pulls legacy OpenGL/ColorSync declarations into a
-// modern WKWebView build and can trigger unrelated SDK availability warnings.
-// Warnings remain enabled: no diagnostic flags are suppressed.
+// Native WKWebView / AppKit implementation. Compile as Objective-C, not Objective-C++.
+// The C ABI is the only connection to the C++26 runtime.
+#import "browser_macos_native.h"
 #import <Foundation/Foundation.h>
 #import <AppKit/NSAnimationContext.h>
 #import <AppKit/NSApplication.h>
@@ -47,79 +34,36 @@
 #import <WebKit/WKWebsiteDataStore.h>
 #import <QuartzCore/CAMediaTimingFunction.h>
 
-namespace {
-NSString* nativeText(const QString& value) { return value.toNSString(); }
-QString translated(const char* id) { return qtTrId(id); }
-
-bool allowedWebUrl(NSURL* url) {
-    if (!url) { return false; }
-    const QUrl parsed = QUrl::fromNSURL(url);
-    const QString host = parsed.host().toLower();
-    QHostAddress address;
-    return parsed.scheme() == QStringLiteral("https") && parsed.userInfo().isEmpty()
-        && parsed.port(443) == 443 && host.contains(QLatin1Char('.'))
-        && !host.endsWith(QLatin1Char('.')) && !host.endsWith(QStringLiteral(".local"))
-        && !host.endsWith(QStringLiteral(".localhost")) && !host.endsWith(QStringLiteral(".internal"))
-        && !host.endsWith(QStringLiteral(".test")) && !address.setAddress(host);
-}
-
-NSURL* youtubeWatchUrlForEmbed(NSURL* url) {
-    if (!url) { return nil; }
-    const QUrl parsed = QUrl::fromNSURL(url);
-    const QString host = parsed.host().toLower();
-    if (host != QStringLiteral("youtube.com") && host != QStringLiteral("www.youtube.com")
-        && host != QStringLiteral("youtube-nocookie.com")
-        && host != QStringLiteral("www.youtube-nocookie.com")) {
-        return nil;
-    }
-    const QStringList segments = parsed.path().split(QLatin1Char('/'), Qt::SkipEmptyParts);
-    if (segments.size() != 2 || segments.front() != QStringLiteral("embed")) {
-        return nil;
-    }
-    const QString videoId = segments.back().trimmed();
-    static const QRegularExpression safeVideoId{QStringLiteral(R"(^[A-Za-z0-9_-]{6,32}$)")};
-    if (!safeVideoId.match(videoId).hasMatch()) {
-        return nil;
-    }
-    QUrl watch{QStringLiteral("https://www.youtube.com/watch")};
-    QUrlQuery query{};
-    query.addQueryItem(QStringLiteral("v"), videoId);
-    watch.setQuery(query);
-    return watch.toNSURL();
-}
-
-NSString* bridgeScript() {
-    // Farcaster SDK selects the ReactNativeWebView endpoint at import time.
-    // Install at document start, main frame only. This is a wire adapter, not
-    // a fake sdk implementation. Reply tokens prevent stale-document delivery.
-    return [NSString stringWithUTF8String:R"JS((() => {
-        const token = crypto.randomUUID();
-        let count = 0, since = performance.now();
-        const endpoint = Object.freeze({postMessage(value) {
-            if (typeof value !== 'string' || value.length > 32768)
-                throw new RangeError('Mini App request exceeds the host limit');
-            const now = performance.now();
-            if (now - since > 1000) { since = now; count = 0; }
-            if (++count > 120) {
-                throw new Error('Mini App host rate limit exceeded');
-            }
-            window.webkit.messageHandlers.genyMiniApp.postMessage({document: token, message: value});
-        }});
-        Object.defineProperty(window, 'ReactNativeWebView', {value: endpoint});
-        Object.defineProperty(window, '__genyMiniAppReply', {value: (documentToken, data) => {
-            if (documentToken === token)
-                document.dispatchEvent(new MessageEvent('FarcasterFrameCallback', {data}));
-        }});
-        Object.defineProperty(window, '__genyMiniAppEthProviderEvent', {value: (documentToken, data) => {
-            if (documentToken === token)
-                document.dispatchEvent(new MessageEvent('FarcasterFrameEthProviderEvent', {data}));
-        }});
-        Object.defineProperty(window, '__genyMiniAppEvent', {value: (documentToken, data) => {
-            if (documentToken === token)
-                document.dispatchEvent(new MessageEvent('FarcasterFrameEvent', {data}));
-        }});
-    })();)JS"];
-}
+static NSString* bridgeScript(void) {
+    return [NSString stringWithUTF8String:
+        "(() => {\n"
+        "        const token = crypto.randomUUID();\n"
+        "        let count = 0, since = performance.now();\n"
+        "        const endpoint = Object.freeze({postMessage(value) {\n"
+        "            if (typeof value !== 'string' || value.length > 32768)\n"
+        "                throw new RangeError('Mini App request exceeds the host limit');\n"
+        "            const now = performance.now();\n"
+        "            if (now - since > 1000) { since = now; count = 0; }\n"
+        "            if (++count > 120) {\n"
+        "                throw new Error('Mini App host rate limit exceeded');\n"
+        "            }\n"
+        "            window.webkit.messageHandlers.genyMiniApp.postMessage({document: token, message: value});\n"
+        "        }});\n"
+        "        Object.defineProperty(window, 'ReactNativeWebView', {value: endpoint});\n"
+        "        Object.defineProperty(window, '__genyMiniAppReply', {value: (documentToken, data) => {\n"
+        "            if (documentToken === token)\n"
+        "                document.dispatchEvent(new MessageEvent('FarcasterFrameCallback', {data}));\n"
+        "        }});\n"
+        "        Object.defineProperty(window, '__genyMiniAppEthProviderEvent', {value: (documentToken, data) => {\n"
+        "            if (documentToken === token)\n"
+        "                document.dispatchEvent(new MessageEvent('FarcasterFrameEthProviderEvent', {data}));\n"
+        "        }});\n"
+        "        Object.defineProperty(window, '__genyMiniAppEvent', {value: (documentToken, data) => {\n"
+        "            if (documentToken === token)\n"
+        "                document.dispatchEvent(new MessageEvent('FarcasterFrameEvent', {data}));\n"
+        "        }});\n"
+        "    })();"
+    ];
 }
 
 // A normal view keeps the Mini App loading surface opaque without relying
@@ -145,7 +89,7 @@ NSString* bridgeScript() {
 @interface GenyMiniAppDrawer : NSControl {
 @public
     NSView* m_panel;
-    farcaster::platform::miniapp::PresentationMode m_mode;
+    GenyMacBrowserMode m_mode;
     BOOL m_animating;
     BOOL m_fullscreen;
     // Backdrop is a visual layer only: it must not steal input from the
@@ -162,21 +106,21 @@ NSString* bridgeScript() {
     const CGFloat width = self.bounds.size.width;
     const CGFloat height = self.bounds.size.height;
     if (m_fullscreen) return self.bounds;
-    using farcaster::platform::miniapp::PresentationMode;
-    if (m_mode == PresentationMode::Bottom) {
+
+    if (m_mode == GENY_MAC_BOTTOM) {
         const CGFloat panelWidth = MIN(width, 424.0);
         const CGFloat panelHeight = MIN(height, MIN(755.0, MAX(420.0, height * 0.82)));
         return NSMakeRect((width - panelWidth) / 2, height - panelHeight, panelWidth, panelHeight);
     }
     const CGFloat panelWidth = MIN(width, 424.0);
-    return NSMakeRect(m_mode == PresentationMode::Right ? width - panelWidth : 0,
+    return NSMakeRect(m_mode == GENY_MAC_RIGHT ? width - panelWidth : 0,
         0, panelWidth, height);
 }
 - (NSRect)hiddenFrame {
     NSRect frame = [self panelFrame];
-    using farcaster::platform::miniapp::PresentationMode;
-    if (m_mode == PresentationMode::Bottom) { frame.origin.y = self.bounds.size.height; }
-    else if (m_mode == PresentationMode::Left) { frame.origin.x = -frame.size.width; }
+
+    if (m_mode == GENY_MAC_BOTTOM) { frame.origin.y = self.bounds.size.height; }
+    else if (m_mode == GENY_MAC_LEFT) { frame.origin.x = -frame.size.width; }
     else { frame.origin.x = self.bounds.size.width; }
     return frame;
 }
@@ -212,15 +156,15 @@ NSString* bridgeScript() {
 
 @interface GenyMiniAppWindow : NSObject <NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler> {
 @public
-    farcaster::platform::miniapp::BrowserCallbacks m_callbacks;
+    GenyMacBrowserCallbacks m_callbacks;
     NSWindow* m_window;
     NSWindow* __weak m_parentWindow;
     NSResponder* __weak m_previousResponder;
     GenyMiniAppDrawer* m_drawer;
     id m_escapeMonitor;
     BOOL m_reduceMotion;
-    farcaster::platform::miniapp::PresentationMode m_mode;
-    farcaster::platform::miniapp::BrowserRole m_role;
+    GenyMacBrowserMode m_mode;
+    GenyMacBrowserRole m_role;
     BOOL m_dismissing;
     WKWebView* m_web;
     NSView* m_overlay;
@@ -238,8 +182,10 @@ NSString* bridgeScript() {
     NSUInteger m_rateCount;
 }
 - (instancetype)initWithTitle:(NSString*)title origin:(NSURL*)origin
-    mode:(farcaster::platform::miniapp::PresentationMode)mode reduceMotion:(BOOL)reduceMotion
-    initiallyVisible:(BOOL)initiallyVisible role:(farcaster::platform::miniapp::BrowserRole)role;
+    mode:(GenyMacBrowserMode)mode reduceMotion:(BOOL)reduceMotion
+    initiallyVisible:(BOOL)initiallyVisible role:(GenyMacBrowserRole)role
+    callbacks:(GenyMacBrowserCallbacks)callbacks;
+- (NSString*)localized:(const char*)translationId;
 - (void)dispose;
 - (void)showStatus:(NSString*)message failed:(BOOL)failed;
 - (void)showReady;
@@ -255,30 +201,42 @@ NSString* bridgeScript() {
 - (void)parentWillClose:(NSNotification*)notification;
 @end
 
+static BOOL genyIsHostCandidate(NSWindow* candidate) {
+    if (!candidate) return NO;
+    id<NSWindowDelegate> delegate = candidate.delegate;
+    return delegate == nil || ![delegate isKindOfClass:[GenyMiniAppWindow class]];
+}
+
+static BOOL allowedWebUrl(GenyMiniAppWindow* owner, NSURL* url) {
+    return url && owner->m_callbacks.allowed_url
+        && owner->m_callbacks.allowed_url(owner->m_callbacks.context,
+                                          url.absoluteString.UTF8String);
+}
+
+static NSURL* youtubeWatchUrlForEmbed(GenyMiniAppWindow* owner, NSURL* origin) {
+    if (!origin || !owner->m_callbacks.youtube_watch_url) return nil;
+    const char* watch = owner->m_callbacks.youtube_watch_url(
+        owner->m_callbacks.context, origin.absoluteString.UTF8String);
+    return watch && *watch ? [NSURL URLWithString:[NSString stringWithUTF8String:watch]] : nil;
+}
+
 static NSWindow* genycasterHostWindow()
 {
     static __weak NSWindow* cachedHostWindow = nil;
-    const auto isHostCandidate = [](NSWindow* candidate) -> bool {
-        if (candidate == nil) {
-            return false;
-        }
-        id<NSWindowDelegate> delegate = candidate.delegate;
-        return delegate == nil || ![delegate isKindOfClass:[GenyMiniAppWindow class]];
-    };
 
-    if (isHostCandidate(cachedHostWindow)) {
+    if (genyIsHostCandidate(cachedHostWindow)) {
         return cachedHostWindow;
     }
-    if (isHostCandidate(NSApp.mainWindow)) {
+    if (genyIsHostCandidate(NSApp.mainWindow)) {
         cachedHostWindow = NSApp.mainWindow;
         return cachedHostWindow;
     }
-    if (isHostCandidate(NSApp.keyWindow)) {
+    if (genyIsHostCandidate(NSApp.keyWindow)) {
         cachedHostWindow = NSApp.keyWindow;
         return cachedHostWindow;
     }
     for (NSWindow* candidate in NSApp.orderedWindows) {
-        if (isHostCandidate(candidate)) {
+        if (genyIsHostCandidate(candidate)) {
             cachedHostWindow = candidate;
             return cachedHostWindow;
         }
@@ -287,11 +245,18 @@ static NSWindow* genycasterHostWindow()
 }
 
 @implementation GenyMiniAppWindow
+- (NSString*)localized:(const char*)translationId {
+    const char* value = m_callbacks.localize
+        ? m_callbacks.localize(m_callbacks.context, translationId) : translationId;
+    return [NSString stringWithUTF8String:value ? value : translationId];
+}
 - (instancetype)initWithTitle:(NSString*)title origin:(NSURL*)origin
-    mode:(farcaster::platform::miniapp::PresentationMode)mode reduceMotion:(BOOL)reduceMotion
-    initiallyVisible:(BOOL)initiallyVisible role:(farcaster::platform::miniapp::BrowserRole)role {
+    mode:(GenyMacBrowserMode)mode reduceMotion:(BOOL)reduceMotion
+    initiallyVisible:(BOOL)initiallyVisible role:(GenyMacBrowserRole)role
+    callbacks:(GenyMacBrowserCallbacks)callbacks {
     self = [super init];
     if (!self) { return nil; }
+    m_callbacks = callbacks;
     m_origin = origin;
     // Never parent a drawer to whichever Mini App window most recently became
     // NSApp.mainWindow. Multiple native Mini App windows can become key/main;
@@ -312,7 +277,7 @@ static NSWindow* genycasterHostWindow()
     // Mini Apps preserve the Farcaster-oriented 424pt surface. Media playback
     // uses a wider 16:9-capable window so embedded players retain usable native
     // controls instead of being squeezed into the Mini App phone geometry.
-    const BOOL mediaRole = role == farcaster::platform::miniapp::BrowserRole::Media;
+    const BOOL mediaRole = role == GENY_MAC_MEDIA;
     CGFloat height = mediaRole
         ? MIN(720.0, MAX(420.0, available.size.height - 96.0))
         : MIN(755.0, MAX(480.0, available.size.height - 72.0));
@@ -334,47 +299,47 @@ static NSWindow* genycasterHostWindow()
     toolbar.translatesAutoresizingMaskIntoConstraints = NO;
     [content addSubview:toolbar];
     m_back = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"chevron.backward"
-        accessibilityDescription:nativeText(translated("genycaster.miniapp.back"))]
+        accessibilityDescription:[self localized:"genycaster.miniapp.back"]]
         target:self action:@selector(back:)];
     m_back.bordered = NO;
     m_back.enabled = NO;
-    m_back.toolTip = nativeText(translated("genycaster.miniapp.back"));
+    m_back.toolTip = [self localized:"genycaster.miniapp.back"];
     m_back.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:m_back];
     NSButton* reload = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"arrow.clockwise"
-        accessibilityDescription:nativeText(translated("genycaster.miniapp.retry"))]
+        accessibilityDescription:[self localized:"genycaster.miniapp.retry"]]
         target:self action:@selector(retry:)];
     reload.bordered = NO;
-    reload.toolTip = nativeText(translated("genycaster.miniapp.retry"));
+    reload.toolTip = [self localized:"genycaster.miniapp.retry"];
     reload.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:reload];
     NSButton* minimize = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"minus"
-        accessibilityDescription:nativeText(translated("genycaster.miniapp.minimize"))]
+        accessibilityDescription:[self localized:"genycaster.miniapp.minimize"]]
         target:self action:@selector(minimize:)];
     minimize.bordered = NO;
     minimize.hidden = mediaRole;
-    minimize.toolTip = nativeText(translated("genycaster.miniapp.minimize"));
+    minimize.toolTip = [self localized:"genycaster.miniapp.minimize"];
     minimize.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:minimize];
     NSButton* share = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"square.and.arrow.up"
-        accessibilityDescription:nativeText(translated("genycaster.miniapp.share"))]
+        accessibilityDescription:[self localized:"genycaster.miniapp.share"]]
         target:self action:@selector(share:)];
     share.bordered = NO;
-    share.toolTip = nativeText(translated("genycaster.miniapp.share"));
+    share.toolTip = [self localized:"genycaster.miniapp.share"];
     share.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:share];
     NSButton* fullscreen = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"arrow.up.left.and.arrow.down.right"
-        accessibilityDescription:nativeText(translated("genycaster.player.fullscreen"))]
+        accessibilityDescription:[self localized:"genycaster.player.fullscreen"]]
         target:self action:@selector(toggleFullscreen:)];
     fullscreen.bordered = NO;
-    fullscreen.toolTip = nativeText(translated("genycaster.player.fullscreen"));
+    fullscreen.toolTip = [self localized:"genycaster.player.fullscreen"];
     fullscreen.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:fullscreen];
     NSButton* close = [NSButton buttonWithImage:[NSImage imageWithSystemSymbolName:@"xmark"
-        accessibilityDescription:nativeText(translated("genycaster.miniapp.close"))]
+        accessibilityDescription:[self localized:"genycaster.miniapp.close"]]
         target:self action:@selector(dismiss:)];
     close.bordered = NO;
-    close.toolTip = nativeText(translated("genycaster.miniapp.close"));
+    close.toolTip = [self localized:"genycaster.miniapp.close"];
     close.translatesAutoresizingMaskIntoConstraints = NO;
     [toolbar addSubview:close];
     NSTextField* heading = [NSTextField labelWithString:title.length ? title : origin.host];
@@ -424,10 +389,10 @@ static NSWindow* genycasterHostWindow()
     m_spinner.controlSize = NSControlSizeRegular;
     m_spinner.indeterminate = YES;
     [m_spinner startAnimation:nil];
-    m_status = [NSTextField wrappingLabelWithString:nativeText(translated("genycaster.miniapp.loading"))];
+    m_status = [NSTextField wrappingLabelWithString:[self localized:"genycaster.miniapp.loading"]];
     m_status.alignment = NSTextAlignmentCenter;
     m_status.textColor = NSColor.secondaryLabelColor;
-    m_retry = [NSButton buttonWithTitle:nativeText(translated("genycaster.miniapp.retry"))
+    m_retry = [NSButton buttonWithTitle:[self localized:"genycaster.miniapp.retry"]
         target:self action:@selector(retry:)];
     m_retry.hidden = YES;
     NSStackView* loading = [NSStackView stackViewWithViews:@[m_spinner, m_status, m_retry]];
@@ -484,14 +449,14 @@ static NSWindow* genycasterHostWindow()
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(parentWillClose:)
             name:NSWindowWillCloseNotification object:parentWindow];
     }
-    using farcaster::platform::miniapp::PresentationMode;
-    if (mode != PresentationMode::Window && parentWindow.contentView) {
+
+    if (mode != GENY_MAC_WINDOW && parentWindow.contentView) {
         NSView* parentContent = parentWindow.contentView;
         m_drawer = [[GenyMiniAppDrawer alloc] initWithFrame:parentContent.bounds];
         m_drawer->m_mode = mode;
         m_drawer->m_fullscreen = NO;
         m_drawer->m_passThroughBackdrop = role
-            == farcaster::platform::miniapp::BrowserRole::MiniApp;
+            == GENY_MAC_MINIAPP;
         m_drawer.target = self;
         m_drawer.action = @selector(dismiss:);
         m_drawer.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
@@ -506,10 +471,10 @@ static NSWindow* genycasterHostWindow()
         content.layer.backgroundColor = NSColor.windowBackgroundColor.CGColor;
         content.layer.cornerRadius = 18;
         if (@available(macOS 10.15, *)) { content.layer.cornerCurve = kCACornerCurveContinuous; }
-        if (mode == PresentationMode::Left) {
+        if (mode == GENY_MAC_LEFT) {
             // The screen-attached left edge is square; only the exposed edge is rounded.
             content.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMaxXMaxYCorner;
-        } else if (mode == PresentationMode::Right) {
+        } else if (mode == GENY_MAC_RIGHT) {
             // The screen-attached right edge is square; only the exposed edge is rounded.
             content.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMinXMaxYCorner;
         } else {
@@ -574,11 +539,11 @@ static NSWindow* genycasterHostWindow()
 
 - (void)dispose {
     m_closed = YES;
-    m_callbacks = {};
+    m_callbacks = (GenyMacBrowserCallbacks){0};
     [NSNotificationCenter.defaultCenter removeObserver:self];
     if (m_escapeMonitor) { [NSEvent removeMonitor:m_escapeMonitor]; m_escapeMonitor = nil; }
     [m_web stopLoading];
-    if (m_role == farcaster::platform::miniapp::BrowserRole::MiniApp) {
+    if (m_role == GENY_MAC_MINIAPP) {
         [m_web.configuration.userContentController removeScriptMessageHandlerForName:@"genyMiniApp"];
         [m_web.configuration.userContentController removeAllUserScripts];
     }
@@ -600,9 +565,9 @@ static NSWindow* genycasterHostWindow()
 }
 - (void)windowDidBecomeKey:(NSNotification*)notification {
     (void)notification;
-    if (!m_closed && m_mode == farcaster::platform::miniapp::PresentationMode::Window
-        && m_callbacks.activated) {
-        m_callbacks.activated();
+    if (!m_closed && m_mode == GENY_MAC_WINDOW
+        && m_callbacks.event) {
+        m_callbacks.event(m_callbacks.context, GENY_MAC_ACTIVATED);
     }
 }
 - (void)windowWillClose:(NSNotification*)notification {
@@ -615,14 +580,16 @@ static NSWindow* genycasterHostWindow()
 }
 - (void)notifyClosed {
     if (!m_closed) {
+        __strong GenyMiniAppWindow* keepAlive = self;
+        (void)keepAlive;
         m_closed = YES;
         [m_web stopLoading];
-        if (m_callbacks.closed) { m_callbacks.closed(); }
+        if (m_callbacks.event) { m_callbacks.event(m_callbacks.context, GENY_MAC_CLOSED); }
     }
 }
 - (void)minimize:(id)sender {
     (void)sender;
-    if (!m_closed && m_callbacks.minimize) { m_callbacks.minimize(); }
+    if (!m_closed && m_callbacks.event) { m_callbacks.event(m_callbacks.context, GENY_MAC_MINIMIZE); }
 }
 - (void)toggleFullscreen:(id)sender {
     if (m_closed || m_dismissing) return;
@@ -641,15 +608,15 @@ static NSWindow* genycasterHostWindow()
     if (button) {
         button.image = [NSImage imageWithSystemSymbolName:
             (fullscreen ? @"arrow.down.right.and.arrow.up.left" : @"arrow.up.left.and.arrow.down.right")
-            accessibilityDescription:nativeText(translated(fullscreen
-                ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen"))];
-        button.toolTip = nativeText(translated(fullscreen
-            ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen"));
+            accessibilityDescription:[self localized:(fullscreen
+                ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen")]];
+        button.toolTip = [self localized:(fullscreen
+            ? "genycaster.player.exit_fullscreen" : "genycaster.player.fullscreen")];
     }
 }
 - (void)share:(id)sender {
     (void)sender;
-    if (!m_closed && m_callbacks.share) { m_callbacks.share(); }
+    if (!m_closed && m_callbacks.event) { m_callbacks.event(m_callbacks.context, GENY_MAC_SHARE); }
 }
 - (void)dismiss:(id)sender {
     (void)sender;
@@ -703,10 +670,10 @@ static NSWindow* genycasterHostWindow()
 }
 - (void)openExternalMediaFallback {
     if (m_closed || m_mediaFallbackTriggered
-        || m_role != farcaster::platform::miniapp::BrowserRole::Media) {
+        || m_role != GENY_MAC_MEDIA) {
         return;
     }
-    NSURL* watchUrl = youtubeWatchUrlForEmbed(m_origin);
+    NSURL* watchUrl = youtubeWatchUrlForEmbed(self, m_origin);
     if (!watchUrl) {
         return;
     }
@@ -716,7 +683,7 @@ static NSWindow* genycasterHostWindow()
 }
 - (void)checkMediaPlaybackFallback {
     if (m_closed || m_mediaFallbackTriggered
-        || m_role != farcaster::platform::miniapp::BrowserRole::Media || !m_web) {
+        || m_role != GENY_MAC_MEDIA || !m_web) {
         return;
     }
     // YouTube's anti-automation challenge is server-side. It cannot be safely
@@ -749,11 +716,11 @@ static NSWindow* genycasterHostWindow()
 }
 - (void)retry:(id)sender {
     (void)sender;
-    if (!m_closed && m_callbacks.retry) { m_callbacks.retry(); }
+    if (!m_closed && m_callbacks.event) { m_callbacks.event(m_callbacks.context, GENY_MAC_RETRY); }
 }
 - (void)userContentController:(WKUserContentController*)controller didReceiveScriptMessage:(WKScriptMessage*)message {
     (void)controller;
-    if (m_role != farcaster::platform::miniapp::BrowserRole::MiniApp
+    if (m_role != GENY_MAC_MINIAPP
         || m_closed || m_failed || !message.frameInfo.isMainFrame || message.webView != m_web) { return; }
     WKSecurityOrigin* securityOrigin = message.frameInfo.securityOrigin;
     if (![securityOrigin.protocol isEqualToString:@"https"]
@@ -762,7 +729,7 @@ static NSWindow* genycasterHostWindow()
     const NSTimeInterval now = NSDate.timeIntervalSinceReferenceDate;
     if (now - m_rateSince >= 1.0) { m_rateSince = now; m_rateCount = 0; }
     if (++m_rateCount > 120) {
-        if (m_callbacks.failed) { m_callbacks.failed(translated("genycaster.miniapp.rpc_limit")); }
+        if (m_callbacks.failed) { m_callbacks.failed(m_callbacks.context, "genycaster.miniapp.rpc_limit"); }
         return;
     }
     if (![message.body isKindOfClass:NSDictionary.class]) { return; }
@@ -771,20 +738,20 @@ static NSWindow* genycasterHostWindow()
     NSString* document = envelope[@"document"];
     if (![payload isKindOfClass:NSString.class] || payload.length > 32768
         || ![document isKindOfClass:NSString.class] || document.length > 64) { return; }
-    const auto parsed = QJsonDocument::fromJson(QString::fromNSString(payload).toUtf8());
-    if (parsed.isObject() && m_callbacks.message) {
-        m_callbacks.message(parsed.object(), QString::fromNSString(document));
+    // JSON object validation occurs in C++26 before invoking the Qt host.
+    if (m_callbacks.message) {
+        m_callbacks.message(m_callbacks.context, payload.UTF8String, document.UTF8String);
     }
 }
 - (void)webView:(WKWebView*)webView decidePolicyForNavigationAction:(WKNavigationAction*)action
     decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     NSURL* url = action.request.URL;
-    const bool sameOrigin = [url.host.lowercaseString isEqualToString:m_origin.host.lowercaseString];
-    const bool mainFrame = !action.targetFrame || action.targetFrame.isMainFrame;
-    if (!allowedWebUrl(url) || (mainFrame && !sameOrigin)) {
+    const BOOL sameOrigin = [url.host.lowercaseString isEqualToString:m_origin.host.lowercaseString];
+    const BOOL mainFrame = !action.targetFrame || action.targetFrame.isMainFrame;
+    if (!allowedWebUrl(self, url) || (mainFrame && !sameOrigin)) {
         decisionHandler(WKNavigationActionPolicyCancel);
         if (mainFrame && m_callbacks.failed) {
-            m_callbacks.failed(translated("genycaster.miniapp.navigation_blocked"));
+            m_callbacks.failed(m_callbacks.context, "genycaster.miniapp.navigation_blocked");
         }
         return;
     }
@@ -798,12 +765,12 @@ static NSWindow* genycasterHostWindow()
 - (void)webView:(WKWebView*)webView decidePolicyForNavigationResponse:(WKNavigationResponse*)response
     decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
     (void)webView;
-    const bool sameOrigin = [response.response.URL.host.lowercaseString isEqualToString:m_origin.host.lowercaseString];
-    if (!response.canShowMIMEType || !allowedWebUrl(response.response.URL)
+    const BOOL sameOrigin = [response.response.URL.host.lowercaseString isEqualToString:m_origin.host.lowercaseString];
+    if (!response.canShowMIMEType || !allowedWebUrl(self, response.response.URL)
         || (response.isForMainFrame && !sameOrigin)) {
         decisionHandler(WKNavigationResponsePolicyCancel);
         if (response.isForMainFrame && m_callbacks.failed) {
-            m_callbacks.failed(translated("genycaster.miniapp.navigation_blocked"));
+            m_callbacks.failed(m_callbacks.context, "genycaster.miniapp.navigation_blocked");
         }
         return;
     }
@@ -814,16 +781,17 @@ static NSWindow* genycasterHostWindow()
     if (m_failed || m_closed) { return; }
     m_sdkBack = NO;
     m_back.enabled = NO;
-    [self showStatus:nativeText(translated("genycaster.miniapp.loading")) failed:NO];
-    if (m_callbacks.navigationStarted) { m_callbacks.navigationStarted(); }
+    [self showStatus:[self localized:"genycaster.miniapp.loading"] failed:NO];
+    if (m_callbacks.event) { m_callbacks.event(m_callbacks.context, GENY_MAC_NAVIGATION_STARTED); }
 }
 - (void)webView:(WKWebView*)webView didFinishNavigation:(WKNavigation*)navigation {
     (void)navigation;
     m_back.enabled = m_sdkBack || webView.canGoBack;
-    if (m_role == farcaster::platform::miniapp::BrowserRole::Media) {
+    if (m_role == GENY_MAC_MEDIA) {
         [self showReady];
         __weak GenyMiniAppWindow* weakSelf = self;
-        for (const NSTimeInterval delay : {0.65, 2.0}) {
+        for (NSUInteger index = 0; index < 2; ++index) {
+            const NSTimeInterval delay = index == 0 ? 0.65 : 2.0;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
                 dispatch_get_main_queue(), ^{
                     GenyMiniAppWindow* owner = weakSelf;
@@ -839,7 +807,7 @@ static NSWindow* genycasterHostWindow()
 - (void)webView:(WKWebView*)webView didFailProvisionalNavigation:(WKNavigation*)navigation withError:(NSError*)error {
     (void)webView; (void)navigation;
     if (error.code != NSURLErrorCancelled && !m_closed && !m_failed && m_callbacks.failed) {
-        m_callbacks.failed(translated("genycaster.miniapp.load_failed"));
+        m_callbacks.failed(m_callbacks.context, "genycaster.miniapp.load_failed");
     }
 }
 - (void)webView:(WKWebView*)webView didFailNavigation:(WKNavigation*)navigation withError:(NSError*)error {
@@ -848,7 +816,7 @@ static NSWindow* genycasterHostWindow()
 - (void)webViewWebContentProcessDidTerminate:(WKWebView*)webView {
     (void)webView;
     if (!m_closed && !m_failed && m_callbacks.failed) {
-        m_callbacks.failed(translated("genycaster.miniapp.renderer_failed"));
+        m_callbacks.failed(m_callbacks.context, "genycaster.miniapp.renderer_failed");
     }
 }
 - (WKWebView*)webView:(WKWebView*)webView createWebViewWithConfiguration:(WKWebViewConfiguration*)configuration
@@ -885,111 +853,89 @@ static NSWindow* genycasterHostWindow()
 }
 @end
 
-namespace farcaster::platform::miniapp {
-namespace {
-class MacBrowser final : public Browser {
-public:
-    MacBrowser(const QString& title, const QUrl& origin, BrowserCallbacks callbacks,
-        PresentationMode mode, bool reduceMotion, bool initiallyVisible, BrowserRole role)
-        : m_controller([[GenyMiniAppWindow alloc] initWithTitle:nativeText(title) origin:origin.toNSURL()
-            mode:mode reduceMotion:reduceMotion initiallyVisible:initiallyVisible role:role]) {
-        if (m_controller != nil) {
-            m_controller->m_callbacks = std::move(callbacks);
-        }
-    }
-    ~MacBrowser() override { [m_controller dispose]; }
-    [[nodiscard]] bool valid() const noexcept
-    {
-        return m_controller != nil && m_controller->m_window != nil && m_controller->m_web != nil;
-    }
-    void load(const QUrl& url, const QUrl& referrer) override {
-        NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url.toNSURL()];
-        if (referrer.isValid()
-            && (referrer.scheme() == QStringLiteral("https")
-                || referrer.scheme() == QStringLiteral("http"))
-            && !referrer.host().isEmpty()) {
-            [request setValue:referrer.toString(QUrl::FullyEncoded).toNSString()
-                forHTTPHeaderField:@"Referer"];
-        }
-        [m_controller->m_web loadRequest:request];
-    }
-    void status(const QString& message, bool failed) override {
-        [m_controller showStatus:nativeText(message) failed:failed];
-    }
-    void ready(const bool disableNativeGestures) override {
-        // Farcaster's flag controls host-owned dismissal/navigation gestures.
-        // This desktop host does not install swipe-to-dismiss gestures, so do
-        // not reinterpret the flag as WebKit history navigation and break the
-        // Mini App's own back/forward UX. Mobile adapters can apply the flag to
-        // their native sheet gesture recognizers when those exist.
-        (void)disableNativeGestures;
-        [m_controller showReady];
-    }
-    void setBackVisible(bool visible) override {
-        m_controller->m_sdkBack = visible;
-        m_controller->m_back.enabled = visible || m_controller->m_web.canGoBack;
-    }
-    void reply(const QJsonObject& value, const QString& document) override {
-        // JSON encodes both arguments: untrusted strings never become JS source.
-        const QJsonArray arguments{document, value};
-        const QString json = QString::fromUtf8(QJsonDocument(arguments).toJson(QJsonDocument::Compact));
-        const QString script = QStringLiteral("window.__genyMiniAppReply?.(...") + json + QStringLiteral(")");
-        [m_controller->m_web evaluateJavaScript:nativeText(script) completionHandler:nil];
-    }
-    void ethereumProviderEvent(
-        const QString& event, const QJsonArray& params, const QString& document) override {
-        const QJsonObject wire{{QStringLiteral("event"), event}, {QStringLiteral("params"), params}};
-        const QJsonArray arguments{document, wire};
-        const QString json = QString::fromUtf8(QJsonDocument(arguments).toJson(QJsonDocument::Compact));
-        const QString script = QStringLiteral("window.__genyMiniAppEthProviderEvent?.(...")
-            + json + QStringLiteral(")");
-        [m_controller->m_web evaluateJavaScript:nativeText(script) completionHandler:nil];
-    }
-    void miniAppEvent(const QJsonObject& event, const QString& document) override {
-        const QJsonArray arguments{document, event};
-        const QString json = QString::fromUtf8(QJsonDocument(arguments).toJson(QJsonDocument::Compact));
-        const QString script = QStringLiteral("window.__genyMiniAppEvent?.(...")
-            + json + QStringLiteral(")");
-        [m_controller->m_web evaluateJavaScript:nativeText(script) completionHandler:nil];
-    }
-    void setVisible(const bool visible) override {
-        if (m_controller->m_web) {
-            if (@available(macOS 12.0, *)) {
-                [m_controller->m_web setAllMediaPlaybackSuspended:visible ? NO : YES completionHandler:nil];
-            }
-        }
-        if (m_controller->m_drawer) {
-            m_controller->m_drawer.hidden = visible ? NO : YES;
-            if (visible && m_controller->m_drawer.superview) {
-                [m_controller->m_drawer.superview addSubview:m_controller->m_drawer
-                    positioned:NSWindowAbove relativeTo:nil];
-            }
-            if (visible && m_controller->m_parentWindow.isVisible) {
-                [m_controller->m_parentWindow makeFirstResponder:m_controller->m_web];
-            }
-        } else if (visible) {
-            [m_controller->m_window makeKeyAndOrderFront:nil];
-        } else {
-            [m_controller->m_window orderOut:nil];
-        }
-    }
-    qlonglong processIdentifier() const noexcept override {
-        // Public WKWebView on macOS does not expose the WebContent PID. Returning zero keeps the
-        // Task Manager honest and avoids private selectors that would make release builds fragile.
-        return 0;
-    }
-private:
-    GenyMiniAppWindow* __strong m_controller;
-};
+
+static GenyMiniAppWindow* genyController(GenyMacBrowser* browser) {
+    return (__bridge GenyMiniAppWindow*)browser;
 }
 
-std::unique_ptr<Browser> createBrowser(const QString& title, const QUrl& origin, BrowserCallbacks callbacks,
-    PresentationMode mode, bool reduceMotion, bool initiallyVisible, BrowserRole role) {
-    auto browser = std::make_unique<MacBrowser>(
-        title, origin, std::move(callbacks), mode, reduceMotion, initiallyVisible, role);
-    if (!browser->valid()) {
-        return {};
+GenyMacBrowser* geny_mac_browser_create(const char* title, const char* origin,
+    GenyMacBrowserMode mode, int reduce_motion, int initially_visible,
+    GenyMacBrowserRole role, GenyMacBrowserCallbacks callbacks) {
+    @autoreleasepool {
+        if (!origin || !*origin) return NULL;
+        NSString* originText = [NSString stringWithUTF8String:origin];
+        NSURL* originURL = [NSURL URLWithString:originText];
+        if (!originURL) return NULL;
+        NSString* titleText = title ? [NSString stringWithUTF8String:title] : @"";
+        GenyMiniAppWindow* controller = [[GenyMiniAppWindow alloc]
+            initWithTitle:titleText origin:originURL mode:mode
+            reduceMotion:reduce_motion != 0 initiallyVisible:initially_visible != 0
+            role:role callbacks:callbacks];
+        if (!controller || !controller->m_window || !controller->m_web) {
+            [controller dispose];
+            return NULL;
+        }
+        return (__bridge_retained GenyMacBrowser*)controller;
     }
-    return browser;
 }
+int geny_mac_browser_valid(GenyMacBrowser* browser) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    return owner && owner->m_window && owner->m_web;
+}
+void geny_mac_browser_destroy(GenyMacBrowser* browser) {
+    if (!browser) return;
+    GenyMiniAppWindow* owner = (__bridge_transfer GenyMiniAppWindow*)browser;
+    [owner dispose];
+}
+void geny_mac_browser_load(GenyMacBrowser* browser, const char* url, const char* referrer) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    if (!owner || !owner->m_web || !url) return;
+    NSURL* destination = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
+    if (!destination) return;
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:destination];
+    if (referrer && *referrer)
+        [request setValue:[NSString stringWithUTF8String:referrer] forHTTPHeaderField:@"Referer"];
+    [owner->m_web loadRequest:request];
+}
+void geny_mac_browser_status(GenyMacBrowser* browser, const char* message, int failed) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    if (owner && message)
+        [owner showStatus:[NSString stringWithUTF8String:message] failed:failed != 0];
+}
+void geny_mac_browser_ready(GenyMacBrowser* browser) {
+    [genyController(browser) showReady];
+}
+void geny_mac_browser_set_back(GenyMacBrowser* browser, int visible) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    if (!owner) return;
+    owner->m_sdkBack = visible != 0;
+    owner->m_back.enabled = visible || owner->m_web.canGoBack;
+}
+void geny_mac_browser_evaluate(GenyMacBrowser* browser, const char* script) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    if (owner && owner->m_web && script)
+        [owner->m_web evaluateJavaScript:[NSString stringWithUTF8String:script] completionHandler:nil];
+}
+void geny_mac_browser_set_visible(GenyMacBrowser* browser, int visible) {
+    GenyMiniAppWindow* owner = genyController(browser);
+    if (!owner) return;
+    if (owner->m_web) {
+        if (@available(macOS 12.0, *)) {
+            [owner->m_web setAllMediaPlaybackSuspended:visible ? NO : YES completionHandler:nil];
+        }
+    }
+    if (owner->m_drawer) {
+        owner->m_drawer.hidden = visible ? NO : YES;
+        if (visible && owner->m_drawer.superview) {
+            [owner->m_drawer.superview addSubview:owner->m_drawer
+                positioned:NSWindowAbove relativeTo:nil];
+        }
+        if (visible && owner->m_parentWindow.isVisible) {
+            [owner->m_parentWindow makeFirstResponder:owner->m_web];
+        }
+    } else if (visible) {
+        [owner->m_window makeKeyAndOrderFront:nil];
+    } else {
+        [owner->m_window orderOut:nil];
+    }
 }
