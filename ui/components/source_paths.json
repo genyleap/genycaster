@@ -21,6 +21,8 @@
   "CastReactions.qml": "feed/CastReactions.qml",
   "CastSkeleton.qml": "feed/CastSkeleton.qml",
   "CastViews.qml": "feed/CastViews.qml",
+  "ChannelRow.qml": "social/ChannelRow.qml",
+  "ChannelsSurface.qml": "social/ChannelsSurface.qml",
   "CodeBlockEditor.qml": "composer/CodeBlockEditor.qml",
   "CodeBlockView.qml": "content/CodeBlockView.qml",
   "CollectiblePreview.qml": "media/CollectiblePreview.qml",

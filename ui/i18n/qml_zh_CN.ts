@@ -7408,5 +7408,29 @@ Company | https://company.com</source>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>服务器尚未配置 GENY 付款。</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>探索社区、讨论和公开频道动态。</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>发现</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>尚无已验证的加入频道。试试搜索频道。</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>登录以查看您加入的频道。</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>按名称或 ID 搜索频道。</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>所有人都可以阅读。发布内容需要经过验证的频道成员资格。</translation>
+        </message>
     </context>
 </TS>

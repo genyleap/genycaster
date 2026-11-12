@@ -7408,5 +7408,29 @@ Company | https://company.com</source>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>서버에 GENY 결제가 아직 설정되지 않았습니다.</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>커뮤니티와 대화, 공개 채널 피드를 탐색하세요.</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>탐색</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>확인된 참여 채널이 아직 없습니다. 채널을 검색해 보세요.</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>참여한 채널을 보려면 로그인하세요.</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>이름이나 ID로 채널을 검색하세요.</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>읽기는 공개됩니다. 게시하려면 확인된 채널 멤버십이 필요합니다.</translation>
+        </message>
     </context>
 </TS>

@@ -133,12 +133,13 @@ void ChannelListModel::synchronize(const QVariantList& rows)
 
 ChannelPickerController::ChannelPickerController(
     QSettings& settings, QString readNodeBaseUrl, QString directoryBaseUrl,
-    bool directProxy, bool networkEnabled, QObject* parent)
+    bool directProxy, bool networkEnabled, bool discoveryMode, QObject* parent)
     : QObject(parent),
       m_settings(settings),
       m_baseUrl(std::move(readNodeBaseUrl)),
       m_directoryBaseUrl(std::move(directoryBaseUrl)),
-      m_networkEnabled(networkEnabled)
+      m_networkEnabled(networkEnabled),
+      m_discoveryMode(discoveryMode)
 {
     // Both endpoints are injected at the composition boundary. The node is
     // exactly the one selected for the core Farcaster runtime, not a fixed host.
@@ -587,6 +588,35 @@ void ChannelPickerController::openForViewer(qulonglong fid)
     // Show Home and actual joined channels; discovery starts when typing.
     if (m_membershipReady)
         hydrateMemberImages();
+    // Only the separate browse model requests a public channel catalogue.
+    // The composer must never promote trending/search results to
+    // verified memberships or signed parent_url candidates.
+    if (m_discoveryMode && m_trendingResults.isEmpty() && !m_trendingBusy)
+        requestTrending();
+}
+
+void ChannelPickerController::refreshDiscovery()
+{
+    if (!m_discoveryMode) return;
+    // Expire asynchronous results before reloading. A late reply from an old
+    // query/account must not overwrite a newer public catalogue snapshot.
+    ++m_generation;
+    ++m_searchGeneration;
+    m_debounce.stop();
+    m_searchBusy = false;
+    m_trendingBusy = false;
+    m_trendingResults.clear();
+    m_searchCache.clear();
+    m_searchResults.clear();
+    m_directoryResults.clear();
+    setError({});
+    if (m_viewerFid > 0)
+        refreshMembership();
+    if (m_query.isEmpty())
+        requestTrending();
+    else
+        requestSearchNow();
+    rebuildRows();
 }
 
 void ChannelPickerController::refreshMembership()
@@ -680,7 +710,10 @@ void ChannelPickerController::requestTrending()
             const bool wasBusyAtCompletion = busy();
             m_trendingBusy = false;
             if (wasBusyAtCompletion != busy()) emit busyChanged();
-            if (error.isEmpty()) m_trendingResults = channelsFromResponse(body, this);
+            if (error.isEmpty() && body.contains(QStringLiteral("channels")))
+                m_trendingResults = channelsFromResponse(body, this);
+            else if (m_discoveryMode && m_members.isEmpty() && m_query.isEmpty())
+                setError(QStringLiteral("Channel discovery is temporarily unavailable"));
             rebuildRows();
         });
 }
@@ -773,8 +806,11 @@ void ChannelPickerController::rebuildRows()
     if (!m_query.isEmpty()) {
         insertRows(m_searchResults);
         insertRows(m_directoryResults);
+    } else if (m_discoveryMode) {
+        insertRows(m_trendingResults);
     }
-    // Never pollute the default selection list with arbitrary trending assets.
+    // Only the separate browse model shows trending channels. The composer
+    // list remains restricted to Home and verified joined channels.
 
     QList<QVariantMap> found;
     for (auto it = candidates.cbegin(); it != candidates.cend(); ++it) {

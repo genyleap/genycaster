@@ -72,7 +72,8 @@ class ChannelPickerController final : public QObject {
 public:
     ChannelPickerController(QSettings& settings, QString readNodeBaseUrl,
                             QString directoryBaseUrl, bool directProxy,
-                            bool networkEnabled, QObject* parent = nullptr);
+                            bool networkEnabled, bool discoveryMode = false,
+                            QObject* parent = nullptr);
 
     [[nodiscard]] QVariantList rows() const;
     [[nodiscard]] QAbstractItemModel* channelModel() noexcept;
@@ -91,6 +92,9 @@ public:
     // A regular channel is returned only with verified viewer membership.
     Q_INVOKABLE QVariantMap chooseChannel(const QString& id);
     Q_INVOKABLE void refreshMembership();
+    // The public browse surface has its own instance. Composer membership
+    // selection stays isolated and never gains a public-channel write path.
+    Q_INVOKABLE void refreshDiscovery();
 
 signals:
     void rowsChanged();
@@ -143,6 +147,7 @@ private:
     QSet<QString> m_pendingImageLookups{};
     QSet<QString> m_triedImageLookups{};
     bool m_networkEnabled{false};
+    bool m_discoveryMode{false};
     qulonglong m_viewerFid{0};
     quint64 m_generation{0};
     quint64 m_membershipGeneration{0};

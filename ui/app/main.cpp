@@ -570,6 +570,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<MediaWebHostController> mediaWebHostControllerOwner{};
     std::unique_ptr<MiniAppCatalogController> miniAppCatalogControllerOwner{};
     std::unique_ptr<ChannelPickerController> channelPickerControllerOwner{};
+    std::unique_ptr<ChannelPickerController> channelBrowserControllerOwner{};
     std::unique_ptr<MiniAppTaskManagerController> miniAppTaskManagerControllerOwner{};
 #if FARCASTER_HAS_MINIAPP_EVM_WALLET
     std::unique_ptr<farcaster::capability::wallet::IEthereumWalletBridge> miniAppWalletBridgeOwner{};
@@ -831,6 +832,13 @@ int main(int argc, char* argv[])
         networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
         !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest);
     ChannelPickerController& channelPickerController = *channelPickerControllerOwner;
+    // Browsing public channels and selecting signed compose destinations must
+    // never mutate one another's search, membership or avatar model.
+    channelBrowserControllerOwner = std::make_unique<ChannelPickerController>(
+        settings, appliedNodeEndpoint, channelDirectoryBaseUrl,
+        networkProxyPolicy == farcaster::transport::qtnetwork::ProxyPolicy::Direct,
+        !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, true);
+    ChannelPickerController& channelBrowser = *channelBrowserControllerOwner;
     miniAppTaskManagerControllerOwner = std::make_unique<MiniAppTaskManagerController>();
     MiniAppTaskManagerController& miniAppTaskManager = *miniAppTaskManagerControllerOwner;
 
@@ -1202,6 +1210,7 @@ int main(int argc, char* argv[])
         {"proWalletHost", &proWalletHost},
         {"presentationBridge", &presentationBridge},
         {"channelDirectory", &channelPickerController},
+        {"channelBrowser", &channelBrowser},
         {"dataStorage", &dataStorageController},
         {"richComposer", &richComposerController},
         {"emojiController", &emojiController},

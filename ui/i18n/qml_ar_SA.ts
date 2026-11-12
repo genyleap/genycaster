@@ -7408,5 +7408,29 @@ Company | https://company.com</source>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>مدفوعات GENY غير مهيأة على الخادم بعد.</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>اكتشف المجتمعات والمحادثات وخلاصات القنوات العامة.</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>استكشاف</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>ليس لديك قنوات بعضوية مؤكدة بعد. استكشف القنوات أو ابحث عنها.</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>سجّل الدخول لعرض القنوات التي انضممت إليها.</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>ابحث باسم القناة أو معرّفها لاستكشافها.</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>القراءة عامة، أما النشر فيتطلب عضوية قناة مؤكدة.</translation>
+        </message>
     </context>
 </TS>

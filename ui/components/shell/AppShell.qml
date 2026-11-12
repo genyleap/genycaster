@@ -979,6 +979,16 @@ Item {
             width: parent ? parent.width : 0
             spacing: Theme.space2
 
+            ActionButton {
+                objectName: "channelReturnToDirectory"
+                visible: Boolean(root.selectedChannelInfo.fromChannels)
+                compact: true
+                quiet: true
+                iconGlyph: Theme.rtl ? Theme.iconArrowRight : Theme.iconArrowLeft
+                text: qsTrId("genycaster.side_nav.channels")
+                onClicked: root.openShellRoute("channels")
+            }
+
             FeedHeader {
                 width: parent.width
                 activeFeed: "channel"
@@ -1104,6 +1114,23 @@ Item {
                 }
                 onAuthenticationRequested: root.openAccountPopup()
                 onSearchRequested: searchPalette.open()
+            }
+            // Phone navigation has a bounded six-destination dock. Reach the
+            // channel directory from Explore without compressing touch targets
+            // or removing Widgets/Bookmarks from that dock.
+            RowLayout {
+                visible: root.mobile
+                width: parent.width
+                layoutDirection: Theme.uiDirection
+                Item { Layout.fillWidth: true }
+                ActionButton {
+                    objectName: "mobileExplorerChannelsEntry"
+                    compact: true
+                    quiet: true
+                    iconGlyph: Theme.iconGlobe
+                    text: qsTrId("genycaster.side_nav.channels")
+                    onClicked: root.openShellRoute("channels")
+                }
             }
             Item { width: parent.width; height: Theme.space2 }
         }
@@ -1357,6 +1384,7 @@ Item {
                                     ComingSoonSurface {
                                         visible: root.shellRoute.length > 0 && root.shellRoute !== "notifications" && root.shellRoute !== "apps"
                                                  && root.shellRoute !== "bookmarks"
+                                                 && root.shellRoute !== "channels"
                                         // Page switches fade + settle in instead of snapping.
                                         opacity: visible ? 1.0 : 0.0
                                         scale: visible ? 1.0 : 0.99
@@ -1394,6 +1422,39 @@ Item {
                                         }
                                         Behavior on scale {
                                             NumberAnimation { duration: Theme.motionEmphasis; easing.type: Easing.OutCubic }
+                                        }
+                                    }
+
+                                    // Public Channel discovery is a real route; the
+                                    // composer retains a separate joined-only picker.
+                                    Loader {
+                                        id: channelsSurfaceLoader
+                                        active: root.shellRoute === "channels"
+                                        visible: active
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        Layout.maximumWidth: root.adaptiveDetailWidth
+                                        Layout.alignment: Qt.AlignHCenter
+                                        sourceComponent: Component {
+                                            ChannelsSurface {
+                                                channelSource: channelBrowser
+                                                accountFid: presentationBridge.isAuthenticated
+                                                            ? presentationBridge.accountFid : 0
+                                                authenticated: presentationBridge.isAuthenticated
+                                                compact: root.compact
+                                                onSignInRequested: root.openAccountPopup()
+                                                onChannelRequested: info => {
+                                                    const id = String(info && info.id || "")
+                                                    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(id))
+                                                        return
+                                                    root.clearPendingShellReturn()
+                                                    root.selectedChannelInfo = Object.assign(
+                                                        {}, info, {fromChannels: true})
+                                                    root.primaryDestination = "explorer"
+                                                    root.shellRoute = ""
+                                                    presentationBridge.openChannel(id)
+                                                }
+                                            }
                                         }
                                     }
 

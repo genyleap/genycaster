@@ -44,6 +44,8 @@ public:
                     QByteArray payload{"{\"channels\":[],\"next\":{}}"};
                     if (target.contains("/user/memberships/list")) {
                         payload = R"({"channels":[{"id":"genyleap","name":"genyleap","parent_url":"https://warpcast.com/~/channel/genyleap","member_count":3}],"next":{}})";
+                    } else if (target.contains("/channel/trending")) {
+                        payload = R"({"channels":[{"id":"art","name":"Art","parent_url":"https://warpcast.com/~/channel/art","follower_count":2500},{"id":"developers","name":"Developers","parent_url":"https://warpcast.com/~/channel/developers","follower_count":1200}],"next":{}})";
                     } else if (target.contains("/channel/search")) {
                         payload = R"({"channels":[{"id":"genyleap","name":"genyleap","parent_url":"https://warpcast.com/~/channel/genyleap","member_count":3},{"id":"art","name":"art","parent_url":"https://warpcast.com/~/channel/art","member_count":100}],"next":{}})";
                     } else if (target.contains("/search-channels")) {
@@ -190,6 +192,43 @@ int main(int argc, char** argv)
           .toMap().value(QStringLiteral("id")).toString() == QStringLiteral("genyleap"),
           "QPersistentModelIndex survives network metadata enrichment");
 
-    if (failures == 0) std::println("PASS: channel selection lifecycle");
+    // Public discovery remains independent of the signed composer picker.
+    // Browsing another channel must never grant publishing permission.
+    ChannelPickerController browser(settings, api.baseUrl(), {}, true, true, true);
+    browser.openForViewer(0);
+    check(pumpUntil([&] {
+        return !findRow(browser.rows(), QStringLiteral("art")).isEmpty();
+    }), "anonymous discovery loads live public trending channels");
+    const QVariantMap publicArt = findRow(browser.rows(), QStringLiteral("art"));
+    check(!publicArt.value(QStringLiteral("isMember")).toBool()
+              && !publicArt.value(QStringLiteral("selectable")).toBool(),
+          "public channel navigation does not imply signed membership");
+    check(browser.chooseChannel(QStringLiteral("art")).isEmpty(),
+          "discovery controller cannot authorize writes to public channels");
+    const QString previousQuery = controller.query();
+    const QVariantList previousRows = controller.rows();
+    check(browser.query().isEmpty() && controller.rows() == previousRows,
+          "browsing public channels leaves the composer rows unchanged");
+    browser.search(QStringLiteral("genyleap"));
+    check(pumpUntil([&] {
+        return !findRow(browser.rows(), QStringLiteral("genyleap")).isEmpty();
+    }), "public discovery searches the selected network source");
+    check(controller.query() == previousQuery,
+          "searching public Channels does not modify the composer query");
+    browser.openForViewer(42);
+    check(pumpUntil([&] { return browser.membershipReady(); }),
+          "signed-in browsing verifies membership independently");
+    check(findRow(browser.rows(), QStringLiteral("genyleap"))
+              .value(QStringLiteral("isMember")).toBool(),
+          "only the verified viewer receives the Joined label");
+    browser.refreshDiscovery();
+    check(pumpUntil([&] { return browser.membershipReady(); }),
+          "refresh rechecks memberships and restores public discovery");
+    browser.openForViewer(0);
+    check(findRow(browser.rows(), QStringLiteral("genyleap"))
+              .value(QStringLiteral("isMember")).toBool() == false,
+          "sign-out never leaks verified membership to anonymous browsing");
+
+    if (failures == 0) std::println("PASS: channel selection and discovery lifecycle");
     return failures == 0 ? 0 : 1;
 }

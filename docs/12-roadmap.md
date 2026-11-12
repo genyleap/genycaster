@@ -49,7 +49,7 @@ This page tracks **implementation** independently from **qualification and relea
 
 ### Phase 04 — Native social experience
 
-**Complete — source feature set.** Qt Quick implements Home, Explorer, casts, conversations, profiles, rich media, notifications, composer, search, appearance and localization.
+**Complete — source feature set.** Qt Quick implements Home, Explorer, public Channels directory, joined-channel discovery, scoped channel reading, casts, conversations, profiles, rich media, notifications, composer, search, appearance and localization. Public channel browsing is separate from the signed composer picker; publishing to a channel still requires provider-verified membership. Channel join/leave mutations are not advertised without a supported authenticated protocol write.
 
 **Remaining:** reliable navigation back to the exact cast and scroll offset, steady media rendering, touch/keyboard accessibility, RTL support and real GPU frame-time acceptance. **Qualification gate:** representative device/browser tests demonstrate stable UX and measured frame performance.
 

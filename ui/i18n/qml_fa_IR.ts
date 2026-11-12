@@ -7409,5 +7409,29 @@ Company | https://company.com</source>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>پرداخت GENY هنوز روی سرور پیکربندی نشده است.</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>انجمن‌ها، گفتگوها و فیدهای عمومی کانال‌ها را کشف کنید.</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>کاوش</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>هنوز عضویت تأییدشده‌ای در کانال‌ها ندارید. کانال‌ها را جستجو کنید.</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>برای مشاهدهٔ کانال‌هایی که عضو آن‌ها هستید وارد شوید.</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>برای یافتن کانال، نام یا شناسهٔ آن را جستجو کنید.</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>خواندن عمومی است؛ انتشار در کانال به عضویت تأییدشده نیاز دارد.</translation>
+        </message>
     </context>
 </TS>

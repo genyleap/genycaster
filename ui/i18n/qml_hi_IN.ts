@@ -7408,5 +7408,29 @@ Company | https://company.com</source>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>सर्वर पर GENY भुगतान अभी सेट नहीं हैं।</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>समुदाय, बातचीत और सार्वजनिक चैनल फ़ीड खोजें।</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>खोजें</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>अभी कोई सत्यापित चैनल सदस्यता नहीं है। चैनल खोजें।</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>अपने जुड़े हुए चैनल देखने के लिए साइन इन करें।</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>नाम या आईडी से चैनल खोजें।</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>पढ़ना सार्वजनिक है। पोस्ट करने के लिए सत्यापित चैनल सदस्यता चाहिए।</translation>
+        </message>
     </context>
 </TS>

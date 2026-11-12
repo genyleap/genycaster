@@ -38,6 +38,8 @@ set(farcasterQmlFiles
     components/feed/CastViews.qml
     components/feed/CastReactions.qml
     components/profile/BookmarksSurface.qml
+    components/social/ChannelsSurface.qml
+    components/social/ChannelRow.qml
     components/feed/ContentFilterSheet.qml
     components/profile/CollectionChooser.qml
     components/navigation/ContextRail.qml

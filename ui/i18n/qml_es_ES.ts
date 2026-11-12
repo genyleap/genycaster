@@ -7409,5 +7409,29 @@ Empresa | https://company.com</translation>
             <source>GENY payments are not configured on the server yet.</source>
             <translation>Los pagos con GENY aún no están configurados en el servidor.</translation>
         </message>
+        <message id="genycaster.channels.intro">
+            <source>Discover communities, conversations, and public channel feeds.</source>
+            <translation>Descubre comunidades, conversaciones y canales públicos.</translation>
+        </message>
+        <message id="genycaster.channels.discover">
+            <source>Discover</source>
+            <translation>Descubrir</translation>
+        </message>
+        <message id="genycaster.channels.joined_empty">
+            <source>No verified joined channels yet. Explore or search for one.</source>
+            <translation>Aún no hay canales con membresía verificada. Explora o busca canales.</translation>
+        </message>
+        <message id="genycaster.channels.sign_in_hint">
+            <source>Sign in to view your joined channels.</source>
+            <translation>Inicia sesión para ver tus canales.</translation>
+        </message>
+        <message id="genycaster.channels.search_hint">
+            <source>Search by name or ID to explore channels.</source>
+            <translation>Busca canales por nombre o identificador.</translation>
+        </message>
+        <message id="genycaster.channels.read_note">
+            <source>Reading is public. Publishing requires verified channel membership.</source>
+            <translation>La lectura es pública. Para publicar necesitas una membresía verificada.</translation>
+        </message>
     </context>
 </TS>
