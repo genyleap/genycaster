@@ -73,7 +73,12 @@ def prepare(sdk: pathlib.Path, destination: pathlib.Path) -> dict[str, int]:
         content = original.read_text(encoding="utf-8")
         output, rewritten = transform(content)
         destination_file = destination / name
-        destination_file.write_text(output, encoding="utf-8")
+        # Configure probes require a marker from the actual overlaid header.
+        marker = ("GENYCASTER_CPP26_OVERLAY_CGIMAGE" if name == "CGImage.h"
+                  else "GENYCASTER_CPP26_OVERLAY_COLORSYNC")
+        destination_file.write_text(
+            "#define " + marker + " 1" + chr(10) + output,
+            encoding="utf-8")
         # Xcode alternates between the versioned SDK (MacOSX26.5.sdk) and
         # the MacOSX.sdk symlink for framework -F and -isysroot paths. Clang
         # uses the *spelling of the include path*, not just its realpath, in
@@ -83,8 +88,11 @@ def prepare(sdk: pathlib.Path, destination: pathlib.Path) -> dict[str, int]:
             if not sdk_alias.exists() or sdk_alias.resolve() != sdk.resolve():
                 continue
             alias = sdk_alias / relative
-            if all(existing != alias for existing, _ in details):
-                details.append((alias, destination_file))
+            # Clang can follow Framework/Headers -> Versions/A/Headers
+            # before performing the virtual filesystem header lookup.
+            for visible_path in (alias, alias.resolve()):
+                if all(existing != visible_path for existing, _ in details):
+                    details.append((visible_path, destination_file))
         counts[name] = rewritten
 
     # Clang recognizes the JSON representation of its YAML VFS overlay.
@@ -106,6 +114,7 @@ def prepare(sdk: pathlib.Path, destination: pathlib.Path) -> dict[str, int]:
         json.dumps({
             "version": 0,
             "case-sensitive": "true",
+            "use-external-names": False,
             "roots": roots,
         }, indent=2) + "\n",
         encoding="utf-8",

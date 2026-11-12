@@ -116,6 +116,71 @@ class AppleSdkOverlayTests(unittest.TestCase):
             result = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_actual_framework_search_with_resolved_headers_symlinks(self):
+        # The failing browser_macos.mm uses -F AppKit/CoreGraphics SDK
+        # framework lookups, rather than the flat -I lookups of the initial
+        # synthetic test. Simulate a framework whose Headers is a symlink to
+        # Versions/A/Headers and whose SDK name is also a symlink.
+        with tempfile.TemporaryDirectory(prefix="genycaster-framework-vfs-") as tmp:
+            root = pathlib.Path(tmp)
+            sdk = root / "MacOSX27.2.sdk"
+            pairs = [
+                (module.COREGRAPHICS, '#include "Companion.h"' + chr(10) + CG_HEADER),
+                (module.COLORSYNC, '#include "Companion.h"' + chr(10) + CS_HEADER),
+            ]
+            for relative, content in pairs:
+                link = sdk / relative
+                framework = link.parent.parent
+                headers = framework / "Versions" / "A" / "Headers"
+                headers.mkdir(parents=True)
+                (framework / "Headers").symlink_to("Versions/A/Headers")
+                (headers / link.name).write_text(content, encoding="utf-8")
+                (headers / "Companion.h").write_text(
+                    "#define GENYCASTER_COMPANION_HEADER_OK 1" + chr(10),
+                    encoding="utf-8")
+            generic = root / "MacOSX.sdk"
+            generic.symlink_to(sdk, target_is_directory=True)
+            out = root / "overlay"
+            module.prepare(sdk, out)
+            import json
+            mapping = json.loads((out / "macos_cpp26_sdk_overlay.json").read_text())
+            names = [x["name"] for x in mapping["roots"]]
+            self.assertTrue(any("/Versions/A/Headers" in x for x in names))
+            self.assertTrue(any("/MacOSX.sdk/" in x for x in names))
+            self.assertFalse(mapping["use-external-names"])
+            clang = shutil.which("clang++")
+            if not clang:
+                return
+            program = root / "frameworks.cpp"
+            program.write_text(
+                '#include <CoreGraphics/CGImage.h>\n'
+                '#include <QD/ColorSyncDeprecated.h>\n'
+                '#ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE\n'
+                '#error missing_CGImage_overlay\n'
+                '#endif\n'
+                '#ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC\n'
+                '#error missing_ColorSync_overlay\n'
+                '#endif\n'
+                '#ifndef GENYCASTER_COMPANION_HEADER_OK\n'
+                '#error redirected header lost relative includes\n'
+                '#endif\n'
+                'static_assert(cmRGB16LSpace == 14);\n'
+                'int main() { return info() == 15 ? 0 : 1; }\n',
+                encoding="utf-8")
+            for sdk_root in (sdk, generic):
+                frameworks = sdk_root / "System/Library/Frameworks"
+                nested = frameworks / "ApplicationServices.framework/Frameworks"
+                argv = [clang, "-std=c++2c", "-fsyntax-only",
+                        "-F", str(frameworks), "-F", str(nested)]
+                unpatched = subprocess.run(
+                    [*argv, str(program)], capture_output=True, text=True)
+                self.assertNotEqual(unpatched.returncode, 0)
+                patched = subprocess.run(
+                    [*argv, "-ivfsoverlay",
+                     str(out / "macos_cpp26_sdk_overlay.json"),
+                     str(program)], capture_output=True, text=True)
+                self.assertEqual(patched.returncode, 0, patched.stderr)
+
     def test_header_already_fixed_is_left_unchanged(self):
         safe = CG_HEADER.replace(module.CG_EXPRESSIONS[0], module.CG_REWRITTEN)
         self.assertEqual(module.rewrite_cg(safe), (safe, 0))
@@ -134,6 +199,9 @@ class AppleSdkOverlayTests(unittest.TestCase):
         self.assertIn("-std=c++26 -fobjc-arc", cmake)
         self.assertIn("prepare_macos_sdk_cpp26.py", cmake)
         self.assertIn("-ivfsoverlay", cmake)
+        self.assertIn("#import <AppKit/NSEvent.h>", cmake)
+        self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE", cmake)
+        self.assertIn("#ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC", cmake)
         self.assertNotIn("OBJCXX_STANDARD 23", cmake)
         self.assertNotIn("-Wno-enum-enum-conversion", cmake)
 

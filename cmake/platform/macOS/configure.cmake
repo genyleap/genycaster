@@ -169,12 +169,24 @@ macro(genycaster_macos_setup_browser)
     check_objcxx_source_compiles([=[
     #import <Foundation/Foundation.h>
     #import <AppKit/NSApplication.h>
+    // These actual Mini App imports transitively enter CoreGraphics, QD and
+    // ColorSync, unlike the earlier incomplete configure-only smoke probe.
+    #import <AppKit/NSEvent.h>
     #import <WebKit/WKWebView.h>
     #import <WebKit/WKPreferences.h>
     #import <WebKit/WKNavigationAction.h>
     #import <WebKit/WKNavigationResponse.h>
     #include <CoreGraphics/CGImage.h>
     #include <ApplicationServices/ApplicationServices.h>
+    // Do not accept a successful compile unless Clang actually loaded BOTH
+    // modified SDK headers through the overlay. A syntactically valid JSON
+    // overlay that is ignored by framework lookup must fail at configure time.
+    #ifndef GENYCASTER_CPP26_OVERLAY_CGIMAGE
+    #error "Clang skipped the CGImage.h C++26 VFS overlay"
+    #endif
+    #ifndef GENYCASTER_CPP26_OVERLAY_COLORSYNC
+    #error "Clang skipped the ColorSyncDeprecated.h C++26 VFS overlay"
+    #endif
     int main() { return 0; }
     ]=] GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
     set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")
