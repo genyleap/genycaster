@@ -140,13 +140,32 @@ macro(genycaster_macos_setup_browser)
         endif()
     endif()
 
+    # Apple's SDK contains legacy mixed-enum arithmetic that C++26 rejects.
+    # Build a local VFS overlay with explicit enum-to-integer conversions.
+    # Never modify installed SDK files, lower the standard or hide diagnostics.
+    execute_process(
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/ci/prepare_macos_sdk_cpp26.py"
+            --sdk "${_genycasterXcodeSdk}"
+            --output "${CMAKE_CURRENT_BINARY_DIR}/macos-sdk-cpp26"
+        RESULT_VARIABLE _genycasterOverlayResult
+        OUTPUT_VARIABLE _genycasterOverlayOutput
+        ERROR_VARIABLE _genycasterOverlayError)
+    if(NOT _genycasterOverlayResult EQUAL 0)
+        message(FATAL_ERROR
+            "macOS C++26 SDK compatibility overlay failed: ${_genycasterOverlayError}")
+    endif()
+    message(STATUS "${_genycasterOverlayOutput}")
+    set(_genycasterSdkOverlay
+        "${CMAKE_CURRENT_BINARY_DIR}/macos-sdk-cpp26/macos_cpp26_sdk_overlay.json")
+
     # Verify the actual compiler/SDK pair now, rather than allowing a full native
     # build to fail deep inside Apple headers with an obscure enum diagnostic.
     # C++26 type safety and compiler warnings are not relaxed in this probe.
     include(CheckOBJCXXSourceCompiles)
     unset(GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE CACHE)
     set(_genycasterSavedRequiredFlags "${CMAKE_REQUIRED_FLAGS}")
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc")
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++26 -fobjc-arc -isysroot \"${_genycasterXcodeSdk}\" -ivfsoverlay \"${_genycasterSdkOverlay}\"")
     check_objcxx_source_compiles([=[
     #import <Foundation/Foundation.h>
     #import <AppKit/NSApplication.h>
@@ -154,6 +173,8 @@ macro(genycaster_macos_setup_browser)
     #import <WebKit/WKPreferences.h>
     #import <WebKit/WKNavigationAction.h>
     #import <WebKit/WKNavigationResponse.h>
+    #include <CoreGraphics/CGImage.h>
+    #include <ApplicationServices/ApplicationServices.h>
     int main() { return 0; }
     ]=] GENYCASTER_MACOS_OBJCXX26_SDK_COMPATIBLE)
     set(CMAKE_REQUIRED_FLAGS "${_genycasterSavedRequiredFlags}")
@@ -179,7 +200,11 @@ macro(genycaster_macos_setup_browser)
         OBJCXX_EXTENSIONS OFF
         CXX_SCAN_FOR_MODULES OFF
         AUTOMOC OFF)
-    target_compile_options(farcaster_miniapp_browser PRIVATE -fobjc-arc)
+    # Place the matching Xcode SDK after cached CLT Kit flags.
+    target_compile_options(farcaster_miniapp_browser PRIVATE
+        -fobjc-arc
+        -isysroot "${_genycasterXcodeSdk}"
+        -ivfsoverlay "${_genycasterSdkOverlay}")
     target_link_libraries(farcaster_miniapp_browser PRIVATE
         Qt6::Gui Qt6::Network
         "${genycasterWebKitFramework}"
