@@ -5658,20 +5658,20 @@ Company | https://company.com</source>
             <translation>چگونه می‌خواهید در جنی‌کستر ادامه دهید؟</translation>
         </message>
         <message id="genycaster.setup.registration_choose_provider">
-            <source>Choose an account provider</source>
-            <translation>انتخاب سرویس حساب</translation>
+            <source>Choose your registration network</source>
+            <translation>شبکهٔ ثبت‌نام خود را انتخاب کنید</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
-            <translation>شبکهٔ ثبت‌نام را انتخاب کنید. هایپراسنپ بومی و فارکستر از طریق نینار، هویت‌های FID متفاوتی ایجاد می‌کنند.</translation>
+            <source>HyperSnap and Farcaster have separate FID registries. Selecting a network does not create an account.</source>
+            <translation>رجیستری‌های FID در هایپراسنپ و فارکستر مستقل‌اند. انتخاب شبکه به‌تنهایی حساب ایجاد نمی‌کند.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
             <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
             <translation>FID بومی هایپراسنپ: کیف پول شخصی، اثبات کار و امضای EIP-712.</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
-            <source>نینار (Farcaster)</source>
-            <translation>نینار (فارکستر)</translation>
+            <source>Farcaster (via Neynar)</source>
+            <translation>فارکستر (از طریق نینار)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
             <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
@@ -5697,21 +5697,29 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>پس از پایان راه‌اندازی، جنی‌کستر را یک‌بار از نو اجرا کنید تا سرویس خواندن انتخاب‌شده فعال شود. هویت فارکستر شما تغییر نمی‌کند.</translation>
         </message>
+        <message id="genycaster.setup.registration_runtime_initializing">
+            <source>Initializing secure account registration services…</source>
+            <translation>در حال راه‌اندازی سرویس‌های امن ثبت‌نام…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_unavailable">
+            <source>This HyperSnap node has not confirmed native registration support. No FID has been created.</source>
+            <translation>این نود هایپراسنپ هنوز پشتیبانی از ثبت‌نام بومی را تأیید نکرده است. هیچ FID ایجاد نشده است.</translation>
+        </message>
         <message id="genycaster.setup.native_registration_checking">
             <source>Checking the HyperSnap native registration protocol…</source>
             <translation>بررسی پروتکل ثبت‌نام بومی هایپراسنپ…</translation>
         </message>
         <message id="genycaster.setup.native_registration_node_ready">
-            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
-            <translation>ثبت‌نام بومی در این نود هایپراسنپ فعال است؛ راه‌اندازی امن کیف پول در این نسخه هنوز متصل نشده است.</translation>
+            <source>This HyperSnap node reports native registration support. Back up your wallet and complete network confirmation before an FID exists.</source>
+            <translation>این نود هایپراسنپ پشتیبانی از ثبت‌نام بومی را اعلام کرده است. تا پشتیبان‌گیری کیف پول و تأیید شبکه، FID ایجادشده محسوب نمی‌شود.</translation>
         </message>
-        <message id="genycaster.setup.native_registration_pending">
-            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
-            <translation>پشتیبان‌گیری امن کیف پول، تأیید FID بومی و راه‌اندازی امضاکننده هنوز در حال تکمیل هستند. تا اتصال این مراحل، ساخت حساب غیرفعال است.</translation>
+        <message id="genycaster.setup.native_registration_signing_unavailable">
+            <source>Secure account signing is unavailable in this runtime. Check the signer vault; no FID has been created.</source>
+            <translation>امضای امن حساب در این محیط آماده نیست. خزانهٔ امضاکننده را بررسی کنید؛ هیچ FID ایجاد نشده است.</translation>
         </message>
-        <message id="genycaster.setup.neynar_registration_pending">
-            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
-            <translation>ثبت حساب از طریق نینار به کیف پول امن و سرویس ثبت‌نام مجاز در بک‌اند نیاز دارد. این نسخه هنوز حسابی ایجاد نمی‌کند.</translation>
+        <message id="genycaster.setup.neynar_registration_requirements">
+            <source>Farcaster registration requires a verified funded enrollment code. A wallet alone does not reserve or create an FID.</source>
+            <translation>ثبت‌نام فارکستر به کد ثبت‌نام تأییدشده و تأمین‌مالی‌شده نیاز دارد. صرفاً ساخت کیف پول، FID را رزرو یا ایجاد نمی‌کند.</translation>
         </message>
         <message id="genycaster.setup.wallet_create_label">
             <source>Generate secure wallet</source>
@@ -5766,8 +5774,8 @@ Company | https://company.com</source>
             <translation>در حال محاسبهٔ اثبات ثبت‌نام بدون دسترسی Thread پردازش به کلیدهای کیف پول. رابط کاربری در این مدت آزاد می‌ماند.</translation>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
-            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>اثبات ثبت‌نام در دستگاه آماده شد. پیش از ارسال به هایپراسنپ از نگهداری امن کلمات بازیابی مطمئن شوید.</translation>
+            <source>Proof prepared locally; nothing has been submitted. Review your backup before explicitly registering with HyperSnap.</source>
+            <translation>اثبات ثبت‌نام در دستگاه آماده شده، اما چیزی ارسال نشده است. پیش از ثبت‌نام در هایپراسنپ، پشتیبان کیف پول را بررسی کنید.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
