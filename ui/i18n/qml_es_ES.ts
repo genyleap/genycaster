@@ -5634,20 +5634,20 @@ Empresa | https://company.com</translation>
             <translation>Utiliza tu identidad de Farcaster o tu cuenta de Genyleap. Cada inicio de sesión se verifica de forma independiente; ninguno cambia su red de lectura.</translation>
         </message>
         <message id="genycaster.setup.registration_choose_provider">
-            <source>Choose an account provider</source>
-            <translation>Elegir proveedor de cuenta</translation>
+            <source>Choose your registration network</source>
+            <translation>Elige la red de registro</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
-            <translation>Elige la red de registro. HyperSnap Native y Farcaster mediante Neynar generan identidades FID diferentes.</translation>
+            <source>HyperSnap and Farcaster have separate FID registries. Selecting a network does not create an account.</source>
+            <translation>HyperSnap y Farcaster tienen registros FID independientes. Elegir una red no crea una cuenta.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
             <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
             <translation>FID nativo de HyperSnap: cartera local, prueba de trabajo y EIP-712.</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
-            <source>Neynar (Farcaster)</source>
-            <translation>Neynar (Farcaster)</translation>
+            <source>Farcaster (via Neynar)</source>
+            <translation>Farcaster (mediante Neynar)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
             <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
@@ -5673,21 +5673,29 @@ Empresa | https://company.com</translation>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>Reinicia GenyCaster después de la configuración para activar el proveedor de lectura elegido. Tu identidad Farcaster no cambia.</translation>
         </message>
+        <message id="genycaster.setup.registration_runtime_initializing">
+            <source>Initializing secure account registration services…</source>
+            <translation>Inicializando los servicios de registro seguro…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_unavailable">
+            <source>This HyperSnap node has not confirmed native registration support. No FID has been created.</source>
+            <translation>Este nodo de HyperSnap no ha confirmado que admita el registro nativo. No se ha creado ningún FID.</translation>
+        </message>
         <message id="genycaster.setup.native_registration_checking">
             <source>Checking the HyperSnap native registration protocol…</source>
             <translation>Comprobando el registro nativo de HyperSnap…</translation>
         </message>
         <message id="genycaster.setup.native_registration_node_ready">
-            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
-            <translation>El registro nativo está activo en este nodo de HyperSnap. Falta integrar la configuración segura de la cartera.</translation>
+            <source>This HyperSnap node reports native registration support. Back up your wallet and complete network confirmation before an FID exists.</source>
+            <translation>Este nodo de HyperSnap indica que admite el registro nativo. Guarda una copia de tu cartera y espera la confirmación de la red antes de considerar creado el FID.</translation>
         </message>
-        <message id="genycaster.setup.native_registration_pending">
-            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
-            <translation>Falta integrar la copia de seguridad segura, la confirmación del FID nativo y la configuración del firmante. La creación de cuentas sigue desactivada.</translation>
+        <message id="genycaster.setup.native_registration_signing_unavailable">
+            <source>Secure account signing is unavailable in this runtime. Check the signer vault; no FID has been created.</source>
+            <translation>La firma segura de cuentas no está disponible. Comprueba el almacén de claves; no se ha creado ningún FID.</translation>
         </message>
-        <message id="genycaster.setup.neynar_registration_pending">
-            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
-            <translation>Neynar requiere una cartera segura y un servicio autorizado de registro. Esta versión todavía no crea cuentas.</translation>
+        <message id="genycaster.setup.neynar_registration_requirements">
+            <source>Farcaster registration requires a verified funded enrollment code. A wallet alone does not reserve or create an FID.</source>
+            <translation>El registro en Farcaster exige un código de inscripción financiado y verificado. Una cartera por sí sola no reserva ni crea un FID.</translation>
         </message>
         <message id="genycaster.setup.wallet_create_label">
             <source>Generate secure wallet</source>
@@ -5742,8 +5750,8 @@ Empresa | https://company.com</translation>
             <translation>Se calcula la prueba sin exponer las claves de la cartera, fuera del hilo de interfaz.</translation>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
-            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
+            <source>Proof prepared locally; nothing has been submitted. Review your backup before explicitly registering with HyperSnap.</source>
+            <translation>La prueba se ha preparado localmente; no se ha enviado nada. Revisa tu copia de seguridad antes de registrarte expresamente en HyperSnap.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
