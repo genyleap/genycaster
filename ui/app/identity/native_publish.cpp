@@ -48,6 +48,32 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     return true;
 }
 
+bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
+{
+    if (!m_registrationSupported || m_busy || m_pending || confirmed()
+        || !m_ports.backupVerified || !m_ports.backupVerified()
+        || !m_ports.custodyAddress || !m_transport.endpointIsSafe())
+        return false;
+    const QString custody = m_ports.custodyAddress().toLower();
+    if (custody.size() != 42 || !custody.startsWith(QLatin1String("0x")))
+        return false;
+    // A chain write may already be in flight after restart: never replay it.
+    // Only a custody-bound read of shard-0 can confirm ownership.
+    m_address = custody;
+    m_fid.clear();
+    m_submitted = true;
+    m_pending = true;
+    m_unknown = true;
+    m_failed = false;
+    m_busy = true;
+    m_checks = 0;
+    const auto generation = ++m_generation;
+    if (m_ports.cancelProof) m_ports.cancelProof();
+    emit changed();
+    lookup(false, generation);
+    return true;
+}
+
 void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generation)
 {
     m_transport.lookupByCustody(m_address, [this, generation, beforeSubmit](

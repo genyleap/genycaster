@@ -5856,6 +5856,10 @@ Company | https://company.com</source>
             <source>Check Farcaster registration status</source>
             <translation>التحقق من حالة التسجيل</translation>
         </message>
+        <message id="genycaster.setup.resume_registration_with_phrase">
+            <source>Resume interrupted registration with 24 recovery words</source>
+            <translation>استعادة تسجيل غير مكتمل بالكلمات الأربع والعشرين</translation>
+        </message>
         <message id="genycaster.setup.neynar_runtime_unavailable">
             <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
             <translation>توقيع الحساب الآمن غير متاح في هذا الإصدار. لم يبدأ أي تسجيل. تحقق من مخزن مفاتيح التوقيع.</translation>

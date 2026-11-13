@@ -52,6 +52,8 @@ public:
 
     /** User-initiated only. Does not automatically repeat an uncertain write. */
     Q_INVOKABLE bool submitPrepared();
+    /** Read-only native shard-0 recovery for an interrupted registration. */
+    Q_INVOKABLE bool recoverInterruptedRegistration();
     /** Queries the registry; safe even if submit returned timeout/500. */
     Q_INVOKABLE bool checkConfirmation();
     /** Cancel local polling, never claim a network transaction was cancelled. */

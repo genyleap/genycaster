@@ -87,6 +87,51 @@ bool NativeCustodyWalletController::generate()
     return true;
 }
 
+
+bool NativeCustodyWalletController::restoreForRegistration(QString recoveryWords)
+{
+    const auto erase = [&recoveryWords] {
+        if (!recoveryWords.isEmpty())
+            recoveryWords.fill(QChar{char16_t{0}});
+    };
+    if (hasWallet() || recoveryWords.size() > 4095) {
+        erase();
+        return false;
+    }
+    QByteArray bytes = recoveryWords.toUtf8();
+    erase();
+    if (bytes.size() < 32 || bytes.size() > 512) {
+        bytes.fill(char{0});
+        m_private->error = QStringLiteral("Invalid custody recovery phrase.");
+        emit changed();
+        return false;
+    }
+    std::string phrase{bytes.constData(), static_cast<std::size_t>(bytes.size())};
+    bytes.fill(char{0});
+    const auto address = custody::derivePublicCustodyAddress(phrase);
+    if (!address || address->size() != 42) {
+        if (!phrase.empty()) OPENSSL_cleanse(phrase.data(), phrase.size());
+        m_private->error = QStringLiteral("Invalid BIP39 custody recovery phrase.");
+        emit changed();
+        return false;
+    }
+    custody::GeneratedCustodyWallet restored{};
+    restored.recoveryWords = std::move(phrase);
+    restored.address = *address;
+    if (!phrase.empty()) OPENSSL_cleanse(phrase.data(), phrase.size());
+    m_private->secret.emplace(std::move(restored));
+    // An exact BIP39 recovery establishes offline backup possession, not
+    // network ownership. The protocol registry must confirm identity later.
+    m_private->verified = true;
+    m_private->revealed = false;
+    m_private->indexA = -1;
+    m_private->indexB = -1;
+    m_private->failures = 0;
+    m_private->error.clear();
+    emit changed();
+    return true;
+}
+
 bool NativeCustodyWalletController::startBackupChallenge()
 {
     if (!hasWallet() || m_private->verified) return false;

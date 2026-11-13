@@ -57,6 +57,7 @@ Item {
     }
     property string accountIntent: ""
     property bool choosingRegistrationProvider: false
+    property bool resumingRegistration: false
     property string registrationProviderId: "hypersnap-v2"
     property string registrationError: ""
     function beginAccountRegistration() {
@@ -105,6 +106,7 @@ Item {
     signal authorizeSigner()
     signal recoverAccount()
     signal nativeRecoverAccount(string recoveryWords)
+    signal nativeRecoverFarcasterAccount(string recoveryWords)
     signal nativeRecoverHyperSnapAccount(string recoveryWords)
     property string recoveryProtocol: "hypersnap-v2"
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
@@ -227,6 +229,12 @@ Item {
             if (reviewMode) closeReviewRequested()
             return
         }
+        if (currentStep === 4 && resumingRegistration) {
+            resumingRegistration = false
+            showRecovery = false
+            switchStep(3)
+            return
+        }
         if (currentStep === 5 && (authenticationInProgress || recoverySubmitPending)) {
             cancelAuthentication()
             recoverySubmitPending = false
@@ -306,7 +314,11 @@ Item {
             switchStep(4)
     }
     onAuthenticationErrorTextChanged: {
-        if (authenticationErrorText.length && authenticationRoute === "recovery" && !authenticated) {
+        if (authenticationErrorText.length
+            && (authenticationRoute === "recovery"
+                || authenticationRoute === "hypersnap-recovery"
+                || authenticationRoute === "farcaster-native-recovery")
+            && !authenticated) {
             recoverySubmitPending = false
             if (currentStep === 5) switchStep(4)
         }
@@ -1305,6 +1317,19 @@ Item {
                         wrapMode: Text.WordWrap
                     }
                     ActionButton {
+                        objectName: "setupRestoreInterruptedWallet"
+                        visible: !nativeCustodyWallet.hasWallet
+                        Layout.fillWidth: true
+                        compact: true
+                        text: qsTrId("genycaster.setup.resume_registration_with_phrase")
+                        onClicked: {
+                            root.resumingRegistration = true
+                            root.recoveryProtocol = root.registrationProviderId
+                            root.showRecovery = true
+                            root.switchStep(4)
+                        }
+                    }
+                    ActionButton {
                         objectName: "setupGenerateCustodyWallet"
                         visible: !nativeCustodyWallet.hasWallet
                         Layout.fillWidth: true
@@ -1703,6 +1728,8 @@ Item {
                         text: qsTrId("genycaster.setup.native_proof_prepare")
                         busy: nativeRegistrationPreparation.busy
                         enabled: nativeRegistrationStatus.active
+                                 && !nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.confirmed
                                  && nativeRegistrationStatus.accountLookupChecked
                                  && !nativeRegistrationStatus.accountLookupFailed
                                  && nativeRegistrationStatus.existingNativeFid.length === 0
@@ -1758,6 +1785,7 @@ Item {
                         text: qsTrId("genycaster.setup.registration_start")
                         busy: nativeRegistrationPublisher.busy
                         enabled: root.runtimeReady
+                                 && !nativeRegistrationPublisher.pending
                                  && nativeRegistrationPublisher.registrationSupported
                                  && nativeRegistrationConsent.checked
                                  && nativeRegistrationPreparation.prepared
@@ -2018,11 +2046,27 @@ Item {
                     onClicked: {
                         let words = nativeRecoveryGrid.phrase()
                         nativeRecoveryGrid.clearAll()
+                        if (root.resumingRegistration) {
+                            const restored =
+                                nativeCustodyWallet.restoreForRegistration(words)
+                            words = ""
+                            if (restored) {
+                                root.resumingRegistration = false
+                                root.showRecovery = false
+                                root.registrationError = ""
+                                if (root.registrationProviderId === "hypersnap-v2")
+                                    nativeRegistrationPublisher.recoverInterruptedRegistration()
+                                root.switchStep(3)
+                            } else {
+                                root.registrationError = nativeCustodyWallet.error
+                            }
+                            return
+                        }
                         root.recoverySubmitPending = true
                         if (root.recoveryProtocol === "hypersnap-v2")
                             root.nativeRecoverHyperSnapAccount(words)
                         else
-                            root.nativeRecoverAccount(words)
+                            root.nativeRecoverFarcasterAccount(words)
                         root.switchStep(5)
                         words = ""
                     }
@@ -2139,7 +2183,11 @@ Item {
                 neutralPrimary: true
                 showArrow: false
                 text: qsTrId("genycaster.setup.continue")
-                onClicked: root.switchStep(6)
+                enabled: root.accountIntent !== "new" || root.signerReady
+                onClicked: {
+                    if (root.accountIntent !== "new" || root.signerReady)
+                        root.switchStep(6)
+                }
             }
             SetupPrimaryButton {
                 visible: !root.authenticated && root.authenticationApprovalAvailable

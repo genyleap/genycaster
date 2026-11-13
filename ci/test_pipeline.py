@@ -299,7 +299,9 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("emit nativeRecoveryRequested(std::move(recoveryWords));", bridge)
         self.assertIn("Qt.ImhSensitiveData", setup)
         self.assertIn("nativeRecoveryGrid.clearAll()", setup)
-        self.assertIn("root.nativeRecoverAccount(words)", setup)
+        self.assertIn("root.nativeRecoverFarcasterAccount(words)", setup)
+        self.assertIn("root.nativeRecoverHyperSnapAccount(words)", setup)
+        self.assertIn("nativeCustodyWallet.restoreForRegistration(words)", setup)
         # The native recovery DTO owns an ICustodyAuthorizer. Imports of other
         # C++26 modules do not make that capability declaration transitive.
         self.assertIn("import farcaster.capability.signer;", wiring)

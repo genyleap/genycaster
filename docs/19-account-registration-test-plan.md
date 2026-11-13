@@ -37,8 +37,16 @@ application build substitutes.
    Expect pending, then a confirmed FID only after a separate shard-0 lookup.
 6. Do not mark Setup complete or enable Cast/Like until device signer
    authorization and registry verification succeed.
-7. Restart, log out and recover from the 24 offline words. Check recovery uses
-   HyperSnap's own registry, not the Farcaster/Optimism IdRegistry.
+7. To test an interrupted registration, close the application after submitting
+   the HyperSnap proof. Restart, choose **Create account > HyperSnap > Resume
+   interrupted registration**, and re-enter the **same offline 24 words**.
+   The client uses read-only shard-0 `nativeAccount` lookups, never automatically
+   replays the possibly accepted proof. If the node is still returning 404,
+   keep polling rather than generating another FID on that same wallet.
+8. Log out and choose **Existing account > Recover > HyperSnap** with the
+   original 24 words. The native registry must resolve the exact public
+   address and FID before a one-use KEY_ADD authorization is created.
+   Changing the read provider must not send this signer to Snapchain.
 
 ## Farcaster via Neynar: funded operator test
 
@@ -85,10 +93,16 @@ Then in the normal GenyCaster Qt Setup:
    ready signer with exactly the expected FID and the Snapchain adapter;
    editing the read-node choice must not redirect signed messages to
    HyperSnap. Setup cannot complete a **new** account until signerReady.
-7. Reopen/restart, retry a stale voucher/duplicate invoice and test an
-   interrupted reservation/unknown submission. Do not send duplicate paid
-   allocations or transfers; use the read-only status lookup and the
-   existing reservation ID.
+7. To recover an interrupted *unconfirmed* registration, select **Create
+   account > Farcaster / Neynar > Resume interrupted registration**, re-enter
+   the same offline phrase, then enter the **original enrollment voucher**.
+   A deterministic reservation ID and backend lease prevent duplicate paid
+   allocations; use read-only status rather than guessing a second purchase.
+8. For a fully confirmed account, use **Existing account > Recover >
+   Farcaster**. The native verifier reads Optimism chain ID 10 and checks
+   both `idOf(custody)` and `custodyOf(fid)` directly. It does **not**
+   require an OpenProof login or grant, and registers a device Signer only
+   after network ownership verification.
 
 ## Launch gates
 

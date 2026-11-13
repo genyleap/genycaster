@@ -5881,6 +5881,10 @@ Company | https://company.com</translation>
             <source>Check Farcaster registration status</source>
             <translation>Check Farcaster registration status</translation>
         </message>
+        <message id="genycaster.setup.resume_registration_with_phrase">
+            <source>Resume interrupted registration with 24 recovery words</source>
+            <translation>Resume interrupted registration with 24 recovery words</translation>
+        </message>
         <message id="genycaster.setup.neynar_runtime_unavailable">
             <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
             <translation>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</translation>

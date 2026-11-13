@@ -5856,6 +5856,10 @@ Company | https://company.com</source>
             <source>Check Farcaster registration status</source>
             <translation>Registrierungsstatus prüfen</translation>
         </message>
+        <message id="genycaster.setup.resume_registration_with_phrase">
+            <source>Resume interrupted registration with 24 recovery words</source>
+            <translation>Unvollständige Registrierung mit 24 Wörtern fortsetzen</translation>
+        </message>
         <message id="genycaster.setup.neynar_runtime_unavailable">
             <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
             <translation>Sicheres Signieren ist in diesem Build nicht verfügbar. Keine Registrierung begonnen. Bitte den Signer-Tresor prüfen.</translation>

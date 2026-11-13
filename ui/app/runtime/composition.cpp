@@ -603,6 +603,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     if (optimismRpcUrl) {
         farcasterAuthConfig.optimismRpcUrl = *optimismRpcUrl;
     }
+    runtime->optimismRpcUrl = farcasterAuthConfig.optimismRpcUrl;
     auto farcasterAuthentication =
         farcaster::provider::compatibility::auth::makeAuthentication(
             *runtime->transport, std::move(farcasterAuthConfig));

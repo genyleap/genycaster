@@ -1,5 +1,6 @@
 #include "native_wallet.hpp"
 
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QMetaProperty>
 #include <QPainter>
@@ -44,6 +45,24 @@ int main(int argc, char** argv)
     assert(wallet.hasWallet() && wallet.address() != custody);
     wallet.discard();
     assert(!wallet.hasWallet() && !wallet.backupVerified());
+    // A process restart never copies the mnemonic into settings. The owner
+    // explicitly re-enters the offline BIP39 phrase to resume one paid FID.
+    assert(!wallet.restoreForRegistration(QStringLiteral("abandon abandon abandon")));
+    assert(!wallet.hasWallet());
+    const QString validPhrase = QStringLiteral(
+        "abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon abandon abandon abandon abandon "
+        "abandon abandon abandon abandon abandon abandon abandon art");
+    assert(wallet.restoreForRegistration(validPhrase));
+    assert(wallet.backupVerified());
+    assert(!wallet.recoveryVisible());
+    assert(wallet.address().size() == 42);
+    assert(!wallet.restoreForRegistration(validPhrase)); // No overwrite.
+    const auto signedTransfer=wallet.signReservedFarcasterTransfer(
+        1234567, 0, static_cast<std::uint64_t>(QDateTime::currentSecsSinceEpoch()+180));
+    assert(signedTransfer && signedTransfer->size() == 132);
+    assert(meta->indexOfProperty("recoveryWords") == -1);
+    wallet.discard();
 
     NativeRecoveryWordsItem display{};
     display.setWallet(&wallet);

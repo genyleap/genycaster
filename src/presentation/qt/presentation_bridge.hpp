@@ -392,6 +392,8 @@ public:
     Q_INVOKABLE void beginNativeRecoverySetup(QString recoveryWords);
     /** Recover HyperSnap-native FID through its own registry, not IdRegistry. */
     Q_INVOKABLE void beginNativeHyperSnapRecoverySetup(QString recoveryWords);
+    /** Recover an onchain Farcaster FID without an OpenProof account grant. */
+    Q_INVOKABLE void beginNativeFarcasterRecoverySetup(QString recoveryWords);
     Q_INVOKABLE void cancelSignIn();
     Q_INVOKABLE void signOut();
     Q_INVOKABLE void openAuthenticationApproval();
@@ -616,6 +618,7 @@ signals:
     /** A one-shot phrase delivered to the native recovery executor, never to a provider. */
     void nativeRecoveryRequested(QString recoveryWords);
     void nativeHyperSnapRecoveryRequested(QString recoveryWords);
+    void nativeFarcasterRecoveryRequested(QString recoveryWords);
     void signInCancelRequested();
     void signOutRequested();
     void signerRefreshRequested();
@@ -660,6 +663,7 @@ private:
 #endif
     QString m_authenticationRoute{QStringLiteral("openproof")};
     bool m_hyperSnapRecoveryRequest{false};
+    bool m_farcasterRecoveryRequest{false};
     QString m_independentNetworkKey{QStringLiteral("independent")};
     QString m_hostedNetworkKey{QStringLiteral("hosted")};
     QString m_preferredNetwork{};

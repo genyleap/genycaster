@@ -40,6 +40,8 @@ public:
     [[nodiscard]] QString error() const;
 
     Q_INVOKABLE bool generate();
+    /** Explicit recovery of a backed-up wallet for an interrupted registration. */
+    Q_INVOKABLE bool restoreForRegistration(QString recoveryWords);
     Q_INVOKABLE bool startBackupChallenge();
     Q_INVOKABLE bool verifyBackup(QString first, QString second);
     Q_INVOKABLE void revealForBackup();

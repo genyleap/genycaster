@@ -148,6 +148,7 @@ struct Runtime final {
     std::unique_ptr<farcaster::local::read::IReadStore> store{};
     std::unique_ptr<farcaster::local::session::IClientSessionStore> sessionStore{};
     std::unique_ptr<farcaster::transport::http::IHttpTransport> transport{};
+    std::string optimismRpcUrl{};
     std::unique_ptr<farcaster::transport::async_http::IAsyncHttpTransport> asyncTransport{};
 #if GENYCASTER_HAS_OPENPROOF_AUTH
     std::unique_ptr<farcaster::capability::auth::IAuthenticationProvider> openProofAuthentication{};

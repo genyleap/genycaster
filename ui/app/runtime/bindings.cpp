@@ -2775,6 +2775,95 @@ void connectRuntime(
             });
     }
 
+    // Native Farcaster recovery deliberately does not use OpenProof:
+    // self-custody created via Neynar may never have an OpenProof grant.
+    // Optimism chain 10 must prove BOTH idOf(custody) and custodyOf(fid).
+    auto farcasterRecoveryGeneration =
+        std::make_shared<std::atomic_uint64_t>(0U);
+    QObject::connect(&bridge, &PresentationBridge::signInCancelRequested,
+        &bridge, [farcasterRecoveryGeneration] {
+            farcasterRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested,
+        &bridge, [farcasterRecoveryGeneration] {
+            farcasterRecoveryGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    QObject::connect(&bridge,
+        &PresentationBridge::nativeFarcasterRecoveryRequested, &bridge,
+        [runtime, &bridge, sessionObserver, farcasterRecoveryGeneration,
+         commitVerifiedIdentity](QString words) {
+            const auto generation = farcasterRecoveryGeneration->fetch_add(
+                1U, std::memory_order_acq_rel) + 1U;
+            if (!runtime->transport || !runtime->sessionService
+                || !runtime->signerService || !runtime->signerVault
+                || !runtime->router || runtime->optimismRpcUrl.empty()) {
+                words.fill(QChar{});
+                bridge.applyAuthenticationError(
+                    qtTrId("genycaster.setup.recovery_failed_retry"));
+                return;
+            }
+            auto scrub = [](QByteArray* buffer) {
+                if (!buffer->isEmpty()) buffer->fill(char{0});
+                delete buffer;
+            };
+            auto secret = std::shared_ptr<QByteArray>(
+                new QByteArray{words.toUtf8()}, scrub);
+            words.fill(QChar{});
+            sessionObserver(application::session::SessionState{
+                .phase = application::session::SessionPhase::Starting
+            });
+            using RecoveryResult = std::pair<std::uint64_t, QString>;
+            auto future = std::make_shared<QFuture<RecoveryResult>>();
+            auto* watcher = new QFutureWatcher<void>(&bridge);
+            QObject::connect(watcher, &QFutureWatcher<void>::finished, &bridge,
+                [runtime, &bridge, future, watcher, secret,
+                 generation, farcasterRecoveryGeneration,
+                 commitVerifiedIdentity] {
+                    const auto [fid, address] = future->result();
+                    watcher->deleteLater();
+                    if (generation != farcasterRecoveryGeneration->load(
+                            std::memory_order_acquire)
+                        || bridge.authenticationRoute()
+                            != QStringLiteral("farcaster-native-recovery")
+                        || bridge.isAuthenticated()) return;
+                    if (fid == 0 || address.isEmpty()) {
+                        bridge.applyAuthenticationError(
+                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                        return;
+                    }
+                    const std::string_view mnemonic{
+                        secret->constData(), static_cast<std::size_t>(secret->size())};
+                    auto permit = farcaster::platform::custody_recovery::
+                        makeOneShotRecoveryAuthorizer(
+                            mnemonic, address.toLower().toStdString(), fid);
+                    secret->fill(char{0});
+                    if (!permit) {
+                        bridge.applyAuthenticationError(
+                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                        return;
+                    }
+                    commitVerifiedIdentity(fid, address, std::move(*permit), true);
+                });
+            *future = QtConcurrent::run(
+                [runtime, secret]() -> RecoveryResult {
+                    const std::string_view mnemonic{
+                        secret->constData(), static_cast<std::size_t>(secret->size())};
+                    const auto address = farcaster::platform::custody_recovery::
+                        derivePublicCustodyAddress(mnemonic);
+                    if (!address) return {};
+                    farcaster::provider::compatibility::auth::Config config{};
+                    config.optimismRpcUrl = runtime->optimismRpcUrl;
+                    auto verified = farcaster::provider::compatibility::auth::
+                        resolveRecoveryCustodyFid(*runtime->transport, *address,
+                                                  std::move(config));
+                    if (!verified || verified->value == 0
+                        || verified->value > 9'007'199'254'740'991ULL)
+                        return {};
+                    return {verified->value, QString::fromStdString(*address)};
+                });
+            watcher->setFuture(QFuture<void>{*future});
+        });
+
     // HyperSnap recovery never consults Optimism IdRegistry or OpenProof.
     // Derive the public address away from the GUI, then verify the exact
     // address/FID tuple against HyperSnap's authoritative native registry.

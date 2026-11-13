@@ -2919,6 +2919,13 @@ void PresentationBridge::beginNativeHyperSnapRecoverySetup(QString recoveryWords
     m_hyperSnapRecoveryRequest = false;
 }
 
+void PresentationBridge::beginNativeFarcasterRecoverySetup(QString recoveryWords)
+{
+    m_farcasterRecoveryRequest = true;
+    beginNativeRecoverySetup(std::move(recoveryWords));
+    m_farcasterRecoveryRequest = false;
+}
+
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     // Count without allocating another copy of sensitive recovery material.
@@ -2949,13 +2956,18 @@ void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
         return;
     }
     m_authenticationRoute = m_hyperSnapRecoveryRequest
-        ? QStringLiteral("hypersnap-recovery") : QStringLiteral("recovery");
+        ? QStringLiteral("hypersnap-recovery")
+        : m_farcasterRecoveryRequest
+          ? QStringLiteral("farcaster-native-recovery")
+          : QStringLiteral("recovery");
     m_authenticationErrorText.clear();
     emit authenticationStateChanged();
     // Direct, same-thread delivery to the Qt composition layer. The bridge
     // has no property, field, logging or persistence for custody words.
     if (m_hyperSnapRecoveryRequest)
         emit nativeHyperSnapRecoveryRequested(std::move(recoveryWords));
+    else if (m_farcasterRecoveryRequest)
+        emit nativeFarcasterRecoveryRequested(std::move(recoveryWords));
     else
         emit nativeRecoveryRequested(std::move(recoveryWords));
 }

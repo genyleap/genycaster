@@ -29,7 +29,7 @@ test('Setup allows return and review without resetting the account', () => {
 
 test('existing authentication and secure recovery stay connected to the bridge', () => {
   for(const s of ['root.continueWithGenyleap()', 'root.continueWithFarcaster()',
-                  'root.nativeRecoverAccount(words)','root.openApproval()',
+                  'root.nativeRecoverFarcasterAccount(words)','root.openApproval()',
                   'root.cancelAuthentication()','nativeRecoveryGrid.clearAll()'])
     assert.ok(setup.includes(s),s);
   assert.match(setup, /Qt.ImhSensitiveData/);
@@ -157,7 +157,7 @@ test('recovery phrase stays in the correct platform UI until verification really
   assert.match(setup,/if \(root\.browserReadOnly\) \{/);
   assert.match(setup,/root\.recoverAccount\(\)/);
   assert.match(setup,/authenticationRoute === "recovery" && browserReadOnly && !authenticated/);
-  assert.match(setup,/root\.nativeRecoverAccount\(words\)/);
+  assert.match(setup,/root\.nativeRecoverFarcasterAccount\(words\)/);
   assert.match(setup,/nativeRecoveryGrid\.clearAll\(\)/);
   assert.match(setup,/running: root\.verifyingBusy \|\| root\.recoverySubmitPending/);
   assert.match(setup,/onAuthenticationErrorTextChanged:/);
@@ -170,7 +170,8 @@ test('verification success has an explicit next-step action without sign-in popu
   const stage=setup.slice(setup.indexOf('id: verifyingStage'),setup.indexOf('id: appearanceStage'));
   assert.match(stage,/visible: root\.authenticated/);
   assert.match(stage,/text: qsTrId\("genycaster\.setup\.continue"\)/);
-  assert.match(stage,/onClicked: root\.switchStep\(6\)/);
+  assert.match(stage,/enabled: root\.accountIntent !== "new" \|\| root\.signerReady/);
+  assert.match(stage,/if \(root\.accountIntent !== "new" \|\| root\.signerReady\)\s*root\.switchStep\(6\)/);
   assert.match(stage,/root\.authenticationApprovalAvailable/);
 });
 
@@ -526,7 +527,7 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     'nativeRegistrationPublisher.submitPrepared()',
     'nativeRegistrationPublisher.checkConfirmation()',
     'nativeRecoverHyperSnapAccount(words)',
-    'root.nativeRecoverAccount(words)',
+    'root.nativeRecoverFarcasterAccount(words)',
     'objectName: "setupRecoverHyperSnap"',
     'objectName: "setupRecoverFarcaster"'
   ])assert.ok(setup.includes(s),s);
@@ -600,4 +601,41 @@ test('Farcaster paid registration uses native wallet and authoritative Optimism 
       assert.ok(ts.includes('id="genycaster.setup.'+key+'"'),loc+':'+key);
     }
   }
+});
+
+test('interrupted Farcaster registration can restore offline custody without a second FID',()=>{
+  const qml=source('ui/components/setup/InitialSetup.qml');
+  const bridge=source('src/presentation/qt/presentation_bridge.cpp');
+  const controller=source('ui/app/identity/neynar_registration_controller.cpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  const wallet=source('ui/app/identity/native_wallet.cpp');
+  assert.match(qml,/objectName: "setupRestoreInterruptedWallet"/);
+  assert.match(qml,/nativeCustodyWallet\.restoreForRegistration\(words\)/);
+  assert.match(qml,/neynarRegistration\.checkConfirmation\(\)/);
+  assert.match(controller,/m_reservationId = deterministicUuid\(m_voucher, m_wallet\)/);
+  assert.match(controller,/if \(m_phase != QStringLiteral\("ready"\)\) return false/);
+  assert.match(wallet,/derivePublicCustodyAddress\(phrase\)/);
+  assert.match(bridge,/nativeFarcasterRecoveryRequested\(std::move\(recoveryWords\)\)/);
+  assert.match(runtime,/resolveRecoveryCustodyFid\(\*runtime->transport, \*address/);
+  assert.match(runtime,/makeOneShotRecoveryAuthorizer\(/);
+  assert.match(runtime,/commitVerifiedIdentity\(fid, address, std::move\(\*permit\), true\)/);
+  assert.doesNotMatch(qml,/farcaster\.xyz\/~\/signup/);
+});
+
+test('HyperSnap interrupted native registration restores the same custody without replay',()=>{
+  const ui=source('ui/components/setup/InitialSetup.qml');
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  const transport=source('ui/app/identity/hypersnap_registration_transport.cpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  assert.match(ui,/setupRestoreInterruptedWallet/);
+  assert.match(ui,/nativeRegistrationPublisher\.recoverInterruptedRegistration\(\)/);
+  assert.match(ui,/nativeRegistrationPublisher\.pending/);
+  assert.match(ui,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.match(publisher,/m_submitted = true;\s*m_pending = true;\s*m_unknown = true/);
+  assert.match(publisher,/lookup\(false, generation\)/);
+  assert.match(publisher,/if \(m_submitted && !confirmed\(\)\)/);
+  assert.match(publisher,/nativeAccountConfirmed/);
+  assert.match(transport,/\/v1\/nativeAccount/);
+  assert.match(transport,/!data\.value\(QStringLiteral\("message"\)\)\.isObject\(\)/);
+  assert.match(runtime,/acceptVerifiedNativeCustody/);
 });

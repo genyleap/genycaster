@@ -316,5 +316,66 @@ int main(int argc, char** argv)
         publisher.clear();
         assert(!publisher.confirmed() && !publisher.pending());
     }
-    std::cout << "HyperSnap native lookup and binary POST transport, no false success passed\n";
+    // Simulate a full process restart after an ambiguous native registration.
+    // The recovered offline wallet is used only for read-only shard-0 queries.
+    {
+        FakeHub hub{};
+        int postCount = 0;
+        bool included = false;
+        hub.reply = [&](const QByteArray& request) {
+            if (request.startsWith("POST ")) {
+                ++postCount;
+                return response(500, "{\"error\":\"unexpected_write\"}");
+            }
+            if (included)
+                return response(200,
+                    "{\"fid\":\"4294967296\","
+                    "\"custodyAddress\":\"0xf278cf59f82edcf871d630f28ecc8056f25c1cdb\","
+                    "\"blockNumber\":54321,\"message\":{\"data\":{}}}");
+            return response(404, "{\"error\":\"not_found\"}");
+        };
+        bool verified = true;
+        HyperSnapRegistrationPublisher recovered{
+            hub.url(),
+            NativePublicationPorts{
+                .backupVerified = [&] { return verified; },
+                .custodyAddress = [&] { return address; }
+            }};
+        recovered.setIdentityRuntimeReady(true);
+        assert(recovered.recoverInterruptedRegistration());
+        assert(recovered.pending());
+        assert(!recovered.submitPrepared());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &recovered, &HyperSnapRegistrationPublisher::changed,
+                &recovered, [&, connection, done] {
+                    if (!recovered.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(!recovered.confirmed());
+        assert(recovered.pending());
+        assert(!recovered.submitPrepared());
+        assert(postCount == 0);
+        included = true;
+        assert(recovered.checkConfirmation());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &recovered, &HyperSnapRegistrationPublisher::changed,
+                &recovered, [&, connection, done] {
+                    if (recovered.confirmed()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(recovered.confirmed());
+        assert(recovered.registeredFid() == QStringLiteral("4294967296"));
+        assert(postCount == 0);
+    }
+    std::cout << "HyperSnap native lookup, restart recovery, no replay passed\n";
 }

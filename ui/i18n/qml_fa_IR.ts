@@ -5881,6 +5881,10 @@ Company | https://company.com</source>
             <source>Check Farcaster registration status</source>
             <translation>بررسی وضعیت ثبت‌نام فارکستر</translation>
         </message>
+        <message id="genycaster.setup.resume_registration_with_phrase">
+            <source>Resume interrupted registration with 24 recovery words</source>
+            <translation>ادامهٔ ثبت‌نام نیمه‌تمام با ۲۴ کلمهٔ بازیابی</translation>
+        </message>
         <message id="genycaster.setup.neynar_runtime_unavailable">
             <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
             <translation>امضای امن حساب در این نسخه در دسترس نیست و ثبت‌نامی آغاز نشده است. پیکربندی خزانهٔ Signer را بررسی کنید.</translation>
