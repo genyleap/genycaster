@@ -121,6 +121,11 @@ test('registration network status is protocol-scoped, actionable and localized',
       assert.match(message[1], /<translation>[^<]+<\/translation>/,
                    locale+': '+key+' has no translation');
     }
+    const registrationCta = translations.match(
+      /<message id="genycaster\.setup\.registration_start">([\s\S]*?)<\/message>/);
+    assert.ok(registrationCta, locale+': native registration CTA missing');
+    assert.match(registrationCta[1], /<source>Submit HyperSnap registration<\/source>/);
+    assert.doesNotMatch(registrationCta[1], /Continue to Farcaster registration/);
     assert.doesNotMatch(translations, /Secure wallet onboarding is not connected in this build\./);
     assert.doesNotMatch(translations, /Account creation is disabled until these steps are complete\./);
     assert.doesNotMatch(translations, /No account will be created in this build\./);
