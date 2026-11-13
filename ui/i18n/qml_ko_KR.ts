@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Neynar에는 보안 등록 백엔드가 필요하며 읽기 API만으로는 부족합니다.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Farcaster 가입 계속하기</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>HyperSnap 등록 제출</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
