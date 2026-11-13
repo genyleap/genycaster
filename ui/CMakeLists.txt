@@ -517,9 +517,13 @@ qt_add_resources(genycaster genycaster_update_scripts
 include("${CMAKE_SOURCE_DIR}/properties/ConfigureTarget.cmake")
 target_compile_features(genycaster PRIVATE cxx_std_26)
 if(TARGET farcaster::platform_custody_recovery)
-    # native_wallet.cpp directly uses OPENSSL_cleanse, CRYPTO_memcmp and
-    # RAND_priv_bytes. The executable needs Crypto's usage requirements for
-    # C++26 dependency scanning as well as its link library on every platform.
+    # FindOpenSSL creates imported targets with directory scope. Finding it in
+    # src/platform/ does not make OpenSSL::Crypto visible from sibling ui/.
+    # native_wallet.cpp directly calls OpenSSL APIs, so the executable must
+    # receive Crypto's include directories and link requirements itself.
+    if(NOT TARGET OpenSSL::Crypto)
+        find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
+    endif()
     target_link_libraries(genycaster PRIVATE
         farcaster::platform_custody_recovery OpenSSL::Crypto)
 endif()
