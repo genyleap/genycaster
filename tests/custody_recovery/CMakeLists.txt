@@ -111,7 +111,9 @@ if(GENYCASTER_TEST_NATIVE_QT_WALLET)
         ../../ui/app/identity/hypersnap_registration_transport.cpp
         ../../ui/app/identity/hypersnap_registration_transport.hpp
         ../../ui/app/identity/native_registration.cpp
-        ../../ui/app/identity/native_registration.hpp)
+        ../../ui/app/identity/native_registration.hpp
+        ../../ui/app/identity/native_publish.cpp
+        ../../ui/app/identity/native_publish.hpp)
     set_target_properties(genycaster_hypersnap_transport PROPERTIES AUTOMOC ON)
     target_compile_features(genycaster_hypersnap_transport PRIVATE cxx_std_26)
     target_link_libraries(genycaster_hypersnap_transport PRIVATE

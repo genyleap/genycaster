@@ -5742,7 +5742,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
             <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>Prova preparada localmente. Nada foi enviado; o registro continua bloqueado até a recuperação de identidade e assinante estar pronta.</translation>
+            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
@@ -5771,6 +5771,30 @@ Company | https://company.com</source>
         <message id="genycaster.setup.native_proof_refresh">
             <source>Refresh HyperSnap registration anchor</source>
             <translation>Atualizar o bloco de referência HyperSnap</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_consent">
+            <source>I securely saved my 24 recovery words. I authorize irreversible HyperSnap registration and local device-signer setup.</source>
+            <translation>Guardei minhas 24 palavras de recuperação. Autorizo o registro irreversível no HyperSnap e a configuração do assinante local.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_submitted">
+            <source>Registration was submitted to HyperSnap. Waiting for shard-0 network confirmation.</source>
+            <translation>Registro enviado ao HyperSnap. Aguardando confirmação do shard zero.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_confirmed">
+            <source>HyperSnap native FID %1 confirmed. Device signer authorization will be checked separately. Keep your recovery words safe.</source>
+            <translation>FID nativo %1 confirmado. A autorização do assinante será verificada separadamente. Guarde as palavras de recuperação.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_rejected">
+            <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
+            <translation>O nó rejeitou esta prova. Atualize o bloco de referência e prepare outra prova.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_outcome_unknown">
+            <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
+            <translation>O resultado é desconhecido. Verifique se a carteira já possui FID antes de tentar reenviar.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_check_again">
+            <source>Check native registration status</source>
+            <translation>Verificar registro nativo</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

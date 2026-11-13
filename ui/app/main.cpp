@@ -110,6 +110,7 @@
 #include "identity/connections.hpp"
 #include "identity/native_registration.hpp"
 #include "identity/native_prepare.hpp"
+#include "identity/native_publish.hpp"
 #include "identity/native_wallet.hpp"
 #include "identity/pro_checkout.hpp"
 #if defined(Q_OS_WASM)
@@ -571,6 +572,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<NativeRegistrationStatusController> nativeRegistrationStatusOwner{};
     std::unique_ptr<NativeCustodyWalletController> nativeCustodyWalletOwner{};
     std::unique_ptr<NativeRegistrationPreparationController> nativePreparationOwner{};
+    std::unique_ptr<HyperSnapRegistrationPublisher> nativePublisherOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
@@ -699,6 +701,32 @@ int main(int argc, char* argv[])
         });
     NativeRegistrationPreparationController& nativeRegistrationPreparation =
         *nativePreparationOwner;
+    nativePublisherOwner = std::make_unique<HyperSnapRegistrationPublisher>(
+        QUrl{nativeRegistrationEndpoint},
+        NativePublicationPorts{
+            .backupVerified = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.backupVerified();
+            },
+            .custodyAddress = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.address();
+            },
+            .anchorIsFresh = [&nativeRegistrationStatus] {
+                return nativeRegistrationStatus.snapshot().has_value();
+            },
+            .walletIsUnregistered = [&nativeRegistrationStatus](const QString& wallet) {
+                return nativeRegistrationStatus.verifiedAbsentForCustody(wallet);
+            },
+            .proofPrepared = [&nativeRegistrationPreparation] {
+                return nativeRegistrationPreparation.prepared();
+            },
+            .takeProof = [&nativeRegistrationPreparation](const QString& wallet) {
+                return nativeRegistrationPreparation.takeForSubmission(wallet);
+            },
+            .cancelProof = [&nativeRegistrationPreparation] {
+                nativeRegistrationPreparation.cancel();
+            }
+        });
+    HyperSnapRegistrationPublisher& nativeRegistrationPublisher = *nativePublisherOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1299,6 +1327,7 @@ int main(int argc, char* argv[])
         {"nativeRegistrationStatus", &nativeRegistrationStatus},
         {"nativeCustodyWallet", &nativeCustodyWallet},
         {"nativeRegistrationPreparation", &nativeRegistrationPreparation},
+        {"nativeRegistrationPublisher", &nativeRegistrationPublisher},
         {"updateController", &updateController},
         {"appearanceController", &appearanceController},
         {"renderingController", &renderingController},
@@ -1449,6 +1478,7 @@ int main(int argc, char* argv[])
         auto bootstrapRuntime = [&presentationBridge, &richComposerController,
                                  &openProofConnections, &mediaUploadController,
                                  &mediaPlayback, &runtime,
+                                 &nativeRegistrationPublisher, &nativeCustodyWallet,
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
@@ -1465,7 +1495,9 @@ int main(int argc, char* argv[])
             QMetaObject::invokeMethod(&presentationBridge,
                 [&presentationBridge, &richComposerController, &openProofConnections,
                  &mediaUploadController,
-                 &mediaPlayback, &runtime, readyRuntime = std::move(readyRuntime),
+                 &mediaPlayback, &runtime,
+                 &nativeRegistrationPublisher, &nativeCustodyWallet,
+                 readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
                  snapchainBaseUrl, authenticationAvailable, openExploreForTest]() mutable {
                     // The Qt presentation facade owns GUI-thread attachment;
@@ -1477,6 +1509,8 @@ int main(int argc, char* argv[])
                         .mediaUploadController = mediaUploadController,
                         .mediaPlayback = mediaPlayback,
                         .runtime = runtime,
+                        .nativePublisher = &nativeRegistrationPublisher,
+                        .nativeWallet = &nativeCustodyWallet,
                         .siwfDomain = std::move(siwfDomain),
                         .siwfUri = std::move(siwfUri),
                         .browserSnapchainOrigin = snapchainBaseUrl

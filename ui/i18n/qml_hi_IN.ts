@@ -5742,7 +5742,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
             <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>प्रमाण स्थानीय रूप से तैयार है। कुछ भेजा नहीं गया; पहचान और साइनर रिकवरी पूरी होने तक पंजीकरण बंद रहेगा।</translation>
+            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
@@ -5771,6 +5771,30 @@ Company | https://company.com</source>
         <message id="genycaster.setup.native_proof_refresh">
             <source>Refresh HyperSnap registration anchor</source>
             <translation>HyperSnap पंजीकरण संदर्भ ब्लॉक रीफ़्रेश करें</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_consent">
+            <source>I securely saved my 24 recovery words. I authorize irreversible HyperSnap registration and local device-signer setup.</source>
+            <translation>मैंने अपने सभी 24 रिकवरी शब्द सुरक्षित रख लिए हैं। मैं अपरिवर्तनीय HyperSnap पंजीकरण और स्थानीय साइनर सेटअप की अनुमति देता हूँ।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_submitted">
+            <source>Registration was submitted to HyperSnap. Waiting for shard-0 network confirmation.</source>
+            <translation>पंजीकरण HyperSnap को भेज दिया गया है। शार्ड-0 पुष्टि की प्रतीक्षा है।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_confirmed">
+            <source>HyperSnap native FID %1 confirmed. Device signer authorization will be checked separately. Keep your recovery words safe.</source>
+            <translation>नेटिव FID %1 सत्यापित है। डिवाइस साइनर की अनुमति अलग से जाँची जाएगी। रिकवरी शब्द सुरक्षित रखें।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_rejected">
+            <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
+            <translation>नोड ने प्रमाण अस्वीकार किया। संदर्भ ब्लॉक रीफ़्रेश करके नया प्रमाण तैयार करें।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_outcome_unknown">
+            <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
+            <translation>भेजने का परिणाम अज्ञात है। दोबारा भेजने से पहले जाँचें कि वॉलेट को FID मिला है या नहीं।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_check_again">
+            <source>Check native registration status</source>
+            <translation>नेटिव पंजीकरण की जाँच करें</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

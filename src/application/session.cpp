@@ -320,6 +320,51 @@ foundation::result::Status SessionService::acceptVerifiedRecovery(
         });
 }
 
+foundation::result::Status SessionService::acceptVerifiedNativeCustody(
+    domain::session::ClientSession session, Observer observer)
+{
+    return m_impl->executor.post(
+        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            constexpr std::uint64_t FirstNativeFid = (1ULL << 32);
+            constexpr std::string_view NativeIssuer = "hypersnap:native-registry";
+            const auto now = foundation::time::now();
+            const std::string expectedSubject =
+                "native-fid:" + std::to_string(session.fid.value);
+            const auto& address = session.custodyAddress;
+            const auto validAddress = address && address->size() == 42
+                && address->starts_with("0x")
+                && std::all_of(address->begin() + 2, address->end(),
+                    [](char c) {
+                        return (c >= '0' && c <= '9')
+                            || (c >= 'a' && c <= 'f');
+                    });
+            if (session.fid.value < FirstNativeFid
+                || session.method != domain::session::AuthenticationMethod::Custody
+                || session.identityIssuer != NativeIssuer
+                || session.identitySubject != expectedSubject
+                || !validAddress || session.authenticatedAt > now
+                || domain::session::isExpired(session, now)
+                || session.expiresAt - now > std::chrono::hours{1}) {
+                observer(failedState(foundation::error::Error::make(
+                    foundation::error::ErrorCode::Unauthorized,
+                    "Verified HyperSnap native FID and custody proof required."),
+                    m_impl->current));
+                return;
+            }
+            if (auto saved = m_impl->store.save(session); !saved) {
+                observer(failedState(std::move(saved.error()), m_impl->current));
+                return;
+            }
+            m_impl->current = std::move(session);
+            m_impl->attempt.reset();
+            m_impl->approvalUrl.clear();
+            observer(SessionState{
+                .phase = SessionPhase::Authenticated,
+                .session = m_impl->current
+            });
+        });
+}
+
 foundation::result::Status SessionService::cancelSignIn(Observer observer)
 {
     return m_impl->executor.post([this, observer = std::move(observer)]() mutable {

@@ -2912,6 +2912,13 @@ void PresentationBridge::beginRecoverySetup()
     emit signInRequested(QStringLiteral("recovery"));
 }
 
+void PresentationBridge::beginNativeHyperSnapRecoverySetup(QString recoveryWords)
+{
+    m_hyperSnapRecoveryRequest = true;
+    beginNativeRecoverySetup(std::move(recoveryWords));
+    m_hyperSnapRecoveryRequest = false;
+}
+
 void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
 {
     // Count without allocating another copy of sensitive recovery material.
@@ -2941,12 +2948,16 @@ void PresentationBridge::beginNativeRecoverySetup(QString recoveryWords)
             applyAuthenticationError(qtTrId("genycaster.setup.recovery_failed_retry"));
         return;
     }
-    m_authenticationRoute = QStringLiteral("recovery");
+    m_authenticationRoute = m_hyperSnapRecoveryRequest
+        ? QStringLiteral("hypersnap-recovery") : QStringLiteral("recovery");
     m_authenticationErrorText.clear();
     emit authenticationStateChanged();
     // Direct, same-thread delivery to the Qt composition layer. The bridge
     // has no property, field, logging or persistence for custody words.
-    emit nativeRecoveryRequested(std::move(recoveryWords));
+    if (m_hyperSnapRecoveryRequest)
+        emit nativeHyperSnapRecoveryRequested(std::move(recoveryWords));
+    else
+        emit nativeRecoveryRequested(std::move(recoveryWords));
 }
 
 void PresentationBridge::cancelSignIn()

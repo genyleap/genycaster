@@ -18,6 +18,7 @@
 
 #include "../../ui/app/identity/hypersnap_registration_transport.hpp"
 #include "../../ui/app/identity/native_registration.hpp"
+#include "../../ui/app/identity/native_publish.hpp"
 
 namespace {
 using Transport = HyperSnapRegistrationTransport;
@@ -231,5 +232,89 @@ int main(int argc, char** argv)
         rejected = result.state == Transport::SubmitState::Rejected;
     });
     assert(rejected);
+    // Full state machine: no automatic replay, cannot publish without the
+    // offline recovery ceremony, and HTTP 200 never implies a registered FID.
+    {
+        FakeHub hub{};
+        bool backedUp = false;
+        bool proofReady = true;
+        bool checkedAbsent = true;
+        bool anchorFresh = true;
+        int postCount = 0;
+        bool confirmedRecord = false;
+        hub.reply = [&](const QByteArray& request) {
+            if (request.startsWith("POST ")) {
+                ++postCount;
+                assert(request.contains("application/octet-stream"));
+                return response(200, "{\"hash\":\"0x1234\"}");
+            }
+            if (confirmedRecord)
+                return response(200,
+                    "{\"fid\":\"4294967296\","
+                    "\"custodyAddress\":\"0xf278cf59f82edcf871d630f28ecc8056f25c1cdb\","
+                    "\"blockNumber\":54321,\"message\":{\"data\":{}}}");
+            return response(404, "{\"error\":\"not_found\"}");
+        };
+        HyperSnapRegistrationPublisher publisher{
+            hub.url(),
+            NativePublicationPorts{
+                .backupVerified = [&] { return backedUp; },
+                .custodyAddress = [&] { return address; },
+                .anchorIsFresh = [&] { return anchorFresh; },
+                .walletIsUnregistered = [&](const QString& value) {
+                    return checkedAbsent && value == address;
+                },
+                .proofPrepared = [&] { return proofReady; },
+                .takeProof = [&](const QString& value) {
+                    assert(value == address);
+                    proofReady = false;
+                    return protobuf;
+                },
+                .cancelProof = [&] { proofReady = false; }
+            }};
+        assert(!publisher.submitPrepared());
+        assert(postCount == 0);
+        backedUp = true;
+        assert(!publisher.submitPrepared()); // No authenticated runtime.
+        publisher.setIdentityRuntimeReady(true);
+        assert(publisher.submitPrepared());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &publisher, &HyperSnapRegistrationPublisher::changed,
+                &publisher, [&, connection, done] {
+                    if (!publisher.busy() && publisher.pending()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(publisher.pending());
+        assert(!publisher.confirmed());
+        assert(publisher.registeredFid().isEmpty());
+        assert(postCount == 1);
+        assert(!publisher.submitPrepared()); // Replay protection.
+        publisher.clear(); // UI dismissal cannot cancel an on-chain write.
+        assert(publisher.pending() && publisher.outcomeUnknown());
+        assert(!publisher.submitPrepared());
+        assert(postCount == 1);
+        confirmedRecord = true;
+        assert(publisher.checkConfirmation());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &publisher, &HyperSnapRegistrationPublisher::changed,
+                &publisher, [&, connection, done] {
+                    if (publisher.confirmed()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(publisher.registeredFid() == QStringLiteral("4294967296"));
+        assert(postCount == 1);
+        publisher.clear();
+        assert(!publisher.confirmed() && !publisher.pending());
+    }
     std::cout << "HyperSnap native lookup and binary POST transport, no false success passed\n";
 }

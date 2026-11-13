@@ -5742,7 +5742,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
             <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>등록 증명을 로컬에서 준비했습니다. 전송된 내용은 없으며 신원 및 서명자 복구가 준비될 때까지 등록은 비활성 상태입니다.</translation>
+            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
@@ -5771,6 +5771,30 @@ Company | https://company.com</source>
         <message id="genycaster.setup.native_proof_refresh">
             <source>Refresh HyperSnap registration anchor</source>
             <translation>HyperSnap 등록 참조 블록 새로고침</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_consent">
+            <source>I securely saved my 24 recovery words. I authorize irreversible HyperSnap registration and local device-signer setup.</source>
+            <translation>24개 복구 단어를 안전하게 보관했습니다. 되돌릴 수 없는 HyperSnap 등록과 기기 서명자 설정을 승인합니다.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_submitted">
+            <source>Registration was submitted to HyperSnap. Waiting for shard-0 network confirmation.</source>
+            <translation>HyperSnap에 등록을 전송했습니다. 샤드 0의 확인을 기다리는 중입니다.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_confirmed">
+            <source>HyperSnap native FID %1 confirmed. Device signer authorization will be checked separately. Keep your recovery words safe.</source>
+            <translation>네이티브 FID %1이 확인되었습니다. 기기 서명자 권한은 별도로 검증합니다. 복구 단어를 보관하세요.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_rejected">
+            <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
+            <translation>노드가 증명을 거부했습니다. 참조 블록을 새로 고치고 증명을 다시 준비하세요.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_outcome_unknown">
+            <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
+            <translation>전송 결과가 불확실합니다. 재전송하기 전에 지갑에 FID가 있는지 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_check_again">
+            <source>Check native registration status</source>
+            <translation>네이티브 등록 상태 확인</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

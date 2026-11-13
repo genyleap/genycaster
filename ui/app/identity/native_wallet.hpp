@@ -12,6 +12,7 @@
 
 class QPainter;
 class NativeRecoveryWordsItem;
+class NativeCustodySignerAccess;
 
 /**
  * Single-use, in-memory native custody wallet for the initial onboarding flow.
@@ -54,6 +55,7 @@ private:
     struct Private;
     std::unique_ptr<Private> m_private;
     friend class NativeRecoveryWordsItem;
+    friend class NativeCustodySignerAccess;
 };
 
 /**

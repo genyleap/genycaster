@@ -121,6 +121,15 @@ public:
         domain::session::ClientSession session,
         Observer observer);
 
+    /**
+     * Commit a short-lived HyperSnap-native FID after a trusted C++ caller
+     * has checked shard-0 registration for the same custody wallet and
+     * derived a one-use custody signing permit. This is NOT OpenProof or
+     * Optimism IdRegistry authentication and is not callable from QML.
+     */
+    [[nodiscard]] foundation::result::Status acceptVerifiedNativeCustody(
+        domain::session::ClientSession session, Observer observer);
+
     /** @brief Cancels transient approval state while retaining any prior session. */
     [[nodiscard]] foundation::result::Status cancelSignIn(Observer observer);
 

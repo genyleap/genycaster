@@ -5742,7 +5742,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
             <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>注册证明已在本地准备，尚未发送。账户注册将在身份与签名器恢复机制就绪后开放。</translation>
+            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
@@ -5771,6 +5771,30 @@ Company | https://company.com</source>
         <message id="genycaster.setup.native_proof_refresh">
             <source>Refresh HyperSnap registration anchor</source>
             <translation>刷新 HyperSnap 注册参考区块</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_consent">
+            <source>I securely saved my 24 recovery words. I authorize irreversible HyperSnap registration and local device-signer setup.</source>
+            <translation>我已安全保存24个恢复词。我授权不可撤销的HyperSnap注册以及本地设备签名器设置。</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_submitted">
+            <source>Registration was submitted to HyperSnap. Waiting for shard-0 network confirmation.</source>
+            <translation>注册已发送至HyperSnap，正在等待分片0的网络确认。</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_confirmed">
+            <source>HyperSnap native FID %1 confirmed. Device signer authorization will be checked separately. Keep your recovery words safe.</source>
+            <translation>已确认原生FID %1。设备签名权限将单独验证。请妥善保管恢复词。</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_rejected">
+            <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
+            <translation>节点拒绝了此证明。请刷新参考区块并重新准备证明。</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_outcome_unknown">
+            <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
+            <translation>发送结果未知。再次提交前请先检查钱包是否已有FID。</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_check_again">
+            <source>Check native registration status</source>
+            <translation>检查原生注册状态</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

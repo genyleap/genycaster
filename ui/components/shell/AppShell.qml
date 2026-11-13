@@ -3323,6 +3323,8 @@ Item {
         onRecoverAccount: presentationBridge.beginRecoverySetup()
         onNativeRecoverAccount: (recoveryWords) =>
             presentationBridge.beginNativeRecoverySetup(recoveryWords)
+        onNativeRecoverHyperSnapAccount: (recoveryWords) =>
+            presentationBridge.beginNativeHyperSnapRecoverySetup(recoveryWords)
         onAcceptLegalConsent: (termsAccepted, privacyAcknowledged, reviewCompleted) =>
             presentationBridge.acceptLegalConsent(termsAccepted, privacyAcknowledged, reviewCompleted)
         onFinishSetup: presentationBridge.completeInitialSetup()

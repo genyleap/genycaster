@@ -49,6 +49,7 @@ public:
     void submit(const QByteArray& protobufEnvelope, SubmitCallback onResult);
 
     [[nodiscard]] bool endpointIsSafe() const noexcept;
+    [[nodiscard]] QUrl nodeEndpoint() const { return m_base; }
 
 private:
     QNetworkAccessManager m_network{};

@@ -45,7 +45,7 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /finishSetup\(\)/);
 });
 
-test('registration keeps protocol choice but blocks unsupported custody writes and external sign-up', () => {
+test('registration keeps protocols isolated and requires explicit custody consent', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
   const create=account.slice(account.indexOf('objectName: "setupCreateAccount"'),
                              account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
@@ -59,7 +59,9 @@ test('registration keeps protocol choice but blocks unsupported custody writes a
   assert.match(account,/objectName: "setupRegisterHyperSnap"[\s\S]*?enabled: true/);
   assert.match(account,/objectName: "setupRegisterNeynar"[\s\S]*?enabled: true/);
   assert.match(account,/objectName: "setupBeginRegistration"/);
-  assert.match(account,/enabled: false/);
+  assert.match(account,/nativeRegistrationPublisher\.registrationSupported/);
+  assert.match(account,/nativeRegistrationPublisher\.submitPrepared\(\)/);
+  assert.match(account,/nativeRegistrationConsent\.checked/);
   assert.doesNotMatch(account,/objectName: "setupRegistrationCompleted"/);
   assert.match(account,/nativeRegistrationStatus.checking/);
   assert.match(account,/nativeRegistrationStatus.active/);
@@ -292,7 +294,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/onClicked: \{\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
+  assert.match(account,/onClicked: \{\s*nativeRegistrationPublisher\.clear\(\)\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
@@ -466,7 +468,7 @@ test('new-wallet backup is native, private, verified and never claims premature 
   }
 });
 
-test('native proof preparation stays off the UI thread and keeps network writes disabled', () => {
+test('native proof preparation stays off UI thread and network registration is explicitly authorized', () => {
   const setup = source('ui/components/setup/InitialSetup.qml');
   const native = source('ui/app/identity/native_prepare.cpp');
   const wallet = source('ui/app/identity/native_wallet.cpp');
@@ -481,7 +483,9 @@ test('native proof preparation stays off the UI thread and keeps network writes 
   assert.match(setup,/nativeRegistrationStatus\.accountLookupChecked/);
   assert.match(setup,/onClicked: nativeRegistrationPreparation\.prepare\(\)/);
   assert.match(setup,/nativeRegistrationPreparation\.cancel\(\)/);
-  assert.match(setup,/objectName: "setupBeginRegistration"[\s\S]*?enabled: false/);
+  assert.match(setup,/objectName: "setupBeginRegistration"[\s\S]*?nativeRegistrationConsent\.checked/);
+  assert.match(setup,/nativeRegistrationPublisher\.submitPrepared\(\)/);
+  assert.match(setup,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
   assert.match(native,/QtConcurrent::run/);
   assert.match(native,/solveNativeOnboardPow/);
   assert.match(native,/m_ports\.backupVerified\(\)/);
@@ -501,5 +505,51 @@ test('native proof preparation stays off the UI thread and keeps network writes 
                       'native_existing_missing','native_existing_error',
                       'native_proof_refresh'])
       assert.ok(translations.includes('id="genycaster.setup.'+key+'"'));
+  }
+});
+
+test('HyperSnap native signup, recovery and signer stay in distinct guarded paths', () => {
+  const setup=source('ui/components/setup/InitialSetup.qml');
+  const shell=source('ui/components/shell/AppShell.qml');
+  const bridge=source('src/presentation/qt/presentation_bridge.cpp');
+  const bridgeApi=source('src/presentation/qt/presentation_bridge.hpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  const session=source('src/application/session.cpp');
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  const prep=source('ui/app/identity/native_prepare.cpp');
+  const signer=source('ui/app/identity/native_wallet.cpp');
+  for(const s of [
+    'objectName: "setupBeginRegistration"',
+    'nativeRegistrationConsent.checked',
+    'nativeRegistrationPublisher.registrationSupported',
+    'nativeRegistrationPublisher.submitPrepared()',
+    'nativeRegistrationPublisher.checkConfirmation()',
+    'nativeRecoverHyperSnapAccount(words)',
+    'root.nativeRecoverAccount(words)',
+    'objectName: "setupRecoverHyperSnap"',
+    'objectName: "setupRecoverFarcaster"'
+  ])assert.ok(setup.includes(s),s);
+  assert.match(shell,/onNativeRecoverHyperSnapAccount/);
+  assert.match(bridgeApi,/nativeHyperSnapRecoveryRequested\(QString recoveryWords\)/);
+  assert.match(bridge,/emit nativeHyperSnapRecoveryRequested\(std::move\(recoveryWords\)\)/);
+  assert.match(runtime,/nativeHyperSnapRecoveryRequested/);
+  assert.match(runtime,/makeOneShotRecoveryAuthorizer/);
+  assert.match(runtime,/nativeAccountConfirmed/);
+  assert.match(runtime,/acceptVerifiedNativeCustody/);
+  assert.match(session,/hypersnap:native-registry/);
+  assert.match(session,/FirstNativeFid/);
+  assert.match(signer,/NativeCustodySignerAccess::forConfirmedNativeFid/);
+  assert.match(publisher,/m_transport\.submit\(envelope/);
+  assert.match(publisher,/scheduleCheck\(generation\)/);
+  assert.match(publisher,/if \(!m_registrationSupported/);
+  assert.match(prep,/takeForSubmission/);
+  assert.doesNotMatch(setup,/farcaster\.xyz\/~\/signup/);
+  assert.doesNotMatch(bridgeApi,/Q_INVOKABLE.*makeOneShotRecoveryAuthorizer/);
+  for (const loc of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                     'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const xml=source('ui/i18n/qml_'+loc+'.ts');
+    for (const key of ['native_registration_consent','native_registration_confirmed',
+                      'native_registration_outcome_unknown','native_registration_check_again'])
+      assert.ok(xml.includes('id="genycaster.setup.'+key+'"'));
   }
 });

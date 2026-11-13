@@ -25,6 +25,8 @@ class RichComposerController;
 class OpenProofConnectionsController;
 class MediaUploadController;
 class MediaPlaybackCoordinator;
+class HyperSnapRegistrationPublisher;
+class NativeCustodyWalletController;
 // The importer must import genycaster.ui.runtime before this header;
 // redeclaring a named-module type in the global module is not valid C++26.
 
@@ -40,7 +42,9 @@ void connectRuntime(PresentationBridge& bridge, RichComposerController& richComp
                     OpenProofConnectionsController& connections,
                     const std::shared_ptr<runtime::Runtime>& runtime,
                     bool authenticationAvailable, std::string siwfDomain,
-                    std::string siwfUri, const QString& browserSnapchainOrigin);
+                    std::string siwfUri, const QString& browserSnapchainOrigin,
+    HyperSnapRegistrationPublisher* nativePublisher = nullptr,
+    NativeCustodyWalletController* nativeWallet = nullptr);
 
 #if FARCASTER_HAS_MEDIA_UPLOAD
 void connectMediaUpload(MediaUploadController& controller,
@@ -75,6 +79,8 @@ struct RuntimeAttachment final {
     std::string siwfUri;
     QString browserSnapchainOrigin;
     QString startupIdentity;
+    HyperSnapRegistrationPublisher* nativePublisher{};
+    NativeCustodyWalletController* nativeWallet{};
     bool authenticationAvailable{false};
     bool openExploreForTest{false};
 };

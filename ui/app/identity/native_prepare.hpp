@@ -44,6 +44,8 @@ public:
     [[nodiscard]] bool failed() const noexcept { return m_failed; }
     /** The envelope is public protocol data, but is NEVER a QML property. */
     [[nodiscard]] QByteArray preparedEnvelope() const { return m_envelope; }
+    /** Single-use, C++-only transfer; fail closed if any guard has changed. */
+    [[nodiscard]] QByteArray takeForSubmission(const QString& custodyAddress);
 
     Q_INVOKABLE bool prepare();
     Q_INVOKABLE void cancel();

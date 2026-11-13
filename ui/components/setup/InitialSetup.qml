@@ -111,6 +111,8 @@ Item {
     signal authorizeSigner()
     signal recoverAccount()
     signal nativeRecoverAccount(string recoveryWords)
+    signal nativeRecoverHyperSnapAccount(string recoveryWords)
+    property string recoveryProtocol: "hypersnap-v2"
     signal acceptLegalConsent(bool termsAccepted, bool privacyAcknowledged, bool reviewCompleted)
     signal finishSetup()
     signal closeReviewRequested()
@@ -201,8 +203,14 @@ Item {
     }
     function previousStep() {
         if (currentStep === 3 && choosingRegistrationProvider) {
-            // Backing out of registration must destroy any unregistered seed
-            // and invalidate a background PoW attempt or stale FID lookup.
+            if (nativeRegistrationPublisher.pending) {
+                registrationError =
+                    qsTrId("genycaster.setup.native_registration_outcome_unknown")
+                nativeRegistrationPublisher.checkConfirmation()
+                return
+            }
+            // Backing out must also stop polling any submitted registration.
+            nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
             nativeCustodyWallet.discard()
@@ -238,11 +246,14 @@ Item {
     }
     onVisibleChanged: {
         if (!visible) {
-            // Closing onboarding erases an unused wallet and its seed in native
-            // memory. A newly registered FID is never inferred from this state.
+            // Closing onboarding stops polling; it cannot cancel a blockchain write.
+            nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
-            nativeCustodyWallet.discard()
+            // Keep the verified backup live while the irreversible network
+            // write might still be included; do not silently lose custody.
+            if (!nativeRegistrationPublisher.pending)
+                nativeCustodyWallet.discard()
             stageTransitionTimer.stop()
             stageTransitioning = false
             pendingStep = -1
@@ -1210,7 +1221,9 @@ Item {
                     subtitle: qsTrId("genycaster.setup.design_existing_description")
                     iconGlyph: Theme.iconLink
                     showChevron: true
+                    enabled: !nativeRegistrationPublisher.pending
                     onClicked: {
+                        nativeRegistrationPublisher.clear()
                         nativeRegistrationPreparation.cancel()
                         nativeRegistrationStatus.clearExistingLookup()
                         nativeCustodyWallet.discard()
@@ -1239,6 +1252,7 @@ Item {
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: true
                         onClicked: {
+                            nativeRegistrationPublisher.clear()
                             nativeRegistrationPreparation.cancel()
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "hypersnap-v2"
@@ -1256,6 +1270,7 @@ Item {
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: true
                         onClicked: {
+                            nativeRegistrationPublisher.clear()
                             nativeRegistrationPreparation.cancel()
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "farcaster-snapchain"
@@ -1467,9 +1482,9 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: root.registrationProviderId === "hypersnap-v2"
-                        ? qsTrId("genycaster.setup.native_registration_pending")
-                        : qsTrId("genycaster.setup.neynar_registration_pending")
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && !nativeRegistrationPublisher.confirmed
+                    text: qsTrId("genycaster.setup.native_registration_pending")
                     color: Theme.warning
                     font.pixelSize: Theme.typeLabelSize
                     wrapMode: Text.WordWrap
@@ -1555,14 +1570,70 @@ Item {
                         }
                     }
                 }
-                ActionButton {
-                    objectName: "setupBeginRegistration"
+                ColumnLayout {
+                    objectName: "nativeRegistrationBroadcastPanel"
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && nativeCustodyWallet.backupVerified
                     Layout.fillWidth: true
-                    prominent: false
-                    text: qsTrId("genycaster.setup.registration_start")
-                    // Do not enable a financial/identity write before the app
-                    // can prove secure custody backup and signer onboarding.
-                    enabled: false
+                    spacing: Theme.space2
+                    GenyCheckRow {
+                        id: nativeRegistrationConsent
+                        objectName: "setupNativeRegistrationConsent"
+                        visible: !nativeRegistrationPublisher.confirmed
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.native_registration_consent")
+                    }
+                    ActionButton {
+                        objectName: "setupBeginRegistration"
+                        Layout.fillWidth: true
+                        prominent: true
+                        text: qsTrId("genycaster.setup.registration_start")
+                        busy: nativeRegistrationPublisher.busy
+                        enabled: root.runtimeReady
+                                 && nativeRegistrationPublisher.registrationSupported
+                                 && nativeRegistrationConsent.checked
+                                 && nativeRegistrationPreparation.prepared
+                                 && !nativeRegistrationPublisher.busy
+                                 && !nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.confirmed
+                        onClicked: nativeRegistrationPublisher.submitPrepared()
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeRegistrationPublisher.busy
+                                 || nativeRegistrationPublisher.pending
+                                 || nativeRegistrationPublisher.failed
+                                 || nativeRegistrationPublisher.confirmed
+                        Layout.fillWidth: true
+                        text: nativeRegistrationPublisher.confirmed
+                            ? qsTrId("genycaster.setup.native_registration_confirmed")
+                                .arg(nativeRegistrationPublisher.registeredFid)
+                            : nativeRegistrationPublisher.failed
+                              ? qsTrId("genycaster.setup.native_registration_rejected")
+                              : nativeRegistrationPublisher.outcomeUnknown
+                                ? qsTrId("genycaster.setup.native_registration_outcome_unknown")
+                                : qsTrId("genycaster.setup.native_registration_submitted")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: nativeRegistrationPublisher.confirmed
+                            ? Theme.success : Theme.warning
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupCheckNativeRegistrationConfirmation"
+                        visible: nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.busy
+                        Layout.fillWidth: true
+                        compact: true
+                        text: qsTrId("genycaster.setup.native_registration_check_again")
+                        onClicked: nativeRegistrationPublisher.checkConfirmation()
+                    }
+                }
+                DirectionAwareLabel {
+                    Layout.fillWidth: true
+                    visible: root.registrationProviderId !== "hypersnap-v2"
+                    text: qsTrId("genycaster.setup.neynar_registration_pending")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
                 }
             }
         }
@@ -1608,6 +1679,26 @@ Item {
                 visible: root.showRecovery && !root.browserReadOnly && !root.authenticated
                 Layout.fillWidth: true
                 spacing: Theme.space2
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    ActionButton {
+                        objectName: "setupRecoverHyperSnap"
+                        Layout.fillWidth: true
+                        compact: true
+                        selected: root.recoveryProtocol === "hypersnap-v2"
+                        text: qsTrId("genycaster.settings.hypersnap_label")
+                        onClicked: root.recoveryProtocol = "hypersnap-v2"
+                    }
+                    ActionButton {
+                        objectName: "setupRecoverFarcaster"
+                        Layout.fillWidth: true
+                        compact: true
+                        selected: root.recoveryProtocol === "farcaster-snapchain"
+                        text: qsTrId("genycaster.settings.farcaster_label")
+                        onClicked: root.recoveryProtocol = "farcaster-snapchain"
+                    }
+                }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
                     text: qsTrId("genycaster.setup.recovery_privacy")
@@ -1768,7 +1859,10 @@ Item {
                         let words = nativeRecoveryGrid.phrase()
                         nativeRecoveryGrid.clearAll()
                         root.recoverySubmitPending = true
-                        root.nativeRecoverAccount(words)
+                        if (root.recoveryProtocol === "hypersnap-v2")
+                            root.nativeRecoverHyperSnapAccount(words)
+                        else
+                            root.nativeRecoverAccount(words)
                         root.switchStep(5)
                         words = ""
                     }

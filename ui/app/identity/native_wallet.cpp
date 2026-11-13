@@ -17,6 +17,9 @@
 
 import farcaster.platform.custody_recovery;
 import farcaster.protocol.message;
+import farcaster.capability.signer;
+
+#include "native_wallet_signer.hpp"
 
 namespace custody = farcaster::platform::custody_recovery;
 
@@ -220,6 +223,23 @@ void NativeCustodyWalletController::discard()
     m_private->secret.reset(); // GeneratedCustodyWallet zeroizes on destruction.
     m_private->error.clear();
     emit changed();
+}
+
+std::shared_ptr<farcaster::capability::signer::ICustodyAuthorizer>
+NativeCustodySignerAccess::forConfirmedNativeFid(
+    const NativeCustodyWalletController& wallet,
+    const std::uint64_t fid, const QString& custodyAddress)
+{
+    if (fid < (1ULL << 32) || !wallet.backupVerified()
+        || custodyAddress.toLower() != wallet.address().toLower())
+        return {};
+    // The phrase is accessed only inside this trusted native C++ TU.
+    // It is never copied to QML or to a network request.
+    // The resulting signer authorizer is single-use and zeroizing.
+    auto proof = custody::makeOneShotRecoveryAuthorizer(
+        wallet.m_private->secret->recoveryWords,
+        wallet.m_private->secret->address, fid);
+    return proof ? std::move(*proof) : nullptr;
 }
 
 NativeRecoveryWordsItem::NativeRecoveryWordsItem(QQuickItem* parent)

@@ -616,6 +616,57 @@ void verifiedNativeRecoveryUsesAuthoritativeSessionStore()
     rejected(invalid);
 }
 
+void verifiedHyperSnapCustodyUsesDistinctNativeSession()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    application::session::SessionService service{executor, store, nullptr, nullptr};
+    std::vector<application::session::SessionState> states{};
+    const auto observe = [&states](auto state) {
+        states.push_back(std::move(state));
+    };
+    constexpr std::uint64_t nativeFid = 1ULL << 32;
+    auto valid = makeSession(nativeFid);
+    valid.identityIssuer = "hypersnap:native-registry";
+    valid.identitySubject = "native-fid:4294967296";
+    valid.expiresAt = valid.authenticatedAt + std::chrono::minutes{30};
+    assert(service.acceptVerifiedNativeCustody(valid, observe));
+    assert(store.saveCount == 1U);
+    assert(store.value && store.value->fid.value == nativeFid);
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session && states.back().session->identityIssuer
+        == "hypersnap:native-registry");
+    assert(service.signOut(observe));
+    assert(!store.value);
+
+    const auto rejected = [&](domain::session::ClientSession input) {
+        const auto originalSaves = store.saveCount;
+        assert(service.acceptVerifiedNativeCustody(std::move(input), observe));
+        assert(store.saveCount == originalSaves);
+        assert(states.back().phase == application::session::SessionPhase::Failed);
+        assert(states.back().error);
+        assert(states.back().error->code == foundation::error::ErrorCode::Unauthorized);
+    };
+    auto invalid = valid;
+    invalid.fid = domain::identity::Fid{123}; // Never accept Farcaster FID.
+    rejected(invalid);
+    invalid = valid;
+    invalid.identityIssuer = "https://openproof.genyleap.com";
+    rejected(invalid);
+    invalid = valid;
+    invalid.identitySubject = "native-fid:4294967297"; // FID spoofing.
+    rejected(invalid);
+    invalid = valid;
+    invalid.custodyAddress = "0xBAD";
+    rejected(invalid);
+    invalid = valid;
+    invalid.expiresAt = invalid.authenticatedAt + std::chrono::hours{2};
+    rejected(invalid);
+    invalid = valid;
+    invalid.expiresAt = foundation::time::now() - std::chrono::seconds{1};
+    rejected(invalid);
+}
+
 void sqliteSessionRoundTrip()
 {
     DatabaseFixture database{};
@@ -665,6 +716,7 @@ int main()
     missingDirectFarcasterProviderNeverFallsBackToOpenProof();
     missingCompatibilityAuthDoesNotCreateSession();
     verifiedNativeRecoveryUsesAuthoritativeSessionStore();
+    verifiedHyperSnapCustodyUsesDistinctNativeSession();
     sqliteSessionRoundTrip();
     return 0;
 }

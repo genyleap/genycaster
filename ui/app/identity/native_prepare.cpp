@@ -120,6 +120,27 @@ void NativeRegistrationPreparationController::finish()
     emit changed();
 }
 
+QByteArray NativeRegistrationPreparationController::takeForSubmission(
+    const QString& custodyAddress)
+{
+    const auto fresh = m_ports.challenge ? m_ports.challenge() : std::nullopt;
+    if (m_busy || m_failed || m_envelope.isEmpty() || !m_challenge
+        || !fresh || !m_ports.backupVerified || !m_ports.backupVerified()
+        || !m_ports.custodyAddress || !m_ports.walletIsUnregistered
+        || custodyAddress != m_walletAddress
+        || m_ports.custodyAddress() != m_walletAddress
+        || !m_ports.walletIsUnregistered(m_walletAddress)
+        || fresh->anchorHeight != m_challenge->anchorHeight
+        || fresh->anchorHash != m_challenge->anchorHash
+        || fresh->difficultyBits != m_challenge->difficultyBits) {
+        cancel();
+        return {};
+    }
+    QByteArray singleUse = std::move(m_envelope);
+    cancel();
+    return singleUse;
+}
+
 void NativeRegistrationPreparationController::cancel()
 {
     ++m_proofRevision;

@@ -446,8 +446,11 @@ qt_add_executable(genycaster
     app/identity/hypersnap_registration_transport.hpp
     app/identity/native_prepare.cpp
     app/identity/native_prepare.hpp
+    app/identity/native_publish.cpp
+    app/identity/native_publish.hpp
     app/identity/native_wallet.cpp
     app/identity/native_wallet.hpp
+    app/identity/native_wallet_signer.hpp
     app/identity/neynar_registration.hpp
     app/identity/pro_checkout.cpp
     app/identity/pro_checkout.hpp

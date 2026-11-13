@@ -68,8 +68,11 @@ int main(int argc, char** argv)
     assert(prep.prepared() && !prep.failed());
     assert(prep.preparedEnvelope() == QByteArray{"sealed-public-envelope"});
     assert(seals == 1);
-    prep.cancel();
+    const auto take = prep.takeForSubmission(address);
+    assert(take == QByteArray{"sealed-public-envelope"});
     assert(!prep.prepared());
+    assert(prep.takeForSubmission(address).isEmpty()); // One-shot, no replay.
+    prep.cancel();
     assert(prep.preparedEnvelope().isEmpty());
 
     // Changing the wallet during hashing invalidates the result.
