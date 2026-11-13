@@ -17,6 +17,8 @@ module;
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <cstddef>
+#include <vector>
 #include <string>
 #include <string_view>
 
@@ -36,6 +38,38 @@ enum class Error {
     InvalidChallenge,
     SigningFailed,
 };
+
+/**
+ * Fresh self-custody wallet generated exclusively in native C++.
+ * Recovery words are stored in a move-only, zeroizing buffer until the user
+ * confirms backup; they must never be stored in preferences or provider DTOs.
+ */
+struct GeneratedCustodyWallet final {
+    std::string recoveryWords{};
+    std::string address{};
+    GeneratedCustodyWallet() = default;
+    GeneratedCustodyWallet(GeneratedCustodyWallet&& other) noexcept;
+    GeneratedCustodyWallet& operator=(GeneratedCustodyWallet&& other) noexcept;
+    GeneratedCustodyWallet(const GeneratedCustodyWallet&) = delete;
+    GeneratedCustodyWallet& operator=(const GeneratedCustodyWallet&) = delete;
+    ~GeneratedCustodyWallet();
+};
+
+/** Generate a fresh 256-bit BIP39 wallet with a cryptographic RNG. */
+[[nodiscard]] std::expected<GeneratedCustodyWallet, Error> generateCustodyWallet();
+
+/** Public-only native-onboarding custody proof. No wallet secret crosses the boundary. */
+struct NativeOnboardSignature final {
+    std::string address{};
+    std::string signature{}; // 0x-prefixed EIP-712 r||s||v
+};
+
+/** Sign only a valid HyperSnap native Proof-of-Work bound to the exact anchor.
+ * The caller must confirm live activation and submit only after user consent. */
+[[nodiscard]] std::expected<NativeOnboardSignature, Error> signNativeOnboard(
+    std::string_view recoveryWords, std::uint64_t anchorHeight,
+    std::string_view anchorHex, std::string_view nonceHex,
+    std::uint32_t difficultyBits);
 
 /** Public-only EIP-191 proof for a server-issued one-shot OpenProof challenge. */
 struct RecoveryProof final {

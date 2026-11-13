@@ -5673,6 +5673,22 @@ Empresa | https://company.com</translation>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>Reinicia GenyCaster después de la configuración para activar el proveedor de lectura elegido. Tu identidad Farcaster no cambia.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>Comprobando el registro nativo de HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>El registro nativo está activo en este nodo de HyperSnap. Falta integrar la configuración segura de la cartera.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>Falta integrar la copia de seguridad segura, la confirmación del FID nativo y la configuración del firmante. La creación de cuentas sigue desactivada.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>Neynar requiere una cartera segura y un servicio autorizado de registro. Esta versión todavía no crea cuentas.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Crear nuevo</translation>

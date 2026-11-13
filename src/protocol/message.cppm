@@ -115,6 +115,27 @@ struct KeyRemoveSelfRevokeInput final {
     Network network{Network::Mainnet};
 };
 
+/**
+ * A HyperSnap native registration message. Every field is publicly
+ * distributable; the custody key never enters this data structure.
+ * The caller must verify network activation, consent, and PoW before encoding.
+ */
+struct NativeOnboardInput final {
+    std::string custodyAddress{}; // 0x-prefixed 20 bytes
+    std::string custodySignature{}; // 0x-prefixed 65 bytes, EIP-712
+    std::uint64_t anchorHeight{};
+    std::string anchorHash{}; // 0x-prefixed 32 bytes
+    std::string powNonce{}; // 0x-prefixed 8 bytes
+    std::uint32_t difficultyBits{};
+    std::uint32_t timestamp{};
+    Network network{Network::Mainnet};
+};
+
+/** Exact protobuf NativeOnboard envelope accepted by HyperSnap /v1/submitMessage.
+ * Hash scheme is BLAKE3, signature scheme NONE and FID zero. */
+[[nodiscard]] foundation::result::Result<std::string> encodeNativeOnboard(
+    const NativeOnboardInput& input);
+
 /** @brief Canonical protobuf MessageData plus its BLAKE3-20 digest. */
 struct UnsignedMessage final {
     std::string dataBytes{};

@@ -108,6 +108,7 @@
 #include "media/remote_image.hpp"
 #include "identity/browser_auth.hpp"
 #include "identity/connections.hpp"
+#include "identity/native_registration.hpp"
 #include "identity/pro_checkout.hpp"
 #if defined(Q_OS_WASM)
 #include "identity/browser_pro_wallet.hpp"
@@ -565,6 +566,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<LiveInsightsController> liveInsightsControllerOwner{};
     std::unique_ptr<NodeSelectionController> nodeSelectionControllerOwner{};
     std::unique_ptr<ProviderProfilesController> providerProfilesControllerOwner{};
+    std::unique_ptr<NativeRegistrationStatusController> nativeRegistrationStatusOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
@@ -653,6 +655,14 @@ int main(int argc, char* argv[])
         allowCompatibleReadFallback, nullptr, appliedNodeEndpoint,
         farcasterReadBaseUrlText);
     ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
+    QString nativeRegistrationEndpoint =
+        qEnvironmentVariable("GENYCASTER_HYPERSNAP_BASE_URL").trimmed();
+    if (nativeRegistrationEndpoint.isEmpty())
+        nativeRegistrationEndpoint = compiledHypersnapEndpoint;
+    nativeRegistrationStatusOwner = std::make_unique<NativeRegistrationStatusController>(
+        nativeRegistrationEndpoint);
+    NativeRegistrationStatusController& nativeRegistrationStatus =
+        *nativeRegistrationStatusOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1250,6 +1260,7 @@ int main(int argc, char* argv[])
         {"liveInsights", &liveInsightsController},
         {"nodeSelectionController", &nodeSelectionController},
         {"providerProfiles", &providerProfilesController},
+        {"nativeRegistrationStatus", &nativeRegistrationStatus},
         {"updateController", &updateController},
         {"appearanceController", &appearanceController},
         {"renderingController", &renderingController},

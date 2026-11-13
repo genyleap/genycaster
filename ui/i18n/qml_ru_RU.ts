@@ -5672,6 +5672,22 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>Перезапустите GenyCaster после настройки, чтобы активировать выбранный сервис чтения. Ваша учётная запись Farcaster не изменится.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>Проверяем нативную регистрацию HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>На этом узле HyperSnap нативная регистрация активна, но безопасная настройка кошелька ещё не подключена.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>Безопасное резервное копирование, подтверждение FID и настройка подписанта ещё не завершены. Создание аккаунта пока отключено.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>Для Neynar нужен защищённый кошелёк и авторизованный сервис регистрации. Эта версия ещё не создаёт аккаунты.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Создать новый</translation>

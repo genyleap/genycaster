@@ -13,6 +13,7 @@ module;
 #include <openssl/param_build.h>
 #include <openssl/evp.h>
 #include <openssl/obj_mac.h>
+#include <openssl/rand.h>
 
 #include <algorithm>
 #include <array>
@@ -543,6 +544,74 @@ deriveMaterial(const std::string_view phrase)
 }
 } // namespace
 
+GeneratedCustodyWallet::GeneratedCustodyWallet(GeneratedCustodyWallet&& other) noexcept
+    : recoveryWords(std::move(other.recoveryWords)),
+      address(std::move(other.address))
+{
+    if (!other.recoveryWords.empty()) {
+        OPENSSL_cleanse(other.recoveryWords.data(), other.recoveryWords.size());
+        other.recoveryWords.clear();
+    }
+}
+
+GeneratedCustodyWallet&
+GeneratedCustodyWallet::operator=(GeneratedCustodyWallet&& other) noexcept
+{
+    if (this != &other) {
+        if (!recoveryWords.empty()) {
+            OPENSSL_cleanse(recoveryWords.data(), recoveryWords.size());
+            recoveryWords.clear();
+        }
+        recoveryWords = std::move(other.recoveryWords);
+        address = std::move(other.address);
+        if (!other.recoveryWords.empty()) {
+            OPENSSL_cleanse(other.recoveryWords.data(), other.recoveryWords.size());
+            other.recoveryWords.clear();
+        }
+    }
+    return *this;
+}
+
+GeneratedCustodyWallet::~GeneratedCustodyWallet()
+{
+    if (!recoveryWords.empty())
+        OPENSSL_cleanse(recoveryWords.data(), recoveryWords.size());
+}
+
+std::expected<GeneratedCustodyWallet, Error> generateCustodyWallet()
+{
+    // 256 cryptographically secure random entropy bits plus eight checksum bits
+    // produce exactly 24 BIP39 words. Never use QRandomGenerator or rand().
+    Sensitive<32> entropy{};
+    if (RAND_priv_bytes(entropy.bytes.data(),
+                       static_cast<int>(entropy.bytes.size())) != 1)
+        return std::unexpected(Error::KeyDerivationFailed);
+    std::array<unsigned char, 32> digest{};
+    unsigned int digestLength{};
+    if (EVP_Digest(entropy.bytes.data(), entropy.bytes.size(), digest.data(),
+                   &digestLength, EVP_sha256(), nullptr) != 1
+        || digestLength != digest.size())
+        return std::unexpected(Error::KeyDerivationFailed);
+    GeneratedCustodyWallet wallet{};
+    wallet.recoveryWords.reserve(24 * 9);
+    for (std::size_t wordIndex{}; wordIndex < 24; ++wordIndex) {
+        unsigned index{};
+        for (std::size_t bit{}; bit < 11; ++bit) {
+            const std::size_t offset = wordIndex * 11 + bit;
+            const unsigned char byte = offset < 256
+                ? entropy.bytes[offset / 8] : digest[0];
+            const unsigned shift = 7U - static_cast<unsigned>(offset % 8);
+            index = (index << 1U) | ((byte >> shift) & 1U);
+        }
+        if (wordIndex > 0) wallet.recoveryWords.push_back(' ');
+        wallet.recoveryWords.append(detail::englishWords[index]);
+    }
+    auto publicAddress = deriveMaterial(wallet.recoveryWords);
+    if (!publicAddress) return std::unexpected(publicAddress.error());
+    wallet.address = std::move(publicAddress->address);
+    return wallet;
+}
+
 std::expected<std::string, Error>
 derivePublicCustodyAddress(const std::string_view phrase)
 {
@@ -769,6 +838,82 @@ private:
         std::chrono::steady_clock::now()};
     bool m_consumed{false};
 };
+}
+
+std::expected<NativeOnboardSignature, Error> signNativeOnboard(
+    const std::string_view recoveryWords,
+    const std::uint64_t anchorHeight,
+    const std::string_view anchorHex,
+    const std::string_view nonceHex,
+    const std::uint32_t difficultyBits)
+{
+    // The native account namespace and EIP-712 domain are different from
+    // Optimism IdRegistry. No existing FID or signer is required here.
+    if (anchorHeight == 0 || difficultyBits == 0 || difficultyBits > 256)
+        return std::unexpected(Error::SigningFailed);
+    auto anchor = parseHex(anchorHex, 32);
+    auto nonce = parseHex(nonceHex, 8);
+    if (!anchor || !nonce) return std::unexpected(Error::SigningFailed);
+    auto custody = deriveMaterial(recoveryWords);
+    if (!custody) return std::unexpected(custody.error());
+    auto address = parseHex(custody->address, 20);
+    if (!address) return std::unexpected(Error::SigningFailed);
+
+    const auto sha256 = [](const std::vector<unsigned char>& bytes) {
+        Hash32 hash{};
+        unsigned int written{};
+        if (EVP_Digest(bytes.data(), bytes.size(), hash.data(),
+                       &written, EVP_sha256(), nullptr) != 1
+            || written != hash.size()) return std::optional<Hash32>{};
+        return std::optional<Hash32>{hash};
+    };
+    constexpr std::string_view powPrefix = "hyper.onboard.pow:";
+    std::vector<unsigned char> pow(powPrefix.begin(), powPrefix.end());
+    pow.insert(pow.end(), address->begin(), address->end());
+    pow.insert(pow.end(), anchor->begin(), anchor->end());
+    pow.insert(pow.end(), nonce->begin(), nonce->end());
+    const auto powHash = sha256(pow);
+    if (!powHash) return std::unexpected(Error::SigningFailed);
+    for (std::uint32_t bit{}; bit < difficultyBits; ++bit)
+        if (((*powHash)[bit / 8] & (0x80U >> (bit % 8))) != 0)
+            return std::unexpected(Error::SigningFailed);
+
+    constexpr std::string_view commitmentPrefix = "hyper.onboard.pow.commitment:";
+    std::vector<unsigned char> commitment(commitmentPrefix.begin(), commitmentPrefix.end());
+    commitment.insert(commitment.end(), nonce->begin(), nonce->end());
+    for (int shift = 24; shift >= 0; shift -= 8)
+        commitment.push_back(static_cast<unsigned char>(difficultyBits >> shift));
+    const auto commitmentHash = sha256(commitment);
+    if (!commitmentHash) return std::unexpected(Error::SigningFailed);
+
+    // Match HyperSnap src/native_registration.rs::onboard_typed_data
+    // exactly: EIP712Domain chainId 10, HyperNativeOnboard fields in order.
+    std::vector<unsigned char> domain{};
+    appendHash(domain, hashLiteral(
+        "EIP712Domain(string name,string version,uint256 chainId)"));
+    appendHash(domain, hashLiteral("HypersnapNativeOnboard"));
+    appendHash(domain, hashLiteral("1"));
+    appendNumber(domain, 10);
+    const auto domainHash = keccak256(domain);
+
+    std::vector<unsigned char> structure{};
+    appendHash(structure, hashLiteral(
+        "HyperNativeOnboard(address custody,uint64 anchor_block_height,bytes32 anchor_block_hash,bytes32 gate_commitment)"));
+    structure.insert(structure.end(), 12, 0);
+    structure.insert(structure.end(), address->begin(), address->end());
+    appendNumber(structure, anchorHeight);
+    structure.insert(structure.end(), anchor->begin(), anchor->end());
+    appendHash(structure, *commitmentHash);
+    const auto structureHash = keccak256(structure);
+    std::vector<unsigned char> preimage{0x19, 0x01};
+    appendHash(preimage, domainHash);
+    appendHash(preimage, structureHash);
+    const auto signature = signDigest(custody->privateKey, keccak256(preimage));
+    if (!signature) return std::unexpected(Error::SigningFailed);
+    return NativeOnboardSignature{
+        .address = std::move(custody->address),
+        .signature = *signature
+    };
 }
 
 std::expected<std::shared_ptr<farcaster::capability::signer::ICustodyAuthorizer>, Error>

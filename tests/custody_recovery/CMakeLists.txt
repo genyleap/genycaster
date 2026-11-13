@@ -53,3 +53,9 @@ add_test(NAME custody.eip712_noble_interop
     COMMAND "${GENYCASTER_NODE_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/key_add_interop.test.mjs"
     "$<TARGET_FILE:genycaster_custody_key_add_interop>")
+
+add_executable(genycaster_native_onboard_vectors native_onboard.cpp)
+target_compile_features(genycaster_native_onboard_vectors PRIVATE cxx_std_26)
+target_link_libraries(genycaster_native_onboard_vectors PRIVATE
+    native_custody_vectors_support farcaster::protocol OpenSSL::Crypto)
+add_test(NAME custody.hypersnap_native_onboard COMMAND genycaster_native_onboard_vectors)

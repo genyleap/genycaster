@@ -5673,6 +5673,22 @@ Entreprise | https://company.com</translation>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>Redémarrez GenyCaster après la configuration pour activer le fournisseur de lecture choisi. Votre identité Farcaster reste la même.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>Vérification de l’inscription native HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>L’inscription native est active sur ce nœud HyperSnap. La création sécurisée du portefeuille n’est pas encore reliée.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>La sauvegarde sécurisée, la confirmation du FID natif et la configuration du signataire restent à intégrer. La création de compte est désactivée.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>Neynar exige un portefeuille sécurisé et un service d’inscription autorisé. Cette version ne crée pas encore de compte.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Créer un profil</translation>

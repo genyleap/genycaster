@@ -5672,6 +5672,22 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>Reinicie o GenyCaster após a configuração para ativar o provedor de leitura escolhido. Sua identidade Farcaster não muda.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>Verificando o registro nativo do HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>O registro nativo está ativo neste nó HyperSnap. A configuração segura da carteira ainda não foi integrada.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>Backup seguro, confirmação do FID nativo e configuração do assinante ainda estão em integração. A criação de contas permanece desativada.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>O Neynar exige carteira segura e serviço autorizado de registro. Esta versão ainda não cria contas.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Criar novo</translation>

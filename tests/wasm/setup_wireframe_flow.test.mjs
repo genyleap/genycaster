@@ -45,7 +45,7 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /finishSetup\(\)/);
 });
 
-test('account creation is actionable, selects the indexed provider and completes only after verified sign-in', () => {
+test('registration keeps protocol choice but blocks unsupported custody writes and external sign-up', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
   const create=account.slice(account.indexOf('objectName: "setupCreateAccount"'),
                              account.indexOf('title: qsTrId("genycaster.setup.design_existing_account")'));
@@ -59,15 +59,15 @@ test('account creation is actionable, selects the indexed provider and completes
   assert.match(account,/enabled: providerProfiles.indexedReadSupported/);
   assert.match(account,/enabled: providerProfiles.hostedReadSupported/);
   assert.match(account,/objectName: "setupBeginRegistration"/);
-  assert.match(account,/root.beginAccountRegistration\(\)/);
-  assert.match(account,/objectName: "setupRegistrationCompleted"/);
-  assert.match(account,/root.switchStep\(4\)/);
-  assert.match(setup,/onAuthenticatedChanged:[\s\S]*?providerProfiles.selectReadProvider\(registrationProviderId\)/);
-  const launch=setup.slice(setup.indexOf('function beginAccountRegistration()'),setup.indexOf('onAuthenticatedChanged:'));
-  assert.doesNotMatch(launch,/selectReadProvider\(/);
-  assert.match(launch,/root.openRegistration\(\)/);
-  assert.match(setup,/accountIntent === "new" && registrationLaunched/);
-  assert.match(source('ui/components/shell/AppShell.qml'),/onOpenRegistration: presentationBridge.openExternalUrl\("https:\/\/farcaster.xyz\/\~\/signup"\)/);
+  assert.match(account,/enabled: false/);
+  assert.doesNotMatch(account,/objectName: "setupRegistrationCompleted"/);
+  assert.match(account,/nativeRegistrationStatus.checking/);
+  assert.match(account,/nativeRegistrationStatus.active/);
+  const launch=setup.slice(setup.indexOf('function beginAccountRegistration()'),setup.indexOf('property bool showRecovery'));
+  assert.doesNotMatch(launch,/selectReadProvider\(|openRegistration\(/);
+  assert.match(launch,/nativeRegistrationStatus.refresh\(\)/);
+  assert.doesNotMatch(setup,/registrationLaunched|signal openRegistration/);
+  assert.doesNotMatch(source('ui/components/shell/AppShell.qml'),/farcaster.xyz\/\~\/signup/);
   for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']){
     const translation=source('ui/i18n/qml_'+locale+'.ts');

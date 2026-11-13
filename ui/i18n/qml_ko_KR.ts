@@ -5672,6 +5672,22 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>선택한 읽기 제공자를 활성화하려면 설정 완료 후 GenyCaster를 다시 시작하세요. Farcaster ID는 유지됩니다.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>HyperSnap 네이티브 등록을 확인하는 중…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>이 HyperSnap 노드는 네이티브 등록이 활성화되어 있지만 보안 지갑 설정은 아직 연결되지 않았습니다.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>보안 백업, 네이티브 FID 확인 및 서명자 설정이 아직 통합되지 않아 계정 생성을 사용할 수 없습니다.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>Neynar 등록에는 보안 지갑과 승인된 등록 서비스가 필요합니다. 이 빌드에서는 아직 계정이 생성되지 않습니다.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>새로 만들기</translation>

@@ -58,22 +58,17 @@ Item {
     property string accountIntent: ""
     property bool choosingRegistrationProvider: false
     property string registrationProviderId: "hypersnap-v2"
-    property bool registrationLaunched: false
     property string registrationError: ""
     function beginAccountRegistration() {
-        // Both choices register the SAME Farcaster FID via IdRegistry. The
-        // selected read service must not change before registration and
-        // authentication succeed. Persist it only after verified sign-in.
-        if (registrationProviderId === "farcaster-snapchain"
-                && !providerProfiles.hostedReadSupported) {
-            registrationError = qsTrId("genycaster.setup.registration_provider_missing")
-            return
-        }
-        if (registrationProviderId === "hypersnap-v2"
-                && !providerProfiles.indexedReadSupported) return
-        registrationError = ""
-        registrationLaunched = true
-        root.openRegistration()
+        // The native wallet/PoW/protobuf primitives are implemented but a
+        // full account is not ready until secure backup, network inclusion,
+        // authentication and signer provisioning all work. Never open a
+        // third-party signup page or claim registration from a browser launch.
+        if (registrationProviderId === "hypersnap-v2")
+            nativeRegistrationStatus.refresh()
+        registrationError = registrationProviderId === "hypersnap-v2"
+            ? qsTrId("genycaster.setup.native_registration_pending")
+            : qsTrId("genycaster.setup.neynar_registration_pending")
     }
     property bool showRecovery: false
     property string legalDocument: ""
@@ -111,7 +106,6 @@ Item {
 
     signal continueWithGenyleap()
     signal continueWithFarcaster()
-    signal openRegistration()
     signal openApproval()
     signal cancelAuthentication()
     signal authorizeSigner()
@@ -187,7 +181,7 @@ Item {
             return
         }
         if (currentStep === 3) {
-            if (accountIntent === "existing" || (accountIntent === "new" && registrationLaunched))
+            if (accountIntent === "existing")
                 switchStep(4)
             return
         }
@@ -209,7 +203,6 @@ Item {
         if (currentStep === 3 && choosingRegistrationProvider) {
             choosingRegistrationProvider = false
             registrationError = ""
-            registrationLaunched = false
             accountIntent = ""
             return
         }
@@ -232,7 +225,7 @@ Item {
     function actionEnabled() {
         if (currentStep === 2) return consentChecked
         if (currentStep === 3) return accountIntent === "existing"
-            || (accountIntent === "new" && registrationLaunched)
+
         if (currentStep === 4) return authenticated
         if (currentStep === 5) return authenticated || reviewMode
         if (currentStep === 7) return reviewMode || (legalConsentAccepted && authenticated)
@@ -245,7 +238,6 @@ Item {
             pendingStep = -1
             stageOpacity = 1
             choosingRegistrationProvider = false
-            registrationLaunched = false
             registrationError = ""
             return
         }
@@ -290,12 +282,6 @@ Item {
         }
     }
     onAuthenticatedChanged: {
-        // Registration is verified by the normal sign-in gate. Only AFTER a
-        // real authenticated Farcaster FID exists may the selected read
-        // provider preference be persisted. No account is created by UI state.
-        if (authenticated && accountIntent === "new" && registrationLaunched
-            && !providerProfiles.selectReadProvider(registrationProviderId))
-            registrationError = qsTrId("genycaster.setup.registration_provider_missing")
         if (visible && authenticated && currentStep >= 3 && currentStep <= 5) {
             recoverySubmitPending = false
             switchStep(5)
@@ -1202,7 +1188,6 @@ Item {
                     onClicked: {
                         root.accountIntent = "new"
                         root.choosingRegistrationProvider = true
-                        root.registrationLaunched = false
                         root.registrationError = ""
                     }
                 }
@@ -1242,6 +1227,7 @@ Item {
                         onClicked: {
                             root.registrationProviderId = "hypersnap-v2"
                             root.registrationError = ""
+                            nativeRegistrationStatus.refresh()
                         }
                     }
                     SetupActionCard {
@@ -1282,30 +1268,35 @@ Item {
                     color: Theme.danger
                     wrapMode: Text.WordWrap
                 }
-                ActionButton {
-                    objectName: "setupBeginRegistration"
+                DirectionAwareLabel {
                     Layout.fillWidth: true
-                    prominent: true
-                    text: qsTrId("genycaster.setup.registration_start")
-                    enabled: root.registrationProviderId === "hypersnap-v2"
-                        ? providerProfiles.indexedReadSupported
-                        : providerProfiles.hostedReadSupported
-                    onClicked: root.beginAccountRegistration()
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                    text: nativeRegistrationStatus.checking
+                        ? qsTrId("genycaster.setup.native_registration_checking")
+                        : nativeRegistrationStatus.active
+                          ? qsTrId("genycaster.setup.native_registration_node_ready")
+                          : nativeRegistrationStatus.error
+                    color: nativeRegistrationStatus.active ? Theme.accent : Theme.inkMuted
+                    font.pixelSize: Theme.typeCaptionSize
+                    wrapMode: Text.WordWrap
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    visible: root.registrationLaunched
-                    text: qsTrId("genycaster.setup.registration_handoff")
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.inkMuted
+                    text: root.registrationProviderId === "hypersnap-v2"
+                        ? qsTrId("genycaster.setup.native_registration_pending")
+                        : qsTrId("genycaster.setup.neynar_registration_pending")
+                    color: Theme.warning
+                    font.pixelSize: Theme.typeLabelSize
                     wrapMode: Text.WordWrap
                 }
                 ActionButton {
-                    objectName: "setupRegistrationCompleted"
-                    visible: root.registrationLaunched
+                    objectName: "setupBeginRegistration"
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.registration_connect")
-                    onClicked: root.switchStep(4)
+                    prominent: false
+                    text: qsTrId("genycaster.setup.registration_start")
+                    // Do not enable a financial/identity write before the app
+                    // can prove secure custody backup and signer onboarding.
+                    enabled: false
                 }
             }
         }

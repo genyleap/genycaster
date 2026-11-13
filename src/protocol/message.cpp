@@ -685,6 +685,68 @@ foundation::result::Result<UnsignedMessage> encodeKeyRemoveSelfRevoke(
         body);
 }
 
+foundation::result::Result<std::string> encodeNativeOnboard(
+    const NativeOnboardInput& input)
+{
+    // The first native message has FID=0 by design, unlike normal writes.
+    if (input.anchorHeight == 0 || input.timestamp == 0
+        || input.difficultyBits == 0 || input.difficultyBits > 256)
+        return std::unexpected(invalid("Invalid native onboarding parameters."));
+    const auto decode = [](std::string_view text, const std::size_t count)
+        -> std::optional<std::string> {
+        if (text.starts_with("0x")) text.remove_prefix(2);
+        if (text.size() != count * 2) return std::nullopt;
+        std::string result(count, char{0});
+        for (std::size_t i{}; i < count; ++i) {
+            const auto high = hexDigit(text[i * 2]);
+            const auto low = hexDigit(text[i * 2 + 1]);
+            if (high < 0 || low < 0) return std::nullopt;
+            result[i] = static_cast<char>((high << 4) | low);
+        }
+        return result;
+    };
+    const auto custody = decode(input.custodyAddress, 20);
+    const auto signature = decode(input.custodySignature, 65);
+    const auto anchor = decode(input.anchorHash, 32);
+    const auto nonce = decode(input.powNonce, 8);
+    if (!custody || !signature || !anchor || !nonce)
+        return std::unexpected(invalid("Invalid native onboarding hex field."));
+    if (static_cast<std::uint8_t>(signature->at(64)) != 27U
+        && static_cast<std::uint8_t>(signature->at(64)) != 28U)
+        return std::unexpected(invalid("Invalid native custody recovery bit."));
+
+    std::string pow{};
+    appendBytes(pow, 1U, *nonce);
+    appendUint(pow, 2U, input.difficultyBits);
+
+    std::string body{};
+    appendBytes(body, 1U, *custody);
+    appendBytes(body, 2U, *signature);
+    appendUint(body, 3U, input.anchorHeight);
+    appendBytes(body, 4U, *anchor);
+    appendMessage(body, 5U, pow);
+
+    std::string data{};
+    appendUint(data, 1U, 160U); // MESSAGE_TYPE_NATIVE_ONBOARD
+    // Deliberately omit field 2: the validator requires FID = 0.
+    appendUint(data, 3U, input.timestamp);
+    appendUint(data, 4U, static_cast<std::uint32_t>(input.network));
+    appendBytes(data, 1160U, body);
+
+    const auto hash = hash::blake3Digest20(std::as_bytes(std::span{data}));
+    std::string digest{};
+    digest.reserve(hash.size());
+    for (const auto byte : hash)
+        digest.push_back(static_cast<char>(std::to_integer<unsigned char>(byte)));
+    std::string envelope{};
+    appendMessage(envelope, 1U, data);
+    appendBytes(envelope, 2U, digest);
+    appendUint(envelope, 3U, hashSchemeBlake3);
+    // No signature, no signer, no signature scheme (all are zero/empty).
+    appendBytes(envelope, 7U, data);
+    return envelope;
+}
+
 foundation::result::Result<std::string> seal(
     const UnsignedMessage& message,
     const domain::signer::Signature& signature)

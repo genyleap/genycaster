@@ -440,6 +440,8 @@ qt_add_executable(genycaster
     app/identity/browser_auth.hpp
     app/identity/connections.cpp
     app/identity/connections.hpp
+    app/identity/native_registration.cpp
+    app/identity/native_registration.hpp
     app/identity/pro_checkout.cpp
     app/identity/pro_checkout.hpp
     app/identity/browser_pro_wallet.hpp

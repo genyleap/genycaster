@@ -5672,6 +5672,22 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>चुने हुए रीड प्रदाता को सक्रिय करने के लिए सेटअप के बाद GenyCaster पुनः शुरू करें। आपकी Farcaster पहचान वही रहेगी।</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>HyperSnap नेटिव पंजीकरण की जाँच हो रही है…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>इस HyperSnap नोड पर नेटिव पंजीकरण सक्रिय है, लेकिन सुरक्षित वॉलेट सेटअप अभी जुड़ा नहीं है।</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>सुरक्षित बैकअप, नेटिव FID सत्यापन और साइनर सेटअप अभी पूरे नहीं हुए हैं। तब तक नया खाता नहीं बनाया जा सकता।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>Neynar को सुरक्षित कस्टडी वॉलेट और अधिकृत रजिस्ट्रेशन सेवा चाहिए। यह संस्करण अभी खाता नहीं बनाता।</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>नई बनाएँ</translation>

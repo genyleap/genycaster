@@ -5672,6 +5672,22 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>أعِد تشغيل GenyCaster بعد الإعداد لتفعيل موفّر القراءة المختار. تظل هوية Farcaster كما هي.</translation>
         </message>
+        <message id="genycaster.setup.native_registration_checking">
+            <source>Checking the HyperSnap native registration protocol…</source>
+            <translation>جارٍ التحقق من التسجيل الأصلي في HyperSnap…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_ready">
+            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
+            <translation>التسجيل الأصلي مفعل على عقدة HyperSnap هذه، لكن إعداد المحفظة الآمن لم يكتمل بعد.</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_pending">
+            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
+            <translation>النسخ الاحتياطي الآمن وتأكيد FID وإعداد مفتاح التوقيع لم تكتمل بعد؛ إنشاء الحساب معطل حتى اكتمالها.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_pending">
+            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
+            <translation>يتطلب Neynar محفظة حفظ آمنة وخدمة تسجيل مرخصة. هذا الإصدار لا ينشئ حسابًا بعد.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>إنشاء حساب جديد</translation>

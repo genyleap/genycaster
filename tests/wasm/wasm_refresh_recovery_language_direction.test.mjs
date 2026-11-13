@@ -58,11 +58,13 @@ test('account choices follow storyboard and pending registration cannot launch F
     const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
     assert.match(account,/genycaster.setup.design_create_account/);
     assert.match(account,/genycaster.setup.design_existing_account/);
-    assert.match(account,/objectName: "setupCreateAccountUnavailable"/);
-    assert.match(account,/unavailable: true/);
-    assert.match(account,/enabled: false/);
+    assert.match(account,/objectName: "setupCreateAccount"/);
+    assert.match(account,/objectName: "setupRegisterHyperSnap"/);
+    assert.match(account,/nativeRegistrationStatus.active/);
+    assert.match(account,/objectName: "setupBeginRegistration"[\s\S]*?enabled: false/);
     assert.match(account,/root.accountIntent = "existing"/);
     assert.doesNotMatch(account,/root.openRegistration\(\)/);
+    assert.doesNotMatch(setup,/farcaster.xyz\/\~\/signup/);
 });
 
 test('web update copy is present in all supported locales', () => {

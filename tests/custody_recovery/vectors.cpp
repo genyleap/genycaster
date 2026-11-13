@@ -1,5 +1,7 @@
 
 #include <cassert>
+#include <algorithm>
+#include <utility>
 #include <iostream>
 #include <string>
 
@@ -69,5 +71,24 @@ int main()
     if (tooShort || tooShort.error() != Error::InvalidWordCount) return 6;
     const auto arbitrary = derivePublicCustodyAddress(std::string(16, '\0'));
     if (arbitrary || arbitrary.error() != Error::InvalidPhrase) return 7;
-    std::cout << "Native BIP39 checksum, BIP32, Keccak and input bounds passed\n";
+    // A generated custody wallet must be a valid BIP39 24-word phrase and
+    // round-trip to the EXACT address emitted by native generation. The
+    // mnemonic is move-only and zeroized on destruction.
+    using farcaster::platform::custody_recovery::generateCustodyWallet;
+    auto first = generateCustodyWallet();
+    auto second = generateCustodyWallet();
+    if (!first || !second) return 18;
+    auto countWords = [](const std::string& phrase) {
+        return static_cast<int>(1 + std::count(phrase.begin(), phrase.end(), ' '));
+    };
+    if (countWords(first->recoveryWords) != 24
+        || countWords(second->recoveryWords) != 24
+        || first->recoveryWords == second->recoveryWords) return 19;
+    const auto roundTrip = derivePublicCustodyAddress(first->recoveryWords);
+    if (!roundTrip || *roundTrip != first->address
+        || first->address.size() != 42) return 20;
+    auto transferred = std::move(*first);
+    if (transferred.recoveryWords.empty() || !first->recoveryWords.empty())
+        return 21;
+    std::cout << "Native BIP39 generation, checksum, BIP32, Keccak and input bounds passed\n";
 }
