@@ -5662,8 +5662,8 @@ Entreprise | https://company.com</translation>
             <translation>Neynar exige un service d’inscription sécurisé ; un point de lecture ne suffit pas.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Continuer vers l&#x27;inscription Farcaster</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>Envoyer l’inscription HyperSnap</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
