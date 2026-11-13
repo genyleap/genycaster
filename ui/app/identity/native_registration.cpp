@@ -105,8 +105,9 @@ void NativeRegistrationStatusController::refresh()
     request.setRawHeader("Accept", "application/json");
     m_reply = m_network.get(request);
     m_checking = true;
-    emit changed();
     const auto reply = m_reply;
+    // Install the completion handler before announcing the new state: QML
+    // observers may synchronously request another refresh in changed().
     QObject::connect(reply, &QNetworkReply::finished, this, [this, reply] {
         if (reply != m_reply) return;
         m_reply = nullptr;
@@ -166,4 +167,5 @@ void NativeRegistrationStatusController::refresh()
             QStringLiteral("The selected HyperSnap node has not enabled native registration.");
         emit changed();
     });
+    emit changed();
 }
