@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Neynar 需要安全的注册后端；仅有读取 API 不够。</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>继续前往 Farcaster 注册</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>提交 HyperSnap 注册</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
