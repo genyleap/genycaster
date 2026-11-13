@@ -65,6 +65,35 @@ Item {
             nativeRegistrationStatus.refresh()
         registrationError = ""
     }
+    // Readiness is scoped to the selected registration registry. Neither a
+    // reachable read node nor a generated custody wallet establishes an FID.
+    // Keep this status advisory; irreversible writes retain their C++ gates.
+    function registrationReadinessText() {
+        if (registrationProviderId === "hypersnap-v2") {
+            if (nativeRegistrationStatus.checking)
+                return qsTrId("genycaster.setup.native_registration_checking")
+            if (!nativeRegistrationStatus.active)
+                return nativeRegistrationStatus.error.length > 0
+                    ? nativeRegistrationStatus.error
+                    : qsTrId("genycaster.setup.native_registration_node_unavailable")
+            if (!runtimeReady)
+                return qsTrId("genycaster.setup.registration_runtime_initializing")
+            if (!nativeRegistrationPublisher.registrationSupported)
+                return qsTrId("genycaster.setup.native_registration_signing_unavailable")
+            return qsTrId("genycaster.setup.native_registration_node_ready")
+        }
+        if (!runtimeReady)
+            return qsTrId("genycaster.setup.registration_runtime_initializing")
+        if (!neynarRegistration.registrationSupported)
+            return qsTrId("genycaster.setup.neynar_runtime_unavailable")
+        if (!neynarRegistration.available)
+            return qsTrId("genycaster.setup.registration_provider_missing")
+        return qsTrId("genycaster.setup.neynar_registration_requirements")
+    }
+    readonly property bool registrationNodeUsable:
+        registrationProviderId === "hypersnap-v2"
+        && nativeRegistrationStatus.active && runtimeReady
+        && nativeRegistrationPublisher.registrationSupported
     property bool showRecovery: false
     property string legalDocument: ""
     property bool recoverySubmitPending: false
@@ -1508,25 +1537,21 @@ Item {
                     color: Theme.danger
                     wrapMode: Text.WordWrap
                 }
+                // Exactly one network-specific advisory, not permanent
+                // placeholder warnings about missing features. The separate
+                // submit panels report pending writes and confirmed FIDs.
                 DirectionAwareLabel {
+                    objectName: "setupRegistrationReadiness"
                     Layout.fillWidth: true
                     visible: root.registrationProviderId === "hypersnap-v2"
-                    text: nativeRegistrationStatus.checking
-                        ? qsTrId("genycaster.setup.native_registration_checking")
-                        : nativeRegistrationStatus.active
-                          ? qsTrId("genycaster.setup.native_registration_node_ready")
-                          : nativeRegistrationStatus.error
-                    color: nativeRegistrationStatus.active ? Theme.accent : Theme.inkMuted
+                        ? !nativeRegistrationPublisher.pending
+                          && !nativeRegistrationPublisher.busy
+                          && !nativeRegistrationPublisher.confirmed
+                        : neynarRegistration.phase === "idle"
+                    text: root.registrationReadinessText()
+                    color: root.registrationNodeUsable ? Theme.accent
+                           : Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: root.registrationProviderId === "hypersnap-v2"
-                             && !nativeRegistrationPublisher.confirmed
-                    text: qsTrId("genycaster.setup.native_registration_pending")
-                    color: Theme.warning
-                    font.pixelSize: Theme.typeLabelSize
                     wrapMode: Text.WordWrap
                 }
                 ColumnLayout {
@@ -1571,15 +1596,6 @@ Item {
                                 neynarEnrollmentVoucher.text)
                             neynarEnrollmentVoucher.clear()
                         }
-                    }
-                    DirectionAwareLabel {
-                        Layout.fillWidth: true
-                        visible: !neynarRegistration.registrationSupported
-                                 && root.runtimeReady
-                        text: qsTrId("genycaster.setup.neynar_runtime_unavailable")
-                        color: Theme.warning
-                        font.pixelSize: Theme.typeCaptionSize
-                        wrapMode: Text.WordWrap
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
