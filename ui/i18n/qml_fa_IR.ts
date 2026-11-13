@@ -5686,8 +5686,8 @@ Company | https://company.com</source>
             <translation>برای نینار به بک‌اند امن ثبت‌نام نیاز است؛ تنها داشتن endpoint خواندن کافی نیست.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>ادامه به ثبت‌نام فارکستر</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>ارسال ثبت‌نام هایپراسنپ</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
