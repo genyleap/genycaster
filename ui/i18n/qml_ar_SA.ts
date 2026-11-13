@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>يتطلب Neynar خادم تسجيل آمن؛ نقطة القراءة وحدها لا تكفي.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>المتابعة إلى تسجيل Farcaster</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>إرسال تسجيل هايبراسناب</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
