@@ -69,7 +69,7 @@ private:
  * clipboard or serializable data model exists for the recovery phrase.
  * The mnemonic is visible in pixels only while the backup ceremony permits it.
  */
-class NativeRecoveryWordsItem final : public QQuickPaintedItem {
+class NativeRecoveryWordsItem : public QQuickPaintedItem {
     Q_OBJECT
     Q_PROPERTY(NativeCustodyWalletController* wallet READ wallet WRITE setWallet
                NOTIFY walletChanged)
