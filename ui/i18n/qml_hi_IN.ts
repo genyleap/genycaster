@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Neynar को सुरक्षित पंजीकरण बैकएंड चाहिए; केवल रीड एंडपॉइंट पर्याप्त नहीं।</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Farcaster पंजीकरण जारी रखें</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>HyperSnap पंजीकरण भेजें</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
