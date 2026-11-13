@@ -12,4 +12,8 @@ public:
         farcaster::capability::signer::ICustodyAuthorizer>
     forConfirmedNativeFid(const NativeCustodyWalletController& wallet,
                           std::uint64_t fid, const QString& custodyAddress);
+    [[nodiscard]] static std::shared_ptr<
+        farcaster::capability::signer::ICustodyAuthorizer>
+    forConfirmedFarcasterFid(const NativeCustodyWalletController& wallet,
+                             std::uint64_t fid, const QString& custodyAddress);
 };

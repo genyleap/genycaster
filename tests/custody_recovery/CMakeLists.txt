@@ -122,6 +122,17 @@ if(GENYCASTER_TEST_NATIVE_QT_WALLET)
 endif()
 
 if(GENYCASTER_TEST_NATIVE_QT_WALLET)
+    add_executable(genycaster_neynar_flow
+        neynar_flow.cpp
+        ../../ui/app/identity/neynar_registration_controller.cpp
+        ../../ui/app/identity/neynar_registration_controller.hpp)
+    set_target_properties(genycaster_neynar_flow PROPERTIES AUTOMOC ON)
+    target_compile_features(genycaster_neynar_flow PRIVATE cxx_std_26)
+    target_link_libraries(genycaster_neynar_flow PRIVATE Qt6::Core Qt6::Network)
+    add_test(NAME custody.neynar_flow COMMAND genycaster_neynar_flow)
+endif()
+
+if(GENYCASTER_TEST_NATIVE_QT_WALLET)
     find_package(Qt6 6.12 REQUIRED COMPONENTS Concurrent)
     add_executable(genycaster_native_prepare
         native_prepare.cpp

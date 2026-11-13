@@ -45,7 +45,7 @@ trusted operators and an *authorize* method for the relay. A voucher binds
 `(invoice UUID, exact EVM custody address, expiry timestamp)` under an HMAC.
 The token must only be issued **after** independent payment verification
 or an explicitly approved sponsorship. Its issuer is not exposed as an HTTP
-route. A lease is permanently unique per paid invoice and custody address.
+route. A lease is permanently unique per paid invoice **and** per custody address;\nPostgreSQL enforces one FID allocation per paid invoice even if a second\nrequest supplies a different wallet.
 The voucher does not and cannot replace the EIP-712 custody authorization.
 
 The account server expects an already-issued voucher in the
@@ -90,11 +90,17 @@ An HTTP 200 is not proof of FID ownership or signer authorization.
 
 - Complete *user-facing* paid voucher issuance, refund/accounting,
   abuse/rate caps and first-party payment confirmation.
-- Bind Neynar reserve/submit/status to the native custody-wallet
-  self-custody and device Signer workflow in Qt. Do not paste or upload
-  mnemonics to any server or QML property.
-- Confirm onchain identity, register and validate the device Signer, then
-  create an authenticated Farcaster session.
+- The Qt 6.12 self-custody controller is connected to Setup (twelve
+  translations) for voucher acceptance, reserve, exact FID+nonce+deadline
+  EIP-712 transfer in the native wallet, submit, and read-only confirmation.
+  A verified onchain FID is handed to the C++ application session and
+  one-use device Signer authorization; the signer remains unusable until
+  the protocol's own registry confirms KEY_ADD. No mnemonic is sent to QML
+  or Neynar. This native flow is covered by local mock HTTP and unit tests,
+  **not** by a live funded registration.
+- Complete actual paid voucher issuance, test payment settlement/refunds,
+  signer network KEY_ADD confirmation, app restarts/recovery and independent
+  cross-platform builds before enabling public registration.
 - Test a funded staging enrollment, crash/restart and ambiguity recovery,
   then macOS, Windows, Linux, Android and WASM packaging.
 - Do not equate passing the mocked relay tests with a real successful

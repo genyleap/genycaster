@@ -26,6 +26,7 @@ class OpenProofConnectionsController;
 class MediaUploadController;
 class MediaPlaybackCoordinator;
 class HyperSnapRegistrationPublisher;
+class NeynarRegistrationController;
 class NativeCustodyWalletController;
 // The importer must import genycaster.ui.runtime before this header;
 // redeclaring a named-module type in the global module is not valid C++26.
@@ -80,6 +81,7 @@ struct RuntimeAttachment final {
     QString browserSnapchainOrigin;
     QString startupIdentity;
     HyperSnapRegistrationPublisher* nativePublisher{};
+    NeynarRegistrationController* farcasterPublisher{};
     NativeCustodyWalletController* nativeWallet{};
     bool authenticationAvailable{false};
     bool openExploreForTest{false};

@@ -5796,6 +5796,74 @@ Company | https://company.com</source>
             <source>Check native registration status</source>
             <translation>네이티브 등록 상태 확인</translation>
         </message>
+        <message id="genycaster.setup.neynar_voucher_explanation">
+            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
+            <translation>Farcaster 등록에는 GenyCaster가 확인한 결제 완료 등록 코드가 필요합니다. 복구 단어를 여기에 입력하지 마세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_placeholder">
+            <source>Enter paid registration code</source>
+            <translation>결제된 등록 코드</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_accept">
+            <source>Verify enrollment code</source>
+            <translation>등록 코드 확인</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_ready">
+            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
+            <translation>등록 코드를 불러왔습니다. FID 예약 시 서버에서 결제 권한을 검증합니다.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserve_fid">
+            <source>Reserve Farcaster FID</source>
+            <translation>Farcaster FID 예약</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserved_fid">
+            <source>Reserved Farcaster FID %1</source>
+            <translation>예약된 Farcaster FID: %1</translation>
+        </message>
+        <message id="genycaster.setup.neynar_username_placeholder">
+            <source>Choose a username</source>
+            <translation>사용자 이름 선택</translation>
+        </message>
+        <message id="genycaster.setup.neynar_transfer_consent">
+            <source>I authorize this one-time Farcaster IdRegistry transfer using my secured local wallet.</source>
+            <translation>안전한 로컬 지갑으로 일회성 IdRegistry 이전을 승인합니다.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_submit_registration">
+            <source>Sign and submit registration</source>
+            <translation>서명하고 등록 제출</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reservation_time">
+            <source>The reservation expires after ten minutes. Finish signing before it expires.</source>
+            <translation>예약은 10분 후 만료됩니다. 그전에 서명하세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_fid_confirmed">
+            <source>Farcaster FID %1 confirmed on Optimism. Device signer setup is verified separately.</source>
+            <translation>Farcaster FID %1이 Optimism에서 확인되었습니다. 기기 서명자는 별도로 검증합니다.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_rejected">
+            <source>The registration request was rejected. Check its status before any new purchase.</source>
+            <translation>등록이 거부되었습니다. 다시 결제하기 전에 상태를 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_waiting_confirmation">
+            <source>Waiting for onchain confirmation. Do not repeat an uncertain payment or registration.</source>
+            <translation>온체인 확인을 기다리고 있습니다. 결과가 불확실한 결제나 등록을 반복하지 마세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_error">
+            <source>Registration could not be verified. Check your code, network and reservation status.</source>
+            <translation>등록을 확인할 수 없습니다. 코드, 네트워크 및 예약을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_check_again">
+            <source>Check Farcaster registration status</source>
+            <translation>Farcaster 등록 상태 확인</translation>
+        </message>
+        <message id="genycaster.setup.neynar_runtime_unavailable">
+            <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
+            <translation>이 빌드에서는 보안 서명을 사용할 수 없습니다. 등록은 시작되지 않았습니다. 서명자 보관소를 확인하세요.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_backend_unavailable">
+            <source>The Farcaster registration service is not enabled on this server. Ask the operator to configure funded Neynar registration.</source>
+            <translation>이 서버에서는 Farcaster 등록 서비스가 비활성 상태입니다. 자금이 확보된 Neynar 서비스를 구성해야 합니다.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>새로 만들기</translation>

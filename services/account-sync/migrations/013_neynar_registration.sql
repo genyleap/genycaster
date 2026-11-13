@@ -4,8 +4,8 @@
 BEGIN;
 CREATE TABLE IF NOT EXISTS neynar_registration_leases (
   id uuid PRIMARY KEY,
-  principal text NOT NULL CHECK (length(principal) BETWEEN 10 AND 160),
-  custody varchar(42) NOT NULL CHECK
+  principal text NOT NULL UNIQUE CHECK (length(principal) BETWEEN 10 AND 160),
+  custody varchar(42) NOT NULL UNIQUE CHECK
     (custody ~ '^0x[0-9a-f]{40}$'),
   status text NOT NULL DEFAULT 'reserving'
     CHECK (status IN ('reserving','reservation_unknown','reserved',
@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS neynar_registration_leases (
   transaction_hash varchar(66) CHECK
     (transaction_hash IS NULL OR transaction_hash ~ '^0x[0-9a-f]{64}$'),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  -- One custody wallet and one paid invoice are each globally single-use.
+  -- Prevents concurrent paid FID allocations for the same wallet.
   UNIQUE (principal,custody),
   CHECK (status NOT IN ('reserved','submitting','submitted','confirmed')
          OR (fid IS NOT NULL AND reserved_ms IS NOT NULL))

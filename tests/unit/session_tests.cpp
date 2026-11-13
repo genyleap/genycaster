@@ -667,6 +667,54 @@ void verifiedHyperSnapCustodyUsesDistinctNativeSession()
     rejected(invalid);
 }
 
+void verifiedOptimismFarcasterCustodyRemainsDistinctFromHyperSnap()
+{
+    ImmediateExecutor executor{};
+    MemorySessionStore store{};
+    application::session::SessionService service{executor, store, nullptr, nullptr};
+    std::vector<application::session::SessionState> states{};
+    const auto observe = [&states](auto state) {
+        states.push_back(std::move(state));
+    };
+    auto valid = makeSession(1234567);
+    valid.identityIssuer = "farcaster:optimism-id-registry";
+    valid.identitySubject = "farcaster:1234567";
+    valid.expiresAt = valid.authenticatedAt + std::chrono::minutes{30};
+    assert(service.acceptVerifiedFarcasterCustody(valid, observe));
+    assert(store.saveCount == 1U);
+    assert(states.back().phase == application::session::SessionPhase::Authenticated);
+    assert(states.back().session && states.back().session->identityIssuer
+        == "farcaster:optimism-id-registry");
+    assert(service.signOut(observe));
+    assert(!store.value);
+    const auto reject = [&](domain::session::ClientSession input) {
+        const auto initial = store.saveCount;
+        assert(service.acceptVerifiedFarcasterCustody(std::move(input), observe));
+        assert(store.saveCount == initial);
+        assert(states.back().phase == application::session::SessionPhase::Failed);
+        assert(states.back().error
+            && states.back().error->code == foundation::error::ErrorCode::Unauthorized);
+    };
+    auto bad = valid;
+    bad.identityIssuer = "hypersnap:native-registry";
+    reject(bad);
+    bad = valid;
+    bad.identitySubject = "farcaster:1234568";
+    reject(bad);
+    bad = valid;
+    bad.custodyAddress = "0xBAD";
+    reject(bad);
+    bad = valid;
+    bad.fid = domain::identity::Fid{0};
+    reject(bad);
+    bad = valid;
+    bad.expiresAt = foundation::time::now() - std::chrono::seconds{1};
+    reject(bad);
+    bad = valid;
+    bad.expiresAt = bad.authenticatedAt + std::chrono::hours{2};
+    reject(bad);
+}
+
 void sqliteSessionRoundTrip()
 {
     DatabaseFixture database{};
@@ -717,6 +765,7 @@ int main()
     missingCompatibilityAuthDoesNotCreateSession();
     verifiedNativeRecoveryUsesAuthoritativeSessionStore();
     verifiedHyperSnapCustodyUsesDistinctNativeSession();
+    verifiedOptimismFarcasterCustodyRemainsDistinctFromHyperSnap();
     sqliteSessionRoundTrip();
     return 0;
 }

@@ -91,6 +91,7 @@
 #include "../media/remote_image.hpp"
 #include "../identity/browser_auth.hpp"
 #include "../identity/native_publish.hpp"
+#include "../identity/neynar_registration_controller.hpp"
 #include "../identity/native_wallet.hpp"
 #if defined(Q_OS_WASM)
 #include "../browser/signer_bridge.hpp"
@@ -137,6 +138,7 @@ import farcaster.routing.policy;
 import farcaster.provider.model;
 import farcaster.routing.router;
 import farcaster.capability.model;
+import farcaster.capability.catalog;
 import farcaster.transport.async_http;
 import farcaster.transport.http;
 #if FARCASTER_HAS_HYPERSNAP_PROVIDER
@@ -2382,6 +2384,7 @@ void connectRuntime(
     std::string siwfUri,
     const QString& browserSnapchainOrigin,
     HyperSnapRegistrationPublisher* nativePublisher,
+    NeynarRegistrationController* farcasterPublisher,
     NativeCustodyWalletController* nativeWallet)
 {
 #if defined(Q_OS_WASM)
@@ -2542,6 +2545,27 @@ void connectRuntime(
         ] (application::session::SessionState state) {
             const auto signerSession = state.session;
             runtime->setCurrentSession(signerSession);
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+            if (runtime->router) {
+                // Account provenance is authoritative for ALL writes, even
+                // after a restart or when the selected reader differs.
+                const auto issuer = signerSession ? signerSession->identityIssuer
+                                                  : std::optional<std::string>{};
+                if (issuer == "farcaster:optimism-id-registry"
+                    || issuer == "hypersnap:native-registry") {
+                    const provider::model::ProviderId writer{
+                        issuer == "farcaster:optimism-id-registry"
+                            ? "farcaster-snapchain" : "hypersnap-v2"};
+                    runtime->router->setPreferredProviderForAccess(
+                        capability::model::CapabilityAccess::Write,
+                        routing::router::ProviderPreference{
+                            .provider = writer, .require = true});
+                } else if (!signerSession) {
+                    runtime->router->clearPreferredProviderForAccess(
+                        capability::model::CapabilityAccess::Write);
+                }
+            }
+#endif
             QMetaObject::invokeMethod(
                 &bridge,
                 [&bridge, runtime, state = std::move(state), authenticationAvailable
@@ -2605,16 +2629,35 @@ void connectRuntime(
     // Registry verification, durable session and one-shot signer permission
     // are shared by signup and recovery. The native verifier remains separate
     // from Farcaster's OpenProof/Optimism identity authority.
-    auto commitNativeIdentity = [runtime, &bridge, sessionObserver, signerObserver](
+    auto commitVerifiedIdentity = [runtime, &bridge, sessionObserver, signerObserver](
         const std::uint64_t fid, const QString& custody,
-        std::shared_ptr<capability::signer::ICustodyAuthorizer> permit) {
-        if (!permit || !runtime->sessionService || !runtime->signerService)
+        std::shared_ptr<capability::signer::ICustodyAuthorizer> permit,
+        const bool farcaster) {
+        if (!permit || !runtime->sessionService || !runtime->signerService
+            || !runtime->router) return;
+        // The account's registry provenance pins signer and writes to its
+        // own protocol, regardless of the independent read-provider setting.
+        const provider::model::ProviderId writer{farcaster
+            ? "farcaster-snapchain" : "hypersnap-v2"};
+        if (!runtime->router->isEligibleProvider(writer,
+            routing::policy::CapabilityRequest{
+                .capabilityId = capability::catalog::protocolSignerManage(),
+                .requiredAccess = capability::model::CapabilityAccess::Write,
+                .minimumQuality = capability::model::CapabilityQuality::Experimental
+            })) {
+            bridge.applyAuthenticationError(
+                qtTrId("genycaster.setup.recovery_failed_retry"));
             return;
-                    const auto time = foundation::time::now();
+        }
+        const std::string issuer = farcaster
+            ? "farcaster:optimism-id-registry" : "hypersnap:native-registry";
+        const std::string subject = farcaster
+            ? "farcaster:" + std::to_string(fid)
+            : "native-fid:" + std::to_string(fid);
+        const auto time = foundation::time::now();
                     domain::session::ClientSession session{
-                        .identityIssuer = std::string{"hypersnap:native-registry"},
-                        .identitySubject = std::string{"native-fid:"}
-                            + std::to_string(fid),
+                        .identityIssuer = issuer,
+                        .identitySubject = subject,
                         .fid = domain::identity::Fid{
                             fid},
                         .custodyAddress = custody.toLower().toStdString(),
@@ -2624,28 +2667,32 @@ void connectRuntime(
                     };
                     auto persisted = [runtime, &bridge, sessionObserver,
                         signerObserver, permit = std::move(permit),
-                        fid = fid](
+                        fid, issuer, writer](
                         application::session::SessionState state) mutable {
                         const bool accepted = state.phase
                                 == application::session::SessionPhase::Authenticated
                             && state.session && state.session->fid.value == fid
-                            && state.session->identityIssuer
-                                == std::string{"hypersnap:native-registry"};
+                            && state.session->identityIssuer == issuer;
                         sessionObserver(std::move(state));
                         if (!accepted) return;
                         // Session and UI presentation are queued before signer
                         // provision; the one-shot key may authorize ONLY this FID.
                         QMetaObject::invokeMethod(&bridge,
-                            [&bridge, runtime, signerObserver, permit, fid] {
+                            [&bridge, runtime, signerObserver, permit, fid,
+                             issuer, writer] {
                                 if (!bridge.isAuthenticated()
                                     || bridge.accountFid() != fid
                                     || !runtime->signerService)
                                     return;
                                 const auto active = runtime->currentSessionSnapshot();
                                 if (!active || active->fid.value != fid
-                                    || active->identityIssuer
-                                        != std::string{"hypersnap:native-registry"})
+                                    || active->identityIssuer != issuer
+                                    || !runtime->router)
                                     return;
+                                runtime->router->setPreferredProviderForAccess(
+                                    capability::model::CapabilityAccess::Write,
+                                    routing::router::ProviderPreference{
+                                        .provider = writer, .require = true});
                                 auto result = runtime->signerService->provision(
                                     active, signerObserver, permit);
                                 if (!result) {
@@ -2656,8 +2703,11 @@ void connectRuntime(
                                 }
                             }, Qt::QueuedConnection);
                     };
-                    auto result = runtime->sessionService->acceptVerifiedNativeCustody(
-                        std::move(session), std::move(persisted));
+                    auto result = farcaster
+                        ? runtime->sessionService->acceptVerifiedFarcasterCustody(
+                            std::move(session), std::move(persisted))
+                        : runtime->sessionService->acceptVerifiedNativeCustody(
+                            std::move(session), std::move(persisted));
                     if (!result)
                         bridge.applyAuthenticationError(
                             qtTrId("genycaster.setup.recovery_failed_retry"));
@@ -2673,7 +2723,7 @@ void connectRuntime(
                 &HyperSnapRegistrationPublisher::nativeAccountConfirmed,
                 &bridge,
                 [&bridge, runtime, nativeWallet, nativePublisher,
-                 commitNativeIdentity](
+                 commitVerifiedIdentity](
                     const QString& fidText, const QString& custody) {
                     bool parsed = false;
                     const auto fid = fidText.toULongLong(&parsed);
@@ -2687,10 +2737,42 @@ void connectRuntime(
                     auto permit = NativeCustodySignerAccess::forConfirmedNativeFid(
                         *nativeWallet, static_cast<std::uint64_t>(fid), custody);
                     if (!permit) return;
-                    commitNativeIdentity(static_cast<std::uint64_t>(fid), custody,
-                                         std::move(permit));
+                    commitVerifiedIdentity(static_cast<std::uint64_t>(fid), custody,
+                                           std::move(permit), false);
                 });
         }
+    }
+
+    if (farcasterPublisher) {
+        farcasterPublisher->setIdentityRuntimeReady(
+            nativeWallet && runtime->sessionService && runtime->signerService
+            && runtime->signerVault && runtime->router);
+    }
+
+    // Farcaster's FID is a different identity: only the canonical Optimism
+    // IdRegistry owner confirmation may authorize its custody signer.
+    if (farcasterPublisher && nativeWallet && runtime->sessionService
+        && runtime->signerService && runtime->signerVault) {
+        QObject::connect(farcasterPublisher,
+            &NeynarRegistrationController::farcasterFidConfirmed, &bridge,
+            [&bridge, nativeWallet, farcasterPublisher, commitVerifiedIdentity](
+                const QString& fidText, const QString& custody) {
+                bool parsed = false;
+                const auto fid = fidText.toULongLong(&parsed);
+                if (!parsed || fid == 0 || fid > 9'007'199'254'740'991ULL
+                    || bridge.isAuthenticated()
+                    || !farcasterPublisher->confirmed()
+                    || farcasterPublisher->reservedFid() != fidText
+                    || !nativeWallet->backupVerified()
+                    || custody.toLower() != nativeWallet->address().toLower())
+                    return;
+                auto permit = NativeCustodySignerAccess::forConfirmedFarcasterFid(
+                    *nativeWallet, static_cast<std::uint64_t>(fid), custody);
+                if (!permit) return;
+                commitVerifiedIdentity(
+                    static_cast<std::uint64_t>(fid), custody,
+                    std::move(permit), true);
+            });
     }
 
     // HyperSnap recovery never consults Optimism IdRegistry or OpenProof.
@@ -2709,7 +2791,7 @@ void connectRuntime(
     QObject::connect(&bridge,
         &PresentationBridge::nativeHyperSnapRecoveryRequested, &bridge,
         [runtime, nativePublisher, &bridge, sessionObserver,
-         commitNativeIdentity, hyperRecoveryGeneration](QString words) {
+         commitVerifiedIdentity, hyperRecoveryGeneration](QString words) {
             const auto id = hyperRecoveryGeneration->fetch_add(
                 1U, std::memory_order_acq_rel) + 1U;
             if (!nativePublisher || !nativePublisher->registrationSupported()
@@ -2735,7 +2817,7 @@ void connectRuntime(
             QObject::connect(watcher, &QFutureWatcher<QString>::finished,
                 &bridge, [watcher, secret, nativePublisher, &bridge,
                           hyperRecoveryGeneration, id,
-                          commitNativeIdentity] {
+                          commitVerifiedIdentity] {
                     const QString address = watcher->result();
                     watcher->deleteLater();
                     if (hyperRecoveryGeneration->load(std::memory_order_acquire) != id
@@ -2751,7 +2833,7 @@ void connectRuntime(
                         nativePublisher->nodeEndpoint(), &bridge);
                     transport->lookupByCustody(address,
                         [transport, secret, address, &bridge, hyperRecoveryGeneration,
-                         id, commitNativeIdentity](
+                         id, commitVerifiedIdentity](
                             HyperSnapRegistrationTransport::LookupResult result) {
                             transport->deleteLater();
                             if (hyperRecoveryGeneration->load(
@@ -2780,8 +2862,8 @@ void connectRuntime(
                                     qtTrId("genycaster.setup.recovery_failed_retry"));
                                 return;
                             }
-                            commitNativeIdentity(result.fid, address,
-                                                 std::move(*permit));
+                            commitVerifiedIdentity(result.fid, address,
+                                                   std::move(*permit), false);
                         });
                 });
             watcher->setFuture(QtConcurrent::run([secret]() -> QString {
@@ -2794,6 +2876,7 @@ void connectRuntime(
         });
 #else
     if (nativePublisher) nativePublisher->setIdentityRuntimeReady(false);
+    if (farcasterPublisher) farcasterPublisher->setIdentityRuntimeReady(false);
     QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapRecoveryRequested,
         &bridge, [&bridge](QString words) {
             words.fill(QChar{});
@@ -5219,6 +5302,7 @@ void attachRuntime(RuntimeAttachment attachment,
         std::move(attachment.siwfUri),
         attachment.browserSnapchainOrigin,
         attachment.nativePublisher,
+        attachment.farcasterPublisher,
         attachment.nativeWallet);
     connectMediaPlayback(attachment.mediaPlayback, attachment.runtime);
 #if defined(Q_OS_WASM)

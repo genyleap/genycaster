@@ -5796,6 +5796,74 @@ Company | https://company.com</source>
             <source>Check native registration status</source>
             <translation>检查原生注册状态</translation>
         </message>
+        <message id="genycaster.setup.neynar_voucher_explanation">
+            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
+            <translation>注册Farcaster需要GenyCaster验证的已付款注册码。切勿在此输入钱包恢复词。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_placeholder">
+            <source>Enter paid registration code</source>
+            <translation>已付款注册码</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_accept">
+            <source>Verify enrollment code</source>
+            <translation>验证注册码</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_ready">
+            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
+            <translation>注册码已载入。预留FID时，服务器才会验证付款授权。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserve_fid">
+            <source>Reserve Farcaster FID</source>
+            <translation>预留Farcaster FID</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserved_fid">
+            <source>Reserved Farcaster FID %1</source>
+            <translation>已预留Farcaster FID：%1</translation>
+        </message>
+        <message id="genycaster.setup.neynar_username_placeholder">
+            <source>Choose a username</source>
+            <translation>选择用户名</translation>
+        </message>
+        <message id="genycaster.setup.neynar_transfer_consent">
+            <source>I authorize this one-time Farcaster IdRegistry transfer using my secured local wallet.</source>
+            <translation>我授权通过安全的本地钱包执行一次性IdRegistry转移。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_submit_registration">
+            <source>Sign and submit registration</source>
+            <translation>签名并提交注册</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reservation_time">
+            <source>The reservation expires after ten minutes. Finish signing before it expires.</source>
+            <translation>预留将在十分钟后过期，请在到期前签名。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_fid_confirmed">
+            <source>Farcaster FID %1 confirmed on Optimism. Device signer setup is verified separately.</source>
+            <translation>Farcaster FID %1已在Optimism确认。设备签名权限将单独验证。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_rejected">
+            <source>The registration request was rejected. Check its status before any new purchase.</source>
+            <translation>注册被拒绝。请在再次付款前检查状态。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_waiting_confirmation">
+            <source>Waiting for onchain confirmation. Do not repeat an uncertain payment or registration.</source>
+            <translation>等待链上确认。不要重复结果不明的付款或注册。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_error">
+            <source>Registration could not be verified. Check your code, network and reservation status.</source>
+            <translation>无法验证注册，请检查代码、网络和预留状态。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_check_again">
+            <source>Check Farcaster registration status</source>
+            <translation>检查Farcaster注册状态</translation>
+        </message>
+        <message id="genycaster.setup.neynar_runtime_unavailable">
+            <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
+            <translation>此版本无法使用安全签名。注册尚未开始，请检查设备签名密钥库。</translation>
+        </message>
+        <message id="genycaster.setup.neynar_backend_unavailable">
+            <source>The Farcaster registration service is not enabled on this server. Ask the operator to configure funded Neynar registration.</source>
+            <translation>此服务器尚未启用Farcaster注册服务。请先配置有资金支持的Neynar服务。</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>创建新资料</translation>

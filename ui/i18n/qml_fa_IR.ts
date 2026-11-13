@@ -5821,6 +5821,74 @@ Company | https://company.com</source>
             <source>Check native registration status</source>
             <translation>بررسی وضعیت ثبت‌نام بومی</translation>
         </message>
+        <message id="genycaster.setup.neynar_voucher_explanation">
+            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
+            <translation>ثبت‌نام فارکستر به کد ثبت‌نام تأمین‌مالی‌شده و تأییدشدهٔ جنی‌کستر نیاز دارد. کلمات بازیابی را اینجا وارد نکنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_placeholder">
+            <source>Enter paid registration code</source>
+            <translation>کد ثبت‌نام پرداخت‌شده</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_accept">
+            <source>Verify enrollment code</source>
+            <translation>تأیید کد ثبت‌نام</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_ready">
+            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
+            <translation>کد ثبت‌نام بارگذاری شد؛ سرور هنگام رزرو FID، مجوز پرداخت را جداگانه تأیید می‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserve_fid">
+            <source>Reserve Farcaster FID</source>
+            <translation>رزرو FID فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserved_fid">
+            <source>Reserved Farcaster FID %1</source>
+            <translation>FID فارکستر رزروشده: %1</translation>
+        </message>
+        <message id="genycaster.setup.neynar_username_placeholder">
+            <source>Choose a username</source>
+            <translation>نام کاربری دلخواه</translation>
+        </message>
+        <message id="genycaster.setup.neynar_transfer_consent">
+            <source>I authorize this one-time Farcaster IdRegistry transfer using my secured local wallet.</source>
+            <translation>انتقال یک‌بارهٔ IdRegistry فارکستر را با کیف پول امن محلی خود تأیید می‌کنم.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_submit_registration">
+            <source>Sign and submit registration</source>
+            <translation>امضا و ارسال ثبت‌نام</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reservation_time">
+            <source>The reservation expires after ten minutes. Finish signing before it expires.</source>
+            <translation>رزرو بعد از ده دقیقه منقضی می‌شود. امضا را پیش از آن تکمیل کنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_fid_confirmed">
+            <source>Farcaster FID %1 confirmed on Optimism. Device signer setup is verified separately.</source>
+            <translation>FID فارکستر %1 روی آپتیمیسم تأیید شد. وضعیت Signer دستگاه جداگانه بررسی می‌شود.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_rejected">
+            <source>The registration request was rejected. Check its status before any new purchase.</source>
+            <translation>درخواست ثبت‌نام رد شد. پیش از خرید جدید وضعیت آن را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_waiting_confirmation">
+            <source>Waiting for onchain confirmation. Do not repeat an uncertain payment or registration.</source>
+            <translation>در انتظار تأیید روی زنجیره. پرداخت یا ثبت‌نام نامشخص را تکرار نکنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_error">
+            <source>Registration could not be verified. Check your code, network and reservation status.</source>
+            <translation>امکان تأیید ثبت‌نام نبود. کد، شبکه و وضعیت رزرو را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_check_again">
+            <source>Check Farcaster registration status</source>
+            <translation>بررسی وضعیت ثبت‌نام فارکستر</translation>
+        </message>
+        <message id="genycaster.setup.neynar_runtime_unavailable">
+            <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
+            <translation>امضای امن حساب در این نسخه در دسترس نیست و ثبت‌نامی آغاز نشده است. پیکربندی خزانهٔ Signer را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_backend_unavailable">
+            <source>The Farcaster registration service is not enabled on this server. Ask the operator to configure funded Neynar registration.</source>
+            <translation>سرویس ثبت‌نام فارکستر روی این سرور فعال نیست. باید ابتدا سرویس امن و تأمین‌مالی‌شدهٔ Neynar پیکربندی شود.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>ایجاد حساب جدید</translation>

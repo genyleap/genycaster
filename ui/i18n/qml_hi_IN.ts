@@ -5796,6 +5796,74 @@ Company | https://company.com</source>
             <source>Check native registration status</source>
             <translation>नेटिव पंजीकरण की जाँच करें</translation>
         </message>
+        <message id="genycaster.setup.neynar_voucher_explanation">
+            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
+            <translation>Farcaster पंजीकरण के लिए GenyCaster का सत्यापित, भुगतान किया हुआ कोड चाहिए। यहाँ रिकवरी शब्द कभी न डालें।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_placeholder">
+            <source>Enter paid registration code</source>
+            <translation>भुगतान किया हुआ पंजीकरण कोड</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_accept">
+            <source>Verify enrollment code</source>
+            <translation>पंजीकरण कोड जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_ready">
+            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
+            <translation>कोड लोड हो गया है। FID आरक्षण के समय सर्वर भुगतान अनुमति सत्यापित करेगा।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserve_fid">
+            <source>Reserve Farcaster FID</source>
+            <translation>Farcaster FID आरक्षित करें</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserved_fid">
+            <source>Reserved Farcaster FID %1</source>
+            <translation>आरक्षित Farcaster FID: %1</translation>
+        </message>
+        <message id="genycaster.setup.neynar_username_placeholder">
+            <source>Choose a username</source>
+            <translation>उपयोगकर्ता नाम चुनें</translation>
+        </message>
+        <message id="genycaster.setup.neynar_transfer_consent">
+            <source>I authorize this one-time Farcaster IdRegistry transfer using my secured local wallet.</source>
+            <translation>मैं अपने सुरक्षित स्थानीय वॉलेट से एक बार के IdRegistry हस्तांतरण की अनुमति देता हूँ।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_submit_registration">
+            <source>Sign and submit registration</source>
+            <translation>हस्ताक्षर करके पंजीकरण भेजें</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reservation_time">
+            <source>The reservation expires after ten minutes. Finish signing before it expires.</source>
+            <translation>आरक्षण दस मिनट में समाप्त होगा। समय पर हस्ताक्षर करें।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_fid_confirmed">
+            <source>Farcaster FID %1 confirmed on Optimism. Device signer setup is verified separately.</source>
+            <translation>Farcaster FID %1 Optimism पर पुष्टि हुआ। डिवाइस साइनर की जाँच अलग होगी।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_rejected">
+            <source>The registration request was rejected. Check its status before any new purchase.</source>
+            <translation>पंजीकरण अस्वीकृत हुआ। नया भुगतान करने से पहले स्थिति जाँचें।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_waiting_confirmation">
+            <source>Waiting for onchain confirmation. Do not repeat an uncertain payment or registration.</source>
+            <translation>ऑनचेन पुष्टि की प्रतीक्षा है। अनिश्चित भुगतान या पंजीकरण दोहराएँ नहीं।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_error">
+            <source>Registration could not be verified. Check your code, network and reservation status.</source>
+            <translation>पंजीकरण की पुष्टि नहीं हो सकी। कोड, नेटवर्क और आरक्षण जाँचें।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_check_again">
+            <source>Check Farcaster registration status</source>
+            <translation>Farcaster पंजीकरण स्थिति जाँचें</translation>
+        </message>
+        <message id="genycaster.setup.neynar_runtime_unavailable">
+            <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
+            <translation>इस बिल्ड में सुरक्षित हस्ताक्षर उपलब्ध नहीं हैं। कोई पंजीकरण शुरू नहीं हुआ। साइनर वॉल्ट की जाँच करें।</translation>
+        </message>
+        <message id="genycaster.setup.neynar_backend_unavailable">
+            <source>The Farcaster registration service is not enabled on this server. Ask the operator to configure funded Neynar registration.</source>
+            <translation>इस सर्वर पर Farcaster पंजीकरण चालू नहीं है। पहले वित्तपोषित Neynar सेवा कॉन्फ़िगर करें।</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>नई बनाएँ</translation>

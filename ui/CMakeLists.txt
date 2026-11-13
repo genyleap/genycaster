@@ -452,6 +452,8 @@ qt_add_executable(genycaster
     app/identity/native_wallet.hpp
     app/identity/native_wallet_signer.hpp
     app/identity/neynar_registration.hpp
+    app/identity/neynar_registration_controller.cpp
+    app/identity/neynar_registration_controller.hpp
     app/identity/pro_checkout.cpp
     app/identity/pro_checkout.hpp
     app/identity/browser_pro_wallet.hpp

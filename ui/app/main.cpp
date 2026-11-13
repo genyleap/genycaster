@@ -112,6 +112,7 @@
 #include "identity/native_prepare.hpp"
 #include "identity/native_publish.hpp"
 #include "identity/native_wallet.hpp"
+#include "identity/neynar_registration_controller.hpp"
 #include "identity/pro_checkout.hpp"
 #if defined(Q_OS_WASM)
 #include "identity/browser_pro_wallet.hpp"
@@ -573,6 +574,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<NativeCustodyWalletController> nativeCustodyWalletOwner{};
     std::unique_ptr<NativeRegistrationPreparationController> nativePreparationOwner{};
     std::unique_ptr<HyperSnapRegistrationPublisher> nativePublisherOwner{};
+    std::unique_ptr<NeynarRegistrationController> neynarRegistrationOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
@@ -727,6 +729,23 @@ int main(int argc, char* argv[])
             }
         });
     HyperSnapRegistrationPublisher& nativeRegistrationPublisher = *nativePublisherOwner;
+    neynarRegistrationOwner = std::make_unique<NeynarRegistrationController>(
+        QUrl{QString::fromUtf8(genycaster::deployment::publicOrigin.data())},
+        FarcasterRegistrationPorts{
+            .backupVerified = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.backupVerified();
+            },
+            .custodyAddress = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.address();
+            },
+            .signTransfer = [&nativeCustodyWallet](
+                const std::uint64_t fid, const std::uint64_t nonce,
+                const std::uint64_t deadline) {
+                return nativeCustodyWallet.signReservedFarcasterTransfer(
+                    fid, nonce, deadline);
+            }
+        });
+    NeynarRegistrationController& neynarRegistration = *neynarRegistrationOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1328,6 +1347,7 @@ int main(int argc, char* argv[])
         {"nativeCustodyWallet", &nativeCustodyWallet},
         {"nativeRegistrationPreparation", &nativeRegistrationPreparation},
         {"nativeRegistrationPublisher", &nativeRegistrationPublisher},
+        {"neynarRegistration", &neynarRegistration},
         {"updateController", &updateController},
         {"appearanceController", &appearanceController},
         {"renderingController", &renderingController},
@@ -1478,7 +1498,8 @@ int main(int argc, char* argv[])
         auto bootstrapRuntime = [&presentationBridge, &richComposerController,
                                  &openProofConnections, &mediaUploadController,
                                  &mediaPlayback, &runtime,
-                                 &nativeRegistrationPublisher, &nativeCustodyWallet,
+                                 &nativeRegistrationPublisher, &neynarRegistration,
+                                 &nativeCustodyWallet,
                                  startupOptions = std::move(startupOptions),
                                  siwfDomain, siwfUri, startupIdentity,
                                  snapchainBaseUrl, authenticationAvailable,
@@ -1496,7 +1517,8 @@ int main(int argc, char* argv[])
                 [&presentationBridge, &richComposerController, &openProofConnections,
                  &mediaUploadController,
                  &mediaPlayback, &runtime,
-                 &nativeRegistrationPublisher, &nativeCustodyWallet,
+                 &nativeRegistrationPublisher, &neynarRegistration,
+                 &nativeCustodyWallet,
                  readyRuntime = std::move(readyRuntime),
                  siwfDomain, siwfUri, startupIdentity,
                  snapchainBaseUrl, authenticationAvailable, openExploreForTest]() mutable {
@@ -1510,6 +1532,7 @@ int main(int argc, char* argv[])
                         .mediaPlayback = mediaPlayback,
                         .runtime = runtime,
                         .nativePublisher = &nativeRegistrationPublisher,
+                        .farcasterPublisher = &neynarRegistration,
                         .nativeWallet = &nativeCustodyWallet,
                         .siwfDomain = std::move(siwfDomain),
                         .siwfUri = std::move(siwfUri),

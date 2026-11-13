@@ -259,6 +259,23 @@ NativeCustodySignerAccess::forConfirmedNativeFid(
     return proof ? std::move(*proof) : nullptr;
 }
 
+std::shared_ptr<farcaster::capability::signer::ICustodyAuthorizer>
+NativeCustodySignerAccess::forConfirmedFarcasterFid(
+    const NativeCustodyWalletController& wallet,
+    const std::uint64_t fid, const QString& custodyAddress)
+{
+    if (fid == 0 || fid > 9'007'199'254'740'991ULL
+        || !wallet.backupVerified()
+        || custodyAddress.toLower() != wallet.address().toLower())
+        return {};
+    // Farcaster authorization is bound to a separately verified Optimism
+    // IdRegistry custody record, never to HyperSnap shard-0 identity.
+    auto proof = custody::makeOneShotRecoveryAuthorizer(
+        wallet.m_private->secret->recoveryWords,
+        wallet.m_private->secret->address, fid);
+    return proof ? std::move(*proof) : nullptr;
+}
+
 NativeRecoveryWordsItem::NativeRecoveryWordsItem(QQuickItem* parent)
     : QQuickPaintedItem{parent}
 {

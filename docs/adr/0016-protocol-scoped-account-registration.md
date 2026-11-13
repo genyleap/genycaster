@@ -115,9 +115,21 @@ voucher issuance after actual payment/sponsorship verification. The default
 account API must never hand a free public FID allocation to anonymous callers.
 See `services/account-sync/NEYNAR_REGISTRATION.md` for the operational contract.
 
-Qt Farcaster registration screens, verified payment issuance, final Signer
-onboarding and a full production enrollment on Optimism are still outstanding.
-Do not mistake successful mock tests for real mainnet account creation.
+Farcaster registration now also has a separate Qt 6.12 C++ state machine
+and first-party Setup screens (with translations in 12 locales): enter an
+already-verified sponsorship/payment voucher, reserve FID, sign exact
+IdRegistry transfer with the native custody wallet, submit once, and poll
+until chain-confirmed. The Application session now accepts confirmed Farcaster
+IdRegistry custody under `farcaster:optimism-id-registry`, distinct from
+`hypersnap:native-registry`. Signer setup is routed to the selected
+account's own protocol, not whichever read node happens to be active.
+These components have independent Qt, C++26 and API tests.
+
+**Still outstanding:** integrated production payment/voucher issuance,
+the actual funded app-wallet configuration, applying migration 013,
+mainnet/staging registration and KEY_ADD acceptance, robust restart/
+wallet-recovery tests, and end-to-end signed builds for every platform.
+Do not mistake successful fake-hub tests for a real mainnet account.
 
 ## References
 

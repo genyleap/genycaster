@@ -5796,6 +5796,74 @@ Company | https://company.com</source>
             <source>Check native registration status</source>
             <translation>التحقق من التسجيل الأصلي</translation>
         </message>
+        <message id="genycaster.setup.neynar_voucher_explanation">
+            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
+            <translation>يتطلب تسجيل Farcaster رمز تسجيل مدفوعًا وموثّقًا من GenyCaster. لا تُدخل كلمات الاسترداد هنا.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_placeholder">
+            <source>Enter paid registration code</source>
+            <translation>رمز التسجيل المدفوع</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_accept">
+            <source>Verify enrollment code</source>
+            <translation>التحقق من رمز التسجيل</translation>
+        </message>
+        <message id="genycaster.setup.neynar_voucher_ready">
+            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
+            <translation>تم تحميل رمز التسجيل؛ تتحقق الخوادم من إذن الدفع عند حجز FID.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserve_fid">
+            <source>Reserve Farcaster FID</source>
+            <translation>حجز FID في Farcaster</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reserved_fid">
+            <source>Reserved Farcaster FID %1</source>
+            <translation>معرّف Farcaster المحجوز: %1</translation>
+        </message>
+        <message id="genycaster.setup.neynar_username_placeholder">
+            <source>Choose a username</source>
+            <translation>اختر اسم مستخدم</translation>
+        </message>
+        <message id="genycaster.setup.neynar_transfer_consent">
+            <source>I authorize this one-time Farcaster IdRegistry transfer using my secured local wallet.</source>
+            <translation>أوافق على نقل IdRegistry لمرة واحدة باستخدام محفظتي المحلية الآمنة.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_submit_registration">
+            <source>Sign and submit registration</source>
+            <translation>توقيع التسجيل وإرساله</translation>
+        </message>
+        <message id="genycaster.setup.neynar_reservation_time">
+            <source>The reservation expires after ten minutes. Finish signing before it expires.</source>
+            <translation>تنتهي صلاحية الحجز خلال عشر دقائق. أكمل التوقيع قبل انتهائه.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_fid_confirmed">
+            <source>Farcaster FID %1 confirmed on Optimism. Device signer setup is verified separately.</source>
+            <translation>تم تأكيد FID %1 على Optimism. يتم التحقق من موقّع الجهاز بشكل منفصل.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_rejected">
+            <source>The registration request was rejected. Check its status before any new purchase.</source>
+            <translation>رُفض التسجيل. تحقق من حالته قبل أي شراء جديد.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_waiting_confirmation">
+            <source>Waiting for onchain confirmation. Do not repeat an uncertain payment or registration.</source>
+            <translation>بانتظار تأكيد الشبكة. لا تكرر دفعة أو تسجيلًا مجهول النتيجة.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_registration_error">
+            <source>Registration could not be verified. Check your code, network and reservation status.</source>
+            <translation>تعذّر التحقق من التسجيل. افحص الرمز والشبكة وحالة الحجز.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_check_again">
+            <source>Check Farcaster registration status</source>
+            <translation>التحقق من حالة التسجيل</translation>
+        </message>
+        <message id="genycaster.setup.neynar_runtime_unavailable">
+            <source>Secure account signing is unavailable in this build. No registration was started. Check the configured signer vault.</source>
+            <translation>توقيع الحساب الآمن غير متاح في هذا الإصدار. لم يبدأ أي تسجيل. تحقق من مخزن مفاتيح التوقيع.</translation>
+        </message>
+        <message id="genycaster.setup.neynar_backend_unavailable">
+            <source>The Farcaster registration service is not enabled on this server. Ask the operator to configure funded Neynar registration.</source>
+            <translation>خدمة تسجيل Farcaster غير مفعّلة على هذا الخادم. يجب إعداد خدمة Neynar الآمنة والمموّلة أولاً.</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>إنشاء حساب جديد</translation>

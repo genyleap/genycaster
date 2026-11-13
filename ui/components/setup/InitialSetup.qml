@@ -60,15 +60,9 @@ Item {
     property string registrationProviderId: "hypersnap-v2"
     property string registrationError: ""
     function beginAccountRegistration() {
-        // The native wallet/PoW/protobuf primitives are implemented but a
-        // full account is not ready until secure backup, network inclusion,
-        // authentication and signer provisioning all work. Never open a
-        // third-party signup page or claim registration from a browser launch.
         if (registrationProviderId === "hypersnap-v2")
             nativeRegistrationStatus.refresh()
-        registrationError = registrationProviderId === "hypersnap-v2"
-            ? qsTrId("genycaster.setup.native_registration_pending")
-            : qsTrId("genycaster.setup.neynar_registration_pending")
+        registrationError = ""
     }
     property bool showRecovery: false
     property string legalDocument: ""
@@ -192,17 +186,26 @@ Item {
             return
         }
         if (currentStep === 5) {
-            if (authenticated || reviewMode) switchStep(6)
+            if (reviewMode || (authenticated
+                && (accountIntent !== "new" || signerReady))) switchStep(6)
             return
         }
         if (currentStep === 6) { switchStep(7); return }
         if (currentStep === 7) {
             if (reviewMode) closeReviewRequested()
-            else finishSetup()
+            else if (legalConsentAccepted && authenticated
+                     && (accountIntent !== "new" || signerReady)) finishSetup()
         }
     }
     function previousStep() {
         if (currentStep === 3 && choosingRegistrationProvider) {
+            if (neynarRegistration.pending
+                || neynarRegistration.phase === "reserved") {
+                registrationError =
+                    qsTrId("genycaster.setup.neynar_waiting_confirmation")
+                neynarRegistration.checkConfirmation()
+                return
+            }
             if (nativeRegistrationPublisher.pending) {
                 registrationError =
                     qsTrId("genycaster.setup.native_registration_outcome_unknown")
@@ -213,6 +216,7 @@ Item {
             nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
+            neynarRegistration.reset()
             nativeCustodyWallet.discard()
             choosingRegistrationProvider = false
             registrationError = ""
@@ -240,8 +244,10 @@ Item {
         if (currentStep === 3) return accountIntent === "existing"
 
         if (currentStep === 4) return authenticated
-        if (currentStep === 5) return authenticated || reviewMode
-        if (currentStep === 7) return reviewMode || (legalConsentAccepted && authenticated)
+        if (currentStep === 5) return reviewMode || (authenticated
+            && (accountIntent !== "new" || signerReady))
+        if (currentStep === 7) return reviewMode || (legalConsentAccepted
+            && authenticated && (accountIntent !== "new" || signerReady))
         return true
     }
     onVisibleChanged: {
@@ -250,9 +256,12 @@ Item {
             nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
-            // Keep the verified backup live while the irreversible network
-            // write might still be included; do not silently lose custody.
-            if (!nativeRegistrationPublisher.pending)
+            // A paid FID reservation or irreversible network write remains
+            // bound to the same backed-up custody wallet.
+            neynarRegistration.stopPolling()
+            if (!nativeRegistrationPublisher.pending
+                && !neynarRegistration.pending
+                && neynarRegistration.phase !== "reserved")
                 nativeCustodyWallet.discard()
             stageTransitionTimer.stop()
             stageTransitioning = false
@@ -1222,7 +1231,10 @@ Item {
                     iconGlyph: Theme.iconLink
                     showChevron: true
                     enabled: !nativeRegistrationPublisher.pending
+                             && !neynarRegistration.pending
+                             && neynarRegistration.phase !== "reserved"
                     onClicked: {
+                        neynarRegistration.reset()
                         nativeRegistrationPublisher.clear()
                         nativeRegistrationPreparation.cancel()
                         nativeRegistrationStatus.clearExistingLookup()
@@ -1250,8 +1262,10 @@ Item {
                         subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: Theme.iconGlobe
                         selected: root.registrationProviderId === "hypersnap-v2"
-                        enabled: true
+                        enabled: !neynarRegistration.pending
+                                 && neynarRegistration.phase !== "reserved"
                         onClicked: {
+                            neynarRegistration.reset()
                             nativeRegistrationPublisher.clear()
                             nativeRegistrationPreparation.cancel()
                             nativeRegistrationStatus.clearExistingLookup()
@@ -1268,7 +1282,8 @@ Item {
                         subtitle: qsTrId("genycaster.setup.registration_neynar_description")
                         iconGlyph: Theme.iconLink
                         selected: root.registrationProviderId === "farcaster-snapchain"
-                        enabled: true
+                        enabled: !nativeRegistrationPublisher.pending
+                                 && !neynarRegistration.pending
                         onClicked: {
                             nativeRegistrationPublisher.clear()
                             nativeRegistrationPreparation.cancel()
@@ -1490,6 +1505,159 @@ Item {
                     wrapMode: Text.WordWrap
                 }
                 ColumnLayout {
+                    objectName: "neynarFarcasterRegistration"
+                    visible: root.registrationProviderId === "farcaster-snapchain"
+                             && nativeCustodyWallet.backupVerified
+                    Layout.fillWidth: true
+                    spacing: Theme.space3
+
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.neynar_voucher_explanation")
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    TextField {
+                        id: neynarEnrollmentVoucher
+                        objectName: "setupNeynarVoucher"
+                        Layout.fillWidth: true
+                        visible: !neynarRegistration.hasVoucher
+                                 && !neynarRegistration.pending
+                                 && !neynarRegistration.confirmed
+                        placeholderText: qsTrId("genycaster.setup.neynar_voucher_placeholder")
+                        echoMode: TextInput.Password
+                        maximumLength: 1100
+                        inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
+                        Accessible.name: qsTrId("genycaster.setup.neynar_voucher_placeholder")
+                    }
+                    ActionButton {
+                        objectName: "setupUseNeynarVoucher"
+                        Layout.fillWidth: true
+                        compact: true
+                        visible: !neynarRegistration.hasVoucher
+                                 && !neynarRegistration.pending
+                                 && !neynarRegistration.confirmed
+                        text: qsTrId("genycaster.setup.neynar_voucher_accept")
+                        enabled: neynarEnrollmentVoucher.text.length > 60
+                                 && !neynarRegistration.busy
+                        onClicked: {
+                            neynarRegistration.useEnrollmentVoucher(
+                                neynarEnrollmentVoucher.text)
+                            neynarEnrollmentVoucher.clear()
+                        }
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: !neynarRegistration.registrationSupported
+                                 && root.runtimeReady
+                        text: qsTrId("genycaster.setup.neynar_runtime_unavailable")
+                        color: Theme.warning
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: neynarRegistration.hasVoucher
+                                 && neynarRegistration.phase === "ready"
+                        text: qsTrId("genycaster.setup.neynar_voucher_ready")
+                        color: Theme.success
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupReserveNeynarFid"
+                        Layout.fillWidth: true
+                        prominent: false
+                        visible: neynarRegistration.phase === "ready"
+                        text: qsTrId("genycaster.setup.neynar_reserve_fid")
+                        busy: neynarRegistration.busy
+                        enabled: root.runtimeReady && neynarRegistration.available
+                                 && neynarRegistration.registrationSupported
+                                 && !neynarRegistration.busy
+                                 && nativeCustodyWallet.backupVerified
+                        onClicked: neynarRegistration.reserveFid()
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: neynarRegistration.phase === "reserved"
+                        text: qsTrId("genycaster.setup.neynar_reserved_fid")
+                            .arg(neynarRegistration.reservedFid)
+                        color: Theme.success
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    TextField {
+                        id: neynarRequestedUsername
+                        objectName: "setupNeynarUsername"
+                        Layout.fillWidth: true
+                        visible: neynarRegistration.phase === "reserved"
+                        maximumLength: 16
+                        placeholderText: qsTrId("genycaster.setup.neynar_username_placeholder")
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                        Accessible.name: qsTrId("genycaster.setup.neynar_username_placeholder")
+                    }
+                    GenyCheckRow {
+                        id: neynarTransferConsent
+                        objectName: "setupNeynarTransferConsent"
+                        visible: neynarRegistration.phase === "reserved"
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.neynar_transfer_consent")
+                    }
+                    ActionButton {
+                        objectName: "setupSubmitNeynarRegistration"
+                        Layout.fillWidth: true
+                        prominent: true
+                        visible: neynarRegistration.phase === "reserved"
+                        text: qsTrId("genycaster.setup.neynar_submit_registration")
+                        enabled: root.runtimeReady && neynarTransferConsent.checked
+                                 && neynarRegistration.canSubmit
+                                 && /^[a-z0-9][a-z0-9-]{0,15}$/.test(
+                                     neynarRequestedUsername.text.trim().toLowerCase())
+                        onClicked: neynarRegistration.submit(
+                            neynarRequestedUsername.text)
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: neynarRegistration.pending
+                                 || neynarRegistration.confirmed
+                                 || neynarRegistration.phase === "rejected"
+                                 || neynarRegistration.phase === "reserved"
+                        text: neynarRegistration.confirmed
+                            ? qsTrId("genycaster.setup.neynar_fid_confirmed")
+                                .arg(neynarRegistration.reservedFid)
+                            : neynarRegistration.phase === "reserved"
+                              ? qsTrId("genycaster.setup.neynar_reservation_time")
+                              : neynarRegistration.phase === "rejected"
+                                ? qsTrId("genycaster.setup.neynar_registration_rejected")
+                                : qsTrId("genycaster.setup.neynar_waiting_confirmation")
+                        color: neynarRegistration.confirmed
+                            ? Theme.success : Theme.warning
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: neynarRegistration.error.length > 0
+                        text: neynarRegistration.error === "registration_not_configured"
+                            ? qsTrId("genycaster.setup.neynar_backend_unavailable")
+                            : qsTrId("genycaster.setup.neynar_registration_error")
+                        color: Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupCheckNeynarRegistration"
+                        Layout.fillWidth: true
+                        compact: true
+                        visible: neynarRegistration.hasVoucher
+                                 && !neynarRegistration.confirmed
+                        text: qsTrId("genycaster.setup.neynar_check_again")
+                        enabled: !neynarRegistration.busy
+                        onClicked: neynarRegistration.checkConfirmation()
+                    }
+                }
+                ColumnLayout {
                     objectName: "nativeAccountLookupPanel"
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
@@ -1626,14 +1794,6 @@ Item {
                         text: qsTrId("genycaster.setup.native_registration_check_again")
                         onClicked: nativeRegistrationPublisher.checkConfirmation()
                     }
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: root.registrationProviderId !== "hypersnap-v2"
-                    text: qsTrId("genycaster.setup.neynar_registration_pending")
-                    color: Theme.warning
-                    font.pixelSize: Theme.typeCaptionSize
-                    wrapMode: Text.WordWrap
                 }
             }
         }

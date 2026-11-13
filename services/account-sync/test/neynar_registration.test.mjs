@@ -205,3 +205,14 @@ test('temporary RPC failure does not destroy an already paid reservation',async(
   assert.equal(checked.id_registry_nonce,'3');
   assert.equal(state.getCount,1);
 });
+
+test('migration 013 enforces one funded invoice and one custody per registration',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const ddl=readFileSync(new URL('../migrations/013_neynar_registration.sql',
+    import.meta.url),'utf8');
+  assert.match(ddl,/principal text NOT NULL UNIQUE/);
+  assert.match(ddl,/custody varchar\(42\) NOT NULL UNIQUE/);
+  assert.match(ddl,/UNIQUE \(principal,custody\)/);
+  assert.match(ddl,/started boolean NOT NULL DEFAULT false/);
+  assert.match(ddl,/INSERT INTO schema_migrations\(version\) VALUES\(13\)/);
+});

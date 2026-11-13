@@ -130,6 +130,10 @@ public:
     [[nodiscard]] foundation::result::Status acceptVerifiedNativeCustody(
         domain::session::ClientSession session, Observer observer);
 
+    /** Farcaster-specific commit after exact Optimism IdRegistry ownership. */
+    [[nodiscard]] foundation::result::Status acceptVerifiedFarcasterCustody(
+        domain::session::ClientSession session, Observer observer);
+
     /** @brief Cancels transient approval state while retaining any prior session. */
     [[nodiscard]] foundation::result::Status cancelSignIn(Observer observer);
 

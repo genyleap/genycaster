@@ -41,7 +41,8 @@ test('legal consent and authenticated Setup are enforced', () => {
   assert.match(setup, /acceptLegalConsent\(true, true, true\)/);
   assert.match(setup, /if \(currentStep === 2\) return consentChecked/);
   assert.doesNotMatch(setup, /guestSelected|continue_as_guest/);
-  assert.match(setup, /if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted && authenticated\)/);
+  assert.match(setup, /if \(currentStep === 7\) return reviewMode \|\| \(legalConsentAccepted\s*&& authenticated && \(accountIntent !== "new" \|\| signerReady\)\)/);
+  assert.match(setup, /if \(currentStep === 5\) return reviewMode \|\| \(authenticated\s*&& \(accountIntent !== "new" \|\| signerReady\)\)/);
   assert.match(setup, /finishSetup\(\)/);
 });
 
@@ -56,8 +57,8 @@ test('registration keeps protocols isolated and requires explicit custody consen
   assert.doesNotMatch(create,/unavailable: true|enabled: false/);
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
-  assert.match(account,/objectName: "setupRegisterHyperSnap"[\s\S]*?enabled: true/);
-  assert.match(account,/objectName: "setupRegisterNeynar"[\s\S]*?enabled: true/);
+  assert.match(account,/objectName: "setupRegisterHyperSnap"[\s\S]*?enabled: !neynarRegistration\.pending/);
+  assert.match(account,/objectName: "setupRegisterNeynar"[\s\S]*?enabled: !nativeRegistrationPublisher\.pending/);
   assert.match(account,/objectName: "setupBeginRegistration"/);
   assert.match(account,/nativeRegistrationPublisher\.registrationSupported/);
   assert.match(account,/nativeRegistrationPublisher\.submitPrepared\(\)/);
@@ -294,7 +295,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/onClicked: \{\s*nativeRegistrationPublisher\.clear\(\)\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
+  assert.match(account,/onClicked: \{\s*neynarRegistration\.reset\(\)\s*nativeRegistrationPublisher\.clear\(\)\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
@@ -551,5 +552,52 @@ test('HyperSnap native signup, recovery and signer stay in distinct guarded path
     for (const key of ['native_registration_consent','native_registration_confirmed',
                       'native_registration_outcome_unknown','native_registration_check_again'])
       assert.ok(xml.includes('id="genycaster.setup.'+key+'"'));
+  }
+});
+
+test('Farcaster paid registration uses native wallet and authoritative Optimism confirmation', () => {
+  const ui=source('ui/components/setup/InitialSetup.qml');
+  const bootstrap=source('ui/app/main.cpp');
+  const bindings=source('ui/app/runtime/bindings.cpp');
+  const session=source('src/application/session.cpp');
+  const signer=source('ui/app/identity/native_wallet.cpp');
+  const neynar=source('ui/app/identity/neynar_registration_controller.cpp');
+  const header=source('ui/app/identity/neynar_registration_controller.hpp');
+  const cmake=source('ui/CMakeLists.txt');
+  for(const objectName of [
+    'neynarFarcasterRegistration','setupNeynarVoucher',
+    'setupUseNeynarVoucher','setupReserveNeynarFid','setupNeynarUsername',
+    'setupNeynarTransferConsent','setupSubmitNeynarRegistration',
+    'setupCheckNeynarRegistration'
+  ]) assert.ok(ui.includes('objectName: "'+objectName+'"'),objectName);
+  assert.match(ui,/neynarTransferConsent\.checked/);
+  assert.match(ui,/neynarRegistration\.registrationSupported/);
+  assert.match(ui,/neynarRegistration\.reserveFid\(\)/);
+  assert.match(ui,/neynarRegistration\.submit\(/);
+  assert.match(ui,/neynarRegistration\.checkConfirmation\(\)/);
+  assert.match(ui,/if \(!nativeRegistrationPublisher\.pending\s*&& !neynarRegistration\.pending/);
+  assert.match(bootstrap,/\{"neynarRegistration", &neynarRegistration\}/);
+  assert.match(bootstrap,/signReservedFarcasterTransfer\(/);
+  assert.match(bindings,/NeynarRegistrationController::farcasterFidConfirmed/);
+  assert.match(bindings,/NativeCustodySignerAccess::forConfirmedFarcasterFid/);
+  assert.match(bindings,/acceptVerifiedFarcasterCustody/);
+  assert.match(bindings,/setPreferredProviderForAccess\(/);
+  assert.match(session,/farcaster:optimism-id-registry/);
+  assert.match(signer,/NativeCustodyWalletController::signReservedFarcasterTransfer/);
+  assert.match(neynar,/m_ports\.signTransfer\(fid, nonce, deadline\)/);
+  assert.match(neynar,/m_reservationId = deterministicUuid\(m_voucher, m_wallet\)/);
+  assert.match(neynar,/phase == QStringLiteral\("confirmed"\)/);
+  assert.match(neynar,/m_voucher\.fill\('\\0'\)/);
+  assert.doesNotMatch(header,/Q_INVOKABLE.*signTransfer/);
+  assert.doesNotMatch(header,/Q_PROPERTY.*recoveryWords/);
+  assert.match(cmake,/app\/identity\/neynar_registration_controller\.cpp/);
+  for(const loc of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                     'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const ts=source('ui/i18n/qml_'+loc+'.ts');
+    for(const key of ['neynar_voucher_explanation','neynar_reserve_fid',
+                      'neynar_transfer_consent','neynar_submit_registration',
+                      'neynar_fid_confirmed','neynar_check_again']) {
+      assert.ok(ts.includes('id="genycaster.setup.'+key+'"'),loc+':'+key);
+    }
   }
 });

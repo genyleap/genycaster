@@ -365,6 +365,49 @@ foundation::result::Status SessionService::acceptVerifiedNativeCustody(
         });
 }
 
+foundation::result::Status SessionService::acceptVerifiedFarcasterCustody(
+    domain::session::ClientSession session, Observer observer)
+{
+    return m_impl->executor.post(
+        [this, session = std::move(session), observer = std::move(observer)]() mutable {
+            constexpr std::string_view FarcasterIssuer =
+                "farcaster:optimism-id-registry";
+            const auto now = foundation::time::now();
+            const auto subject = "farcaster:" + std::to_string(session.fid.value);
+            const auto& address = session.custodyAddress;
+            const auto validAddress = address && address->size() == 42
+                && address->starts_with("0x")
+                && std::all_of(address->begin() + 2, address->end(), [](char c) {
+                    return (c >= '0' && c <= '9')
+                        || (c >= 'a' && c <= 'f');
+                });
+            if (session.fid.value == 0 || session.fid.value > 9'007'199'254'740'991ULL
+                || session.method != domain::session::AuthenticationMethod::Custody
+                || session.identityIssuer != FarcasterIssuer
+                || session.identitySubject != subject
+                || !validAddress || session.authenticatedAt > now
+                || domain::session::isExpired(session, now)
+                || session.expiresAt - now > std::chrono::hours{1}) {
+                observer(failedState(foundation::error::Error::make(
+                    foundation::error::ErrorCode::Unauthorized,
+                    "A verified Optimism IdRegistry FID and custody signer are required."),
+                    m_impl->current));
+                return;
+            }
+            if (auto saved = m_impl->store.save(session); !saved) {
+                observer(failedState(std::move(saved.error()), m_impl->current));
+                return;
+            }
+            m_impl->current = std::move(session);
+            m_impl->attempt.reset();
+            m_impl->approvalUrl.clear();
+            observer(SessionState{
+                .phase = SessionPhase::Authenticated,
+                .session = m_impl->current
+            });
+        });
+}
+
 foundation::result::Status SessionService::cancelSignIn(Observer observer)
 {
     return m_impl->executor.post([this, observer = std::move(observer)]() mutable {
