@@ -13,6 +13,23 @@ get_directory_property(notoEmojiLottieFiles
     DIRECTORY "${genycasterUiSourceDir}" DEFINITION _notoEmojiLottieFiles)
 
 if(NOT EMSCRIPTEN)
+    # Reproduce the macOS HyperSnap click crash: abort() may synchronously
+    # emit finished(), clearing the guarded reply before refresh() returns.
+    qt_add_executable(genycaster_native_registration_refresh_tests
+        native_registration_refresh_tests.cpp
+        "${genycasterUiSourceDir}/app/identity/native_registration.cpp"
+        "${genycasterUiSourceDir}/app/identity/native_registration.hpp"
+        "${genycasterUiSourceDir}/app/identity/hypersnap_registration_transport.cpp"
+        "${genycasterUiSourceDir}/app/identity/hypersnap_registration_transport.hpp")
+    target_link_libraries(genycaster_native_registration_refresh_tests PRIVATE
+        Qt6::Core Qt6::Network Qt6::Test)
+    target_compile_features(genycaster_native_registration_refresh_tests PRIVATE cxx_std_26)
+    farcaster_enable_warnings(genycaster_native_registration_refresh_tests)
+    add_test(NAME ui.native_registration_refresh
+        COMMAND genycaster_native_registration_refresh_tests)
+    set_tests_properties(ui.native_registration_refresh PROPERTIES
+        TIMEOUT 15 LABELS "ui;hypersnap;registration;network;regression")
+
     add_executable(genycaster_background_shutdown_tests
         background_shutdown_tests.cpp)
     target_link_libraries(genycaster_background_shutdown_tests PRIVATE
