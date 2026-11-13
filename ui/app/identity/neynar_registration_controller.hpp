@@ -15,7 +15,7 @@ class QNetworkReply;
 
 /**
  * Farcaster/Neynar-only registration coordinator.
- * 
+ *
  * There is no mnemonic, raw private key, Neynar API key, or funded app-wallet
  * ID in this class. A self-custody C++ callback signs an exact reserved FID.
  * An invoice-bound sponsorship voucher is short-lived session state.
