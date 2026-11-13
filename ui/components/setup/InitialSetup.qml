@@ -201,6 +201,11 @@ Item {
     }
     function previousStep() {
         if (currentStep === 3 && choosingRegistrationProvider) {
+            // Backing out of registration must destroy any unregistered seed
+            // and invalidate a background PoW attempt or stale FID lookup.
+            nativeRegistrationPreparation.cancel()
+            nativeRegistrationStatus.clearExistingLookup()
+            nativeCustodyWallet.discard()
             choosingRegistrationProvider = false
             registrationError = ""
             accountIntent = ""
@@ -235,6 +240,8 @@ Item {
         if (!visible) {
             // Closing onboarding erases an unused wallet and its seed in native
             // memory. A newly registered FID is never inferred from this state.
+            nativeRegistrationPreparation.cancel()
+            nativeRegistrationStatus.clearExistingLookup()
             nativeCustodyWallet.discard()
             stageTransitionTimer.stop()
             stageTransitioning = false
@@ -1204,6 +1211,8 @@ Item {
                     iconGlyph: Theme.iconLink
                     showChevron: true
                     onClicked: {
+                        nativeRegistrationPreparation.cancel()
+                        nativeRegistrationStatus.clearExistingLookup()
                         nativeCustodyWallet.discard()
                         root.accountIntent = "existing"
                         root.switchStep(4)
@@ -1230,6 +1239,8 @@ Item {
                         selected: root.registrationProviderId === "hypersnap-v2"
                         enabled: true
                         onClicked: {
+                            nativeRegistrationPreparation.cancel()
+                            nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "hypersnap-v2"
                             root.registrationError = ""
                             nativeRegistrationStatus.refresh()
@@ -1245,6 +1256,8 @@ Item {
                         selected: root.registrationProviderId === "farcaster-snapchain"
                         enabled: true
                         onClicked: {
+                            nativeRegistrationPreparation.cancel()
+                            nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "farcaster-snapchain"
                             root.registrationError = ""
                         }
@@ -1267,7 +1280,10 @@ Item {
                         Layout.fillWidth: true
                         prominent: true
                         text: qsTrId("genycaster.setup.wallet_create_label")
-                        onClicked: nativeCustodyWallet.generate()
+                        onClicked: {
+                            nativeRegistrationStatus.clearExistingLookup()
+                            nativeCustodyWallet.generate()
+                        }
                     }
                     DirectionAwareLabel {
                         visible: nativeCustodyWallet.recoveryVisible
@@ -1457,6 +1473,87 @@ Item {
                     color: Theme.warning
                     font.pixelSize: Theme.typeLabelSize
                     wrapMode: Text.WordWrap
+                }
+                ColumnLayout {
+                    objectName: "nativeAccountLookupPanel"
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && nativeCustodyWallet.backupVerified
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    ActionButton {
+                        objectName: "setupCheckExistingNativeFid"
+                        Layout.fillWidth: true
+                        compact: true
+                        text: qsTrId("genycaster.setup.native_existing_check")
+                        enabled: !nativeRegistrationStatus.accountLookupBusy
+                        onClicked: nativeRegistrationStatus.findExistingNativeAccount(
+                            nativeCustodyWallet.address)
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationStatus.accountLookupBusy
+                                 || nativeRegistrationStatus.accountLookupChecked
+                        text: nativeRegistrationStatus.accountLookupBusy
+                            ? qsTrId("genycaster.setup.native_existing_checking")
+                            : nativeRegistrationStatus.accountLookupFailed
+                              ? qsTrId("genycaster.setup.native_existing_error")
+                              : nativeRegistrationStatus.existingNativeFid.length > 0
+                                ? qsTrId("genycaster.setup.native_existing_found")
+                                    .arg(nativeRegistrationStatus.existingNativeFid)
+                                : qsTrId("genycaster.setup.native_existing_missing")
+                        color: nativeRegistrationStatus.existingNativeFid.length > 0
+                            ? Theme.warning : Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                }
+                ColumnLayout {
+                    objectName: "nativeRegistrationProofPanel"
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && nativeCustodyWallet.backupVerified
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    ActionButton {
+                        objectName: "setupPrepareNativeProof"
+                        Layout.fillWidth: true
+                        prominent: false
+                        text: qsTrId("genycaster.setup.native_proof_prepare")
+                        busy: nativeRegistrationPreparation.busy
+                        enabled: nativeRegistrationStatus.active
+                                 && nativeRegistrationStatus.accountLookupChecked
+                                 && !nativeRegistrationStatus.accountLookupFailed
+                                 && nativeRegistrationStatus.existingNativeFid.length === 0
+                                 && !nativeRegistrationPreparation.busy
+                                 && !nativeRegistrationPreparation.prepared
+                        onClicked: nativeRegistrationPreparation.prepare()
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPreparation.busy
+                                 || nativeRegistrationPreparation.prepared
+                                 || nativeRegistrationPreparation.failed
+                        text: nativeRegistrationPreparation.busy
+                            ? qsTrId("genycaster.setup.native_proof_working")
+                            : nativeRegistrationPreparation.prepared
+                              ? qsTrId("genycaster.setup.native_proof_prepared")
+                              : qsTrId("genycaster.setup.native_proof_failed")
+                        color: nativeRegistrationPreparation.prepared
+                            ? Theme.success : Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupRefreshNativeProofAnchor"
+                        visible: nativeRegistrationPreparation.failed
+                        Layout.fillWidth: true
+                        compact: true
+                        text: qsTrId("genycaster.setup.native_proof_refresh")
+                        onClicked: {
+                            nativeRegistrationPreparation.cancel()
+                            nativeRegistrationStatus.clearExistingLookup()
+                            nativeRegistrationStatus.refresh()
+                        }
+                    }
                 }
                 ActionButton {
                     objectName: "setupBeginRegistration"

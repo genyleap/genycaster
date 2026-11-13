@@ -5732,6 +5732,46 @@ Company | https://company.com</source>
             <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
             <translation>Backup da carteira %1 verificado. O registro na rede ainda não foi concluído.</translation>
         </message>
+        <message id="genycaster.setup.native_proof_prepare">
+            <source>Prepare HyperSnap registration proof</source>
+            <translation>Preparar prova de registro HyperSnap</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_working">
+            <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
+            <translation>Calculando a prova fora da interface sem expor as chaves da carteira.</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_prepared">
+            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
+            <translation>Prova preparada localmente. Nada foi enviado; o registro continua bloqueado até a recuperação de identidade e assinante estar pronta.</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_failed">
+            <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
+            <translation>Falha ao preparar a prova ou bloco de referência expirado. Atualize o estado da rede e tente novamente.</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_check">
+            <source>Check whether this wallet has a HyperSnap FID</source>
+            <translation>Verificar se esta carteira já tem FID HyperSnap</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_checking">
+            <source>Checking the native registry for this wallet…</source>
+            <translation>Consultando o registro nativo desta carteira…</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_found">
+            <source>This wallet already owns native FID %1. Do not register it twice.</source>
+            <translation>Esta carteira já possui o FID nativo %1. Não a registre novamente.</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_missing">
+            <source>No native FID was found for this wallet. You can prepare its registration proof.</source>
+            <translation>Nenhum FID nativo encontrado para esta carteira. Você pode preparar a prova de registro.</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_error">
+            <source>Could not verify this wallet with the node. Refresh the network and try again.</source>
+            <translation>Não foi possível verificar no nó. Atualize a rede e tente novamente.</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_refresh">
+            <source>Refresh HyperSnap registration anchor</source>
+            <translation>Atualizar o bloco de referência HyperSnap</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>Criar novo</translation>

@@ -14,6 +14,7 @@
 
 module;
 
+#include <atomic>
 #include <cstdint>
 #include <expected>
 #include <memory>
@@ -67,7 +68,9 @@ struct GeneratedCustodyWallet final {
  */
 [[nodiscard]] std::expected<std::string, Error> solveNativeOnboardPow(
     std::string_view custodyAddress, std::string_view anchorHex,
-    std::uint32_t difficultyBits, std::uint64_t maxAttempts);
+    std::uint32_t difficultyBits, std::uint64_t maxAttempts,
+    std::uint64_t startNonce = 0,
+    const std::atomic_bool* cancelled = nullptr);
 
 /** Public-only native-onboarding custody proof. No wallet secret crosses the boundary. */
 struct NativeOnboardSignature final {

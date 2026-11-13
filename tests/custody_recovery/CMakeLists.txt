@@ -65,7 +65,7 @@ add_test(NAME custody.hypersnap_native_onboard COMMAND genycaster_native_onboard
 # by the main GenyCaster application.
 option(GENYCASTER_TEST_NATIVE_QT_WALLET "Build Qt-native custody backup smoke" OFF)
 if(GENYCASTER_TEST_NATIVE_QT_WALLET)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Quick)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Quick Network)
     add_executable(genycaster_native_wallet_backup
         native_wallet_backup.cpp
         ../../ui/app/identity/native_wallet.cpp
@@ -103,4 +103,31 @@ if(GENYCASTER_TEST_NATIVE_QT_WALLET)
     target_link_libraries(genycaster_neynar_payload PRIVATE Qt6::Core)
     add_test(NAME custody.neynar_reserved_fid_payload
         COMMAND genycaster_neynar_payload)
+endif()
+
+if(GENYCASTER_TEST_NATIVE_QT_WALLET)
+    add_executable(genycaster_hypersnap_transport
+        hypersnap_transport.cpp
+        ../../ui/app/identity/hypersnap_registration_transport.cpp
+        ../../ui/app/identity/hypersnap_registration_transport.hpp
+        ../../ui/app/identity/native_registration.cpp
+        ../../ui/app/identity/native_registration.hpp)
+    set_target_properties(genycaster_hypersnap_transport PROPERTIES AUTOMOC ON)
+    target_compile_features(genycaster_hypersnap_transport PRIVATE cxx_std_26)
+    target_link_libraries(genycaster_hypersnap_transport PRIVATE
+        Qt6::Core Qt6::Network)
+    add_test(NAME custody.hypersnap_transport COMMAND genycaster_hypersnap_transport)
+endif()
+
+if(GENYCASTER_TEST_NATIVE_QT_WALLET)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Concurrent)
+    add_executable(genycaster_native_prepare
+        native_prepare.cpp
+        ../../ui/app/identity/native_prepare.cpp
+        ../../ui/app/identity/native_prepare.hpp)
+    set_target_properties(genycaster_native_prepare PROPERTIES AUTOMOC ON)
+    target_compile_features(genycaster_native_prepare PRIVATE cxx_std_26)
+    target_link_libraries(genycaster_native_prepare PRIVATE
+        Qt6::Core Qt6::Concurrent Qt6::Network native_custody_vectors_support)
+    add_test(NAME custody.native_prepare COMMAND genycaster_native_prepare)
 endif()

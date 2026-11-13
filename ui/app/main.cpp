@@ -109,6 +109,7 @@
 #include "identity/browser_auth.hpp"
 #include "identity/connections.hpp"
 #include "identity/native_registration.hpp"
+#include "identity/native_prepare.hpp"
 #include "identity/native_wallet.hpp"
 #include "identity/pro_checkout.hpp"
 #if defined(Q_OS_WASM)
@@ -569,6 +570,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<ProviderProfilesController> providerProfilesControllerOwner{};
     std::unique_ptr<NativeRegistrationStatusController> nativeRegistrationStatusOwner{};
     std::unique_ptr<NativeCustodyWalletController> nativeCustodyWalletOwner{};
+    std::unique_ptr<NativeRegistrationPreparationController> nativePreparationOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
@@ -673,6 +675,30 @@ int main(int argc, char* argv[])
         *nativeRegistrationStatusOwner;
     nativeCustodyWalletOwner = std::make_unique<NativeCustodyWalletController>();
     NativeCustodyWalletController& nativeCustodyWallet = *nativeCustodyWalletOwner;
+    nativePreparationOwner = std::make_unique<NativeRegistrationPreparationController>(
+        NativePreparationPorts{
+            .backupVerified = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.backupVerified();
+            },
+            .custodyAddress = [&nativeCustodyWallet] {
+                return nativeCustodyWallet.address();
+            },
+            .walletIsUnregistered = [&nativeRegistrationStatus](const QString& wallet) {
+                return nativeRegistrationStatus.verifiedAbsentForCustody(wallet);
+            },
+            .challenge = [&nativeRegistrationStatus] {
+                return nativeRegistrationStatus.snapshot();
+            },
+            .seal = [&nativeCustodyWallet](
+                const NativeRegistrationStatusController::Challenge& anchor,
+                const QString& nonce) {
+                return nativeCustodyWallet.sealNativeOnboard(
+                    anchor.anchorHeight, anchor.anchorHash, nonce,
+                    anchor.difficultyBits).value_or(QByteArray{});
+            }
+        });
+    NativeRegistrationPreparationController& nativeRegistrationPreparation =
+        *nativePreparationOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1272,6 +1298,7 @@ int main(int argc, char* argv[])
         {"providerProfiles", &providerProfilesController},
         {"nativeRegistrationStatus", &nativeRegistrationStatus},
         {"nativeCustodyWallet", &nativeCustodyWallet},
+        {"nativeRegistrationPreparation", &nativeRegistrationPreparation},
         {"updateController", &updateController},
         {"appearanceController", &appearanceController},
         {"renderingController", &renderingController},

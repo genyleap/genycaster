@@ -1,0 +1,56 @@
+#pragma once
+
+#include <QByteArray>
+#include <QNetworkAccessManager>
+#include <QObject>
+#include <QString>
+#include <QUrl>
+
+#include <cstdint>
+#include <functional>
+
+/**
+ * Transport-only HyperSnap native registration adapter. No custody keys,
+ * mnemonic or API credentials exist in this class or in its callbacks.
+ *
+ * A successful POST is *not* registration: it is "accepted for processing".
+ * Confirm registration with an independent lookup on the same node.
+ */
+class HyperSnapRegistrationTransport final : public QObject {
+    Q_OBJECT
+public:
+    enum class LookupState : std::uint8_t {
+        Confirmed,
+        NotFound,
+        Unavailable,
+        InvalidResponse
+    };
+    struct LookupResult final {
+        LookupState state{LookupState::Unavailable};
+        std::uint64_t fid{};
+        std::uint64_t blockNumber{};
+    };
+    enum class SubmitState : std::uint8_t {
+        AcceptedPending,
+        Rejected,
+        UnknownOutcome
+    };
+    struct SubmitResult final {
+        SubmitState state{SubmitState::UnknownOutcome};
+    };
+    using LookupCallback = std::function<void(LookupResult)>;
+    using SubmitCallback = std::function<void(SubmitResult)>;
+
+    explicit HyperSnapRegistrationTransport(QUrl base, QObject* parent = nullptr);
+
+    /** Read-only authoritative lookup; never treats HTTP 200 alone as identity. */
+    void lookupByCustody(const QString& address, LookupCallback onResult);
+    /** Explicitly initiated binary native-onboard broadcast; no retry. */
+    void submit(const QByteArray& protobufEnvelope, SubmitCallback onResult);
+
+    [[nodiscard]] bool endpointIsSafe() const noexcept;
+
+private:
+    QNetworkAccessManager m_network{};
+    QUrl m_base{};
+};

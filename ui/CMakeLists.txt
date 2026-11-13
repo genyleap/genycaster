@@ -442,6 +442,10 @@ qt_add_executable(genycaster
     app/identity/connections.hpp
     app/identity/native_registration.cpp
     app/identity/native_registration.hpp
+    app/identity/hypersnap_registration_transport.cpp
+    app/identity/hypersnap_registration_transport.hpp
+    app/identity/native_prepare.cpp
+    app/identity/native_prepare.hpp
     app/identity/native_wallet.cpp
     app/identity/native_wallet.hpp
     app/identity/neynar_registration.hpp

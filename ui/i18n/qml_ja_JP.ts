@@ -5732,6 +5732,46 @@ Company | https://company.com</source>
             <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
             <translation>ウォレット %1 のバックアップを確認しました。ネットワーク登録はまだ完了していません。</translation>
         </message>
+        <message id="genycaster.setup.native_proof_prepare">
+            <source>Prepare HyperSnap registration proof</source>
+            <translation>HyperSnap 登録証明を準備</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_working">
+            <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
+            <translation>ウォレットの鍵を公開せず、UI スレッド外で登録証明を計算しています。</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_prepared">
+            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
+            <translation>登録証明を端末内で準備しました。まだ送信されていません。ID と署名鍵の復旧が整うまで登録は無効です。</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_failed">
+            <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
+            <translation>証明の生成に失敗したか基準ブロックの期限が切れました。ネットワーク状態を更新して再試行してください。</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_check">
+            <source>Check whether this wallet has a HyperSnap FID</source>
+            <translation>このウォレットの HyperSnap FID を確認</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_checking">
+            <source>Checking the native registry for this wallet…</source>
+            <translation>このウォレットのネイティブ登録を確認しています…</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_found">
+            <source>This wallet already owns native FID %1. Do not register it twice.</source>
+            <translation>このウォレットは既にネイティブ FID %1 を所有しています。再登録しないでください。</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_missing">
+            <source>No native FID was found for this wallet. You can prepare its registration proof.</source>
+            <translation>このウォレットにネイティブ FID はありません。登録証明を準備できます。</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_error">
+            <source>Could not verify this wallet with the node. Refresh the network and try again.</source>
+            <translation>ノードで確認できませんでした。ネットワークを更新して再試行してください。</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_refresh">
+            <source>Refresh HyperSnap registration anchor</source>
+            <translation>HyperSnap 登録基準ブロックを更新</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>新規作成</translation>

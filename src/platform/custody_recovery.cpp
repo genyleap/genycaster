@@ -16,6 +16,7 @@ module;
 #include <openssl/rand.h>
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <bit>
 #include <cctype>
@@ -23,6 +24,7 @@ module;
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <vector>
 #include <span>
@@ -905,10 +907,13 @@ std::expected<std::string, Error> solveNativeOnboardPow(
     const std::string_view custodyAddress,
     const std::string_view anchorHex,
     const std::uint32_t difficultyBits,
-    const std::uint64_t maxAttempts)
+    const std::uint64_t maxAttempts,
+    const std::uint64_t startNonce,
+    const std::atomic_bool* cancelled)
 {
     if (difficultyBits == 0 || difficultyBits > 256
-        || maxAttempts == 0 || maxAttempts > 100'000'000ULL)
+        || maxAttempts == 0 || maxAttempts > 100'000'000ULL
+        || startNonce > std::numeric_limits<std::uint64_t>::max() - maxAttempts)
         return std::unexpected(Error::SigningFailed);
     const auto custody = parseHex(custodyAddress, 20);
     const auto anchor = parseHex(anchorHex, 32);
@@ -920,7 +925,11 @@ std::expected<std::string, Error> solveNativeOnboardPow(
     const auto noncePosition = challenge.size();
     challenge.resize(noncePosition + 8);
     std::array<unsigned char, 32> digest{};
-    for (std::uint64_t nonce{}; nonce < maxAttempts; ++nonce) {
+    for (std::uint64_t index{}; index < maxAttempts; ++index) {
+        if ((index & 0x3fffU) == 0 && cancelled
+            && cancelled->load(std::memory_order_relaxed))
+            return std::unexpected(Error::SigningFailed);
+        const auto nonce = startNonce + index;
         // HyperSnap native registration defines an 8-byte BE nonce.
         for (std::size_t index{}; index < 8; ++index)
             challenge[noncePosition + index] = static_cast<unsigned char>(

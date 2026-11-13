@@ -80,10 +80,32 @@ Protocol adapters and DTOs remain distinct.
 
 The shared wallet generator/backup, HyperSnap PoW/EIP-712 and protobuf
 encoding, Farcaster onchain reserved-FID Transfer EIP-712, and public Neynar
-payload validation have separate native regression tests. HyperSnap and Neynar
-actual writes, FID network inclusion/confirmation, secure backend reservation
-and post-registration signer activation remain blocked in the UI until the
-full identity lifecycle can be completed and recovered safely.
+payload validation have separate native regression tests.
+
+The Qt 6.12 HyperSnap-specific transport has now been implemented and tested
+against an in-process HTTP hub: `GET /v1/nativeAccount?custody=...` distinguishes
+unregistered, unavailable and confirmed (FID, custody and block number must
+match); `POST /v1/submitMessage` sends the canonical **binary** protobuf with
+`Content-Type: application/octet-stream`. A successful HTTP 200 represents
+**accepted/pending** only, never a confirmed identity. Ambiguous failures do not
+automatically replay the request.
+
+The C++ native registration preparation controller also has a tested,
+cancellable QtConcurrent PoW worker with a bounded hash budget. Only public
+custody address, anchor and difficulty enter the worker. The mnemonic is
+read exclusively inside the secure wallet's C++ signing function. A recent
+anchor, verified offline backup, and verified *no existing native account for
+the same address* are mandatory native preconditions. Prepared unsigned
+envelopes remain C++-only and expire after 60 seconds. Setup can check for
+a pre-existing FID, prepare a proof, cancel/refresh, and return without leaving
+the application; it never exposes signing material to QML.
+
+HyperSnap **broadcast from Setup**, confirmed FID-to-session recovery,
+network-authorized device signer registration, and Neynar first-party
+reservation/payment/relay and onchain custody confirmation remain disabled
+until their complete, recoverable identity lifecycle is validated end-to-end.
+Do not mistake the transport unit tests for a live mainnet registration, or
+turn on the final registration button on the strength of HTTP 200 alone.
 
 ## References
 

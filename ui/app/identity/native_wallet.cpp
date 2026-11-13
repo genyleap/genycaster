@@ -1,5 +1,6 @@
 #include "native_wallet.hpp"
 
+#include <QDateTime>
 #include <QPainter>
 #include <QFontMetricsF>
 #include <QStringList>
@@ -9,11 +10,13 @@
 #include <array>
 #include <algorithm>
 #include <optional>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <utility>
 
 import farcaster.platform.custody_recovery;
+import farcaster.protocol.message;
 
 namespace custody = farcaster::platform::custody_recovery;
 
@@ -172,6 +175,39 @@ void NativeCustodyWalletController::revealForBackup()
     m_private->revealed = true;
     m_private->error.clear();
     emit changed();
+}
+
+std::optional<QByteArray> NativeCustodyWalletController::sealNativeOnboard(
+    const std::uint64_t anchorHeight, const QString& anchorHash,
+    const QString& nonceHex, const std::uint32_t difficultyBits) const
+{
+    if (!backupVerified() || anchorHeight == 0 || difficultyBits == 0
+        || difficultyBits > 256)
+        return std::nullopt;
+    auto signedProof = custody::signNativeOnboard(
+        m_private->secret->recoveryWords, anchorHeight,
+        anchorHash.toStdString(), nonceHex.toStdString(), difficultyBits);
+    if (!signedProof || signedProof->address != m_private->secret->address)
+        return std::nullopt;
+
+    constexpr qint64 FarcasterEpoch = 1609459200LL;
+    const qint64 timestamp = QDateTime::currentSecsSinceEpoch() - FarcasterEpoch;
+    if (timestamp < 1 || timestamp > std::numeric_limits<std::uint32_t>::max())
+        return std::nullopt;
+
+    const auto encoded = farcaster::protocol::message::encodeNativeOnboard({
+        .custodyAddress = std::move(signedProof->address),
+        .custodySignature = std::move(signedProof->signature),
+        .anchorHeight = anchorHeight,
+        .anchorHash = anchorHash.toStdString(),
+        .powNonce = nonceHex.toStdString(),
+        .difficultyBits = difficultyBits,
+        .timestamp = static_cast<std::uint32_t>(timestamp),
+        .network = farcaster::protocol::message::Network::Mainnet
+    });
+    if (!encoded || encoded->empty() || encoded->size() > 8192)
+        return std::nullopt;
+    return QByteArray{encoded->data(), static_cast<qsizetype>(encoded->size())};
 }
 
 void NativeCustodyWalletController::discard()

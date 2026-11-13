@@ -5732,6 +5732,46 @@ Company | https://company.com</source>
             <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
             <translation>वॉलेट %1 का बैकअप सत्यापित है। नेटवर्क पंजीकरण अभी पूरा नहीं हुआ।</translation>
         </message>
+        <message id="genycaster.setup.native_proof_prepare">
+            <source>Prepare HyperSnap registration proof</source>
+            <translation>HyperSnap पंजीकरण प्रमाण तैयार करें</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_working">
+            <source>Calculating the registration proof without exposing your wallet keys. This work runs outside the UI thread.</source>
+            <translation>वॉलेट की कुंजियाँ साझा किए बिना UI थ्रेड से अलग पंजीकरण प्रमाण की गणना हो रही है।</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_prepared">
+            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
+            <translation>प्रमाण स्थानीय रूप से तैयार है। कुछ भेजा नहीं गया; पहचान और साइनर रिकवरी पूरी होने तक पंजीकरण बंद रहेगा।</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_failed">
+            <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
+            <translation>प्रमाण तैयार नहीं हो सका या संदर्भ ब्लॉक पुराना हो गया। नेटवर्क स्थिति रीफ़्रेश कर दोबारा कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_check">
+            <source>Check whether this wallet has a HyperSnap FID</source>
+            <translation>जाँचें कि इस वॉलेट का HyperSnap FID है या नहीं</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_checking">
+            <source>Checking the native registry for this wallet…</source>
+            <translation>इस वॉलेट की नेटिव पहचान की जाँच हो रही है…</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_found">
+            <source>This wallet already owns native FID %1. Do not register it twice.</source>
+            <translation>इस वॉलेट का नेटिव FID %1 पहले से है। इसे दोबारा पंजीकृत न करें।</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_missing">
+            <source>No native FID was found for this wallet. You can prepare its registration proof.</source>
+            <translation>इस वॉलेट के लिए नेटिव FID नहीं मिला। आप पंजीकरण प्रमाण तैयार कर सकते हैं।</translation>
+        </message>
+        <message id="genycaster.setup.native_existing_error">
+            <source>Could not verify this wallet with the node. Refresh the network and try again.</source>
+            <translation>नोड से सत्यापन नहीं हो सका। नेटवर्क रीफ़्रेश करें और दोबारा कोशिश करें।</translation>
+        </message>
+        <message id="genycaster.setup.native_proof_refresh">
+            <source>Refresh HyperSnap registration anchor</source>
+            <translation>HyperSnap पंजीकरण संदर्भ ब्लॉक रीफ़्रेश करें</translation>
+        </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>
             <translation>नई बनाएँ</translation>

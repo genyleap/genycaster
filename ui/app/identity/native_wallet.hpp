@@ -1,11 +1,14 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QColor>
 #include <QPointer>
 #include <QQuickPaintedItem>
 #include <QString>
+#include <cstdint>
 #include <memory>
+#include <optional>
 
 class QPainter;
 class NativeRecoveryWordsItem;
@@ -40,6 +43,10 @@ public:
     Q_INVOKABLE bool verifyBackup(QString first, QString second);
     Q_INVOKABLE void revealForBackup();
     Q_INVOKABLE void discard();
+    /** C++-only public envelope builder, never exposing seed material. */
+    [[nodiscard]] std::optional<QByteArray> sealNativeOnboard(
+        std::uint64_t anchorHeight, const QString& anchorHash,
+        const QString& nonceHex, std::uint32_t difficultyBits) const;
 signals:
     void changed();
 

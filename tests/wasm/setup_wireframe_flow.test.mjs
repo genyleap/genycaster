@@ -292,7 +292,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/onClicked: \{\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
+  assert.match(account,/onClicked: \{\s*nativeRegistrationPreparation\.cancel\(\)\s*nativeRegistrationStatus\.clearExistingLookup\(\)\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
@@ -463,5 +463,43 @@ test('new-wallet backup is native, private, verified and never claims premature 
                       'wallet_challenge_word','wallet_verified']) {
       assert.ok(translation.includes('id="genycaster.setup.'+key+'"'));
     }
+  }
+});
+
+test('native proof preparation stays off the UI thread and keeps network writes disabled', () => {
+  const setup = source('ui/components/setup/InitialSetup.qml');
+  const native = source('ui/app/identity/native_prepare.cpp');
+  const wallet = source('ui/app/identity/native_wallet.cpp');
+  const header = source('ui/app/identity/native_prepare.hpp');
+  const bootstrap = source('ui/app/main.cpp');
+  const manifest = source('ui/CMakeLists.txt');
+  assert.match(setup,/objectName: "setupPrepareNativeProof"/);
+  assert.match(setup,/objectName: "setupCheckExistingNativeFid"/);
+  assert.match(setup,/objectName: "setupRefreshNativeProofAnchor"/);
+  assert.match(setup,/function previousStep\(\)[\s\S]*?nativeRegistrationPreparation\.cancel\(\)[\s\S]*?nativeRegistrationStatus\.clearExistingLookup\(\)[\s\S]*?nativeCustodyWallet\.discard\(\)/);
+  assert.match(setup,/nativeRegistrationStatus\.findExistingNativeAccount\(/);
+  assert.match(setup,/nativeRegistrationStatus\.accountLookupChecked/);
+  assert.match(setup,/onClicked: nativeRegistrationPreparation\.prepare\(\)/);
+  assert.match(setup,/nativeRegistrationPreparation\.cancel\(\)/);
+  assert.match(setup,/objectName: "setupBeginRegistration"[\s\S]*?enabled: false/);
+  assert.match(native,/QtConcurrent::run/);
+  assert.match(native,/solveNativeOnboardPow/);
+  assert.match(native,/m_ports\.backupVerified\(\)/);
+  assert.match(native,/m_ports\.seal\(\*fresh, nonce\)/);
+  assert.doesNotMatch(header,/Q_INVOKABLE.*preparedEnvelope/);
+  assert.doesNotMatch(header,/Q_PROPERTY.*envelope/);
+  assert.match(wallet,/NativeCustodyWalletController::sealNativeOnboard/);
+  assert.match(wallet,/if \(!backupVerified\(\)/);
+  assert.match(bootstrap,/\{"nativeRegistrationPreparation", &nativeRegistrationPreparation\}/);
+  assert.match(manifest,/app\/identity\/native_prepare\.cpp/);
+  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translations=source('ui/i18n/qml_'+locale+'.ts');
+    for(const key of ['native_proof_prepare','native_proof_working',
+                      'native_proof_prepared','native_proof_failed',
+                      'native_existing_check','native_existing_found',
+                      'native_existing_missing','native_existing_error',
+                      'native_proof_refresh'])
+      assert.ok(translations.includes('id="genycaster.setup.'+key+'"'));
   }
 });
