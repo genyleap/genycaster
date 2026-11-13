@@ -64,8 +64,8 @@ test('registration keeps protocols isolated and requires explicit custody consen
   assert.match(account,/nativeRegistrationPublisher\.submitPrepared\(\)/);
   assert.match(account,/nativeRegistrationConsent\.checked/);
   assert.doesNotMatch(account,/objectName: "setupRegistrationCompleted"/);
-  assert.match(account,/nativeRegistrationStatus.checking/);
-  assert.match(account,/nativeRegistrationStatus.active/);
+  assert.match(setup,/nativeRegistrationStatus.checking/);
+  assert.match(setup,/nativeRegistrationStatus.active/);
   const launch=setup.slice(setup.indexOf('function beginAccountRegistration()'),setup.indexOf('property bool showRecovery'));
   assert.doesNotMatch(launch,/selectReadProvider\(|openRegistration\(/);
   assert.match(launch,/nativeRegistrationStatus.refresh\(\)/);
