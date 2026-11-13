@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Neynar erfordert einen sicheren Registrierungsdienst. Ein Lese-Endpunkt allein reicht nicht.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Weiter zur Farcaster-Registrierung</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>HyperSnap-Registrierung absenden</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
