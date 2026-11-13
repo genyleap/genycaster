@@ -78,6 +78,21 @@ export function createNeynarRegistrationRelay({
     status:record.status,
     transaction_hash:record.txHash||null
   });
+  async function publicWithNonce(record) {
+    const value=publicView(record);
+    if(record.status!=='reserved' || !record.fid
+       ||now()-record.reservedAt>=MAX_RESERVATION_AGE_MS)
+      return value;
+    // Nonce comes from canonical Optimism IdRegistry; never trust a
+    // client-provided nonce or a cached reservation-time guess.
+    try {
+      return {...value,id_registry_nonce:await registry.nonce(record.custody)};
+    }catch {
+      // The FID lease is still valid if the chain RPC is unavailable.
+      // Return an explicit unready nonce and allow a later status refresh.
+      return {...value,id_registry_nonce:null};
+    }
+  }
   async function reserve({enrollment,custodyAddress,idempotencyKey}) {
     const custody=exactAddress(custodyAddress);
     if(!IDEMPOTENCY.test(idempotencyKey))reject('invalid_idempotency_key');
@@ -89,10 +104,10 @@ export function createNeynarRegistrationRelay({
     });
     if(!current||current.principal!==principal||current.custody!==custody)
       reject('reservation_conflict');
-    if(current.status!=='reserving')return publicView(current);
-    if(current.started) return publicView(current);
+    if(current.status!=='reserving')return publicWithNonce(current);
+    if(current.started) return publicWithNonce(current);
     if(!(await ledger.claimStart(current.id,principal)))
-      return publicView(await ledger.get(current.id,principal));
+      return publicWithNonce(await ledger.get(current.id,principal));
     // Any failure leaves an "unknown" lease; never automatically replay a
     // potentially funded first-time Neynar allocation.
     try {
@@ -104,7 +119,7 @@ export function createNeynarRegistrationRelay({
       if(code!==200)reject('neynar_reservation_rejected');
       const fid=exactFid(data.fid);
       await ledger.setReserved(current.id,principal,{fid,reservedAt:now()});
-      return publicView(await ledger.get(current.id,principal));
+      return publicWithNonce(await ledger.get(current.id,principal));
     }catch(error) {
       if(String(error.message)!=='custody_already_registered')
         await ledger.setOutcome(current.id,principal,{status:'reservation_unknown'});
@@ -178,7 +193,7 @@ export function createNeynarRegistrationRelay({
         // An unavailable RPC MUST NOT turn a submission into a confirmed FID.
       }
     }
-    return publicView(await ledger.get(record.id,principal));
+    return publicWithNonce(await ledger.get(record.id,principal));
   }
   return Object.freeze({reserve,submit,status});
 }

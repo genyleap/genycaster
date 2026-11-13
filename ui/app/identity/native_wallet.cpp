@@ -213,6 +213,23 @@ std::optional<QByteArray> NativeCustodyWalletController::sealNativeOnboard(
     return QByteArray{encoded->data(), static_cast<qsizetype>(encoded->size())};
 }
 
+std::optional<QString> NativeCustodyWalletController::signReservedFarcasterTransfer(
+    const std::uint64_t fid, const std::uint64_t onchainNonce,
+    const std::uint64_t deadlineUnixSeconds) const
+{
+    if (!backupVerified() || !m_private->secret || fid == 0)
+        return std::nullopt;
+    // This uses the separate, chain-10 IdRegistry EIP-712 domain, not
+    // HyperSnap native onboarding. No private key or mnemonic crosses the
+    // native-wallet boundary or enters Qt/QML properties.
+    auto result = custody::signFarcasterIdTransfer(
+        m_private->secret->recoveryWords, fid, onchainNonce,
+        deadlineUnixSeconds);
+    if (!result || result->custodyAddress != m_private->secret->address)
+        return std::nullopt;
+    return QString::fromStdString(result->signature);
+}
+
 void NativeCustodyWalletController::discard()
 {
     m_private->revealed = false;

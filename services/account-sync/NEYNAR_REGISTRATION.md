@@ -59,6 +59,13 @@ for browsers, POST-only, no-store, and strict JSON:
 - `POST /api/v1/registration/farcaster/status`:
   `{"custody_address":"0x…","reservation_id":"uuid"}`
 
+On an active reservation, the response also includes `id_registry_nonce` as
+an exact decimal **string** read from the canonical Optimism `safe` block.
+If the RPC is temporarily unavailable it is `null` (the reservation stays
+valid and can be queried again). The native GenyCaster wallet signs the exact
+FID, nonce and deadline locally with its EIP-712 IdRegistry signer; the
+mnemonic is never a QML property or an HTTP payload.
+
 `reserve` atomically records the request **before** making the
 cost-bearing Neynar GET. It rejects an already registered custody wallet
 according to the Optimism registry. A duplicate concurrent or restarted

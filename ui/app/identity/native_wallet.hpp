@@ -48,6 +48,10 @@ public:
     [[nodiscard]] std::optional<QByteArray> sealNativeOnboard(
         std::uint64_t anchorHeight, const QString& anchorHash,
         const QString& nonceHex, std::uint32_t difficultyBits) const;
+    /** Sign the reserved FID for the Optimism IdRegistry; never a QML API. */
+    [[nodiscard]] std::optional<QString> signReservedFarcasterTransfer(
+        std::uint64_t fid, std::uint64_t onchainNonce,
+        std::uint64_t deadlineUnixSeconds) const;
 signals:
     void changed();
 

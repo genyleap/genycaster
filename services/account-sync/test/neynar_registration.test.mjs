@@ -62,7 +62,7 @@ function mockContext(overrides={}) {
   const state={registered:false,confirmed:false,nonce:'3',getCount:0,postCount:0};
   const registry={
     idOf:async()=>state.registered?fid:'0',
-    nonce:async()=>state.nonce,
+    nonce:async()=>{if(state.failNonce)throw Error('offline');return state.nonce;},
     confirmed:async(id,address)=>state.confirmed&&id===fid&&address===custody
   };
   const fetchImpl=async(url,opts)=>{
@@ -116,6 +116,7 @@ test('reserve requires funded enrollment and uses a durable single lease',async(
   const reservation=await relay.reserve(args);
   assert.equal(reservation.fid,fid);
   assert.equal(reservation.status,'reserved');
+  assert.equal(reservation.id_registry_nonce,'3');
   assert.equal(reservation.custody_address,custody);
   assert.equal(reservation.expires_at,now+600000);
   assert.equal(state.getCount,1);
@@ -187,4 +188,20 @@ test('safe Optimism registry reads require matching idOf and custodyOf',async()=
     &&r.params[1]==='safe'));
   assert.throws(()=>createOptimismIdRegistryReader({
     rpcUrl:'http://rpc.example/'}),/HTTPS/);
+});
+test('temporary RPC failure does not destroy an already paid reservation',async()=>{
+  const {relay,state}=mockContext();
+  state.failNonce=true;
+  const params={enrollment:'paid-valid-proof',custodyAddress:custody,
+    idempotencyKey:key};
+  const result=await relay.reserve(params);
+  assert.equal(result.status,'reserved');
+  assert.equal(result.id_registry_nonce,null);
+  assert.equal(state.getCount,1);
+  state.failNonce=false;
+  const checked=await relay.status({
+    enrollment:params.enrollment,custodyAddress:custody,reservationId:key
+  });
+  assert.equal(checked.id_registry_nonce,'3');
+  assert.equal(state.getCount,1);
 });

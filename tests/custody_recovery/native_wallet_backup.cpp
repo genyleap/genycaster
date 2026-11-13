@@ -15,10 +15,13 @@ int main(int argc, char** argv)
     // A wallet is a native secret, never an inspectable Qt/QML property.
     assert(meta->indexOfProperty("recoveryWords") == -1);
     assert(meta->indexOfMethod("recoveryWords()") == -1);
+    assert(meta->indexOfMethod("signReservedFarcasterTransfer(quint64,quint64,quint64)") == -1);
     assert(!wallet.hasWallet() && !wallet.backupVerified());
     assert(wallet.address().isEmpty());
     assert(wallet.generate());
     assert(wallet.hasWallet() && wallet.recoveryVisible());
+    // A newly generated but not backed-up wallet is never signing authority.
+    assert(!wallet.signReservedFarcasterTransfer(1234567, 0, 1794560000));
     assert(wallet.address().startsWith("0x") && wallet.address().size() == 42);
     const QString custody = wallet.address();
     assert(!wallet.generate()); // A second click must not silently replace wallet.
