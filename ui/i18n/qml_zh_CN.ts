@@ -5633,20 +5633,20 @@ Company | https://company.com</source>
             <translation>使用 Farcaster 身份或 Genyleap 账户。每次登录都会独立验证，且不会改变读取网络。</translation>
         </message>
         <message id="genycaster.setup.registration_choose_provider">
-            <source>Choose an account provider</source>
-            <translation>选择账户服务提供方</translation>
+            <source>Choose your registration network</source>
+            <translation>选择注册网络</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
-            <translation>选择注册网络。HyperSnap Native 与通过 Neynar 注册的 Farcaster 会生成不同的 FID。</translation>
+            <source>HyperSnap and Farcaster have separate FID registries. Selecting a network does not create an account.</source>
+            <translation>HyperSnap 和 Farcaster 使用不同的 FID 注册表。仅选择网络不会创建账户。</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
             <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
             <translation>HyperSnap 原生 FID：本地钱包、工作量证明和 EIP-712。</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
-            <source>Neynar (Farcaster)</source>
-            <translation>Neynar (Farcaster)</translation>
+            <source>Farcaster (via Neynar)</source>
+            <translation>Farcaster（通过 Neynar）</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
             <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
@@ -5672,21 +5672,29 @@ Company | https://company.com</source>
             <source>Restart GenyCaster after setup to activate the selected read provider. Your Farcaster identity remains the same.</source>
             <translation>设置完成后重启 GenyCaster，以启用所选读取服务。你的 Farcaster 身份不会改变。</translation>
         </message>
+        <message id="genycaster.setup.registration_runtime_initializing">
+            <source>Initializing secure account registration services…</source>
+            <translation>正在初始化安全账户注册服务…</translation>
+        </message>
+        <message id="genycaster.setup.native_registration_node_unavailable">
+            <source>This HyperSnap node has not confirmed native registration support. No FID has been created.</source>
+            <translation>此 HyperSnap 节点尚未确认支持原生注册。尚未创建 FID。</translation>
+        </message>
         <message id="genycaster.setup.native_registration_checking">
             <source>Checking the HyperSnap native registration protocol…</source>
             <translation>正在检查 HyperSnap 原生注册…</translation>
         </message>
         <message id="genycaster.setup.native_registration_node_ready">
-            <source>Native registration is active on this HyperSnap node. Secure wallet onboarding is not connected in this build.</source>
-            <translation>此 HyperSnap 节点已启用原生注册，但尚未集成安全的钱包设置流程。</translation>
+            <source>This HyperSnap node reports native registration support. Back up your wallet and complete network confirmation before an FID exists.</source>
+            <translation>此 HyperSnap 节点报告支持原生注册。请备份钱包并等待网络确认，才能认定 FID 已创建。</translation>
         </message>
-        <message id="genycaster.setup.native_registration_pending">
-            <source>Secure self-custody backup, native FID confirmation and signer setup are still being integrated. Account creation is disabled until these steps are complete.</source>
-            <translation>安全备份、原生 FID 确认和签名器设置尚未完成。完成前账户创建保持禁用。</translation>
+        <message id="genycaster.setup.native_registration_signing_unavailable">
+            <source>Secure account signing is unavailable in this runtime. Check the signer vault; no FID has been created.</source>
+            <translation>当前无法使用安全账户签名。请检查签名密钥保管库；尚未创建 FID。</translation>
         </message>
-        <message id="genycaster.setup.neynar_registration_pending">
-            <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
-            <translation>Neynar 注册需要安全托管钱包和已授权的注册服务。此版本尚不能创建账户。</translation>
+        <message id="genycaster.setup.neynar_registration_requirements">
+            <source>Farcaster registration requires a verified funded enrollment code. A wallet alone does not reserve or create an FID.</source>
+            <translation>注册 Farcaster 需要经过验证且已付费或受资助的注册码。仅创建钱包不会预留或生成 FID。</translation>
         </message>
         <message id="genycaster.setup.wallet_create_label">
             <source>Generate secure wallet</source>
@@ -5741,8 +5749,8 @@ Company | https://company.com</source>
             <translation>正在界面线程之外计算注册证明，不会暴露钱包私钥。</translation>
         </message>
         <message id="genycaster.setup.native_proof_prepared">
-            <source>Registration proof prepared locally. Nothing has been sent; account registration remains blocked until identity and signer recovery are ready.</source>
-            <translation>Registration proof prepared locally. Review the saved backup and explicitly approve network registration to continue.</translation>
+            <source>Proof prepared locally; nothing has been submitted. Review your backup before explicitly registering with HyperSnap.</source>
+            <translation>注册证明已在本地准备好，尚未发送。明确提交 HyperSnap 注册前，请检查备份。</translation>
         </message>
         <message id="genycaster.setup.native_proof_failed">
             <source>Proof preparation failed or the block anchor expired. Refresh the network status and try again.</source>
