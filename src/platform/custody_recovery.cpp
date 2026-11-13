@@ -931,9 +931,9 @@ std::expected<std::string, Error> solveNativeOnboardPow(
             return std::unexpected(Error::SigningFailed);
         const auto nonce = startNonce + index;
         // HyperSnap native registration defines an 8-byte BE nonce.
-        for (std::size_t index{}; index < 8; ++index)
-            challenge[noncePosition + index] = static_cast<unsigned char>(
-                nonce >> (56U - static_cast<unsigned>(8U * index)));
+        for (std::size_t byteIndex{}; byteIndex < 8; ++byteIndex)
+            challenge[noncePosition + byteIndex] = static_cast<unsigned char>(
+                nonce >> (56U - static_cast<unsigned>(8U * byteIndex)));
         unsigned int written{};
         if (EVP_Digest(challenge.data(), challenge.size(), digest.data(),
                        &written, EVP_sha256(), nullptr) != 1
