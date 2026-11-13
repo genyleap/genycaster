@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Для Neynar нужен защищённый сервер регистрации; одного API чтения недостаточно.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Продолжить регистрацию Farcaster</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>Отправить регистрацию в HyperSnap</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
