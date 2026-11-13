@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>O Neynar exige backend seguro de registro; um endpoint de leitura não é suficiente.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Continuar para o cadastro Farcaster</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>Enviar registro do HyperSnap</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
