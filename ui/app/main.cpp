@@ -109,6 +109,7 @@
 #include "identity/browser_auth.hpp"
 #include "identity/connections.hpp"
 #include "identity/native_registration.hpp"
+#include "identity/native_wallet.hpp"
 #include "identity/pro_checkout.hpp"
 #if defined(Q_OS_WASM)
 #include "identity/browser_pro_wallet.hpp"
@@ -567,6 +568,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<NodeSelectionController> nodeSelectionControllerOwner{};
     std::unique_ptr<ProviderProfilesController> providerProfilesControllerOwner{};
     std::unique_ptr<NativeRegistrationStatusController> nativeRegistrationStatusOwner{};
+    std::unique_ptr<NativeCustodyWalletController> nativeCustodyWalletOwner{};
     std::unique_ptr<UpdateController> updateControllerOwner{};
     std::unique_ptr<MiniAppHostController> miniAppHostControllerOwner{};
     std::unique_ptr<MiniAppHostController> proWalletHostOwner{};
@@ -593,6 +595,8 @@ int main(int argc, char* argv[])
     qml_register_types_Farcaster_Client();
     qmlRegisterType<RichInlineTextItem>(
         "Farcaster.Client", 1, 0, "RichInlineTextItem");
+    qmlRegisterType<NativeRecoveryWordsItem>(
+        "Farcaster.Client", 1, 0, "NativeRecoveryWords");
 
     QQmlApplicationEngine engine{};
     engine.rootContext()->setContextProperty(QStringLiteral("deploymentEndpoints"),
@@ -655,14 +659,20 @@ int main(int argc, char* argv[])
         allowCompatibleReadFallback, nullptr, appliedNodeEndpoint,
         farcasterReadBaseUrlText);
     ProviderProfilesController& providerProfilesController = *providerProfilesControllerOwner;
-    QString nativeRegistrationEndpoint =
-        qEnvironmentVariable("GENYCASTER_HYPERSNAP_BASE_URL").trimmed();
-    if (nativeRegistrationEndpoint.isEmpty())
-        nativeRegistrationEndpoint = compiledHypersnapEndpoint;
+    // Use the actual applied HyperSnap node (including user-provided
+    // command-line and node-profile overrides) rather than silently probing
+    // the built-in public host when a different node was selected.
+    const QString nativeRegistrationEndpoint =
+        providerProfilesController.activeReadContract()
+            == QStringLiteral("hypersnap-v2")
+        ? providerProfilesController.activeReadEndpoint()
+        : compiledHypersnapEndpoint;
     nativeRegistrationStatusOwner = std::make_unique<NativeRegistrationStatusController>(
         nativeRegistrationEndpoint);
     NativeRegistrationStatusController& nativeRegistrationStatus =
         *nativeRegistrationStatusOwner;
+    nativeCustodyWalletOwner = std::make_unique<NativeCustodyWalletController>();
+    NativeCustodyWalletController& nativeCustodyWallet = *nativeCustodyWalletOwner;
     updateControllerOwner = std::make_unique<UpdateController>(
         settings, !isSmokeTest && !isVisualTest && !isRuntimeSmokeTest, &application);
     UpdateController& updateController = *updateControllerOwner;
@@ -1261,6 +1271,7 @@ int main(int argc, char* argv[])
         {"nodeSelectionController", &nodeSelectionController},
         {"providerProfiles", &providerProfilesController},
         {"nativeRegistrationStatus", &nativeRegistrationStatus},
+        {"nativeCustodyWallet", &nativeCustodyWallet},
         {"updateController", &updateController},
         {"appearanceController", &appearanceController},
         {"renderingController", &renderingController},

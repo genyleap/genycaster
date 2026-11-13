@@ -59,3 +59,24 @@ target_compile_features(genycaster_native_onboard_vectors PRIVATE cxx_std_26)
 target_link_libraries(genycaster_native_onboard_vectors PRIVATE
     native_custody_vectors_support farcaster::protocol OpenSSL::Crypto)
 add_test(NAME custody.hypersnap_native_onboard COMMAND genycaster_native_onboard_vectors)
+
+# Optional native Qt backing-custody smoke. Disabled for the portable
+# cryptographic test suite; enabling it uses the same Qt 6.12 already used
+# by the main GenyCaster application.
+option(GENYCASTER_TEST_NATIVE_QT_WALLET "Build Qt-native custody backup smoke" OFF)
+if(GENYCASTER_TEST_NATIVE_QT_WALLET)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Quick)
+    add_executable(genycaster_native_wallet_backup
+        native_wallet_backup.cpp
+        ../../ui/app/identity/native_wallet.cpp
+        ../../ui/app/identity/native_wallet.hpp)
+    set_target_properties(genycaster_native_wallet_backup PROPERTIES AUTOMOC ON)
+    target_compile_features(genycaster_native_wallet_backup PRIVATE cxx_std_26)
+    target_include_directories(genycaster_native_wallet_backup PRIVATE
+        ../../ui/app/identity)
+    target_link_libraries(genycaster_native_wallet_backup PRIVATE
+        Qt6::Core Qt6::Gui Qt6::Quick native_custody_vectors_support OpenSSL::Crypto)
+    add_test(NAME custody.native_wallet_backup COMMAND genycaster_native_wallet_backup)
+    set_tests_properties(custody.native_wallet_backup PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()

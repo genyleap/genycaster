@@ -58,6 +58,17 @@ struct GeneratedCustodyWallet final {
 /** Generate a fresh 256-bit BIP39 wallet with a cryptographic RNG. */
 [[nodiscard]] std::expected<GeneratedCustodyWallet, Error> generateCustodyWallet();
 
+/**
+ * Hashcash nonce for the exact HyperSnap native-onboarding challenge.
+ * Returns a big-endian 8-byte nonce encoded as hex. Computation is CPU-bound:
+ * call from a worker thread only, never from the Qt GUI thread.
+ * The attempt budget limits resource usage; the caller may retry with a
+ * refreshed anchor, must revalidate the anchor window before submission.
+ */
+[[nodiscard]] std::expected<std::string, Error> solveNativeOnboardPow(
+    std::string_view custodyAddress, std::string_view anchorHex,
+    std::uint32_t difficultyBits, std::uint64_t maxAttempts);
+
 /** Public-only native-onboarding custody proof. No wallet secret crosses the boundary. */
 struct NativeOnboardSignature final {
     std::string address{};

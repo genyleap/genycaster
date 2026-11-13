@@ -56,8 +56,8 @@ test('registration keeps protocol choice but blocks unsupported custody writes a
   assert.doesNotMatch(create,/unavailable: true|enabled: false/);
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
-  assert.match(account,/enabled: providerProfiles.indexedReadSupported/);
-  assert.match(account,/enabled: providerProfiles.hostedReadSupported/);
+  assert.match(account,/objectName: "setupRegisterHyperSnap"[\s\S]*?enabled: true/);
+  assert.match(account,/objectName: "setupRegisterNeynar"[\s\S]*?enabled: true/);
   assert.match(account,/objectName: "setupBeginRegistration"/);
   assert.match(account,/enabled: false/);
   assert.doesNotMatch(account,/objectName: "setupRegistrationCompleted"/);
@@ -292,7 +292,7 @@ test('desktop account keeps editorial cards while enabling registration provider
   assert.match(account,/objectName: "setupRegisterHyperSnap"/);
   assert.match(account,/objectName: "setupRegisterNeynar"/);
   assert.doesNotMatch(account,/setupEmphasis: true/);
-  assert.match(account,/onClicked: \{\s*root\.accountIntent = "existing"/);
+  assert.match(account,/onClicked: \{\s*nativeCustodyWallet\.discard\(\)\s*root\.accountIntent = "existing"/);
   assert.match(account,/iconGlyph: Theme\.iconLink/);
   assert.match(card,/property bool accountShowcase: false/);
   assert.match(card,/property bool setupEmphasis: false/);
@@ -425,4 +425,43 @@ test('Setup GPU-rendered volumetric G is cross-platform, theme-aware and interac
   assert.match(shader,/float dragPitch/);
   assert.match(shader,/normalAt/);
   assert.doesNotMatch(pane,/WebEngineView|WebView|three\.js/);
+});
+
+test('new-wallet backup is native, private, verified and never claims premature registration', () => {
+  const walletHeader = source('ui/app/identity/native_wallet.hpp');
+  const walletImpl = source('ui/app/identity/native_wallet.cpp');
+  const main = source('ui/app/main.cpp');
+  const registration = source('src/platform/custody_recovery.cpp');
+  for (const contract of [
+    'Q_PROPERTY(bool hasWallet', 'Q_INVOKABLE bool generate()',
+    'Q_INVOKABLE bool verifyBackup', 'Q_INVOKABLE void discard()'
+  ]) assert.ok(walletHeader.includes(contract), contract);
+  assert.ok(!walletHeader.includes('Q_PROPERTY(QString recoveryWords'));
+  assert.ok(!walletHeader.includes('Q_INVOKABLE QString recoveryWords'));
+  assert.ok(main.includes('qmlRegisterType<NativeRecoveryWordsItem>'));
+  assert.ok(main.includes('{"nativeCustodyWallet", &nativeCustodyWallet}'));
+  for (const contract of [
+    'objectName: "setupGenerateCustodyWallet"',
+    'NativeRecoveryWords {', 'wallet: nativeCustodyWallet',
+    'nativeCustodyWallet.startBackupChallenge()',
+    'nativeCustodyWallet.verifyBackup(', 'nativeCustodyWallet.discard()',
+    'echoMode: TextInput.Password',
+    'objectName: "setupBeginRegistration"'
+  ]) assert.ok(setup.includes(contract), contract);
+  for (const contract of [
+    'RAND_priv_bytes', 'CRYPTO_memcmp',
+    'm_private->secret.reset()'
+  ]) assert.ok(walletImpl.includes(contract), contract);
+  assert.ok(registration.includes('solveNativeOnboardPow('));
+  assert.ok(registration.includes('hyper.onboard.pow:'));
+  assert.ok(registration.includes("maxAttempts > 100'000'000ULL"));
+  assert.ok(!shell.includes('farcaster.xyz/~/signup'));
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translation=source('ui/i18n/qml_'+locale+'.ts');
+    for(const key of ['wallet_create_label','wallet_recovery_warning',
+                      'wallet_challenge_word','wallet_verified']) {
+      assert.ok(translation.includes('id="genycaster.setup.'+key+'"'));
+    }
+  }
 });

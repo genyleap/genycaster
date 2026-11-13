@@ -5637,28 +5637,28 @@ Company | https://company.com</source>
             <translation>アカウントのプロバイダーを選択</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
-            <translation>Farcaster の FID は共通です。GenyCaster が新しいアカウントを読み込むプロバイダーを選択してください。</translation>
+            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
+            <translation>登録先を選択します。HyperSnap Native と Neynar 経由の Farcaster は異なる FID を発行します。</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
-            <translation>自己管理の Farcaster ID を HyperSnap 経由で読み込みます。</translation>
+            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
+            <translation>HyperSnap ネイティブ FID：ローカルウォレット、PoW、EIP-712。</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Neynar (Farcaster)</source>
             <translation>Neynar (Farcaster)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster identity read through your configured Neynar API.</source>
-            <translation>設定済みの Neynar API を通じて Farcaster ID を読み込みます。</translation>
+            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
+            <translation>Optimism 上の Farcaster FID：ローカルウォレットと安全な Neynar 登録サービス。</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
-            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
-            <translation>登録先は Farcaster の IdRegistry であり、HyperSnap 独自の ID ネットワークではありません。ウォレットとリカバリーフレーズを守ってください。</translation>
+            <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
+            <translation>秘密鍵は端末の外に出ません。HyperSnap ネイティブ FID は Farcaster IdRegistry に自動登録されません。</translation>
         </message>
         <message id="genycaster.setup.registration_provider_missing">
-            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
-            <translation>Neynar には互換性のある読み取りエンドポイントが必要です。HyperSnap で開始し、後で変更できます。</translation>
+            <source>Neynar requires a secured registration backend; the read endpoint alone is not sufficient.</source>
+            <translation>Neynar には安全な登録バックエンドが必要です。読み取り API だけでは足りません。</translation>
         </message>
         <message id="genycaster.setup.registration_start">
             <source>Continue to Farcaster registration</source>
@@ -5687,6 +5687,50 @@ Company | https://company.com</source>
         <message id="genycaster.setup.neynar_registration_pending">
             <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
             <translation>Neynar での登録には安全なウォレットと認証済み登録サービスが必要です。このビルドではまだ作成できません。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_label">
+            <source>Generate secure wallet</source>
+            <translation>安全なウォレットを作成</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_description">
+            <source>Create a 24-word self-custody wallet. No private key is shared with any provider or server.</source>
+            <translation>24語の自己管理ウォレットを作成します。秘密鍵はプロバイダーやサーバーへ送信されません。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_title">
+            <source>Save your 24 recovery words</source>
+            <translation>24語のリカバリーフレーズを保存</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_warning">
+            <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
+            <translation>単語を順番どおりオフラインで安全に記録してください。知っている人はアカウントを操作できます。スクリーンショットを共有しないでください。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_backup_ack">
+            <source>I have saved all 24 words in order, somewhere safe.</source>
+            <translation>24語を順番どおり安全に保存しました。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify_start">
+            <source>Verify my backup</source>
+            <translation>バックアップを確認</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_explanation">
+            <source>Enter the requested words from your saved backup. Do not paste the full recovery phrase.</source>
+            <translation>控えた単語から指定された語を入力してください。フレーズ全体を貼り付けないでください。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_word">
+            <source>Word %1</source>
+            <translation>単語 %1</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify">
+            <source>Verify recovery words</source>
+            <translation>リカバリー単語を確認</translation>
+        </message>
+        <message id="genycaster.setup.wallet_reveal">
+            <source>Show recovery words again</source>
+            <translation>単語をもう一度表示</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verified">
+            <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
+            <translation>ウォレット %1 のバックアップを確認しました。ネットワーク登録はまだ完了していません。</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

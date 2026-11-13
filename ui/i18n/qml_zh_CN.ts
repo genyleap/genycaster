@@ -5637,28 +5637,28 @@ Company | https://company.com</source>
             <translation>选择账户服务提供方</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
-            <translation>Farcaster 只发行一个 FID。请选择 GenyCaster 用来读取新账户的服务提供方。</translation>
+            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
+            <translation>选择注册网络。HyperSnap Native 与通过 Neynar 注册的 Farcaster 会生成不同的 FID。</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
-            <translation>自主保管的 Farcaster 身份，通过 HyperSnap 读取。</translation>
+            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
+            <translation>HyperSnap 原生 FID：本地钱包、工作量证明和 EIP-712。</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Neynar (Farcaster)</source>
             <translation>Neynar (Farcaster)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster identity read through your configured Neynar API.</source>
-            <translation>通过已配置的 Neynar API 读取 Farcaster 身份。</translation>
+            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
+            <translation>Optimism 上的 Farcaster FID：本地钱包和安全的 Neynar 注册服务。</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
-            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
-            <translation>注册发生在 Farcaster 的 IdRegistry 上，而非独立的 HyperSnap 身份网络。请妥善保护钱包和恢复助记词。</translation>
+            <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
+            <translation>私钥永远不会离开你的设备。HyperSnap 原生 FID 不会自动注册到 Farcaster IdRegistry。</translation>
         </message>
         <message id="genycaster.setup.registration_provider_missing">
-            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
-            <translation>Neynar 需要配置兼容的读取端点。你可以先使用 HyperSnap，之后再切换。</translation>
+            <source>Neynar requires a secured registration backend; the read endpoint alone is not sufficient.</source>
+            <translation>Neynar 需要安全的注册后端；仅有读取 API 不够。</translation>
         </message>
         <message id="genycaster.setup.registration_start">
             <source>Continue to Farcaster registration</source>
@@ -5687,6 +5687,50 @@ Company | https://company.com</source>
         <message id="genycaster.setup.neynar_registration_pending">
             <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
             <translation>Neynar 注册需要安全托管钱包和已授权的注册服务。此版本尚不能创建账户。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_label">
+            <source>Generate secure wallet</source>
+            <translation>创建安全钱包</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_description">
+            <source>Create a 24-word self-custody wallet. No private key is shared with any provider or server.</source>
+            <translation>创建包含24个恢复词的自托管钱包。私钥不会发送给任何服务商或服务器。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_title">
+            <source>Save your 24 recovery words</source>
+            <translation>保存你的24个恢复词</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_warning">
+            <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
+            <translation>按顺序离线记录这些词并妥善保管。知道它们的人可以控制你的账户。不要分享截图。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_backup_ack">
+            <source>I have saved all 24 words in order, somewhere safe.</source>
+            <translation>我已按顺序安全保存全部24个词。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify_start">
+            <source>Verify my backup</source>
+            <translation>验证备份</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_explanation">
+            <source>Enter the requested words from your saved backup. Do not paste the full recovery phrase.</source>
+            <translation>从保存的备份中输入要求的词。不要粘贴完整恢复短语。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_word">
+            <source>Word %1</source>
+            <translation>第 %1 个词</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify">
+            <source>Verify recovery words</source>
+            <translation>验证恢复词</translation>
+        </message>
+        <message id="genycaster.setup.wallet_reveal">
+            <source>Show recovery words again</source>
+            <translation>再次显示恢复词</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verified">
+            <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
+            <translation>已验证钱包 %1 的备份。网络注册尚未完成。</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

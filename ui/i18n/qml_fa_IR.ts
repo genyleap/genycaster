@@ -5662,28 +5662,28 @@ Company | https://company.com</source>
             <translation>انتخاب سرویس حساب</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
-            <translation>فارکستر فقط یک شناسهٔ FID صادر می‌کند. انتخاب کنید جنی‌کستر اطلاعات حساب جدید را از کدام سرویس بخواند.</translation>
+            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
+            <translation>شبکهٔ ثبت‌نام را انتخاب کنید. هایپراسنپ بومی و فارکستر از طریق نینار، هویت‌های FID متفاوتی ایجاد می‌کنند.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Self-custody Farcaster identity. GenyCaster reads it through هایپراسنپ.</source>
-            <translation>هویت فارکستر با مالکیت مستقیم شما؛ جنی‌کستر اطلاعات را از هایپراسنپ دریافت می‌کند.</translation>
+            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
+            <translation>FID بومی هایپراسنپ: کیف پول شخصی، اثبات کار و امضای EIP-712.</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>نینار (Farcaster)</source>
             <translation>نینار (فارکستر)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster identity read through your configured نینار API.</source>
-            <translation>هویت فارکستر با خواندن اطلاعات از API پیکربندی‌شدهٔ نینار.</translation>
+            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
+            <translation>FID فارکستر روی آپتیمیسم: کیف پول شخصی و سرویس امن ثبت‌نام نینار.</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
-            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate هایپراسنپ identity system. Protect your wallet and recovery words.</source>
-            <translation>ثبت هویت روی قرارداد IdRegistry فارکستر انجام می‌شود، نه شبکهٔ هویت جداگانهٔ هایپراسنپ. از کیف پول و عبارت بازیابی خود محافظت کنید.</translation>
+            <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
+            <translation>کلیدهای خصوصی از دستگاه شما خارج نمی‌شوند. FID بومی هایپراسنپ به‌طور خودکار در IdRegistry فارکستر ثبت نمی‌شود.</translation>
         </message>
         <message id="genycaster.setup.registration_provider_missing">
-            <source>نینار requires a compatible hosted read endpoint. You can create a Farcaster FID with هایپراسنپ selected and switch after setup.</source>
-            <translation>برای نینار باید سرویس خواندن سازگار پیکربندی شده باشد. می‌توانید با هایپراسنپ ثبت‌نام کنید و بعداً سرویس را تغییر دهید.</translation>
+            <source>Neynar requires a secured registration backend; the read endpoint alone is not sufficient.</source>
+            <translation>برای نینار به بک‌اند امن ثبت‌نام نیاز است؛ تنها داشتن endpoint خواندن کافی نیست.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
             <source>Continue to Farcaster registration</source>
@@ -5712,6 +5712,50 @@ Company | https://company.com</source>
         <message id="genycaster.setup.neynar_registration_pending">
             <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
             <translation>ثبت حساب از طریق نینار به کیف پول امن و سرویس ثبت‌نام مجاز در بک‌اند نیاز دارد. این نسخه هنوز حسابی ایجاد نمی‌کند.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_label">
+            <source>Generate secure wallet</source>
+            <translation>ساخت کیف پول امن</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_description">
+            <source>Create a 24-word self-custody wallet. No private key is shared with any provider or server.</source>
+            <translation>یک کیف پول با مالکیت شخصی و ۲۴ کلمهٔ بازیابی بسازید. هیچ کلید خصوصی‌ای با سرویس‌ها یا سرورها به اشتراک گذاشته نمی‌شود.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_title">
+            <source>Save your 24 recovery words</source>
+            <translation>۲۴ کلمهٔ بازیابی خود را ذخیره کنید</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_warning">
+            <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
+            <translation>کلمات را به ترتیب روی کاغذ و در محل امن یادداشت کنید. هرکس آن‌ها را داشته باشد کنترل حساب شما را خواهد داشت. از آن‌ها اسکرین‌شات نگیرید.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_backup_ack">
+            <source>I have saved all 24 words in order, somewhere safe.</source>
+            <translation>هر ۲۴ کلمه را به ترتیب و در جای امن ذخیره کرده‌ام.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify_start">
+            <source>Verify my backup</source>
+            <translation>تأیید نسخهٔ پشتیبان</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_explanation">
+            <source>Enter the requested words from your saved backup. Do not paste the full recovery phrase.</source>
+            <translation>کلمات خواسته‌شده را از یادداشت خود وارد کنید. عبارت بازیابی کامل را اینجا جای‌گذاری نکنید.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_word">
+            <source>Word %1</source>
+            <translation>کلمهٔ %1</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify">
+            <source>Verify recovery words</source>
+            <translation>تأیید کلمات بازیابی</translation>
+        </message>
+        <message id="genycaster.setup.wallet_reveal">
+            <source>Show recovery words again</source>
+            <translation>نمایش دوبارهٔ کلمات بازیابی</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verified">
+            <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
+            <translation>پشتیبان‌گیری کیف پول %1 تأیید شد. ثبت حساب در شبکه هنوز تکمیل نشده است.</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

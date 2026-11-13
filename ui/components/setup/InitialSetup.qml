@@ -233,6 +233,9 @@ Item {
     }
     onVisibleChanged: {
         if (!visible) {
+            // Closing onboarding erases an unused wallet and its seed in native
+            // memory. A newly registered FID is never inferred from this state.
+            nativeCustodyWallet.discard()
             stageTransitionTimer.stop()
             stageTransitioning = false
             pendingStep = -1
@@ -1189,6 +1192,7 @@ Item {
                         root.accountIntent = "new"
                         root.choosingRegistrationProvider = true
                         root.registrationError = ""
+                        nativeRegistrationStatus.refresh()
                     }
                 }
                 SetupActionCard {
@@ -1200,6 +1204,7 @@ Item {
                     iconGlyph: Theme.iconLink
                     showChevron: true
                     onClicked: {
+                        nativeCustodyWallet.discard()
                         root.accountIntent = "existing"
                         root.switchStep(4)
                     }
@@ -1223,7 +1228,7 @@ Item {
                         subtitle: qsTrId("genycaster.setup.registration_hypersnap_description")
                         iconGlyph: Theme.iconGlobe
                         selected: root.registrationProviderId === "hypersnap-v2"
-                        enabled: providerProfiles.indexedReadSupported
+                        enabled: true
                         onClicked: {
                             root.registrationProviderId = "hypersnap-v2"
                             root.registrationError = ""
@@ -1238,11 +1243,183 @@ Item {
                         subtitle: qsTrId("genycaster.setup.registration_neynar_description")
                         iconGlyph: Theme.iconLink
                         selected: root.registrationProviderId === "farcaster-snapchain"
-                        enabled: providerProfiles.hostedReadSupported
+                        enabled: true
                         onClicked: {
                             root.registrationProviderId = "farcaster-snapchain"
                             root.registrationError = ""
                         }
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space3
+                    DirectionAwareLabel {
+                        visible: !nativeCustodyWallet.hasWallet
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_create_description")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.inkMuted
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupGenerateCustodyWallet"
+                        visible: !nativeCustodyWallet.hasWallet
+                        Layout.fillWidth: true
+                        prominent: true
+                        text: qsTrId("genycaster.setup.wallet_create_label")
+                        onClicked: nativeCustodyWallet.generate()
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_recovery_title")
+                        font.pixelSize: Theme.typeTitle3Size
+                        color: Theme.ink
+                        font.weight: Theme.weightDemiBold
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_recovery_warning")
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.warning
+                        wrapMode: Text.WordWrap
+                    }
+                    Superellipse {
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: root.phone ? Theme.scaleUi(480) : Theme.scaleUi(260)
+                        fillColor: Theme.surface
+                        borderColor: Theme.borderMuted
+                        borderWidth: Theme.strokeStandard
+                        curveDepth: Theme.curveContainer
+                        NativeRecoveryWords {
+                            id: nativeWalletWords
+                            objectName: "nativeRecoveryWordsDisplay"
+                            anchors.fill: parent
+                            anchors.margins: Theme.space2
+                            wallet: nativeCustodyWallet
+                            inkColor: Theme.ink
+                            Accessible.name: qsTrId("genycaster.setup.wallet_recovery_title")
+                            Accessible.description: qsTrId("genycaster.setup.wallet_recovery_warning")
+                        }
+                    }
+                    GenyCheckRow {
+                        id: walletBackupAcknowledgment
+                        objectName: "walletBackupAcknowledgment"
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        label: qsTrId("genycaster.setup.wallet_backup_ack")
+                    }
+                    ActionButton {
+                        objectName: "setupWalletBackupChallenge"
+                        visible: nativeCustodyWallet.recoveryVisible
+                        enabled: walletBackupAcknowledgment.checked
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_verify_start")
+                        onClicked: {
+                            if (nativeCustodyWallet.startBackupChallenge())
+                                walletBackupAcknowledgment.checked = false
+                        }
+                    }
+                    ColumnLayout {
+                        visible: nativeCustodyWallet.hasWallet
+                            && !nativeCustodyWallet.recoveryVisible
+                            && !nativeCustodyWallet.backupVerified
+                            && nativeCustodyWallet.firstChallengeIndex >= 0
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        DirectionAwareLabel {
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.wallet_challenge_explanation")
+                            color: Theme.inkMuted
+                            font.pixelSize: Theme.typeCaptionSize
+                            wrapMode: Text.WordWrap
+                        }
+                        GridLayout {
+                            columns: root.phone ? 1 : 2
+                            Layout.fillWidth: true
+                            columnSpacing: Theme.space2
+                            rowSpacing: Theme.space2
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                DirectionAwareLabel {
+                                    text: qsTrId("genycaster.setup.wallet_challenge_word")
+                                        .arg(nativeCustodyWallet.firstChallengeIndex + 1)
+                                }
+                                TextField {
+                                    id: walletChallengeFirst
+                                    objectName: "walletChallengeFirst"
+                                    Layout.fillWidth: true
+                                    echoMode: TextInput.Password
+                                    maximumLength: 24
+                                    inputMethodHints: Qt.ImhSensitiveData
+                                                      | Qt.ImhNoPredictiveText
+                                                      | Qt.ImhNoAutoUppercase
+                                    Accessible.name: qsTrId("genycaster.setup.wallet_challenge_word")
+                                        .arg(nativeCustodyWallet.firstChallengeIndex + 1)
+                                }
+                            }
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                DirectionAwareLabel {
+                                    text: qsTrId("genycaster.setup.wallet_challenge_word")
+                                        .arg(nativeCustodyWallet.secondChallengeIndex + 1)
+                                }
+                                TextField {
+                                    id: walletChallengeSecond
+                                    objectName: "walletChallengeSecond"
+                                    Layout.fillWidth: true
+                                    echoMode: TextInput.Password
+                                    maximumLength: 24
+                                    inputMethodHints: Qt.ImhSensitiveData
+                                                      | Qt.ImhNoPredictiveText
+                                                      | Qt.ImhNoAutoUppercase
+                                    Accessible.name: qsTrId("genycaster.setup.wallet_challenge_word")
+                                        .arg(nativeCustodyWallet.secondChallengeIndex + 1)
+                                }
+                            }
+                        }
+                        ActionButton {
+                            Layout.fillWidth: true
+                            objectName: "setupVerifyWalletBackup"
+                            text: qsTrId("genycaster.setup.wallet_verify")
+                            enabled: walletChallengeFirst.length > 0
+                                     && walletChallengeSecond.length > 0
+                            onClicked: {
+                                nativeCustodyWallet.verifyBackup(
+                                    walletChallengeFirst.text, walletChallengeSecond.text)
+                                walletChallengeFirst.clear()
+                                walletChallengeSecond.clear()
+                            }
+                        }
+                        ActionButton {
+                            objectName: "setupRevealWalletBackup"
+                            Layout.fillWidth: true
+                            text: qsTrId("genycaster.setup.wallet_reveal")
+                            onClicked: {
+                                walletChallengeFirst.clear()
+                                walletChallengeSecond.clear()
+                                nativeCustodyWallet.revealForBackup()
+                            }
+                        }
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeCustodyWallet.backupVerified
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_verified")
+                            .arg(nativeCustodyWallet.address)
+                        font.pixelSize: Theme.typeLabelSize
+                        color: Theme.success
+                        wrapMode: Text.WrapAnywhere
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeCustodyWallet.error.length > 0
+                        Layout.fillWidth: true
+                        text: nativeCustodyWallet.error
+                        font.pixelSize: Theme.typeCaptionSize
+                        color: Theme.danger
+                        wrapMode: Text.WordWrap
                     }
                 }
                 DirectionAwareLabel {
@@ -1250,14 +1427,6 @@ Item {
                     text: qsTrId("genycaster.setup.registration_storage_note")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
-                    wrapMode: Text.WordWrap
-                }
-                DirectionAwareLabel {
-                    Layout.fillWidth: true
-                    visible: !providerProfiles.hostedReadSupported
-                    text: qsTrId("genycaster.setup.registration_provider_missing")
-                    font.pixelSize: Theme.typeCaptionSize
-                    color: Theme.warning
                     wrapMode: Text.WordWrap
                 }
                 DirectionAwareLabel {

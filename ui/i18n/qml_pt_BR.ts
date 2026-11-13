@@ -5637,28 +5637,28 @@ Company | https://company.com</source>
             <translation>Escolher provedor da conta</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
-            <translation>Farcaster emite um único FID. Escolha o provedor que o GenyCaster usará para ler sua nova conta.</translation>
+            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
+            <translation>Escolha a rede de registro. HyperSnap Native e Farcaster via Neynar criam identidades FID distintas.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
-            <translation>Identidade Farcaster sob sua custódia, lida pelo HyperSnap.</translation>
+            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
+            <translation>FID nativo HyperSnap: carteira local, prova de trabalho e EIP-712.</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Neynar (Farcaster)</source>
             <translation>Neynar (Farcaster)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster identity read through your configured Neynar API.</source>
-            <translation>Identidade Farcaster lida pela API Neynar configurada.</translation>
+            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
+            <translation>FID Farcaster na Optimism: carteira local e serviço seguro de registro Neynar.</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
-            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
-            <translation>O cadastro ocorre no IdRegistry do Farcaster, não em uma rede de identidade HyperSnap separada. Proteja sua carteira e frase de recuperação.</translation>
+            <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
+            <translation>As chaves privadas nunca saem do dispositivo. FIDs nativos HyperSnap não são registrados automaticamente no Farcaster IdRegistry.</translation>
         </message>
         <message id="genycaster.setup.registration_provider_missing">
-            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
-            <translation>Neynar exige um endpoint de leitura compatível configurado. Comece com HyperSnap e altere depois.</translation>
+            <source>Neynar requires a secured registration backend; the read endpoint alone is not sufficient.</source>
+            <translation>O Neynar exige backend seguro de registro; um endpoint de leitura não é suficiente.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
             <source>Continue to Farcaster registration</source>
@@ -5687,6 +5687,50 @@ Company | https://company.com</source>
         <message id="genycaster.setup.neynar_registration_pending">
             <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
             <translation>O Neynar exige carteira segura e serviço autorizado de registro. Esta versão ainda não cria contas.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_label">
+            <source>Generate secure wallet</source>
+            <translation>Criar carteira segura</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_description">
+            <source>Create a 24-word self-custody wallet. No private key is shared with any provider or server.</source>
+            <translation>Crie uma carteira sob sua custódia com 24 palavras. Nenhuma chave privada é enviada a provedores ou servidores.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_title">
+            <source>Save your 24 recovery words</source>
+            <translation>Guarde suas 24 palavras de recuperação</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_warning">
+            <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
+            <translation>Anote as palavras na ordem correta, fora da internet. Quem as tiver pode controlar sua conta. Não compartilhe capturas de tela.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_backup_ack">
+            <source>I have saved all 24 words in order, somewhere safe.</source>
+            <translation>Salvei as 24 palavras na ordem certa e em local seguro.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify_start">
+            <source>Verify my backup</source>
+            <translation>Verificar backup</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_explanation">
+            <source>Enter the requested words from your saved backup. Do not paste the full recovery phrase.</source>
+            <translation>Digite as palavras solicitadas do seu backup. Nunca cole a frase inteira.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_word">
+            <source>Word %1</source>
+            <translation>Palavra %1</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify">
+            <source>Verify recovery words</source>
+            <translation>Verificar palavras de recuperação</translation>
+        </message>
+        <message id="genycaster.setup.wallet_reveal">
+            <source>Show recovery words again</source>
+            <translation>Mostrar palavras novamente</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verified">
+            <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
+            <translation>Backup da carteira %1 verificado. O registro na rede ainda não foi concluído.</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

@@ -5637,28 +5637,28 @@ Company | https://company.com</source>
             <translation>계정 제공자 선택</translation>
         </message>
         <message id="genycaster.setup.registration_shared_fid">
-            <source>Farcaster issues one FID. Choose which provider GenyCaster uses to read your new account.</source>
-            <translation>Farcaster는 하나의 FID를 발급합니다. GenyCaster가 새 계정을 읽을 제공자를 선택하세요.</translation>
+            <source>Choose a registration network. HyperSnap Native and Farcaster via Neynar create different FID identities.</source>
+            <translation>등록 네트워크를 선택하세요. HyperSnap Native와 Neynar를 통한 Farcaster는 서로 다른 FID를 생성합니다.</translation>
         </message>
         <message id="genycaster.setup.registration_hypersnap_description">
-            <source>Self-custody Farcaster identity. GenyCaster reads it through HyperSnap.</source>
-            <translation>HyperSnap을 통해 읽는 자기 보관형 Farcaster ID입니다.</translation>
+            <source>Native HyperSnap FID: local custody wallet, proof of work and EIP-712.</source>
+            <translation>HyperSnap 네이티브 FID: 로컬 지갑, 작업 증명 및 EIP-712.</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_label">
             <source>Neynar (Farcaster)</source>
             <translation>Neynar (Farcaster)</translation>
         </message>
         <message id="genycaster.setup.registration_neynar_description">
-            <source>Farcaster identity read through your configured Neynar API.</source>
-            <translation>설정된 Neynar API로 읽는 Farcaster ID입니다.</translation>
+            <source>Farcaster FID on Optimism: local custody wallet with a secured Neynar registration service.</source>
+            <translation>Optimism 상의 Farcaster FID: 로컬 지갑과 보안 Neynar 등록 서비스.</translation>
         </message>
         <message id="genycaster.setup.registration_storage_note">
-            <source>Registration happens on Farcaster&#x27;s IdRegistry, not in a separate HyperSnap identity system. Protect your wallet and recovery words.</source>
-            <translation>등록은 별도의 HyperSnap ID 네트워크가 아니라 Farcaster의 IdRegistry에서 이루어집니다. 지갑과 복구 문구를 보호하세요.</translation>
+            <source>Private keys never leave your device. HyperSnap native FIDs are not automatically registered in Farcaster IdRegistry.</source>
+            <translation>개인 키는 기기 밖으로 전송되지 않습니다. HyperSnap 네이티브 FID는 Farcaster IdRegistry에 자동 등록되지 않습니다.</translation>
         </message>
         <message id="genycaster.setup.registration_provider_missing">
-            <source>Neynar requires a compatible hosted read endpoint. You can create a Farcaster FID with HyperSnap selected and switch after setup.</source>
-            <translation>Neynar에는 호환되는 읽기 엔드포인트가 필요합니다. HyperSnap으로 시작한 뒤 변경할 수 있습니다.</translation>
+            <source>Neynar requires a secured registration backend; the read endpoint alone is not sufficient.</source>
+            <translation>Neynar에는 보안 등록 백엔드가 필요하며 읽기 API만으로는 부족합니다.</translation>
         </message>
         <message id="genycaster.setup.registration_start">
             <source>Continue to Farcaster registration</source>
@@ -5687,6 +5687,50 @@ Company | https://company.com</source>
         <message id="genycaster.setup.neynar_registration_pending">
             <source>Neynar registration requires a secure custody wallet and an authorized first-party registration service. No account will be created in this build.</source>
             <translation>Neynar 등록에는 보안 지갑과 승인된 등록 서비스가 필요합니다. 이 빌드에서는 아직 계정이 생성되지 않습니다.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_label">
+            <source>Generate secure wallet</source>
+            <translation>보안 지갑 생성</translation>
+        </message>
+        <message id="genycaster.setup.wallet_create_description">
+            <source>Create a 24-word self-custody wallet. No private key is shared with any provider or server.</source>
+            <translation>24개 복구 단어로 자체 보관 지갑을 만듭니다. 개인 키는 공급자나 서버에 전송되지 않습니다.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_title">
+            <source>Save your 24 recovery words</source>
+            <translation>24개 복구 단어 보관</translation>
+        </message>
+        <message id="genycaster.setup.wallet_recovery_warning">
+            <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
+            <translation>단어를 순서대로 오프라인에 안전하게 기록하세요. 이 단어를 아는 사람은 계정을 제어할 수 있습니다. 스크린샷을 공유하지 마세요.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_backup_ack">
+            <source>I have saved all 24 words in order, somewhere safe.</source>
+            <translation>24개 단어를 순서대로 안전하게 저장했습니다.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify_start">
+            <source>Verify my backup</source>
+            <translation>백업 확인</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_explanation">
+            <source>Enter the requested words from your saved backup. Do not paste the full recovery phrase.</source>
+            <translation>저장한 백업에서 요청된 단어를 입력하세요. 전체 구문을 붙여넣지 마세요.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_challenge_word">
+            <source>Word %1</source>
+            <translation>단어 %1</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verify">
+            <source>Verify recovery words</source>
+            <translation>복구 단어 검증</translation>
+        </message>
+        <message id="genycaster.setup.wallet_reveal">
+            <source>Show recovery words again</source>
+            <translation>복구 단어 다시 보기</translation>
+        </message>
+        <message id="genycaster.setup.wallet_verified">
+            <source>Backup verified for wallet %1. Network registration is not yet complete.</source>
+            <translation>지갑 %1의 백업이 확인되었습니다. 네트워크 등록은 아직 완료되지 않았습니다.</translation>
         </message>
         <message id="genycaster.setup.design_create_account">
             <source>Create new account</source>

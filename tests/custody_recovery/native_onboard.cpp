@@ -48,6 +48,12 @@ int main(){
         if((h[0]&0x80U)==0){ found=true;break; }
     }
     if(!found)return 2;
+    const auto mined = solveNativeOnboardPow(*expected, anchor, 12, 200'000);
+    if (!mined || mined->size() != 18) return 8;
+    const auto minedSignature = signNativeOnboard(mnemonic, height, anchor, *mined, 12);
+    if (!minedSignature || minedSignature->address != *expected) return 9;
+    if (solveNativeOnboardPow(*expected, anchor, 256, 32)) return 10;
+    if (solveNativeOnboardPow("invalid", anchor, 12, 200)) return 11;
     const auto signedProof=signNativeOnboard(mnemonic,height,anchor,hex(nonce),1);
     if(!signedProof || signedProof->address!=*expected
         ||signedProof->signature.size()!=132)return 3;

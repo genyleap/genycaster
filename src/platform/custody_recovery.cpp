@@ -840,6 +840,51 @@ private:
 };
 }
 
+std::expected<std::string, Error> solveNativeOnboardPow(
+    const std::string_view custodyAddress,
+    const std::string_view anchorHex,
+    const std::uint32_t difficultyBits,
+    const std::uint64_t maxAttempts)
+{
+    if (difficultyBits == 0 || difficultyBits > 256
+        || maxAttempts == 0 || maxAttempts > 100'000'000ULL)
+        return std::unexpected(Error::SigningFailed);
+    const auto custody = parseHex(custodyAddress, 20);
+    const auto anchor = parseHex(anchorHex, 32);
+    if (!custody || !anchor) return std::unexpected(Error::SigningFailed);
+    constexpr std::string_view prefix = "hyper.onboard.pow:";
+    std::vector<unsigned char> challenge(prefix.begin(), prefix.end());
+    challenge.insert(challenge.end(), custody->begin(), custody->end());
+    challenge.insert(challenge.end(), anchor->begin(), anchor->end());
+    const auto noncePosition = challenge.size();
+    challenge.resize(noncePosition + 8);
+    std::array<unsigned char, 32> digest{};
+    for (std::uint64_t nonce{}; nonce < maxAttempts; ++nonce) {
+        // HyperSnap native registration defines an 8-byte BE nonce.
+        for (std::size_t index{}; index < 8; ++index)
+            challenge[noncePosition + index] = static_cast<unsigned char>(
+                nonce >> (56U - static_cast<unsigned>(8U * index)));
+        unsigned int written{};
+        if (EVP_Digest(challenge.data(), challenge.size(), digest.data(),
+                       &written, EVP_sha256(), nullptr) != 1
+            || written != digest.size())
+            return std::unexpected(Error::SigningFailed);
+        bool targetMet = true;
+        for (std::uint32_t bit{}; bit < difficultyBits; ++bit) {
+            if ((digest[bit / 8] & (0x80U >> (bit % 8))) != 0) {
+                targetMet = false;
+                break;
+            }
+        }
+        if (targetMet) {
+            return lowerHex(std::span{
+                challenge.data() + noncePosition, std::size_t{8}});
+        }
+    }
+    // Exhaustion is not registration success. Caller can refresh the anchor.
+    return std::unexpected(Error::SigningFailed);
+}
+
 std::expected<NativeOnboardSignature, Error> signNativeOnboard(
     const std::string_view recoveryWords,
     const std::uint64_t anchorHeight,
