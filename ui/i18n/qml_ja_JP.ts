@@ -5661,8 +5661,8 @@ Company | https://company.com</source>
             <translation>Neynar には安全な登録バックエンドが必要です。読み取り API だけでは足りません。</translation>
         </message>
         <message id="genycaster.setup.registration_start">
-            <source>Continue to Farcaster registration</source>
-            <translation>Farcaster の登録に進む</translation>
+            <source>Submit HyperSnap registration</source>
+            <translation>HyperSnap の登録を送信</translation>
         </message>
         <message id="genycaster.setup.registration_connect">
             <source>I&#x27;ve registered — connect my account</source>
