@@ -1,6 +1,6 @@
 # ADR 0016 — Protocol-scoped account registration
 
-**Status:** Accepted as an architectural boundary; network writes are not yet enabled in the UI.
+**Status:** Accepted; HyperSnap native submission is implemented with guarded registry confirmation. Farcaster/Neynar relay is opt-in and not yet a complete user-facing paid enrollment.
 
 ## Context
 
@@ -100,12 +100,24 @@ envelopes remain C++-only and expire after 60 seconds. Setup can check for
 a pre-existing FID, prepare a proof, cancel/refresh, and return without leaving
 the application; it never exposes signing material to QML.
 
-HyperSnap **broadcast from Setup**, confirmed FID-to-session recovery,
-network-authorized device signer registration, and Neynar first-party
-reservation/payment/relay and onchain custody confirmation remain disabled
-until their complete, recoverable identity lifecycle is validated end-to-end.
-Do not mistake the transport unit tests for a live mainnet registration, or
-turn on the final registration button on the strength of HTTP 200 alone.
+HyperSnap now has an explicitly consented publish coordinator, independent
+native FID confirmation, its own custody recovery path and short-lived
+session/one-shot device signer authorization. Local C++ and Qt tests pass;
+a funded mainnet onboarding, signer network acceptance and full cross-platform
+package are **not** yet independently verified.
+
+The Farcaster/Neynar first-party backend now includes Optimism IdRegistry
+safe-chain reads, independent EIP-712 signature recovery, sponsored/paid
+voucher authorization bound to custody, a PostgreSQL v13 atomic lease,
+no-replay Neynar requests, and onchain confirmation. It remains **disabled
+by default** and requires a funded Neynar app wallet plus trusted, external
+voucher issuance after actual payment/sponsorship verification. The default
+account API must never hand a free public FID allocation to anonymous callers.
+See `services/account-sync/NEYNAR_REGISTRATION.md` for the operational contract.
+
+Qt Farcaster registration screens, verified payment issuance, final Signer
+onboarding and a full production enrollment on Optimism are still outstanding.
+Do not mistake successful mock tests for real mainnet account creation.
 
 ## References
 

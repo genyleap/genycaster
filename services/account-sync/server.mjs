@@ -2,6 +2,10 @@ import http from 'node:http';
 import {serverDeployment} from '../deployment_config.mjs';
 import {createCloudHandler} from './cloud_state.mjs';
 import {createMarketReader} from './market.mjs';
+import {createNeynarRegistrationHttpHandler} from './neynar_registration_http.mjs';
+import {createNeynarRegistrationRelay} from './neynar_registration_relay.mjs';
+import {createOptimismIdRegistryReader} from './neynar_id_registry.mjs';
+import {createPaidEnrollmentVerifier} from './neynar_enrollment_voucher.mjs';
 
 const MAX_RESPONSE_BYTES = 16 * 1024;
 const DISCOVERY_TTL_MS = 5 * 60_000;
@@ -32,6 +36,7 @@ export function createAccountApi({
   resolveProPaymentWallets = undefined,
   verifyBillingTransfer = undefined,
   marketReader = undefined,
+  registrationRelay = null,
 } = {}) {
   const endpoint = new URL(catalogUrl);
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password
@@ -49,6 +54,8 @@ export function createAccountApi({
     ...(resolveProPaymentWallets ? {resolveProPaymentWallets} : {}),
     ...(verifyBillingTransfer ? {verifyBillingTransfer} : {})}) : null;
   const market = marketReader || createMarketReader({fetchImpl});
+  const registration = registrationRelay
+    ?createNeynarRegistrationHttpHandler({relay:registrationRelay,publicOrigin}):null;
   let cached = null;
   let pending = null;
   async function catalog() {
@@ -104,6 +111,15 @@ export function createAccountApi({
       }
       return;
     }
+    if (path.startsWith('/api/v1/registration/farcaster/')) {
+      if (!registration) {
+        res.writeHead(503).end(JSON.stringify({error:'registration_not_configured'}));
+        return;
+      }
+      if (!(await registration(req,res,path)))
+        res.writeHead(404).end(JSON.stringify({error:'not_found'}));
+      return;
+    }
     if (path.startsWith('/api/v1/cloud/')) {
       if (!cloud) {
         res.writeHead(503).end(JSON.stringify({error:'cloud_not_configured'}));
@@ -145,7 +161,27 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
   // has been provisioned and its restricted runtime role configured.
   const url=process.env.GENYCASTER_DATABASE_URL;
   const store=url ? await (await import('./pg_store.mjs')).createPgStore(url) : null;
-  createAccountApi({catalogUrl: origin,store,
+  const enableRegistration=process.env.GENYCASTER_NEYNAR_REGISTRATION_ENABLED==='true';
+  let registrationRelay=null;
+  if(enableRegistration) {
+    if(!store?.neynarRegistrationLedger
+       ||!process.env.GENYCASTER_NEYNAR_API_KEY
+       ||!process.env.GENYCASTER_NEYNAR_WALLET_ID
+       ||!process.env.GENYCASTER_OPTIMISM_RPC_URL
+       ||!process.env.GENYCASTER_NEYNAR_ENROLLMENT_SECRET)
+      throw new Error('Neynar registration needs database schema v13 and all secure backend settings');
+    const voucher=createPaidEnrollmentVerifier({
+      secret:process.env.GENYCASTER_NEYNAR_ENROLLMENT_SECRET});
+    registrationRelay=createNeynarRegistrationRelay({
+      apiKey:process.env.GENYCASTER_NEYNAR_API_KEY,
+      walletId:process.env.GENYCASTER_NEYNAR_WALLET_ID,
+      registry:createOptimismIdRegistryReader({
+        rpcUrl:process.env.GENYCASTER_OPTIMISM_RPC_URL}),
+      ledger:store.neynarRegistrationLedger,
+      authorizeEnrollment:voucher.authorize
+    });
+  }
+  createAccountApi({catalogUrl: origin,store,registrationRelay,
     issuer:serverDeployment().openProofIssuer,
     publicOrigin:serverDeployment().publicOrigin,
     browserGateway:serverDeployment().browserGateway,

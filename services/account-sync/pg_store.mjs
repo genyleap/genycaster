@@ -2,6 +2,7 @@
 // No JOIN to OpenProof tables, provider credentials, or protocol signer keys.
 import {randomUUID} from 'node:crypto';
 import {STREAK_START_DAY,eligibleStreakDay} from './streaks.mjs';
+import {createNeynarRegistrationLedger} from './neynar_registration_store.mjs';
 // Internal singleton row inside the existing per-account notifications table.
 // A dedicated state endpoint owns it; ordinary notification APIs cannot write it.
 const NOTIFICATION_SEEN_ROW='00000000-0000-4000-8000-000000000001';
@@ -34,7 +35,7 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   // endpoints fail closed until the additive migration is applied and the
   // backend is restarted; the other account data remains available.
   const migrations=await pool.query(
-    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12)');
+    'SELECT version FROM schema_migrations WHERE version IN (3,4,5,6,7,8,9,10,11,12,13)');
   const versions=new Set(migrations.rows.map(row=>Number(row.version)));
   if (!versions.has(3)) {
     await pool.end();
@@ -49,9 +50,13 @@ export async function createPgStore(connectionString, {poolFactory}={}) {
   const streakReady=versions.has(10);
   const feedbackReady=versions.has(11);
   const proBillingReady=versions.has(12);
+  const neynarRegistrationReady=versions.has(13);
   return {
     close:()=>pool.end(),
     proBillingReady:()=>proBillingReady,
+    neynarRegistrationReady:()=>neynarRegistrationReady,
+    neynarRegistrationLedger:neynarRegistrationReady
+      ?createNeynarRegistrationLedger(pool):null,
     // Subscription state is authoritative even when the GENY price oracle is
     // offline. Time-based expiry is checked by PostgreSQL on every Pro write.
     async getProSubscription({issuer,subject}) {

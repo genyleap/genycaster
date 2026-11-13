@@ -381,3 +381,20 @@ address and appropriate token-price/provider connectivity, restart the API,
 then perform one controlled real-wallet payment and duplicate-receipt
 negative test on Base before announcing production availability. Do not
 enable payment collection merely because a QML checkout is visible.
+
+## Farcaster / Neynar self-custody registration (opt-in)
+
+The paid FID reservation and IdRegistry transfer path is implemented as a
+separate, optional first-party backend. It uses an atomic PostgreSQL lease
+(migration `013_neynar_registration.sql`), server-only Neynar app-wallet
+credentials, MAC-protected paid enrollment vouchers, independently validated
+Optimism EIP-712 signatures and authoritative chain confirmation. No
+public registration route is enabled by default, and no mnemonic leaves the
+Qt-native custody wallet.
+
+See [NEYNAR_REGISTRATION.md](./NEYNAR_REGISTRATION.md) for required server
+settings, HTTP contract, limits, testing and **remaining production gates**.
+The voucher can be issued only by a trusted first-party component after
+actual payment verification or sponsorship approval; the API deliberately
+does not issue free reservations or declare a successful transaction from
+an HTTP 200 response.
