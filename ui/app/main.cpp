@@ -1531,15 +1531,15 @@ int main(int argc, char* argv[])
                         .mediaUploadController = mediaUploadController,
                         .mediaPlayback = mediaPlayback,
                         .runtime = runtime,
-                        .nativePublisher = &nativeRegistrationPublisher,
-                        .farcasterPublisher = &neynarRegistration,
-                        .nativeWallet = &nativeCustodyWallet,
                         .siwfDomain = std::move(siwfDomain),
                         .siwfUri = std::move(siwfUri),
                         .browserSnapchainOrigin = snapchainBaseUrl
                             ? QString::fromStdString(*snapchainBaseUrl)
                             : QString::fromUtf8(genycaster::deployment::snapchainOrigin.data()),
                         .startupIdentity = std::move(startupIdentity),
+                        .nativePublisher = &nativeRegistrationPublisher,
+                        .farcasterPublisher = &neynarRegistration,
+                        .nativeWallet = &nativeCustodyWallet,
                         .authenticationAvailable = authenticationAvailable,
                         .openExploreForTest = openExploreForTest,
                     }, std::move(readyRuntime));
