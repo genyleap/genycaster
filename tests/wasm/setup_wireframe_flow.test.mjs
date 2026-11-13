@@ -80,6 +80,53 @@ test('registration keeps protocols isolated and requires explicit custody consen
   }
 });
 
+test('registration network status is protocol-scoped, actionable and localized', () => {
+  const readiness = setup.slice(
+    setup.indexOf('function registrationReadinessText()'),
+    setup.indexOf('property bool showRecovery: false'));
+  assert.match(readiness, /registrationProviderId === "hypersnap-v2"/);
+  assert.match(readiness, /nativeRegistrationStatus\.checking/);
+  assert.match(readiness, /!nativeRegistrationStatus\.active/);
+  assert.match(readiness, /!runtimeReady/);
+  assert.match(readiness, /!nativeRegistrationPublisher\.registrationSupported/);
+  assert.match(readiness, /!neynarRegistration\.registrationSupported/);
+  assert.match(readiness, /!neynarRegistration\.available/);
+  assert.match(readiness, /native_registration_node_ready/);
+  assert.match(readiness, /native_registration_node_unavailable/);
+  assert.match(readiness, /native_registration_signing_unavailable/);
+  assert.match(readiness, /neynar_registration_requirements/);
+  assert.match(setup, /objectName: "setupRegistrationReadiness"/);
+  assert.match(setup, /text: root\.registrationReadinessText\(\)/);
+  assert.match(setup, /!nativeRegistrationPublisher\.pending/);
+  assert.match(setup, /!nativeRegistrationPublisher\.confirmed/);
+  assert.match(setup, /neynarRegistration\.phase === "idle"/);
+  assert.doesNotMatch(setup, /genycaster\.setup\.native_registration_pending/);
+  assert.doesNotMatch(setup, /genycaster\.setup\.neynar_registration_pending/);
+
+  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                 'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
+  const required=[
+    'registration_choose_provider', 'registration_shared_fid',
+    'registration_neynar_label', 'registration_runtime_initializing',
+    'native_registration_node_ready', 'native_registration_node_unavailable',
+    'native_registration_signing_unavailable',
+    'neynar_registration_requirements', 'native_proof_prepared'];
+  for (const locale of locales) {
+    const translations=source('ui/i18n/qml_'+locale+'.ts');
+    for (const key of required) {
+      const id='genycaster.setup.'+key;
+      const message=translations.match(
+        new RegExp('<message id="'+id.replaceAll('.', '\\.')+'">([\\s\\S]*?)<\\/message>'));
+      assert.ok(message, locale+': '+key+' is missing');
+      assert.match(message[1], /<translation>[^<]+<\/translation>/,
+                   locale+': '+key+' has no translation');
+    }
+    assert.doesNotMatch(translations, /Secure wallet onboarding is not connected in this build\./);
+    assert.doesNotMatch(translations, /Account creation is disabled until these steps are complete\./);
+    assert.doesNotMatch(translations, /No account will be created in this build\./);
+  }
+});
+
 test('native recovery authorizes a device signer only with explicit user consent', () => {
   const qml=source('ui/components/setup/InitialSetup.qml');
   const runtime=source('ui/app/runtime/bindings.cpp');
