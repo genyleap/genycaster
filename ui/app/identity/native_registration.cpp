@@ -69,10 +69,15 @@ NativeRegistrationStatusController::snapshot() const
 
 void NativeRegistrationStatusController::refresh()
 {
-    if (m_reply) {
-        m_reply->abort();
-        m_reply->deleteLater();
-        m_reply = nullptr;
+    // QNetworkReply::abort() can emit finished() synchronously. That callback
+    // clears m_reply, so detach the guarded pointer *before* aborting it.
+    // Keep a QPointer copy in case another slot destroys the reply inline.
+    auto previousReply = m_reply;
+    m_reply = nullptr;
+    if (previousReply) {
+        previousReply->abort();
+        if (previousReply)
+            previousReply->deleteLater();
     }
     m_active = false;
     m_checking = false;
