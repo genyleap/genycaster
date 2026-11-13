@@ -80,3 +80,27 @@ if(GENYCASTER_TEST_NATIVE_QT_WALLET)
     set_tests_properties(custody.native_wallet_backup PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
+
+# Farcaster onchain IdRegistry signatures are a distinct adapter from the
+# HyperSnap NativeOnboard/Hashcash path. Run independently against Noble.
+add_executable(genycaster_farcaster_transfer_vectors farcaster_transfer.cpp)
+target_compile_features(genycaster_farcaster_transfer_vectors PRIVATE cxx_std_26)
+target_link_libraries(genycaster_farcaster_transfer_vectors PRIVATE
+    native_custody_vectors_support)
+add_test(NAME custody.farcaster_id_registry_transfer
+    COMMAND "${GENYCASTER_NODE_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/farcaster_transfer_interop.test.mjs"
+    "$<TARGET_FILE:genycaster_farcaster_transfer_vectors>")
+
+add_executable(genycaster_registration_plan registration_plan.cpp)
+target_compile_features(genycaster_registration_plan PRIVATE cxx_std_26)
+add_test(NAME custody.registration_protocol_isolation
+    COMMAND genycaster_registration_plan)
+
+if(GENYCASTER_TEST_NATIVE_QT_WALLET)
+    add_executable(genycaster_neynar_payload neynar_payload.cpp)
+    target_compile_features(genycaster_neynar_payload PRIVATE cxx_std_26)
+    target_link_libraries(genycaster_neynar_payload PRIVATE Qt6::Core)
+    add_test(NAME custody.neynar_reserved_fid_payload
+        COMMAND genycaster_neynar_payload)
+endif()

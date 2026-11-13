@@ -840,6 +840,67 @@ private:
 };
 }
 
+std::expected<FarcasterIdTransferSignature, Error> signFarcasterIdTransfer(
+    const std::string_view recoveryWords,
+    const std::uint64_t reservedFid,
+    const std::uint64_t idRegistryNonce,
+    const std::uint64_t deadlineUnixSeconds)
+{
+    // Neynar "wallet integration" reserved-FID transfer is a chain-specific
+    // EIP-712 signature. Never sign an arbitrary domain/contract supplied by
+    // a remote registration service. The server must verify FID reservation
+    // and the IdRegistry nonce independently before broadcasting.
+    constexpr std::string_view idRegistry =
+        "0x00000000fc6c5f01fc30151999387bb99a9f489b";
+    const auto now = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+    if (reservedFid == 0
+        || deadlineUnixSeconds <= now + 60
+        || deadlineUnixSeconds > now + 3600)
+        return std::unexpected(Error::SigningFailed);
+
+    auto contract = parseHex(idRegistry, 20);
+    if (!contract) return std::unexpected(Error::SigningFailed);
+    auto custody = deriveMaterial(recoveryWords);
+    if (!custody) return std::unexpected(custody.error());
+    auto receiver = parseHex(custody->address, 20);
+    if (!receiver) return std::unexpected(Error::SigningFailed);
+
+    std::vector<unsigned char> domain{};
+    appendHash(domain, hashLiteral(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
+    appendHash(domain, hashLiteral("Farcaster IdRegistry"));
+    appendHash(domain, hashLiteral("1"));
+    appendNumber(domain, 10);
+    domain.insert(domain.end(), 12, 0);
+    domain.insert(domain.end(), contract->begin(), contract->end());
+    const auto domainHash = keccak256(domain);
+
+    std::vector<unsigned char> body{};
+    appendHash(body, hashLiteral(
+        "Transfer(uint256 fid,address to,uint256 nonce,uint256 deadline)"));
+    appendNumber(body, reservedFid);
+    body.insert(body.end(), 12, 0);
+    body.insert(body.end(), receiver->begin(), receiver->end());
+    appendNumber(body, idRegistryNonce);
+    appendNumber(body, deadlineUnixSeconds);
+    const auto bodyHash = keccak256(body);
+    std::vector<unsigned char> typed{0x19, 0x01};
+    appendHash(typed, domainHash);
+    appendHash(typed, bodyHash);
+
+    auto signature = signDigest(custody->privateKey, keccak256(typed));
+    if (!signature) return std::unexpected(Error::SigningFailed);
+    return FarcasterIdTransferSignature{
+        .custodyAddress = std::move(custody->address),
+        .signature = std::move(*signature),
+        .fid = reservedFid,
+        .nonce = idRegistryNonce,
+        .deadline = deadlineUnixSeconds,
+    };
+}
+
 std::expected<std::string, Error> solveNativeOnboardPow(
     const std::string_view custodyAddress,
     const std::string_view anchorHex,

@@ -52,6 +52,7 @@ target_sources(farcaster_application
             signer.cppm
     PRIVATE
         "${configuredFeaturesSource}"
+        registration_plan.hpp
         read_service.cpp
         read_async_service.cpp
         session.cpp

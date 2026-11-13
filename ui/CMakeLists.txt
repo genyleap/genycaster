@@ -444,6 +444,7 @@ qt_add_executable(genycaster
     app/identity/native_registration.hpp
     app/identity/native_wallet.cpp
     app/identity/native_wallet.hpp
+    app/identity/neynar_registration.hpp
     app/identity/pro_checkout.cpp
     app/identity/pro_checkout.hpp
     app/identity/browser_pro_wallet.hpp

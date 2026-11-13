@@ -82,6 +82,27 @@ struct NativeOnboardSignature final {
     std::string_view anchorHex, std::string_view nonceHex,
     std::uint32_t difficultyBits);
 
+/**
+ * Farcaster on-chain registration/transfer authorization, NOT a HyperSnap
+ * native registration. The EIP-712 domain is the canonical Optimism
+ * IdRegistry contract (chainId 10); nonce must be read from that contract.
+ * A Neynar first-party backend obtains a real FID reservation and validates
+ * the custody address before this signature may be submitted.
+ */
+struct FarcasterIdTransferSignature final {
+    std::string custodyAddress{};
+    std::string signature{}; // EIP-712 low-s, 0x + r||s||v
+    std::uint64_t fid{};
+    std::uint64_t nonce{};
+    std::uint64_t deadline{};
+};
+
+[[nodiscard]] std::expected<FarcasterIdTransferSignature, Error>
+signFarcasterIdTransfer(std::string_view recoveryWords,
+                       std::uint64_t reservedFid,
+                       std::uint64_t idRegistryNonce,
+                       std::uint64_t deadlineUnixSeconds);
+
 /** Public-only EIP-191 proof for a server-issued one-shot OpenProof challenge. */
 struct RecoveryProof final {
     std::string address{};
