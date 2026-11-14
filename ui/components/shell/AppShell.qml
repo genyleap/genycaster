@@ -24,7 +24,11 @@ Item {
     function requestInteractionAuthorization() {
         if (!presentationBridge.isAuthenticated || presentationBridge.signerBusy
             || presentationBridge.writeReady) return
-        interactionAuthorizationDialog.enteringNativeWords = false
+        // Skip a doomed external approval attempt when this process no
+        // longer holds the original local custody wallet.
+        interactionAuthorizationDialog.enteringNativeWords =
+            presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
+            && !presentationBridge.nativeCustodySignerAvailable
         interactionAuthorizationDialog.open()
     }
     GenyModal {
