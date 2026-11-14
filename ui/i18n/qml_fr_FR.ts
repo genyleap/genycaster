@@ -1,6 +1,26 @@
 <?xml version='1.0' encoding='utf-8'?>
 <TS version="2.1" language="fr_FR" sourcelanguage="en_US">
     <context>
+        <message id="genycaster.shell.native_signer_description">
+            <source>Your native HyperSnap FID is verified. Authorize a device signer to post, react and follow. Farcaster is not required.</source>
+            <translation>Votre FID natif HyperSnap est vérifié. Autorisez un signataire sur cet appareil pour publier, réagir et suivre des comptes. Farcaster n’est pas nécessaire.</translation>
+        </message>
+        <message id="genycaster.shell.native_signer_use_words">
+            <source>Use my 24 recovery words</source>
+            <translation>Utiliser mes 24 mots de récupération</translation>
+        </message>
+        <message id="genycaster.shell.native_signer_words_note">
+            <source>For a restored wallet, enter its original 24 recovery words. They are verified locally and never sent to HyperSnap.</source>
+            <translation>Pour un portefeuille restauré, saisissez ses 24 mots de récupération d’origine. Ils sont vérifiés localement et ne sont jamais envoyés à HyperSnap.</translation>
+        </message>
+        <message id="genycaster.shell.native_signer_authorize">
+            <source>Authorize device signer</source>
+            <translation>Autoriser le signataire de l’appareil</translation>
+        </message>
+        <message id="genycaster.setup.registration_next_device">
+            <source>Your FID is registered. Continue to activate publishing on this device.</source>
+            <translation>Votre FID est enregistré. Continuez pour activer la publication sur cet appareil.</translation>
+        </message>
         <message id="genycaster.explorer.magazine">
             <source>Magazine</source>
             <translation>Magazine</translation>
