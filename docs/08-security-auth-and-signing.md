@@ -124,6 +124,14 @@ Current gasless authorization is not a reuse of SIWF. `KEY_ADD` requires an app/
 
 The current off-chain gasless-key EIP-712 domain is `Farcaster KeyAdd`, version `1`, chainId `1`, with no verifying contract. Do not reuse the legacy on-chain SignedKeyRequestValidator domain.
 
+### HyperSnap native FID device authorization
+
+Native HyperSnap FIDs (`fid >= 2^32`) are owned by HyperSnap's own custody registry, **not** Farcaster IdRegistry or OpenProof. The login session carries issuer `hypersnap:native-registry`; every signer-registry operation and signed Cast/Reaction/Link submission is pinned to the HyperSnap writer, irrespective of the selected read network.
+
+For a newly verified native wallet, explicit approval in Setup or Account may use the short-lived in-memory custody wallet to produce a one-shot `KEY_ADD` grant. If that secret is no longer in memory, the user can explicitly enter the **original** 24 recovery words inside GenyCaster. Derive the public custody address locally, match the current session's exact FID and custody, re-check the authoritative HyperSnap native account on shard 0, then construct an FID-bound, zeroizing one-shot custody authorizer. Only then may the existing protocol signer service register and confirm the Ed25519 device signer. Never route a native FID through a Farcaster approval URL or the generic external custody authorizer; the signer service fails closed if native `KEY_ADD` lacks a local one-shot grant. A previously registered, valid signer may be restored by read-only registry inspection without re-entering recovery words. Neither checking account ownership nor restoring a signer submits another FID registration.
+
+The 24 words are transient input, cleared on cancel/submit or error; they must not enter settings, analytics, logs, provider requests, or long-lived presentation properties. Device approval is user-initiated, serialized, and cancelled on sign-out; asynchronous results are discarded if session FID, issuer or custody changes. Display account registration, signer authorization, and write readiness as distinct states. Farcaster/Neynar signup retains its own onchain registration and approval requirements.
+
 ## Key isolation
 
 Raw private keys must never be exposed to QML.
