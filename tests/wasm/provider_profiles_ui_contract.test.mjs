@@ -77,7 +77,7 @@ test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaste
   // Its indexed reads and network-scoped gasless writes have separate
   // adapters, both pinned to the selected HyperSnap node, not Farcaster.
   const indexed=composition.slice(composition.indexOf('ProviderId{"hypersnap-v2"}'),
-      composition.indexOf('runtime->independentReadProviderId'));
+      composition.indexOf('runtime->asyncGateway ='));
   assert.match(indexed,/protocolSignerManage\(\)/);
   assert.match(indexed,/protocolMessageSubmit\(\)/);
   assert.match(indexed,/nativeSignerConfig\.baseUrl = nativeIdentityNode/);
