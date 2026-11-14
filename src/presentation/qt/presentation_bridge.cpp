@@ -2986,6 +2986,13 @@ void PresentationBridge::signOut()
     emit signOutRequested();
 }
 
+void PresentationBridge::setNativeCustodySignerAvailable(bool available)
+{
+    if (m_nativeCustodySignerAvailable == available) return;
+    m_nativeCustodySignerAvailable = available;
+    emit stateChanged();
+}
+
 void PresentationBridge::refreshSigner()
 {
     if (!m_isAuthenticated || m_signerBusy || m_writeReady) { return; }
