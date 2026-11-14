@@ -5817,20 +5817,20 @@ Company | https://company.com</source>
             <translation>检查原生注册状态</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_explanation">
-            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
-            <translation>注册Farcaster需要GenyCaster验证的已付款注册码。切勿在此输入钱包恢复词。</translation>
+            <source>A registration code is issued by GenyCaster only after payment is verified or sponsorship is approved. Codes cannot yet be purchased or issued in Setup. Never enter your 24 recovery words here.</source>
+            <translation>GenyCaster 仅在付款验证完成或赞助获批后签发注册码。目前无法在设置向导中购买或领取代码。切勿在此输入 24 个恢复助记词。</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_placeholder">
-            <source>Enter paid registration code</source>
-            <translation>已付款注册码</translation>
+            <source>Enter operator-issued registration code</source>
+            <translation>输入运营方签发的注册码</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
             <source>Verify enrollment code</source>
             <translation>验证注册码</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
-            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
-            <translation>注册码已载入。预留FID时，服务器才会验证付款授权。</translation>
+            <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
+            <translation>代码已加载。预留 FID 时服务器将验证注册授权。</translation>
         </message>
         <message id="genycaster.setup.neynar_reserve_fid">
             <source>Reserve Farcaster FID</source>
