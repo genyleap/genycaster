@@ -158,6 +158,28 @@ test('registration network status is protocol-scoped, actionable and localized',
   }
 });
 
+test('uncertain HyperSnap submit stays a read-only confirmation instead of showing a second submit', () => {
+  const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
+  const nativeLookup=account.slice(account.indexOf('objectName: "nativeAccountLookupPanel"'),
+                                  account.indexOf('objectName: "nativeRegistrationProofPanel"'));
+  const nativeProof=account.slice(account.indexOf('objectName: "nativeRegistrationProofPanel"'),
+                                 account.indexOf('objectName: "nativeRegistrationBroadcastPanel"'));
+  const broadcast=account.slice(account.indexOf('objectName: "nativeRegistrationBroadcastPanel"'));
+  assert.match(nativeLookup,/&& !nativeRegistrationPublisher\.pending/);
+  assert.match(nativeProof,/&& !nativeRegistrationPublisher\.pending/);
+  assert.match(broadcast,/objectName: "setupBeginRegistration"[\s\S]*?visible: !nativeRegistrationPublisher\.pending/);
+  assert.match(broadcast,/text: root\.nativeSubmissionStatusText\(\)/);
+  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"[\s\S]*?busy: nativeRegistrationPublisher\.checkingConfirmation/);
+  assert.match(broadcast,/onClicked: nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.match(setup,/function nativeSubmissionStatusText\(\)/);
+  assert.match(setup,/lastSubmissionHttpStatus/);
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  assert.match(publisher,/m_lastSubmissionHttpStatus = result\.httpStatus/);
+  assert.match(publisher,/m_checkingConfirmation = true/);
+  assert.match(publisher,/Never clear m_pending \/ m_submitted/);
+  assert.doesNotMatch(publisher,/m_pending = false;\s*\/\/.*[Tt]imeout/);
+});
+
 test('wallet recovery phrase copy is explicit, guarded and never exported through QML', () => {
   const header=source('ui/app/identity/native_wallet.hpp');
   const wallet=source('ui/app/identity/native_wallet.cpp');
