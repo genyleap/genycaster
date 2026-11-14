@@ -1865,7 +1865,7 @@ Item {
                         visible: nativeRegistrationStatus.existingNativeFid.length > 0
                         Layout.fillWidth: true
                         prominent: true
-                        text: qsTrId("genycaster.setup.continue")
+                        text: qsTrId("genycaster.shell.enable_interactions")
                         busy: nativeRegistrationPublisher.verifyingExisting
                         enabled: root.runtimeReady
                                  && nativeRegistrationPublisher.registrationSupported
@@ -1991,7 +1991,7 @@ Item {
                         visible: nativeRegistrationPublisher.confirmed
                                  && !root.authenticated
                         prominent: true
-                        text: qsTrId("genycaster.setup.continue")
+                        text: qsTrId("genycaster.shell.enable_interactions")
                         busy: nativeRegistrationPublisher.verifyingExisting
                         enabled: root.runtimeReady
                                  && nativeRegistrationPublisher.registrationSupported
