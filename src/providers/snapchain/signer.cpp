@@ -5,6 +5,7 @@ module;
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -253,8 +254,27 @@ inline constexpr std::uint32_t requestedPageSize = 1'000U;
     if (value->is_int64() && value->as_int64() >= 0) {
         return static_cast<std::uint64_t>(value->as_int64());
     }
+    // ProtoJSON encodes uint64/int64 fields as decimal strings, including
+    // native HyperSnap FIDs >= 2^32. Accept that wire representation without
+    // ever routing it through double (which loses precision above 2^53).
+    if (value->is_string()) {
+        const auto& jsonText = value->as_string();
+        const std::string_view decimal{jsonText.data(), jsonText.size()};
+        if (!decimal.empty() && decimal.size() <= 20U
+            && std::all_of(decimal.begin(), decimal.end(), [](const char ch) {
+                return ch >= '0' && ch <= '9';
+            })) {
+            std::uint64_t parsed{};
+            const auto [end, error] = std::from_chars(
+                decimal.data(), decimal.data() + decimal.size(), parsed, 10);
+            if (error == std::errc{} && end == decimal.data() + decimal.size()) {
+                return parsed;
+            }
+        }
+    }
     return std::unexpected(protocolError(
-        std::string{context} + "." + std::string{key} + " must be a non-negative integer."));
+        std::string{context} + "." + std::string{key}
+        + " must be an exact unsigned decimal integer (JSON number or string)."));
 }
 
 [[nodiscard]] foundation::result::Result<std::uint32_t> requireUint32(
