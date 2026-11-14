@@ -193,7 +193,10 @@ void invalidCanonicalAuthorFailsBeforePosting()
         != std::string::npos);
     assert(transport.posts.empty());
 
-    wrong.messageBytes = std::string{"\\x3a\\x05\\x10", 3U};
+    wrong.messageBytes.clear();
+    wrong.messageBytes.push_back(static_cast<char>(0x3AU));
+    wrong.messageBytes.push_back(static_cast<char>(0x05U));
+    wrong.messageBytes.push_back(static_cast<char>(0x10U));
     auto truncated = submitter->submit(wrong);
     assert(!truncated);
     assert(truncated.error().code == foundation::error::ErrorCode::ProtocolFailure);
@@ -234,6 +237,10 @@ void nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry()
     FakeTransport replicatedLate{};
     replicatedLate.postReplies.push_back({.statusCode = 400U, .body = rejection});
     replicatedLate.getReplies.push_back({.statusCode = 200U, .body = registered});
+    replicatedLate.getReplies.push_back({
+        .statusCode = 200U,
+        .body = R"({"signers":[{"fid":"4294967296","key":"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f","scopes":["MESSAGE_TYPE_CAST_ADD"]}]})",
+    });
     const provider::snapchain::write::Config nativeConfig{
         .baseUrl = "https://hypersnap.test",
         .readBaseUrl = "https://hypersnap.test",
@@ -243,13 +250,32 @@ void nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry()
         replicatedLate, nativeConfig);
     auto failure = submitter->submit(native);
     assert(!failure);
-    assert(failure.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(failure.error().code == foundation::error::ErrorCode::Unavailable);
     assert(failure.error().message.find("Shard 0") != std::string::npos);
     assert(failure.error().message.find("block_receiver") != std::string::npos);
     assert(replicatedLate.posts.size() == 1U);
-    assert(replicatedLate.gets.size() == 1U);
+    assert(replicatedLate.gets.size() == 2U);
     assert(replicatedLate.gets.front().url
         == "https://hypersnap.test/v1/nativeAccount?fid=4294967296");
+    assert(replicatedLate.gets.back().url
+        == "https://hypersnap.test/v1/signersByFid?fid=4294967296");
+
+    // A shard-0 registration without the current signer in the data shard is
+    // not sufficient evidence to automatically retry a rejected write.
+    FakeTransport signerMismatch{};
+    signerMismatch.postReplies.push_back({.statusCode = 400U, .body = rejection});
+    signerMismatch.getReplies.push_back({.statusCode = 200U, .body = registered});
+    signerMismatch.getReplies.push_back({
+        .statusCode = 200U,
+        .body = R"({"signers":[{"fid":"4294967296","key":"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","scopes":["MESSAGE_TYPE_CAST_ADD"]}]})",
+    });
+    auto signerMismatchSubmitter = provider::snapchain::write::makeSubmitter(
+        signerMismatch, nativeConfig);
+    auto mismatch = signerMismatchSubmitter->submit(native);
+    assert(!mismatch);
+    assert(mismatch.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(signerMismatch.posts.size() == 1U);
+    assert(signerMismatch.gets.size() == 2U);
 
     FakeTransport missing{};
     missing.postReplies.push_back({.statusCode = 400U, .body = rejection});
