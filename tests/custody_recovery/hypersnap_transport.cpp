@@ -452,6 +452,41 @@ int main(int argc, char** argv)
         assert(existing.registeredFid() == QStringLiteral("4294967297"));
         assert(confirmations == 1 && postCount == 0);
         assert(!existing.confirmExistingAccount()); // No second session event.
+
+        // A confirmed account whose initial sign-in failed can retry without
+        // generating any new registration or ever submitting to shard 0.
+        assert(existing.resumeConfirmedAccount());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &existing, &HyperSnapRegistrationPublisher::changed,
+                &existing, [&, connection, done] {
+                    if (!existing.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(existing.confirmed());
+        assert(confirmations == 2 && postCount == 0);
+        // If the authoritative record changes, the old FID is not reused
+        // for another sign-in, and the user can safely retry later.
+        switchedFid = false;
+        assert(existing.resumeConfirmedAccount());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &existing, &HyperSnapRegistrationPublisher::changed,
+                &existing, [&, connection, done] {
+                    if (!existing.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(existing.existingVerificationFailed());
+        assert(existing.confirmationLookupState() == QStringLiteral("fid_changed"));
+        assert(confirmations == 2 && postCount == 0);
     }
     // Simulate a full process restart after an ambiguous native registration.
     // The recovered offline wallet is used only for read-only shard-0 queries.
