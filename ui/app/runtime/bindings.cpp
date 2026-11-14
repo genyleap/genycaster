@@ -3663,6 +3663,7 @@ void connectRuntime(
             const auto session = runtime->currentSessionSnapshot();
             if (!session || !bridge.isAuthenticated()
                 || session->fid.value != bridge.accountFid()) return;
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
             std::shared_ptr<capability::signer::ICustodyAuthorizer> localPermit{};
             if (session->identityIssuer == "hypersnap:native-registry") {
                 // Never fall through to the Farcaster/browser custody
@@ -3679,6 +3680,9 @@ void connectRuntime(
             }
             auto status = runtime->signerService->provision(
                 session, signerObserver, std::move(localPermit));
+#else
+            auto status = runtime->signerService->provision(session, signerObserver);
+#endif
             if (!status) {
                 application::signer::SignerState state{
                     .phase = application::signer::SignerPhase::Unavailable,
