@@ -897,6 +897,9 @@ test('HyperSnap native signer authorization is local, one-use and registry-bound
   const setup=source('ui/components/setup/InitialSetup.qml');
   assert.match(bridgeHeader,/Q_INVOKABLE void authorizeNativeHyperSnapSigner\(QString recoveryWords\)/);
   assert.match(bridgeHeader,/void nativeHyperSnapSignerAuthorizationRequested\(QString recoveryWords\)/);
+  assert.match(bridgeHeader,/Q_PROPERTY\(bool nativeCustodySignerAvailable/);
+  assert.match(runtime,/updateNativeSignerAvailability/);
+  assert.match(shell,/!presentationBridge.nativeCustodySignerAvailable/);
   assert.match(bridge,/m_accountIdentityIssuer != QStringLiteral\("hypersnap:native-registry"\)/);
   assert.match(bridge,/emit nativeHyperSnapSignerAuthorizationRequested\(std::move\(recoveryWords\)\)/);
   assert.match(shell,/accountIdentityIssuer === "hypersnap:native-registry"/);
