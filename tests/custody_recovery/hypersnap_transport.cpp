@@ -104,7 +104,8 @@ int main(int argc, char** argv)
     const auto address = QString::fromLatin1(Custody);
 
     mock.reply = [](const QByteArray&) {
-        return response(404, "{\"error\":\"not_found\"}");
+        return response(400,
+            R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
     };
     await([&](auto done) {
         client.lookupByCustody(address,[&, done](auto result) {
@@ -114,6 +115,16 @@ int main(int argc, char** argv)
     });
     assert(mock.lastRequest.startsWith(
         "GET /v1/nativeAccount?custody=0xf278cf59f82edcf871d630f28ecc8056f25c1cdb "));
+    // An arbitrary 404 is not authoritative proof of an unregistered wallet.
+    mock.reply = [](const QByteArray&) {
+        return response(404, "{\"error\":\"not_found\"}");
+    };
+    await([&](auto done) {
+        client.lookupByCustody(address,[&, done](auto result) {
+            assert(result.state == Transport::LookupState::Unavailable);
+            done();
+        });
+    });
 
     mock.reply = [](const QByteArray&) {
         return response(200,
@@ -172,7 +183,8 @@ int main(int argc, char** argv)
         assert(!status.verifiedAbsentForCustody(address));
     }
     mock.reply = [](const QByteArray&) {
-        return response(404, "{\"error\":\"not_found\"}");
+        return response(400,
+            R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
     };
     {
         QEventLoop loop{};
@@ -203,6 +215,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.submit(protobuf,[&, done](auto result) {
             assert(result.state == Transport::SubmitState::AcceptedPending);
+            assert(result.httpStatus == 200);
             done();
         });
     });
@@ -212,6 +225,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.submit(protobuf,[&, done](auto result) {
             assert(result.state == Transport::SubmitState::Rejected);
+            assert(result.httpStatus == 400);
             done();
         });
     });
@@ -221,6 +235,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.submit(protobuf,[&, done](auto result) {
             assert(result.state == Transport::SubmitState::UnknownOutcome);
+            assert(result.httpStatus == 503);
             done();
         });
     });
@@ -253,7 +268,8 @@ int main(int argc, char** argv)
                     "{\"fid\":\"4294967296\","
                     "\"custodyAddress\":\"0xf278cf59f82edcf871d630f28ecc8056f25c1cdb\","
                     "\"blockNumber\":54321,\"message\":{\"data\":{}}}");
-            return response(404, "{\"error\":\"not_found\"}");
+            return response(400,
+            R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
         };
         HyperSnapRegistrationPublisher publisher{
             hub.url(),
@@ -290,6 +306,8 @@ int main(int argc, char** argv)
                 });
         });
         assert(publisher.pending());
+        assert(publisher.lastSubmissionHttpStatus() == 200);
+        assert(!publisher.checkingConfirmation());
         assert(!publisher.confirmed());
         assert(publisher.registeredFid().isEmpty());
         assert(postCount == 1);
@@ -300,6 +318,7 @@ int main(int argc, char** argv)
         assert(postCount == 1);
         confirmedRecord = true;
         assert(publisher.checkConfirmation());
+        assert(publisher.checkingConfirmation());
         await([&](auto done) {
             auto connection = std::make_shared<QMetaObject::Connection>();
             *connection = QObject::connect(
@@ -312,6 +331,7 @@ int main(int argc, char** argv)
                 });
         });
         assert(publisher.registeredFid() == QStringLiteral("4294967296"));
+        assert(!publisher.checkingConfirmation());
         assert(postCount == 1);
         publisher.clear();
         assert(!publisher.confirmed() && !publisher.pending());
@@ -332,7 +352,8 @@ int main(int argc, char** argv)
                     "{\"fid\":\"4294967296\","
                     "\"custodyAddress\":\"0xf278cf59f82edcf871d630f28ecc8056f25c1cdb\","
                     "\"blockNumber\":54321,\"message\":{\"data\":{}}}");
-            return response(404, "{\"error\":\"not_found\"}");
+            return response(400,
+            R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
         };
         bool verified = true;
         HyperSnapRegistrationPublisher recovered{
