@@ -65,3 +65,19 @@ test('signer management remains an injected port in the application', () => {
     assert.match(read('ui/app/runtime/composition.cppm'), /RoutedSignerRegistry/);
     assert.match(read('src/capabilities/signer.cppm'), /class ISignerRegistry/);
 });
+
+test('authenticated identity issuer pins signer and writes to an actual writable provider', () => {
+    const bindings = read('ui/app/runtime/bindings.cpp');
+    const composition = read('ui/app/runtime/composition.cpp');
+    const observer = bindings.slice(
+        bindings.indexOf('const auto sessionObserver ='),
+        bindings.indexOf('const auto sessionObserver =') + 1700);
+    const recovery = bindings.slice(
+        bindings.indexOf('const farcaster::provider::model::ProviderId writer{farcaster'),
+        bindings.indexOf('const farcaster::provider::model::ProviderId writer{farcaster') + 250);
+    assert.match(observer, /"primary-protocol-writer" : "hypersnap-v2"/);
+    assert.match(recovery, /"primary-protocol-writer" : "hypersnap-v2"/);
+    assert.doesNotMatch(observer + recovery, /"farcaster-snapchain"\s*:\s*"hypersnap-v2"/);
+    assert.match(composition, /ProviderId\{"primary-protocol-writer"\}/);
+    assert.match(composition, /\.id = capability::catalog::protocolMessageSubmit\(\)/);
+});
