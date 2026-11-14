@@ -60,6 +60,13 @@ Item {
     property bool resumingRegistration: false
     property string registrationProviderId: "hypersnap-v2"
     property string registrationError: ""
+    property bool recoveryWordsCopied: false
+    Timer {
+        id: recoveryCopyFeedbackTimer
+        interval: 4000
+        repeat: false
+        onTriggered: root.recoveryWordsCopied = false
+    }
     function beginAccountRegistration() {
         if (registrationProviderId === "hypersnap-v2")
             nativeRegistrationStatus.refresh()
@@ -1403,6 +1410,28 @@ Item {
                             Accessible.name: qsTrId("genycaster.setup.wallet_recovery_title")
                             Accessible.description: qsTrId("genycaster.setup.wallet_recovery_warning")
                         }
+                    }
+                    ActionButton {
+                        objectName: "setupCopyRecoveryWords"
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        compact: true
+                        text: root.recoveryWordsCopied
+                            ? qsTrId("genycaster.setup.wallet_copy_success")
+                            : qsTrId("genycaster.setup.wallet_copy_label")
+                        onClicked: {
+                            root.recoveryWordsCopied = nativeCustodyWallet.copyRecoveryWords()
+                            if (root.recoveryWordsCopied)
+                                recoveryCopyFeedbackTimer.restart()
+                        }
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeCustodyWallet.recoveryVisible
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_copy_warning")
+                        color: Theme.warning
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
                     }
                     GenyCheckRow {
                         id: walletBackupAcknowledgment
