@@ -825,6 +825,38 @@ test('interrupted Farcaster registration can restore offline custody without a s
   assert.doesNotMatch(qml,/farcaster\.xyz\/~\/signup/);
 });
 
+test('existing HyperSnap FID continues only after independent custody verification', () => {
+  const ui=source('ui/components/setup/InitialSetup.qml');
+  const status=source('ui/app/identity/native_registration.cpp');
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  const pubHeader=source('ui/app/identity/native_publish.hpp');
+  const main=source('ui/app/main.cpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  const existing=ui.slice(ui.indexOf('objectName: "nativeAccountLookupPanel"'),
+                          ui.indexOf('objectName: "nativeRegistrationProofPanel"'));
+  assert.match(existing,/objectName: "setupContinueExistingNativeFid"/);
+  assert.match(existing,/nativeRegistrationPublisher\\.confirmExistingAccount\\(\\)/);
+  assert.match(existing,/nativeRegistrationPublisher\\.verifyingExisting/);
+  assert.match(existing,/nativeRegistrationPublisher\\.existingVerificationFailed/);
+  assert.doesNotMatch(existing,/submitPrepared\\(\\)|takeProof\\(/);
+  assert.match(ui,/nativeRegistrationStatus\\.existingNativeFid\\.length === 0/);
+  assert.match(status,/verifiedExistingFidForCustody/);
+  assert.match(status,/m_lookupAddress == address\\.toLower\\(\\)/);
+  assert.match(pubHeader,/Q_INVOKABLE bool confirmExistingAccount\\(\\)/);
+  const verifier=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::confirmExistingAccount()'),
+                                 publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
+  assert.match(verifier,/m_pending \\|\\| m_submitted/);
+  assert.match(verifier,/m_ports\\.backupVerified\\(\\)/);
+  assert.match(verifier,/m_ports\\.existingFidForCustody\\(custody\\)/);
+  assert.match(verifier,/m_transport\\.lookupByCustody\\(custody/);
+  assert.match(verifier,/result\\.fid == expected/);
+  assert.match(verifier,/onConfirmed\\(result\\.fid, generation\\)/);
+  assert.doesNotMatch(verifier,/submit\\(|saveRetryJournal|takeProof/);
+  assert.match(main,/nativeRegistrationStatus\\.verifiedExistingFidForCustody\\(address\\)/);
+  assert.match(runtime,/nativeAccountConfirmed/);
+  assert.match(runtime,/NativeCustodySignerAccess::forConfirmedNativeFid/);
+});
+
 test('HyperSnap interrupted native registration restores the same custody without replay',()=>{
   const ui=source('ui/components/setup/InitialSetup.qml');
   const publisher=source('ui/app/identity/native_publish.cpp');
