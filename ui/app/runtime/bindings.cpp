@@ -3587,10 +3587,15 @@ void connectRuntime(
                             if (result.state
                                     != HyperSnapRegistrationTransport::LookupState::Confirmed
                                 || result.fid != fid) {
+                                const auto code = result.state
+                                        == HyperSnapRegistrationTransport::LookupState::Unavailable
+                                        || result.state
+                                        == HyperSnapRegistrationTransport::LookupState::InvalidResponse
+                                    ? foundation::error::ErrorCode::Unavailable
+                                    : foundation::error::ErrorCode::Unauthorized;
                                 applySignerState(bridge, application::signer::SignerState{
                                     .phase = application::signer::SignerPhase::AuthorizationRequired,
-                                    .error = foundation::error::Error::make(
-                                        foundation::error::ErrorCode::Unauthorized,
+                                    .error = foundation::error::Error::make(code,
                                         "HyperSnap native custody/FID could not be reverified.")
                                 });
                                 return;
