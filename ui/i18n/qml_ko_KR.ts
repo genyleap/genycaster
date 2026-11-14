@@ -5712,6 +5712,18 @@ Company | https://company.com</source>
             <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
             <translation>단어를 순서대로 오프라인에 안전하게 기록하세요. 이 단어를 아는 사람은 계정을 제어할 수 있습니다. 스크린샷을 공유하지 마세요.</translation>
         </message>
+        <message id="genycaster.setup.wallet_copy_label">
+            <source>Copy all 24 recovery words</source>
+            <translation>복구 단어 24개 모두 복사</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_success">
+            <source>Copied — clipboard clears after 60 seconds if unchanged.</source>
+            <translation>복사했습니다. 변경되지 않으면 60초 후 클립보드가 지워집니다.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_warning">
+            <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
+            <translation>다른 앱이 클립보드 내용을 읽거나 저장할 수 있습니다. GenyCaster는 내용이 변경되지 않았다면 60초 후 지웁니다. 오프라인 백업을 보관하세요.</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>24개 단어를 순서대로 안전하게 저장했습니다.</translation>
