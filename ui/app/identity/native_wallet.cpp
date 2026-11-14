@@ -1,7 +1,11 @@
 #include "native_wallet.hpp"
 
+#include <QClipboard>
+#include <QCryptographicHash>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QPainter>
+#include <QTimer>
 #include <QFontMetricsF>
 #include <QStringList>
 #include <openssl/crypto.h>
@@ -31,13 +35,19 @@ struct NativeCustodyWalletController::Private {
     int indexB{-1};
     unsigned failures{};
     QString error{};
+    QByteArray clipboardFingerprint{}; // SHA-256, never the recovery phrase.
+    qsizetype clipboardLength{};
+    quint64 clipboardRevision{};
 };
 
 NativeCustodyWalletController::NativeCustodyWalletController(QObject* parent)
     : QObject{parent}, m_private{std::make_unique<Private>()}
 {}
 
-NativeCustodyWalletController::~NativeCustodyWalletController() = default;
+NativeCustodyWalletController::~NativeCustodyWalletController()
+{
+    clearCopiedRecoveryWords();
+}
 
 bool NativeCustodyWalletController::hasWallet() const noexcept
 {
@@ -215,6 +225,60 @@ bool NativeCustodyWalletController::verifyBackup(QString first, QString second)
     return true;
 }
 
+void NativeCustodyWalletController::clearCopiedRecoveryWords()
+{
+    ++m_private->clipboardRevision; // Cancel any earlier delayed clearance.
+    if (m_private->clipboardFingerprint.isEmpty()) return;
+    auto expected = std::exchange(m_private->clipboardFingerprint, QByteArray{});
+    const auto length = std::exchange(m_private->clipboardLength, qsizetype{});
+
+    // Clipboard history and third-party managers are beyond our control.
+    // Never erase a newer, unrelated clipboard value owned by the user.
+    if (auto* clipboard = QGuiApplication::clipboard()) {
+        auto current = clipboard->text();
+        if (current.size() == length) {
+            auto bytes = current.toLatin1();
+            const auto actual = QCryptographicHash::hash(
+                QByteArrayView{bytes}, QCryptographicHash::Sha256);
+            bytes.fill(char{0});
+            current.fill(QChar{});
+            if (actual == expected) clipboard->clear();
+        } else {
+            current.fill(QChar{});
+        }
+    }
+    expected.fill(char{0});
+}
+
+bool NativeCustodyWalletController::copyRecoveryWords()
+{
+    // A user gesture in the backup ceremony is required. This is never
+    // called by automatic onboarding, recovery, network requests or signing.
+    if (!recoveryVisible() || !m_private->secret || !QGuiApplication::instance())
+        return false;
+    auto* clipboard = QGuiApplication::clipboard();
+    if (!clipboard) return false;
+
+    const auto& words = m_private->secret->recoveryWords;
+    if (words.empty() || words.size() > 512) return false;
+    m_private->clipboardFingerprint = QCryptographicHash::hash(
+        QByteArrayView{words.data(), static_cast<qsizetype>(words.size())},
+        QCryptographicHash::Sha256);
+    m_private->clipboardLength = static_cast<qsizetype>(words.size());
+    const auto revision = ++m_private->clipboardRevision;
+
+    // Only the native Qt clipboard sees the phrase. Never expose the phrase
+    // as a QString property, signal argument, URL, log or QML return value.
+    auto text = QString::fromLatin1(words.data(), static_cast<qsizetype>(words.size()));
+    clipboard->setText(text);
+    text.fill(QChar{});
+    QTimer::singleShot(60'000, this, [this, revision] {
+        if (revision == m_private->clipboardRevision)
+            clearCopiedRecoveryWords();
+    });
+    return true;
+}
+
 void NativeCustodyWalletController::revealForBackup()
 {
     if (!hasWallet() || m_private->verified) return;
@@ -277,6 +341,7 @@ std::optional<QString> NativeCustodyWalletController::signReservedFarcasterTrans
 
 void NativeCustodyWalletController::discard()
 {
+    clearCopiedRecoveryWords();
     m_private->revealed = false;
     m_private->verified = false;
     m_private->indexA = -1;
