@@ -492,6 +492,20 @@ foundation::result::Status SignerService::provision(
                 }
             }
 
+            // A high native HyperSnap FID does not exist in Farcaster
+            // IdRegistry. Its custody must NEVER be delegated to the
+            // browser/Farcaster authorizer. A verified local one-shot grant
+            // is mandatory before any new native KEY_ADD.
+            if (session->identityIssuer == "hypersnap:native-registry"
+                && !oneShotAuthorizer) {
+                m_impl->current = SignerState{.phase = SignerPhase::AuthorizationRequired,
+                    .record = record, .requiredScopes = m_impl->policy.scopes,
+                    .error = makeError(foundation::error::ErrorCode::Unauthorized,
+                        "Native HyperSnap signer registration requires a local custody "
+                        "authorization for the verified native FID.")};
+                observer(m_impl->current);
+                return;
+            }
             auto* const authorizer = oneShotAuthorizer
                 ? oneShotAuthorizer.get() : m_impl->authorizer;
             if (authorizer == nullptr) {
