@@ -24,7 +24,7 @@ QString HyperSnapRegistrationPublisher::retryJournalKey() const
     // address. Hash the scope to avoid exposing the address in settings keys.
     const QByteArray scope = m_transport.nodeEndpoint()
         .toString(QUrl::FullyEncoded).toUtf8()
-        + QByteArray{1, '\\0'} + m_address.toUtf8();
+        + QByteArray(1, char{0}) + m_address.toUtf8();
     return QStringLiteral("nativeRegistration/expiry-v1/")
         + QString::fromLatin1(QCryptographicHash::hash(
             scope, QCryptographicHash::Sha256).toHex());
