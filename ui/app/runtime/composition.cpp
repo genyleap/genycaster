@@ -1036,7 +1036,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     // Native registrations and KEY_ADD are both submitted to the selected
     // HyperSnap node. This adapter never inherits Farcaster credentials or
     // the separately configured Farcaster/Snapchain validator endpoint.
-    const std::string nativeIdentityNode = hyperSnapNativeNodeBaseUrl
+    [[maybe_unused]] const std::string nativeIdentityNode = hyperSnapNativeNodeBaseUrl
         ? *hyperSnapNativeNodeBaseUrl : providerConfig.baseUrl;
 #if FARCASTER_HAS_SNAPCHAIN_SIGNER && FARCASTER_HAS_PROTOCOL_SIGNING
     if (runtime->signerRegistry) {
