@@ -167,6 +167,58 @@ void unknownFidProvidesNetworkSpecificDiagnostic()
     assert(result.error().message.find("SAME node") != std::string::npos);
 }
 
+void nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry()
+{
+    auto native = operation();
+    native.author = domain::identity::Fid{4294967296ULL};
+    native.optimisticCast->author = native.author;
+    constexpr auto rejection =
+        R"({"error":"Failed to submit message","error_detail":"bad_request.validation_failure/unknown fid"})";
+    constexpr auto registered =
+        R"({"fid":"4294967296","custodyAddress":"0x000000000000000000000000000000000000abcd","blockNumber":123,"message":{}})";
+    FakeTransport replicatedLate{};
+    replicatedLate.postReplies.push_back({.statusCode = 400U, .body = rejection});
+    replicatedLate.getReplies.push_back({.statusCode = 200U, .body = registered});
+    const provider::snapchain::write::Config nativeConfig{
+        .baseUrl = "https://hypersnap.test",
+        .readBaseUrl = "https://hypersnap.test",
+        .probeNativeRegistryOnUnknownFid = true,
+    };
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        replicatedLate, nativeConfig);
+    auto failure = submitter->submit(native);
+    assert(!failure);
+    assert(failure.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(failure.error().message.find("Shard 0") != std::string::npos);
+    assert(failure.error().message.find("block_receiver") != std::string::npos);
+    assert(replicatedLate.posts.size() == 1U);
+    assert(replicatedLate.gets.size() == 1U);
+    assert(replicatedLate.gets.front().url
+        == "https://hypersnap.test/v1/nativeAccount?fid=4294967296");
+
+    FakeTransport missing{};
+    missing.postReplies.push_back({.statusCode = 400U, .body = rejection});
+    missing.getReplies.push_back({
+        .statusCode = 400U,
+        .body = R"({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \\"native account not found\\""})",
+    });
+    auto missingSubmitter = provider::snapchain::write::makeSubmitter(missing, nativeConfig);
+    auto absent = missingSubmitter->submit(native);
+    assert(!absent);
+    assert(absent.error().message.find("NO confirmed registration") != std::string::npos);
+    assert(missing.posts.size() == 1U);
+    assert(missing.gets.size() == 1U);
+
+    // The Farcaster writer never probes HyperSnap, even when the same
+    // wire rejection text is returned for a Farcaster FID.
+    FakeTransport farcaster{};
+    farcaster.postReplies.push_back({.statusCode = 400U, .body = rejection});
+    auto farcasterSubmitter = provider::snapchain::write::makeSubmitter(
+        farcaster, provider::snapchain::write::Config{.baseUrl = "https://snapchain.test"});
+    auto rejected = farcasterSubmitter->submit(operation());
+    assert(!rejected);
+    assert(farcaster.gets.empty());
+}
 void defaultConfigurationRequiresCompositionOrigin()
 {
     const auto config = provider::snapchain::write::Config{};
@@ -416,6 +468,7 @@ int main()
     submitUsesCanonicalBinaryEndpoint();
     acceptsExactProtoJsonNativeFid();
     unknownFidProvidesNetworkSpecificDiagnostic();
+    nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry();
     reconcileUsesCanonicalCastIdentity();
     reactionAndFollowReconciliationUseCanonicalIdentity();
     missingRemovedCastConfirmsDeletion();
