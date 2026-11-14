@@ -1890,6 +1890,23 @@ Item {
                         text: qsTrId("genycaster.setup.native_registration_check_again")
                         onClicked: nativeRegistrationPublisher.checkConfirmation()
                     }
+                    DirectionAwareLabel {
+                        objectName: "setupNativeConfirmationDetails"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.checkingConfirmation
+                                 && nativeRegistrationPublisher.confirmationLookupChecks > 0
+                        text: (nativeRegistrationPublisher.confirmationLookupState === "not_found"
+                               ? qsTrId("genycaster.setup.native_confirmation_no_fid_yet")
+                               : qsTrId("genycaster.setup.native_existing_error"))
+                              + (nativeRegistrationPublisher.confirmationLookupHttpStatus > 0
+                                 ? " (HTTP " + nativeRegistrationPublisher.confirmationLookupHttpStatus + ")"
+                                 : "")
+                        color: nativeRegistrationPublisher.confirmationLookupState === "not_found"
+                               ? Theme.warning : Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
                 }
             }
         }
