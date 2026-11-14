@@ -5818,20 +5818,20 @@ Entreprise | https://company.com</translation>
             <translation>Vérifier l’inscription native</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_explanation">
-            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
-            <translation>L’inscription Farcaster nécessite un code GenyCaster financé et vérifié. N’entrez jamais vos mots de récupération ici.</translation>
+            <source>A registration code is issued by GenyCaster only after payment is verified or sponsorship is approved. Codes cannot yet be purchased or issued in Setup. Never enter your 24 recovery words here.</source>
+            <translation>GenyCaster délivre un code d’inscription uniquement après validation du paiement ou du parrainage. Il n’est pas encore possible d’acheter ou d’obtenir un code dans la configuration. N’entrez jamais vos 24 mots de récupération ici.</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_placeholder">
-            <source>Enter paid registration code</source>
-            <translation>Code d’inscription payé</translation>
+            <source>Enter operator-issued registration code</source>
+            <translation>Saisir le code d’inscription fourni par l’opérateur</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
             <source>Verify enrollment code</source>
             <translation>Vérifier le code d’inscription</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
-            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
-            <translation>Code chargé. Le serveur vérifie l’autorisation de paiement lors de la réservation du FID.</translation>
+            <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
+            <translation>Code chargé. Le serveur vérifie l’autorisation lors de la réservation du FID.</translation>
         </message>
         <message id="genycaster.setup.neynar_reserve_fid">
             <source>Reserve Farcaster FID</source>
