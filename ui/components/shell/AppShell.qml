@@ -2957,6 +2957,10 @@ Item {
                                     Layout.fillWidth: true
                                     text: presentationBridge.accountIdentityIssuer === "genycaster:device-local"
                                           ? qsTrId("genycaster.setup.remembered_device_label")
+                                          : presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
+                                          ? qsTrId("genycaster.settings.hypersnap_label")
+                                          : presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
+                                          ? qsTrId("genycaster.settings.farcaster_label")
                                           : presentationBridge.authenticationRoute === "recovery"
                                           ? qsTrId("genycaster.setup.recovery_verified")
                                           : presentationBridge.authenticationRoute === "farcaster"
@@ -3384,6 +3388,7 @@ Item {
         accountName: presentationBridge.accountName
         accountUsername: presentationBridge.accountUsername
         accountAvatarUrl: presentationBridge.accountAvatarUrl
+        accountIdentityIssuer: presentationBridge.accountIdentityIssuer
         onContinueWithGenyleap: presentationBridge.beginSignIn()
         onContinueWithFarcaster: presentationBridge.beginFarcasterSignIn()
         onOpenApproval: presentationBridge.openAuthenticationApproval()
