@@ -80,6 +80,31 @@ test('registration keeps protocols isolated and requires explicit custody consen
   }
 });
 
+test('signup text inputs use the registered themed QML component', () => {
+  const cmake=source('ui/CMakeLists.txt');
+  assert.match(cmake,/QT_RESOURCE_ALIAS "components\/DirectionAwareTextField\.qml"/);
+  const ids=['walletChallengeFirst','walletChallengeSecond',
+             'neynarEnrollmentVoucher','neynarRequestedUsername','wordField'];
+  for(const id of ids) {
+    assert.match(setup,new RegExp(
+      '(?:delegate:\\s*)?DirectionAwareTextField \\{\\s*id: '+id+'\\s*forceLeftToRight: true'),
+      id+' must use the theme-aware Latin-script field');
+  }
+  assert.doesNotMatch(setup,/\bBidiTextField\s*\{/);
+  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                       'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const t=source('ui/i18n/qml_'+locale+'.ts');
+    for(const key of ['neynar_voucher_explanation','neynar_voucher_placeholder',
+                      'neynar_voucher_ready']) {
+      const m=t.match(new RegExp(
+        '<message id="genycaster\\.setup\\.'+key+'">([\\s\\S]*?)<\\/message>'));
+      assert.ok(m,locale+': '+key);
+      assert.match(m[1],/<translation>[^<]+<\\/translation>/);
+    }
+  }
+  assert.doesNotMatch(source('ui/i18n/qml_en_US.ts'),/Enter paid registration code/);
+});
+
 test('registration network status is protocol-scoped, actionable and localized', () => {
   const readiness = setup.slice(
     setup.indexOf('function registrationReadinessText()'),
