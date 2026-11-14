@@ -18,13 +18,20 @@ test('HyperSnap is the default indexed read route, without overriding a user-sel
     assert.match(composition,/setPreferredProviderForAccess\([\s\S]*?CapabilityAccess::Write,[\s\S]*?require = true/);
     assert.match(composition,/runtime->signerRegistry->bindRouter\(\*runtime->router\)/);
     assert.match(profiles,/selectedWriteProviderId\(\) const/);
-    // HyperSnap's indexed reader must never be impersonated as a signer
-    // backend until it declares an actual protocol.signer.manage adapter.
-    const readRegistration = composition.slice(
+    // The indexed read adapter remains separate, while HyperSnap's native
+    // signer capability binds a dedicated source to the same HyperSnap node.
+    const nativeRegistration = composition.slice(
        composition.indexOf('ProviderId{"hypersnap-v2"}'),
        composition.indexOf('runtime->independentReadProviderId'));
-    assert.match(readRegistration,/hypersnap::registration::capabilities\(\)/);
-    assert.doesNotMatch(readRegistration,/protocolSignerManage\(\)/);
+    assert.match(nativeRegistration,/hypersnap::registration::capabilities\(\)/);
+    assert.match(nativeRegistration,/nativeCapabilities.push_back\(capability::model::CapabilityDescriptor/);
+    assert.match(nativeRegistration,/capability::catalog::protocolSignerManage\(\)/);
+    assert.match(nativeRegistration,/runtime->signerRegistry->addSource/);
+    assert.match(nativeRegistration,/\.providerId = descriptor.id/);
+    assert.match(nativeRegistration,/nativeSignerConfig.baseUrl = providerConfig.baseUrl/);
+    assert.match(nativeRegistration,/nativeWriteConfig.baseUrl = providerConfig.baseUrl/);
+    assert.match(nativeRegistration,/hypersnap-v2\|/);
+    assert.doesNotMatch(nativeRegistration,/nativeSignerConfig.baseUrl = \*snapchainBaseUrl/);
 });
 
 test('signer operations route through capability-neutral access contract', () => {
