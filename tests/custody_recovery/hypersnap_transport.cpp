@@ -110,6 +110,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.lookupByCustody(address,[&, done](auto result) {
             assert(result.state == Transport::LookupState::NotFound);
+            assert(result.httpStatus == 400);
             done();
         });
     });
@@ -122,6 +123,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.lookupByCustody(address,[&, done](auto result) {
             assert(result.state == Transport::LookupState::Unavailable);
+            assert(result.httpStatus == 404);
             done();
         });
     });
@@ -135,6 +137,7 @@ int main(int argc, char** argv)
     await([&](auto done) {
         client.lookupByCustody(address,[&, done](auto result) {
             assert(result.state == Transport::LookupState::Confirmed);
+            assert(result.httpStatus == 200);
             assert(result.fid == ExpectedFid);
             assert(result.blockNumber == 54321);
             done();
@@ -379,6 +382,9 @@ int main(int argc, char** argv)
         });
         assert(!recovered.confirmed());
         assert(recovered.pending());
+        assert(recovered.confirmationLookupState() == QStringLiteral("not_found"));
+        assert(recovered.confirmationLookupHttpStatus() == 400);
+        assert(recovered.confirmationLookupChecks() >= 1);
         assert(!recovered.submitPrepared());
         assert(postCount == 0);
         included = true;
@@ -395,6 +401,8 @@ int main(int argc, char** argv)
                 });
         });
         assert(recovered.confirmed());
+        assert(recovered.confirmationLookupState() == QStringLiteral("confirmed"));
+        assert(recovered.confirmationLookupHttpStatus() == 200);
         assert(recovered.registeredFid() == QStringLiteral("4294967296"));
         assert(postCount == 0);
     }
