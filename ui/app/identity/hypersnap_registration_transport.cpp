@@ -165,13 +165,13 @@ void HyperSnapRegistrationTransport::submit(
         // A 200 only means the hub accepted the submission. The outcome
         // stays pending until a separate nativeAccount confirmation.
         if (err == QNetworkReply::NoError && code == 200) {
-            cb({SubmitState::AcceptedPending});
+            cb({SubmitState::AcceptedPending, code});
         } else if (code == 400 || code == 403 || code == 422) {
-            cb({SubmitState::Rejected});
+            cb({SubmitState::Rejected, code});
         } else {
             // A timeout/5xx may have happened AFTER the node accepted the
             // message. A blind replay could double-submit. Lookup first.
-            cb({SubmitState::UnknownOutcome});
+            cb({SubmitState::UnknownOutcome, code});
         }
     });
 }
