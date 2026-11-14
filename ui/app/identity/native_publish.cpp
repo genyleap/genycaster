@@ -39,6 +39,8 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     m_unknown = false;
     m_checkingConfirmation = false;
     m_lastSubmissionHttpStatus = 0;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
     m_checks = 0;
     const auto generation = ++m_generation;
     emit changed();
@@ -69,6 +71,8 @@ bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
     m_failed = false;
     m_checkingConfirmation = true;
     m_busy = true;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
     m_checks = 0;
     const auto generation = ++m_generation;
     if (m_ports.cancelProof) m_ports.cancelProof();
@@ -82,9 +86,27 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
     m_transport.lookupByCustody(m_address, [this, generation, beforeSubmit](
         const HyperSnapRegistrationTransport::LookupResult result) {
         if (generation != m_generation) return;
-        // Read-only confirmation checks must not animate the Submit button.
-        if (!beforeSubmit) m_checkingConfirmation = false;
         using State = HyperSnapRegistrationTransport::LookupState;
+        // Read-only confirmation is independently observable. A NotFound
+        // lookup does NOT prove a previously sent write was never accepted.
+        if (!beforeSubmit) {
+            m_checkingConfirmation = false;
+            m_confirmationLookupHttpStatus = result.httpStatus;
+            switch (result.state) {
+            case State::Confirmed:
+                m_confirmationLookupState = QStringLiteral("confirmed");
+                break;
+            case State::NotFound:
+                m_confirmationLookupState = QStringLiteral("not_found");
+                break;
+            case State::Unavailable:
+                m_confirmationLookupState = QStringLiteral("unavailable");
+                break;
+            case State::InvalidResponse:
+                m_confirmationLookupState = QStringLiteral("invalid_response");
+                break;
+            }
+        }
         if (result.state == State::Confirmed) {
             onConfirmed(result.fid, generation);
             return;
@@ -219,6 +241,8 @@ void HyperSnapRegistrationPublisher::clear()
     m_address.clear();
     m_checks = 0;
     m_lastSubmissionHttpStatus = 0;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
     m_submitted = false;
     emit changed();
 }
