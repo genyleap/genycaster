@@ -109,6 +109,18 @@ fresh lookup must confirm the same FID on the same node, and only then does the
 existing `nativeAccountConfirmed` path create a session and provision its signer.
 This route never creates a proof, POSTs registration, or reuses an uncertain
 submission; a changed FID or failed lookup cannot establish a session.
+
+HyperSnap's gasless `KEY_ADD`/`KEY_REMOVE` and canonical user-message HTTP wire
+contracts are compatible with the existing protocol signer/write serializers.
+The runtime now registers **separate** HyperSnap-native signer and message
+submit sources under provider ID `hypersnap-v2`, pinned to the exact native
+registration node passed independently in `RuntimeConfiguration` (not the
+Farcaster Snapchain endpoint or the currently selected indexed read node).
+Farcaster and HyperSnap keep separate authoritative FID registries and signer
+verification; the common codec does not transfer ownership or authorize
+cross-network posting. Signer readiness remains gated by live network
+confirmation, and successful native onboarding still requires a real-device
+`KEY_ADD` and Cast verification before release.
 Local C++ and Qt tests exercise the guarded paths; a funded mainnet onboarding,
 signer network acceptance and full cross-platform package are **not** yet
 independently verified.
