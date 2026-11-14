@@ -951,9 +951,9 @@ test('signer parse errors are not reported as a rejected network authorization',
   const end=runtime.indexOf('void applySignerState(',begin);
   assert.ok(begin >= 0 && end > begin);
   const mapping=runtime.slice(begin,end);
-  assert.match(mapping,/case ErrorCode::ProtocolFailure:\\s*\\n[\\s\\S]*?genycaster\\.runtime\\.the_signer_operation_could_not_be_completed_safely/);
-  assert.match(mapping,/case ErrorCode::Conflict:\\s*\\n[\\s\\S]*?genycaster\\.runtime\\.snapchain_rejected_or_contradicted_the_signer_authorization_/);
-  assert.doesNotMatch(mapping,/case ErrorCode::ProtocolFailure:\\s*\\n\\s*case ErrorCode::Conflict:/);
+  assert.match(mapping,/case ErrorCode::ProtocolFailure:\s*\n[\s\S]*?genycaster\.runtime\.the_signer_operation_could_not_be_completed_safely/);
+  assert.match(mapping,/case ErrorCode::Conflict:\s*\n[\s\S]*?genycaster\.runtime\.snapchain_rejected_or_contradicted_the_signer_authorization_/);
+  assert.doesNotMatch(mapping,/case ErrorCode::ProtocolFailure:\s*\n\s*case ErrorCode::Conflict:/);
 });
 
 test('HyperSnap interrupted native registration restores the same custody without replay',()=>{
