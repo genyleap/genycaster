@@ -3487,6 +3487,157 @@ void connectRuntime(
             }
         });
 
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+    // Recovery authorization for an ALREADY SIGNED-IN native HyperSnap FID.
+    // Never treats this as a new sign-in, does not touch IdRegistry/OpenProof,
+    // and never exposes the recovery words to QML properties or a node.
+    auto signerAuthorizationGeneration = std::make_shared<std::atomic_uint64_t>(0U);
+    QObject::connect(&bridge, &PresentationBridge::signOutRequested, &bridge,
+        [signerAuthorizationGeneration] {
+            signerAuthorizationGeneration->fetch_add(1U, std::memory_order_acq_rel);
+        });
+    QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapSignerAuthorizationRequested,
+        &bridge, [runtime, nativePublisher, &bridge, signerObserver,
+                  signerAuthorizationGeneration](QString words) {
+            const auto id = signerAuthorizationGeneration->fetch_add(
+                1U, std::memory_order_acq_rel) + 1U;
+            const auto session = runtime->currentSessionSnapshot();
+            const auto reject = [&bridge](const char* reason) {
+                applySignerState(bridge, application::signer::SignerState{
+                    .phase = application::signer::SignerPhase::AuthorizationRequired,
+                    .error = foundation::error::Error::make(
+                        foundation::error::ErrorCode::Unauthorized, reason)
+                });
+            };
+            if (!nativePublisher || !runtime->signerService || !runtime->router
+                || !bridge.isAuthenticated() || bridge.signerBusy()
+                || bridge.writeReady() || !session || !session->custodyAddress
+                || session->identityIssuer != "hypersnap:native-registry"
+                || session->fid.value < (1ULL << 32)
+                || session->fid.value != bridge.accountFid()) {
+                words.fill(QChar{});
+                reject("Native HyperSnap custody session is not available for signing.");
+                return;
+            }
+            if (!runtime->router->isEligibleProvider(
+                    farcaster::provider::model::ProviderId{"hypersnap-v2"},
+                    routing::policy::CapabilityRequest{
+                        .capabilityId = capability::catalog::protocolSignerManage(),
+                        .requiredAccess = capability::model::CapabilityAccess::Write,
+                        .minimumQuality = capability::model::CapabilityQuality::Experimental
+                    })) {
+                words.fill(QChar{});
+                reject("Native HyperSnap signer writer is not available.");
+                return;
+            }
+            const auto fid = session->fid.value;
+            const auto custody = QString::fromStdString(*session->custodyAddress).toLower();
+            const auto scrub = [](QByteArray* buffer) {
+                if (!buffer->isEmpty()) buffer->fill(char{0});
+                delete buffer;
+            };
+            auto secret = std::shared_ptr<QByteArray>(
+                new QByteArray{words.toUtf8()}, scrub);
+            words.fill(QChar{});
+            // Do only public address derivation on a background worker. The
+            // private phrase remains in a short-lived, zeroized native buffer.
+            auto* watcher = new QFutureWatcher<QString>(&bridge);
+            QObject::connect(watcher, &QFutureWatcher<QString>::finished,
+                &bridge, [watcher, secret, runtime, nativePublisher, &bridge,
+                          signerObserver, signerAuthorizationGeneration, id,
+                          fid, custody] {
+                    const QString address = watcher->result().toLower();
+                    watcher->deleteLater();
+                    const auto active = runtime->currentSessionSnapshot();
+                    if (signerAuthorizationGeneration->load(
+                            std::memory_order_acquire) != id
+                        || !bridge.isAuthenticated()
+                        || !active || active->fid.value != fid
+                        || active->identityIssuer != "hypersnap:native-registry"
+                        || !active->custodyAddress
+                        || QString::fromStdString(*active->custodyAddress).toLower() != custody
+                        || bridge.accountFid() != fid)
+                        return;
+                    if (address.isEmpty() || address != custody) {
+                        applySignerState(bridge, application::signer::SignerState{
+                            .phase = application::signer::SignerPhase::AuthorizationRequired,
+                            .error = foundation::error::Error::make(
+                                foundation::error::ErrorCode::Unauthorized,
+                                "Recovery words do not match the verified native custody wallet.")
+                        });
+                        return;
+                    }
+                    auto* transport = new HyperSnapRegistrationTransport(
+                        nativePublisher->nodeEndpoint(), &bridge);
+                    transport->lookupByCustody(custody,
+                        [transport, secret, runtime, &bridge, signerObserver,
+                         signerAuthorizationGeneration, id, fid, custody](
+                            HyperSnapRegistrationTransport::LookupResult result) {
+                            transport->deleteLater();
+                            const auto current = runtime->currentSessionSnapshot();
+                            if (signerAuthorizationGeneration->load(
+                                    std::memory_order_acquire) != id
+                                || !bridge.isAuthenticated() || !current
+                                || bridge.accountFid() != fid
+                                || current->fid.value != fid
+                                || current->identityIssuer != "hypersnap:native-registry"
+                                || !current->custodyAddress
+                                || QString::fromStdString(*current->custodyAddress).toLower()
+                                    != custody) return;
+                            if (result.state
+                                    != HyperSnapRegistrationTransport::LookupState::Confirmed
+                                || result.fid != fid) {
+                                applySignerState(bridge, application::signer::SignerState{
+                                    .phase = application::signer::SignerPhase::AuthorizationRequired,
+                                    .error = foundation::error::Error::make(
+                                        foundation::error::ErrorCode::Unauthorized,
+                                        "HyperSnap native custody/FID could not be reverified.")
+                                });
+                                return;
+                            }
+                            const auto words = std::string_view{
+                                secret->constData(), static_cast<std::size_t>(secret->size())};
+                            auto permit = farcaster::platform::custody_recovery::
+                                makeOneShotRecoveryAuthorizer(
+                                    words, custody.toStdString(), fid);
+                            if (!permit) {
+                                applySignerState(bridge, application::signer::SignerState{
+                                    .phase = application::signer::SignerPhase::AuthorizationRequired,
+                                    .error = std::move(permit.error())
+                                });
+                                return;
+                            }
+                            auto status = runtime->signerService->provision(
+                                current, signerObserver, std::move(*permit));
+                            if (!status) {
+                                applySignerState(bridge, application::signer::SignerState{
+                                    .phase = application::signer::SignerPhase::Unavailable,
+                                    .error = std::move(status.error())
+                                });
+                            }
+                        });
+                });
+            watcher->setFuture(QtConcurrent::run([secret]() -> QString {
+                const auto mnemonic = std::string_view{
+                    secret->constData(), static_cast<std::size_t>(secret->size())};
+                auto address = farcaster::platform::custody_recovery::
+                    derivePublicCustodyAddress(mnemonic);
+                return address ? QString::fromStdString(*address) : QString{};
+            }));
+        });
+#else
+    QObject::connect(&bridge, &PresentationBridge::nativeHyperSnapSignerAuthorizationRequested,
+        &bridge, [&bridge](QString words) {
+            words.fill(QChar{});
+            applySignerState(bridge, application::signer::SignerState{
+                .phase = application::signer::SignerPhase::Unavailable,
+                .error = foundation::error::Error::make(
+                    foundation::error::ErrorCode::Unsupported,
+                    "Native HyperSnap signer recovery is unavailable on this platform.")
+            });
+        });
+#endif
+
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
         [&bridge, runtime, signerObserver, nativeWallet
 #if defined(Q_OS_WASM)
