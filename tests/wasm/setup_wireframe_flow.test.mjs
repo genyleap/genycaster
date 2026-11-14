@@ -883,8 +883,8 @@ test('confirmed HyperSnap FID offers a single status and revalidatable continue 
   const native=runtime.slice(runtime.indexOf('ProviderId{"hypersnap-v2"}'),
                              runtime.indexOf('runtime->independentReadProviderId'));
   assert.match(native,/protocolSignerManage\(\)/);
-  assert.match(native,/nativeSignerConfig\.submitBaseUrl = providerConfig\.baseUrl/);
-  assert.match(native,/nativeWriteConfig\.baseUrl = providerConfig\.baseUrl/);
+  assert.match(native,/nativeSignerConfig\.submitBaseUrl = nativeIdentityNode/);
+  assert.match(native,/nativeWriteConfig\.baseUrl = nativeIdentityNode/);
   assert.match(bridge,/nativePublisher->setIdentityRuntimeReady\(canAttach\)/);
 });
 
