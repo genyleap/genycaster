@@ -1964,7 +1964,9 @@ Item {
                             width: Math.min(implicitWidth, profileIdentityFlow.width)
                             height: implicitHeight
                             text: root.activeDetail.displayName || (root.showUsername ? root.activeDetail.username : "")
-                                  || qsTrId("genycaster.profile.farcaster_profile")
+                                  || (Number(root.activeDetail.fid || 0) >= 4294967296
+                                      ? qsTrId("genycaster.settings.hypersnap_label")
+                                      : qsTrId("genycaster.profile.farcaster_profile"))
                             color: Theme.ink
                             font.pixelSize: root.compact ? Theme.typeTitle2Size : Theme.typeTitle1Size
                             font.weight: Theme.weightBold
