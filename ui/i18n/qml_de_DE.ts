@@ -5825,8 +5825,8 @@ Company | https://company.com</source>
             <translation>Vom Betreiber ausgestellten Registrierungscode eingeben</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
-            <source>Verify enrollment code</source>
-            <translation>Registrierungscode prüfen</translation>
+            <source>Use registration code</source>
+            <translation>Registrierungscode verwenden</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
             <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
