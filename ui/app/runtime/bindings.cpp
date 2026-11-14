@@ -3488,7 +3488,7 @@ void connectRuntime(
         });
 
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
-        [&bridge, runtime, signerObserver
+        [&bridge, runtime, signerObserver, nativeWallet
 #if defined(Q_OS_WASM)
         , browserSigner
 #endif
@@ -3509,8 +3509,32 @@ void connectRuntime(
                 applySignerState(bridge, std::move(state));
                 return;
             }
+            const auto session = runtime->currentSessionSnapshot();
+            if (!session || !bridge.isAuthenticated()
+                || session->fid.value != bridge.accountFid()) return;
+            std::shared_ptr<capability::signer::ICustodyAuthorizer> localPermit{};
+            if (session->identityIssuer == "hypersnap:native-registry") {
+                // Never fall through to the Farcaster/browser custody
+                // authorizer for a native HyperSnap FID. Newly created
+                // local wallets may grant a one-use permit directly.
+                if (nativeWallet && session->custodyAddress) {
+                    localPermit = NativeCustodySignerAccess::forConfirmedNativeFid(
+                        *nativeWallet, session->fid.value,
+                        QString::fromStdString(*session->custodyAddress));
+                }
+                if (!localPermit) {
+                    applySignerState(bridge, application::signer::SignerState{
+                        .phase = application::signer::SignerPhase::AuthorizationRequired,
+                        .error = foundation::error::Error::make(
+                            foundation::error::ErrorCode::Unauthorized,
+                            "HyperSnap signer requires explicit local custody authorization. "
+                            "Use the saved recovery words on this device.")
+                    });
+                    return;
+                }
+            }
             auto status = runtime->signerService->provision(
-                runtime->currentSessionSnapshot(), signerObserver);
+                session, signerObserver, std::move(localPermit));
             if (!status) {
                 application::signer::SignerState state{
                     .phase = application::signer::SignerPhase::Unavailable,
