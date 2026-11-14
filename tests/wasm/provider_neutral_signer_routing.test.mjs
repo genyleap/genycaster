@@ -22,7 +22,7 @@ test('HyperSnap is the default indexed read route, without overriding a user-sel
     // signer capability binds a dedicated source to the same HyperSnap node.
     const nativeRegistration = composition.slice(
        composition.indexOf('ProviderId{"hypersnap-v2"}'),
-       composition.indexOf('runtime->independentReadProviderId'));
+       composition.indexOf('runtime->asyncGateway ='));
     assert.match(nativeRegistration,/hypersnap::registration::capabilities\(\)/);
     assert.match(nativeRegistration,/nativeCapabilities.push_back\(capability::model::CapabilityDescriptor/);
     assert.match(nativeRegistration,/capability::catalog::protocolSignerManage\(\)/);
