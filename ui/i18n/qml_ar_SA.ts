@@ -5712,6 +5712,18 @@ Company | https://company.com</source>
             <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
             <translation>اكتب الكلمات بالترتيب على ورق واحتفظ بها في مكان آمن. من يملكها يستطيع التحكم بحسابك. لا تلتقط صورة للشاشة.</translation>
         </message>
+        <message id="genycaster.setup.wallet_copy_label">
+            <source>Copy all 24 recovery words</source>
+            <translation>نسخ كلمات الاسترداد الأربع والعشرين</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_success">
+            <source>Copied — clipboard clears after 60 seconds if unchanged.</source>
+            <translation>تم النسخ؛ ستُمسح الحافظة بعد ٦٠ ثانية إذا لم تتغير.</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_warning">
+            <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
+            <translation>قد تتمكن التطبيقات الأخرى من قراءة محتوى الحافظة أو حفظه. يمسح GenyCaster الحافظة بعد ٦٠ ثانية إذا لم تتغير. احتفظ بنسخة احتياطية دون اتصال.</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>حفظت الكلمات الأربع والعشرين بالترتيب في مكان آمن.</translation>
