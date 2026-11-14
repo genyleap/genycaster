@@ -5,6 +5,7 @@
 #include <QEventLoop>
 #include <QHostAddress>
 #include <QNetworkReply>
+#include <QSettings>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTimer>
@@ -97,6 +98,8 @@ void await(Function start)
 int main(int argc, char** argv)
 {
     QCoreApplication app(argc, argv);
+    QCoreApplication::setOrganizationName(QStringLiteral("Genycaster-RegistrationTest"));
+    QCoreApplication::setApplicationName(QStringLiteral("HyperSnapNativeTest"));
     FakeHub mock{};
     Transport client{mock.url()};
     assert(client.endpointIsSafe());
@@ -449,6 +452,40 @@ int main(int argc, char** argv)
         assert(!recovered.retryReady());
         assert(recovered.retryRemainingBlocks() == 20);
         assert(!recovered.releaseExpiredAttempt());
+        // The first observed head is saved without any mnemonic, signature
+        // or proof material. Back/navigation or process restart must not
+        // reset the 1,040-block safety window.
+        recovered.stopPolling();
+        head = 8'002;
+        {
+            HyperSnapRegistrationPublisher resumed{
+                hub.url(),
+                NativePublicationPorts{
+                    .backupVerified = [] { return true; },
+                    .custodyAddress = [&] { return address; },
+                    .registrationWindow = [&]() -> std::optional<
+                        std::pair<std::uint64_t, std::uint32_t>> {
+                        if (!validNode) return std::nullopt;
+                        return std::pair{head, std::uint32_t{4}};
+                    }
+                }};
+            resumed.setIdentityRuntimeReady(true);
+            assert(resumed.recoverInterruptedRegistration());
+            await([&](auto done) {
+                auto connection = std::make_shared<QMetaObject::Connection>();
+                *connection = QObject::connect(
+                    &resumed, &HyperSnapRegistrationPublisher::changed,
+                    &resumed, [&, connection, done] {
+                        if (!resumed.busy()) {
+                            QObject::disconnect(*connection);
+                            done();
+                        }
+                    });
+            });
+            assert(resumed.retryRemainingBlocks() == 18);
+            assert(!resumed.retryReady());
+            resumed.stopPolling();
+        }
         head = 8'019; // Still inside the conservative 4 + 16 window.
         assert(recovered.checkConfirmation());
         await([&](auto done) {
