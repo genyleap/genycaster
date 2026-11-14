@@ -850,7 +850,9 @@ struct NativeUnknownFidEvidence final {
             if (scopes && scopes->is_array()) {
                 return std::any_of(scopes->as_array().begin(), scopes->as_array().end(),
                     [&](const JsonValue& scope) {
-                        return scope.is_string() && scope.as_string() == requiredScope;
+                        return scope.is_string()
+                            && std::string_view{scope.as_string().data(), scope.as_string().size()}
+                                == requiredScope;
                     });
             }
             return true;
