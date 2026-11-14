@@ -1888,7 +1888,12 @@ Item {
                         busy: nativeRegistrationPublisher.checkingConfirmation
                         enabled: !nativeRegistrationPublisher.busy
                         text: qsTrId("genycaster.setup.native_registration_check_again")
-                        onClicked: nativeRegistrationPublisher.checkConfirmation()
+                        onClicked: {
+                            // Refresh shard-0 window on the SAME node while
+                            // verifying custody ownership (read-only).
+                            nativeRegistrationStatus.refresh()
+                            nativeRegistrationPublisher.checkConfirmation()
+                        }
                     }
                     DirectionAwareLabel {
                         objectName: "setupNativeConfirmationDetails"
@@ -1906,6 +1911,38 @@ Item {
                                ? Theme.warning : Theme.danger
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupNativeRetryWindow"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.pending
+                                 && nativeRegistrationPublisher.confirmationLookupState === "not_found"
+                                 && nativeRegistrationPublisher.retryRemainingBlocks > 0
+                        text: qsTrId("genycaster.setup.native_retry_wait_blocks")
+                            .arg(nativeRegistrationPublisher.retryRemainingBlocks)
+                        color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupReleaseExpiredNativeAttempt"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.retryReady
+                                 && nativeRegistrationPublisher.pending
+                        enabled: !nativeRegistrationPublisher.busy
+                        compact: true
+                        text: qsTrId("genycaster.setup.native_retry_start_over")
+                        onClicked: {
+                            if (nativeRegistrationPublisher.releaseExpiredAttempt()) {
+                                // The existing verified wallet is preserved.
+                                // Another proof must be prepared and consented
+                                // to explicitly; nothing is auto-submitted.
+                                nativeRegistrationPreparation.cancel()
+                                nativeRegistrationStatus.clearExistingLookup()
+                                nativeRegistrationStatus.refresh()
+                                root.registrationError = ""
+                            }
+                        }
                     }
                 }
             }
