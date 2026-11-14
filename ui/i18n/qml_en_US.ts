@@ -5833,6 +5833,10 @@ Company | https://company.com</translation>
             <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
             <translation>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</translation>
         </message>
+        <message id="genycaster.setup.native_confirmation_no_fid_yet">
+            <source>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</source>
+            <translation>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</translation>
+        </message>
         <message id="genycaster.setup.native_registration_outcome_unknown">
             <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
             <translation>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</translation>
