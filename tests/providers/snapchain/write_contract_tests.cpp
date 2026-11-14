@@ -116,6 +116,56 @@ void submitUsesCanonicalBinaryEndpoint()
     assert(request.headers.at(1) == "Content-Type: application/octet-stream");
 }
 
+void acceptsExactProtoJsonNativeFid()
+{
+    // HyperSnap native IDs begin at 2^32; protobuf JSON serializes uint64
+    // as decimal strings, not numeric JavaScript doubles.
+    constexpr std::uint64_t nativeFid = 4294967296ULL;
+    auto native = operation();
+    native.author = domain::identity::Fid{nativeFid};
+    native.optimisticCast->author = native.author;
+    const auto reply = "{\\\"hash\\\":\\\"0x00112233445566778899aabbccddeeff00112233\\\","
+        "\\\"data\\\":{\\\"type\\\":\\\"MESSAGE_TYPE_CAST_ADD\\\","
+        "\\\"fid\\\":\\\"4294967296\\\"}}";
+    FakeTransport http{};
+    http.postReplies.push_back({.statusCode = 200U, .body = reply});
+    http.getReplies.push_back({.statusCode = 200U, .body = reply});
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    assert(submitter->submit(native));
+    auto confirmed = submitter->reconcile(native);
+    assert(confirmed && *confirmed == capability::write::ConfirmationState::Confirmed);
+    assert(http.gets.size() == 1U);
+    assert(http.gets.front().url.find("fid=4294967296&") != std::string::npos);
+
+    FakeTransport malformed{};
+    malformed.postReplies.push_back({
+        .statusCode = 200U,
+        .body = "{\\\"data\\\":{\\\"type\\\":\\\"MESSAGE_TYPE_CAST_ADD\\\","
+                "\\\"fid\\\":\\\"18446744073709551616\\\"}}",
+    });
+    auto invalidSubmitter = provider::snapchain::write::makeSubmitter(
+        malformed, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    auto invalid = invalidSubmitter->submit(native);
+    assert(!invalid);
+    assert(invalid.error().code == foundation::error::ErrorCode::ProtocolFailure);
+}
+
+void unknownFidProvidesNetworkSpecificDiagnostic()
+{
+    FakeTransport http{};
+    http.postReplies.push_back({
+        .statusCode = 400U,
+        .body = R"({"error":"Failed to submit message","error_detail":"bad_request.validation_failure/unknown fid"})",
+    });
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    auto result = submitter->submit(operation());
+    assert(!result);
+    assert(result.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(result.error().message.find("SAME node") != std::string::npos);
+}
+
 void defaultConfigurationRequiresCompositionOrigin()
 {
     const auto config = provider::snapchain::write::Config{};
@@ -363,6 +413,8 @@ int main()
     invalidReadEndpointFailsClosed();
     explicitAuthorizationHeaderIsForwarded();
     submitUsesCanonicalBinaryEndpoint();
+    acceptsExactProtoJsonNativeFid();
+    unknownFidProvidesNetworkSpecificDiagnostic();
     reconcileUsesCanonicalCastIdentity();
     reactionAndFollowReconciliationUseCanonicalIdentity();
     missingRemovedCastConfirmsDeletion();
