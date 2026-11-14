@@ -93,9 +93,24 @@ void HyperSnapRegistrationTransport::lookupByCustody(
         const QByteArray payload = reply->bytesAvailable() <= MaxResponseBytes
             ? reply->readAll() : QByteArray{};
         reply->deleteLater();
-        if (code == 404) {
-            cb({LookupState::NotFound});
-            return;
+        // The public HyperSnap hub currently returns HTTP 400 for a missing
+        // custody account, with a precise gRPC NotFound detail. Do NOT turn
+        // arbitrary HTTP 400/404 responses into "wallet is unregistered":
+        // the URL might be unsupported, misrouted or temporarily broken.
+        if (code == 400) {
+            const auto diagnostic = QJsonDocument::fromJson(payload);
+            if (diagnostic.isObject()) {
+                const auto body = diagnostic.object();
+                const auto detail =
+                    body.value(QStringLiteral("error_detail")).toString();
+                if (body.value(QStringLiteral("error")).toString()
+                        == QStringLiteral("Native registration lookup failed")
+                    && detail.startsWith(QStringLiteral(
+                        "status: NotFound, message: \\"native account not found\\""))) {
+                    cb({LookupState::NotFound});
+                    return;
+                }
+            }
         }
         if (err != QNetworkReply::NoError || code != 200) {
             cb({LookupState::Unavailable});
