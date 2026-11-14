@@ -6,6 +6,7 @@
 #include <QHostAddress>
 #include <QNetworkReply>
 #include <QSettings>
+#include <QTemporaryDir>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTimer>
@@ -100,6 +101,12 @@ int main(int argc, char** argv)
     QCoreApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("Genycaster-RegistrationTest"));
     QCoreApplication::setApplicationName(QStringLiteral("HyperSnapNativeTest"));
+    // The pending-attempt journal is real QSettings state. Keep the
+    // regression fully isolated from a user's or a previous CI run's data.
+    QTemporaryDir settingsHome{};
+    assert(settingsHome.isValid());
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsHome.path());
     FakeHub mock{};
     Transport client{mock.url()};
     assert(client.endpointIsSafe());
