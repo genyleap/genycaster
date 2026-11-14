@@ -5833,6 +5833,10 @@ Company | https://company.com</source>
             <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
             <translation>نود هایپراسنپ این اثبات را نپذیرفت. بلاک مرجع را نوسازی و دوباره اثبات آماده کنید.</translation>
         </message>
+        <message id="genycaster.setup.native_confirmation_no_fid_yet">
+            <source>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</source>
+            <translation>رجیستری هنوز FID این کیف پول را تأیید نکرده است. ممکن است درخواست قبلی همچنان در حال پردازش باشد؛ دوباره ارسال نکنید.</translation>
+        </message>
         <message id="genycaster.setup.native_registration_outcome_unknown">
             <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
             <translation>نتیجهٔ ارسال مشخص نیست. پیش از هر ارسال مجدد بررسی کنید آیا کیف پول از قبل FID دریافت کرده است یا نه.</translation>
