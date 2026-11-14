@@ -3673,16 +3673,9 @@ void connectRuntime(
                         *nativeWallet, session->fid.value,
                         QString::fromStdString(*session->custodyAddress));
                 }
-                if (!localPermit) {
-                    applySignerState(bridge, application::signer::SignerState{
-                        .phase = application::signer::SignerPhase::AuthorizationRequired,
-                        .error = foundation::error::Error::make(
-                            foundation::error::ErrorCode::Unauthorized,
-                            "HyperSnap signer requires explicit local custody authorization. "
-                            "Use the saved recovery words on this device.")
-                    });
-                    return;
-                }
+                // Without a live custody key, a read-only signer inspection
+                // still restores an already authorized device. SignerService
+                // forbids native KEY_ADD without a one-shot local permit.
             }
             auto status = runtime->signerService->provision(
                 session, signerObserver, std::move(localPermit));
