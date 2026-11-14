@@ -25,6 +25,15 @@ bool NativeRegistrationStatusController::verifiedAbsentForCustody(
         && m_lookupAddress == address.toLower();
 }
 
+QString NativeRegistrationStatusController::verifiedExistingFidForCustody(
+    const QString& address) const
+{
+    return m_lookupChecked && !m_lookupBusy && !m_lookupFailed
+        && !m_existingFid.isEmpty() && !m_lookupAddress.isEmpty()
+        && m_lookupAddress == address.toLower()
+        ? m_existingFid : QString{};
+}
+
 void NativeRegistrationStatusController::clearExistingLookup()
 {
     ++m_lookupGeneration;
