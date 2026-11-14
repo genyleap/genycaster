@@ -732,6 +732,9 @@ int main(int argc, char* argv[])
                 const auto anchor = nativeRegistrationStatus.snapshot();
                 if (!anchor) return std::nullopt;
                 return std::pair{anchor->nextBlock, anchor->window};
+            },
+            .existingFidForCustody = [&nativeRegistrationStatus](const QString& address) {
+                return nativeRegistrationStatus.verifiedExistingFidForCustody(address);
             }
         });
     HyperSnapRegistrationPublisher& nativeRegistrationPublisher = *nativePublisherOwner;
