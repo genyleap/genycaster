@@ -173,6 +173,16 @@ test('uncertain HyperSnap submit stays a read-only confirmation instead of showi
   assert.match(broadcast,/onClicked: nativeRegistrationPublisher\.checkConfirmation\(\)/);
   assert.match(setup,/function nativeSubmissionStatusText\(\)/);
   assert.match(setup,/lastSubmissionHttpStatus/);
+  assert.match(broadcast,/objectName: "setupNativeConfirmationDetails"/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupChecks > 0/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupState === "not_found"/);
+  assert.match(broadcast,/genycaster\.setup\.native_confirmation_no_fid_yet/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.confirmationLookupHttpStatus/);
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    assert.match(source('ui/i18n/qml_'+locale+'.ts'),
+      /<message id="genycaster\.setup\.native_confirmation_no_fid_yet">/);
+  }
   const publisher=source('ui/app/identity/native_publish.cpp');
   assert.match(publisher,/m_lastSubmissionHttpStatus = result\.httpStatus/);
   assert.match(publisher,/m_checkingConfirmation = true/);
