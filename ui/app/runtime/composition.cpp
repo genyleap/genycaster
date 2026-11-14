@@ -1057,6 +1057,9 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         farcaster::provider::snapchain::write::Config nativeWriteConfig{};
         nativeWriteConfig.baseUrl = nativeIdentityNode;
         nativeWriteConfig.readBaseUrl = nativeIdentityNode;
+        // Only this network has a shard-0 native identity registry.
+        // A rejected unknown-FID write may query it once, read-only.
+        nativeWriteConfig.probeNativeRegistryOnUnknownFid = true;
         runtime->writeSourceEndpointIdentities.push_back(
             "hypersnap-v2|" + nativeIdentityNode + "|" + nativeIdentityNode);
         runtime->writeSources.push_back(
