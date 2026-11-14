@@ -162,12 +162,13 @@ test('Back navigation never duplicates the HyperSnap pending warning in red', ()
   const back=setup.slice(setup.indexOf('function previousStep()'),
                          setup.indexOf('function actionText()'));
   const pending=back.slice(back.indexOf('if (nativeRegistrationPublisher.pending)'),
-                           back.indexOf('// Backing out must also stop polling'));
+                           back.indexOf('switchStep(0)') + 'switchStep(0)'.length);
   assert.match(pending,/nativeRegistrationPublisher\.stopPolling\(\)/);
   assert.match(pending,/nativeRegistrationPreparation\.cancel\(\)/);
   assert.match(pending,/registrationError = ""/);
   assert.match(pending,/choosingRegistrationProvider = false/);
   assert.match(pending,/accountIntent = ""/);
+  assert.match(pending,/switchStep\(0\)/);
   assert.doesNotMatch(pending,/registrationError\s*=\s*qsTrId\(/);
   assert.doesNotMatch(pending,/nativeRegistrationPublisher\.submitPrepared\(\)/);
   assert.doesNotMatch(pending,/nativeCustodyWallet\.discard\(\)/);
@@ -177,6 +178,32 @@ test('Back navigation never duplicates the HyperSnap pending warning in red', ()
   assert.match(publisher,/saveRetryJournal\(\)/);
   assert.match(publisher,/eraseRetryJournal\(\)/);
   assert.match(publisher,/nativeRegistration\/expiry-v1\//);
+});
+
+test('replacing a verified wallet requires confirmation and preserves old pending journal', () => {
+  const account=setup.slice(setup.indexOf('id: accountStage'),
+                            setup.indexOf('id: signInStage'));
+  assert.match(account,/objectName: "setupWalletReplacement"/);
+  assert.match(account,/objectName: "setupChooseDifferentWallet"/);
+  assert.match(account,/root\.confirmWalletReplacement = true/);
+  assert.match(account,/objectName: "setupWalletReplacementWarning"/);
+  assert.match(account,/objectName: "setupConfirmDifferentWallet"/);
+  const confirmation=account.slice(account.indexOf('objectName: "setupConfirmDifferentWallet"'),
+                                   account.indexOf('objectName: "setupRestoreInterruptedWallet"'));
+  assert.match(confirmation,/nativeRegistrationPublisher\.detachWalletForNewRegistration\(\)/);
+  assert.match(confirmation,/nativeCustodyWallet\.discard\(\)/);
+  assert.doesNotMatch(confirmation,/nativeRegistrationPublisher\.submitPrepared\(\)/);
+  const header=source('ui/app/identity/native_publish.hpp');
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  assert.match(header,/Q_INVOKABLE bool detachWalletForNewRegistration\(\)/);
+  assert.match(publisher,/bool HyperSnapRegistrationPublisher::detachWalletForNewRegistration\(\)/);
+  assert.match(publisher,/if \(m_submitted && !m_address\.isEmpty\(\)\)\s*saveRetryJournal\(\)/);
+  for (const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                        'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const xml=source('ui/i18n/qml_'+locale+'.ts');
+    for(const id of ['wallet_switch_action','wallet_switch_warning','wallet_switch_confirm'])
+      assert.ok(xml.includes('id="genycaster.setup.'+id+'"'),locale+' '+id);
+  }
 });
 
 test('uncertain HyperSnap submit stays a read-only confirmation instead of showing a second submit', () => {
