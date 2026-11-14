@@ -132,7 +132,8 @@ void acceptsExactProtoJsonNativeFid()
     http.getReplies.push_back({.statusCode = 200U, .body = reply});
     auto submitter = provider::snapchain::write::makeSubmitter(
         http, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
-    assert(submitter->submit(native));
+    const auto submitted = submitter->submit(native);
+    assert(submitted);
     auto confirmed = submitter->reconcile(native);
     assert(confirmed && *confirmed == capability::write::ConfirmationState::Confirmed);
     assert(http.gets.size() == 1U);
