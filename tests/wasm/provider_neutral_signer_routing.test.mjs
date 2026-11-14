@@ -28,8 +28,8 @@ test('HyperSnap is the default indexed read route, without overriding a user-sel
     assert.match(nativeRegistration,/capability::catalog::protocolSignerManage\(\)/);
     assert.match(nativeRegistration,/runtime->signerRegistry->addSource/);
     assert.match(nativeRegistration,/\.providerId = descriptor.id/);
-    assert.match(nativeRegistration,/nativeSignerConfig.baseUrl = providerConfig.baseUrl/);
-    assert.match(nativeRegistration,/nativeWriteConfig.baseUrl = providerConfig.baseUrl/);
+    assert.match(nativeRegistration,/nativeSignerConfig.baseUrl = nativeIdentityNode/);
+    assert.match(nativeRegistration,/nativeWriteConfig.baseUrl = nativeIdentityNode/);
     assert.match(nativeRegistration,/hypersnap-v2\|/);
     assert.doesNotMatch(nativeRegistration,/nativeSignerConfig.baseUrl = \*snapchainBaseUrl/);
 });
