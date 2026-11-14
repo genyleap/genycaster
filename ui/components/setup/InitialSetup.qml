@@ -1476,8 +1476,9 @@ Item {
                                     text: qsTrId("genycaster.setup.wallet_challenge_word")
                                         .arg(nativeCustodyWallet.firstChallengeIndex + 1)
                                 }
-                                TextField {
+                                BidiTextField {
                                     id: walletChallengeFirst
+                                    forceLeftToRight: true
                                     objectName: "walletChallengeFirst"
                                     Layout.fillWidth: true
                                     echoMode: TextInput.Password
@@ -1495,8 +1496,9 @@ Item {
                                     text: qsTrId("genycaster.setup.wallet_challenge_word")
                                         .arg(nativeCustodyWallet.secondChallengeIndex + 1)
                                 }
-                                TextField {
+                                BidiTextField {
                                     id: walletChallengeSecond
+                                    forceLeftToRight: true
                                     objectName: "walletChallengeSecond"
                                     Layout.fillWidth: true
                                     echoMode: TextInput.Password
@@ -1597,8 +1599,9 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
-                    TextField {
+                    BidiTextField {
                         id: neynarEnrollmentVoucher
+                        forceLeftToRight: true
                         objectName: "setupNeynarVoucher"
                         Layout.fillWidth: true
                         visible: !neynarRegistration.hasVoucher
@@ -1657,8 +1660,9 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
-                    TextField {
+                    BidiTextField {
                         id: neynarRequestedUsername
+                        forceLeftToRight: true
                         objectName: "setupNeynarUsername"
                         Layout.fillWidth: true
                         visible: neynarRegistration.phase === "reserved"
@@ -2012,8 +2016,9 @@ Item {
                         Repeater {
                             id: recoveryWordRepeater
                             model: 24
-                            delegate: TextField {
+                            delegate: BidiTextField {
                                 id: wordField
+                                forceLeftToRight: true
                                 required property int index
                                 objectName: "nativeRecoveryWord" + (index + 1)
                                 Layout.fillWidth: true
