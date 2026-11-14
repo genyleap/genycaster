@@ -216,7 +216,7 @@ void testProtoJsonUint64SignerIdentifiers()
 
     constexpr std::uint64_t NativeFid = 4'294'967'296ULL;
     constexpr std::uint64_t ExactFidOverJsSafeInteger = 9'007'199'254'740'993ULL;
-    for (const auto [fid, fidJson, requestFidJson] : {
+    for (const auto& [fid, fidJson, requestFidJson] : {
              std::tuple{NativeFid, std::string_view{"\"4294967296\""},
                         std::string_view{"\"4294967296\""}},
              std::tuple{NativeFid, std::string_view{"4294967296"},
