@@ -1476,7 +1476,7 @@ Item {
                                     text: qsTrId("genycaster.setup.wallet_challenge_word")
                                         .arg(nativeCustodyWallet.firstChallengeIndex + 1)
                                 }
-                                BidiTextField {
+                                DirectionAwareTextField {
                                     id: walletChallengeFirst
                                     forceLeftToRight: true
                                     objectName: "walletChallengeFirst"
@@ -1496,7 +1496,7 @@ Item {
                                     text: qsTrId("genycaster.setup.wallet_challenge_word")
                                         .arg(nativeCustodyWallet.secondChallengeIndex + 1)
                                 }
-                                BidiTextField {
+                                DirectionAwareTextField {
                                     id: walletChallengeSecond
                                     forceLeftToRight: true
                                     objectName: "walletChallengeSecond"
@@ -1599,7 +1599,7 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
-                    BidiTextField {
+                    DirectionAwareTextField {
                         id: neynarEnrollmentVoucher
                         forceLeftToRight: true
                         objectName: "setupNeynarVoucher"
@@ -1660,7 +1660,7 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
-                    BidiTextField {
+                    DirectionAwareTextField {
                         id: neynarRequestedUsername
                         forceLeftToRight: true
                         objectName: "setupNeynarUsername"
@@ -2016,7 +2016,7 @@ Item {
                         Repeater {
                             id: recoveryWordRepeater
                             model: 24
-                            delegate: BidiTextField {
+                            delegate: DirectionAwareTextField {
                                 id: wordField
                                 forceLeftToRight: true
                                 required property int index
