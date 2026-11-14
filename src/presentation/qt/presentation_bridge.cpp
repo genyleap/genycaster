@@ -3026,6 +3026,13 @@ void PresentationBridge::authorizeNativeHyperSnapSigner(QString recoveryWords)
         }
         return;
     }
+    // Mark the asynchronous local recovery + registry check in progress
+    // immediately, so a second click cannot race the first KEY_ADD.
+    m_signerPhase = QStringLiteral("provisioning");
+    m_signerBusy = true;
+    m_writeReady = false;
+    m_signerStatusText = qtTrId(
+        "genycaster.runtime.waiting_for_custody_approval_and_network_confirmation");
     m_signerErrorText.clear();
     emit stateChanged();
     emit nativeHyperSnapSignerAuthorizationRequested(std::move(recoveryWords));
