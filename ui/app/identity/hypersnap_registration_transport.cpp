@@ -106,7 +106,7 @@ void HyperSnapRegistrationTransport::lookupByCustody(
                 if (body.value(QStringLiteral("error")).toString()
                         == QStringLiteral("Native registration lookup failed")
                     && detail.startsWith(QStringLiteral(
-                        "status: NotFound, message: \\"native account not found\\""))) {
+                        "status: NotFound, message: \"native account not found\""))) {
                     cb({LookupState::NotFound});
                     return;
                 }
