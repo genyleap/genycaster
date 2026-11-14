@@ -124,9 +124,9 @@ void acceptsExactProtoJsonNativeFid()
     auto native = operation();
     native.author = domain::identity::Fid{nativeFid};
     native.optimisticCast->author = native.author;
-    const auto reply = "{\\\"hash\\\":\\\"0x00112233445566778899aabbccddeeff00112233\\\","
-        "\\\"data\\\":{\\\"type\\\":\\\"MESSAGE_TYPE_CAST_ADD\\\","
-        "\\\"fid\\\":\\\"4294967296\\\"}}";
+    const auto reply = "{\"hash\":\"0x00112233445566778899aabbccddeeff00112233\","
+        "\"data\":{\"type\":\"MESSAGE_TYPE_CAST_ADD\","
+        "\"fid\":\"4294967296\"}}";
     FakeTransport http{};
     http.postReplies.push_back({.statusCode = 200U, .body = reply});
     http.getReplies.push_back({.statusCode = 200U, .body = reply});
@@ -141,8 +141,8 @@ void acceptsExactProtoJsonNativeFid()
     FakeTransport malformed{};
     malformed.postReplies.push_back({
         .statusCode = 200U,
-        .body = "{\\\"data\\\":{\\\"type\\\":\\\"MESSAGE_TYPE_CAST_ADD\\\","
-                "\\\"fid\\\":\\\"18446744073709551616\\\"}}",
+        .body = "{\"data\":{\"type\":\"MESSAGE_TYPE_CAST_ADD\","
+                "\"fid\":\"18446744073709551616\"}}",
     });
     auto invalidSubmitter = provider::snapchain::write::makeSubmitter(
         malformed, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
