@@ -83,6 +83,9 @@ public:
     /** Verify an already registered FID by a fresh custody-bound shard-0
      * lookup. Never submits a registration or reuses a pending-write journal. */
     Q_INVOKABLE bool confirmExistingAccount();
+    /** Explicitly retry sign-in after an FID was already confirmed. Fresh
+     * registry lookup only: no registration submission or proof generation. */
+    Q_INVOKABLE bool resumeConfirmedAccount();
     /** Queries the registry; safe even if submit returned timeout/500. */
     Q_INVOKABLE bool checkConfirmation();
     /** Explicitly release a timed-out attempt only after its anchor can no
