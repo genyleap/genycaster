@@ -31,6 +31,7 @@ Item {
     property string accountName: ""
     property string accountUsername: ""
     property string accountAvatarUrl: ""
+    property string accountIdentityIssuer: ""
 
     property int currentStep: 0
     property int highestReachedStep: 0
@@ -2196,7 +2197,9 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
-                    text: qsTrId("genycaster.setup.recovery_privacy")
+                    text: root.recoveryProtocol === "hypersnap-v2"
+                        ? qsTrId("genycaster.setup.native_recovery_privacy")
+                        : qsTrId("genycaster.setup.recovery_privacy")
                     color: Theme.inkMuted
                     font.pixelSize: Theme.typeCaptionSize
                     wrapMode: Text.WordWrap
@@ -2478,7 +2481,13 @@ Item {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: root.authenticated ? qsTrId("genycaster.setup.account_verified_body")
+                text: root.authenticated
+                    ? root.signerReady
+                      ? qsTrId("genycaster.setup.recovery_signer_ready")
+                      : root.accountIdentityIssuer === "hypersnap:native-registry"
+                        || root.accountIdentityIssuer === "farcaster:optimism-id-registry"
+                        ? qsTrId("genycaster.setup.registration_next_device")
+                        : qsTrId("genycaster.setup.account_verified_body")
                     : qsTrId("genycaster.setup.design_verifying_description")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
