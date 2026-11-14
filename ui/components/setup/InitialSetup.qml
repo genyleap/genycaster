@@ -262,9 +262,15 @@ Item {
                 return
             }
             if (nativeRegistrationPublisher.pending) {
-                registrationError =
-                    qsTrId("genycaster.setup.native_registration_outcome_unknown")
-                nativeRegistrationPublisher.checkConfirmation()
+                // Going Back is navigation, not authorization to retry the
+                // submitted registration. Preserve the wallet and pending
+                // guard; simply leave the registration detail screen.
+                // Do not duplicate the publisher's warning in red.
+                nativeRegistrationPublisher.stopPolling()
+                nativeRegistrationPreparation.cancel()
+                registrationError = ""
+                choosingRegistrationProvider = false
+                accountIntent = ""
                 return
             }
             // Backing out must also stop polling any submitted registration.
