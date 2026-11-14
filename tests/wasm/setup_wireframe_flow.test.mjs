@@ -857,6 +857,37 @@ test('existing HyperSnap FID continues only after independent custody verificati
   assert.match(runtime,/NativeCustodySignerAccess::forConfirmedNativeFid/);
 });
 
+test('confirmed HyperSnap FID offers a single status and revalidatable continue action', () => {
+  const ui=source('ui/components/setup/InitialSetup.qml');
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  const header=source('ui/app/identity/native_publish.hpp');
+  const runtime=source('ui/app/runtime/composition.cpp');
+  const bridge=source('ui/app/runtime/bindings.cpp');
+  const account=ui.slice(ui.indexOf('id: accountStage'),
+                         ui.indexOf('id: signInStage'));
+  assert.match(account, /objectName: "setupContinueConfirmedNativeAccount"/);
+  assert.match(account, /onClicked: nativeRegistrationPublisher\.resumeConfirmedAccount\(\)/);
+  assert.match(account, /objectName: "setupConfirmedNativeLoginError"/);
+  assert.match(account, /root\.authenticationErrorText/);
+  assert.match(account, /visible: !nativeRegistrationPublisher\.confirmed\s*\n\s*&& \(nativeRegistrationPublisher\.busy/);
+  assert.match(account, /objectName: "setupWalletReplacement"[\s\S]*?&& !nativeRegistrationPublisher\.confirmed/);
+  assert.match(account, /title: nativeRegistrationPublisher\.confirmed[\s\S]*?genycaster\.setup\.account_verified/);
+  assert.match(ui, /objectName: "setupSignerVerificationStatus"/);
+  const retry=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::resumeConfirmedAccount()'),
+                              publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
+  assert.match(header,/Q_INVOKABLE bool resumeConfirmedAccount\(\)/);
+  assert.match(retry,/m_transport\.lookupByCustody\(m_address/);
+  assert.match(retry,/result\.fid == expected/);
+  assert.match(retry,/onConfirmed\(result\.fid, generation\)/);
+  assert.doesNotMatch(retry,/\.submit\(|takeProof|saveRetryJournal/);
+  const native=runtime.slice(runtime.indexOf('ProviderId{"hypersnap-v2"}'),
+                             runtime.indexOf('runtime->independentReadProviderId'));
+  assert.match(native,/protocolSignerManage\(\)/);
+  assert.match(native,/nativeSignerConfig\.submitBaseUrl = providerConfig\.baseUrl/);
+  assert.match(native,/nativeWriteConfig\.baseUrl = providerConfig\.baseUrl/);
+  assert.match(bridge,/nativePublisher->setIdentityRuntimeReady\(canAttach\)/);
+});
+
 test('HyperSnap interrupted native registration restores the same custody without replay',()=>{
   const ui=source('ui/components/setup/InitialSetup.qml');
   const publisher=source('ui/app/identity/native_publish.cpp');
