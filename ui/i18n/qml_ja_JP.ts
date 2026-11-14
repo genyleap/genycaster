@@ -5808,6 +5808,18 @@ Company | https://company.com</source>
             <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
             <translation>ノードが証明を拒否しました。基準ブロックを更新して証明を作り直してください。</translation>
         </message>
+        <message id="genycaster.setup.wallet_switch_action">
+            <source>Use a different wallet</source>
+            <translation>別のウォレットを使う</translation>
+        </message>
+        <message id="genycaster.setup.wallet_switch_warning">
+            <source>The current wallet may still receive a HyperSnap FID. Confirm you saved its original 24 recovery words: replacing it here only clears local setup state. You will need those words to recover that wallet later.</source>
+            <translation>現在のウォレットは後からHyperSnap FIDを取得する可能性があります。元の24個のリカバリー単語を保存済みであることを確認してください。ここでの切り替えはローカルの設定状態だけを消去します。後で復元するにはその単語が必要です。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_switch_confirm">
+            <source>Replace local wallet</source>
+            <translation>ローカルウォレットを切り替える</translation>
+        </message>
         <message id="genycaster.setup.native_retry_wait_blocks">
             <source>Recovery safety window: %1 more shard-0 blocks. Refresh and check registration status later.</source>
             <translation>再開の安全確認期間：シャード0であと%1ブロックです。後で登録状況を更新・確認してください。</translation>
