@@ -30,6 +30,8 @@ class HyperSnapRegistrationPublisher final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool registrationSupported READ registrationSupported NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool checkingConfirmation READ checkingConfirmation NOTIFY changed)
+    Q_PROPERTY(int lastSubmissionHttpStatus READ lastSubmissionHttpStatus NOTIFY changed)
     Q_PROPERTY(bool pending READ pending NOTIFY changed)
     Q_PROPERTY(bool confirmed READ confirmed NOTIFY changed)
     Q_PROPERTY(bool failed READ failed NOTIFY changed)
@@ -43,6 +45,8 @@ public:
     [[nodiscard]] bool registrationSupported() const noexcept { return m_registrationSupported; }
     void setIdentityRuntimeReady(bool ready);
     [[nodiscard]] bool busy() const noexcept { return m_busy; }
+    [[nodiscard]] bool checkingConfirmation() const noexcept { return m_checkingConfirmation; }
+    [[nodiscard]] int lastSubmissionHttpStatus() const noexcept { return m_lastSubmissionHttpStatus; }
     [[nodiscard]] bool pending() const noexcept { return m_pending; }
     [[nodiscard]] bool confirmed() const noexcept { return !m_fid.isEmpty(); }
     [[nodiscard]] bool failed() const noexcept { return m_failed; }
@@ -77,6 +81,8 @@ private:
     QString m_fid{};
     quint64 m_generation{};
     unsigned m_checks{};
+    int m_lastSubmissionHttpStatus{};
+    bool m_checkingConfirmation{false};
     bool m_busy{false};
     bool m_pending{false};
     bool m_failed{false};
