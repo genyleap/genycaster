@@ -3510,7 +3510,7 @@ void connectRuntime(
                 });
             };
             if (!nativePublisher || !runtime->signerService || !runtime->router
-                || !bridge.isAuthenticated() || bridge.signerBusy()
+                || !bridge.isAuthenticated()
                 || bridge.writeReady() || !session || !session->custodyAddress
                 || session->identityIssuer != "hypersnap:native-registry"
                 || session->fid.value < (1ULL << 32)
