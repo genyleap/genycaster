@@ -1,4 +1,5 @@
 #include "../../ui/app/identity/native_registration.hpp"
+#include "../../ui/app/identity/hypersnap_registration_transport.hpp"
 
 #include <QByteArray>
 #include <QHostAddress>
@@ -8,6 +9,8 @@
 #include <QtTest/QtTest>
 
 #include <memory>
+#include <optional>
+#include <array>
 
 class NativeRegistrationRefreshTests final : public QObject {
     Q_OBJECT
@@ -15,6 +18,7 @@ class NativeRegistrationRefreshTests final : public QObject {
 private slots:
     void refreshDuringPendingReply();
     void refreshReentrantlyFromChanged();
+    void nativeAccountLookupHttpSemantics();
 };
 
 void NativeRegistrationRefreshTests::refreshDuringPendingReply()
@@ -91,6 +95,56 @@ void NativeRegistrationRefreshTests::refreshReentrantlyFromChanged()
     controller.refresh();
     QVERIFY(nested);
     QVERIFY(controller.checking());
+}
+
+void NativeRegistrationRefreshTests::nativeAccountLookupHttpSemantics()
+{
+    using State = HyperSnapRegistrationTransport::LookupState;
+    const QByteArray missing = R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \\"native account not found\\", details: [], metadata: MetadataMap { headers: {} }"})json";
+    const QByteArray invalid = R"json({"error":"Native registration lookup failed","error_detail":"status: InvalidArgument, message: \\"specify one native fid or custody address\\""})json";
+    const std::array cases{
+        std::tuple{400, missing, State::NotFound},
+        std::tuple{400, invalid, State::Unavailable},
+        std::tuple{400, QByteArray{"{}"}, State::Unavailable},
+        std::tuple{404, QByteArray{"Not Found"}, State::Unavailable},
+        std::tuple{503, missing, State::Unavailable},
+    };
+    for (const auto& [status, payload, expected] : cases) {
+        QTcpServer server;
+        QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+        QObject::connect(&server, &QTcpServer::newConnection, &server,
+                         [&server, status, payload] {
+            while (server.hasPendingConnections()) {
+                auto* const socket = server.nextPendingConnection();
+                QObject::connect(socket, &QTcpSocket::readyRead, socket,
+                                 [socket, status, payload] {
+                    socket->readAll();
+                    const auto reason = status == 400 ? "Bad Request"
+                                      : status == 404 ? "Not Found"
+                                      : "Service Unavailable";
+                    const QByteArray response =
+                        QByteArray{"HTTP/1.1 "} + QByteArray::number(status)
+                        + QByteArray{" "} + reason
+                        + QByteArray{"\\r\\nContent-Type: application/json\\r\\nContent-Length: "}
+                        + QByteArray::number(payload.size())
+                        + QByteArray{"\\r\\nConnection: close\\r\\n\\r\\n"}
+                        + payload;
+                    socket->write(response);
+                    socket->disconnectFromHost();
+                });
+                QObject::connect(socket, &QTcpSocket::disconnected,
+                                 socket, &QObject::deleteLater);
+            }
+        });
+        HyperSnapRegistrationTransport transport{
+            QUrl{QStringLiteral("http://127.0.0.1:%1").arg(server.serverPort())}};
+        std::optional<HyperSnapRegistrationTransport::LookupResult> result;
+        transport.lookupByCustody(
+            QStringLiteral("0x1111111111111111111111111111111111111111"),
+            [&](auto value) { result = value; });
+        QTRY_VERIFY_WITH_TIMEOUT(result.has_value(), 5000);
+        QCOMPARE(static_cast<int>(result->state), static_cast<int>(expected));
+    }
 }
 
 QTEST_GUILESS_MAIN(NativeRegistrationRefreshTests)
