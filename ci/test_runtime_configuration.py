@@ -18,6 +18,7 @@ EXPECTED_FIELDS = (
     "databasePath",
     "networkProxyPolicy",
     "providerBaseUrl",
+    "hyperSnapNativeNodeBaseUrl",
     "farcasterReadBaseUrl",
     "farcasterReadApiKey",
     "additionalReadProviders",
