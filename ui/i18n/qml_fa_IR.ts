@@ -5850,8 +5850,8 @@ Company | https://company.com</source>
             <translation>کد ثبت‌نام صادرشده توسط جنی‌کستر</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
-            <source>Verify enrollment code</source>
-            <translation>تأیید کد ثبت‌نام</translation>
+            <source>Use registration code</source>
+            <translation>استفاده از کد ثبت‌نام</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
             <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
