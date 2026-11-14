@@ -99,7 +99,7 @@ test('signup text inputs use the registered themed QML component', () => {
       const m=t.match(new RegExp(
         '<message id="genycaster\\.setup\\.'+key+'">([\\s\\S]*?)<\\/message>'));
       assert.ok(m,locale+': '+key);
-      assert.match(m[1],/<translation>[^<]+<\\/translation>/);
+      assert.match(m[1],/<translation>[^<]+<\/translation>/);
     }
   }
   assert.doesNotMatch(source('ui/i18n/qml_en_US.ts'),/Enter paid registration code/);
