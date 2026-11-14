@@ -2,6 +2,8 @@
 
 #include <QByteArray>
 
+#include <algorithm>
+
 #include <utility>
 
 HyperSnapRegistrationPublisher::HyperSnapRegistrationPublisher(
@@ -41,6 +43,10 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     m_lastSubmissionHttpStatus = 0;
     m_confirmationLookupHttpStatus = 0;
     m_confirmationLookupState = QStringLiteral("not_checked");
+    m_retryBaselineNextBlock = 0;
+    m_retryAnchorWindow = 0;
+    m_retryRemainingBlocks = -1;
+    m_retryReady = false;
     m_checks = 0;
     const auto generation = ++m_generation;
     emit changed();
@@ -73,6 +79,10 @@ bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
     m_busy = true;
     m_confirmationLookupHttpStatus = 0;
     m_confirmationLookupState = QStringLiteral("not_checked");
+    m_retryBaselineNextBlock = 0;
+    m_retryAnchorWindow = 0;
+    m_retryRemainingBlocks = -1;
+    m_retryReady = false;
     m_checks = 0;
     const auto generation = ++m_generation;
     if (m_ports.cancelProof) m_ports.cancelProof();
@@ -111,6 +121,7 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
             onConfirmed(result.fid, generation);
             return;
         }
+        if (!beforeSubmit) updateRetryEligibility();
         if (beforeSubmit) {
             if (result.state != State::NotFound
                 || !m_ports.backupVerified() || !m_ports.backupVerified()
@@ -133,6 +144,14 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
             // a timeout occurred before or after submission is unknowable.
             m_submitted = true;
             m_pending = true;
+            if (m_ports.registrationWindow) {
+                if (const auto info = m_ports.registrationWindow()) {
+                    if (info->first > 0 && info->second > 0 && info->second <= 65'536) {
+                        m_retryBaselineNextBlock = info->first;
+                        m_retryAnchorWindow = info->second;
+                    }
+                }
+            }
             emit changed();
             m_transport.submit(envelope, [this, generation](
                 HyperSnapRegistrationTransport::SubmitResult result) {
@@ -173,6 +192,75 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
     });
 }
 
+void HyperSnapRegistrationPublisher::updateRetryEligibility()
+{
+    m_retryReady = false;
+    m_retryRemainingBlocks = -1;
+    if (!m_pending || !m_submitted
+        || m_confirmationLookupState != QStringLiteral("not_found")
+        || m_confirmationLookupHttpStatus != 400 || !m_ports.registrationWindow
+        || !m_ports.backupVerified || !m_ports.backupVerified()
+        || !m_ports.custodyAddress
+        || m_ports.custodyAddress().toLower() != m_address) return;
+
+    const auto info = m_ports.registrationWindow();
+    if (!info || info->first == 0 || info->second == 0
+        || info->second > 65'536) return;
+    const auto [nextBlock, window] = *info;
+    if (m_retryBaselineNextBlock == 0) {
+        // Earlier builds did not persist the original anchor. Starting from
+        // the first observed chain head is deliberately conservative.
+        m_retryBaselineNextBlock = nextBlock;
+        m_retryAnchorWindow = window;
+    }
+    m_retryAnchorWindow = std::max(m_retryAnchorWindow, window);
+    if (nextBlock < m_retryBaselineNextBlock) return;
+    constexpr std::uint64_t FinalityMarginBlocks = 16;
+    const auto needed = std::uint64_t{m_retryAnchorWindow} + FinalityMarginBlocks;
+    const auto passed = nextBlock - m_retryBaselineNextBlock;
+    m_retryRemainingBlocks = passed >= needed
+        ? 0 : static_cast<int>(needed - passed);
+    m_retryReady = passed >= needed;
+}
+
+bool HyperSnapRegistrationPublisher::releaseExpiredAttempt()
+{
+    if (!m_retryReady || m_busy || !m_pending || !m_submitted
+        || confirmed()
+        || m_confirmationLookupState != QStringLiteral("not_found")
+        || m_confirmationLookupHttpStatus != 400) return false;
+    // This is a local state reset, NEVER an automatic second submission.
+    if (!m_ports.registrationWindow || !m_ports.backupVerified
+        || !m_ports.backupVerified() || !m_ports.custodyAddress
+        || m_ports.custodyAddress().toLower() != m_address) return false;
+    const auto window = m_ports.registrationWindow();
+    if (!window || m_retryBaselineNextBlock == 0
+        || window->second == 0 || window->second > 65'536
+        || window->first < m_retryBaselineNextBlock
+        || window->first - m_retryBaselineNextBlock
+             < std::uint64_t{std::max(window->second, m_retryAnchorWindow)} + 16)
+        return false;
+
+    stopPolling();
+    m_pending = false;
+    m_submitted = false;
+    m_unknown = false;
+    m_failed = false;
+    m_fid.clear();
+    m_address.clear();
+    m_retryReady = false;
+    m_retryRemainingBlocks = -1;
+    m_retryBaselineNextBlock = 0;
+    m_retryAnchorWindow = 0;
+    m_checks = 0;
+    m_lastSubmissionHttpStatus = 0;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
+    if (m_ports.cancelProof) m_ports.cancelProof();
+    emit changed();
+    return true;
+}
+
 void HyperSnapRegistrationPublisher::scheduleCheck(quint64 generation)
 {
     if (generation != m_generation || !m_pending || confirmed()) return;
@@ -205,6 +293,8 @@ void HyperSnapRegistrationPublisher::onConfirmed(quint64 fid, quint64 generation
     m_fid = QString::number(static_cast<qulonglong>(fid));
     m_pending = false;
     m_busy = false;
+    m_retryReady = false;
+    m_retryRemainingBlocks = -1;
     m_unknown = false;
     m_failed = false;
     if (m_ports.cancelProof) m_ports.cancelProof();
@@ -240,6 +330,10 @@ void HyperSnapRegistrationPublisher::clear()
     m_fid.clear();
     m_address.clear();
     m_checks = 0;
+    m_retryReady = false;
+    m_retryRemainingBlocks = -1;
+    m_retryBaselineNextBlock = 0;
+    m_retryAnchorWindow = 0;
     m_lastSubmissionHttpStatus = 0;
     m_confirmationLookupHttpStatus = 0;
     m_confirmationLookupState = QStringLiteral("not_checked");
