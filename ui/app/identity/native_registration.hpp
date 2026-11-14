@@ -52,6 +52,8 @@ public:
     [[nodiscard]] QString existingNativeFid() const { return m_existingFid; }
     /** C++ gate bound to the *exact* wallet previously checked with this node. */
     [[nodiscard]] bool verifiedAbsentForCustody(const QString& address) const;
+    /** Returns an FID only after a successful, custody-bound registry lookup. */
+    [[nodiscard]] QString verifiedExistingFidForCustody(const QString& address) const;
     Q_INVOKABLE void findExistingNativeAccount(const QString& address);
     Q_INVOKABLE void clearExistingLookup();
 signals:
