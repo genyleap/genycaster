@@ -132,6 +132,36 @@ test('registration network status is protocol-scoped, actionable and localized',
   }
 });
 
+test('wallet recovery phrase copy is explicit, guarded and never exported through QML', () => {
+  const header=source('ui/app/identity/native_wallet.hpp');
+  const wallet=source('ui/app/identity/native_wallet.cpp');
+  const account=setup.slice(setup.indexOf('id: accountStage'),
+                            setup.indexOf('id: signInStage'));
+  assert.match(header, /Q_INVOKABLE bool copyRecoveryWords\(\)/);
+  assert.match(account, /objectName: "setupCopyRecoveryWords"/);
+  assert.match(account, /visible: nativeCustodyWallet\.recoveryVisible/);
+  assert.match(account, /nativeCustodyWallet\.copyRecoveryWords\(\)/);
+  assert.match(account, /wallet_copy_warning/);
+  assert.match(wallet, /if \(!recoveryVisible\(\)/);
+  assert.match(wallet, /clipboard->setText\(text\)/);
+  assert.match(wallet, /QTimer::singleShot\(60'000, this/);
+  assert.match(wallet, /if \(actual == expected\) clipboard->clear\(\)/);
+  assert.match(wallet, /void NativeCustodyWalletController::discard\(\)\s*\{\s*clearCopiedRecoveryWords\(\)/);
+  assert.doesNotMatch(header, /Q_PROPERTY\([^)]*(?:mnemonic|recoveryWords|phrase)/i);
+  const locales=['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                 'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN'];
+  for(const locale of locales) {
+    const catalog=source('ui/i18n/qml_'+locale+'.ts');
+    for(const key of ['wallet_copy_label','wallet_copy_success','wallet_copy_warning']) {
+      const message=catalog.match(new RegExp(
+        '<message id="genycaster\\.setup\\.'+key+'">([\\s\\S]*?)<\\/message>'));
+      assert.ok(message,locale+': missing '+key);
+      assert.match(message[1],/<translation>[^<]+<\/translation>/,
+                   locale+': untranslated '+key);
+    }
+  }
+});
+
 test('native recovery authorizes a device signer only with explicit user consent', () => {
   const qml=source('ui/components/setup/InitialSetup.qml');
   const runtime=source('ui/app/runtime/bindings.cpp');
