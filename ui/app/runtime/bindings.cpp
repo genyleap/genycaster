@@ -1338,6 +1338,10 @@ void applySocialState(PresentationBridge& bridge, application::read::model::Soci
         text = qtTrId("genycaster.runtime.the_platform_secure_store_or_signer_metadata_could_not_be_ac");
         break;
     case ErrorCode::ProtocolFailure:
+        // A failed JSON/ProtoJSON decode is a client/response compatibility
+        // problem, not proof that the network rejected KEY_ADD.
+        text = qtTrId("genycaster.runtime.the_signer_operation_could_not_be_completed_safely");
+        break;
     case ErrorCode::Conflict:
         text = qtTrId("genycaster.runtime.snapchain_rejected_or_contradicted_the_signer_authorization_");
         break;
