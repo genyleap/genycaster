@@ -63,6 +63,32 @@ public:
     }
 };
 
+// Fake, deliberately unsigned wire fixture: submission tests validate the
+// canonical author's 64-bit protobuf field, not cryptographic signatures.
+void appendVarint(std::string& bytes, std::uint64_t value)
+{
+    while (value >= 0x80U) {
+        bytes.push_back(static_cast<char>((value & 0x7FU) | 0x80U));
+        value >>= 7U;
+    }
+    bytes.push_back(static_cast<char>(value));
+}
+
+[[nodiscard]] std::string envelopeWithFid(const std::uint64_t fid)
+{
+    std::string data{};
+    data.push_back(static_cast<char>(0x08U)); // MessageData.type
+    data.push_back(static_cast<char>(0x01U)); // CAST_ADD
+    data.push_back(static_cast<char>(0x10U)); // MessageData.fid
+    appendVarint(data, fid);
+
+    std::string envelope{};
+    envelope.push_back(static_cast<char>(0x3AU)); // Message.dataBytes
+    appendVarint(envelope, data.size());
+    envelope.append(data);
+    return envelope;
+}
+
 [[nodiscard]] domain::write::SignedOperation operation()
 {
     constexpr auto castId = "0x00112233445566778899aabbccddeeff00112233";
@@ -78,7 +104,7 @@ public:
         },
         .signerPublicKey = domain::signer::PublicKey{
             "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"},
-        .messageBytes = std::string{"\x01\x02\x00signed", 9U},
+        .messageBytes = envelopeWithFid(42U),
         .signedAt = foundation::time::now(),
     };
 }
@@ -124,6 +150,7 @@ void acceptsExactProtoJsonNativeFid()
     auto native = operation();
     native.author = domain::identity::Fid{nativeFid};
     native.optimisticCast->author = native.author;
+    native.messageBytes = envelopeWithFid(native.author.value);
     const auto reply = "{\"hash\":\"0x00112233445566778899aabbccddeeff00112233\","
         "\"data\":{\"type\":\"MESSAGE_TYPE_CAST_ADD\","
         "\"fid\":\"4294967296\"}}";
@@ -152,6 +179,33 @@ void acceptsExactProtoJsonNativeFid()
     assert(invalid.error().code == foundation::error::ErrorCode::ProtocolFailure);
 }
 
+void invalidCanonicalAuthorFailsBeforePosting()
+{
+    auto wrong = operation();
+    wrong.messageBytes = envelopeWithFid(4294967296ULL);
+    FakeTransport transport{};
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        transport, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    auto mismatched = submitter->submit(wrong);
+    assert(!mismatched);
+    assert(mismatched.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(mismatched.error().message.find("differs from selected protocol author FID")
+        != std::string::npos);
+    assert(transport.posts.empty());
+
+    wrong.messageBytes = std::string{"\\x3a\\x05\\x10", 3U};
+    auto truncated = submitter->submit(wrong);
+    assert(!truncated);
+    assert(truncated.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(transport.posts.empty());
+
+    wrong.messageBytes = envelopeWithFid(0U);
+    auto zero = submitter->submit(wrong);
+    assert(!zero);
+    assert(zero.error().code == foundation::error::ErrorCode::ProtocolFailure);
+    assert(transport.posts.empty());
+}
+
 void unknownFidProvidesNetworkSpecificDiagnostic()
 {
     FakeTransport http{};
@@ -172,6 +226,7 @@ void nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry()
     auto native = operation();
     native.author = domain::identity::Fid{4294967296ULL};
     native.optimisticCast->author = native.author;
+    native.messageBytes = envelopeWithFid(native.author.value);
     constexpr auto rejection =
         R"({"error":"Failed to submit message","error_detail":"bad_request.validation_failure/unknown fid"})";
     constexpr auto registered =
@@ -467,6 +522,7 @@ int main()
     explicitAuthorizationHeaderIsForwarded();
     submitUsesCanonicalBinaryEndpoint();
     acceptsExactProtoJsonNativeFid();
+    invalidCanonicalAuthorFailsBeforePosting();
     unknownFidProvidesNetworkSpecificDiagnostic();
     nativeUnknownFidIsDiagnosedWithoutCrossNetworkRetry();
     reconcileUsesCanonicalCastIdentity();
