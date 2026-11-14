@@ -322,6 +322,37 @@ bool HyperSnapRegistrationPublisher::releaseExpiredAttempt()
     return true;
 }
 
+bool HyperSnapRegistrationPublisher::detachWalletForNewRegistration()
+{
+    // This is an explicit local wallet switch, not a cancellation of any
+    // network transaction. The former wallet remains recoverable with its
+    // own 24 words. The UI must confirm this before discarding that wallet.
+    if (m_busy || confirmed()
+        || !m_ports.backupVerified || !m_ports.backupVerified())
+        return false;
+    if (m_submitted && !m_address.isEmpty())
+        saveRetryJournal(); // Keep old wallet's chain-height guard on disk.
+
+    stopPolling(); // Invalidate callbacks belonging to the old wallet.
+    if (m_ports.cancelProof) m_ports.cancelProof();
+    m_pending = false;
+    m_submitted = false;
+    m_unknown = false;
+    m_failed = false;
+    m_address.clear();
+    m_fid.clear();
+    m_retryReady = false;
+    m_retryRemainingBlocks = -1;
+    m_retryBaselineNextBlock = 0;
+    m_retryAnchorWindow = 0;
+    m_lastSubmissionHttpStatus = 0;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
+    m_checks = 0;
+    emit changed();
+    return true;
+}
+
 void HyperSnapRegistrationPublisher::scheduleCheck(quint64 generation)
 {
     if (generation != m_generation || !m_pending || confirmed()) return;
