@@ -3,6 +3,9 @@
 #include "hypersnap_registration_transport.hpp"
 #include <QByteArray>
 #include <functional>
+#include <optional>
+#include <utility>
+#include <cstdint>
 
 #include <QObject>
 #include <QTimer>
@@ -24,6 +27,9 @@ struct NativePublicationPorts final {
     std::function<bool()> proofPrepared;
     std::function<QByteArray(const QString&)> takeProof;
     std::function<void()> cancelProof;
+    // Last fresh shard-0 head and maximum onboard anchor validity window.
+    // Must come from the SAME node used by the publisher's custody lookup.
+    std::function<std::optional<std::pair<std::uint64_t, std::uint32_t>>()> registrationWindow;
 };
 
 class HyperSnapRegistrationPublisher final : public QObject {
@@ -35,6 +41,8 @@ class HyperSnapRegistrationPublisher final : public QObject {
     Q_PROPERTY(QString confirmationLookupState READ confirmationLookupState NOTIFY changed)
     Q_PROPERTY(int confirmationLookupHttpStatus READ confirmationLookupHttpStatus NOTIFY changed)
     Q_PROPERTY(int confirmationLookupChecks READ confirmationLookupChecks NOTIFY changed)
+    Q_PROPERTY(bool retryReady READ retryReady NOTIFY changed)
+    Q_PROPERTY(int retryRemainingBlocks READ retryRemainingBlocks NOTIFY changed)
     Q_PROPERTY(bool pending READ pending NOTIFY changed)
     Q_PROPERTY(bool confirmed READ confirmed NOTIFY changed)
     Q_PROPERTY(bool failed READ failed NOTIFY changed)
@@ -53,6 +61,8 @@ public:
     [[nodiscard]] QString confirmationLookupState() const { return m_confirmationLookupState; }
     [[nodiscard]] int confirmationLookupHttpStatus() const noexcept { return m_confirmationLookupHttpStatus; }
     [[nodiscard]] int confirmationLookupChecks() const noexcept { return static_cast<int>(m_checks); }
+    [[nodiscard]] bool retryReady() const noexcept { return m_retryReady; }
+    [[nodiscard]] int retryRemainingBlocks() const noexcept { return m_retryRemainingBlocks; }
     [[nodiscard]] bool pending() const noexcept { return m_pending; }
     [[nodiscard]] bool confirmed() const noexcept { return !m_fid.isEmpty(); }
     [[nodiscard]] bool failed() const noexcept { return m_failed; }
@@ -66,6 +76,10 @@ public:
     Q_INVOKABLE bool recoverInterruptedRegistration();
     /** Queries the registry; safe even if submit returned timeout/500. */
     Q_INVOKABLE bool checkConfirmation();
+    /** Explicitly release a timed-out attempt only after its anchor can no
+     * longer enter shard-0 and a fresh custody lookup still shows NotFound.
+     * Does NOT submit a new message or sign anything. */
+    Q_INVOKABLE bool releaseExpiredAttempt();
     /** Cancel local polling, never claim a network transaction was cancelled. */
     Q_INVOKABLE void stopPolling();
     /** Erase the transient UI status; does not revoke a blockchain identity. */
@@ -79,6 +93,7 @@ private:
     void lookup(bool beforeSubmit, quint64 generation);
     void scheduleCheck(quint64 generation);
     void onConfirmed(quint64 fid, quint64 generation);
+    void updateRetryEligibility();
 
     HyperSnapRegistrationTransport m_transport;
     NativePublicationPorts m_ports;
@@ -87,6 +102,10 @@ private:
     QString m_fid{};
     quint64 m_generation{};
     unsigned m_checks{};
+    std::uint64_t m_retryBaselineNextBlock{};
+    std::uint32_t m_retryAnchorWindow{};
+    int m_retryRemainingBlocks{-1};
+    bool m_retryReady{false};
     int m_lastSubmissionHttpStatus{};
     int m_confirmationLookupHttpStatus{};
     QString m_confirmationLookupState{QStringLiteral("not_checked")};
