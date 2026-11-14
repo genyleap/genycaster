@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QCryptographicHash>
 #include <QSettings>
+#include <QStringList>
 
 #include <algorithm>
 
