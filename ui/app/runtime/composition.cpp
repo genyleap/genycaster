@@ -987,10 +987,39 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         .privacy = farcaster::provider::model::ProviderPrivacy::Standard,
         .priority = 10,
     };
+    // HyperSnap has a distinct native FID registry, but its gasless KEY_ADD /
+    // KEY_REMOVE and canonical user-message wire endpoints remain compatible
+    // with the Snapchain protocol adapters. Bind them to the *HyperSnap*
+    // provider ID and node only; never route native FIDs to Farcaster.
+    auto nativeCapabilities = farcaster::provider::hypersnap::registration::capabilities();
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER && FARCASTER_HAS_PROTOCOL_SIGNING
+    if (runtime->signerRegistry) {
+        nativeCapabilities.push_back(capability::model::CapabilityDescriptor{
+            .id = capability::catalog::protocolSignerManage(),
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {capability::model::CapabilityAccess::Write},
+            .isSelfHostable = true,
+        });
+    }
+#endif
+#if FARCASTER_HAS_SNAPCHAIN_WRITE && FARCASTER_HAS_PROTOCOL_SIGNING
+    if (runtime->signerService && runtime->writeCodec) {
+        nativeCapabilities.push_back(capability::model::CapabilityDescriptor{
+            .id = capability::catalog::protocolMessageSubmit(),
+            .version = {1, 0},
+            .origin = capability::model::CapabilityOrigin::Protocol,
+            .quality = capability::model::CapabilityQuality::Native,
+            .access = {capability::model::CapabilityAccess::Write},
+            .isSelfHostable = true,
+        });
+    }
+#endif
     auto registration = runtime->registry.registerProvider(
         routing::registry::ProviderRegistration{
             .provider = descriptor,
-            .capabilities = farcaster::provider::hypersnap::registration::capabilities(),
+            .capabilities = std::move(nativeCapabilities),
         });
     if (!registration) {
         return std::unexpected(std::move(registration.error()));
@@ -1002,6 +1031,36 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     if (providerBaseUrl) {
         providerConfig.baseUrl = *providerBaseUrl;
     }
+    // Native registrations and KEY_ADD are both submitted to the selected
+    // HyperSnap node. This adapter never inherits Farcaster credentials or
+    // the separately configured Farcaster/Snapchain validator endpoint.
+#if FARCASTER_HAS_SNAPCHAIN_SIGNER && FARCASTER_HAS_PROTOCOL_SIGNING
+    if (runtime->signerRegistry) {
+        farcaster::provider::snapchain::signer::Config nativeSignerConfig{};
+        nativeSignerConfig.baseUrl = providerConfig.baseUrl;
+        nativeSignerConfig.submitBaseUrl = providerConfig.baseUrl;
+        runtime->signerRegistrySources.push_back(
+            farcaster::provider::snapchain::signer::makeRegistry(
+                *runtime->transport, std::move(nativeSignerConfig)));
+        runtime->signerRegistry->addSource(routing::signer::SourceBinding{
+            .providerId = descriptor.id,
+            .registry = runtime->signerRegistrySources.back().get(),
+        });
+    }
+#endif
+#if FARCASTER_HAS_SNAPCHAIN_WRITE && FARCASTER_HAS_PROTOCOL_SIGNING
+    if (runtime->signerService && runtime->writeCodec) {
+        farcaster::provider::snapchain::write::Config nativeWriteConfig{};
+        nativeWriteConfig.baseUrl = providerConfig.baseUrl;
+        nativeWriteConfig.readBaseUrl = providerConfig.baseUrl;
+        runtime->writeSourceEndpointIdentities.push_back(
+            "hypersnap-v2|" + providerConfig.baseUrl + "|" + providerConfig.baseUrl);
+        runtime->writeSources.push_back(
+            farcaster::provider::snapchain::write::makeSubmitter(
+                *runtime->transport, std::move(nativeWriteConfig)));
+        runtime->writeSourceIds.push_back(descriptor.id.value);
+    }
+#endif
     runtime->asyncGateway = std::make_unique<farcaster::provider::hypersnap::async_gateway::AsyncGateway>(
         *runtime->asyncTransport,
         *runtime->decodeExecutor,
