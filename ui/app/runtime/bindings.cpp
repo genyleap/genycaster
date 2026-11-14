@@ -3639,7 +3639,10 @@ void connectRuntime(
 #endif
 
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
-        [&bridge, runtime, signerObserver, nativeWallet
+        [&bridge, runtime, signerObserver
+#if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
+        , nativeWallet
+#endif
 #if defined(Q_OS_WASM)
         , browserSigner
 #endif
