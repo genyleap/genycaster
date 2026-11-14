@@ -32,6 +32,9 @@ class HyperSnapRegistrationPublisher final : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool checkingConfirmation READ checkingConfirmation NOTIFY changed)
     Q_PROPERTY(int lastSubmissionHttpStatus READ lastSubmissionHttpStatus NOTIFY changed)
+    Q_PROPERTY(QString confirmationLookupState READ confirmationLookupState NOTIFY changed)
+    Q_PROPERTY(int confirmationLookupHttpStatus READ confirmationLookupHttpStatus NOTIFY changed)
+    Q_PROPERTY(int confirmationLookupChecks READ confirmationLookupChecks NOTIFY changed)
     Q_PROPERTY(bool pending READ pending NOTIFY changed)
     Q_PROPERTY(bool confirmed READ confirmed NOTIFY changed)
     Q_PROPERTY(bool failed READ failed NOTIFY changed)
@@ -47,6 +50,9 @@ public:
     [[nodiscard]] bool busy() const noexcept { return m_busy; }
     [[nodiscard]] bool checkingConfirmation() const noexcept { return m_checkingConfirmation; }
     [[nodiscard]] int lastSubmissionHttpStatus() const noexcept { return m_lastSubmissionHttpStatus; }
+    [[nodiscard]] QString confirmationLookupState() const { return m_confirmationLookupState; }
+    [[nodiscard]] int confirmationLookupHttpStatus() const noexcept { return m_confirmationLookupHttpStatus; }
+    [[nodiscard]] int confirmationLookupChecks() const noexcept { return static_cast<int>(m_checks); }
     [[nodiscard]] bool pending() const noexcept { return m_pending; }
     [[nodiscard]] bool confirmed() const noexcept { return !m_fid.isEmpty(); }
     [[nodiscard]] bool failed() const noexcept { return m_failed; }
@@ -82,6 +88,8 @@ private:
     quint64 m_generation{};
     unsigned m_checks{};
     int m_lastSubmissionHttpStatus{};
+    int m_confirmationLookupHttpStatus{};
+    QString m_confirmationLookupState{QStringLiteral("not_checked")};
     bool m_checkingConfirmation{false};
     bool m_busy{false};
     bool m_pending{false};
