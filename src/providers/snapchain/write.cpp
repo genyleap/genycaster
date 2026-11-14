@@ -545,6 +545,123 @@ using domain::write::OperationKind;
     return {};
 }
 
+// Decode the canonical protobuf envelope before submitting it. The signer API,
+// outbox identity, and node must all agree on the exact 64-bit author. This
+// parser checks only wire framing and the author field; cryptographic signing
+// is performed by the protocol codec before this adapter is called.
+struct ProtoField final {
+    std::uint64_t number{};
+    std::uint8_t wireType{};
+    std::uint64_t scalar{};
+    std::string_view bytes{};
+};
+
+[[nodiscard]] foundation::result::Result<std::uint64_t> readProtoVarint(
+    const std::string_view input,
+    std::size_t& offset)
+{
+    std::uint64_t value{};
+    for (unsigned index = 0U; index < 10U; ++index) {
+        if (offset >= input.size()) {
+            return std::unexpected(protocolError("Truncated signed protobuf varint."));
+        }
+        const auto octet = static_cast<std::uint8_t>(input[offset++]);
+        if (index == 9U && octet > 1U) {
+            return std::unexpected(protocolError("Signed protobuf varint exceeds uint64."));
+        }
+        value |= static_cast<std::uint64_t>(octet & 0x7FU) << (7U * index);
+        if ((octet & 0x80U) == 0U) {
+            return value;
+        }
+    }
+    return std::unexpected(protocolError("Signed protobuf varint exceeds ten bytes."));
+}
+
+[[nodiscard]] foundation::result::Result<ProtoField> readProtoField(
+    const std::string_view input,
+    std::size_t& offset)
+{
+    auto tag = readProtoVarint(input, offset);
+    if (!tag || (*tag >> 3U) == 0U || (*tag >> 3U) > 536'870'911U) {
+        return std::unexpected(protocolError("Invalid signed protobuf field tag."));
+    }
+    ProtoField field{
+        .number = *tag >> 3U,
+        .wireType = static_cast<std::uint8_t>(*tag & 7U),
+    };
+    switch (field.wireType) {
+    case 0U: {
+        auto scalar = readProtoVarint(input, offset);
+        if (!scalar) return std::unexpected(std::move(scalar.error()));
+        field.scalar = *scalar;
+        break;
+    }
+    case 1U:
+    case 5U: {
+        const auto size = field.wireType == 1U ? 8U : 4U;
+        if (size > input.size() - offset) {
+            return std::unexpected(protocolError("Truncated signed protobuf fixed-width field."));
+        }
+        offset += size;
+        break;
+    }
+    case 2U: {
+        auto length = readProtoVarint(input, offset);
+        if (!length) return std::unexpected(std::move(length.error()));
+        if (*length > input.size() - offset) {
+            return std::unexpected(protocolError("Truncated signed protobuf bytes field."));
+        }
+        field.bytes = input.substr(offset, static_cast<std::size_t>(*length));
+        offset += static_cast<std::size_t>(*length);
+        break;
+    }
+    default:
+        return std::unexpected(protocolError("Unsupported signed protobuf wire type."));
+    }
+    return field;
+}
+
+[[nodiscard]] foundation::result::Result<std::uint64_t> signedEnvelopeAuthor(
+    const std::string_view envelope)
+{
+    std::optional<std::string_view> dataBytes{};
+    std::size_t offset{};
+    while (offset < envelope.size()) {
+        auto field = readProtoField(envelope, offset);
+        if (!field) return std::unexpected(std::move(field.error()));
+        if (field->number == 7U) {
+            if (field->wireType != 2U || dataBytes) {
+                return std::unexpected(protocolError(
+                    "Signed Message contains invalid or duplicate dataBytes."));
+            }
+            dataBytes = field->bytes;
+        }
+    }
+    if (!dataBytes || dataBytes->empty()) {
+        return std::unexpected(protocolError(
+            "Signed Message is missing canonical MessageData bytes."));
+    }
+
+    std::optional<std::uint64_t> author{};
+    offset = 0U;
+    while (offset < dataBytes->size()) {
+        auto field = readProtoField(*dataBytes, offset);
+        if (!field) return std::unexpected(std::move(field.error()));
+        if (field->number == 2U) {
+            if (field->wireType != 0U || author) {
+                return std::unexpected(protocolError(
+                    "Signed MessageData contains invalid or duplicate author FID."));
+            }
+            author = field->scalar;
+        }
+    }
+    if (!author || *author == 0U) {
+        return std::unexpected(protocolError(
+            "Signed MessageData is missing a nonzero author FID."));
+    }
+    return *author;
+}
+
 [[nodiscard]] std::string responseExcerpt(const std::string_view body)
 {
     constexpr std::size_t maxLength = 320U;
@@ -728,6 +845,17 @@ public:
         }
         if (auto status = validateOperation(operation); !status) {
             return status;
+        }
+        auto envelopeAuthor = signedEnvelopeAuthor(operation.messageBytes);
+        if (!envelopeAuthor) {
+            return std::unexpected(std::move(envelopeAuthor.error()));
+        }
+        if (*envelopeAuthor != operation.author.value) {
+            return std::unexpected(protocolError(
+                "Signed canonical MessageData FID " + std::to_string(*envelopeAuthor)
+                + " differs from selected protocol author FID "
+                + std::to_string(operation.author.value)
+                + "; refusing a cross-account write."));
         }
         transport::http::HttpPostRequest request{
             .url = trimTrailingSlashes(m_config.baseUrl) + "/v1/submitMessage",
