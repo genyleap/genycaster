@@ -417,10 +417,10 @@ int main(int argc, char** argv)
         hub.reply = [&](const QByteArray& request) {
             if (request.startsWith("POST ")) {
                 ++postCount;
-                return response(500, "{\\"error\\":\\"unexpected_write\\"}");
+                return response(500, R"json({"error":"unexpected_write"})json");
             }
             return response(400,
-                R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \\"native account not found\\""})json");
+                R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
         };
         HyperSnapRegistrationPublisher recovered{
             hub.url(),
