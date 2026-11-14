@@ -915,6 +915,11 @@ test('HyperSnap native signer authorization is local, one-use and registry-bound
   assert.match(native,/lookupByCustody\(custody/);
   assert.match(native,/result.fid != fid/);
   assert.match(native,/makeOneShotRecoveryAuthorizer/);
+  // A platform recovery enum must not be assigned to the foundation Error DTO.
+  assert.doesNotMatch(native,/\.error\s*=\s*std::move\(permit\.error\(\)\)/);
+  assert.match(native,/using RecoveryError = farcaster::platform::custody_recovery::Error/);
+  assert.match(native,/permit\.error\(\) == RecoveryError::KeyDerivationFailed/);
+  assert.match(native,/\.error\s*=\s*foundation::error::Error::make\(/);
   assert.match(native,/runtime->signerService->provision\(\s*current, signerObserver, std::move\(\*permit\)\)/);
   assert.doesNotMatch(native,/resolveRecoveryCustodyFid\(|\bsubmitPrepared\(|\bregisterGasless\(/);
   const direct=runtime.slice(runtime.indexOf('PresentationBridge::signerProvisionRequested'),
