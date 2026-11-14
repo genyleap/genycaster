@@ -5825,8 +5825,8 @@ Company | https://company.com</source>
             <translation>運営者が発行した登録コードを入力</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
-            <source>Verify enrollment code</source>
-            <translation>登録コードを確認</translation>
+            <source>Use registration code</source>
+            <translation>登録コードを使用</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
             <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
