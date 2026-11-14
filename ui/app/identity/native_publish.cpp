@@ -267,7 +267,12 @@ void HyperSnapRegistrationPublisher::updateRetryEligibility()
         m_retryAnchorWindow = window;
         saveRetryJournal();
     }
-    m_retryAnchorWindow = std::max(m_retryAnchorWindow, window);
+    if (window > m_retryAnchorWindow) {
+        m_retryAnchorWindow = window;
+        // The node's safety window may increase after restart. Persist the
+        // larger value; never shorten it on a later process launch.
+        saveRetryJournal();
+    }
     if (nextBlock < m_retryBaselineNextBlock) return;
     constexpr std::uint64_t FinalityMarginBlocks = 16;
     const auto needed = std::uint64_t{m_retryAnchorWindow} + FinalityMarginBlocks;
