@@ -1617,8 +1617,15 @@ Item {
                     DirectionAwareLabel {
                         visible: nativeCustodyWallet.backupVerified
                         Layout.fillWidth: true
-                        text: qsTrId("genycaster.setup.wallet_verified")
-                            .arg(nativeCustodyWallet.address)
+                        text: nativeRegistrationPublisher.confirmed
+                              || (root.registrationProviderId === "hypersnap-v2"
+                                  && nativeRegistrationStatus.existingNativeFid.length > 0)
+                            ? qsTrId("genycaster.setup.native_registration_confirmed")
+                                .arg(nativeRegistrationPublisher.confirmed
+                                     ? nativeRegistrationPublisher.registeredFid
+                                     : nativeRegistrationStatus.existingNativeFid)
+                            : qsTrId("genycaster.setup.wallet_verified")
+                                .arg(nativeCustodyWallet.address)
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.success
                         wrapMode: Text.WrapAnywhere
@@ -1657,6 +1664,7 @@ Item {
                         ? !nativeRegistrationPublisher.pending
                           && !nativeRegistrationPublisher.busy
                           && !nativeRegistrationPublisher.confirmed
+                          && nativeRegistrationStatus.existingNativeFid.length === 0
                         : neynarRegistration.phase === "idle"
                     text: root.registrationReadinessText()
                     color: root.registrationNodeUsable ? Theme.accent
@@ -1817,6 +1825,7 @@ Item {
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                              && !nativeRegistrationPublisher.pending
+                             && !nativeRegistrationPublisher.confirmed
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     ActionButton {
@@ -1845,12 +1854,38 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
+                    ActionButton {
+                        objectName: "setupContinueExistingNativeFid"
+                        visible: nativeRegistrationStatus.existingNativeFid.length > 0
+                        Layout.fillWidth: true
+                        prominent: true
+                        text: qsTrId("genycaster.shell.enable_interactions")
+                        busy: nativeRegistrationPublisher.verifyingExisting
+                        enabled: root.runtimeReady
+                                 && nativeRegistrationPublisher.registrationSupported
+                                 && !nativeRegistrationStatus.accountLookupBusy
+                                 && !nativeRegistrationPublisher.busy
+                                 && !nativeRegistrationPublisher.pending
+                        // Consent to local signer setup is an explicit click.
+                        // C++ rechecks (custody, FID) on shard 0 before login.
+                        onClicked: nativeRegistrationPublisher.confirmExistingAccount()
+                    }
+                    DirectionAwareLabel {
+                        visible: nativeRegistrationPublisher.existingVerificationFailed
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.native_existing_error")
+                        color: Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
                 }
                 ColumnLayout {
                     objectName: "nativeRegistrationProofPanel"
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
                              && !nativeRegistrationPublisher.pending
+                             && !nativeRegistrationPublisher.confirmed
+                             && nativeRegistrationStatus.existingNativeFid.length === 0
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     ActionButton {
@@ -1901,6 +1936,9 @@ Item {
                     objectName: "nativeRegistrationBroadcastPanel"
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
+                             && (nativeRegistrationPublisher.pending
+                                 || nativeRegistrationPublisher.confirmed
+                                 || nativeRegistrationStatus.existingNativeFid.length === 0)
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     GenyCheckRow {
