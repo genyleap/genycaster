@@ -401,6 +401,9 @@ public:
     /** @brief Rechecks the saved native signer without requesting custody approval. */
     Q_INVOKABLE void refreshSigner();
     Q_INVOKABLE void provisionSigner();
+    /** Authorize a HyperSnap-native signer from an explicit, transient local
+     * recovery phrase. Native runtime verifies custody against shard 0 first. */
+    Q_INVOKABLE void authorizeNativeHyperSnapSigner(QString recoveryWords);
     Q_INVOKABLE void revokeSigner();
     Q_INVOKABLE void publishCast(const QString& text);
 
@@ -623,6 +626,8 @@ signals:
     void signOutRequested();
     void signerRefreshRequested();
     void signerProvisionRequested();
+    /** One-use recovery words; never exposed through a Q_PROPERTY or stored. */
+    void nativeHyperSnapSignerAuthorizationRequested(QString recoveryWords);
     void signerRevokeRequested();
     void publishCastRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, QString parentUrl);
     void publishReplyRequested(QString text, QVariantList mentionFids, QVariantList mentionPositions, QVariantList embeds, qulonglong parentAuthorFid, QString parentCastId);
