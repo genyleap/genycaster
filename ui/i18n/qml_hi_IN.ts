@@ -5817,20 +5817,20 @@ Company | https://company.com</source>
             <translation>नेटिव पंजीकरण की जाँच करें</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_explanation">
-            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
-            <translation>Farcaster पंजीकरण के लिए GenyCaster का सत्यापित, भुगतान किया हुआ कोड चाहिए। यहाँ रिकवरी शब्द कभी न डालें।</translation>
+            <source>A registration code is issued by GenyCaster only after payment is verified or sponsorship is approved. Codes cannot yet be purchased or issued in Setup. Never enter your 24 recovery words here.</source>
+            <translation>GenyCaster पंजीकरण कोड केवल भुगतान सत्यापित होने या प्रायोजन स्वीकृत होने के बाद जारी करता है। अभी सेटअप में कोड खरीदा या जारी नहीं किया जा सकता। यहाँ अपने 24 रिकवरी शब्द कभी दर्ज न करें।</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_placeholder">
-            <source>Enter paid registration code</source>
-            <translation>भुगतान किया हुआ पंजीकरण कोड</translation>
+            <source>Enter operator-issued registration code</source>
+            <translation>ऑपरेटर द्वारा जारी पंजीकरण कोड दर्ज करें</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
             <source>Verify enrollment code</source>
             <translation>पंजीकरण कोड जाँचें</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
-            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
-            <translation>कोड लोड हो गया है। FID आरक्षण के समय सर्वर भुगतान अनुमति सत्यापित करेगा।</translation>
+            <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
+            <translation>कोड लोड हो गया। FID आरक्षित करते समय सर्वर पंजीकरण अनुमति सत्यापित करेगा।</translation>
         </message>
         <message id="genycaster.setup.neynar_reserve_fid">
             <source>Reserve Farcaster FID</source>
