@@ -917,8 +917,8 @@ test('HyperSnap native signer authorization is local, one-use and registry-bound
   const direct=runtime.slice(runtime.indexOf('PresentationBridge::signerProvisionRequested'),
                              runtime.indexOf('PresentationBridge::signerRevokeRequested'));
   assert.match(direct,/NativeCustodySignerAccess::forConfirmedNativeFid/);
-  assert.match(direct,/if \(!localPermit\)/);
-  assert.match(direct,/AuthorizationRequired/);
+  assert.match(direct,/without a live custody key/i);
+  assert.match(direct,/SignerService/);
   assert.match(direct,/session, signerObserver, std::move\(localPermit\)/);
   assert.match(signerService,/session->identityIssuer == "hypersnap:native-registry"\s*&& !oneShotAuthorizer/);
   assert.match(setup,/readonly property bool accountFidRegistered/);
