@@ -30,6 +30,8 @@ struct NativePublicationPorts final {
     // Last fresh shard-0 head and maximum onboard anchor validity window.
     // Must come from the SAME node used by the publisher's custody lookup.
     std::function<std::optional<std::pair<std::uint64_t, std::uint32_t>>()> registrationWindow;
+    /** Prior read-only lookup must identify this exact custody wallet. */
+    std::function<QString(const QString&)> existingFidForCustody;
 };
 
 class HyperSnapRegistrationPublisher final : public QObject {
@@ -37,6 +39,8 @@ class HyperSnapRegistrationPublisher final : public QObject {
     Q_PROPERTY(bool registrationSupported READ registrationSupported NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool checkingConfirmation READ checkingConfirmation NOTIFY changed)
+    Q_PROPERTY(bool verifyingExisting READ verifyingExisting NOTIFY changed)
+    Q_PROPERTY(bool existingVerificationFailed READ existingVerificationFailed NOTIFY changed)
     Q_PROPERTY(int lastSubmissionHttpStatus READ lastSubmissionHttpStatus NOTIFY changed)
     Q_PROPERTY(QString confirmationLookupState READ confirmationLookupState NOTIFY changed)
     Q_PROPERTY(int confirmationLookupHttpStatus READ confirmationLookupHttpStatus NOTIFY changed)
@@ -57,6 +61,8 @@ public:
     void setIdentityRuntimeReady(bool ready);
     [[nodiscard]] bool busy() const noexcept { return m_busy; }
     [[nodiscard]] bool checkingConfirmation() const noexcept { return m_checkingConfirmation; }
+    [[nodiscard]] bool verifyingExisting() const noexcept { return m_verifyingExisting; }
+    [[nodiscard]] bool existingVerificationFailed() const noexcept { return m_existingVerificationFailed; }
     [[nodiscard]] int lastSubmissionHttpStatus() const noexcept { return m_lastSubmissionHttpStatus; }
     [[nodiscard]] QString confirmationLookupState() const { return m_confirmationLookupState; }
     [[nodiscard]] int confirmationLookupHttpStatus() const noexcept { return m_confirmationLookupHttpStatus; }
@@ -74,6 +80,9 @@ public:
     Q_INVOKABLE bool submitPrepared();
     /** Read-only native shard-0 recovery for an interrupted registration. */
     Q_INVOKABLE bool recoverInterruptedRegistration();
+    /** Verify an already registered FID by a fresh custody-bound shard-0
+     * lookup. Never submits a registration or reuses a pending-write journal. */
+    Q_INVOKABLE bool confirmExistingAccount();
     /** Queries the registry; safe even if submit returned timeout/500. */
     Q_INVOKABLE bool checkConfirmation();
     /** Explicitly release a timed-out attempt only after its anchor can no
@@ -119,6 +128,8 @@ private:
     int m_confirmationLookupHttpStatus{};
     QString m_confirmationLookupState{QStringLiteral("not_checked")};
     bool m_checkingConfirmation{false};
+    bool m_verifyingExisting{false};
+    bool m_existingVerificationFailed{false};
     bool m_busy{false};
     bool m_pending{false};
     bool m_failed{false};
