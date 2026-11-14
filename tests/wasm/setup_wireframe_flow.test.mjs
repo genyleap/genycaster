@@ -871,7 +871,7 @@ test('confirmed HyperSnap FID offers a single status and revalidatable continue 
   assert.match(account, /root\.authenticationErrorText/);
   assert.match(account, /visible: !nativeRegistrationPublisher\.confirmed\s*\n\s*&& \(nativeRegistrationPublisher\.busy/);
   assert.match(account, /objectName: "setupWalletReplacement"[\s\S]*?&& !nativeRegistrationPublisher\.confirmed/);
-  assert.match(account, /title: nativeRegistrationPublisher\.confirmed[\s\S]*?genycaster\.setup\.account_verified/);
+  assert.match(account, /title: root\.accountFidRegistered[\s\S]*?genycaster\.setup\.account_verified/);
   assert.match(ui, /objectName: "setupSignerVerificationStatus"/);
   const retry=publisher.slice(publisher.indexOf('bool HyperSnapRegistrationPublisher::resumeConfirmedAccount()'),
                               publisher.indexOf('bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()'));
@@ -886,6 +886,55 @@ test('confirmed HyperSnap FID offers a single status and revalidatable continue 
   assert.match(native,/nativeSignerConfig\.submitBaseUrl = nativeIdentityNode/);
   assert.match(native,/nativeWriteConfig\.baseUrl = nativeIdentityNode/);
   assert.match(bridge,/nativePublisher->setIdentityRuntimeReady\(canAttach\)/);
+});
+
+test('HyperSnap native signer authorization is local, one-use and registry-bound',()=>{
+  const shell=source('ui/components/shell/AppShell.qml');
+  const bridgeHeader=source('src/presentation/qt/presentation_bridge.hpp');
+  const bridge=source('src/presentation/qt/presentation_bridge.cpp');
+  const runtime=source('ui/app/runtime/bindings.cpp');
+  const signerService=source('src/application/signer.cpp');
+  const setup=source('ui/components/setup/InitialSetup.qml');
+  assert.match(bridgeHeader,/Q_INVOKABLE void authorizeNativeHyperSnapSigner\(QString recoveryWords\)/);
+  assert.match(bridgeHeader,/void nativeHyperSnapSignerAuthorizationRequested\(QString recoveryWords\)/);
+  assert.match(bridge,/m_accountIdentityIssuer != QStringLiteral\("hypersnap:native-registry"\)/);
+  assert.match(bridge,/emit nativeHyperSnapSignerAuthorizationRequested\(std::move\(recoveryWords\)\)/);
+  assert.match(shell,/accountIdentityIssuer === "hypersnap:native-registry"/);
+  assert.match(shell,/objectName: "nativeSignerRecoveryWords"/);
+  assert.match(shell,/echoMode: TextInput.Password/);
+  assert.match(shell,/Qt.ImhSensitiveData/);
+  assert.match(shell,/presentationBridge.authorizeNativeHyperSnapSigner\(nativeSignerWords.text\)/);
+  assert.match(shell,/nativeSignerWords.clear\(\)/);
+  const native=runtime.slice(runtime.indexOf('PresentationBridge::nativeHyperSnapSignerAuthorizationRequested'),
+                             runtime.indexOf('PresentationBridge::signerProvisionRequested'));
+  assert.match(native,/identityIssuer != "hypersnap:native-registry"/);
+  assert.match(native,/session->fid.value != bridge.accountFid\(\)/);
+  assert.match(native,/lookupByCustody\(custody/);
+  assert.match(native,/result.fid != fid/);
+  assert.match(native,/makeOneShotRecoveryAuthorizer/);
+  assert.match(native,/runtime->signerService->provision\(\s*current, signerObserver, std::move\(\*permit\)\)/);
+  assert.doesNotMatch(native,/resolveRecoveryCustodyFid\(|\bsubmitPrepared\(|\bregisterGasless\(/);
+  const direct=runtime.slice(runtime.indexOf('PresentationBridge::signerProvisionRequested'),
+                             runtime.indexOf('PresentationBridge::signerRevokeRequested'));
+  assert.match(direct,/NativeCustodySignerAccess::forConfirmedNativeFid/);
+  assert.match(direct,/if \(!localPermit\)/);
+  assert.match(direct,/AuthorizationRequired/);
+  assert.match(direct,/session, signerObserver, std::move\(localPermit\)/);
+  assert.match(signerService,/session->identityIssuer == "hypersnap:native-registry"\s*&& !oneShotAuthorizer/);
+  assert.match(setup,/readonly property bool accountFidRegistered/);
+  assert.match(setup,/readonly property bool farcasterFidRegistered/);
+  assert.match(setup,/function maybeLookupNativeFid\(\)/);
+  assert.match(setup,/qsTrId\("genycaster.setup.registration_next_device"\)/);
+  for(const locale of ['ar_SA','de_DE','en_US','es_ES','fa_IR','fr_FR',
+                       'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
+    const translated=source('ui/i18n/qml_'+locale+'.ts');
+    for(const key of ['genycaster.shell.native_signer_description',
+                      'genycaster.shell.native_signer_use_words',
+                      'genycaster.shell.native_signer_words_note',
+                      'genycaster.shell.native_signer_authorize',
+                      'genycaster.setup.registration_next_device'])
+      assert.ok(translated.includes('id="'+key+'"'),locale+' '+key);
+  }
 });
 
 test('HyperSnap interrupted native registration restores the same custody without replay',()=>{
