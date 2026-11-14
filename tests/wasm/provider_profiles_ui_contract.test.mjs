@@ -80,8 +80,8 @@ test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaste
       composition.indexOf('runtime->independentReadProviderId'));
   assert.match(indexed,/protocolSignerManage\(\)/);
   assert.match(indexed,/protocolMessageSubmit\(\)/);
-  assert.match(indexed,/nativeSignerConfig\.baseUrl = providerConfig\.baseUrl/);
-  assert.match(indexed,/nativeWriteConfig\.baseUrl = providerConfig\.baseUrl/);
+  assert.match(indexed,/nativeSignerConfig\.baseUrl = nativeIdentityNode/);
+  assert.match(indexed,/nativeWriteConfig\.baseUrl = nativeIdentityNode/);
 });
 
 test('profile controller accepts known adapters only and refuses credential-bearing URLs', () => {
