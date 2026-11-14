@@ -2559,7 +2559,7 @@ void connectRuntime(
                     || issuer == "hypersnap:native-registry") {
                     const farcaster::provider::model::ProviderId writer{
                         issuer == "farcaster:optimism-id-registry"
-                            ? "farcaster-snapchain" : "hypersnap-v2"};
+                            ? "primary-protocol-writer" : "hypersnap-v2"};
                     runtime->router->setPreferredProviderForAccess(
                         capability::model::CapabilityAccess::Write,
                         routing::router::ProviderPreference{
@@ -2646,7 +2646,7 @@ void connectRuntime(
         // The account's registry provenance pins signer and writes to its
         // own protocol, regardless of the independent read-provider setting.
         const farcaster::provider::model::ProviderId writer{farcaster
-            ? "farcaster-snapchain" : "hypersnap-v2"};
+            ? "primary-protocol-writer" : "hypersnap-v2"};
         if (!runtime->router->isEligibleProvider(writer,
             routing::policy::CapabilityRequest{
                 .capabilityId = capability::catalog::protocolSignerManage(),
