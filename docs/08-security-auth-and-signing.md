@@ -130,6 +130,19 @@ Native HyperSnap FIDs (`fid >= 2^32`) are owned by HyperSnap's own custody regis
 
 For a newly verified native wallet, explicit approval in Setup or Account may use the short-lived in-memory custody wallet to produce a one-shot `KEY_ADD` grant. If that secret is no longer in memory, the user can explicitly enter the **original** 24 recovery words inside GenyCaster. Derive the public custody address locally, match the current session's exact FID and custody, re-check the authoritative HyperSnap native account on shard 0, then construct an FID-bound, zeroizing one-shot custody authorizer. Only then may the existing protocol signer service register and confirm the Ed25519 device signer. Never route a native FID through a Farcaster approval URL or the generic external custody authorizer; the signer service fails closed if native `KEY_ADD` lacks a local one-shot grant. A previously registered, valid signer may be restored by read-only registry inspection without re-entering recovery words. Neither checking account ownership nor restoring a signer submits another FID registration.
 
+Native social writes check the 64-bit FID **inside the signed protobuf MessageData**
+against the pinned session author before any POST. A mismatch or malformed
+envelope fails locally. A HyperSnap `unknown fid` HTTP 400 remains a rejected
+write, not evidence of acceptance. Only when the **same selected node** confirms
+both the shard-0 native registration and the exact current, appropriately
+scoped signer via the routed data-shard lookup may the existing durable outbox
+treat it as transient: it reconciles before retrying the **same signed bytes**
+with bounded attempts (default five) and persisted backoff. Missing or
+mismatched evidence fails closed. No silent Farcaster cross-posting, new
+registration, key rotation, or custody prompt is permitted. Local retry
+cannot repair missing registration events in the validator's data shard;
+operator-side block-receiver/cross-shard replay remains authoritative.
+
 The 24 words are transient input, cleared on cancel/submit or error; they must not enter settings, analytics, logs, provider requests, or long-lived presentation properties. Device approval is user-initiated, serialized, and cancelled on sign-out; asynchronous results are discarded if session FID, issuer or custody changes. Display account registration, signer authorization, and write readiness as distinct states. Farcaster/Neynar signup retains its own onchain registration and approval requirements.
 
 ## Key isolation
