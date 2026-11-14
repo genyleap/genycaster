@@ -5825,8 +5825,8 @@ Company | https://company.com</source>
             <translation>Informe o código de registro emitido pelo operador</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
-            <source>Verify enrollment code</source>
-            <translation>Verificar código de cadastro</translation>
+            <source>Use registration code</source>
+            <translation>Usar código de registro</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
             <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
