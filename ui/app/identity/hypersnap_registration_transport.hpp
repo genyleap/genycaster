@@ -29,6 +29,8 @@ public:
         LookupState state{LookupState::Unavailable};
         std::uint64_t fid{};
         std::uint64_t blockNumber{};
+        // Zero when no HTTP response was received (e.g. DNS/TLS/timeout).
+        int httpStatus{};
     };
     enum class SubmitState : std::uint8_t {
         AcceptedPending,
