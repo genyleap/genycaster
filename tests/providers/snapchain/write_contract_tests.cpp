@@ -500,16 +500,16 @@ void splitReadAndValidatorRoutesKeepCredentialsIsolated()
     assert(confirmed && *confirmed == capability::write::ConfirmationState::Confirmed);
     assert(http.posts.size() == 1U);
     assert(http.posts.front().url == "https://validator.test/v1/submitMessage");
-    assert(std::ranges::find(http.posts.front().headers, "X-Read-Token: read-test-value")
+    assert(std::ranges::find(http.posts.front().headers, std::string{"X-Read-Token: read-test-value"})
         == http.posts.front().headers.end());
-    assert(std::ranges::find(http.posts.front().headers, "X-Write-Token: write-test-value")
+    assert(std::ranges::find(http.posts.front().headers, std::string{"X-Write-Token: write-test-value"})
         != http.posts.front().headers.end());
     assert(http.gets.size() == 1U);
     assert(http.gets.front().url ==
         "https://read-node.test/v1/castById?fid=42&hash=0x00112233445566778899aabbccddeeff00112233");
-    assert(std::ranges::find(http.gets.front().headers, "X-Write-Token: write-test-value")
+    assert(std::ranges::find(http.gets.front().headers, std::string{"X-Write-Token: write-test-value"})
         == http.gets.front().headers.end());
-    assert(std::ranges::find(http.gets.front().headers, "X-Read-Token: read-test-value")
+    assert(std::ranges::find(http.gets.front().headers, std::string{"X-Read-Token: read-test-value"})
         != http.gets.front().headers.end());
 }
 
