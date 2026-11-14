@@ -136,7 +136,7 @@ Item {
                         ? qsTrId("genycaster.shell.native_signer_authorize")
                         : qsTrId("genycaster.shell.open_farcaster")
                     enabled: !interactionAuthorizationDialog.enteringNativeWords
-                             || (nativeSignerWords.text.trim().split(/\\s+/).length === 24)
+                             || (nativeSignerWords.text.trim().split(/\s+/).length === 24)
                     onClicked: {
                         if (interactionAuthorizationDialog.nativeAccount
                             && interactionAuthorizationDialog.enteringNativeWords) {
