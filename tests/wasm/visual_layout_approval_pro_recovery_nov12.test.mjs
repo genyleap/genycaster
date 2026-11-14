@@ -45,14 +45,20 @@ test('Pro authorization recovers a rejected bearer before treating status as una
   assert.match(drawer,/qsTrId\("genycaster\.pro\.check_status"\)/);
 });
 
-test('external Farcaster signer approval is explained before it opens',()=>{
+test('device signer approval is protocol-scoped and never sends native FIDs to Farcaster',()=>{
   const shell=read('ui/components/shell/AppShell.qml');
   const setup=read('ui/components/setup/InitialSetup.qml');
   assert.match(shell,/objectName: "interactionAuthorizationExplanation"/);
   assert.match(shell,/function requestInteractionAuthorization\(\)/);
   assert.match(shell,/onAuthorizeSigner: root\.requestInteractionAuthorization\(\)/);
   assert.match(shell,/onSignerRequested: \{/);
-  assert.match(shell,/interactionAuthorizationDialog\.close\(\)\s*presentationBridge\.provisionSigner\(\)/);
+  assert.match(shell,/accountIdentityIssuer === "hypersnap:native-registry"/);
+  assert.match(shell,/genycaster\.shell\.native_signer_description/);
+  assert.match(shell,/nativeSignerUseRecoveryWords/);
+  assert.match(shell,/nativeSignerWords\.clear\(\)/);
+  assert.match(shell,/presentationBridge\.authorizeNativeHyperSnapSigner\(nativeSignerWords\.text\)/);
+  assert.match(shell,/presentationBridge\.provisionSigner\(\)/);
+  assert.match(shell,/genycaster\.shell\.open_farcaster/);
   assert.match(setup,/subtitle: qsTrId\("genycaster\.setup\.recovery_signer_consent"\)/);
 });
 
