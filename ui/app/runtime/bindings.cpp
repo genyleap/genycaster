@@ -2634,7 +2634,11 @@ void connectRuntime(
         std::shared_ptr<capability::signer::ICustodyAuthorizer> permit,
         const bool farcaster) {
         if (!permit || !runtime->sessionService || !runtime->signerService
-            || !runtime->router) return;
+            || !runtime->router) {
+            bridge.applyAuthenticationError(
+                qtTrId("genycaster.setup.recovery_failed_retry"));
+            return;
+        }
         // The account's registry provenance pins signer and writes to its
         // own protocol, regardless of the independent read-provider setting.
         const farcaster::provider::model::ProviderId writer{farcaster
@@ -2736,7 +2740,11 @@ void connectRuntime(
                         return;
                     auto permit = NativeCustodySignerAccess::forConfirmedNativeFid(
                         *nativeWallet, static_cast<std::uint64_t>(fid), custody);
-                    if (!permit) return;
+                    if (!permit) {
+                        bridge.applyAuthenticationError(
+                            qtTrId("genycaster.setup.recovery_failed_retry"));
+                        return;
+                    }
                     commitVerifiedIdentity(static_cast<std::uint64_t>(fid), custody,
                                            std::move(permit), false);
                 });
