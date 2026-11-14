@@ -80,6 +80,9 @@ public:
      * longer enter shard-0 and a fresh custody lookup still shows NotFound.
      * Does NOT submit a new message or sign anything. */
     Q_INVOKABLE bool releaseExpiredAttempt();
+    /** Explicit wallet switch. The old in-flight write is NOT cancelled and
+     * its public recovery journal remains intact for later phrase recovery. */
+    Q_INVOKABLE bool detachWalletForNewRegistration();
     /** Cancel local polling, never claim a network transaction was cancelled. */
     Q_INVOKABLE void stopPolling();
     /** Erase the transient UI status; does not revoke a blockchain identity. */
