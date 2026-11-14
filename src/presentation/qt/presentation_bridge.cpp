@@ -3017,7 +3017,7 @@ void PresentationBridge::authorizeNativeHyperSnapSigner(QString recoveryWords)
     if (!m_runtimeReady || !m_isAuthenticated || m_signerBusy || m_writeReady
         || m_accountIdentityIssuer != QStringLiteral("hypersnap:native-registry")
         || m_accountFid < (1ULL << 32) || !validPhrase) {
-        recoveryWords.fill(QChar{0});
+        recoveryWords.fill(QChar{});
         if (m_isAuthenticated
             && m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry")
             && !m_signerBusy && !m_writeReady) {
