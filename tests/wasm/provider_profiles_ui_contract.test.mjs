@@ -74,11 +74,14 @@ test('protocol choice is explicit: HyperSnap default, selectable hosted Farcaste
   assert.match(qml,/providerProfiles\.selectReadProvider\("hypersnap-v2"\)/);
   assert.match(composition,/\.provider = selected, \.require = true/);
   assert.match(composition,/runtime->signerRegistry->bindRouter\(\*runtime->router\)/);
-  // HyperSnap is an indexed read adapter until a separate compatible writer
-  // contract exists: never mislabel it as a write signer provider.
+  // Its indexed reads and network-scoped gasless writes have separate
+  // adapters, both pinned to the selected HyperSnap node, not Farcaster.
   const indexed=composition.slice(composition.indexOf('ProviderId{"hypersnap-v2"}'),
       composition.indexOf('runtime->independentReadProviderId'));
-  assert.doesNotMatch(indexed,/protocolSignerManage\(\)/);
+  assert.match(indexed,/protocolSignerManage\(\)/);
+  assert.match(indexed,/protocolMessageSubmit\(\)/);
+  assert.match(indexed,/nativeSignerConfig\.baseUrl = providerConfig\.baseUrl/);
+  assert.match(indexed,/nativeWriteConfig\.baseUrl = providerConfig\.baseUrl/);
 });
 
 test('profile controller accepts known adapters only and refuses credential-bearing URLs', () => {
