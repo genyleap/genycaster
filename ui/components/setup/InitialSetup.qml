@@ -1257,13 +1257,22 @@ Item {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
-                iconGlyph: Theme.iconUser
-                title: root.choosingRegistrationProvider
-                    ? qsTrId("genycaster.setup.registration_choose_provider")
-                    : qsTrId("genycaster.setup.design_account_title")
-                subtitle: root.choosingRegistrationProvider
-                    ? qsTrId("genycaster.setup.registration_shared_fid")
-                    : qsTrId("genycaster.setup.design_account_description")
+                iconGlyph: nativeRegistrationPublisher.confirmed
+                    && root.registrationProviderId === "hypersnap-v2"
+                    ? Theme.iconCheck : Theme.iconUser
+                title: nativeRegistrationPublisher.confirmed
+                    && root.registrationProviderId === "hypersnap-v2"
+                    ? qsTrId("genycaster.setup.account_verified")
+                    : root.choosingRegistrationProvider
+                      ? qsTrId("genycaster.setup.registration_choose_provider")
+                      : qsTrId("genycaster.setup.design_account_title")
+                subtitle: nativeRegistrationPublisher.confirmed
+                    && root.registrationProviderId === "hypersnap-v2"
+                    ? qsTrId("genycaster.setup.native_registration_confirmed")
+                        .arg(nativeRegistrationPublisher.registeredFid)
+                    : root.choosingRegistrationProvider
+                      ? qsTrId("genycaster.setup.registration_shared_fid")
+                      : qsTrId("genycaster.setup.design_account_description")
                 centered: !root.phone
             }
             Item { Layout.preferredHeight: Theme.space4 }
@@ -1318,6 +1327,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space3
                 GridLayout {
+                    visible: !nativeRegistrationPublisher.confirmed
                     Layout.fillWidth: true
                     columns: root.phone ? 1 : 2
                     rowSpacing: Theme.space3
@@ -1369,6 +1379,7 @@ Item {
                     visible: nativeCustodyWallet.hasWallet
                              && nativeCustodyWallet.backupVerified
                              && root.registrationProviderId === "hypersnap-v2"
+                             && !nativeRegistrationPublisher.confirmed
                     ActionButton {
                         objectName: "setupChooseDifferentWallet"
                         Layout.fillWidth: true
@@ -1615,17 +1626,12 @@ Item {
                         }
                     }
                     DirectionAwareLabel {
+                        objectName: "setupVerifiedCustodyWallet"
                         visible: nativeCustodyWallet.backupVerified
+                                 && !nativeRegistrationPublisher.confirmed
                         Layout.fillWidth: true
-                        text: nativeRegistrationPublisher.confirmed
-                              || (root.registrationProviderId === "hypersnap-v2"
-                                  && nativeRegistrationStatus.existingNativeFid.length > 0)
-                            ? qsTrId("genycaster.setup.native_registration_confirmed")
-                                .arg(nativeRegistrationPublisher.confirmed
-                                     ? nativeRegistrationPublisher.registeredFid
-                                     : nativeRegistrationStatus.existingNativeFid)
-                            : qsTrId("genycaster.setup.wallet_verified")
-                                .arg(nativeCustodyWallet.address)
+                        text: qsTrId("genycaster.setup.wallet_verified")
+                            .arg(nativeCustodyWallet.address)
                         font.pixelSize: Theme.typeLabelSize
                         color: Theme.success
                         wrapMode: Text.WrapAnywhere
@@ -1850,7 +1856,7 @@ Item {
                                     .arg(nativeRegistrationStatus.existingNativeFid)
                                 : qsTrId("genycaster.setup.native_existing_missing")
                         color: nativeRegistrationStatus.existingNativeFid.length > 0
-                            ? Theme.warning : Theme.inkMuted
+                            ? Theme.success : Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
@@ -1859,7 +1865,7 @@ Item {
                         visible: nativeRegistrationStatus.existingNativeFid.length > 0
                         Layout.fillWidth: true
                         prominent: true
-                        text: qsTrId("genycaster.shell.enable_interactions")
+                        text: qsTrId("genycaster.setup.continue")
                         busy: nativeRegistrationPublisher.verifyingExisting
                         enabled: root.runtimeReady
                                  && nativeRegistrationPublisher.registrationSupported
@@ -1969,15 +1975,43 @@ Item {
                         onClicked: nativeRegistrationPublisher.submitPrepared()
                     }
                     DirectionAwareLabel {
-                        visible: nativeRegistrationPublisher.busy
-                                 || nativeRegistrationPublisher.pending
-                                 || nativeRegistrationPublisher.failed
-                                 || nativeRegistrationPublisher.confirmed
+                        visible: !nativeRegistrationPublisher.confirmed
+                                 && (nativeRegistrationPublisher.busy
+                                     || nativeRegistrationPublisher.pending
+                                     || nativeRegistrationPublisher.failed)
                         Layout.fillWidth: true
                         text: root.nativeSubmissionStatusText()
                         font.pixelSize: Theme.typeCaptionSize
-                        color: nativeRegistrationPublisher.confirmed
-                            ? Theme.success : Theme.warning
+                        color: Theme.warning
+                        wrapMode: Text.WordWrap
+                    }
+                    ActionButton {
+                        objectName: "setupContinueConfirmedNativeAccount"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.confirmed
+                                 && !root.authenticated
+                        prominent: true
+                        text: qsTrId("genycaster.setup.continue")
+                        busy: nativeRegistrationPublisher.verifyingExisting
+                        enabled: root.runtimeReady
+                                 && nativeRegistrationPublisher.registrationSupported
+                                 && !nativeRegistrationPublisher.busy
+                        // The FID is already registered. This performs only a
+                        // fresh custody-bound lookup, then resumes sign-in.
+                        onClicked: nativeRegistrationPublisher.resumeConfirmedAccount()
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupConfirmedNativeLoginError"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.confirmed
+                                 && !root.authenticated
+                                 && (nativeRegistrationPublisher.existingVerificationFailed
+                                     || root.authenticationErrorText.length > 0)
+                        text: nativeRegistrationPublisher.existingVerificationFailed
+                            ? qsTrId("genycaster.setup.native_existing_error")
+                            : root.authenticationErrorText
+                        color: Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
                     ActionButton {
@@ -2446,6 +2480,17 @@ Item {
                     ? qsTrId("genycaster.shell.open_farcaster")
                     : qsTrId("genycaster.shell.open_genyleap")
                 onClicked: root.openApproval()
+            }
+            DirectionAwareLabel {
+                objectName: "setupSignerVerificationStatus"
+                visible: root.authenticated && !root.signerReady
+                         && root.signerStatusText.length > 0
+                Layout.fillWidth: true
+                text: root.signerStatusText
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
             }
             SetupActionCard {
                 visible: root.authenticated && !root.signerReady
