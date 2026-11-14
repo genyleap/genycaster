@@ -45,6 +45,9 @@ struct Config final {
     std::string authorizationHeaderValue{};
     std::chrono::milliseconds timeout{5'000};
     std::size_t maxBodyBytes{8U * 1024U * 1024U};
+    // Only the HyperSnap-native writer may probe its own shard-0 registry
+    // after a rejected unknown-FID message. Never use this with Farcaster.
+    bool probeNativeRegistryOnUnknownFid{false};
 };
 
 /**
