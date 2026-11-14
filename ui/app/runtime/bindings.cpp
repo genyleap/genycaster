@@ -3665,7 +3665,15 @@ void connectRuntime(
             }
             const auto session = runtime->currentSessionSnapshot();
             if (!session || !bridge.isAuthenticated()
-                || session->fid.value != bridge.accountFid()) return;
+                || session->fid.value != bridge.accountFid()) {
+                applySignerState(bridge, application::signer::SignerState{
+                    .phase = application::signer::SignerPhase::Unavailable,
+                    .error = foundation::error::Error::make(
+                        foundation::error::ErrorCode::Unauthorized,
+                        "Signer session changed before device authorization.")
+                });
+                return;
+            }
 #if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
             std::shared_ptr<capability::signer::ICustodyAuthorizer> localPermit{};
             if (session->identityIssuer == "hypersnap:native-registry") {
