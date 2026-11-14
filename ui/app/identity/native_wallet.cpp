@@ -234,7 +234,12 @@ void NativeCustodyWalletController::clearCopiedRecoveryWords()
 
     // Clipboard history and third-party managers are beyond our control.
     // Never erase a newer, unrelated clipboard value owned by the user.
-    if (auto* clipboard = QGuiApplication::clipboard()) {
+    if (QGuiApplication::instance()) {
+        auto* clipboard = QGuiApplication::clipboard();
+        if (!clipboard) {
+            expected.fill(char{0});
+            return;
+        }
         auto current = clipboard->text();
         if (current.size() == length) {
             auto bytes = current.toLatin1();
