@@ -170,7 +170,12 @@ test('uncertain HyperSnap submit stays a read-only confirmation instead of showi
   assert.match(broadcast,/objectName: "setupBeginRegistration"[\s\S]*?visible: !nativeRegistrationPublisher\.pending/);
   assert.match(broadcast,/text: root\.nativeSubmissionStatusText\(\)/);
   assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"[\s\S]*?busy: nativeRegistrationPublisher\.checkingConfirmation/);
-  assert.match(broadcast,/onClicked: nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.match(broadcast,/nativeRegistrationStatus\.refresh\(\)/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
+  assert.match(broadcast,/objectName: "setupNativeRetryWindow"/);
+  assert.match(broadcast,/objectName: "setupReleaseExpiredNativeAttempt"/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.retryReady/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.releaseExpiredAttempt\(\)/);
   assert.match(setup,/function nativeSubmissionStatusText\(\)/);
   assert.match(setup,/lastSubmissionHttpStatus/);
   assert.match(broadcast,/objectName: "setupNativeConfirmationDetails"/);
@@ -182,10 +187,17 @@ test('uncertain HyperSnap submit stays a read-only confirmation instead of showi
                         'hi_IN','ja_JP','ko_KR','pt_BR','ru_RU','zh_CN']) {
     assert.match(source('ui/i18n/qml_'+locale+'.ts'),
       /<message id="genycaster\.setup\.native_confirmation_no_fid_yet">/);
+    for(const key of ['native_retry_wait_blocks','native_retry_start_over'])
+      assert.match(source('ui/i18n/qml_'+locale+'.ts'),
+        new RegExp('<message id="genycaster\\.setup\\.'+key+'">'));
   }
   const publisher=source('ui/app/identity/native_publish.cpp');
   assert.match(publisher,/m_lastSubmissionHttpStatus = result\.httpStatus/);
   assert.match(publisher,/m_checkingConfirmation = true/);
+  assert.match(publisher,/void HyperSnapRegistrationPublisher::updateRetryEligibility\(\)/);
+  assert.match(publisher,/bool HyperSnapRegistrationPublisher::releaseExpiredAttempt\(\)/);
+  assert.match(publisher,/FinalityMarginBlocks = 16/);
+  assert.match(source('ui/app/main.cpp'),/registrationWindow = \[&nativeRegistrationStatus\]/);
   assert.match(publisher,/Never clear m_pending \/ m_submitted/);
   assert.doesNotMatch(publisher,/m_pending = false;\s*\/\/.*[Tt]imeout/);
 });
