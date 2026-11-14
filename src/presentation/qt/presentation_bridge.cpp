@@ -2995,6 +2995,16 @@ void PresentationBridge::refreshSigner()
 void PresentationBridge::provisionSigner()
 {
     if (!m_isAuthenticated || m_signerBusy) { return; }
+    if (m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry")) {
+        // Serialize explicit native consent with the separate recovery-word
+        // flow. No custody key or authorization is inferred from sign-in.
+        m_signerPhase = QStringLiteral("provisioning");
+        m_signerBusy = true;
+        m_writeReady = false;
+        m_signerStatusText = qtTrId(
+            "genycaster.runtime.waiting_for_custody_approval_and_network_confirmation");
+        emit stateChanged();
+    }
     m_signerErrorText.clear();
     emit signerProvisionRequested();
 }
