@@ -1,6 +1,8 @@
 #include "native_publish.hpp"
 
 #include <QByteArray>
+#include <QCryptographicHash>
+#include <QSettings>
 
 #include <algorithm>
 
@@ -14,6 +16,54 @@ HyperSnapRegistrationPublisher::HyperSnapRegistrationPublisher(
     m_poll.setSingleShot(true);
     QObject::connect(&m_poll, &QTimer::timeout, this,
                      [this] { (void)checkConfirmation(); });
+}
+
+QString HyperSnapRegistrationPublisher::retryJournalKey() const
+{
+    // Public-only journal, scoped to the exact native node and custody
+    // address. Hash the scope to avoid exposing the address in settings keys.
+    const QByteArray scope = m_transport.nodeEndpoint()
+        .toString(QUrl::FullyEncoded).toUtf8()
+        + QByteArray{1, '\\0'} + m_address.toUtf8();
+    return QStringLiteral("nativeRegistration/expiry-v1/")
+        + QString::fromLatin1(QCryptographicHash::hash(
+            scope, QCryptographicHash::Sha256).toHex());
+}
+
+void HyperSnapRegistrationPublisher::loadRetryJournal()
+{
+    if (m_address.isEmpty()) return;
+    const QString entry = QSettings{}.value(retryJournalKey()).toString();
+    const QStringList parts = entry.split(QLatin1Char(':'));
+    if (parts.size() != 2) return;
+    bool headValid = false;
+    bool windowValid = false;
+    const auto head = parts.at(0).toULongLong(&headValid);
+    const auto window = parts.at(1).toUInt(&windowValid);
+    if (headValid && head > 0 && windowValid && window > 0
+        && window <= 65'536) {
+        m_retryBaselineNextBlock = static_cast<std::uint64_t>(head);
+        m_retryAnchorWindow = static_cast<std::uint32_t>(window);
+    }
+}
+
+void HyperSnapRegistrationPublisher::saveRetryJournal() const
+{
+    if (m_address.isEmpty() || m_retryBaselineNextBlock == 0
+        || m_retryAnchorWindow == 0 || m_retryAnchorWindow > 65'536) return;
+    QSettings settings{};
+    settings.setValue(retryJournalKey(),
+        QString::number(static_cast<qulonglong>(m_retryBaselineNextBlock))
+        + QLatin1Char(':') + QString::number(m_retryAnchorWindow));
+    settings.sync();
+}
+
+void HyperSnapRegistrationPublisher::eraseRetryJournal() const
+{
+    if (m_address.isEmpty()) return;
+    QSettings settings{};
+    settings.remove(retryJournalKey());
+    settings.sync();
 }
 
 void HyperSnapRegistrationPublisher::setIdentityRuntimeReady(const bool ready)
@@ -84,6 +134,7 @@ bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
     m_retryRemainingBlocks = -1;
     m_retryReady = false;
     m_checks = 0;
+    loadRetryJournal(); // Survives Back and process restart.
     const auto generation = ++m_generation;
     if (m_ports.cancelProof) m_ports.cancelProof();
     emit changed();
@@ -149,6 +200,7 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
                     if (info->first > 0 && info->second > 0 && info->second <= 65'536) {
                         m_retryBaselineNextBlock = info->first;
                         m_retryAnchorWindow = info->second;
+                        saveRetryJournal();
                     }
                 }
             }
@@ -162,6 +214,7 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
                     m_pending = false;
                     m_submitted = false;
                     m_failed = true;
+                    eraseRetryJournal();
                     emit changed();
                     return;
                 }
@@ -212,6 +265,7 @@ void HyperSnapRegistrationPublisher::updateRetryEligibility()
         // the first observed chain head is deliberately conservative.
         m_retryBaselineNextBlock = nextBlock;
         m_retryAnchorWindow = window;
+        saveRetryJournal();
     }
     m_retryAnchorWindow = std::max(m_retryAnchorWindow, window);
     if (nextBlock < m_retryBaselineNextBlock) return;
@@ -242,6 +296,7 @@ bool HyperSnapRegistrationPublisher::releaseExpiredAttempt()
         return false;
 
     stopPolling();
+    eraseRetryJournal();
     m_pending = false;
     m_submitted = false;
     m_unknown = false;
@@ -289,6 +344,7 @@ void HyperSnapRegistrationPublisher::onConfirmed(quint64 fid, quint64 generation
         return;
     }
     m_poll.stop();
+    eraseRetryJournal();
     m_checkingConfirmation = false;
     m_fid = QString::number(static_cast<qulonglong>(fid));
     m_pending = false;
