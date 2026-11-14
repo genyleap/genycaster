@@ -349,6 +349,110 @@ int main(int argc, char** argv)
         publisher.clear();
         assert(!publisher.confirmed() && !publisher.pending());
     }
+    // An existing native FID is a read-only sign-in route, not a new
+    // registration. Require the offline backup and TWO matching shard-0
+    // lookups; changed identity, stale lookup and failed reads fail closed.
+    {
+        FakeHub hub{};
+        int postCount = 0;
+        bool switchedFid = false;
+        hub.reply = [&](const QByteArray& request) {
+            if (request.startsWith("POST ")) {
+                ++postCount;
+                return response(500, R"json({"error":"unexpected_write"})json");
+            }
+            const QByteArray fid = switchedFid ? "4294967297" : "4294967296";
+            return response(200, QByteArray{"{\"fid\":\""} + fid
+                + "\",\"custodyAddress\":\"" + Custody
+                + "\",\"blockNumber\":54321,\"message\":{\"data\":{}}}");
+        };
+        NativeRegistrationStatusController checked{hub.url().toString()};
+        auto lookup = [&] {
+            await([&](auto done) {
+                auto connection = std::make_shared<QMetaObject::Connection>();
+                *connection = QObject::connect(
+                    &checked, &NativeRegistrationStatusController::lookupChanged,
+                    &checked, [&, connection, done] {
+                        if (checked.accountLookupChecked() && !checked.accountLookupBusy()) {
+                            QObject::disconnect(*connection);
+                            done();
+                        }
+                    });
+                checked.findExistingNativeAccount(address);
+            });
+        };
+        lookup();
+        assert(checked.verifiedExistingFidForCustody(address)
+               == QStringLiteral("4294967296"));
+        assert(checked.verifiedExistingFidForCustody(
+                   QStringLiteral("0x0000000000000000000000000000000000000001")).isEmpty());
+
+        bool backedUp = false;
+        int confirmations = 0;
+        HyperSnapRegistrationPublisher existing{
+            hub.url(),
+            NativePublicationPorts{
+                .backupVerified = [&] { return backedUp; },
+                .custodyAddress = [&] { return address; },
+                .existingFidForCustody = [&](const QString& wallet) {
+                    return checked.verifiedExistingFidForCustody(wallet);
+                }
+            }};
+        existing.setIdentityRuntimeReady(true);
+        QObject::connect(&existing,
+            &HyperSnapRegistrationPublisher::nativeAccountConfirmed,
+            &existing, [&](const QString& fid, const QString& custody) {
+                assert(custody == address);
+                assert(fid == QStringLiteral("4294967297"));
+                ++confirmations;
+            });
+        assert(!existing.confirmExistingAccount()); // Backup not verified.
+        backedUp = true;
+        switchedFid = true; // Stale first lookup cannot create a session.
+        assert(existing.confirmExistingAccount());
+        assert(existing.verifyingExisting());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &existing, &HyperSnapRegistrationPublisher::changed,
+                &existing, [&, connection, done] {
+                    if (!existing.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(existing.existingVerificationFailed());
+        assert(!existing.confirmed());
+        assert(existing.confirmationLookupState() == QStringLiteral("fid_changed"));
+        assert(confirmations == 0 && postCount == 0);
+
+        // Only a refreshed custody-bound lookup can unlock the new FID.
+        checked.clearExistingLookup();
+        assert(!existing.confirmExistingAccount());
+        lookup();
+        assert(checked.verifiedExistingFidForCustody(address)
+               == QStringLiteral("4294967297"));
+        assert(existing.confirmExistingAccount());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &existing, &HyperSnapRegistrationPublisher::changed,
+                &existing, [&, connection, done] {
+                    if (existing.confirmed()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(existing.confirmed());
+        assert(!existing.verifyingExisting());
+        assert(!existing.existingVerificationFailed());
+        assert(!existing.pending() && !existing.outcomeUnknown());
+        assert(existing.registeredFid() == QStringLiteral("4294967297"));
+        assert(confirmations == 1 && postCount == 0);
+        assert(!existing.confirmExistingAccount()); // No second session event.
+    }
     // Simulate a full process restart after an ambiguous native registration.
     // The recovered offline wallet is used only for read-only shard-0 queries.
     {
