@@ -5808,6 +5808,10 @@ Company | https://company.com</source>
             <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
             <translation>Узел отклонил доказательство. Обновите опорный блок и подготовьте новый вариант.</translation>
         </message>
+        <message id="genycaster.setup.native_confirmation_no_fid_yet">
+            <source>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</source>
+            <translation>Реестр пока не подтвердил FID для этого кошелька. Предыдущая заявка может ещё обрабатываться; не отправляйте повторно.</translation>
+        </message>
         <message id="genycaster.setup.native_registration_outcome_unknown">
             <source>The submission outcome is unknown. Check whether the wallet already owns an FID before attempting any new submission.</source>
             <translation>Результат отправки неизвестен. Проверьте наличие FID у кошелька, прежде чем отправлять повторно.</translation>
