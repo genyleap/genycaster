@@ -94,6 +94,12 @@ private:
     void scheduleCheck(quint64 generation);
     void onConfirmed(quint64 fid, quint64 generation);
     void updateRetryEligibility();
+    // Only public node/wallet fingerprint and shard-0 height/window are kept
+    // in QSettings; never a mnemonic, private key, signature or proof.
+    [[nodiscard]] QString retryJournalKey() const;
+    void loadRetryJournal();
+    void saveRetryJournal() const;
+    void eraseRetryJournal() const;
 
     HyperSnapRegistrationTransport m_transport;
     NativePublicationPorts m_ports;
