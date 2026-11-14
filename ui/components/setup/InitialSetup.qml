@@ -62,7 +62,8 @@ Item {
     property string registrationProviderId: "hypersnap-v2"
     readonly property bool nativeFidRegistered:
         registrationProviderId === "hypersnap-v2"
-        && nativeRegistrationPublisher.confirmed
+        && (nativeRegistrationPublisher.confirmed
+            || nativeRegistrationStatus.existingNativeFid.length > 0)
     readonly property bool farcasterFidRegistered:
         registrationProviderId === "farcaster-snapchain"
         && neynarRegistration.confirmed
