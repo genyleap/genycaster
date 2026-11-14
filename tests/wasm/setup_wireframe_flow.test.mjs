@@ -158,6 +158,27 @@ test('registration network status is protocol-scoped, actionable and localized',
   }
 });
 
+test('Back navigation never duplicates the HyperSnap pending warning in red', () => {
+  const back=setup.slice(setup.indexOf('function previousStep()'),
+                         setup.indexOf('function actionText()'));
+  const pending=back.slice(back.indexOf('if (nativeRegistrationPublisher.pending)'),
+                           back.indexOf('// Backing out must also stop polling'));
+  assert.match(pending,/nativeRegistrationPublisher\.stopPolling\(\)/);
+  assert.match(pending,/nativeRegistrationPreparation\.cancel\(\)/);
+  assert.match(pending,/registrationError = ""/);
+  assert.match(pending,/choosingRegistrationProvider = false/);
+  assert.match(pending,/accountIntent = ""/);
+  assert.doesNotMatch(pending,/registrationError\s*=\s*qsTrId\(/);
+  assert.doesNotMatch(pending,/nativeRegistrationPublisher\.submitPrepared\(\)/);
+  assert.doesNotMatch(pending,/nativeCustodyWallet\.discard\(\)/);
+  const publisher=source('ui/app/identity/native_publish.cpp');
+  assert.match(publisher,/if \(m_submitted && !confirmed\(\)\) \{/);
+  assert.match(publisher,/loadRetryJournal\(\)/);
+  assert.match(publisher,/saveRetryJournal\(\)/);
+  assert.match(publisher,/eraseRetryJournal\(\)/);
+  assert.match(publisher,/nativeRegistration\/expiry-v1\//);
+});
+
 test('uncertain HyperSnap submit stays a read-only confirmation instead of showing a second submit', () => {
   const account=setup.slice(setup.indexOf('id: accountStage'),setup.indexOf('id: signInStage'));
   const nativeLookup=account.slice(account.indexOf('objectName: "nativeAccountLookupPanel"'),
