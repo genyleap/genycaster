@@ -1483,6 +1483,7 @@ int main(int argc, char* argv[])
             .databasePath = databasePath,
             .networkProxyPolicy = networkProxyPolicy,
             .providerBaseUrl = providerBaseUrl,
+            .hyperSnapNativeNodeBaseUrl = nativeRegistrationEndpoint.toStdString(),
             .farcasterReadBaseUrl = farcasterReadBaseUrl,
             .farcasterReadApiKey = farcasterReadApiKey,
             .additionalReadProviders = additionalReadProviders,
