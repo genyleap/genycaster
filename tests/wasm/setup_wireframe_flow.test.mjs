@@ -169,7 +169,10 @@ test('uncertain HyperSnap submit stays a read-only confirmation instead of showi
   assert.match(nativeProof,/&& !nativeRegistrationPublisher\.pending/);
   assert.match(broadcast,/objectName: "setupBeginRegistration"[\s\S]*?visible: !nativeRegistrationPublisher\.pending/);
   assert.match(broadcast,/text: root\.nativeSubmissionStatusText\(\)/);
-  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"[\s\S]*?busy: nativeRegistrationPublisher\.checkingConfirmation/);
+  assert.match(broadcast,/objectName: "setupCheckNativeRegistrationConfirmation"[\s\S]*?busy: nativeRegistrationStatus\.checking/);
+  assert.match(broadcast,/nativeRegistrationPublisher\.checkingConfirmation/);
+  assert.match(broadcast,/target: nativeRegistrationStatus[\s\S]*?function onChanged\(\)/);
+  assert.match(broadcast,/objectName: "setupNativeStatusRefreshFailure"/);
   assert.match(broadcast,/nativeRegistrationStatus\.refresh\(\)/);
   assert.match(broadcast,/nativeRegistrationPublisher\.checkConfirmation\(\)/);
   assert.match(broadcast,/objectName: "setupNativeRetryWindow"/);
