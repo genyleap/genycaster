@@ -5817,20 +5817,20 @@ Company | https://company.com</source>
             <translation>التحقق من التسجيل الأصلي</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_explanation">
-            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
-            <translation>يتطلب تسجيل Farcaster رمز تسجيل مدفوعًا وموثّقًا من GenyCaster. لا تُدخل كلمات الاسترداد هنا.</translation>
+            <source>A registration code is issued by GenyCaster only after payment is verified or sponsorship is approved. Codes cannot yet be purchased or issued in Setup. Never enter your 24 recovery words here.</source>
+            <translation>تصدر GenyCaster رمز التسجيل فقط بعد التحقق من الدفع أو الموافقة على الرعاية. لا يمكن حاليًا شراء الرمز أو إصداره من شاشة الإعداد. لا تدخل كلمات الاسترداد الأربع والعشرين هنا.</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_placeholder">
-            <source>Enter paid registration code</source>
-            <translation>رمز التسجيل المدفوع</translation>
+            <source>Enter operator-issued registration code</source>
+            <translation>أدخل رمز التسجيل الصادر عن المشغّل</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
             <source>Verify enrollment code</source>
             <translation>التحقق من رمز التسجيل</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
-            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
-            <translation>تم تحميل رمز التسجيل؛ تتحقق الخوادم من إذن الدفع عند حجز FID.</translation>
+            <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
+            <translation>تم تحميل الرمز. يتحقق الخادم من تصريح التسجيل عند حجز FID.</translation>
         </message>
         <message id="genycaster.setup.neynar_reserve_fid">
             <source>Reserve Farcaster FID</source>
