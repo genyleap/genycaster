@@ -102,9 +102,16 @@ the application; it never exposes signing material to QML.
 
 HyperSnap now has an explicitly consented publish coordinator, independent
 native FID confirmation, its own custody recovery path and short-lived
-session/one-shot device signer authorization. Local C++ and Qt tests pass;
-a funded mainnet onboarding, signer network acceptance and full cross-platform
-package are **not** yet independently verified.
+session/one-shot device signer authorization. When a newly created wallet already
+owns a native FID, Setup offers a separate **read-only existing-account
+continuation**: an initial custody-bound lookup exposes the action, a second
+fresh lookup must confirm the same FID on the same node, and only then does the
+existing `nativeAccountConfirmed` path create a session and provision its signer.
+This route never creates a proof, POSTs registration, or reuses an uncertain
+submission; a changed FID or failed lookup cannot establish a session.
+Local C++ and Qt tests exercise the guarded paths; a funded mainnet onboarding,
+signer network acceptance and full cross-platform package are **not** yet
+independently verified.
 
 The Farcaster/Neynar first-party backend now includes Optimism IdRegistry
 safe-chain reads, independent EIP-712 signature recovery, sponsored/paid
