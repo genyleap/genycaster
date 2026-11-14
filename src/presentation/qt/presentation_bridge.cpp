@@ -2999,6 +2999,38 @@ void PresentationBridge::provisionSigner()
     emit signerProvisionRequested();
 }
 
+void PresentationBridge::authorizeNativeHyperSnapSigner(QString recoveryWords)
+{
+    // Only the explicit, local HyperSnap recovery ceremony may receive
+    // custody words. Neither the phrase nor its signature is persisted here.
+    int wordCount = 0;
+    bool insideWord = false;
+    for (const QChar ch : recoveryWords) {
+        if (ch.isSpace()) {
+            insideWord = false;
+        } else if (!insideWord) {
+            ++wordCount;
+            insideWord = true;
+        }
+    }
+    const bool validPhrase = recoveryWords.size() <= 4095 && wordCount == 24;
+    if (!m_runtimeReady || !m_isAuthenticated || m_signerBusy || m_writeReady
+        || m_accountIdentityIssuer != QStringLiteral("hypersnap:native-registry")
+        || m_accountFid < (1ULL << 32) || !validPhrase) {
+        recoveryWords.fill(QChar{0});
+        if (m_isAuthenticated
+            && m_accountIdentityIssuer == QStringLiteral("hypersnap:native-registry")
+            && !m_signerBusy && !m_writeReady) {
+            m_signerErrorText = qtTrId("genycaster.setup.recovery_failed_retry");
+            emit stateChanged();
+        }
+        return;
+    }
+    m_signerErrorText.clear();
+    emit stateChanged();
+    emit nativeHyperSnapSignerAuthorizationRequested(std::move(recoveryWords));
+}
+
 void PresentationBridge::revokeSigner()
 {
     if (!m_isAuthenticated || m_signerBusy || !m_writeReady) { return; }
