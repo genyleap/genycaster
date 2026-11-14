@@ -734,45 +734,67 @@ struct ProtoField final {
     return makeError(code, std::move(message));
 }
 
-// This is diagnostic only, after the signed write has already been rejected.
-// A shard-0 lookup proves registration there, not that the user's data shard
-// has replayed the native registration. Never retry or switch network here.
-[[nodiscard]] std::string nativeUnknownFidEvidence(
+// These probes run only after an explicit 400 rejection and only against the
+// same selected HyperSnap origin. Registration is shard-0 state, while a
+// signersByFid lookup reads the author's routed data shard.
+struct NativeUnknownFidEvidence final {
+    std::string detail{};
+    bool confirmedReplicationRace{false};
+};
+
+[[nodiscard]] bool matchesSignerKey(std::string_view actual, std::string_view expected)
+{
+    if (actual.starts_with("0x") || actual.starts_with("0X")) actual.remove_prefix(2U);
+    if (expected.starts_with("0x") || expected.starts_with("0X")) expected.remove_prefix(2U);
+    if (actual.size() != 64U || expected.size() != 64U
+        || !std::all_of(actual.begin(), actual.end(), isHexDigit)
+        || !std::all_of(expected.begin(), expected.end(), isHexDigit)) {
+        return false;
+    }
+    return std::equal(actual.begin(), actual.end(), expected.begin(), [](const char a, const char b) {
+        return std::tolower(static_cast<unsigned char>(a))
+            == std::tolower(static_cast<unsigned char>(b));
+    });
+}
+
+[[nodiscard]] NativeUnknownFidEvidence nativeUnknownFidEvidence(
     transport::http::IHttpTransport& transport,
     const Config& config,
-    const domain::identity::Fid author)
+    const domain::write::SignedOperation& operation)
 {
-    constexpr std::uint64_t FirstNativeFid = 1ULL << 32;
-    if (!config.probeNativeRegistryOnUnknownFid || author.value < FirstNativeFid) {
+    constexpr std::uint64_t firstNativeFid = 1ULL << 32U;
+    if (!config.probeNativeRegistryOnUnknownFid || operation.author.value < firstNativeFid) {
         return {};
     }
     const auto& origin = config.readBaseUrl.empty() ? config.baseUrl : config.readBaseUrl;
-    auto response = transport.get(transport::http::HttpRequest{
-        .url = trimTrailingSlashes(origin) + "/v1/nativeAccount?fid="
-            + std::to_string(author.value),
-        .headers = requestHeaders(config, false),
-        .timeout = config.timeout,
-        .maxBodyBytes = std::min(config.maxBodyBytes, std::size_t{32768}),
-    });
-    if (!response) {
-        return " Native registry lookup on the selected node was unavailable; "
-               "the account's registration status is unknown. No automatic retry.";
+    const auto base = trimTrailingSlashes(origin);
+    const auto fidText = std::to_string(operation.author.value);
+    const auto lookup = [&](const std::string& url) {
+        return transport.get(transport::http::HttpRequest{
+            .url = url,
+            .headers = requestHeaders(config, false),
+            .timeout = config.timeout,
+            .maxBodyBytes = std::min(config.maxBodyBytes, std::size_t{32768}),
+        });
+    };
+    auto accountResponse = lookup(base + "/v1/nativeAccount?fid=" + fidText);
+    if (!accountResponse) {
+        return {.detail = " Native registration lookup on the selected HyperSnap node failed. "
+                          "No automatic retry without registry evidence."};
     }
-    if ((response->statusCode == 400U || response->statusCode == 404U)
-        && response->body.find("native account not found") != std::string::npos) {
-        return " The selected node's shard-0 native registry has NO confirmed "
-               "registration for this FID. Check the original registration node "
-               "and custody-wallet recovery; do not submit another registration blindly.";
+    if ((accountResponse->statusCode == 400U || accountResponse->statusCode == 404U)
+        && accountResponse->body.find("native account not found") != std::string::npos) {
+        return {.detail = " The selected node's shard-0 native registry has NO confirmed "
+                          "registration for this FID. Do not register the same wallet blindly."};
     }
-    if (response->statusCode != 200U) {
-        return " Shard-0 native account lookup returned HTTP "
-            + std::to_string(response->statusCode)
-            + "; the registration cannot be independently verified. No automatic retry.";
+    if (accountResponse->statusCode != 200U) {
+        return {.detail = " Shard-0 native account lookup returned HTTP "
+            + std::to_string(accountResponse->statusCode)
+            + "; registration cannot be independently verified."};
     }
-    auto parsed = parseJson(response->body);
+    auto parsed = parseJson(accountResponse->body);
     if (!parsed || !parsed->is_object()) {
-        return " Native account lookup returned an invalid JSON response; "
-               "the registration cannot be verified.";
+        return {.detail = " Shard-0 native registration lookup returned invalid JSON."};
     }
     const auto& record = parsed->as_object();
     auto fid = requireUnsigned(record, "fid", "nativeAccount");
@@ -785,16 +807,66 @@ struct ProtoField final {
     const bool validBlock = block
         && ((block->is_uint64() && block->as_uint64() > 0U)
             || (block->is_int64() && block->as_int64() > 0));
-    if (!fid || *fid != author.value || !validCustody || !validBlock
+    if (!fid || *fid != operation.author.value || !validCustody || !validBlock
         || !message || !message->is_object()) {
-        return " Native account lookup returned an incomplete or mismatched "
-               "shard-0 record; the selected node cannot safely verify this FID.";
+        return {.detail = " Native registry returned an incomplete or mismatched shard-0 record."};
     }
-    return " Shard 0 on the selected HyperSnap node CONFIRMS this native FID, "
-           "but the write path still reports unknown fid. Its author data shard "
-           "may be behind or missing replicated registration events. The node "
-           "operator should inspect shard sync and block_receiver replication; "
-           "do not re-register the wallet or silently cross-post to Farcaster.";
+
+    constexpr std::string_view shard0Confirmed =
+        " Shard 0 CONFIRMS this native FID. The write validator still returns "
+        "unknown fid, indicating that the author's data shard may not have "
+        "applied native registration. Inspect its block_receiver replay. ";
+    auto signerResponse = lookup(base + "/v1/signersByFid?fid=" + fidText);
+    if (!signerResponse || signerResponse->statusCode != 200U) {
+        return {.detail = std::string{shard0Confirmed}
+            + "The matching data-shard signer could not be verified; "
+              "not retrying automatically."};
+    }
+    parsed = parseJson(signerResponse->body);
+    if (!parsed || !parsed->is_object()) {
+        return {.detail = std::string{shard0Confirmed}
+            + "Data-shard signer response was malformed; not retrying automatically."};
+    }
+    const auto* signers = findValue(parsed->as_object(), "signers");
+    if (!signers || !signers->is_array()) {
+        return {.detail = std::string{shard0Confirmed}
+            + "Data-shard signer list is absent; not retrying automatically."};
+    }
+    const auto requiredScope = expectedMessageType(operation.kind);
+    const bool matchingSigner = std::any_of(
+        signers->as_array().begin(), signers->as_array().end(),
+        [&](const JsonValue& entry) {
+            if (!entry.is_object()) return false;
+            const auto& signer = entry.as_object();
+            auto signerFid = requireUnsigned(signer, "fid", "signer");
+            auto key = requireString(signer, "key", "signer");
+            if (!signerFid || *signerFid != operation.author.value
+                || !key || !matchesSignerKey(*key, operation.signerPublicKey.hex)) {
+                return false;
+            }
+            const auto* scopes = findValue(signer, "scopes");
+            // A scoped gasless signer must explicitly authorize the requested
+            // operation. Legacy unscoped on-chain signers remain unrestricted.
+            if (scopes && scopes->is_array()) {
+                return std::any_of(scopes->as_array().begin(), scopes->as_array().end(),
+                    [&](const JsonValue& scope) {
+                        return scope.is_string() && scope.as_string() == requiredScope;
+                    });
+            }
+            return true;
+        });
+    if (!matchingSigner) {
+        return {.detail = std::string{shard0Confirmed}
+            + "The selected data shard does not report the current scoped signer. "
+              "Verify the registered public key and signer scope; not auto-retrying."};
+    }
+    return {
+        .detail = std::string{shard0Confirmed}
+            + "The same node's data shard also confirms the current signer. "
+              "This signed write will be retried through the bounded durable outbox; "
+              "no new registration, new signature, or Farcaster fallback is attempted.",
+        .confirmedReplicationRace = true,
+    };
 }
 
 [[nodiscard]] std::string reconciliationUrl(
@@ -874,8 +946,14 @@ public:
             if (response->statusCode == 400U
                 && response->body.find("bad_request.validation_failure/unknown fid")
                     != std::string::npos) {
-                failure.message.append(nativeUnknownFidEvidence(
-                    m_transport, m_config, operation.author));
+                auto evidence = nativeUnknownFidEvidence(m_transport, m_config, operation);
+                failure.message.append(evidence.detail);
+                if (evidence.confirmedReplicationRace) {
+                    // The node explicitly rejected the write: repeating the
+                    // exact same signed envelope is safe, bounded by the outbox.
+                    // Never treat this as a successful submission.
+                    failure.code = foundation::error::ErrorCode::Unavailable;
+                }
             }
             return std::unexpected(std::move(failure));
         }
