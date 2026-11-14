@@ -5850,8 +5850,8 @@ Company | https://company.com</translation>
             <translation>Enter operator-issued registration code</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
-            <source>Verify enrollment code</source>
-            <translation>Verify enrollment code</translation>
+            <source>Use registration code</source>
+            <translation>Use registration code</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
             <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
