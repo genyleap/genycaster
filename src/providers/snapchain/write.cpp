@@ -616,6 +616,69 @@ using domain::write::OperationKind;
     return makeError(code, std::move(message));
 }
 
+// This is diagnostic only, after the signed write has already been rejected.
+// A shard-0 lookup proves registration there, not that the user's data shard
+// has replayed the native registration. Never retry or switch network here.
+[[nodiscard]] std::string nativeUnknownFidEvidence(
+    transport::http::IHttpTransport& transport,
+    const Config& config,
+    const domain::identity::Fid author)
+{
+    constexpr std::uint64_t FirstNativeFid = 1ULL << 32;
+    if (!config.probeNativeRegistryOnUnknownFid || author.value < FirstNativeFid) {
+        return {};
+    }
+    const auto& origin = config.readBaseUrl.empty() ? config.baseUrl : config.readBaseUrl;
+    auto response = transport.get(transport::http::HttpRequest{
+        .url = trimTrailingSlashes(origin) + "/v1/nativeAccount?fid="
+            + std::to_string(author.value),
+        .headers = requestHeaders(config, false),
+        .timeout = config.timeout,
+        .maxBodyBytes = std::min(config.maxBodyBytes, std::size_t{32768}),
+    });
+    if (!response) {
+        return " Native registry lookup on the selected node was unavailable; "
+               "the account's registration status is unknown. No automatic retry.";
+    }
+    if ((response->statusCode == 400U || response->statusCode == 404U)
+        && response->body.find("native account not found") != std::string::npos) {
+        return " The selected node's shard-0 native registry has NO confirmed "
+               "registration for this FID. Check the original registration node "
+               "and custody-wallet recovery; do not submit another registration blindly.";
+    }
+    if (response->statusCode != 200U) {
+        return " Shard-0 native account lookup returned HTTP "
+            + std::to_string(response->statusCode)
+            + "; the registration cannot be independently verified. No automatic retry.";
+    }
+    auto parsed = parseJson(response->body);
+    if (!parsed || !parsed->is_object()) {
+        return " Native account lookup returned an invalid JSON response; "
+               "the registration cannot be verified.";
+    }
+    const auto& record = parsed->as_object();
+    auto fid = requireUnsigned(record, "fid", "nativeAccount");
+    auto custody = requireString(record, "custodyAddress", "nativeAccount");
+    const auto* message = findValue(record, "message");
+    const auto* block = findValue(record, "blockNumber");
+    const bool validCustody = custody && custody->size() == 42U
+        && custody->starts_with("0x")
+        && std::all_of(custody->begin() + 2, custody->end(), isHexDigit);
+    const bool validBlock = block
+        && ((block->is_uint64() && block->as_uint64() > 0U)
+            || (block->is_int64() && block->as_int64() > 0));
+    if (!fid || *fid != author.value || !validCustody || !validBlock
+        || !message || !message->is_object()) {
+        return " Native account lookup returned an incomplete or mismatched "
+               "shard-0 record; the selected node cannot safely verify this FID.";
+    }
+    return " Shard 0 on the selected HyperSnap node CONFIRMS this native FID, "
+           "but the write path still reports unknown fid. Its author data shard "
+           "may be behind or missing replicated registration events. The node "
+           "operator should inspect shard sync and block_receiver replication; "
+           "do not re-register the wallet or silently cross-post to Farcaster.";
+}
+
 [[nodiscard]] std::string reconciliationUrl(
     const Config& config,
     const domain::write::SignedOperation& operation)
@@ -678,7 +741,14 @@ public:
             return std::unexpected(std::move(response.error()));
         }
         if (response->statusCode < 200U || response->statusCode >= 300U) {
-            return std::unexpected(httpStatusError(response->statusCode, response->body));
+            auto failure = httpStatusError(response->statusCode, response->body);
+            if (response->statusCode == 400U
+                && response->body.find("bad_request.validation_failure/unknown fid")
+                    != std::string::npos) {
+                failure.message.append(nativeUnknownFidEvidence(
+                    m_transport, m_config, operation.author));
+            }
+            return std::unexpected(std::move(failure));
         }
         return verifyEnvelope(response->body, operation, expectedMessageType(operation.kind), true);
     }
