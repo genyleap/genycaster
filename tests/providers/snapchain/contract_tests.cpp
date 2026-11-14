@@ -6,6 +6,8 @@
 #include <expected>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -188,6 +190,74 @@ void testGaslessSignerAndNonceMapping()
         "https://snapchain.test/v1/signersByFid?fid=42&pageSize=1000&requesterFids[0]=42");
     assert(transport.timeouts().front() == std::chrono::milliseconds{4'000});
     assert(transport.maxBodyBytes().front() == 512U * 1024U);
+}
+
+
+void testProtoJsonUint64SignerIdentifiers()
+{
+    // ProtoJSON returns uint64 identifiers as decimal strings. Keep legacy
+    // numeric JSON responses working, but never round native FIDs through a
+    // floating-point representation or accept malformed/overflowed strings.
+    auto response = [](const std::uint64_t expectedFid,
+                       const std::string_view fidJson,
+                       const std::string_view requestFidJson) {
+        std::string body = R"({"signers":[{"source":"SIGNER_SOURCE_OFFCHAIN",)"
+            R"("key":"0x1111111111111111111111111111111111111111111111111111111111111111",)"
+            R"("keyType":1,"fid":)";
+        body.append(fidJson);
+        body += R"(,"lastUsedAt":"4102440000","ttl":2592000,)"
+                R"("expiresAt":"4105032000","scopes":["MESSAGE_TYPE_CAST_ADD"],"requestFid":)";
+        body.append(requestFidJson);
+        body += R"(}],"currentUserNonce":3,"requesterFidNonces":{")";
+        body += std::to_string(expectedFid);
+        body += R"(":2}})";
+        return body;
+    };
+
+    constexpr std::uint64_t NativeFid = 4'294'967'296ULL;
+    constexpr std::uint64_t ExactFidOverJsSafeInteger = 9'007'199'254'740'993ULL;
+    for (const auto [fid, fidJson, requestFidJson] : {
+             std::tuple{NativeFid, std::string_view{"\"4294967296\""},
+                        std::string_view{"\"4294967296\""}},
+             std::tuple{NativeFid, std::string_view{"4294967296"},
+                        std::string_view{"\"4294967296\""}},
+             std::tuple{ExactFidOverJsSafeInteger,
+                        std::string_view{"\"9007199254740993\""},
+                        std::string_view{"\"9007199254740993\""}}
+         }) {
+        FakeTransport transport{};
+        transport.enqueue(200, response(fid, fidJson, requestFidJson));
+        auto registry = provider::snapchain::signer::makeRegistry(transport, testConfig());
+        auto result = registry->inspect(
+            domain::identity::Fid{fid}, domain::signer::PublicKey{keyA()},
+            domain::identity::Fid{fid});
+        assert(result && result->registration);
+        assert(result->registration->fid.value == fid);
+        assert(result->registration->requestFid);
+        assert(result->registration->requestFid->value == fid);
+        assert(result->registration->state == domain::signer::RegistrationState::Active);
+        assert(result->nonces.currentUserNonce == 3U);
+        assert(result->nonces.currentRequesterNonce == 2U);
+        assert(transport.posts().empty());
+    }
+    // No signs, exponents, decimal points, spaces or out-of-range uint64s.
+    for (const std::string_view invalid : {
+             "\"-1\"", "\"+4294967296\"", "\"4e9\"",
+             "\"4294967296.0\"", "\" 4294967296\"",
+             "\"4294967296x\"", "\"18446744073709551616\"",
+             "4294967296.0", "null"
+         }) {
+        FakeTransport transport{};
+        transport.enqueue(200, response(NativeFid, invalid, "\"4294967296\""));
+        auto registry = provider::snapchain::signer::makeRegistry(transport, testConfig());
+        auto result = registry->inspect(
+            domain::identity::Fid{NativeFid},
+            domain::signer::PublicKey{keyA()},
+            domain::identity::Fid{NativeFid});
+        assert(!result);
+        assert(result.error().code == foundation::error::ErrorCode::ProtocolFailure);
+        assert(transport.posts().empty());
+    }
 }
 
 void testPaginationAndGaslessPreference()
@@ -687,6 +757,7 @@ void testWriteMapsSubmitFailureAndDoesNotClaimNetworkSuccess()
 int main()
 {
     testGaslessSignerAndNonceMapping();
+    testProtoJsonUint64SignerIdentifiers();
     testPaginationAndGaslessPreference();
     testMissingSignerStillReturnsReplayState();
     testUnknownScopeAndMalformedFieldsFailClosed();
