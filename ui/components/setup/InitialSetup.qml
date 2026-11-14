@@ -1885,14 +1885,26 @@ Item {
                         visible: nativeRegistrationPublisher.pending
                         Layout.fillWidth: true
                         compact: true
-                        busy: nativeRegistrationPublisher.checkingConfirmation
+                        busy: nativeRegistrationStatus.checking
+                              || nativeRegistrationPublisher.checkingConfirmation
                         enabled: !nativeRegistrationPublisher.busy
+                                 && !nativeRegistrationStatus.checking
                         text: qsTrId("genycaster.setup.native_registration_check_again")
-                        onClicked: {
-                            // Refresh shard-0 window on the SAME node while
-                            // verifying custody ownership (read-only).
-                            nativeRegistrationStatus.refresh()
-                            nativeRegistrationPublisher.checkConfirmation()
+                        // Refresh node head FIRST. The Connections handler then
+                        // performs a custody lookup against the same node,
+                        // avoiding a race with a stale registration window.
+                        onClicked: nativeRegistrationStatus.refresh()
+                    }
+                    Connections {
+                        target: nativeRegistrationStatus
+                        function onChanged() {
+                            if (!nativeRegistrationStatus.checking
+                                && nativeRegistrationStatus.active
+                                && nativeRegistrationPublisher.pending
+                                && !nativeRegistrationPublisher.busy
+                                && root.registrationProviderId === "hypersnap-v2"
+                                && nativeCustodyWallet.backupVerified)
+                                nativeRegistrationPublisher.checkConfirmation()
                         }
                     }
                     DirectionAwareLabel {
@@ -1909,6 +1921,18 @@ Item {
                                  : "")
                         color: nativeRegistrationPublisher.confirmationLookupState === "not_found"
                                ? Theme.warning : Theme.danger
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupNativeStatusRefreshFailure"
+                        Layout.fillWidth: true
+                        visible: nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationStatus.checking
+                                 && !nativeRegistrationStatus.active
+                                 && nativeRegistrationStatus.error.length > 0
+                        text: nativeRegistrationStatus.error
+                        color: Theme.danger
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.WordWrap
                     }
@@ -1930,6 +1954,8 @@ Item {
                         visible: nativeRegistrationPublisher.retryReady
                                  && nativeRegistrationPublisher.pending
                         enabled: !nativeRegistrationPublisher.busy
+                                 && !nativeRegistrationStatus.checking
+                                 && nativeRegistrationStatus.active
                         compact: true
                         text: qsTrId("genycaster.setup.native_retry_start_over")
                         onClicked: {
