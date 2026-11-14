@@ -59,6 +59,14 @@ Item {
     property bool choosingRegistrationProvider: false
     property bool resumingRegistration: false
     property string registrationProviderId: "hypersnap-v2"
+    readonly property bool nativeFidRegistered:
+        registrationProviderId === "hypersnap-v2"
+        && nativeRegistrationPublisher.confirmed
+    readonly property bool farcasterFidRegistered:
+        registrationProviderId === "farcaster-snapchain"
+        && neynarRegistration.confirmed
+    readonly property bool accountFidRegistered:
+        nativeFidRegistered || farcasterFidRegistered
     property string registrationError: ""
     property bool confirmWalletReplacement: false
     property bool recoveryWordsCopied: false
@@ -72,6 +80,21 @@ Item {
         if (registrationProviderId === "hypersnap-v2")
             nativeRegistrationStatus.refresh()
         registrationError = ""
+    }
+    // The authoritative read is safe to perform automatically after wallet
+    // backup. Users should not need to discover an extra lookup button.
+    function maybeLookupNativeFid() {
+        if (registrationProviderId !== "hypersnap-v2"
+            || !nativeCustodyWallet.backupVerified || !nativeRegistrationStatus.active
+            || nativeRegistrationStatus.accountLookupChecked
+            || nativeRegistrationStatus.accountLookupBusy
+            || nativeRegistrationPublisher.pending
+            || nativeRegistrationPublisher.confirmed) return
+        nativeRegistrationStatus.findExistingNativeAccount(nativeCustodyWallet.address)
+    }
+    Connections {
+        target: nativeCustodyWallet
+        function onChanged() { Qt.callLater(root.maybeLookupNativeFid) }
     }
     // Readiness is scoped to the selected registration registry. Neither a
     // reachable read node nor a generated custody wallet establishes an FID.
@@ -1257,19 +1280,15 @@ Item {
                 storyboardStyle: true
                 compactDesktopStyle: !root.phone
                 Layout.fillWidth: true
-                iconGlyph: nativeRegistrationPublisher.confirmed
-                    && root.registrationProviderId === "hypersnap-v2"
+                iconGlyph: root.accountFidRegistered
                     ? Theme.iconCheck : Theme.iconUser
-                title: nativeRegistrationPublisher.confirmed
-                    && root.registrationProviderId === "hypersnap-v2"
+                title: root.accountFidRegistered
                     ? qsTrId("genycaster.setup.account_verified")
                     : root.choosingRegistrationProvider
                       ? qsTrId("genycaster.setup.registration_choose_provider")
                       : qsTrId("genycaster.setup.design_account_title")
-                subtitle: nativeRegistrationPublisher.confirmed
-                    && root.registrationProviderId === "hypersnap-v2"
-                    ? qsTrId("genycaster.setup.native_registration_confirmed")
-                        .arg(nativeRegistrationPublisher.registeredFid)
+                subtitle: root.accountFidRegistered
+                    ? qsTrId("genycaster.setup.registration_next_device")
                     : root.choosingRegistrationProvider
                       ? qsTrId("genycaster.setup.registration_shared_fid")
                       : qsTrId("genycaster.setup.design_account_description")
@@ -1327,7 +1346,7 @@ Item {
                 Layout.fillWidth: true
                 spacing: Theme.space3
                 GridLayout {
-                    visible: !nativeRegistrationPublisher.confirmed
+                    visible: !root.accountFidRegistered
                     Layout.fillWidth: true
                     columns: root.phone ? 1 : 2
                     rowSpacing: Theme.space3
@@ -1380,6 +1399,7 @@ Item {
                              && nativeCustodyWallet.backupVerified
                              && root.registrationProviderId === "hypersnap-v2"
                              && !nativeRegistrationPublisher.confirmed
+                             && nativeRegistrationStatus.existingNativeFid.length === 0
                     ActionButton {
                         objectName: "setupChooseDifferentWallet"
                         Layout.fillWidth: true
@@ -1647,6 +1667,9 @@ Item {
                 }
                 DirectionAwareLabel {
                     Layout.fillWidth: true
+                    visible: root.registrationProviderId === "hypersnap-v2"
+                             && !nativeRegistrationPublisher.confirmed
+                             && nativeRegistrationStatus.existingNativeFid.length === 0
                     text: qsTrId("genycaster.setup.registration_storage_note")
                     font.pixelSize: Theme.typeCaptionSize
                     color: Theme.inkMuted
@@ -1687,6 +1710,7 @@ Item {
 
                     DirectionAwareLabel {
                         Layout.fillWidth: true
+                        visible: !neynarRegistration.confirmed
                         text: qsTrId("genycaster.setup.neynar_voucher_explanation")
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
@@ -1865,7 +1889,7 @@ Item {
                         visible: nativeRegistrationStatus.existingNativeFid.length > 0
                         Layout.fillWidth: true
                         prominent: true
-                        text: qsTrId("genycaster.shell.enable_interactions")
+                        text: qsTrId("genycaster.setup.continue")
                         busy: nativeRegistrationPublisher.verifyingExisting
                         enabled: root.runtimeReady
                                  && nativeRegistrationPublisher.registrationSupported
@@ -1991,7 +2015,7 @@ Item {
                         visible: nativeRegistrationPublisher.confirmed
                                  && !root.authenticated
                         prominent: true
-                        text: qsTrId("genycaster.shell.enable_interactions")
+                        text: qsTrId("genycaster.setup.continue")
                         busy: nativeRegistrationPublisher.verifyingExisting
                         enabled: root.runtimeReady
                                  && nativeRegistrationPublisher.registrationSupported
@@ -2032,6 +2056,7 @@ Item {
                     Connections {
                         target: nativeRegistrationStatus
                         function onChanged() {
+                            Qt.callLater(root.maybeLookupNativeFid)
                             if (!nativeRegistrationStatus.checking
                                 && nativeRegistrationStatus.active
                                 && nativeRegistrationPublisher.pending
