@@ -3606,9 +3606,17 @@ void connectRuntime(
                                 makeOneShotRecoveryAuthorizer(
                                     words, custody.toStdString(), fid);
                             if (!permit) {
+                                // The custody layer returns its own enum, not
+                                // foundation::error::Error. Translate at the
+                                // adapter boundary without leaking seed material.
+                                using RecoveryError = farcaster::platform::custody_recovery::Error;
+                                const auto code = permit.error() == RecoveryError::KeyDerivationFailed
+                                    ? foundation::error::ErrorCode::InternalFailure
+                                    : foundation::error::ErrorCode::Unauthorized;
                                 applySignerState(bridge, application::signer::SignerState{
                                     .phase = application::signer::SignerPhase::AuthorizationRequired,
-                                    .error = std::move(permit.error())
+                                    .error = foundation::error::Error::make(
+                                        code, "Local HyperSnap custody authorization failed.")
                                 });
                                 return;
                             }
