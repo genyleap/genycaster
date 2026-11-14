@@ -502,6 +502,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         configuration.databasePath,
         configuration.networkProxyPolicy,
         configuration.providerBaseUrl,
+        configuration.hyperSnapNativeNodeBaseUrl,
         configuration.farcasterReadBaseUrl,
         configuration.farcasterReadApiKey,
         configuration.additionalReadProviders,
@@ -528,6 +529,7 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     const std::filesystem::path& databasePath,
     const farcaster::transport::qtnetwork::ProxyPolicy networkProxyPolicy,
     [[maybe_unused]] const std::optional<std::string>& providerBaseUrl,
+    [[maybe_unused]] const std::optional<std::string>& hyperSnapNativeNodeBaseUrl,
     [[maybe_unused]] const std::optional<std::string>& farcasterReadBaseUrl,
     [[maybe_unused]] const std::optional<std::string>& farcasterReadApiKey,
     [[maybe_unused]] const std::vector<ReadProviderProfile>& additionalReadProviders,
@@ -1034,11 +1036,13 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
     // Native registrations and KEY_ADD are both submitted to the selected
     // HyperSnap node. This adapter never inherits Farcaster credentials or
     // the separately configured Farcaster/Snapchain validator endpoint.
+    const std::string nativeIdentityNode = hyperSnapNativeNodeBaseUrl
+        ? *hyperSnapNativeNodeBaseUrl : providerConfig.baseUrl;
 #if FARCASTER_HAS_SNAPCHAIN_SIGNER && FARCASTER_HAS_PROTOCOL_SIGNING
     if (runtime->signerRegistry) {
         farcaster::provider::snapchain::signer::Config nativeSignerConfig{};
-        nativeSignerConfig.baseUrl = providerConfig.baseUrl;
-        nativeSignerConfig.submitBaseUrl = providerConfig.baseUrl;
+        nativeSignerConfig.baseUrl = nativeIdentityNode;
+        nativeSignerConfig.submitBaseUrl = nativeIdentityNode;
         runtime->signerRegistrySources.push_back(
             farcaster::provider::snapchain::signer::makeRegistry(
                 *runtime->transport, std::move(nativeSignerConfig)));
@@ -1051,10 +1055,10 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
 #if FARCASTER_HAS_SNAPCHAIN_WRITE && FARCASTER_HAS_PROTOCOL_SIGNING
     if (runtime->signerService && runtime->writeCodec) {
         farcaster::provider::snapchain::write::Config nativeWriteConfig{};
-        nativeWriteConfig.baseUrl = providerConfig.baseUrl;
-        nativeWriteConfig.readBaseUrl = providerConfig.baseUrl;
+        nativeWriteConfig.baseUrl = nativeIdentityNode;
+        nativeWriteConfig.readBaseUrl = nativeIdentityNode;
         runtime->writeSourceEndpointIdentities.push_back(
-            "hypersnap-v2|" + providerConfig.baseUrl + "|" + providerConfig.baseUrl);
+            "hypersnap-v2|" + nativeIdentityNode + "|" + nativeIdentityNode);
         runtime->writeSources.push_back(
             farcaster::provider::snapchain::write::makeSubmitter(
                 *runtime->transport, std::move(nativeWriteConfig)));
