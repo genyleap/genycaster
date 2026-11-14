@@ -406,5 +406,85 @@ int main(int argc, char** argv)
         assert(recovered.registeredFid() == QStringLiteral("4294967296"));
         assert(postCount == 0);
     }
+    // An earlier unknown submission may be released only when the SAME
+    // shard-0 head advances beyond the onboard anchor window plus margin.
+    // This release never POSTs or creates another wallet.
+    {
+        FakeHub hub{};
+        int postCount = 0;
+        std::uint64_t head = 8'000;
+        bool validNode = true;
+        hub.reply = [&](const QByteArray& request) {
+            if (request.startsWith("POST ")) {
+                ++postCount;
+                return response(500, "{\\"error\\":\\"unexpected_write\\"}");
+            }
+            return response(400,
+                R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \\"native account not found\\""})json");
+        };
+        HyperSnapRegistrationPublisher recovered{
+            hub.url(),
+            NativePublicationPorts{
+                .backupVerified = [] { return true; },
+                .custodyAddress = [&] { return address; },
+                .registrationWindow = [&]() -> std::optional<
+                    std::pair<std::uint64_t, std::uint32_t>> {
+                    if (!validNode) return std::nullopt;
+                    return std::pair{head, std::uint32_t{4}};
+                }
+            }};
+        recovered.setIdentityRuntimeReady(true);
+        assert(recovered.recoverInterruptedRegistration());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &recovered, &HyperSnapRegistrationPublisher::changed,
+                &recovered, [&, connection, done] {
+                    if (!recovered.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(!recovered.retryReady());
+        assert(recovered.retryRemainingBlocks() == 20);
+        assert(!recovered.releaseExpiredAttempt());
+        head = 8'019; // Still inside the conservative 4 + 16 window.
+        assert(recovered.checkConfirmation());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &recovered, &HyperSnapRegistrationPublisher::changed,
+                &recovered, [&, connection, done] {
+                    if (!recovered.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(recovered.retryRemainingBlocks() == 1);
+        assert(!recovered.releaseExpiredAttempt());
+        head = 8'020;
+        assert(recovered.checkConfirmation());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &recovered, &HyperSnapRegistrationPublisher::changed,
+                &recovered, [&, connection, done] {
+                    if (!recovered.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(recovered.retryReady());
+        validNode = false;
+        assert(!recovered.releaseExpiredAttempt()); // Never bypass a stale node.
+        validNode = true;
+        assert(recovered.releaseExpiredAttempt());
+        assert(!recovered.pending());
+        assert(!recovered.retryReady());
+        assert(postCount == 0);
+    }
     std::cout << "HyperSnap native lookup, restart recovery, no replay passed\n";
 }
