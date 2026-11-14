@@ -523,5 +523,70 @@ int main(int argc, char** argv)
         assert(!recovered.retryReady());
         assert(postCount == 0);
     }
+    // Switching to a different local wallet must never POST again, discard
+    // the old wallet's pending protection or change that wallet's on-chain ID.
+    {
+        FakeHub hub{};
+        int postCount = 0;
+        std::uint64_t head = 9'000;
+        hub.reply = [&](const QByteArray& request) {
+            if (request.startsWith("POST ")) {
+                ++postCount;
+                return response(500, R"json({"error":"unexpected_write"})json");
+            }
+            return response(400,
+                R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\""})json");
+        };
+        auto ports = [&]() {
+            return NativePublicationPorts{
+                .backupVerified = [] { return true; },
+                .custodyAddress = [&] { return address; },
+                .registrationWindow = [&]() -> std::optional<
+                    std::pair<std::uint64_t, std::uint32_t>> {
+                    return std::pair{head, std::uint32_t{4}};
+                }
+            };
+        };
+        HyperSnapRegistrationPublisher oldWallet{hub.url(), ports()};
+        oldWallet.setIdentityRuntimeReady(true);
+        assert(oldWallet.recoverInterruptedRegistration());
+        assert(!oldWallet.detachWalletForNewRegistration()); // Busy lookup.
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &oldWallet, &HyperSnapRegistrationPublisher::changed,
+                &oldWallet, [&, connection, done] {
+                    if (!oldWallet.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(oldWallet.pending());
+        assert(oldWallet.retryRemainingBlocks() == 20);
+        assert(oldWallet.detachWalletForNewRegistration());
+        assert(!oldWallet.pending());
+        assert(!oldWallet.outcomeUnknown());
+        assert(postCount == 0);
+        head = 9'002;
+        HyperSnapRegistrationPublisher restoredOldWallet{hub.url(), ports()};
+        restoredOldWallet.setIdentityRuntimeReady(true);
+        assert(restoredOldWallet.recoverInterruptedRegistration());
+        await([&](auto done) {
+            auto connection = std::make_shared<QMetaObject::Connection>();
+            *connection = QObject::connect(
+                &restoredOldWallet, &HyperSnapRegistrationPublisher::changed,
+                &restoredOldWallet, [&, connection, done] {
+                    if (!restoredOldWallet.busy()) {
+                        QObject::disconnect(*connection);
+                        done();
+                    }
+                });
+        });
+        assert(restoredOldWallet.pending());
+        assert(restoredOldWallet.retryRemainingBlocks() == 18);
+        assert(postCount == 0);
+        restoredOldWallet.stopPolling();
+    }
     std::cout << "HyperSnap native lookup, restart recovery, no replay passed\n";
 }
