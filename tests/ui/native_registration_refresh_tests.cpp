@@ -100,8 +100,8 @@ void NativeRegistrationRefreshTests::refreshReentrantlyFromChanged()
 void NativeRegistrationRefreshTests::nativeAccountLookupHttpSemantics()
 {
     using State = HyperSnapRegistrationTransport::LookupState;
-    const QByteArray missing = R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \\"native account not found\\", details: [], metadata: MetadataMap { headers: {} }"})json";
-    const QByteArray invalid = R"json({"error":"Native registration lookup failed","error_detail":"status: InvalidArgument, message: \\"specify one native fid or custody address\\""})json";
+    const QByteArray missing = R"json({"error":"Native registration lookup failed","error_detail":"status: NotFound, message: \"native account not found\", details: [], metadata: MetadataMap { headers: {} }"})json";
+    const QByteArray invalid = R"json({"error":"Native registration lookup failed","error_detail":"status: InvalidArgument, message: \"specify one native fid or custody address\""})json";
     const std::array cases{
         std::tuple{400, missing, State::NotFound},
         std::tuple{400, invalid, State::Unavailable},
@@ -125,9 +125,9 @@ void NativeRegistrationRefreshTests::nativeAccountLookupHttpSemantics()
                     const QByteArray response =
                         QByteArray{"HTTP/1.1 "} + QByteArray::number(status)
                         + QByteArray{" "} + reason
-                        + QByteArray{"\\r\\nContent-Type: application/json\\r\\nContent-Length: "}
+                        + QByteArray{"\r\nContent-Type: application/json\r\nContent-Length: "}
                         + QByteArray::number(payload.size())
-                        + QByteArray{"\\r\\nConnection: close\\r\\n\\r\\n"}
+                        + QByteArray{"\r\nConnection: close\r\n\r\n"}
                         + payload;
                     socket->write(response);
                     socket->disconnectFromHost();
