@@ -103,6 +103,7 @@ test('signup text inputs use the registered themed QML component', () => {
     }
   }
   assert.doesNotMatch(source('ui/i18n/qml_en_US.ts'),/Enter paid registration code/);
+  assert.doesNotMatch(source('ui/i18n/qml_en_US.ts'),/Verify enrollment code/);
 });
 
 test('registration network status is protocol-scoped, actionable and localized', () => {
