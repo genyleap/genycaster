@@ -37,6 +37,8 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     m_busy = true;
     m_failed = false;
     m_unknown = false;
+    m_checkingConfirmation = false;
+    m_lastSubmissionHttpStatus = 0;
     m_checks = 0;
     const auto generation = ++m_generation;
     emit changed();
@@ -65,6 +67,7 @@ bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
     m_pending = true;
     m_unknown = true;
     m_failed = false;
+    m_checkingConfirmation = true;
     m_busy = true;
     m_checks = 0;
     const auto generation = ++m_generation;
@@ -79,6 +82,8 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
     m_transport.lookupByCustody(m_address, [this, generation, beforeSubmit](
         const HyperSnapRegistrationTransport::LookupResult result) {
         if (generation != m_generation) return;
+        // Read-only confirmation checks must not animate the Submit button.
+        if (!beforeSubmit) m_checkingConfirmation = false;
         using State = HyperSnapRegistrationTransport::LookupState;
         if (result.state == State::Confirmed) {
             onConfirmed(result.fid, generation);
@@ -111,6 +116,7 @@ void HyperSnapRegistrationPublisher::lookup(bool beforeSubmit, quint64 generatio
                 HyperSnapRegistrationTransport::SubmitResult result) {
                 if (generation != m_generation) return;
                 m_busy = false;
+                m_lastSubmissionHttpStatus = result.httpStatus;
                 if (result.state == HyperSnapRegistrationTransport::SubmitState::Rejected) {
                     m_pending = false;
                     m_submitted = false;
@@ -155,6 +161,7 @@ bool HyperSnapRegistrationPublisher::checkConfirmation()
 {
     if (m_busy || m_address.isEmpty() || confirmed()) return false;
     m_poll.stop();
+    m_checkingConfirmation = true;
     m_busy = true;
     emit changed();
     lookup(false, m_generation);
@@ -172,6 +179,7 @@ void HyperSnapRegistrationPublisher::onConfirmed(quint64 fid, quint64 generation
         return;
     }
     m_poll.stop();
+    m_checkingConfirmation = false;
     m_fid = QString::number(static_cast<qulonglong>(fid));
     m_pending = false;
     m_busy = false;
@@ -186,6 +194,7 @@ void HyperSnapRegistrationPublisher::stopPolling()
 {
     ++m_generation;
     m_poll.stop();
+    m_checkingConfirmation = false;
     m_busy = false;
     // Never clear m_pending / m_submitted: the write may already be on-chain.
     emit changed();
@@ -209,6 +218,7 @@ void HyperSnapRegistrationPublisher::clear()
     m_fid.clear();
     m_address.clear();
     m_checks = 0;
+    m_lastSubmissionHttpStatus = 0;
     m_submitted = false;
     emit changed();
 }
