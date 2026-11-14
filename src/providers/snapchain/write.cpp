@@ -4,6 +4,7 @@ module;
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -226,8 +227,26 @@ using domain::write::OperationKind;
     if (value->is_int64() && value->as_int64() >= 0) {
         return static_cast<std::uint64_t>(value->as_int64());
     }
+    // Protobuf JSON maps uint64 fields to decimal strings. In particular,
+    // HyperSnap's native FIDs start at 2^32 and must not pass through double.
+    if (value->is_string()) {
+        const auto& jsonText = value->as_string();
+        const std::string_view decimal{jsonText.data(), jsonText.size()};
+        if (!decimal.empty() && decimal.size() <= 20U
+            && std::all_of(decimal.begin(), decimal.end(), [](const char ch) {
+                return ch >= '0' && ch <= '9';
+            })) {
+            std::uint64_t parsed{};
+            const auto [end, error] = std::from_chars(
+                decimal.data(), decimal.data() + decimal.size(), parsed, 10);
+            if (error == std::errc{} && end == decimal.data() + decimal.size()) {
+                return parsed;
+            }
+        }
+    }
     return std::unexpected(protocolError(
-        std::string{context} + "." + std::string{key} + " must be a non-negative integer."));
+        std::string{context} + "." + std::string{key}
+        + " must be an exact unsigned decimal integer (JSON number or string)."));
 }
 
 [[nodiscard]] std::string_view expectedMessageType(const OperationKind kind) noexcept
@@ -584,6 +603,15 @@ using domain::write::OperationKind;
     if (!excerpt.empty()) {
         message.append(" Node response: ");
         message.append(excerpt);
+    }
+    if (statusCode == 400U
+        && body.find("bad_request.validation_failure/unknown fid") != std::string_view::npos) {
+        // An accepted local signer is not proof that the target node has
+        // indexed this account. Do not reinterpret this as a bad signature
+        // or silently reroute the already-signed message to another network.
+        message.append(" The selected write node does not recognize the author's FID. "
+                       "Confirm this FID and custody in that protocol's authoritative "
+                       "registry on the SAME node before attempting another write.");
     }
     return makeError(code, std::move(message));
 }
