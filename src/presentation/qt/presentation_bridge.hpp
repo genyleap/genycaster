@@ -56,6 +56,7 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool writeReady READ writeReady NOTIFY stateChanged)
     Q_PROPERTY(QString signerPhase READ signerPhase NOTIFY stateChanged)
     Q_PROPERTY(bool signerBusy READ signerBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool nativeCustodySignerAvailable READ nativeCustodySignerAvailable NOTIFY stateChanged)
     Q_PROPERTY(QString signerStatusText READ signerStatusText NOTIFY stateChanged)
     Q_PROPERTY(QString signerErrorText READ signerErrorText NOTIFY stateChanged)
     Q_PROPERTY(bool writeBusy READ writeBusy NOTIFY stateChanged)
@@ -160,6 +161,8 @@ public:
     [[nodiscard]] bool writeReady() const noexcept;
     [[nodiscard]] QString signerPhase() const;
     [[nodiscard]] bool signerBusy() const noexcept;
+    [[nodiscard]] bool nativeCustodySignerAvailable() const noexcept { return m_nativeCustodySignerAvailable; }
+    void setNativeCustodySignerAvailable(bool available);
     [[nodiscard]] QString signerStatusText() const;
     [[nodiscard]] QString signerErrorText() const;
     [[nodiscard]] bool writeBusy() const noexcept;
@@ -685,6 +688,7 @@ private:
     bool m_writeReady{false};
     QString m_signerPhase{QStringLiteral("signed-out")};
     bool m_signerBusy{false};
+    bool m_nativeCustodySignerAvailable{false};
     QString m_signerStatusText{};
     QString m_signerErrorText{};
     bool m_writeBusy{false};
