@@ -5817,20 +5817,20 @@ Company | https://company.com</source>
             <translation>네이티브 등록 상태 확인</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_explanation">
-            <source>Farcaster registration requires a verified, funded enrollment code issued by GenyCaster. Never enter your recovery words here.</source>
-            <translation>Farcaster 등록에는 GenyCaster가 확인한 결제 완료 등록 코드가 필요합니다. 복구 단어를 여기에 입력하지 마세요.</translation>
+            <source>A registration code is issued by GenyCaster only after payment is verified or sponsorship is approved. Codes cannot yet be purchased or issued in Setup. Never enter your 24 recovery words here.</source>
+            <translation>등록 코드는 결제가 확인되거나 후원이 승인된 후에만 GenyCaster가 발급합니다. 현재 설정 화면에서는 코드를 구매하거나 발급받을 수 없습니다. 복구 단어 24개를 여기에 입력하지 마세요.</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_placeholder">
-            <source>Enter paid registration code</source>
-            <translation>결제된 등록 코드</translation>
+            <source>Enter operator-issued registration code</source>
+            <translation>운영자가 발급한 등록 코드 입력</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_accept">
             <source>Verify enrollment code</source>
             <translation>등록 코드 확인</translation>
         </message>
         <message id="genycaster.setup.neynar_voucher_ready">
-            <source>Enrollment authorized for this wallet. Reserve your Farcaster FID.</source>
-            <translation>등록 코드를 불러왔습니다. FID 예약 시 서버에서 결제 권한을 검증합니다.</translation>
+            <source>Code loaded. Registration authorization is verified by the server when you reserve an FID.</source>
+            <translation>코드를 불러왔습니다. FID 예약 시 서버에서 등록 권한을 확인합니다.</translation>
         </message>
         <message id="genycaster.setup.neynar_reserve_fid">
             <source>Reserve Farcaster FID</source>
