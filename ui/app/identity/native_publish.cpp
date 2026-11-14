@@ -91,6 +91,8 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     m_failed = false;
     m_unknown = false;
     m_checkingConfirmation = false;
+    m_verifyingExisting = false;
+    m_existingVerificationFailed = false;
     m_lastSubmissionHttpStatus = 0;
     m_confirmationLookupHttpStatus = 0;
     m_confirmationLookupState = QStringLiteral("not_checked");
@@ -109,6 +111,66 @@ bool HyperSnapRegistrationPublisher::submitPrepared()
     return true;
 }
 
+bool HyperSnapRegistrationPublisher::confirmExistingAccount()
+{
+    if (!m_registrationSupported || m_busy || m_pending || m_submitted
+        || confirmed() || !m_ports.backupVerified || !m_ports.backupVerified()
+        || !m_ports.custodyAddress || !m_ports.existingFidForCustody
+        || !m_transport.endpointIsSafe())
+        return false;
+    const QString custody = m_ports.custodyAddress().toLower();
+    if (custody.size() != 42 || !custody.startsWith(QLatin1String("0x")))
+        return false;
+    const QString expectedFid = m_ports.existingFidForCustody(custody);
+    bool validFid = false;
+    const auto expected = expectedFid.toULongLong(&validFid);
+    if (!validFid || expected < (std::uint64_t{1} << 32))
+        return false;
+
+    // The first lookup is only a UI hint. Before provisioning a signer,
+    // independently confirm the same FID and custody on the same native node.
+    // No POST, proof, signature or retry journal is involved in this path.
+    m_address = custody;
+    m_busy = true;
+    m_checkingConfirmation = true;
+    m_verifyingExisting = true;
+    m_existingVerificationFailed = false;
+    m_failed = false;
+    m_unknown = false;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
+    const auto generation = ++m_generation;
+    emit changed();
+
+    m_transport.lookupByCustody(custody, [this, generation, expected](
+        const HyperSnapRegistrationTransport::LookupResult result) {
+        if (generation != m_generation) return;
+        using State = HyperSnapRegistrationTransport::LookupState;
+        m_confirmationLookupHttpStatus = result.httpStatus;
+        if (result.state == State::Confirmed && result.fid == expected) {
+            m_confirmationLookupState = QStringLiteral("confirmed");
+            m_verifyingExisting = false;
+            onConfirmed(result.fid, generation);
+            return;
+        }
+        // A changed FID, a missing account or an unavailable node must never
+        // produce a session or authorize a device signer.
+        m_confirmationLookupState = result.state == State::Confirmed
+            ? QStringLiteral("fid_changed")
+            : result.state == State::NotFound
+                ? QStringLiteral("not_found")
+                : result.state == State::InvalidResponse
+                    ? QStringLiteral("invalid_response")
+                    : QStringLiteral("unavailable");
+        m_verifyingExisting = false;
+        m_existingVerificationFailed = true;
+        m_checkingConfirmation = false;
+        m_busy = false;
+        emit changed();
+    });
+    return true;
+}
+
 bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
 {
     if (!m_registrationSupported || m_busy || m_pending || confirmed()
@@ -122,6 +184,8 @@ bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
     // Only a custody-bound read of shard-0 can confirm ownership.
     m_address = custody;
     m_fid.clear();
+    m_verifyingExisting = false;
+    m_existingVerificationFailed = false;
     m_submitted = true;
     m_pending = true;
     m_unknown = true;
@@ -390,6 +454,8 @@ void HyperSnapRegistrationPublisher::onConfirmed(quint64 fid, quint64 generation
     m_retryRemainingBlocks = -1;
     m_unknown = false;
     m_failed = false;
+    m_verifyingExisting = false;
+    m_existingVerificationFailed = false;
     if (m_ports.cancelProof) m_ports.cancelProof();
     emit changed();
     emit nativeAccountConfirmed(m_fid, m_address);
@@ -401,6 +467,7 @@ void HyperSnapRegistrationPublisher::stopPolling()
     m_poll.stop();
     m_checkingConfirmation = false;
     m_busy = false;
+    m_verifyingExisting = false;
     // Never clear m_pending / m_submitted: the write may already be on-chain.
     emit changed();
 }
@@ -420,6 +487,8 @@ void HyperSnapRegistrationPublisher::clear()
     m_pending = false;
     m_failed = false;
     m_unknown = false;
+    m_verifyingExisting = false;
+    m_existingVerificationFailed = false;
     m_fid.clear();
     m_address.clear();
     m_checks = 0;
