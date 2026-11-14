@@ -60,6 +60,7 @@ Item {
     property bool resumingRegistration: false
     property string registrationProviderId: "hypersnap-v2"
     property string registrationError: ""
+    property bool confirmWalletReplacement: false
     property bool recoveryWordsCopied: false
     Timer {
         id: recoveryCopyFeedbackTimer
@@ -262,26 +263,22 @@ Item {
                 return
             }
             if (nativeRegistrationPublisher.pending) {
-                // Going Back is navigation, not authorization to retry the
-                // submitted registration. Preserve the wallet and pending
-                // guard; simply leave the registration detail screen.
-                // Do not duplicate the publisher's warning in red.
+                // Back navigates to Welcome, without deleting custody words
+                // or claiming an in-flight network write was cancelled.
                 nativeRegistrationPublisher.stopPolling()
-                nativeRegistrationPreparation.cancel()
-                registrationError = ""
-                choosingRegistrationProvider = false
-                accountIntent = ""
-                return
+            } else {
+                nativeRegistrationPublisher.clear()
+                neynarRegistration.reset()
             }
-            // Backing out must also stop polling any submitted registration.
-            nativeRegistrationPublisher.clear()
             nativeRegistrationPreparation.cancel()
             nativeRegistrationStatus.clearExistingLookup()
-            neynarRegistration.reset()
-            nativeCustodyWallet.discard()
+            // Wallet replacement is deliberately a separate confirmed action.
+            // Back alone must never destroy a verified recovery phrase.
+            confirmWalletReplacement = false
             choosingRegistrationProvider = false
             registrationError = ""
             accountIntent = ""
+            switchStep(0)
             return
         }
         if (currentStep === 0) {
@@ -1289,6 +1286,7 @@ Item {
                     onClicked: {
                         root.accountIntent = "new"
                         root.choosingRegistrationProvider = true
+                        root.confirmWalletReplacement = false
                         root.registrationError = ""
                         nativeRegistrationStatus.refresh()
                     }
@@ -1361,6 +1359,64 @@ Item {
                             nativeRegistrationStatus.clearExistingLookup()
                             root.registrationProviderId = "farcaster-snapchain"
                             root.registrationError = ""
+                        }
+                    }
+                }
+                ColumnLayout {
+                    objectName: "setupWalletReplacement"
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    visible: nativeCustodyWallet.hasWallet
+                             && nativeCustodyWallet.backupVerified
+                             && root.registrationProviderId === "hypersnap-v2"
+                    ActionButton {
+                        objectName: "setupChooseDifferentWallet"
+                        Layout.fillWidth: true
+                        compact: true
+                        enabled: !nativeRegistrationPublisher.busy
+                        text: qsTrId("genycaster.setup.wallet_switch_action")
+                        onClicked: root.confirmWalletReplacement = true
+                    }
+                    DirectionAwareLabel {
+                        objectName: "setupWalletReplacementWarning"
+                        visible: root.confirmWalletReplacement
+                        Layout.fillWidth: true
+                        text: qsTrId("genycaster.setup.wallet_switch_warning")
+                        color: Theme.warning
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.WordWrap
+                    }
+                    RowLayout {
+                        visible: root.confirmWalletReplacement
+                        Layout.fillWidth: true
+                        spacing: Theme.space2
+                        ActionButton {
+                            Layout.fillWidth: true
+                            compact: true
+                            text: qsTrId("genycaster.shell.cancel")
+                            onClicked: root.confirmWalletReplacement = false
+                        }
+                        ActionButton {
+                            objectName: "setupConfirmDifferentWallet"
+                            Layout.fillWidth: true
+                            prominent: true
+                            enabled: nativeCustodyWallet.backupVerified
+                                     && !nativeRegistrationPublisher.busy
+                            text: qsTrId("genycaster.setup.wallet_switch_confirm")
+                            onClicked: {
+                                // A prior pending registration remains on the
+                                // network and is recoverable with its old
+                                // phrase. This action changes only the wallet
+                                // held locally by the onboarding UI.
+                                if (!nativeRegistrationPublisher.detachWalletForNewRegistration())
+                                    return
+                                nativeRegistrationPreparation.cancel()
+                                nativeRegistrationStatus.clearExistingLookup()
+                                nativeCustodyWallet.discard()
+                                root.confirmWalletReplacement = false
+                                root.registrationError = ""
+                                nativeRegistrationStatus.refresh()
+                            }
                         }
                     }
                 }
