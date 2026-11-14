@@ -18,6 +18,7 @@ class NativeCustodySignerAccess;
  * Single-use, in-memory native custody wallet for the initial onboarding flow.
  * QML receives only an address, challenge positions and boolean state; never
  * receives mnemonic, seed, or private key through a property, signal or return.
+ * An explicit, user-initiated clipboard copy is the only plaintext export.
  */
 class NativeCustodyWalletController final : public QObject {
     Q_OBJECT
@@ -45,6 +46,11 @@ public:
     Q_INVOKABLE bool startBackupChallenge();
     Q_INVOKABLE bool verifyBackup(QString first, QString second);
     Q_INVOKABLE void revealForBackup();
+    /** Explicit clipboard copy, permitted only while the recovery words are visible.
+     * Copies no secret through QML, signals or return values.
+     * Clears the clipboard after 60 seconds if it still holds our phrase.
+     */
+    Q_INVOKABLE bool copyRecoveryWords();
     Q_INVOKABLE void discard();
     /** C++-only public envelope builder, never exposing seed material. */
     [[nodiscard]] std::optional<QByteArray> sealNativeOnboard(
@@ -58,6 +64,7 @@ signals:
     void changed();
 
 private:
+    void clearCopiedRecoveryWords();
     struct Private;
     std::unique_ptr<Private> m_private;
     friend class NativeRecoveryWordsItem;
@@ -65,8 +72,8 @@ private:
 };
 
 /**
- * Native-only rendering surface for the mnemonic: no QML Text/text property,
- * clipboard or serializable data model exists for the recovery phrase.
+ * Native-only rendering surface for the mnemonic: no QML Text/text property
+ * or serializable data model exists for the recovery phrase.
  * The mnemonic is visible in pixels only while the backup ceremony permits it.
  */
 class NativeRecoveryWordsItem : public QQuickPaintedItem {
