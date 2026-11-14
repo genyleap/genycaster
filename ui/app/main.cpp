@@ -726,6 +726,12 @@ int main(int argc, char* argv[])
             },
             .cancelProof = [&nativeRegistrationPreparation] {
                 nativeRegistrationPreparation.cancel();
+            },
+            .registrationWindow = [&nativeRegistrationStatus]()
+                -> std::optional<std::pair<std::uint64_t, std::uint32_t>> {
+                const auto anchor = nativeRegistrationStatus.snapshot();
+                if (!anchor) return std::nullopt;
+                return std::pair{anchor->nextBlock, anchor->window};
             }
         });
     HyperSnapRegistrationPublisher& nativeRegistrationPublisher = *nativePublisherOwner;
