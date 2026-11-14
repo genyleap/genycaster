@@ -107,18 +107,18 @@ void HyperSnapRegistrationTransport::lookupByCustody(
                         == QStringLiteral("Native registration lookup failed")
                     && detail.startsWith(QStringLiteral(
                         "status: NotFound, message: \"native account not found\""))) {
-                    cb({LookupState::NotFound});
+                    cb({LookupState::NotFound, 0, 0, code});
                     return;
                 }
             }
         }
         if (err != QNetworkReply::NoError || code != 200) {
-            cb({LookupState::Unavailable});
+            cb({LookupState::Unavailable, 0, 0, code});
             return;
         }
         const auto json = QJsonDocument::fromJson(payload);
         if (!json.isObject()) {
-            cb({LookupState::InvalidResponse});
+            cb({LookupState::InvalidResponse, 0, 0, code});
             return;
         }
         const QJsonObject data = json.object();
@@ -133,11 +133,11 @@ void HyperSnapRegistrationTransport::lookupByCustody(
         if (!fidValid || fid < FirstNativeFid || custody != expected
             || !block.isDouble() || block.toDouble() < 1
             || !data.value(QStringLiteral("message")).isObject()) {
-            cb({LookupState::InvalidResponse});
+            cb({LookupState::InvalidResponse, 0, 0, code});
             return;
         }
         cb({LookupState::Confirmed, fid,
-            static_cast<std::uint64_t>(block.toDouble())});
+            static_cast<std::uint64_t>(block.toDouble()), code});
     });
 }
 
