@@ -5833,6 +5833,14 @@ Company | https://company.com</translation>
             <source>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</source>
             <translation>The HyperSnap node rejected this proof. Refresh the registration anchor and prepare another proof.</translation>
         </message>
+        <message id="genycaster.setup.native_retry_wait_blocks">
+            <source>Recovery safety window: %1 more shard-0 blocks. Refresh and check registration status later.</source>
+            <translation>Recovery safety window: %1 more shard-0 blocks. Refresh and check registration status later.</translation>
+        </message>
+        <message id="genycaster.setup.native_retry_start_over">
+            <source>Previous registration window expired — prepare a new proof</source>
+            <translation>Previous registration window expired — prepare a new proof</translation>
+        </message>
         <message id="genycaster.setup.native_confirmation_no_fid_yet">
             <source>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</source>
             <translation>The registry has not confirmed an FID for this wallet yet. A previous submission may still be processing; do not resubmit.</translation>
