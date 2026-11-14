@@ -171,6 +171,58 @@ bool HyperSnapRegistrationPublisher::confirmExistingAccount()
     return true;
 }
 
+bool HyperSnapRegistrationPublisher::resumeConfirmedAccount()
+{
+    if (!m_registrationSupported || m_busy || m_pending || !confirmed()
+        || !m_ports.backupVerified || !m_ports.backupVerified()
+        || !m_ports.custodyAddress || !m_transport.endpointIsSafe()
+        || m_address.isEmpty() ||
+        m_ports.custodyAddress().toLower() != m_address)
+        return false;
+
+    bool validFid = false;
+    const auto expected = m_fid.toULongLong(&validFid);
+    if (!validFid || expected < (std::uint64_t{1} << 32))
+        return false;
+
+    // Revalidate on the HyperSnap authoritative shard-0 node before
+    // re-emitting the identity event. Never POST/redo PoW/overwrite custody.
+    m_busy = true;
+    m_checkingConfirmation = true;
+    m_verifyingExisting = true;
+    m_existingVerificationFailed = false;
+    m_confirmationLookupHttpStatus = 0;
+    m_confirmationLookupState = QStringLiteral("not_checked");
+    const auto generation = ++m_generation;
+    emit changed();
+
+    m_transport.lookupByCustody(m_address, [this, expected, generation](
+        const HyperSnapRegistrationTransport::LookupResult result) {
+        if (generation != m_generation) return;
+        using State = HyperSnapRegistrationTransport::LookupState;
+        m_confirmationLookupHttpStatus = result.httpStatus;
+        if (result.state == State::Confirmed && result.fid == expected) {
+            m_confirmationLookupState = QStringLiteral("confirmed");
+            m_verifyingExisting = false;
+            onConfirmed(result.fid, generation);
+            return;
+        }
+        m_confirmationLookupState = result.state == State::Confirmed
+            ? QStringLiteral("fid_changed")
+            : result.state == State::NotFound
+                ? QStringLiteral("not_found")
+                : result.state == State::InvalidResponse
+                    ? QStringLiteral("invalid_response")
+                    : QStringLiteral("unavailable");
+        m_busy = false;
+        m_checkingConfirmation = false;
+        m_verifyingExisting = false;
+        m_existingVerificationFailed = true;
+        emit changed();
+    });
+    return true;
+}
+
 bool HyperSnapRegistrationPublisher::recoverInterruptedRegistration()
 {
     if (!m_registrationSupported || m_busy || m_pending || confirmed()
