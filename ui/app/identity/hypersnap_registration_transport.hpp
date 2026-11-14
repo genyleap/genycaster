@@ -37,6 +37,9 @@ public:
     };
     struct SubmitResult final {
         SubmitState state{SubmitState::UnknownOutcome};
+        // HTTP status only. Never expose untrusted node responses or secrets.
+        // Zero means that there was no usable HTTP response.
+        int httpStatus{};
     };
     using LookupCallback = std::function<void(LookupResult)>;
     using SubmitCallback = std::function<void(SubmitResult)>;
