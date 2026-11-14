@@ -3638,6 +3638,28 @@ void connectRuntime(
         });
 #endif
 
+    // A boolean only: the recovery words/key never cross into QML. This
+    // drives the appropriate first action in the HyperSnap signer dialog.
+    const auto updateNativeSignerAvailability = [runtime, nativeWallet, &bridge] {
+        const auto active = runtime->currentSessionSnapshot();
+        const bool available = active && bridge.isAuthenticated()
+            && active->fid.value == bridge.accountFid()
+            && active->identityIssuer == "hypersnap:native-registry"
+            && active->custodyAddress && nativeWallet
+            && nativeWallet->backupVerified()
+            && nativeWallet->address().compare(
+                QString::fromStdString(*active->custodyAddress),
+                Qt::CaseInsensitive) == 0;
+        bridge.setNativeCustodySignerAvailable(available);
+    };
+    QObject::connect(&bridge, &PresentationBridge::authenticationStateChanged,
+        &bridge, updateNativeSignerAvailability);
+    if (nativeWallet) {
+        QObject::connect(nativeWallet, &NativeCustodyWalletController::changed,
+            &bridge, updateNativeSignerAvailability);
+    }
+    updateNativeSignerAvailability();
+
     QObject::connect(&bridge, &PresentationBridge::signerProvisionRequested, &bridge,
         [&bridge, runtime, signerObserver
 #if !defined(Q_OS_WASM) && FARCASTER_HAS_PROTOCOL_SIGNING && FARCASTER_HAS_FARCASTER_AUTH
