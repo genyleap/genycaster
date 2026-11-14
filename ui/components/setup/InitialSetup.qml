@@ -97,6 +97,23 @@ Item {
             return qsTrId("genycaster.setup.registration_provider_missing")
         return qsTrId("genycaster.setup.neynar_registration_requirements")
     }
+    function nativeSubmissionStatusText() {
+        const state = nativeRegistrationPublisher.confirmed
+            ? qsTrId("genycaster.setup.native_registration_confirmed")
+                .arg(nativeRegistrationPublisher.registeredFid)
+            : nativeRegistrationPublisher.failed
+              ? qsTrId("genycaster.setup.native_registration_rejected")
+              : nativeRegistrationPublisher.outcomeUnknown
+                ? qsTrId("genycaster.setup.native_registration_outcome_unknown")
+                : qsTrId("genycaster.setup.native_registration_submitted")
+        const httpStatus = nativeRegistrationPublisher.lastSubmissionHttpStatus
+        // The node's free-form error response is never displayed; only its
+        // bounded numeric HTTP status is included for safe diagnostics.
+        return (nativeRegistrationPublisher.failed
+                || nativeRegistrationPublisher.outcomeUnknown) && httpStatus > 0
+            ? state + " (HTTP " + httpStatus + ")"
+            : state
+    }
     readonly property bool registrationNodeUsable:
         registrationProviderId === "hypersnap-v2"
         && nativeRegistrationStatus.active && runtimeReady
@@ -1733,8 +1750,11 @@ Item {
                 }
                 ColumnLayout {
                     objectName: "nativeAccountLookupPanel"
+                    // An earlier NotFound lookup does not rule out an
+                    // ambiguous native registration still in flight.
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
+                             && !nativeRegistrationPublisher.pending
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     ActionButton {
@@ -1768,6 +1788,7 @@ Item {
                     objectName: "nativeRegistrationProofPanel"
                     visible: root.registrationProviderId === "hypersnap-v2"
                              && nativeCustodyWallet.backupVerified
+                             && !nativeRegistrationPublisher.pending
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     ActionButton {
@@ -1824,6 +1845,7 @@ Item {
                         id: nativeRegistrationConsent
                         objectName: "setupNativeRegistrationConsent"
                         visible: !nativeRegistrationPublisher.confirmed
+                                 && !nativeRegistrationPublisher.pending
                         Layout.fillWidth: true
                         label: qsTrId("genycaster.setup.native_registration_consent")
                     }
@@ -1831,8 +1853,11 @@ Item {
                         objectName: "setupBeginRegistration"
                         Layout.fillWidth: true
                         prominent: true
+                        visible: !nativeRegistrationPublisher.pending
+                                 && !nativeRegistrationPublisher.confirmed
                         text: qsTrId("genycaster.setup.registration_start")
                         busy: nativeRegistrationPublisher.busy
+                              && !nativeRegistrationPublisher.checkingConfirmation
                         enabled: root.runtimeReady
                                  && !nativeRegistrationPublisher.pending
                                  && nativeRegistrationPublisher.registrationSupported
@@ -1849,14 +1874,7 @@ Item {
                                  || nativeRegistrationPublisher.failed
                                  || nativeRegistrationPublisher.confirmed
                         Layout.fillWidth: true
-                        text: nativeRegistrationPublisher.confirmed
-                            ? qsTrId("genycaster.setup.native_registration_confirmed")
-                                .arg(nativeRegistrationPublisher.registeredFid)
-                            : nativeRegistrationPublisher.failed
-                              ? qsTrId("genycaster.setup.native_registration_rejected")
-                              : nativeRegistrationPublisher.outcomeUnknown
-                                ? qsTrId("genycaster.setup.native_registration_outcome_unknown")
-                                : qsTrId("genycaster.setup.native_registration_submitted")
+                        text: root.nativeSubmissionStatusText()
                         font.pixelSize: Theme.typeCaptionSize
                         color: nativeRegistrationPublisher.confirmed
                             ? Theme.success : Theme.warning
@@ -1865,9 +1883,10 @@ Item {
                     ActionButton {
                         objectName: "setupCheckNativeRegistrationConfirmation"
                         visible: nativeRegistrationPublisher.pending
-                                 && !nativeRegistrationPublisher.busy
                         Layout.fillWidth: true
                         compact: true
+                        busy: nativeRegistrationPublisher.checkingConfirmation
+                        enabled: !nativeRegistrationPublisher.busy
                         text: qsTrId("genycaster.setup.native_registration_check_again")
                         onClicked: nativeRegistrationPublisher.checkConfirmation()
                     }
