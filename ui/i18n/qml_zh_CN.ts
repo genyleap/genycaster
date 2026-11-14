@@ -5712,6 +5712,18 @@ Company | https://company.com</source>
             <source>Write these words down offline and in order. Anyone with them can control your account. Never share a screenshot.</source>
             <translation>按顺序离线记录这些词并妥善保管。知道它们的人可以控制你的账户。不要分享截图。</translation>
         </message>
+        <message id="genycaster.setup.wallet_copy_label">
+            <source>Copy all 24 recovery words</source>
+            <translation>复制全部 24 个恢复助记词</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_success">
+            <source>Copied — clipboard clears after 60 seconds if unchanged.</source>
+            <translation>已复制；如内容未变化，60 秒后将清空剪贴板。</translation>
+        </message>
+        <message id="genycaster.setup.wallet_copy_warning">
+            <source>Clipboard contents may be read or saved by other apps. GenyCaster clears the current clipboard after 60 seconds if unchanged. Keep an offline backup.</source>
+            <translation>其他应用可能读取或保存剪贴板内容。若内容未变化，GenyCaster 将在 60 秒后清空剪贴板。请保留离线备份。</translation>
+        </message>
         <message id="genycaster.setup.wallet_backup_ack">
             <source>I have saved all 24 words in order, somewhere safe.</source>
             <translation>我已按顺序安全保存全部24个词。</translation>
