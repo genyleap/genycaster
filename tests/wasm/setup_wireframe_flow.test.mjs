@@ -881,7 +881,7 @@ test('confirmed HyperSnap FID offers a single status and revalidatable continue 
   assert.match(retry,/onConfirmed\(result\.fid, generation\)/);
   assert.doesNotMatch(retry,/\.submit\(|takeProof|saveRetryJournal/);
   const native=runtime.slice(runtime.indexOf('ProviderId{"hypersnap-v2"}'),
-                             runtime.indexOf('runtime->independentReadProviderId'));
+                             runtime.indexOf('runtime->asyncGateway ='));
   assert.match(native,/protocolSignerManage\(\)/);
   assert.match(native,/nativeSignerConfig\.submitBaseUrl = nativeIdentityNode/);
   assert.match(native,/nativeWriteConfig\.baseUrl = nativeIdentityNode/);
