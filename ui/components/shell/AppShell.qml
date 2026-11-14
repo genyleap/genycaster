@@ -19,18 +19,26 @@ Item {
         return Math.max(0, surface.height - composeTop)
     }
 
-    // Signing in authenticates the Farcaster identity; publishing requires a
-    // separate device signer. Explain the external approval before opening it.
+    // Signing in establishes an identity. Authorizing a device signer is a
+    // separate consent boundary, and MUST use the account's registry origin.
     function requestInteractionAuthorization() {
         if (!presentationBridge.isAuthenticated || presentationBridge.signerBusy
             || presentationBridge.writeReady) return
+        interactionAuthorizationDialog.enteringNativeWords = false
         interactionAuthorizationDialog.open()
     }
     GenyModal {
         id: interactionAuthorizationDialog
         objectName: "interactionAuthorizationExplanation"
         parent: Overlay.overlay
-        width: parent ? Math.min(450, parent.width - Theme.space4 * 2) : 430
+        readonly property bool nativeAccount:
+            presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
+        property bool enteringNativeWords: false
+        onClosed: {
+            nativeSignerWords.clear()
+            enteringNativeWords = false
+        }
+        width: parent ? Math.min(470, parent.width - Theme.space4 * 2) : 450
         height: parent ? Math.min(parent.height - Theme.space4 * 2,
                                   confirmationContent.implicitHeight + Theme.space5 * 2)
                        : confirmationContent.implicitHeight + Theme.space5 * 2
@@ -49,7 +57,9 @@ Item {
             }
             DirectionAwareLabel {
                 Layout.fillWidth: true
-                text: qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
+                text: interactionAuthorizationDialog.nativeAccount
+                    ? qsTrId("genycaster.shell.native_signer_description")
+                    : qsTrId("genycaster.shell.farcaster_sign_in_openproof_description")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.typeBodySize
                 wrapMode: Text.Wrap
@@ -61,6 +71,49 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.Wrap
             }
+            ActionButton {
+                objectName: "nativeSignerUseRecoveryWords"
+                visible: interactionAuthorizationDialog.nativeAccount
+                         && !interactionAuthorizationDialog.enteringNativeWords
+                Layout.fillWidth: true
+                compact: true
+                text: qsTrId("genycaster.shell.native_signer_use_words")
+                onClicked: {
+                    interactionAuthorizationDialog.enteringNativeWords = true
+                    nativeSignerWords.forceActiveFocus()
+                }
+            }
+            DirectionAwareLabel {
+                visible: interactionAuthorizationDialog.nativeAccount
+                         && interactionAuthorizationDialog.enteringNativeWords
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.shell.native_signer_words_note")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
+            DirectionAwareTextField {
+                id: nativeSignerWords
+                objectName: "nativeSignerRecoveryWords"
+                visible: interactionAuthorizationDialog.nativeAccount
+                         && interactionAuthorizationDialog.enteringNativeWords
+                Layout.fillWidth: true
+                forceLeftToRight: true
+                echoMode: TextInput.Password
+                maximumLength: 4095
+                inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
+                                  | Qt.ImhNoAutoUppercase
+                placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
+                Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+            }
+            DirectionAwareLabel {
+                visible: nativeSignerWords.visible
+                Layout.fillWidth: true
+                text: qsTrId("genycaster.setup.native_recovery_privacy")
+                color: Theme.inkMuted
+                font.pixelSize: Theme.typeCaptionSize
+                wrapMode: Text.WordWrap
+            }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Theme.space2
@@ -69,18 +122,34 @@ Item {
                     Layout.fillWidth: true
                     quiet: true
                     compact: true
-                    text: qsTrId("genycaster.settings.cancel")
+                    text: qsTrId("genycaster.shell.cancel")
                     onClicked: interactionAuthorizationDialog.close()
                 }
                 ActionButton {
                     Layout.fillWidth: true
                     prominent: true
                     compact: true
-                    iconGlyph: Theme.iconArrowUpRight
-                    text: qsTrId("genycaster.shell.open_farcaster")
+                    objectName: "authorizeSelectedProtocolSigner"
+                    iconGlyph: interactionAuthorizationDialog.nativeAccount
+                        ? "" : Theme.iconArrowUpRight
+                    text: interactionAuthorizationDialog.nativeAccount
+                        ? qsTrId("genycaster.shell.native_signer_authorize")
+                        : qsTrId("genycaster.shell.open_farcaster")
+                    enabled: !interactionAuthorizationDialog.enteringNativeWords
+                             || (nativeSignerWords.text.trim().split(/\\s+/).length === 24)
                     onClicked: {
+                        if (interactionAuthorizationDialog.nativeAccount
+                            && interactionAuthorizationDialog.enteringNativeWords) {
+                            // One-shot secret: forward directly to native C++,
+                            // then scrub the input before dismissing the modal.
+                            presentationBridge.authorizeNativeHyperSnapSigner(nativeSignerWords.text)
+                            nativeSignerWords.clear()
+                        } else {
+                            // Native: uses the currently verified local custody
+                            // wallet. Farcaster: retains its separate approval.
+                            presentationBridge.provisionSigner()
+                        }
                         interactionAuthorizationDialog.close()
-                        presentationBridge.provisionSigner()
                     }
                 }
             }
