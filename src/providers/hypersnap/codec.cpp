@@ -339,7 +339,17 @@ mapProfile(const JsonObject& user)
     domain::profile::Profile profile{};
     profile.fid = domain::identity::Fid{*fid};
     if (auto username = optionalString(user, "username"); username && !username->empty()) {
-        profile.username = domain::identity::Username{std::move(*username)};
+        // HyperSnap's native-registry endpoint uses "fid:<decimal>" as a
+        // transport placeholder until a real username is registered. Never
+        // promote that placeholder to a user-selected canonical handle.
+        const std::string_view handle{*username};
+        const bool synthetic = handle.starts_with("fid:") && handle.size() > 4
+            && std::ranges::all_of(handle.substr(4), [](const char digit) {
+                return digit >= '0' && digit <= '9';
+            });
+        if (!synthetic) {
+            profile.username = domain::identity::Username{std::move(*username)};
+        }
     }
     if (auto displayName = optionalString(user, "display_name"); displayName && !displayName->empty()) {
         profile.displayName = domain::identity::DisplayName{std::move(*displayName)};

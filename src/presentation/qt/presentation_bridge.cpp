@@ -74,6 +74,23 @@ struct ContextualReactionRule final {
     return character.isLetterOrNumber() || character == QLatin1Char('_');
 }
 
+// A native-registry API may return "fid:<digits>" before the owner has
+// registered a username. It is an identity locator, not a chosen handle.
+// Apply this rule to session restoration as well as freshly decoded profiles.
+[[nodiscard]] QString visibleProfileUsername(QString username)
+{
+    username = username.trimmed();
+    if (username.size() > 4 && username.startsWith(QStringLiteral("fid:"), Qt::CaseInsensitive)) {
+        const auto suffix = QStringView{username}.mid(4);
+        if (std::ranges::all_of(suffix, [](const QChar ch) {
+                return ch >= QLatin1Char('0') && ch <= QLatin1Char('9');
+            })) {
+            return {};
+        }
+    }
+    return username;
+}
+
 [[nodiscard]] bool containsToken(const QString& text, const QString& token)
 {
     qsizetype offset = 0;
@@ -3618,7 +3635,7 @@ void PresentationBridge::applyAuthenticationState(
         if (clearViewerFields(m_searchResults)) emit searchChanged();
         m_viewerReactionKnownStates.clear();
     }
-    m_accountUsername = m_isAuthenticated ? std::move(username) : QString{};
+    m_accountUsername = m_isAuthenticated ? visibleProfileUsername(std::move(username)) : QString{};
     m_accountName = m_isAuthenticated
         ? (displayName.isEmpty() ? m_accountUsername : std::move(displayName))
         : QString{};
@@ -3705,7 +3722,7 @@ void PresentationBridge::applyAccountProfile(
     if (!m_isAuthenticated || fid == 0 || fid != m_accountFid || profile.isEmpty()) {
         return;
     }
-    m_accountUsername = std::move(username);
+    m_accountUsername = visibleProfileUsername(std::move(username));
     m_accountName = displayName.isEmpty() ? m_accountUsername : std::move(displayName);
     m_accountAvatarUrl = std::move(avatarUrl);
     m_accountProfile = std::move(profile);
@@ -4102,7 +4119,8 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     const bool stale, const bool sourceUnavailable)
 {
     m_identityFid = fid;
-    m_identityName = displayName.isEmpty() ? std::move(username) : std::move(displayName);
+    m_identityName = displayName.isEmpty()
+        ? visibleProfileUsername(std::move(username)) : std::move(displayName);
     m_statusText = std::move(status);
     if (!busy) {
         m_errorText = std::move(error);
@@ -4115,7 +4133,8 @@ void PresentationBridge::applyIdentity(const qulonglong fid, QString displayName
     if (updatesAccountProfile) {
         m_accountProfile = std::move(profile);
         m_profileDetailCache.insert(fid, m_accountProfile);
-        m_accountUsername = m_accountProfile.value(QStringLiteral("username")).toString();
+        m_accountUsername = visibleProfileUsername(
+            m_accountProfile.value(QStringLiteral("username")).toString());
         const QString accountDisplayName =
             m_accountProfile.value(QStringLiteral("displayName")).toString();
         m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;
@@ -4566,7 +4585,8 @@ void PresentationBridge::applyDetail(QString view, QVariantMap detail, QString s
         m_profileDetailCache.insert(m_profileFid, m_detail);
         if (m_profileFid == m_accountFid) {
             m_accountProfile = m_detail;
-            m_accountUsername = m_accountProfile.value(QStringLiteral("username")).toString();
+            m_accountUsername = visibleProfileUsername(
+                m_accountProfile.value(QStringLiteral("username")).toString());
             const QString accountDisplayName =
                 m_accountProfile.value(QStringLiteral("displayName")).toString();
             m_accountName = accountDisplayName.isEmpty() ? m_accountUsername : accountDisplayName;

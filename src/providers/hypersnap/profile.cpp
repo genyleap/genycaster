@@ -132,7 +132,7 @@ ProfileSource::get(const domain::identity::Fid fid)
         if (!username) {
             username = findValue(*entries, usernameUserDataType, "USER_DATA_TYPE_FNAME");
         }
-        if (username && !username->empty()) {
+        if (username && !username->empty() && !username->starts_with("fid:")) {
             profile->username = domain::identity::Username{std::move(*username)};
         }
     }

@@ -100,14 +100,18 @@ Item {
     signal castRequested(string castId)
 
     readonly property string welcomeName: {
-        const source = String(root.displayName || root.username || qsTrId("genycaster.side_nav.genycaster"))
+        const display = String(root.displayName || "").trim()
+        const handle = String(root.username || "").trim()
+        const source = display || (/^fid:[0-9]+$/i.test(handle) ? "" : handle)
         const trimmed = source.trim()
         if (trimmed.length === 0)
-            return qsTrId("genycaster.side_nav.genycaster")
+            return ""
         const parts = trimmed.split(/\s+/)
         return parts.length > 0 ? parts[0] : trimmed
     }
-    readonly property string greetingText: (root.localHour < 5
+    readonly property string greetingText: root.welcomeName.length === 0
+        ? qsTrId("genycaster.home.hub_tagline")
+        : (root.localHour < 5
                                              ? qsTrId("genycaster.home.greeting_night")
                                              : root.localHour < 12
                                                ? qsTrId("genycaster.home.greeting_morning")

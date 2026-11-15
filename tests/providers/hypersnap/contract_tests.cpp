@@ -79,8 +79,9 @@ void testCanonicalCodec()
     assert(user->fid.value == 42);
     // HyperSnap gateways may JSON-encode 64-bit FIDs as decimal strings.
     const auto stringFid = provider::hypersnap::codec::decodeUser(
-        R"json({"user":{"fid":"4294967296"}})json");
+        R"json({"user":{"fid":"4294967296","username":"fid:4294967296"}})json");
     assert(stringFid && stringFid->fid.value == 4294967296ULL);
+    assert(!stringFid->username && "node-generated fid: placeholders are not usernames");
     for (const auto malformed : {
              R"json({"user":{"fid":"-1"}})json",
              R"json({"user":{"fid":"1.5"}})json",
@@ -922,6 +923,20 @@ void testProfileCastAndIdentityEndpoints()
     assert(transport.urls().front() == "https://node.test/v2/farcaster/user?fid=42");
     assert(transport.urls().back() ==
         "https://node.test/v1/userDataByFid?fid=42");
+
+    // This is the live native-registry response shape: decimal-string FID,
+    // server-assigned fid: locator, no editable public metadata yet.
+    test::hypersnap::transport::FakeTransport nativeTransport{};
+    nativeTransport.enqueue(200,
+        R"json({"user":{"fid":"4294967296","username":"fid:4294967296"}})json");
+    nativeTransport.enqueue(200,
+        R"json({"messages":[{"data":{"userDataBody":{"type":"USER_DATA_TYPE_USERNAME","value":"fid:4294967296"}}}]})json");
+    provider::hypersnap::profile::ProfileSource nativeProfiles{nativeTransport, config};
+    const auto nativeProfile = nativeProfiles.get(domain::identity::Fid{4294967296ULL});
+    assert(nativeProfile && nativeProfile->fid.value == 4294967296ULL);
+    assert(!nativeProfile->username);
+    assert(nativeTransport.urls().front()
+        == "https://node.test/v2/farcaster/user?fid=4294967296");
 
     test::hypersnap::transport::FakeTransport bannerTransport{};
     bannerTransport.enqueue(200, test::hypersnap::fixtures::userWithoutBannerResponse());

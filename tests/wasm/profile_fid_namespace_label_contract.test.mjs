@@ -37,3 +37,28 @@ test('generic title is translated in each shipped locale and not just the Englis
     assert.match(catalog, expression, 'missing generic profile translation: ' + locale);
   }
 });
+
+test('unset native usernames are never rendered as fake profile handles', () => {
+  const decoder = read('src/providers/hypersnap/codec.cpp');
+  const presenter = read('src/presentation/qt/presentation_bridge.cpp');
+  const profile = read('ui/components/profile/ProfileSurface.qml');
+  const card = read('ui/components/profile/ProfileTrustCard.qml');
+  const sidebar = read('ui/components/profile/SidebarSummary.qml');
+  const home = read('ui/components/home/HomeDashboard.qml');
+
+  assert.ok(decoder.includes('handle.starts_with("fid:")'));
+  assert.ok(presenter.includes('visibleProfileUsername(std::move(username))'));
+  assert.ok(presenter.includes('m_accountUsername = visibleProfileUsername('));
+  assert.ok(profile.includes('visible: root.showUsername'));
+  const ownershipStart = profile.indexOf('readonly property bool isOwnProfile:');
+  const ownershipEnd = profile.indexOf('readonly property int profileAvatarSize', ownershipStart);
+  assert.ok(ownershipStart > 0 && ownershipEnd > ownershipStart);
+  assert.ok(!profile.slice(ownershipStart, ownershipEnd).includes('username'),
+    'the edit-profile affordance must depend on authenticated FID, not a username');
+  assert.ok(profile.includes('objectName: "profileEditAction"'));
+  assert.ok(card.includes('shownUsername: /^fid:'));
+  assert.ok(!card.includes('root.username : "genycaster"'));
+  assert.ok(sidebar.includes('root.authenticated && root.shownUsername.trim().length > 0'));
+  assert.ok(home.includes('welcomeName.length === 0'));
+  assert.ok(!home.includes('root.username || qsTrId("genycaster.side_nav.genycaster")'));
+});

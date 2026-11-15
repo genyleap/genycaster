@@ -19,9 +19,11 @@ Superellipse {
 
     readonly property bool ownsDetail: Number(root.profileDetail.fid || 0) > 0
                                        && Number(root.profileDetail.fid || 0) === Number(root.accountFid)
-    readonly property string shownName: root.displayName.length > 0
-                                        ? root.displayName
-                                        : qsTrId("genycaster.side_nav.no_identity_open")
+    readonly property string shownName: root.displayName.trim().length > 0
+                                        ? root.displayName.trim()
+                                        : (root.authenticated
+                                           ? qsTrId("genycaster.side_nav.profile")
+                                           : qsTrId("genycaster.side_nav.no_identity_open"))
     readonly property string shownUsername: /^fid:[0-9]+$/i.test(root.username.trim())
                                             ? "" : root.username.trim()
     readonly property bool verified: root.ownsDetail && Boolean(root.profileDetail.verified || false)

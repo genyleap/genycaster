@@ -832,7 +832,8 @@ Item {
         openProofConnections.refresh()
         accountConnectionsPopup.open()
     }
-    readonly property bool showUsername: Boolean(root.activeDetail.username) && !root.syntheticUsername(root.activeDetail.username)
+    readonly property bool showUsername: String(root.activeDetail.username || "").trim().length > 0
+                                         && !root.syntheticUsername(root.activeDetail.username)
     readonly property string normalizedBio: String(root.activeDetail.bio || "").replace(/\s+/g, " ").trim()
     readonly property string displayLocation: {
         const geoAvailable = typeof geoLocationResolver !== "undefined" && geoLocationResolver !== null
