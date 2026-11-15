@@ -640,6 +640,9 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
             granted=false;grantedAddress='';
             // Never expose an unapproved account identity to this Mini App.
             safeArgs=[[]];
+          }else{
+            // A grant covers exactly one account, never the wallet's other addresses.
+            safeArgs=[[args[0][0]]];
           }
         }
         for(const callback of callbacks.get(event)||[]){
@@ -668,7 +671,7 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
           granted=false;grantedAddress='';
           return [];
         }
-        return accounts;
+        return [accounts[0]];
       }
       if(method==='eth_requestAccounts'){
         if(!granted){
@@ -690,7 +693,8 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         }
         granted=true;
         grantedAddress=currentAddress;
-        return accounts;
+        // Do not disclose secondary wallet addresses as a side effect of consent.
+        return [accounts[0]];
       }
       if(PUBLIC_METHODS.has(method))
         return injected.request(payload);
@@ -729,6 +733,17 @@ export function createMiniAppEthereumProvider(origin, injected, authorize=reques
         finally{pendingSensitiveCount--;}
         if(!confirmed)throw denied('Wallet operation rejected by the user',4001);
         guard();
+        // A user can change or disconnect a wallet while the host confirmation
+        // is open. Never submit a previously approved request under a new
+        // principal, even when the injected provider emits no change event.
+        if(!granted)throw denied('Mini App wallet grant was revoked',4100);
+        const current=await injected.request({method:'eth_accounts'});
+        guard();
+        if(!granted || !Array.isArray(current) || typeof current[0]!=='string'
+            || current[0].toLowerCase()!==grantedAddress){
+          granted=false;grantedAddress='';
+          throw denied('Wallet account changed during approval. Connect again.',4100);
+        }
       }
       // The real wallet owns its own independent signature confirmation.
       return injected.request(payload);
