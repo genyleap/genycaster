@@ -249,14 +249,14 @@ TextArea {
                     y: grip.leading ? parent.height * 0.48 : parent.height * 0.1
                     width: 2
                     height: Math.max(14, grip.caretRect.height * 0.7)
-                    color: Theme.dark ? "#0A84FF" : "#007AFF"
+                    color: Theme.nativeSelectionAccent
                 }
                 Rectangle {
                     anchors.centerIn: parent
                     width: 14
                     height: 14
                     radius: 7
-                    color: Theme.dark ? "#0A84FF" : "#007AFF"
+                    color: Theme.nativeSelectionAccent
                     border.width: 2
                     border.color: Theme.editorSurface
                 }

@@ -242,7 +242,7 @@ Item {
                     width: 2
                     height: Math.max(15, grip.selectionRect.height)
                     color: root.usePlatformSelection ? Theme.accent
-                           : (Theme.dark ? "#0A84FF" : "#007AFF")
+                           : Theme.nativeSelectionAccent
                 }
                 Rectangle {
                     anchors.centerIn: parent
@@ -250,7 +250,7 @@ Item {
                     height: 13
                     radius: 6.5
                     color: root.usePlatformSelection ? Theme.accent
-                           : (Theme.dark ? "#0A84FF" : "#007AFF")
+                           : Theme.nativeSelectionAccent
                     border.width: 2
                     border.color: Theme.surfaceRaised
                 }

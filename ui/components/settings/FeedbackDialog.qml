@@ -24,11 +24,11 @@ GenyAdaptiveDialog {
     readonly property bool feedbackBusy: openProofConnections
         ? Boolean(openProofConnections.feedbackBusy) : false
     readonly property var sentimentModel: [
-        { value: 1, icon: Theme.iconMoodFrustrated, tint: "#E66B66" },
-        { value: 2, icon: Theme.iconMoodSad, tint: "#E8A65D" },
-        { value: 3, icon: Theme.iconMoodNeutral, tint: "#D3AD55" },
-        { value: 4, icon: Theme.iconMoodPositive, tint: "#59B89A" },
-        { value: 5, icon: Theme.iconMoodExcited, tint: "#62B7C8" }
+        { value: 1, icon: Theme.iconMoodFrustrated, tint: Theme.feedbackMoodFrustrated },
+        { value: 2, icon: Theme.iconMoodSad, tint: Theme.feedbackMoodSad },
+        { value: 3, icon: Theme.iconMoodNeutral, tint: Theme.feedbackMoodNeutral },
+        { value: 4, icon: Theme.iconMoodPositive, tint: Theme.feedbackMoodPositive },
+        { value: 5, icon: Theme.iconMoodExcited, tint: Theme.feedbackMoodExcited }
     ]
     readonly property var categoryModel: [
         { id: "bug", label: qsTrId("genycaster.feedback.bug"), icon: Theme.iconWarning },

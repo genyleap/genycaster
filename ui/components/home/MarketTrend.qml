@@ -15,8 +15,8 @@ NeonCard {
     readonly property bool validSeries: series && series.length >= 2
     readonly property bool validLatest: Number.isFinite(latest) && latest >= 0
     readonly property bool declining: Number(change) < 0
-    readonly property color trendColor: declining ? (Theme.dark ? "#FF9299" : "#E64B57")
-                                                   : (Theme.dark ? "#63D8A4" : "#1BAC7F")
+    readonly property color trendColor: declining ? Theme.marketTrendDownInk
+                                                   : Theme.marketTrendUpInk
 
     Layout.fillWidth: true
     Layout.preferredHeight: 262
@@ -64,8 +64,8 @@ NeonCard {
                 visible: root.validLatest
                 Layout.preferredWidth: changeText.implicitWidth + Theme.space3 * 2
                 Layout.preferredHeight: 28
-                fillColor: root.declining ? (Theme.dark ? "#3D232A" : "#FFF0F1")
-                                          : (Theme.dark ? "#1D3B31" : "#E9F8F0")
+                fillColor: root.declining ? Theme.marketTrendDownSurface
+                                          : Theme.marketTrendUpSurface
                 curveDepth: 12
                 DirectionAwareLabel {
                     id: changeText

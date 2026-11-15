@@ -24,6 +24,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("python3", "-m", "unittest", "-q", "ci.test_source_comments")),
     ("Core architecture and module documentation", ("python3", "ci/check_architecture.py")),
     ("All supported locale catalogs", ("python3", "ci/check_localization_catalog.py")),
+    ("Product-specific palette semantic roles",
+     ("node", "--test", "tests/wasm/semantic_product_palette_contract.test.mjs")),
     ("Theme palette and RTL-neutral localized process labels",
      ("node", "--test", "tests/wasm/setup_theme_palette_l10n_contract.test.mjs")),
     ("Async resource limits", ("python3", "ci/check_async_resource_contract.py")),

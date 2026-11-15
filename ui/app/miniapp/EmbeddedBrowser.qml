@@ -199,7 +199,7 @@ Popup {
             profile: ephemeralProfile
             webChannel: bridgeChannel
             webChannelWorld: WebEngineScript.ApplicationWorld
-            backgroundColor: "#101018"
+            backgroundColor: Theme.miniAppWebBackground
             settings.javascriptCanOpenWindows: false
             settings.localContentCanAccessFileUrls: false
             settings.localContentCanAccessRemoteUrls: false

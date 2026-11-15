@@ -94,7 +94,7 @@ Item {
             // The selected destination is a subtle wash, not an opaque button
             // floating inside the glass navigation capsule.
             fillColor: destination.active
-                ? (Theme.dark ? "#24FFFFFF" : "#1E252C3C") : "transparent"
+                ? Theme.dockSelectedWash : "transparent"
             borderWidth: 0
             scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
 
@@ -258,7 +258,7 @@ Item {
                         width: navigationCapsule.width
                         height: navigationCapsule.height
                         radius: height / 2
-                        color: "#FFFFFF"
+                        color: Theme.dockMaskWhite
                         antialiasing: true
                     }
                 }
@@ -316,7 +316,7 @@ Item {
                 anchors.topMargin: 3
                 anchors.bottomMargin: -3
                 z: -1
-                fillColor: Theme.dark ? "#40000000" : "#1B192236"
+                fillColor: Theme.dockShadowTint
                 curveDepth: height / 2
                 exponent: 2.0
             }

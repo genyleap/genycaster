@@ -57,9 +57,9 @@ Button {
                 // Selected destinations share the same quiet accent capsule
                 // used by Home actions and Explore filters.
                 filled: control.selected
-                color: !control.enabled ? (control.darkDock ? "#747781" : Theme.inkDisabled)
-                       : control.selected ? (control.darkDock ? "#ffffff" : Theme.accent)
-                       : (control.darkDock ? "#cbd0d9" : Theme.inkMuted)
+                color: !control.enabled ? (control.darkDock ? Theme.dockDarkDisabledInk : Theme.inkDisabled)
+                       : control.selected ? (control.darkDock ? Theme.dockDarkSelectedInk : Theme.accent)
+                       : (control.darkDock ? Theme.dockDarkIdleInk : Theme.inkMuted)
                 preferredSize: Theme.iconSizeNavigation
                 opacity: control.selected ? 1.0 : (control.hovered ? 0.94 : (control.darkDock ? 0.86 : 0.72))
                 scale: control.selected ? 1.04 : 1.0

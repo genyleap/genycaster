@@ -207,9 +207,9 @@ Item {
                     anchors.bottom: parent.bottom
                     height: Math.min(98, parent.height * 0.45)
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: "#22000000" }
-                        GradientStop { position: 0.48; color: "#bb101119" }
-                        GradientStop { position: 1.0; color: "#e9101119" }
+                        GradientStop { position: 0.0; color: Theme.featuredOverlayStart }
+                        GradientStop { position: 0.48; color: Theme.featuredOverlayMiddle }
+                        GradientStop { position: 1.0; color: Theme.featuredOverlayEnd }
                     }
                 }
 
@@ -257,7 +257,7 @@ Item {
                             horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
                             textFormat: Text.PlainText
                             text: String(featuredCell.app.name || featuredCell.app.domain || "")
-                            color: "#ffffff"
+                            color: Theme.featuredTextInk
                             font.pixelSize: Theme.typeBodySize
                             font.weight: Theme.weightBold
                             elide: Text.ElideRight
@@ -268,7 +268,7 @@ Item {
                             horizontalAlignment: Theme.uiDirection === Qt.RightToLeft ? Text.AlignRight : Text.AlignLeft
                             textFormat: Text.PlainText
                             text: String(featuredCell.app.description || featuredCell.app.domain || "")
-                            color: "#e4e5eb"
+                            color: Theme.featuredTextMuted
                             font.pixelSize: Theme.typeCaptionSize
                             maximumLineCount: 2
                             wrapMode: Text.Wrap

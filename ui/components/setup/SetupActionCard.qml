@@ -58,11 +58,11 @@ Button {
     // Unrelated sign-in options stay neutral, never inheriting its spinner.
     readonly property bool visuallyDisabled: !enabled && !busy
     readonly property color foreground: root.unavailable ? Theme.inkMuted
-                                      : setupEmphasis ? "#FCFCFE"
+                                      : setupEmphasis ? Theme.setupActionEmphasisInk
                                       : visuallyDisabled ? Theme.inkMuted
                                       : primary ? (neutralPrimary ? Theme.surface : Theme.accentInk) : Theme.ink
     readonly property color secondaryForeground: root.unavailable ? Theme.inkSubtle
-                                               : setupEmphasis ? "#BABBC6"
+                                               : setupEmphasis ? Theme.setupActionEmphasisMutedInk
                                                : visuallyDisabled ? Theme.inkMuted
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
@@ -87,8 +87,8 @@ Button {
         neonColor: root.selected
             ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.40)
             : "transparent"
-        fillColor: root.unavailable ? (Theme.dark ? "#23272E" : "#F5F6F8")
-                   : root.setupEmphasis ? (Theme.dark ? "#24252C" : "#22232A")
+        fillColor: root.unavailable ? Theme.setupActionUnavailableSurface
+                   : root.setupEmphasis ? Theme.setupActionEmphasisSurface
                    : root.visuallyDisabled
                    ? Theme.surfaceMuted
                    : root.primary
@@ -102,7 +102,7 @@ Button {
                      : root.selected ? 2
                      : root.primary && !root.visuallyDisabled ? 0 : Theme.strokeStandard
         borderColor: Theme.keyboardFocusVisible(root) ? Theme.focus
-                     : root.unavailable ? (Theme.dark ? "#3C444E" : "#E4E7EB")
+                     : root.unavailable ? Theme.setupActionUnavailableBorder
                      : root.selected ? Theme.accent : Theme.borderMuted
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone

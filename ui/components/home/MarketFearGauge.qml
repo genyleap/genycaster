@@ -54,7 +54,7 @@ Item {
 
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#E64F53"
+                    strokeColor: Theme.marketFearExtremeFear
                     strokeWidth: root.stroke
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin
@@ -62,7 +62,7 @@ Item {
                 }
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#F58A2D"
+                    strokeColor: Theme.marketFearFear
                     strokeWidth: root.stroke
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin
@@ -70,7 +70,7 @@ Item {
                 }
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#F9CA3A"
+                    strokeColor: Theme.marketFearNeutral
                     strokeWidth: root.stroke
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin
@@ -78,7 +78,7 @@ Item {
                 }
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#8BCD34"
+                    strokeColor: Theme.marketFearGreed
                     strokeWidth: root.stroke
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin
@@ -86,7 +86,7 @@ Item {
                 }
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#26B98B"
+                    strokeColor: Theme.marketFearExtremeGreed
                     strokeWidth: root.stroke
                     capStyle: ShapePath.RoundCap
                     joinStyle: ShapePath.RoundJoin

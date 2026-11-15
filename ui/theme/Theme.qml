@@ -96,6 +96,60 @@ QtObject {
     readonly property color verifiedGenyBadgeBackground: dark ? "#342812" : "#FFF6DE"
     readonly property color verifiedGenyBadgeBorder: "#D6A435"
     readonly property color verifiedGenyBadgeInk: dark ? "#F5CD66" : "#956A0B"
+    // Product-specific visual ramps are design tokens, not private colors
+    // scattered across QML components. Their values intentionally preserve
+    // the previously shipped Light/Dark appearance.
+    readonly property color miniAppWebBackground: "#101018"
+    readonly property color featuredOverlayStart: "#22000000"
+    readonly property color featuredOverlayMiddle: "#bb101119"
+    readonly property color featuredOverlayEnd: "#e9101119"
+    readonly property color featuredTextInk: "#ffffff"
+    readonly property color featuredTextMuted: "#e4e5eb"
+    readonly property color nativeSelectionAccent: dark ? "#0A84FF" : "#007AFF"
+    readonly property color marketFearExtremeFear: "#E64F53"
+    readonly property color marketFearFear: "#F58A2D"
+    readonly property color marketFearNeutral: "#F9CA3A"
+    readonly property color marketFearGreed: "#8BCD34"
+    readonly property color marketFearExtremeGreed: "#26B98B"
+    readonly property color marketChangeDownInk: dark ? "#FF9EA4" : "#DB4853"
+    readonly property color marketChangeUpInk: dark ? "#6FDEA4" : "#168F6A"
+    readonly property color marketSeasonWeak: "#EF9022"
+    readonly property color marketSeasonCooling: "#F8C58E"
+    readonly property color marketSeasonNeutral: "#CCD3E2"
+    readonly property color marketSeasonWarming: "#91A5F4"
+    readonly property color marketTrendDownInk: dark ? "#FF9299" : "#E64B57"
+    readonly property color marketTrendUpInk: dark ? "#63D8A4" : "#1BAC7F"
+    readonly property color marketTrendDownSurface: dark ? "#3D232A" : "#FFF0F1"
+    readonly property color marketTrendUpSurface: dark ? "#1D3B31" : "#E9F8F0"
+    readonly property color dockDarkDisabledInk: "#747781"
+    readonly property color dockDarkSelectedInk: "#ffffff"
+    readonly property color dockDarkIdleInk: "#cbd0d9"
+    readonly property color dockSelectedWash: dark ? "#24FFFFFF" : "#1E252C3C"
+    readonly property color dockMaskWhite: "#FFFFFF"
+    readonly property color dockShadowTint: dark ? "#40000000" : "#1B192236"
+    readonly property color connectionIconBackground: "#FFFFFF"
+    readonly property color connectionIconBorder: "#E8EAEE"
+    readonly property var githubContributionRamp: dark
+        ? ["#232A27","#0E4429","#006D32","#26A641","#39D353"]
+        : ["#E8EBE9","#9BE9A8","#40C463","#30A14E","#216E39"]
+    readonly property color pulseTileEmpty: dark ? "#282A31" : "#E6E8EC"
+    readonly property var pulseGithubRamp: ["#B5E8D0","#68CA9B","#32966C"]
+    readonly property var pulseFarcasterRamp: ["#C8B8F8","#9D81EA","#6552BD"]
+    readonly property color pulseFarcasterIconSurface: dark ? "#30283E" : "#EEE9FA"
+    readonly property color pulseFarcasterIconInk: dark ? "#C8B8F8" : "#745BC8"
+    readonly property color pulseUnobservedTile: dark ? "#20232B" : "#EFF0F3"
+    readonly property color pulseBrandIconBackground: "#FFFFFF"
+    readonly property color pulseGithubRangeBorder: dark ? "#BDECD1" : "#28865E"
+    readonly property color feedbackMoodFrustrated: "#E66B66"
+    readonly property color feedbackMoodSad: "#E8A65D"
+    readonly property color feedbackMoodNeutral: "#D3AD55"
+    readonly property color feedbackMoodPositive: "#59B89A"
+    readonly property color feedbackMoodExcited: "#62B7C8"
+    readonly property color setupActionEmphasisInk: "#FCFCFE"
+    readonly property color setupActionEmphasisMutedInk: "#BABBC6"
+    readonly property color setupActionUnavailableSurface: dark ? "#23272E" : "#F5F6F8"
+    readonly property color setupActionEmphasisSurface: dark ? "#24252C" : "#22232A"
+    readonly property color setupActionUnavailableBorder: dark ? "#3C444E" : "#E4E7EB"
     readonly property bool reduceMotion: appearanceController.reduceMotion
     readonly property string mode: appearanceController.themeMode
     readonly property string colorThemeId: appearanceController.colorThemeId

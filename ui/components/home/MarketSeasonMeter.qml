@@ -60,7 +60,7 @@ Item {
             layoutDirection: Theme.uiDirection
             spacing: 4
             Repeater {
-                model: ["#EF9022", "#F8C58E", "#CCD3E2", "#91A5F4", Theme.accent]
+                model: [Theme.marketSeasonWeak, Theme.marketSeasonCooling, Theme.marketSeasonNeutral, Theme.marketSeasonWarming, Theme.accent]
                 delegate: Rectangle {
                     required property var modelData
                     width: Math.max(0, (track.width - 16) / 5)
