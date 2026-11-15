@@ -66,6 +66,11 @@ class ReleaseWorkflowIntegrityTest(unittest.TestCase):
         s = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("    tags:\n      - 'v*'", s)
         self.assertIn("python3 ci/verify_release_feature_contract.py --strict", s)
+        # Manual development builds remain available, but publishing a tag
+        # cannot bypass architecture, translation, privacy or design gates.
+        gate = job_source(s, "gate", "linux")
+        self.assertIn("run: python3 ci/server_acceptance.py --strict-design", gate)
+        self.assertIn("if: steps.release.outputs.release == 'true'", gate)
         self.assertIn("          python3 ci/audit_linux_appdir.py AppDir --require-miniapps", s)
         # Truncated grep commands were accepted as YAML block text, then
         # silently skipped when the remaining steps were duplicated.
