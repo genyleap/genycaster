@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/native_wallet.hpp
+ * @brief       Native custody wallet backup and recovery controller.
+ *
+ * @details
+ * Owns private recovery state and performs isolated signing operations.
+ * Never exposes the mnemonic through Qt properties or network boundaries.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QObject>
@@ -42,21 +56,25 @@ public:
     [[nodiscard]] QString error() const;
 
     Q_INVOKABLE bool generate();
+
     /** Explicit recovery of a backed-up wallet for an interrupted registration. */
     Q_INVOKABLE bool restoreForRegistration(QString recoveryWords);
     Q_INVOKABLE bool startBackupChallenge();
     Q_INVOKABLE bool verifyBackup(QString first, QString second);
     Q_INVOKABLE void revealForBackup();
+
     /** Explicit clipboard copy, permitted only while the recovery words are visible.
      * Copies no secret through QML, signals or return values.
      * Clears the clipboard after 60 seconds if it still holds our phrase.
      */
     Q_INVOKABLE bool copyRecoveryWords();
     Q_INVOKABLE void discard();
+
     /** C++-only public envelope builder, never exposing seed material. */
     [[nodiscard]] std::optional<QByteArray> sealNativeOnboard(
         std::uint64_t anchorHeight, const QString& anchorHash,
         const QString& nonceHex, std::uint32_t difficultyBits) const;
+
     /** Sign the reserved FID for the Optimism IdRegistry; never a QML API. */
     [[nodiscard]] std::optional<QString> signReservedFarcasterTransfer(
         std::uint64_t fid, std::uint64_t onchainNonce,
