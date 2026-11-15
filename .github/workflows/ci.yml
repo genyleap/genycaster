@@ -93,6 +93,9 @@ jobs:
       - name: Refuse a partial cross-platform feature release
         if: steps.release.outputs.release == 'true'
         run: python3 ci/verify_release_feature_contract.py --strict
+      - name: Block release until architecture, localization and UX acceptance pass
+        if: steps.release.outputs.release == 'true'
+        run: python3 ci/server_acceptance.py --strict-design
       - name: Release commits must originate from main
         if: steps.release.outputs.release == 'true'
         shell: bash
