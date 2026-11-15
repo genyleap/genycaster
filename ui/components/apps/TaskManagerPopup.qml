@@ -130,6 +130,7 @@ Item {
                         }
 
                         RowLayout {
+                            layoutDirection: Theme.uiDirection
                             Layout.alignment: Qt.AlignVCenter
                             spacing: Theme.space1
                             Superellipse {

@@ -134,6 +134,7 @@ Popup {
             Layout.preferredHeight: visible ? Math.max(52, 44 + (root.parent ? root.parent.SafeArea.margins.top : 0)) : 0
             color: Theme.surface
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 anchors.fill: parent
                 anchors.topMargin: root.parent ? root.parent.SafeArea.margins.top : 0
                 anchors.leftMargin: Theme.space3
