@@ -1581,8 +1581,8 @@ Company | https://company.com</source>
             <translation>व्यावसायिक · प्रबंधित तैनाती और निगरानी</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>सर्वर → इंस्टॉल → सिंक → कनेक्ट</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>सर्वर · इंस्टॉल · सिंक · कनेक्ट</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
