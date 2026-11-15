@@ -27,7 +27,7 @@ Item {
         // Skip a doomed external approval attempt when this process no
         // longer holds the original local custody wallet.
         interactionAuthorizationDialog.enteringNativeWords =
-            presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
+            presentationBridge.nativeCustodyAccount
             && !presentationBridge.nativeCustodySignerAvailable
         interactionAuthorizationDialog.open()
     }
@@ -37,7 +37,7 @@ Item {
         parent: Overlay.overlay
         blurSourceItem: shellContent
         readonly property bool nativeAccount:
-            presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
+            presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
         onClosed: {
             nativeSignerWords.clear()
@@ -2960,17 +2960,7 @@ Item {
                                 DirectionAwareLabel {
                                     visible: presentationBridge.accountIdentityIssuer.length > 0
                                     Layout.fillWidth: true
-                                    text: presentationBridge.accountIdentityIssuer === "genycaster:device-local"
-                                          ? qsTrId("genycaster.setup.remembered_device_label")
-                                          : presentationBridge.accountIdentityIssuer === "hypersnap:native-registry"
-                                          ? qsTrId("genycaster.settings.hypersnap_label")
-                                          : presentationBridge.accountIdentityIssuer === "farcaster:optimism-id-registry"
-                                          ? qsTrId("genycaster.settings.farcaster_label")
-                                          : presentationBridge.authenticationRoute === "recovery"
-                                          ? qsTrId("genycaster.setup.recovery_verified")
-                                          : presentationBridge.authenticationRoute === "farcaster"
-                                          ? qsTrId("genycaster.shell.farcaster_sign_in_openproof_verification")
-                                          : qsTrId("genycaster.shell.verified_by_openproof")
+                                    text: presentationBridge.accountIdentityBadge
                                     color: Theme.accent
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightDemiBold
