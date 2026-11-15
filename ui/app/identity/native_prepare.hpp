@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/native_prepare.hpp
+ * @brief       Cancellable native registration preparation controller.
+ *
+ * @details
+ * Coordinates bounded proof-of-work preparation outside the GUI thread.
+ * Exposes only nonsecret preparation state and cancellation to Qt.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include "native_registration.hpp"
@@ -21,6 +35,7 @@
 struct NativePreparationPorts final {
     std::function<bool()> backupVerified;
     std::function<QString()> custodyAddress;
+
     /** Must prove a NotFound lookup for this exact address on this node. */
     std::function<bool(const QString&)> walletIsUnregistered;
     std::function<std::optional<NativeRegistrationStatusController::Challenge>()> challenge;
@@ -42,8 +57,10 @@ public:
     [[nodiscard]] bool busy() const noexcept { return m_busy; }
     [[nodiscard]] bool prepared() const noexcept { return !m_envelope.isEmpty(); }
     [[nodiscard]] bool failed() const noexcept { return m_failed; }
+
     /** The envelope is public protocol data, but is NEVER a QML property. */
     [[nodiscard]] QByteArray preparedEnvelope() const { return m_envelope; }
+
     /** Single-use, C++-only transfer; fail closed if any guard has changed. */
     [[nodiscard]] QByteArray takeForSubmission(const QString& custodyAddress);
 
