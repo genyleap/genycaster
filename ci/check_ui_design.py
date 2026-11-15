@@ -31,7 +31,10 @@ registered = sorted(set(registered) | {
     'components/media/AnimatedEmojiLottie.qml',
     'components/apps/AndroidWebView.qml',
 })
-discovered = sorted(str(p.relative_to(ui)) for p in ui.rglob('*.qml'))
+# The Linux QtWebEngine Quick drawer lives in a separate resource target.
+# It must never be registered in the cross-platform Farcaster.Client QML module.
+discovered = sorted(str(p.relative_to(ui)) for p in ui.rglob('*.qml')
+                    if p.relative_to(ui).as_posix() != 'app/miniapp/EmbeddedBrowser.qml')
 errors: list[str] = []
 if registered != discovered:
     errors.append(f'QML manifest mismatch: missing={sorted(set(discovered)-set(registered))}, extra={sorted(set(registered)-set(discovered))}')
@@ -210,8 +213,11 @@ for ts_name in ('qml_en_US.ts', 'qml_fa_IR.ts'):
 
 # Components that claim shape-aware hit testing must expose a shape, not a rectangular Item wrapper.
 tab_button = (ui/'components'/'controls'/'GenyTabButton.qml').read_text(encoding='utf-8')
-if 'containmentMask: background' not in tab_button or 'background: Superellipse' not in tab_button:
-    errors.append('GenyTabButton must use its Superellipse background as the containment mask')
+if ('containmentMask: background' not in tab_button
+        or 'background: NeonStatePlate' not in tab_button
+        or 'cornerRadius: Theme.curveControl' not in tab_button
+        or 'selected: control.segmented && control.selected' not in tab_button):
+    errors.append('GenyTabButton must retain the curved NeonStatePlate background and hit-test mask')
 
 superellipse = (ui/'components'/'visual'/'Superellipse.qml').read_text(encoding='utf-8')
 geny_spinner = (ui/'components'/'controls'/'GenySpinner.qml').read_text(encoding='utf-8')
@@ -467,7 +473,9 @@ if 'LayoutMirroring.enabled: false' not in main_qml:
 
 for chrome_name in ('AppHeader.qml', 'SideNavigation.qml', 'BottomNavigation.qml', 'FeedHeader.qml', 'StatusStrip.qml'):
     chrome_text = component_source_path(chrome_name).read_text(encoding='utf-8')
-    if 'RowLayout {' in chrome_text and 'layoutDirection: Theme.uiDirection' not in chrome_text:
+    # Header chrome intentionally anchors its action cluster separately from RTL
+    # wordmark geometry and keeps its icon order LTR. Both are explicit.
+    if 'RowLayout {' in chrome_text and 'layoutDirection:' not in chrome_text:
         errors.append(f'{chrome_name} must direct application-chrome RowLayouts explicitly')
 
 # Every horizontal application layout must declare a direction. This catches
