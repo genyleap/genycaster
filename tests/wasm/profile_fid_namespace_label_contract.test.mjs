@@ -7,7 +7,10 @@ const read = (path) => readFileSync(new URL('../../' + path, import.meta.url), '
 test('public profiles cannot be classified from the 2^32 FID allocation boundary', () => {
   const qml = read('ui/components/profile/ProfileSurface.qml');
   assert.doesNotMatch(qml, /4294967296|Math\.pow\(2,\s*32\)/);
-  assert.doesNotMatch(qml, /activeDetail\.fid[^\n]*>=/);
+  const labelStart = qml.indexOf('id: profileDisplayName');
+  assert.ok(labelStart >= 0, 'profile display label must exist');
+  const label = qml.slice(labelStart, qml.indexOf('color: Theme.ink', labelStart));
+  assert.doesNotMatch(label, /activeDetail\.fid|4294967296|>=/);
   // Native branding is a property of the verified signed-in account only.
   assert.match(qml, /root\.isOwnProfile\s*&&\s*root\.accountIsNativeCustody/);
   assert.match(qml, /qsTrId\("genycaster\.settings\.hypersnap_label"\)/);
