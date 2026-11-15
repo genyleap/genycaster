@@ -1069,6 +1069,38 @@ Entreprise | https://company.com</translation>
             <source>in</source>
             <translation>dans</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>Définir le nom d’utilisateur préféré</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>Saisissez 1 à 16 lettres minuscules, chiffres ou traits d’union. Ce nom doit déjà appartenir à cet FID.</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>Cet FID HyperSnap est déjà vérifié par son registre natif. Aucune vérification Farcaster n’est requise. Les services externes nécessitent une autorisation Genyleap/OpenProof distincte.</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>Masquer les mots de récupération</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>La passerelle média a refusé le signataire de l’appareil. Réautorisez ce compte ou vérifiez les permissions.</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>Fichier refusé. Vérifiez le format et la taille de l’image.</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>La passerelle média est indisponible ou a expiré. Réessayez après reconnexion.</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>La passerelle média a refusé l’envoi. Vérifiez la configuration du service.</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>Les informations de profil signées sont publiées sur le protocole sélectionné. Le nom d’utilisateur est enregistré séparément.</translation>

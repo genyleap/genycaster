@@ -118,10 +118,30 @@ Drawer {
                     : control.floatingSheet ? Theme.curveSheetFloating
                     : control.bottomSheet ? Theme.curveSheet : Theme.curveDrawer
         elevation: Theme.elevationNone
+        // Corners facing the originating window edge are ALWAYS square.
+        // FloatingSheet affects insets, not the geometry of the attached side.
         curveTopLeft: !control.fullScreen && (control.bottomSheet || control.edge !== Qt.LeftEdge)
         curveTopRight: !control.fullScreen && (control.bottomSheet || control.edge !== Qt.RightEdge)
-        curveBottomLeft: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.LeftEdge))
-        curveBottomRight: !control.fullScreen && (control.floatingSheet || (!control.bottomSheet && control.edge !== Qt.RightEdge))
+        curveBottomLeft: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.LeftEdge
+        curveBottomRight: !control.fullScreen && !control.bottomSheet && control.edge !== Qt.RightEdge
+
+        // Cover any fractional-pixel anti-alias fringe at the anchored edge.
+        // The inward-facing corners stay gently rounded.
+        Rectangle {
+            visible: !control.fullScreen && !control.bottomSheet
+            x: control.edge === Qt.RightEdge ? parent.width - width : 0
+            y: 0
+            width: 2
+            height: parent.height
+            color: Theme.surfaceElevated
+        }
+        Rectangle {
+            visible: !control.fullScreen && control.bottomSheet
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: 2
+            color: Theme.surfaceElevated
+        }
 
         // Form sheets disable Drawer.interactive so scroll gestures belong to
         // their Flickable. The isolated grabber remains swipe-dismissable,

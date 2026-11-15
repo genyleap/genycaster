@@ -168,6 +168,44 @@ struct ContextualReactionRule final {
     return castId;
 }
 
+// A cast's canonical 20-byte hash is the only deduplication key. Cached
+// optimistic projections may use 0x-prefixed IDs while the provider returns
+// plain hexadecimal, and case can differ. Prefer authoritative network data
+// over a locally projected row when both are available.
+void deduplicateCastRows(QVariantList& rows)
+{
+    QHash<QString, qsizetype> seen{};
+    QVariantList unique{};
+    unique.reserve(rows.size());
+    for (const auto& entry : rows) {
+        const auto row = entry.toMap();
+        const QString key = canonicalCastKey(row.value(QStringLiteral("castId")).toString());
+        if (key.size() != 40) {
+            unique.push_back(entry);
+            continue;
+        }
+        const auto previous = seen.constFind(key);
+        if (previous == seen.cend()) {
+            seen.insert(key, unique.size());
+            unique.push_back(entry);
+            continue;
+        }
+        const auto existing = unique[*previous].toMap();
+        const bool existingLocal = existing.value(QStringLiteral("operationKind")).toString()
+            == QStringLiteral("publish-cast");
+        const bool incomingLocal = row.value(QStringLiteral("operationKind")).toString()
+            == QStringLiteral("publish-cast");
+        if (existingLocal && !incomingLocal) {
+            unique[*previous] = entry;
+        } else if (existingLocal == incomingLocal
+                   && row.value(QStringLiteral("richHydrated")).toBool()
+                   && !existing.value(QStringLiteral("richHydrated")).toBool()) {
+            unique[*previous] = entry;
+        }
+    }
+    rows = std::move(unique);
+}
+
 // Public Farcaster v2-compatible read APIs may return 40 hex characters without
 // a prefix. Protocol writes accept either form; normalize the reply target once
 // at this presentation boundary rather than rejecting a valid fetched cast.
@@ -1788,7 +1826,7 @@ bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
     // A concurrent write is not missing signer authorization.
     if (m_writeBusy) return false;
     if (!m_isAuthenticated || m_accountFid == 0 || !m_writeReady
-        || fields.isEmpty() || fields.size() > 5) {
+        || fields.isEmpty() || fields.size() > 6) {
         applyWriteState(QStringLiteral("blocked"), false, {},
             qtTrId("genycaster.profile.protocol_signer_required"));
         return false;
@@ -1798,9 +1836,15 @@ bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
         const QString key = it.key();
         if (key != QStringLiteral("display") && key != QStringLiteral("bio")
             && key != QStringLiteral("url") && key != QStringLiteral("pfp")
-            && key != QStringLiteral("banner")) return false;
+            && key != QStringLiteral("banner") && key != QStringLiteral("username")) return false;
         const QString value = it.value().toString();
-        const int maximumBytes = key == QStringLiteral("display") ? 32 : 256;
+        const int maximumBytes = key == QStringLiteral("display") ? 32
+            : key == QStringLiteral("username") ? 16 : 256;
+        if (key == QStringLiteral("username")) {
+            static const QRegularExpression preferredName{
+                QStringLiteral("^[a-z0-9][a-z0-9-]{0,15}$")};
+            if (!preferredName.match(value).hasMatch()) return false;
+        }
         if (value.toUtf8().size() > maximumBytes || value.contains(QLatin1Char('\0')))
             return false;
         if ((!value.isEmpty()) && (key == QStringLiteral("pfp")
@@ -3727,6 +3771,47 @@ void PresentationBridge::applyAccountProfile(
     m_accountAvatarUrl = std::move(avatarUrl);
     m_accountProfile = std::move(profile);
     m_profileDetailCache.insert(fid, m_accountProfile);
+    // A provider may hydrate the author metadata after locally signed casts
+    // were shown, or an indexer may initially return "Unknown" for this FID.
+    // Reconcile the verified account profile into existing cast projections
+    // instead of retaining stale placeholder identity labels indefinitely.
+    bool rowsChanged = false;
+    const auto hydrateOwnRows = [this, fid, &rowsChanged](QVariantList& rows) {
+        for (auto& value : rows) {
+            auto cast = value.toMap();
+            if (cast.value(QStringLiteral("authorFid")).toULongLong() != fid)
+                continue;
+            bool changed = false;
+            if (!m_accountName.isEmpty()
+                && cast.value(QStringLiteral("displayName")).toString() != m_accountName) {
+                cast.insert(QStringLiteral("displayName"), m_accountName);
+                changed = true;
+            }
+            if (cast.value(QStringLiteral("author")).toString() != m_accountUsername) {
+                cast.insert(QStringLiteral("author"), m_accountUsername);
+                changed = true;
+            }
+            if (cast.value(QStringLiteral("username")).toString() != m_accountUsername) {
+                cast.insert(QStringLiteral("username"), m_accountUsername);
+                changed = true;
+            }
+            if (!m_accountAvatarUrl.isEmpty()
+                && cast.value(QStringLiteral("avatarUrl")).toString() != m_accountAvatarUrl) {
+                cast.insert(QStringLiteral("avatarUrl"), m_accountAvatarUrl);
+                changed = true;
+            }
+            if (changed) {
+                value = std::move(cast);
+                rowsChanged = true;
+            }
+        }
+    };
+    hydrateOwnRows(m_rows);
+    hydrateOwnRows(m_writeRows);
+    hydrateOwnRows(m_pendingFeedRows);
+    for (auto it = m_profileListCache.begin(); it != m_profileListCache.end(); ++it)
+        hydrateOwnRows(it.value());
+    if (rowsChanged) emit this->rowsChanged();
     emit authenticationStateChanged();
     emit stateChanged();
 }
@@ -3805,7 +3890,7 @@ void PresentationBridge::applyWriteState(
         }
         bool replaced = false;
         for (qsizetype index = 0; index < m_writeRows.size(); ++index) {
-            if (m_writeRows[index].toMap().value(QStringLiteral("castId")).toString() == castId) {
+            if (canonicalCastKey(m_writeRows[index].toMap().value(QStringLiteral("castId")).toString()) == canonicalCastKey(castId)) {
                 m_writeRows[index] = presentationMutation;
                 replaced = true;
                 break;
@@ -3834,7 +3919,7 @@ void PresentationBridge::applyWriteState(
                 bool duplicate = false;
                 for (const auto& writeRow : m_writeRows) {
                     if (!existingId.isEmpty() &&
-                        writeRow.toMap().value(QStringLiteral("castId")).toString() == existingId) {
+                        canonicalCastKey(writeRow.toMap().value(QStringLiteral("castId")).toString()) == canonicalCastKey(existingId)) {
                         duplicate = true;
                         break;
                     }
@@ -3842,6 +3927,7 @@ void PresentationBridge::applyWriteState(
                 if (!duplicate) { merged.push_back(row); }
             }
             m_rows = std::move(merged);
+            deduplicateCastRows(m_rows);
             writeRowsChanged = true;
         }
     }
@@ -3918,7 +4004,7 @@ void PresentationBridge::applyCastProjections(const qulonglong accountFid, QVari
                 != QStringLiteral("publish-cast")) continue;
         bool found = false;
         for (const auto& existing : m_writeRows) {
-            if (existing.toMap().value(QStringLiteral("castId")).toString() == id) {
+            if (canonicalCastKey(existing.toMap().value(QStringLiteral("castId")).toString()) == canonicalCastKey(id)) {
                 found = true;
                 break;
             }
@@ -3935,8 +4021,8 @@ void PresentationBridge::applyCastProjections(const qulonglong accountFid, QVari
                 !writeRowEligibleForProfileFeed(row, m_profileFeed)) continue;
             bool alreadyOnNetwork = false;
             for (const auto& networkRow : m_rows) {
-                if (networkRow.toMap().value(QStringLiteral("castId")).toString()
-                    == row.value(QStringLiteral("castId")).toString()) {
+                if (canonicalCastKey(networkRow.toMap().value(QStringLiteral("castId")).toString())
+                    == canonicalCastKey(row.value(QStringLiteral("castId")).toString())) {
                     alreadyOnNetwork = true;
                     break;
                 }
@@ -3945,6 +4031,7 @@ void PresentationBridge::applyCastProjections(const qulonglong accountFid, QVari
         }
         for (const auto& value : m_rows) merged.push_back(value);
         m_rows = std::move(merged);
+        deduplicateCastRows(m_rows);
         emit rowsChanged();
     }
     emit stateChanged();
@@ -4327,7 +4414,8 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
             bool authoritative = false;
             if (confirmed && !castId.isEmpty()) {
                 for (const auto& row : rows) {
-                    if (row.toMap().value(QStringLiteral("castId")).toString() == castId) {
+                    if (canonicalCastKey(row.toMap().value(QStringLiteral("castId")).toString())
+                        == canonicalCastKey(castId)) {
                         authoritative = true;
                         break;
                     }
@@ -4344,7 +4432,8 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
             bool duplicate = false;
             for (const auto& writeRow : m_writeRows) {
                 if (!castId.isEmpty() &&
-                    writeRow.toMap().value(QStringLiteral("castId")).toString() == castId) {
+                    canonicalCastKey(writeRow.toMap().value(QStringLiteral("castId")).toString())
+                        == canonicalCastKey(castId)) {
                     duplicate = true;
                     break;
                 }
@@ -4355,6 +4444,7 @@ void PresentationBridge::applyList(QString view, QString selector, QVariantList 
     } else {
         m_rows = std::move(rows);
     }
+    deduplicateCastRows(m_rows);
     if (incrementalFeedPage) {
         // Already-visible rows retain their hydrated quotes, follower state,
         // reactions and media. Mutating every previous QVariantMap here used

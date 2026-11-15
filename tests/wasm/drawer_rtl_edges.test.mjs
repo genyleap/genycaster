@@ -30,7 +30,8 @@ test('adaptive GenyDrawer mirrors side edges for RTL and LTR, preserving bottom 
       // the screen on mobile; other drawers retain their RTL edge policy.
       assert.match(qml(file),/edge: root\.compact \? Qt\.BottomEdge : Qt\.RightEdge/);
       assert.match(qml(file),/fullScreen: root\.compact && root\.manualExpanded && root\.checkoutActive/);
-      assert.match(qml(file),/root\.fullScreen \? parent\.height/);
+      assert.match(qml(file),/height: parent \? \(root\.compact && !root\.fullScreen/);
+      assert.match(qml(file),/: parent\.height\) : 640/);
       continue;
     }
     // No accidental physical side overrides in child instances. All desktop

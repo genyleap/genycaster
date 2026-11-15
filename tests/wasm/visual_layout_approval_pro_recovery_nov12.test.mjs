@@ -52,11 +52,14 @@ test('device signer approval is protocol-scoped and never sends native FIDs to F
   assert.match(shell,/function requestInteractionAuthorization\(\)/);
   assert.match(shell,/onAuthorizeSigner: root\.requestInteractionAuthorization\(\)/);
   assert.match(shell,/onSignerRequested: \{/);
-  assert.match(shell,/accountIdentityIssuer === "hypersnap:native-registry"/);
+  assert.match(shell,/presentationBridge\.nativeCustodyAccount/);
   assert.match(shell,/genycaster\.shell\.native_signer_description/);
   assert.match(shell,/nativeSignerUseRecoveryWords/);
-  assert.match(shell,/nativeSignerWords\.clear\(\)/);
-  assert.match(shell,/presentationBridge\.authorizeNativeHyperSnapSigner\(nativeSignerWords\.text\)/);
+  assert.match(shell,/nativeSignerWordGrid/);
+  assert.match(shell,/model: 24/);
+  assert.match(shell,/interactionAuthorizationDialog\.clearRecoveryWords\(\)/);
+  assert.match(shell,/interactionAuthorizationDialog\.recoveryReady\(\)/);
+  assert.match(shell,/presentationBridge\.authorizeNativeHyperSnapSigner\(/);
   assert.match(shell,/presentationBridge\.provisionSigner\(\)/);
   assert.match(shell,/genycaster\.shell\.open_farcaster/);
   assert.match(setup,/subtitle: qsTrId\("genycaster\.setup\.recovery_signer_consent"\)/);

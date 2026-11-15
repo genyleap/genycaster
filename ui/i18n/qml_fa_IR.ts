@@ -1069,6 +1069,38 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>در</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>انتخاب نام کاربری ترجیحی</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>نام باید ۱ تا ۱۶ حرف کوچک انگلیسی، عدد یا خط تیره داشته باشد و از قبل متعلق به همین FID باشد.</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>این شناسهٔ HyperSnap در رجیستری بومی خود تأیید شده است و به تأیید فارکستر نیاز ندارد. اتصال حساب‌های خارجی به مجوز جداگانهٔ Genyleap/OpenProof نیاز دارد.</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>پنهان‌کردن واژه‌های بازیابی</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>درگاه رسانه امضاکنندهٔ دستگاه را نپذیرفت. مجوز حساب یا سطح دسترسی درگاه را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>فایل رد شد. قالب تصویر و محدودیت حجم بارگذاری را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>درگاه رسانه در دسترس نیست یا زمان درخواست پایان یافته است. بعداً دوباره تلاش کنید.</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>درگاه رسانه بارگذاری را نپذیرفت. تنظیمات سرویس رسانه را بررسی کنید.</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>جزئیات امضاشدهٔ پروفایل در پروتکل انتخاب‌شده منتشر می‌شوند. نام کاربری جداگانه ثبت می‌شود.</translation>

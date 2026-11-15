@@ -91,13 +91,14 @@ struct PublishCastIntent final {
     foundation::time::Timestamp createdAt{};
 };
 
-/** @brief UserData fields; USERNAME is intentionally separate and needs ownership proof. */
+/** @brief UserData slots. Username sets a PREFERRED owned name; it does not claim one. */
 enum class ProfileField : std::uint32_t {
     Avatar = 1U,
     DisplayName = 2U,
     Bio = 3U,
     Website = 5U,
     Banner = 10U,
+    Username = 6U,
 };
 
 /** @brief Canonical single-field UserDataAdd intent. */

@@ -1068,6 +1068,38 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>في</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>تعيين اسم المستخدم المفضل</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>أدخل من 1 إلى 16 حرفًا لاتينيًا صغيرًا أو رقمًا أو شرطة. يجب أن يكون الاسم مملوكًا لهذا المعرّف بالفعل.</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>هذا المعرّف على HyperSnap موثّق في سجله الأصلي ولا يحتاج إلى تحقق Farcaster. ربط الحسابات الخارجية يتطلب تفويضًا منفصلًا من Genyleap/OpenProof.</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>إخفاء كلمات الاسترداد</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>رفضت بوابة الوسائط مُوقّع الجهاز. أعد تفويض الحساب أو راجع الأذونات.</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>تم رفض الملف. تحقق من تنسيق الصورة وحد الحجم.</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>بوابة الوسائط غير متاحة أو انتهت المهلة. أعد المحاولة بعد استعادة الاتصال.</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>رفضت بوابة الوسائط الرفع. راجع إعدادات خدمة الوسائط.</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>تُنشر تفاصيل الملف الشخصي الموقَّعة على البروتوكول المحدد. يُسجَّل اسم المستخدم بشكل منفصل.</translation>

@@ -653,9 +653,27 @@ foundation::result::Result<UnsignedMessage> encodeUserDataAdd(const UserDataInpu
     }
     const auto field = static_cast<std::uint32_t>(input.field);
     const bool supported = field == 1U || field == 2U || field == 3U
-        || field == 5U || field == 10U;
-    if (!supported || input.value.size() > (field == 2U ? 32U : 256U)) {
+        || field == 5U || field == 6U || field == 10U;
+    if (!supported || input.value.size() > (field == 2U ? 32U : field == 6U ? 16U : 256U)) {
         return std::unexpected(invalid("UserDataAdd has an unsupported field or exceeds its byte limit."));
+    }
+    if (field == 6U) {
+        // USER_DATA_TYPE_USERNAME changes the preferred name only. The
+        // selected node MUST validate an existing ownership proof for FID.
+        // This message never creates, transfers, or claims a username.
+        if (input.value.empty() || input.value.size() > 16U ||
+            input.value.front() < 'a' || input.value.front() > 'z') {
+            const bool beginsWithDigit = !input.value.empty() &&
+                input.value.front() >= '0' && input.value.front() <= '9';
+            if (!beginsWithDigit) {
+                return std::unexpected(invalid("Preferred username must begin with a lowercase letter or digit."));
+            }
+        }
+        for (const char ch : input.value) {
+            if (!((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-')) {
+                return std::unexpected(invalid("Preferred username contains invalid characters."));
+            }
+        }
     }
     std::string body{};
     appendUint(body, 1U, field);

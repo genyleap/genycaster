@@ -39,8 +39,45 @@ Item {
         readonly property bool nativeAccount:
             presentationBridge.nativeCustodyAccount
         property bool enteringNativeWords: false
+        property bool showRecoveryWords: false
+        property int recoveryRevision: 0
+        function recoveryWord(index) {
+            const input = nativeSignerWordGrid.itemAt(index)
+            return input ? String(input.word || "").trim().toLowerCase() : ""
+        }
+        function recoveryPhrase() {
+            const words = []
+            for (let i = 0; i < 24; ++i) words.push(recoveryWord(i))
+            return words.join(" ")
+        }
+        function recoveryReady() {
+            // The revision binds the button to all 24 independent inputs.
+            const revision = recoveryRevision
+            for (let i = 0; i < 24; ++i)
+                if (!/^[a-z]+$/.test(recoveryWord(i))) return false
+            return true
+        }
+        function clearRecoveryWords() {
+            for (let i = 0; i < 24; ++i) {
+                const input = nativeSignerWordGrid.itemAt(i)
+                if (input) input.word = ""
+            }
+            showRecoveryWords = false
+            ++recoveryRevision
+        }
+        function distributeRecoveryWords(start, pasted) {
+            const words = String(pasted).trim().toLowerCase().split(/\s+/)
+            if (words.length < 2 || words.length > 24 - start) return
+            for (let i = 0; i < words.length; ++i) {
+                const field = nativeSignerWordGrid.itemAt(start + i)
+                if (field) field.word = words[i]
+            }
+            ++recoveryRevision
+            const next = nativeSignerWordGrid.itemAt(start + words.length)
+            if (next) next.focusWord()
+        }
         onClosed: {
-            nativeSignerWords.clear()
+            clearRecoveryWords()
             enteringNativeWords = false
         }
         width: parent ? Math.min(470, parent.width - Theme.space4 * 2) : 450
@@ -85,7 +122,8 @@ Item {
                 text: qsTrId("genycaster.shell.native_signer_use_words")
                 onClicked: {
                     interactionAuthorizationDialog.enteringNativeWords = true
-                    nativeSignerWords.forceActiveFocus()
+                    const first = nativeSignerWordGrid.itemAt(0)
+                    if (first) first.focusWord()
                 }
             }
             DirectionAwareLabel {
@@ -97,22 +135,77 @@ Item {
                 font.pixelSize: Theme.typeCaptionSize
                 wrapMode: Text.WordWrap
             }
-            DirectionAwareTextField {
-                id: nativeSignerWords
-                objectName: "nativeSignerRecoveryWords"
+            ScrollView {
+                id: nativeRecoveryScroll
+                objectName: "nativeSignerRecoveryGrid"
                 visible: interactionAuthorizationDialog.nativeAccount
                          && interactionAuthorizationDialog.enteringNativeWords
                 Layout.fillWidth: true
-                forceLeftToRight: true
-                echoMode: TextInput.Password
-                maximumLength: 4095
-                inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-                                  | Qt.ImhNoAutoUppercase
-                placeholderText: qsTrId("genycaster.setup.native_recovery_placeholder")
-                Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+                Layout.preferredHeight: Theme.scaleUi(304)
+                Layout.maximumHeight: Theme.scaleUi(360)
+                clip: true
+                contentWidth: availableWidth
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                GridLayout {
+                    width: nativeRecoveryScroll.availableWidth
+                    columns: nativeRecoveryScroll.width < Theme.scaleUi(420) ? 3 : 4
+                    columnSpacing: Theme.space2
+                    rowSpacing: Theme.space2
+                    Repeater {
+                        id: nativeSignerWordGrid
+                        model: 24
+                        delegate: ColumnLayout {
+                            required property int index
+                            property alias word: recoveryWordInput.text
+                            function focusWord() { recoveryWordInput.forceActiveFocus() }
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            spacing: 2
+                            DirectionAwareLabel {
+                                text: String(index + 1).padStart(2, "0")
+                                color: Theme.inkMuted
+                                font.pixelSize: Theme.typeCaptionSize
+                            }
+                            DirectionAwareTextField {
+                                id: recoveryWordInput
+                                objectName: "nativeSignerRecoveryWord" + (index + 1)
+                                Layout.fillWidth: true
+                                forceLeftToRight: true
+                                echoMode: interactionAuthorizationDialog.showRecoveryWords
+                                          ? TextInput.Normal : TextInput.Password
+                                maximumLength: 4095
+                                inputMethodHints: Qt.ImhSensitiveData
+                                                  | Qt.ImhNoPredictiveText
+                                                  | Qt.ImhNoAutoUppercase
+                                Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
+                                                 + " " + (index + 1)
+                                onTextChanged: {
+                                    if (/\s/.test(text.trim()))
+                                        interactionAuthorizationDialog.distributeRecoveryWords(index, text)
+                                    ++interactionAuthorizationDialog.recoveryRevision
+                                }
+                                onEditingFinished: {
+                                    const next = nativeSignerWordGrid.itemAt(index + 1)
+                                    if (next) next.focusWord()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ActionButton {
+                visible: nativeRecoveryScroll.visible
+                Layout.alignment: Qt.AlignRight
+                compact: true
+                quiet: true
+                text: interactionAuthorizationDialog.showRecoveryWords
+                      ? qsTrId("genycaster.shell.hide_recovery_words")
+                      : qsTrId("genycaster.setup.show_recovery_words")
+                onClicked: interactionAuthorizationDialog.showRecoveryWords =
+                    !interactionAuthorizationDialog.showRecoveryWords
             }
             DirectionAwareLabel {
-                visible: nativeSignerWords.visible
+                visible: nativeRecoveryScroll.visible
                 Layout.fillWidth: true
                 text: qsTrId("genycaster.setup.native_recovery_privacy")
                 color: Theme.inkMuted
@@ -141,14 +234,15 @@ Item {
                         ? qsTrId("genycaster.shell.native_signer_authorize")
                         : qsTrId("genycaster.shell.open_farcaster")
                     enabled: !interactionAuthorizationDialog.enteringNativeWords
-                             || (nativeSignerWords.text.trim().split(/\s+/).length === 24)
+                             || interactionAuthorizationDialog.recoveryReady()
                     onClicked: {
                         if (interactionAuthorizationDialog.nativeAccount
                             && interactionAuthorizationDialog.enteringNativeWords) {
                             // One-shot secret: forward directly to native C++,
                             // then scrub the input before dismissing the modal.
-                            presentationBridge.authorizeNativeHyperSnapSigner(nativeSignerWords.text)
-                            nativeSignerWords.clear()
+                            presentationBridge.authorizeNativeHyperSnapSigner(
+                                interactionAuthorizationDialog.recoveryPhrase())
+                            interactionAuthorizationDialog.clearRecoveryWords()
                         } else {
                             // Native: uses the currently verified local custody
                             // wallet. Farcaster: retains its separate approval.

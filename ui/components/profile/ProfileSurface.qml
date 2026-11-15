@@ -123,6 +123,18 @@ Item {
     property bool protocolProfilePending: false
     property bool protocolProfileConfirmed: false
     property bool editProfileMediaUrls: false
+    function publishProtocolChanges(changes) {
+        root.protocolProfileError = ""
+        root.protocolProfileConfirmed = false
+        root.protocolProfilePending = true
+        profileWriteWatchdog.restart()
+        const accepted = presentationBridge.updateProtocolProfile(changes)
+        if (!accepted && root.protocolProfilePending) {
+            profileWriteWatchdog.stop()
+            root.protocolProfilePending = false
+            root.protocolProfileError = qsTrId("genycaster.profile.save_retry_notice")
+        }
+    }
     // Each explicit mood owns its own semantic icon and accessible theme color.
     // No live-presence inference: these are user-chosen profile decorations.
     readonly property var moodOptions: [
@@ -3328,6 +3340,8 @@ Item {
             profileWriteWatchdog.stop()
             root.protocolProfileConfirmed = false
             root.editProfileMediaUrls = false
+            usernameProtocolEditor.text = root.showUsername
+                ? String(root.activeDetail.username || "") : ""
             displayProtocolEditor.text = String(root.activeDetail.displayName || "")
             bioProtocolEditor.text = String(root.activeDetail.bio || "")
             websiteProtocolEditor.text = String(root.activeDetail.profileUrl || "")
@@ -3391,22 +3405,21 @@ Item {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }
-                    // A preferred username is a separate proof-backed identity.
-                    // Never send it with display/bio UserData writes.
+                    // Preferred USERNAME (UserData type 6) needs existing
+                    // protocol ownership proof. Keep it distinct from display.
                     DirectionAwareLabel {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.composer.username")
                         color: Theme.inkMuted
                     }
-                    DirectionAwareLabel {
+                    DirectionAwareTextField {
+                        id: usernameProtocolEditor
                         objectName: "profileProtocolUsername"
                         Layout.fillWidth: true
-                        text: root.showUsername
-                              ? root.ltrHandle(root.activeDetail.username)
-                              : qsTrId("genycaster.profile.username_unset")
-                        color: root.showUsername ? Theme.ink : Theme.inkMuted
-                        font.pixelSize: Theme.typeBodySize
-                        wrapMode: Text.WrapAnywhere
+                        forceLeftToRight: true
+                        maximumLength: 16
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                        placeholderText: qsTrId("genycaster.profile.username_unset")
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -3414,6 +3427,27 @@ Item {
                         color: Theme.inkMuted
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
+                    }
+                    ActionButton {
+                        objectName: "profileProtocolUsernameSave"
+                        Layout.fillWidth: true
+                        quiet: true
+                        compact: true
+                        enabled: presentationBridge.writeReady && !presentationBridge.writeBusy
+                                 && !root.protocolProfilePending
+                        text: qsTrId("genycaster.profile.update_preferred_username")
+                        onClicked: {
+                            const candidate = usernameProtocolEditor.text.trim().toLowerCase()
+                            if (!/^[a-z0-9][a-z0-9-]{0,15}$/.test(candidate)) {
+                                root.protocolProfileError = qsTrId("genycaster.profile.invalid_preferred_username")
+                                return
+                            }
+                            if (candidate === String(root.activeDetail.username || "").toLowerCase()) {
+                                root.protocolProfileError = qsTrId("genycaster.profile.no_changes")
+                                return
+                            }
+                            root.publishProtocolChanges({username: candidate})
+                        }
                     }
                     DirectionAwareLabel {
                         Layout.fillWidth: true
@@ -3656,18 +3690,7 @@ Item {
                                     return
                                 }
                             }
-                            root.protocolProfileError = ""
-                            root.protocolProfileConfirmed = false
-                            // A native adapter can fail synchronously. Mark pending before
-                            // emitting the bridge signal so the completion is never lost.
-                            root.protocolProfilePending = true
-                            profileWriteWatchdog.restart()
-                            const accepted = presentationBridge.updateProtocolProfile(changes)
-                            if (!accepted && root.protocolProfilePending) {
-                                profileWriteWatchdog.stop()
-                                root.protocolProfilePending = false
-                                root.protocolProfileError = qsTrId("genycaster.profile.save_retry_notice")
-                            }
+                            root.publishProtocolChanges(changes)
                         }
                     }
                     Rectangle {
@@ -4098,6 +4121,7 @@ Item {
         connections: openProofConnections ? openProofConnections.connections : []
         catalogFallback: openProofConnections ? openProofConnections.catalogFallback : []
         authorized: openProofConnections ? openProofConnections.authorized : false
+        nativeCustodyAccount: root.accountIsNativeCustody
         cachedSnapshot: openProofConnections ? openProofConnections.cachedSnapshot : ({})
         authorizing: openProofConnections ? openProofConnections.authorizing : false
         approvalUrl: openProofConnections ? openProofConnections.approvalUrl : ""

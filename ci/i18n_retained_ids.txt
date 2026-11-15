@@ -9,6 +9,10 @@ genycaster.profile.protocol_write_failed
 genycaster.profile.saving_to_farcaster
 genycaster.profile.update_farcaster
 genycaster.side_nav.genycaster
+# Legacy translated placeholders retained for cached clients; new native
+# projections use the real FID instead of synthetic @you / You labels.
+genycaster.runtime.you
+genycaster.runtime.you_2
 genycaster.channels.read_note
 genycaster.home.geny_token_slide_one
 genycaster.home.geny_token_slide_two

@@ -1068,6 +1068,38 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>게시 채널</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>선호 사용자 이름 설정</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>영문 소문자, 숫자 또는 하이픈으로 1~16자를 입력하세요. 해당 이름은 이미 이 FID 소유여야 합니다.</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>이 HyperSnap FID는 기본 등록부에서 검증되었습니다. Farcaster 인증은 필요 없습니다. 외부 계정 연결에는 별도의 Genyleap/OpenProof 승인이 필요합니다.</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>복구 단어 숨기기</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>미디어 게이트웨이가 기기 서명자를 거부했습니다. 계정을 다시 승인하거나 권한을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>파일이 거부되었습니다. 이미지 형식과 크기 제한을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>미디어 게이트웨이에 연결할 수 없거나 시간이 초과되었습니다. 다시 시도하세요.</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>미디어 게이트웨이가 업로드를 거부했습니다. 서비스 설정을 확인하세요.</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>서명된 프로필 정보는 선택한 프로토콜에 게시됩니다. 사용자 이름은 별도로 등록됩니다.</translation>

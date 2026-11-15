@@ -529,7 +529,7 @@ export function createBrowserProtocolSigner({
     async function updateProfile(fid,updates) {
         if(!updates || typeof updates!=='object'||Array.isArray(updates))
             throw new Error('invalid profile changes');
-        const allowed=['display','bio','url','pfp','banner'];
+        const allowed=['display','bio','url','pfp','banner','username'];
         const changes=allowed.filter(key=>Object.hasOwn(updates,key))
             .map(type=>({type,value:updates[type]}));
         if(!changes.length)throw new Error('no profile changes');

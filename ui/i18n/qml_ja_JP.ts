@@ -1068,6 +1068,38 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>投稿先</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>優先ユーザー名を設定</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>小文字英字・数字・ハイフンで1〜16文字入力してください。この名前は既にこのFIDの所有である必要があります。</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>このHyperSnap FIDはネイティブ登録簿で検証済みです。Farcaster認証は不要です。外部アカウント連携には別途Genyleap/OpenProofの認可が必要です。</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>リカバリー単語を隠す</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>メディアゲートウェイがデバイス署名者を拒否しました。再認可または権限を確認してください。</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>ファイルが拒否されました。画像形式とサイズ制限を確認してください。</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>メディアゲートウェイに接続できないか、タイムアウトしました。再度お試しください。</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>メディアゲートウェイがアップロードを拒否しました。サービス設定を確認してください。</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>署名済みのプロフィール情報は選択したプロトコルに公開されます。ユーザー名は別途登録します。</translation>

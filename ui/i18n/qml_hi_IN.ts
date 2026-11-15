@@ -1068,6 +1068,38 @@ Company | https://company.com</source>
             <source>in</source>
             <translation>में</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>पसंदीदा उपयोगकर्ता नाम सेट करें</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>1–16 छोटे अंग्रेज़ी अक्षर, अंक या हाइफ़न डालें। यह नाम पहले से इसी FID का होना चाहिए।</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>यह HyperSnap FID अपने मूल रजिस्टर में सत्यापित है। Farcaster सत्यापन आवश्यक नहीं है। बाहरी खाते जोड़ने के लिए अलग Genyleap/OpenProof अनुमति चाहिए।</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>रिकवरी शब्द छिपाएँ</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>मीडिया गेटवे ने डिवाइस हस्ताक्षरकर्ता अस्वीकार किया। खाते को फिर अधिकृत करें या अनुमतियाँ जाँचें।</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>फ़ाइल अस्वीकृत। छवि का प्रारूप और आकार सीमा जाँचें।</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>मीडिया गेटवे उपलब्ध नहीं है या समय समाप्त हो गया। कनेक्शन वापस आने पर पुनः प्रयास करें।</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>मीडिया गेटवे ने अपलोड अस्वीकार किया। सेवा की सेटिंग जाँचें।</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>हस्ताक्षरित प्रोफ़ाइल विवरण चयनित प्रोटोकॉल पर प्रकाशित होते हैं। उपयोगकर्ता नाम अलग से पंजीकृत होता है।</translation>

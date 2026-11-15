@@ -13,20 +13,21 @@ test('native profile writes use durable UserDataAdd, not the unsupported placeho
   assert.ok(route.includes('runtime->writeService->updateProfileField('));
   assert.ok(route.includes('domain::write::ProfileField'));
   assert.ok(!route.includes('emit bridge.protocolProfileWriteCompleted(false,\n                qtTrId("genycaster.profile.protocol_native_unavailable"))'));
-  assert.ok(!route.includes('QStringLiteral("username")'));
+  assert.ok(route.includes('QStringLiteral("username")'));
   assert.ok(route.includes('batch->remaining'));
   assert.ok(route.includes('accountFid() != accountFid'));
 });
 
 test('synchronous completion cannot race the QML pending flag', () => {
   const qml = read('ui/components/profile/ProfileSurface.qml');
-  const start = qml.indexOf('objectName: "profileProtocolSave"');
-  const submit = qml.slice(start, qml.indexOf('if (!accepted', start));
-  assert.ok(start > 0);
+  const submitStart = qml.indexOf('function publishProtocolChanges(changes)');
+  const submit = qml.slice(submitStart, qml.indexOf('if (!accepted', submitStart));
+  assert.ok(submitStart > 0);
   const pending = submit.indexOf('root.protocolProfilePending = true');
   const bridge = submit.indexOf('presentationBridge.updateProtocolProfile(changes)');
   assert.ok(pending > 0 && bridge > pending,
     'pending must be set before the native handler can synchronously complete');
+  assert.ok(qml.includes('root.publishProtocolChanges(changes)'));
   assert.ok(qml.includes('profileWriteWatchdog.stop()'));
 });
 
@@ -51,5 +52,7 @@ test('username is separately displayed but never submitted with display name', (
   const canonical = read('src/protocol/message.cpp');
   assert.ok(canonical.includes('messageTypeUserDataAdd = 11U'));
   assert.ok(canonical.includes('field == 1U || field == 2U || field == 3U'));
-  assert.ok(!canonical.includes('field == 6U'));
+  assert.ok(canonical.includes('field == 6U'));
+  assert.ok(qml.includes('objectName: "profileProtocolUsernameSave"'));
+  assert.ok(qml.includes('root.publishProtocolChanges({username: candidate})'));
 });

@@ -260,14 +260,16 @@ function unsignedSocial({fid,publicKeyHex,kind,bodyField,body,
 export function unsignedUserDataAdd({
     fid,publicKeyHex,type,value,timestamp=farcasterTimestamp()
 }){
-    const types=Object.freeze({pfp:1,display:2,bio:3,url:5,banner:10});
+    const types=Object.freeze({pfp:1,display:2,bio:3,url:5,username:6,banner:10});
     invariant(typeof type==='string' && Object.hasOwn(types,type),'unsupported profile data type');
     invariant(typeof value==='string'
         && !/[\x00-\x08\x0b-\x1f\x7f]/.test(value)
         && (type==='bio' || !/[\x09\x0a\x0d]/.test(value)),
         'invalid profile value');
     const bytes=encoder.encode(value);
-    const limit=type==='display'?32:256;
+    const limit=type==='display'?32:type==='username'?16:256;
+    if(type==='username')invariant(/^[a-z0-9][a-z0-9-]{0,15}$/.test(value),
+        'preferred username must be a valid name already owned by this FID');
     invariant(bytes.length<=limit,'profile value exceeds Farcaster byte limit');
     if (type==='pfp'||type==='banner'||type==='url') {
         invariant(value==='' || /^https:\/\/[^\s/@?#]+(?:\/[^\s]*)?$/i.test(value),

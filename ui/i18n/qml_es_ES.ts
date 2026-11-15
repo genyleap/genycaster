@@ -1069,6 +1069,38 @@ Empresa | https://company.com</translation>
             <source>in</source>
             <translation>en</translation>
         </message>
+        <message id="genycaster.profile.update_preferred_username">
+            <source>Set preferred username</source>
+            <translation>Establecer nombre de usuario preferido</translation>
+        </message>
+        <message id="genycaster.profile.invalid_preferred_username">
+            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
+            <translation>Introduce de 1 a 16 letras minúsculas, dígitos o guiones. El nombre debe pertenecer ya a este FID.</translation>
+        </message>
+        <message id="genycaster.connections.native_identity_note">
+            <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
+            <translation>Este FID de HyperSnap ya está verificado en su registro nativo. No requiere verificación con Farcaster. Vincular cuentas externas necesita autorización aparte de Genyleap/OpenProof.</translation>
+        </message>
+        <message id="genycaster.shell.hide_recovery_words">
+            <source>Hide recovery words</source>
+            <translation>Ocultar palabras de recuperación</translation>
+        </message>
+        <message id="genycaster.media.upload_authorization_failed">
+            <source>Media gateway rejected the device signer. Reauthorize this account or check gateway permissions.</source>
+            <translation>La pasarela de medios rechazó al firmante del dispositivo. Reautoriza la cuenta o revisa los permisos.</translation>
+        </message>
+        <message id="genycaster.media.upload_invalid_file">
+            <source>This file was rejected. Check image format and upload size limits.</source>
+            <translation>Archivo rechazado. Comprueba el formato de imagen y el límite de tamaño.</translation>
+        </message>
+        <message id="genycaster.media.upload_network_failed">
+            <source>Media gateway is unavailable or timed out. Retry when the connection is restored.</source>
+            <translation>La pasarela de medios no está disponible o agotó el tiempo. Vuelve a intentarlo.</translation>
+        </message>
+        <message id="genycaster.media.upload_protocol_failed">
+            <source>Media gateway rejected the upload. Check the configured media service.</source>
+            <translation>La pasarela de medios rechazó la carga. Revisa la configuración del servicio.</translation>
+        </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>
             <translation>Los datos firmados del perfil se publican en el protocolo seleccionado. El nombre de usuario se registra por separado.</translation>

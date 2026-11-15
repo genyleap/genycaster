@@ -1516,11 +1516,18 @@ void applySignerState(PresentationBridge& bridge, application::signer::SignerSta
     };
     if (record.optimisticCast) {
         const auto& cast = *record.optimisticCast;
-        QString author = qtTrId("genycaster.runtime.you");
-        QString display = qtTrId("genycaster.runtime.you_2");
+        // Never publish fake @you / You identities for optimistic casts.
+        // A real username is optional; the exact author FID is not.
+        QString author{};
+        QString display = QStringLiteral("fid:")
+            + QString::number(cast.author.value);
         QString avatar{};
         if (session) {
-            if (session->username) author = QString::fromStdString(*session->username);
+            if (session->username) {
+                const QString value = QString::fromStdString(*session->username);
+                if (!value.startsWith(QStringLiteral("fid:")))
+                    author = value;
+            }
             if (session->displayName) display = QString::fromStdString(*session->displayName);
             else if (session->username) display = QString::fromStdString(*session->username);
             if (session->avatarUrl) avatar = remoteImageSource(QString::fromStdString(*session->avatarUrl));
@@ -4484,12 +4491,13 @@ void connectRuntime(
                 return;
             }
             using Field = domain::write::ProfileField;
-            const std::array<std::pair<QString, Field>, 5> fields{{
+            const std::array<std::pair<QString, Field>, 6> fields{{
                 {QStringLiteral("display"), Field::DisplayName},
                 {QStringLiteral("bio"), Field::Bio},
                 {QStringLiteral("url"), Field::Website},
                 {QStringLiteral("pfp"), Field::Avatar},
                 {QStringLiteral("banner"), Field::Banner},
+                {QStringLiteral("username"), Field::Username},
             }};
             std::vector<std::pair<Field, std::string>> mutations{};
             for (const auto& [key, field] : fields) {
@@ -5720,6 +5728,31 @@ void connectMediaUpload(
                 nativeMediaPath(localPath),
                 [runtime, controllerGuard](application::media::upload::UploadState state) mutable {
                     if (state.phase == application::media::upload::UploadPhase::Failed) {
+                        // Preserve error provenance without leaking provider response
+                        // bodies, bearer credentials, or signed upload challenges.
+                        QString publicFailure = qtTrId("genycaster.media.upload_failed");
+                        if (state.error) {
+                            using foundation::error::ErrorCode;
+                            switch (state.error->code) {
+                            case ErrorCode::Unauthorized:
+                                publicFailure = qtTrId("genycaster.media.upload_authorization_failed");
+                                break;
+                            case ErrorCode::InvalidArgument:
+                                publicFailure = qtTrId("genycaster.media.upload_invalid_file");
+                                break;
+                            case ErrorCode::Timeout:
+                            case ErrorCode::Unavailable:
+                            case ErrorCode::RateLimited:
+                            case ErrorCode::TransportFailure:
+                                publicFailure = qtTrId("genycaster.media.upload_network_failed");
+                                break;
+                            case ErrorCode::ProtocolFailure:
+                            case ErrorCode::Unsupported:
+                                publicFailure = qtTrId("genycaster.media.upload_protocol_failed");
+                                break;
+                            default: break;
+                            }
+                        }
 #ifndef NDEBUG
                         if (state.error) {
                             qInfo().noquote() << "Genycaster media upload failure:"
@@ -5729,10 +5762,9 @@ void connectMediaUpload(
                         if (controllerGuard) {
                             QMetaObject::invokeMethod(
                                 controllerGuard.data(),
-                                [controllerGuard] {
+                                [controllerGuard, publicFailure] {
                                     if (controllerGuard) {
-                                        controllerGuard->applyFailed(
-                                            qtTrId("genycaster.media.upload_failed"));
+                                        controllerGuard->applyFailed(publicFailure);
                                     }
                                 },
                                 Qt::QueuedConnection);
@@ -5791,7 +5823,7 @@ void connectMediaUpload(
                 qInfo().noquote() << "Genycaster media upload could not start:"
                                   << QString::fromStdString(started.error().message);
 #endif
-                controllerGuard->applyFailed(qtTrId("genycaster.media.upload_failed"));
+                controllerGuard->applyFailed(qtTrId("genycaster.media.upload_network_failed"));
                 return;
             }
             std::scoped_lock lock{runtime->mediaUploadMutex};

@@ -11,6 +11,9 @@ GenyDrawer {
     property var providers: []
     property var connections: []
     property bool authorized: false
+    // A native HyperSnap FID already has protocol-native custody proof.
+    // Farcaster SIWF is neither necessary nor a valid substitute for it.
+    property bool nativeCustodyAccount: false
     property bool cachedSnapshot: false
     property bool editAccessRequested: false
     property bool authorizing: false
@@ -177,7 +180,8 @@ GenyDrawer {
 
         Rectangle {
             Layout.fillWidth: true
-            visible: !picker.authorized && (!picker.cachedSnapshot || picker.editAccessRequested)
+            visible: !picker.nativeCustodyAccount && !picker.authorized
+                     && (!picker.cachedSnapshot || picker.editAccessRequested)
             radius: Theme.curveContainer
             color: Theme.surfaceMuted
             border.width: 1
@@ -249,6 +253,15 @@ GenyDrawer {
             }
         }
 
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: picker.nativeCustodyAccount && !picker.authorized
+            text: qsTrId("genycaster.connections.native_identity_note")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
+        }
+
         RowLayout {
             Layout.fillWidth: true
             layoutDirection: Theme.uiDirection
@@ -293,13 +306,13 @@ GenyDrawer {
                 }
             }
             DirectionAwareLabel {
-                visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
+                visible: !picker.nativeCustodyAccount && picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
                 text: qsTrId("genycaster.connections.copy_saved_account_links")
                 color: Theme.inkMuted
                 font.pixelSize: Theme.typeCaptionSize
             }
             ActionButton {
-                visible: picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
+                visible: !picker.nativeCustodyAccount && picker.cachedSnapshot && !picker.authorized && !picker.mobilePresentation
                 compact: true
                 text: picker.editAccessRequested ? qsTrId("genycaster.connections.copy_hide_verification") : qsTrId("genycaster.connections.copy_edit_connections")
                 quiet: true
@@ -318,7 +331,7 @@ GenyDrawer {
         }
 
         RowLayout {
-            visible: picker.mobilePresentation && picker.cachedSnapshot && !picker.authorized
+            visible: !picker.nativeCustodyAccount && picker.mobilePresentation && picker.cachedSnapshot && !picker.authorized
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             layoutDirection: Theme.uiDirection

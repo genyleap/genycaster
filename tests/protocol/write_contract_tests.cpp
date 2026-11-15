@@ -324,7 +324,7 @@ void invalidIntentFailsBeforeSigning()
 
 } // namespace
 
-void profileFieldsAreSignedUserDataNotUsernames()
+void profileFieldsAndPreferredUsernameUseDistinctUserDataSlots()
 {
     auto codec = protocol::write::makeCanonicalWriteCodec();
     const domain::signer::PublicKey key{
@@ -350,9 +350,18 @@ void profileFieldsAreSignedUserDataNotUsernames()
     auto cleared = input;
     cleared.value.clear();
     assert(codec->prepareProfileField(cleared, key));
-    auto forbidden = input;
-    forbidden.field = static_cast<domain::write::ProfileField>(6U); // username proof required
-    assert(!codec->prepareProfileField(forbidden, key));
+    auto preferred = input;
+    preferred.field = domain::write::ProfileField::Username;
+    preferred.value = "claimed-name";
+    // USER_DATA_TYPE_USERNAME selects a previously owned name. It cannot
+    // create a missing UsernameProof: the node must reject an unowned name.
+    assert(codec->prepareProfileField(preferred, key));
+    preferred.value = "Invalid Username";
+    assert(!codec->prepareProfileField(preferred, key));
+    preferred.value = "";
+    assert(!codec->prepareProfileField(preferred, key));
+    preferred.value.assign(17U, 'x');
+    assert(!codec->prepareProfileField(preferred, key));
     auto overflow = input;
     overflow.value.assign(33U, 'a');
     assert(!codec->prepareProfileField(overflow, key));
@@ -360,7 +369,7 @@ void profileFieldsAreSignedUserDataNotUsernames()
 
 int main()
 {
-    profileFieldsAreSignedUserDataNotUsernames();
+    profileFieldsAndPreferredUsernameUseDistinctUserDataSlots();
     canonicalIdentityMatchesProtocolHash();
     socialOperationsUseCanonicalTargetsAndKinds();
     removeCastRequiresTheAuthenticatedOwner();
