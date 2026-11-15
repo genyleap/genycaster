@@ -9,7 +9,8 @@ Item {
     objectName: "channelsSurface"
     property var channelSource: null
     property var adminSource: null
-    property string readContract: "hypersnap-v2"
+    // An unconfigured caller must not silently select a concrete backend.
+    property string readContract: ""
     property string readEndpoint: ""
     property string appliedWriteProvider: ""
     property double accountFid: 0
