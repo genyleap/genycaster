@@ -159,8 +159,8 @@ ColumnLayout {
                             text: Number(assetCard.modelData.change_24h_percent) < 0 ? "▼" : "▲"
                             font.pixelSize: Theme.typeCaptionSize
                             color: Number(assetCard.modelData.change_24h_percent) < 0
-                                ? (Theme.dark ? "#FF9EA4" : "#DB4853")
-                                : (Theme.dark ? "#6FDEA4" : "#168F6A")
+                                ? Theme.marketChangeDownInk
+                                : Theme.marketChangeUpInk
                         }
                     }
                     DirectionAwareLabel {
@@ -194,8 +194,8 @@ ColumnLayout {
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                         color: Number(assetCard.modelData.change_24h_percent) < 0
-                            ? (Theme.dark ? "#FF9EA4" : "#DB4853")
-                            : (Theme.dark ? "#6FDEA4" : "#168F6A")
+                            ? Theme.marketChangeDownInk
+                            : Theme.marketChangeUpInk
                     }
                 }
             }
