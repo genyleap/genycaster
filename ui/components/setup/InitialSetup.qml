@@ -649,9 +649,9 @@ Item {
                 }
             }
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.dark ? "#111622" : "#F7F9FC" }
-                GradientStop { position: 0.56; color: Theme.dark ? "#1A2232" : "#EDF1F8" }
-                GradientStop { position: 1.0; color: Theme.dark ? "#111824" : "#E6ECF6" }
+                GradientStop { position: 0.0; color: Theme.setupHeroTop }
+                GradientStop { position: 0.56; color: Theme.setupHeroMiddle }
+                GradientStop { position: 1.0; color: Theme.setupHeroBottom }
             }
             // Keep the sculpture and its optical framing within the rail.
             clip: true
@@ -718,7 +718,7 @@ Item {
                 rotation: -18
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#5385A5"
+                    strokeColor: Theme.setupHeroPulseStroke
                     strokeWidth: 0.75
                     capStyle: ShapePath.RoundCap
                     PathAngleArc {
@@ -732,7 +732,7 @@ Item {
                 }
                 ShapePath {
                     fillColor: "transparent"
-                    strokeColor: "#83B7D0"
+                    strokeColor: Theme.setupHeroTraceStroke
                     strokeWidth: 0.75
                     capStyle: ShapePath.RoundCap
                     PathAngleArc {
@@ -751,7 +751,7 @@ Item {
                     width: 5
                     height: 5
                     radius: 2.5
-                    color: "#C5E9FA"
+                    color: Theme.setupHeroTitleInk
                     antialiasing: true
                 }
             }
@@ -772,7 +772,7 @@ Item {
                 anchors.bottom: parent.bottom
                 anchors.right: parent.right
                 width: 2
-                color: Theme.dark ? "#35435C" : "#C8D2E3"
+                color: Theme.setupHeroCardBorder
             }
             Rectangle {
                 z: 2
@@ -929,7 +929,7 @@ Item {
                 Rectangle {
                     width: 36
                     height: 1
-                    color: Theme.dark ? "#57758F" : "#63829F"
+                    color: Theme.setupFooterDivider
                     opacity: 0.75
                 }
                 // The company owns the copyright. Keep the link confined to
@@ -952,9 +952,9 @@ Item {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: "© " + new Date().getFullYear() + " Genyleap"
-                        color: Theme.dark ? "#E2EAF4" : "#DFE8F4"
+                        color: Theme.setupFooterCopyrightInk
                         font.family: Theme.latinFontFamily
-                        font.pixelSize: 12
+                        font.pixelSize: Theme.typeCaptionSize
                         font.weight: Font.Medium
                         font.underline: genyleapCopyrightMouse.containsMouse || genyleapCopyrightLink.activeFocus
                         elide: Text.ElideRight
@@ -970,9 +970,9 @@ Item {
                 Text {
                     width: parent.width
                     text: Qt.application.version ? "v" + LocaleFormat.localizeDigits(Qt.application.version) : ""
-                    color: Theme.dark ? "#A3B8CB" : "#AFC5D9"
+                    color: Theme.setupFooterVersionInk
                     font.family: Theme.latinFontFamily
-                    font.pixelSize: 11
+                    font.pixelSize: Theme.typeCaptionSize
                     elide: Text.ElideRight
                 }
             }
@@ -2374,7 +2374,7 @@ Item {
                                 enabled: !root.authenticationInProgress && !root.recoverySubmitPending
                                 horizontalAlignment: TextInput.AlignLeft
                                 color: Theme.ink
-                                font.pixelSize: 15
+                                font.pixelSize: Theme.typeBodySize
                                 leftPadding: Theme.space6 + Theme.space3
                                 rightPadding: Theme.space2
                                 placeholderText: ""
