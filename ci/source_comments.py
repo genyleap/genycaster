@@ -46,6 +46,13 @@ def without_comments(source: str) -> str:
                     index = end + len(terminator)
                     continue
 
+        # C++ digit separators (e.g. 9\'007\'199) are not char literals.
+        # Treating one as an opening quote could suppress later security checks.
+        if (source[index] == "'" and index > 0 and index + 1 < length
+                and source[index - 1].isdigit() and source[index + 1].isdigit()):
+            index += 1
+            continue
+
         if source[index] in {'"', "'", "`"}:
             quote = source[index]
             index += 1
