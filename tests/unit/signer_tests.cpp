@@ -346,6 +346,10 @@ void writeGateRequiresSessionReadySignerAndExactScope()
         == application::signer::WriteGate::Ready);
     assert(application::signer::evaluateWriteGate(
         session, ready, domain::signer::Scope::UserDataAdd)
+        == application::signer::WriteGate::Ready);
+    // Username proof is a distinct, ungranted authority.
+    assert(application::signer::evaluateWriteGate(
+        session, ready, domain::signer::Scope::UsernameProof)
         == application::signer::WriteGate::ScopeDenied);
 }
 
@@ -380,7 +384,9 @@ void provisionUsesLeastPrivilegeTtlAndFreshNonce()
 
     auto signature = service.sign(domain::signer::Scope::ReactionAdd, "canonical-message-bytes");
     assert(signature && signature->bytes.size() == 64U);
-    auto denied = service.sign(domain::signer::Scope::UserDataAdd, "canonical-message-bytes");
+    auto profileSignature = service.sign(domain::signer::Scope::UserDataAdd, "canonical-message-bytes");
+    assert(profileSignature && profileSignature->bytes.size() == 64U);
+    auto denied = service.sign(domain::signer::Scope::UsernameProof, "canonical-message-bytes");
     assert(!denied && denied.error().code == foundation::error::ErrorCode::Unauthorized);
 }
 
