@@ -78,9 +78,7 @@ Item {
         return map
     }
     function githubTileColor(level) {
-        const colors=Theme.dark
-          ? ["#232A27","#0E4429","#006D32","#26A641","#39D353"]
-          : ["#E8EBE9","#9BE9A8","#40C463","#30A14E","#216E39"]
+        const colors=Theme.githubContributionRamp
         return colors[Math.max(0,Math.min(4,level))] || colors[0]
     }
 
@@ -133,10 +131,9 @@ Item {
     function dayString(day) { return new Date(day*86400000).toISOString().slice(0,10) }
     function countAt(items,day) { return Number(items[dayString(day)] || 0) }
     function tileColor(count,source) {
-        if(count<1)return Theme.dark ? "#282A31" : "#E6E8EC"
+        if(count<1)return Theme.pulseTileEmpty
         const palette=source==="github"
-            ? ["#B5E8D0","#68CA9B","#32966C"]
-            : ["#C8B8F8","#9D81EA","#6552BD"]
+            ? Theme.pulseGithubRamp : Theme.pulseFarcasterRamp
         return palette[count>=5?2:count>=3?1:0]
     }
     function sourceSubtitle(source) {
@@ -250,12 +247,12 @@ Item {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         radius: 9
-                        color: Theme.dark ? "#30283E" : "#EEE9FA"
+                        color: Theme.pulseFarcasterIconSurface
                         Icon {
                             anchors.centerIn: parent
                             text: Theme.iconCompose
                             preferredSize: 18
-                            color: Theme.dark ? "#C8B8F8" : "#745BC8"
+                            color: Theme.pulseFarcasterIconInk
                         }
                     }
                     ColumnLayout {
@@ -318,7 +315,7 @@ Item {
                                         height: root.cellHeight
                                         radius: 2
                                         color: !inYear ? "transparent" :
-                                            unobserved ? (Theme.dark ? "#20232B" : "#EFF0F3") :
+                                            unobserved ? (Theme.pulseUnobservedTile) :
                                             root.tileColor(root.farcasterReady ? value : 0, "farcaster")
                                         MouseArea {
                                             anchors.fill: parent
@@ -383,7 +380,7 @@ Item {
                             Layout.preferredWidth: 30
                             Layout.preferredHeight: 30
                             radius: 9
-                            color: "#FFFFFF"
+                            color: Theme.pulseBrandIconBackground
                             Image {
                                 anchors.centerIn: parent
                                 width: 21
@@ -551,7 +548,7 @@ Item {
                                                 : "transparent"
                                             opacity: root.githubRange==="1y" || inRange ? 1 : 0.7
                                             border.width: root.githubRange!=="1y" && inRange ? 1 : 0
-                                            border.color: Theme.dark ? "#BDECD1" : "#28865E"
+                                            border.color: Theme.pulseGithubRangeBorder
                                             MouseArea {
                                                 anchors.fill: parent
                                                 enabled: parent.inYear
@@ -609,7 +606,7 @@ Item {
                         Layout.preferredWidth: 30
                         Layout.preferredHeight: 30
                         radius: 9
-                        color: "#FFFFFF"
+                        color: Theme.pulseBrandIconBackground
                         Image {
                             anchors.centerIn: parent
                             width: 16
