@@ -871,6 +871,30 @@ struct NativeUnknownFidEvidence final {
     };
 }
 
+// HyperSnap's gRPC-to-HTTP bridge currently wraps a missing cast in HTTP 400,
+// rather than HTTP 404. Accept only the specific structured NotFound envelope;
+// unrelated 400 validation or authorization failures must remain visible.
+[[nodiscard]] bool isMissingCastResponse(
+    const std::uint16_t statusCode,
+    const std::string_view body,
+    const OperationKind kind)
+{
+    if (statusCode != 400U
+        || (kind != OperationKind::PublishCast && kind != OperationKind::RemoveCast)) {
+        return false;
+    }
+    const auto document = parseJson(body);
+    if (!document || !document->is_object()) {
+        return false;
+    }
+    const auto& object = document->as_object();
+    const auto error = requireString(object, "error", "reconciliation");
+    const auto detail = requireString(object, "error_detail", "reconciliation");
+    return error && detail && *error == "Failed to get cast"
+        && detail->find("status: NotFound") != std::string::npos
+        && detail->find("message: \"cast not found\"") != std::string::npos;
+}
+
 [[nodiscard]] std::string reconciliationUrl(
     const Config& config,
     const domain::write::SignedOperation& operation)
@@ -981,7 +1005,8 @@ public:
         if (!response) {
             return std::unexpected(std::move(response.error()));
         }
-        if (response->statusCode == 404U) {
+        if (response->statusCode == 404U
+            || isMissingCastResponse(response->statusCode, response->body, operation.kind)) {
             return desiredStateIsPresent(operation.kind)
                 ? capability::write::ConfirmationState::Absent
                 : capability::write::ConfirmationState::Confirmed;

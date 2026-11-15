@@ -454,6 +454,52 @@ void missingRemovedCastConfirmsDeletion()
         "https://snapchain.test/v1/castById?fid=42&hash=0x00112233445566778899aabbccddeeff00112233");
 }
 
+void grpcBridgeMissingCastIsAbsent()
+{
+    // A real HyperSnap HTTP bridge response uses HTTP 400 even though the
+    // embedded gRPC status is NotFound. This is not a failed write.
+    constexpr auto missing = R"({"error":"Failed to get cast","error_detail":"status: NotFound, message: \"cast not found\", details: [], metadata: MetadataMap { headers: {} }"})";
+    FakeTransport http{};
+    http.getReplies.push_back({.statusCode = 400U, .body = missing});
+    auto submitter = provider::snapchain::write::makeSubmitter(
+        http, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    const auto absent = submitter->reconcile(operation());
+    assert(absent && *absent == capability::write::ConfirmationState::Absent);
+    assert(http.gets.size() == 1U);
+
+    // The same authoritative absence confirms an already-removed Cast.
+    auto remove = operation();
+    remove.kind = domain::write::OperationKind::RemoveCast;
+    remove.target.cast = domain::cast::CastReference{
+        .author = domain::identity::Fid{42U},
+        .id = domain::cast::CastId{"0x00112233445566778899aabbccddeeff00112233"},
+    };
+    remove.optimisticCast.reset();
+    FakeTransport removedHttp{};
+    removedHttp.getReplies.push_back({.statusCode = 400U, .body = missing});
+    auto removedSubmitter = provider::snapchain::write::makeSubmitter(
+        removedHttp, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+    const auto confirmed = removedSubmitter->reconcile(remove);
+    assert(confirmed && *confirmed == capability::write::ConfirmationState::Confirmed);
+
+    // Never treat arbitrary validation failures, unstructured messages or
+    // server-side failures as proof of authoritative absence.
+    for (const auto& [status, body] : std::vector<std::pair<std::uint16_t, std::string>>{
+             {400U, R"({"error":"Failed to get cast","error_detail":"status: InvalidArgument, message: \"cast not found\""})"},
+             {400U, R"({"error":"Failed to get cast","error_detail":"status: NotFound, message: \"wrong object\""})"},
+             {400U, R"({"error":"unauthorized","error_detail":"status: NotFound, message: \"cast not found\""})"},
+             {400U, "cast not found"},
+             {500U, missing},
+         }) {
+        FakeTransport rejection{};
+        rejection.getReplies.push_back({.statusCode = status, .body = body});
+        auto invalidSubmitter = provider::snapchain::write::makeSubmitter(
+            rejection, provider::snapchain::write::Config{.baseUrl = "https://hypersnap.test"});
+        const auto failure = invalidSubmitter->reconcile(operation());
+        assert(!failure);
+    }
+}
+
 void missingCastIsAbsent()
 {
     FakeTransport http{};
@@ -554,6 +600,7 @@ int main()
     reconcileUsesCanonicalCastIdentity();
     reactionAndFollowReconciliationUseCanonicalIdentity();
     missingRemovedCastConfirmsDeletion();
+    grpcBridgeMissingCastIsAbsent();
     missingCastIsAbsent();
     mismatchedNetworkIdentityFailsClosed();
     submitConflictMapsWithoutClaimingSuccess();
