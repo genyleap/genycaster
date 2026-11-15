@@ -6,7 +6,7 @@ import Farcaster.Client
 NeonSurface {
     id: root
     ambientNeon: true
-    busy: root.loading
+    neonBusy: root.loading
     neonStrength: Theme.neonPanelStrength
 
     property var rows: []

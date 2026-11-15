@@ -70,7 +70,7 @@ Button {
     background: NeonSurface {
         interactive: root.enabled && (root.accountShowcase || root.networkShowcase || root.primary)
         ambientNeon: root.accountShowcase || root.networkShowcase || root.primary || root.selected
-        busy: root.busy
+        neonBusy: root.busy
         inverted: root.primary && !root.neutralPrimary
         focused: Theme.keyboardFocusVisible(root)
         externalHovered: root.hovered

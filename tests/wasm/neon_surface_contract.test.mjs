@@ -98,7 +98,7 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     }
     assert.match(material, /property bool ambientNeon: false/);
     assert.match(material, /property bool interactive: false/);
-    assert.match(material, /property bool busy: false/);
+    assert.match(material, /property bool neonBusy: false/);
     assert.match(material, /sourceComponent: NeonHalo \{/);
     assert.match(material, /cornerPower: material\.exponent/);
     assert.match(material, /borderInset: material\.borderWidth \/ 2/);
@@ -113,7 +113,7 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(action, /externalHovered: control\.hovered && !control\.mobileViewport/);
     assert.match(choice, /ambientNeon: root\.accountShowcase/);
     assert.match(stats, /ambientNeon: true/);
-    assert.match(pulse, /busy: root\.loading/);
+    assert.match(pulse, /neonBusy: root\.loading/);
     assert.match(compose, /ambientNeon: true/);
     assert.match(mobileDock, /ambientNeon: destination\.active/);
     assert.match(desktopNav, /hovered: control\.hovered/);
@@ -128,6 +128,24 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     const shader = read('ui/shaders/neon.frag');
     assert.match(shader, /small inwards/);
     assert.match(shader, /mix\(localized, 0\.57, steadyActivity\)/);
+});
+
+test('Neon activity never shadows public busy state on data components', () => {
+    const material = read('ui/components/visual/NeonSurface.qml');
+    const pulse = read('ui/components/feed/FeedPulseCard.qml');
+    const popup = read('ui/components/controls/PopupSurface.qml');
+    const button = read('ui/components/controls/ActionButton.qml');
+    const setup = read('ui/components/setup/SetupActionCard.qml');
+    assert.match(material, /property bool neonBusy: false/);
+    assert.doesNotMatch(material, /property bool busy:/);
+    assert.match(material, /activity: material\.neonBusy/);
+    assert.match(pulse, /neonBusy: root\.loading/);
+    assert.match(pulse, /property bool busy: false/);
+    assert.match(pulse, /readonly property bool loading: root\.busy &&/);
+    assert.match(button, /neonBusy: control\.busy/);
+    assert.match(setup, /neonBusy: root\.busy/);
+    assert.doesNotMatch(popup, /property bool neonBusy:/);
+    assert.doesNotMatch(popup, /busy: neonBusy/);
 });
 
 test('Neon preferences are translated in all supported QML catalogs', () => {

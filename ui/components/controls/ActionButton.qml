@@ -277,7 +277,7 @@ Button {
                      && (control.prominent || control.selected || control.positive
                          || (control.hovered && !control.quiet))
         ambientNeon: control.prominent || control.selected || control.positive
-        busy: control.busy
+        neonBusy: control.busy
         inverted: control.prominent || control.positive || control.destructiveFilled
         focused: Theme.keyboardFocusVisible(control)
         externalHovered: control.hovered && !control.mobileViewport

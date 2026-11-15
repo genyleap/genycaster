@@ -7,11 +7,9 @@ NeonSurface {
     id: plate
     property bool neonAmbient: true
     property bool neonInteractive: true
-    property bool neonBusy: false
 
     ambientNeon: neonAmbient
     interactive: neonInteractive
-    busy: neonBusy
     neonStrength: Theme.neonPanelStrength
     ambientStrength: Theme.neonAmbientStrength
     fillColor: Theme.surfaceElevated

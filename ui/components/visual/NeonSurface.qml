@@ -10,7 +10,9 @@ Superellipse {
 
     property bool interactive: false
     property bool ambientNeon: false
-    property bool busy: false
+    // Activity belongs to the material; never shadow the consumer's public
+    // `busy` property (e.g. FeedPulseCard's data-loading state).
+    property bool neonBusy: false
     property bool inverted: false
     property bool focused: false
     property bool animatePaint: true
@@ -52,12 +54,12 @@ Superellipse {
 
     Loader {
         anchors.fill: parent
-        active: material.visible && Theme.neonEnabled && (material.ambientNeon || material.interactive || material.busy)
+        active: material.visible && Theme.neonEnabled && (material.ambientNeon || material.interactive || material.neonBusy)
         sourceComponent: NeonHalo {
             anchors.fill: parent
             active: material.pointerActive
             ambient: material.ambientNeon
-            activity: material.busy
+            activity: material.neonBusy
             hoverCapable: material.interactive
             pointerX: material.pointerPositionX
             pointerY: material.pointerPositionY
