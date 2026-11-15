@@ -3138,6 +3138,70 @@ void connectRuntime(
             });
     }
 
+    // A native custody session has a strictly bounded one-hour write TTL.
+    // Keeping the Qt window open does NOT prove continued authorization. Only
+    // renew when the original custody wallet is still unlocked and the SAME
+    // HyperSnap shard-0 registry independently confirms this exact FID and
+    // address. No silent wallet derivation, KEY_ADD, or OpenProof fallback.
+    if (nativePublisher && nativeWallet && runtime->sessionService) {
+        auto* refresh = new QTimer(&bridge);
+        refresh->setInterval(30'000);
+        const auto renewalPending = std::make_shared<std::atomic_bool>(false);
+        const QPointer<NativeCustodyWalletController> protectedCustody{nativeWallet};
+        const QPointer<HyperSnapRegistrationPublisher> nativeRegistry{nativePublisher};
+        const QPointer<PresentationBridge> sessionOwner{&bridge};
+        QObject::connect(refresh, &QTimer::timeout, &bridge,
+            [sessionOwner, runtime, sessionObserver, protectedCustody,
+             nativeRegistry, renewalPending] {
+                if (renewalPending->load(std::memory_order_acquire)
+                    || !nativeRegistry || !protectedCustody || !sessionOwner
+                    || !sessionOwner->isAuthenticated()) return;
+                const auto active = runtime->currentSessionSnapshot();
+                if (!active || active->identityIssuer != "hypersnap:native-registry"
+                    || !active->custodyAddress
+                    || active->fid.value != sessionOwner->accountFid()
+                    || !protectedCustody->backupVerified()) return;
+                const auto address = QString::fromStdString(*active->custodyAddress);
+                if (address.toLower() != protectedCustody->address().toLower()) return;
+                const auto now = foundation::time::now();
+                if (active->expiresAt > now + std::chrono::minutes{5}) return;
+                const auto previous = *active;
+                renewalPending->store(true, std::memory_order_release);
+                nativeRegistry->verifyCustodyForSession(address,
+                    [sessionOwner, runtime, sessionObserver, protectedCustody,
+                     renewalPending, previous, address](
+                         std::optional<std::uint64_t> confirmed) mutable {
+                        const auto current = runtime->currentSessionSnapshot();
+                        if (!sessionOwner || !confirmed
+                            || *confirmed != previous.fid.value
+                            || !protectedCustody || !protectedCustody->backupVerified()
+                            || address.toLower() != protectedCustody->address().toLower()
+                            || !sessionOwner->isAuthenticated()
+                            || sessionOwner->accountFid() != previous.fid.value
+                            || !current || current->fid.value != previous.fid.value
+                            || current->identityIssuer != previous.identityIssuer
+                            || current->custodyAddress != previous.custodyAddress
+                            || current->authenticatedAt != previous.authenticatedAt) {
+                            renewalPending->store(false, std::memory_order_release);
+                            return;
+                        }
+                        const auto verifiedAt = foundation::time::now();
+                        auto renewed = previous;
+                        renewed.authenticatedAt = verifiedAt;
+                        renewed.expiresAt = verifiedAt + std::chrono::hours{1};
+                        const auto scheduled = runtime->sessionService->acceptVerifiedNativeCustody(
+                            std::move(renewed),
+                            [renewalPending, sessionObserver](
+                                application::session::SessionState state) mutable {
+                                renewalPending->store(false, std::memory_order_release);
+                                sessionObserver(std::move(state));
+                            });
+                        if (!scheduled) renewalPending->store(false, std::memory_order_release);
+                    });
+            });
+        refresh->start();
+    }
+
     // Native Farcaster recovery deliberately does not use OpenProof:
     // self-custody created via Neynar may never have an OpenProof grant.
     // Optimism chain 10 must prove BOTH idOf(custody) and custodyOf(fid).
@@ -4534,9 +4598,19 @@ void connectRuntime(
                         || phase == Phase::Blocked || phase == Phase::RetryScheduled
                         || (phase == Phase::Queued && state.error.has_value());
                     if (!finished || !pointer) return;
-                    const QString error = state.error
+                    QString error = state.error
                         ? QString::fromStdString(state.error->message)
                         : qtTrId("genycaster.profile.save_retry_notice");
+                    // Protocol nodes return a verbose nested gRPC/HTTP body
+                    // for missing fname ownership. Surface the actual remedy
+                    // instead of an enormous raw transport diagnostic. This
+                    // is not a registration attempt or a bypass of name proof.
+                    if (error.contains(QStringLiteral("fname is not registered for fid"),
+                                       Qt::CaseInsensitive)
+                        || error.contains(QStringLiteral("username proof"),
+                                          Qt::CaseInsensitive)) {
+                        error = qtTrId("genycaster.profile.username_proof_missing");
+                    }
                     QMetaObject::invokeMethod(pointer,
                         [pointer, batch, accountFid, index, phase, error] {
                             if (!pointer || !pointer->isAuthenticated()
@@ -6072,6 +6146,46 @@ void attachRuntime(RuntimeAttachment attachment,
             QString::fromStdString(publicKey->hex),
             QString::fromLatin1(raw.toHex())};
     });
+    // First cloud-cookie proof can race the initial KEY_ADD. Once the
+    // protocol signer becomes network-ready, retry the account ceremony
+    // without Farcaster login or extracting a custody secret. Bound retries
+    // to the transition, never to every feed/stateChanged event.
+    const auto retriedSignerFid = std::make_shared<qulonglong>(0);
+    auto* const accountBridge = &attachment.presentationBridge;
+    auto* const accountConnections = &attachment.openProofConnections;
+    QObject::connect(accountBridge, &PresentationBridge::stateChanged,
+        accountConnections,
+        [accountBridge, accountConnections, retriedSignerFid] {
+            if (!accountBridge->isAuthenticated()) {
+                *retriedSignerFid = 0;
+                return;
+            }
+            if (!accountBridge->writeReady()
+                || accountBridge->signerPhase() != QStringLiteral("ready")
+                || accountBridge->accountFid() == *retriedSignerFid
+                || accountConnections->activeAccountFid() != accountBridge->accountFid())
+                return;
+            const auto fid = accountBridge->accountFid();
+            *retriedSignerFid = fid;
+            QTimer::singleShot(1500, accountConnections,
+                [accountBridge, accountConnections, fid] {
+                    if (accountBridge->isAuthenticated()
+                        && accountBridge->accountFid() == fid
+                        && accountConnections->activeAccountFid() == fid
+                        && !accountConnections->cloudAuthorizationReady())
+                        accountConnections->retryAccountSession();
+                });
+            // The first unauthenticated GET + signed challenge can take up
+            // to ten seconds. A single delayed retry covers that race.
+            QTimer::singleShot(12'000, accountConnections,
+                [accountBridge, accountConnections, fid] {
+                    if (accountBridge->isAuthenticated()
+                        && accountBridge->accountFid() == fid
+                        && accountConnections->activeAccountFid() == fid
+                        && !accountConnections->cloudAuthorizationReady())
+                        accountConnections->retryAccountSession();
+                });
+        });
 #endif
     connectRuntime(
         attachment.presentationBridge,

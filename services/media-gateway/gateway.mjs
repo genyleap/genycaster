@@ -83,6 +83,10 @@ export function loadConfig(env = process.env) {
       deployment.snapchainOrigin,
       'GENYLEAP_MEDIA_SNAPCHAIN_BASE_URL',
     ),
+    hypersnapBaseUrl: normalizeOrigin(
+      deployment.hypersnapOrigin,
+      'GENYCASTER_HYPERSNAP_ORIGIN',
+    ),
     ticketSecret,
     proofLifetimeSeconds: positiveInteger(env.GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS, 300, 'GENYLEAP_MEDIA_PROOF_LIFETIME_SECONDS'),
     multipartPartBytes,
@@ -279,7 +283,13 @@ function decodeAssetManagementToken(config, token) {
 async function signerIsAuthorized(config, fid, signerKey, fetchImpl, nowSeconds) {
   let pageToken = '';
   for (let page = 0; page < 10; page += 1) {
-    const url = new URL(config.snapchainBaseUrl);
+    // HyperSnap allocates native FIDs from 2^32. Never query the
+    // Farcaster signer registry for a native account (or fallback across
+    // networks after a rejection). Ownership must be proven on its own node.
+    const isNative = fid >= 4294967296;
+    const source = isNative ? config.hypersnapBaseUrl : config.snapchainBaseUrl;
+    if (!source) throw new Error('Protocol-specific signer registry is not configured.');
+    const url = new URL(source);
     url.pathname = `${url.pathname}/v1/signersByFid`.replace(/\/{2,}/g, '/');
     url.searchParams.set('fid', String(fid));
     url.searchParams.set('pageSize', '100');
@@ -294,11 +304,22 @@ async function signerIsAuthorized(config, fid, signerKey, fetchImpl, nowSeconds)
     if (!Array.isArray(document.signers)) throw new Error('Snapchain signer response is malformed.');
     for (const signer of document.signers) {
       const key = String(signer?.key || '').toLowerCase().replace(/^0x/, '');
-      if (key !== signerKey || Number(signer?.fid) !== fid) continue;
+      if (key !== signerKey || Number(signer?.fid) !== fid
+          || (signer.keyType != null && Number(signer.keyType) !== 1)) continue;
       if (signer.source === 'SIGNER_SOURCE_ONCHAIN') return true;
       if (signer.source !== 'SIGNER_SOURCE_OFFCHAIN') continue;
-      if (!Array.isArray(signer.scopes) || !signer.scopes.includes('MESSAGE_TYPE_CAST_ADD')) continue;
-      if (signer.expiresAt !== undefined && signer.expiresAt !== null && Number(signer.expiresAt) <= nowSeconds) continue;
+      if (!Array.isArray(signer.scopes)
+          || !signer.scopes.includes('MESSAGE_TYPE_CAST_ADD')) continue;
+      // Hub signer timestamps are Farcaster-epoch seconds (since 2021-01-01),
+      // not Unix seconds. Accept either explicit wire unit, but never an
+      // expired signer or a missing CAST_ADD scope.
+      if (signer.expiresAt != null) {
+        const expiration = Number(signer.expiresAt);
+        if (!Number.isSafeInteger(expiration) || expiration <= 0) continue;
+        const current = expiration >= 1_000_000_000
+          ? nowSeconds : nowSeconds - 1609459200;
+        if (expiration <= current) continue;
+      }
       return true;
     }
     pageToken = String(document.nextPageToken || '');
@@ -345,7 +366,7 @@ async function verifyProof(config, request, body, pathname, dependencies, replay
     throw error;
   }
   if (options.verifySignerState !== false && !await signerIsAuthorized(config, fid, signerKeyText, dependencies.fetchImpl, nowSeconds)) {
-    const error = new Error('media upload signer is not active for this Farcaster account');
+    const error = new Error('media upload signer is not active for this protocol account');
     error.statusCode = 403;
     throw error;
   }

@@ -70,9 +70,11 @@ export function createSignerSessionProof({
   fetchImpl=globalThis.fetch,now=Date.now,
   issuer=serverDeployment().openProofIssuer,
   snapchainOrigin=serverDeployment().snapchainOrigin,
+  hypersnapOrigin=serverDeployment().hypersnapOrigin,
 }={}) {
   const trustedIssuer=trustedOrigin(issuer,'GENYCASTER_OPENPROOF_ISSUER');
   const trustedSnapchain=trustedOrigin(snapchainOrigin,'GENYCASTER_SNAPCHAIN_URL');
+  const trustedHyperSnap=trustedOrigin(hypersnapOrigin,'GENYCASTER_HYPERSNAP_ORIGIN');
   const pending=new Map();
   function prune() {
     const time=now();
@@ -102,8 +104,14 @@ export function createSignerSessionProof({
       format:'der',type:'spki'});
     if(!verify(null,challengeBytes(fid,nonce),pub,Buffer.from(signature,'hex')))
       bad(401);
-    if(!await checkSigner(fid,publicKey,fetchImpl,now(),trustedSnapchain))bad(401,'unregistered_signer');
-    return {issuer:trustedIssuer,subject:'farcaster:'+fid,fid};
+    // This namespace is allocated by HyperSnap's native registry, not
+    // Optimism IdRegistry. A signed proof cannot silently cross the two.
+    const native=Number(fid)>=4294967296;
+    const registryOrigin=native?trustedHyperSnap:trustedSnapchain;
+    if(!await checkSigner(fid,publicKey,fetchImpl,now(),registryOrigin))
+      bad(401,'unregistered_signer');
+    return {issuer:native?'hypersnap:native-registry':trustedIssuer,
+      subject:(native?'hypersnap:':'farcaster:')+fid,fid};
   }
   return {issue,prove};
 }

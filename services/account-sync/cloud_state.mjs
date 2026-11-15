@@ -480,7 +480,8 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
   const trustedSnapchainOrigin=trustedOrigin(snapchainOrigin,'GENYCASTER_SNAPCHAIN_URL');
   const trustedHyperSnapOrigin=trustedOrigin(hypersnapOrigin,'GENYCASTER_HYPERSNAP_ORIGIN');
   const signerProof=createSignerSessionProof({
-    fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin});
+    fetchImpl,issuer:upstream,snapchainOrigin:trustedSnapchainOrigin,
+    hypersnapOrigin:trustedHyperSnapOrigin});
   const readGithubCalendar=createGithubCalendarReader({fetchImpl});
   const leaderboardProfiles=createLeaderboardProfileReader({
     fetchImpl,hypersnapOrigin:trustedHyperSnapOrigin});
@@ -529,7 +530,9 @@ export function createCloudHandler({store, issuer, fetchImpl=globalThis.fetch,
           !csrfMatches(request.headers['x-genycaster-csrf'],session.csrf_token))
         return null;
       return {issuer:session.issuer,subject:session.subject,
-        fid:session.subject.slice('farcaster:'.length),
+        fid:session.fid || (session.subject.startsWith('hypersnap:')
+          ? session.subject.slice('hypersnap:'.length)
+          : session.subject.slice('farcaster:'.length)),
         cookieAuth:true,sessionToken:cookie,csrfToken:session.csrf_token};
     }
     if (!/^Bearer [A-Za-z0-9._~+/-]+={0,2}$/.test(header) || header.length>8192) return null;

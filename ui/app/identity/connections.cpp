@@ -1753,6 +1753,22 @@ void OpenProofConnectionsController::setStreakPreferences(
     });
 }
 
+void OpenProofConnectionsController::retryAccountSession()
+{
+    if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl)
+        || m_sessionRevoking || m_sessionRequest || m_accountProofRequest
+        || m_accountProofSigning || m_cloudSessionVerified) return;
+    // A failed earlier attempt (while KEY_ADD was still unconfirmed) must not
+    // make a now-active native/Farcaster signer permanently ineligible.
+    m_accountProofAttempted = false;
+    m_accountProofError.clear();
+    if (!m_accountBearer.isEmpty()
+        && (m_verified || m_accountBearer.startsWith("recovery.")))
+        bootstrapAccountSession();
+    else
+        restoreAccountSession();
+}
+
 void OpenProofConnectionsController::retryProEntitlements()
 {
     if (!m_viewerFid || !trustedHttpsEndpoint(m_cloudUrl) || m_sessionRevoking)

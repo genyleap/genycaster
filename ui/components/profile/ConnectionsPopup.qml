@@ -261,6 +261,23 @@ GenyDrawer {
             font.pixelSize: Theme.typeCaptionSize
             wrapMode: Text.Wrap
         }
+        ActionButton {
+            objectName: "nativeOpenProofConnections"
+            visible: picker.nativeCustodyAccount && !picker.authorized
+            Layout.fillWidth: true
+            compact: true
+            iconGlyph: Theme.iconArrowUpRight
+            text: qsTrId("genycaster.connections.manage_openproof_wallet")
+            onClicked: picker.openProfileRequested("https://genyleap.com/openproof")
+        }
+        DirectionAwareLabel {
+            Layout.fillWidth: true
+            visible: picker.nativeCustodyAccount && !picker.authorized
+            text: qsTrId("genycaster.connections.native_links_not_fid_verified")
+            color: Theme.inkMuted
+            font.pixelSize: Theme.typeCaptionSize
+            wrapMode: Text.Wrap
+        }
 
         RowLayout {
             Layout.fillWidth: true

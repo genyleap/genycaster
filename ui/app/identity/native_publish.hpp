@@ -91,6 +91,12 @@ public:
     [[nodiscard]] QString registeredFid() const { return m_fid; }
     [[nodiscard]] QUrl nodeEndpoint() const { return m_transport.nodeEndpoint(); }
 
+    /** Read-only shard-0 custody ownership confirmation used for renewing a
+     * device's short-lived native session; never publishes or signs. */
+    void verifyCustodyForSession(
+        const QString& custody,
+        std::function<void(std::optional<std::uint64_t>)> onResult);
+
     /** User-initiated only. Does not automatically repeat an uncertain write. */
     Q_INVOKABLE bool submitPrepared();
 

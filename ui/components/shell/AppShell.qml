@@ -3566,6 +3566,17 @@ Item {
                         === removedId.replace(/^0x/i, "").toLowerCase())
                 root.confirmedReply = ({})
             const castId = String(presentationBridge.lastPublishedCastId || "")
+            // Streak is not a rich-composer feature: simple casts, replies
+            // and scheduled posts use the same confirmed protocol hash.
+            // Cloud persistence is queued independently and the backend
+            // verifies the hash/FID from the selected protocol before credit.
+            if (presentationBridge.isAuthenticated
+                    && presentationBridge.writePhase === "confirmed"
+                    && /^0x[0-9a-fA-F]{40}$/.test(castId)
+                    && root.lastStreakCastId !== String(presentationBridge.accountFid) + ":" + castId) {
+                root.lastStreakCastId = String(presentationBridge.accountFid) + ":" + castId
+                openProofConnections.recordStreakCast(castId)
+            }
             if (presentationBridge.writePhase === "confirmed"
                     && /^0x[0-9a-fA-F]{40}$/.test(castId)
                     && castId !== root.pendingTopicsBaseline
@@ -3587,13 +3598,8 @@ Item {
                     && castId !== root.submittedCastBaseline
                     && castId !== root.committedRichCastId) {
                 richComposer.commitPublishedCast(castId)
-                // The server independently verifies this already-confirmed
-                // protocol hash before awarding Streak progress.
-                if (root.lastStreakCastId !== castId
-                        && root.pendingTopicsOwner === Number(presentationBridge.accountFid)) {
-                    root.lastStreakCastId = castId
-                    openProofConnections.recordStreakCast(castId)
-                }
+                // Streak writes are handled once above for every confirmed
+                // protocol cast, not only this rich-composer completion.
                 if (root.homeDraftForCast.length > 0
                         && homeDashboard.draftText === root.homeDraftForCast)
                     homeDashboard.draftText = ""

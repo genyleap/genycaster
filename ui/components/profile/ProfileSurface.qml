@@ -3242,8 +3242,11 @@ Item {
                 + contentPadding * 2 + sheetTopInset + Theme.space5))
             : parent.height) : 600
         onOpened: {
-            if (!openProofConnections || !root.isOwnProfile
-                || !openProofConnections.cloudAuthorizationReady) return
+            if (!openProofConnections || !root.isOwnProfile) return
+            if (!openProofConnections.cloudAuthorizationReady) {
+                openProofConnections.retryAccountSession()
+                return
+            }
             openProofConnections.fetchStreak()
             openProofConnections.fetchStreakLeaderboard("activity")
         }
@@ -3283,7 +3286,10 @@ Item {
                     compact: streakDrawer.mobilePresentation
                     snapshot: root.streakSnapshot
                     loading: root.streakLoadingSnapshot
-                    errorText: root.streakErrorSnapshot
+                    errorText: root.streakErrorSnapshot.length > 0
+                        ? root.streakErrorSnapshot
+                        : openProofConnections && !openProofConnections.cloudAuthorizationReady
+                          ? qsTrId("genycaster.streak.verified_session_required") : ""
                     onProfileRequested: fid => {
                         streakDrawer.close()
                         root.profileRequested(fid)
@@ -3425,6 +3431,14 @@ Item {
                         Layout.fillWidth: true
                         text: qsTrId("genycaster.profile.username_separate")
                         color: Theme.inkMuted
+                        font.pixelSize: Theme.typeCaptionSize
+                        wrapMode: Text.Wrap
+                    }
+                    DirectionAwareLabel {
+                        Layout.fillWidth: true
+                        visible: root.accountIsNativeCustody
+                        text: qsTrId("genycaster.profile.native_username_registration_pending")
+                        color: Theme.warning
                         font.pixelSize: Theme.typeCaptionSize
                         wrapMode: Text.Wrap
                     }

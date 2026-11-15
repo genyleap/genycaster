@@ -192,6 +192,9 @@ public:
     [[nodiscard]] bool streakBusy() const noexcept { return m_streakRead || m_streakWrite; }
     [[nodiscard]] QString streakError() const { return m_streakError; }
     Q_INVOKABLE void fetchStreak();
+    /** Explicit retry after a protocol Signer becomes ready; keeps this
+     * cloud identity distinct from OpenProof social connections. */
+    Q_INVOKABLE void retryAccountSession();
     [[nodiscard]] QVariantMap proEntitlements() const {
         return m_proEntitlementsFid == m_viewerFid && m_viewerFid != 0
             ? m_proEntitlements : QVariantMap{};

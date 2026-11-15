@@ -426,6 +426,10 @@
             <source>Loading Streak…</source>
             <translation>연속 활동 불러오는 중…</translation>
         </message>
+        <message id="genycaster.streak.verified_session_required">
+            <source>Streak requires a verified Genycaster account session. Enable device signing and retry; confirmed casts are queued securely until verification succeeds.</source>
+            <translation>Streak에는 검증된 Genycaster 계정 세션이 필요합니다. 기기 서명을 활성화하고 다시 시도하세요. 확인된 Cast는 검증 전까지 안전하게 대기합니다.</translation>
+        </message>
         <message id="genycaster.streak.unavailable">
             <source>Streak is not available yet.</source>
             <translation>연속 활동을 일시적으로 사용할 수 없습니다.</translation>
@@ -1099,6 +1103,22 @@ Company | https://company.com</source>
         <message id="genycaster.media.upload_protocol_failed">
             <source>Media gateway rejected the upload. Check the configured media service.</source>
             <translation>미디어 게이트웨이가 업로드를 거부했습니다. 서비스 설정을 확인하세요.</translation>
+        </message>
+        <message id="genycaster.profile.username_proof_missing">
+            <source>This name has no registered ownership proof for your FID. Register it with the selected protocol's name registry first; setting a display name does not claim a username.</source>
+            <translation>이 이름은 FID에 등록된 소유권 증명이 없습니다. 선택한 프로토콜의 이름 등록소에 먼저 등록하세요. 표시 이름 변경은 사용자 이름 등록이 아닙니다.</translation>
+        </message>
+        <message id="genycaster.profile.native_username_registration_pending">
+            <source>A new HyperSnap-native username cannot be registered through Farcaster's fname service. This field only selects an already-proven name; native name registration needs protocol support.</source>
+            <translation>새 HyperSnap 네이티브 이름은 Farcaster fname 서비스에서 등록할 수 없습니다. 소유권이 이미 증명된 이름만 선택할 수 있습니다.</translation>
+        </message>
+        <message id="genycaster.connections.manage_openproof_wallet">
+            <source>Manage OpenProof wallet connections</source>
+            <translation>OpenProof 지갑 연결 관리</translation>
+        </message>
+        <message id="genycaster.connections.native_links_not_fid_verified">
+            <source>Opens your independent OpenProof wallet account. Links managed there are not yet verified connections to this HyperSnap-native FID.</source>
+            <translation>별도 OpenProof 지갑 계정을 엽니다. 해당 연결은 아직 이 HyperSnap 네이티브 FID의 검증된 연결이 아닙니다.</translation>
         </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>

@@ -894,18 +894,26 @@ public:
             }
             if (observed->registration) {
                 const auto& registration = *observed->registration;
-                if (registration.kind != domain::signer::RegistrationKind::Gasless ||
-                    registration.state != domain::signer::RegistrationState::Active ||
-                    registration.publicKey.hex != *expectedKey ||
-                    registration.ttlSeconds != request.ttlSeconds ||
-                    registration.scopes != request.scopes ||
-                    !registration.requestFid ||
-                    registration.requestFid->value != request.requestFid.value ||
-                    observed->nonces.currentUserNonce < request.nonce) {
+                // A hub may return the scope set in another order. Treat it
+                // as a set, never as an ordering-dependent authorization.
+                // Old signer state can also be visible before the nonce of
+                // this newly submitted KEY_ADD is committed.
+                const bool scopesMatch = registration.scopes.size() == request.scopes.size()
+                    && std::ranges::is_permutation(registration.scopes, request.scopes);
+                const bool valid = registration.kind == domain::signer::RegistrationKind::Gasless
+                    && registration.state == domain::signer::RegistrationState::Active
+                    && registration.publicKey.hex == *expectedKey
+                    && registration.ttlSeconds == request.ttlSeconds
+                    && scopesMatch && registration.requestFid
+                    && registration.requestFid->value == request.requestFid.value;
+                if (valid && observed->nonces.currentUserNonce >= request.nonce)
+                    return registration;
+                // A nonce below this request means a stale, not necessarily
+                // contradictory, view. Continue bounded polling. Once nonce
+                // advances, any mismatch is a permanent authorization error.
+                if (observed->nonces.currentUserNonce >= request.nonce)
                     return std::unexpected(protocolError(
                         "Snapchain post-submit signer state does not match the authorized KEY_ADD request."));
-                }
-                return registration;
             }
             if (observed->nonces.currentUserNonce >= request.nonce) {
                 return std::unexpected(protocolError(

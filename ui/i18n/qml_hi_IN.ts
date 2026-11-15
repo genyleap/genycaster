@@ -426,6 +426,10 @@
             <source>Loading Streak…</source>
             <translation>स्ट्रीक लोड हो रही है…</translation>
         </message>
+        <message id="genycaster.streak.verified_session_required">
+            <source>Streak requires a verified Genycaster account session. Enable device signing and retry; confirmed casts are queued securely until verification succeeds.</source>
+            <translation>Streak के लिए सत्यापित Genycaster खाता सत्र आवश्यक है। डिवाइस हस्ताक्षर सक्षम कर पुनः प्रयास करें; पुष्टि किए गए कास्ट तब तक सुरक्षित कतार में रहेंगे।</translation>
+        </message>
         <message id="genycaster.streak.unavailable">
             <source>Streak is not available yet.</source>
             <translation>स्ट्रीक अभी उपलब्ध नहीं है।</translation>
@@ -1099,6 +1103,22 @@ Company | https://company.com</source>
         <message id="genycaster.media.upload_protocol_failed">
             <source>Media gateway rejected the upload. Check the configured media service.</source>
             <translation>मीडिया गेटवे ने अपलोड अस्वीकार किया। सेवा की सेटिंग जाँचें।</translation>
+        </message>
+        <message id="genycaster.profile.username_proof_missing">
+            <source>This name has no registered ownership proof for your FID. Register it with the selected protocol's name registry first; setting a display name does not claim a username.</source>
+            <translation>इस नाम का आपके FID के लिए पंजीकृत स्वामित्व प्रमाण नहीं है। इसे पहले चुने गए प्रोटोकॉल की नाम रजिस्ट्री में पंजीकृत करें; डिस्प्ले नाम यूज़रनेम पंजीकृत नहीं करता।</translation>
+        </message>
+        <message id="genycaster.profile.native_username_registration_pending">
+            <source>A new HyperSnap-native username cannot be registered through Farcaster's fname service. This field only selects an already-proven name; native name registration needs protocol support.</source>
+            <translation>नया HyperSnap मूल नाम Farcaster fname सेवा से पंजीकृत नहीं किया जा सकता। यहाँ केवल पहले से प्रमाणित नाम चुना जा सकता है।</translation>
+        </message>
+        <message id="genycaster.connections.manage_openproof_wallet">
+            <source>Manage OpenProof wallet connections</source>
+            <translation>OpenProof वॉलेट कनेक्शन प्रबंधित करें</translation>
+        </message>
+        <message id="genycaster.connections.native_links_not_fid_verified">
+            <source>Opens your independent OpenProof wallet account. Links managed there are not yet verified connections to this HyperSnap-native FID.</source>
+            <translation>यह स्वतंत्र OpenProof वॉलेट खाता खोलता है। वहाँ के कनेक्शन अभी इस मूल HyperSnap FID के सत्यापित लिंक नहीं हैं।</translation>
         </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>

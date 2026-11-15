@@ -426,6 +426,10 @@
             <source>Loading Streak…</source>
             <translation>در حال بارگذاری استریک…</translation>
         </message>
+        <message id="genycaster.streak.verified_session_required">
+            <source>Streak requires a verified Genycaster account session. Enable device signing and retry; confirmed casts are queued securely until verification succeeds.</source>
+            <translation>استریک به نشست تأییدشدهٔ حساب جنی‌کستر نیاز دارد. امضای دستگاه را فعال کنید و دوباره تلاش کنید؛ کست‌های تأییدشده تا تأیید نشست در صف امن می‌مانند.</translation>
+        </message>
         <message id="genycaster.streak.unavailable">
             <source>Streak is not available yet.</source>
             <translation>استریک فعلاً در دسترس نیست.</translation>
@@ -1100,6 +1104,22 @@ Company | https://company.com</source>
         <message id="genycaster.media.upload_protocol_failed">
             <source>Media gateway rejected the upload. Check the configured media service.</source>
             <translation>درگاه رسانه بارگذاری را نپذیرفت. تنظیمات سرویس رسانه را بررسی کنید.</translation>
+        </message>
+        <message id="genycaster.profile.username_proof_missing">
+            <source>This name has no registered ownership proof for your FID. Register it with the selected protocol's name registry first; setting a display name does not claim a username.</source>
+            <translation>این نام برای FID شما اثبات مالکیت ثبت‌شده ندارد. ابتدا باید در رجیستری نام پروتکل انتخاب‌شده ثبت شود؛ نام نمایشی، نام کاربری ثبت نمی‌کند.</translation>
+        </message>
+        <message id="genycaster.profile.native_username_registration_pending">
+            <source>A new HyperSnap-native username cannot be registered through Farcaster's fname service. This field only selects an already-proven name; native name registration needs protocol support.</source>
+            <translation>برای FID بومی HyperSnap نمی‌توان از سرویس fname فارکستر نام تازه‌ای ثبت کرد. این فیلد فقط نامی با اثبات مالکیت موجود را انتخاب می‌کند؛ ثبت نام بومی نیازمند پشتیبانی پروتکل است.</translation>
+        </message>
+        <message id="genycaster.connections.manage_openproof_wallet">
+            <source>Manage OpenProof wallet connections</source>
+            <translation>مدیریت اتصال‌های کیف پول OpenProof</translation>
+        </message>
+        <message id="genycaster.connections.native_links_not_fid_verified">
+            <source>Opens your independent OpenProof wallet account. Links managed there are not yet verified connections to this HyperSnap-native FID.</source>
+            <translation>حساب مستقل کیف پول OpenProof باز می‌شود. اتصال‌های آن هنوز به‌عنوان اتصال تأییدشدهٔ این FID بومی HyperSnap شناخته نمی‌شوند.</translation>
         </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>

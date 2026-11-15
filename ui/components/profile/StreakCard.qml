@@ -259,6 +259,7 @@ Item {
             Layout.fillWidth: true
             visible: root.activePage !== "leaderboard" && !root.available
             text: root.loading ? qsTrId("genycaster.streak.loading")
+                : root.errorText.length > 0 ? root.errorText
                 : qsTrId("genycaster.streak.unavailable")
             color: Theme.inkMuted
             font.pixelSize: Theme.typeCaptionSize

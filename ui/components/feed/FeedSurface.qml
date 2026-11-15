@@ -1408,7 +1408,9 @@ Item {
                                   : Math.min(Math.max(height * 0.65, 480), 820)
         pixelAligned: false
 
-        header: feedHeaderComponent
+        // The relationship screen already owns its header in AppShell.
+        // Never reserve the cached discovery feed header inside social rows.
+        header: root.socialMode ? null : feedHeaderComponent
         footer: feedFooterComponent
 
         // Pool structurally similar rows separately. Reusing an image row for
@@ -1479,7 +1481,9 @@ Item {
         visible: root.magazineEnabled
         // Keep numeric Magazine geometry warm, but no visual cards while hidden.
         model: stableRows
-        header: feedHeaderComponent
+        // The relationship screen already owns its header in AppShell.
+        // Never reserve the cached discovery feed header inside social rows.
+        header: root.socialMode ? null : feedHeaderComponent
         footer: feedFooterComponent
         // The compact editorial card width is the stable Explorer default.
         // Columns reflow automatically as the central reading pane resizes.
@@ -1520,9 +1524,10 @@ Item {
             // first cast can never slide underneath it. The visible banner is a
             // viewport overlay that tracks this slot until it reaches the top,
             // then remains pinned while older posts continue scrolling.
-            implicitHeight: feedHeaderLoader.implicitHeight + topicFilterNotice.height + communityNotice.height
-                            + localRecentNotice.height + signerFilterBar.height + appFilterBar.height
-                            + newPostsSlot.height
+            implicitHeight: root.socialMode ? 0
+                : feedHeaderLoader.implicitHeight + topicFilterNotice.height + communityNotice.height
+                    + localRecentNotice.height + signerFilterBar.height + appFilterBar.height
+                    + newPostsSlot.height
             z: 20
 
             Rectangle {

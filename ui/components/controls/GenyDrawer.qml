@@ -31,9 +31,11 @@ Drawer {
     // Qt Drawer owns x/y and interactive drag geometry through this edge.
     edge: bottomSheet ? Qt.BottomEdge : (Theme.rtl ? Qt.LeftEdge : Qt.RightEdge)
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    leftInset: floatingSheet ? Theme.space3 : 0
-    rightInset: floatingSheet ? Theme.space3 : 0
-    bottomInset: floatingSheet ? Theme.space3 : 0
+    // Floating drawers still touch the edge they enter from. Insetting
+    // that edge exposes a rounded outer contour against the viewport.
+    leftInset: floatingSheet && edge !== Qt.LeftEdge ? Theme.space3 : 0
+    rightInset: floatingSheet && edge !== Qt.RightEdge ? Theme.space3 : 0
+    bottomInset: floatingSheet && edge !== Qt.BottomEdge ? Theme.space3 : 0
     leftPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
     rightPadding: contentPadding + (floatingSheet ? Theme.space3 : 0)
     topPadding: contentPadding + sheetTopInset
@@ -113,6 +115,12 @@ Drawer {
     }
 
     background: PopupSurface {
+        // The shared neon rim is a symmetric rounded rectangle. It ignores
+        // the per-corner curve flags below and paints a second arc over the
+        // square attached edge. Side sheets must not instantiate that halo.
+        neonAmbient: false
+        neonInteractive: false
+        shadowEnabled: false
         fillColor: Theme.surfaceElevated
         curveDepth: control.fullScreen ? 0
                     : control.floatingSheet ? Theme.curveSheetFloating

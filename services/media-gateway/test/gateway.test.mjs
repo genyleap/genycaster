@@ -937,3 +937,54 @@ test('temporary recovered OpenProof account capability reuses server cookie with
     throw new Error('unexpected upstream '+url);
   }});
 });
+
+test('native HyperSnap media uploader verifies signer only at its native node',async()=>{
+  const nativeFid=4294967296;
+  const lookedUp=[];
+  const body=Buffer.from(JSON.stringify({
+    fileName:'native.jpg',contentType:'image/jpeg',sizeBytes:512,
+  }));
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/uploads',{
+      method:'POST',
+      headers:proofHeaders('POST','/v1/uploads',body,'native_upload_nonce_000001',
+        'application/json',nativeFid),
+      body,
+    });
+    assert.equal(response.status,201);
+    assert.equal(lookedUp.length,1);
+    assert.equal(lookedUp[0].origin,'https://haatz.quilibrium.com');
+    assert.equal(lookedUp[0].searchParams.get('fid'),String(nativeFid));
+  },{fetchImpl:async url=>{
+    const selected=new URL(url);
+    lookedUp.push(selected);
+    if(selected.origin!=='https://haatz.quilibrium.com')
+      throw new Error('native account attempted a Farcaster signer lookup');
+    return new Response(JSON.stringify({signers:[{
+      key:signerKey,fid:String(nativeFid),keyType:1,
+      source:'SIGNER_SOURCE_OFFCHAIN',
+      scopes:['MESSAGE_TYPE_CAST_ADD'],
+      expiresAt:Math.floor(nowMs/1000)-1609459200+600,
+    }],nextPageToken:''}),{status:200,
+      headers:{'content-type':'application/json'}});
+  }});
+});
+
+test('native media upload fails closed when native registrar has no matching signer',async()=>{
+  const nativeFid=4294967296;
+  const body=Buffer.from(JSON.stringify({
+    fileName:'native.jpg',contentType:'image/jpeg',sizeBytes:512,
+  }));
+  await withGateway(async({origin})=>{
+    const response=await fetch(origin+'/v1/uploads',{
+      method:'POST',body,
+      headers:proofHeaders('POST','/v1/uploads',body,'native_upload_nonce_000002',
+        'application/json',nativeFid),
+    });
+    assert.equal(response.status,403);
+  },{fetchImpl:async url=>{
+    assert.equal(new URL(url).origin,'https://haatz.quilibrium.com');
+    return new Response(JSON.stringify({signers:[],nextPageToken:''}),{
+      status:200,headers:{'content-type':'application/json'}});
+  }});
+});

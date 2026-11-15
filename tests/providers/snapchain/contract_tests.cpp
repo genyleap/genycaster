@@ -156,7 +156,8 @@ void testGaslessSignerAndNonceMapping()
                     "MESSAGE_TYPE_REACTION_ADD",
                     "MESSAGE_TYPE_REACTION_REMOVE",
                     "MESSAGE_TYPE_LINK_ADD",
-                    "MESSAGE_TYPE_LINK_REMOVE"
+                    "MESSAGE_TYPE_LINK_REMOVE",
+                    "MESSAGE_TYPE_USER_DATA_ADD"
                 ],
                 "requestFid":42,
                 "nonce":7
@@ -430,7 +431,7 @@ void testConfigurationAndHttpErrors()
     assert(authenticatedTransport.headers().size() == 1U);
     assert(std::ranges::find(
         authenticatedTransport.headers().front(),
-        "X-Upstream-Credential: test-secret") != authenticatedTransport.headers().front().end());
+        std::string{"X-Upstream-Credential: test-secret"}) != authenticatedTransport.headers().front().end());
 
     FakeTransport incompleteCredentialTransport{};
     auto incompleteCredentialConfig = testConfig();
@@ -546,19 +547,19 @@ void testGaslessRegistrationSubmitsCanonicalEnvelopeAndReReadsNetwork()
     const auto& post = transport.posts().front();
     assert(post.url == "https://validator.test/v1/submitMessage");
     assert(!post.body.empty());
-    assert(std::ranges::find(post.headers, "Content-Type: application/octet-stream") != post.headers.end());
-    assert(std::ranges::find(post.headers, "Accept: application/json") != post.headers.end());
-    assert(std::ranges::find(post.headers, "X-Read-Token: read-test-value") == post.headers.end());
-    assert(std::ranges::find(post.headers, "X-Write-Token: write-test-value") != post.headers.end());
+    assert(std::ranges::find(post.headers, std::string{"Content-Type: application/octet-stream"}) != post.headers.end());
+    assert(std::ranges::find(post.headers, std::string{"Accept: application/json"}) != post.headers.end());
+    assert(std::ranges::find(post.headers, std::string{"X-Read-Token: read-test-value"}) == post.headers.end());
+    assert(std::ranges::find(post.headers, std::string{"X-Write-Token: write-test-value"}) != post.headers.end());
     assert(post.timeout == std::chrono::milliseconds{4'000});
     assert(post.maxBodyBytes == 512U * 1024U);
     assert(transport.urls().size() == 1U);
     assert(transport.urls().front().starts_with("https://snapchain.test/v1/signersByFid?"));
     assert(transport.headers().size() == 1U);
     assert(std::ranges::find(transport.headers().front(),
-        "X-Read-Token: read-test-value") != transport.headers().front().end());
+        std::string{"X-Read-Token: read-test-value"}) != transport.headers().front().end());
     assert(std::ranges::find(transport.headers().front(),
-        "X-Write-Token: write-test-value") == transport.headers().front().end());
+        std::string{"X-Write-Token: write-test-value"}) == transport.headers().front().end());
 }
 
 void testGaslessRegistrationPollsUntilSignerIsObservable()
@@ -614,6 +615,60 @@ void testGaslessRegistrationPollsUntilSignerIsObservable()
     assert(transport.urls().size() == 2U);
 }
 
+void testGaslessRegistrationWaitsForNonceAndUsesUnorderedScopeSet()
+{
+    FakeTransport transport{};
+    transport.enqueue(200, R"({"accepted":true})");
+    // A previously observed signer may remain visible after KEY_ADD was
+    // accepted, even if the old registration has a different scope set.
+    transport.enqueue(200, R"({
+        "signers":[{
+            "source":"SIGNER_SOURCE_OFFCHAIN",
+            "key":"0x1111111111111111111111111111111111111111111111111111111111111111",
+            "keyType":1,"fid":42,"lastUsedAt":4102440000,"ttl":3600,
+            "expiresAt":4102443600,"scopes":["MESSAGE_TYPE_CAST_ADD"],
+            "requestFid":42,"nonce":6
+        }],
+        "currentUserNonce":6,"requesterFidNonces":{"42":0}
+    })");
+    // A hub is free to return the set in a different order than our
+    // canonical encoder. Exact membership and the nonce are what matter.
+    transport.enqueue(200, R"({
+        "signers":[{
+            "source":"SIGNER_SOURCE_OFFCHAIN",
+            "key":"0x1111111111111111111111111111111111111111111111111111111111111111",
+            "keyType":1,"fid":42,"lastUsedAt":4102440000,"ttl":3600,
+            "expiresAt":4102443600,
+            "scopes":["MESSAGE_TYPE_REACTION_ADD","MESSAGE_TYPE_CAST_ADD"],
+            "requestFid":42,"nonce":7
+        }],
+        "currentUserNonce":7,"requesterFidNonces":{"42":0}
+    })");
+    auto config = testConfig();
+    config.confirmationPollInterval = std::chrono::milliseconds{1};
+    auto registry = provider::snapchain::signer::makeRegistry(transport, config);
+    FakeSigner signer{};
+    const auto result = registry->registerGasless(
+        capability::signer::KeyAddRequest{
+            .fid = domain::identity::Fid{42},
+            .publicKey = domain::signer::PublicKey{keyA()},
+            .scopes = {domain::signer::Scope::CastAdd,
+                       domain::signer::Scope::ReactionAdd},
+            .ttlSeconds = 3'600U,
+            .nonce = 7U,
+            .deadline = foundation::time::now() + std::chrono::hours{1},
+            .requestFid = domain::identity::Fid{42},
+        },
+        capability::signer::KeyAddAuthorization{
+            .custodySignature = std::string(65U, static_cast<char>(0x11)),
+            .signedKeyRequestMetadata = std::string(256U, static_cast<char>(0x22)),
+        },
+        signer);
+    assert(result);
+    assert(result->scopes.size() == 2U);
+    assert(transport.urls().size() == 2U);
+}
+
 void testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval()
 {
     FakeTransport transport{};
@@ -645,7 +700,7 @@ void testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval()
     assert(transport.posts().size() == 1U);
     assert(transport.posts().front().url == "https://validator.test/v1/submitMessage");
     assert(std::ranges::find(transport.posts().front().headers,
-        "X-Read-Token: read-test-value") == transport.posts().front().headers.end());
+        std::string{"X-Read-Token: read-test-value"}) == transport.posts().front().headers.end());
     assert(!transport.posts().front().body.empty());
     assert(transport.urls().size() == 1U);
 }
@@ -661,6 +716,7 @@ void testSelfRevokePollsUntilNetworkConfirmsRemoval()
             "key":"0x1111111111111111111111111111111111111111111111111111111111111111",
             "keyType":1,
             "fid":42,
+            "lastUsedAt":4102440000,
             "ttl":3600,
             "expiresAt":4102443600,
             "scopes":["MESSAGE_TYPE_CAST_ADD"],
@@ -764,6 +820,7 @@ int main()
     testConfigurationAndHttpErrors();
     testGaslessRegistrationSubmitsCanonicalEnvelopeAndReReadsNetwork();
     testGaslessRegistrationPollsUntilSignerIsObservable();
+    testGaslessRegistrationWaitsForNonceAndUsesUnorderedScopeSet();
     testSelfRevokeSubmitsCanonicalEnvelopeAndVerifiesRemoval();
     testSelfRevokePollsUntilNetworkConfirmsRemoval();
     testWriteRejectsSignerMismatchBeforeTransport();

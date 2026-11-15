@@ -426,6 +426,10 @@
             <source>Loading Streak…</source>
             <translation>Carregando sequência…</translation>
         </message>
+        <message id="genycaster.streak.verified_session_required">
+            <source>Streak requires a verified Genycaster account session. Enable device signing and retry; confirmed casts are queued securely until verification succeeds.</source>
+            <translation>O Streak exige uma sessão verificada do Genycaster. Ative a assinatura do dispositivo e tente novamente; os casts confirmados ficam na fila até a verificação.</translation>
+        </message>
         <message id="genycaster.streak.unavailable">
             <source>Streak is not available yet.</source>
             <translation>A sequência está indisponível no momento.</translation>
@@ -1099,6 +1103,22 @@ Company | https://company.com</source>
         <message id="genycaster.media.upload_protocol_failed">
             <source>Media gateway rejected the upload. Check the configured media service.</source>
             <translation>O gateway de mídia rejeitou o envio. Verifique a configuração do serviço.</translation>
+        </message>
+        <message id="genycaster.profile.username_proof_missing">
+            <source>This name has no registered ownership proof for your FID. Register it with the selected protocol's name registry first; setting a display name does not claim a username.</source>
+            <translation>Esse nome não tem prova de propriedade registrada para seu FID. Registre-o primeiro no registro de nomes do protocolo; nome de exibição não registra usuário.</translation>
+        </message>
+        <message id="genycaster.profile.native_username_registration_pending">
+            <source>A new HyperSnap-native username cannot be registered through Farcaster's fname service. This field only selects an already-proven name; native name registration needs protocol support.</source>
+            <translation>Não é possível registrar um novo nome nativo HyperSnap pelo serviço fname do Farcaster. Só é possível selecionar nomes com propriedade já comprovada.</translation>
+        </message>
+        <message id="genycaster.connections.manage_openproof_wallet">
+            <source>Manage OpenProof wallet connections</source>
+            <translation>Gerenciar conexões da carteira OpenProof</translation>
+        </message>
+        <message id="genycaster.connections.native_links_not_fid_verified">
+            <source>Opens your independent OpenProof wallet account. Links managed there are not yet verified connections to this HyperSnap-native FID.</source>
+            <translation>Abre sua conta independente da carteira OpenProof. As conexões ainda não estão verificadas para este FID nativo HyperSnap.</translation>
         </message>
         <message id="genycaster.profile.network_description">
             <source>Signed profile details are published to the selected protocol. Username is registered separately.</source>

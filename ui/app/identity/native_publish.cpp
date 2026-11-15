@@ -74,6 +74,19 @@ void HyperSnapRegistrationPublisher::setIdentityRuntimeReady(const bool ready)
     emit changed();
 }
 
+void HyperSnapRegistrationPublisher::verifyCustodyForSession(
+    const QString& custody,
+    std::function<void(std::optional<std::uint64_t>)> onResult)
+{
+    m_transport.lookupByCustody(custody,
+        [callback = std::move(onResult)](
+            HyperSnapRegistrationTransport::LookupResult result) mutable {
+            callback(result.state == HyperSnapRegistrationTransport::LookupState::Confirmed
+                && result.fid >= (1ULL << 32) && result.blockNumber > 0
+                    ? std::optional<std::uint64_t>{result.fid} : std::nullopt);
+        });
+}
+
 bool HyperSnapRegistrationPublisher::submitPrepared()
 {
     if (!m_registrationSupported || m_busy || m_pending || m_submitted || confirmed()
