@@ -4,11 +4,11 @@
 #include <cassert>
 #include <iostream>
 
-#include "../../src/application/registration_plan.hpp"
+import farcaster.application.registration_plan;
 
 int main()
 {
-    using namespace genycaster::identity;
+    using namespace farcaster::application::registration_plan;
     using A = RegistrationAction;
     using N = RegistrationNetwork;
     RegistrationReadiness state{};
