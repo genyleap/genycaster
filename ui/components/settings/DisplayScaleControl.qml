@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-NeonSurface {
+NeonCard {
     id: root
     interactive: true
     ambientNeon: true

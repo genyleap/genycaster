@@ -68,8 +68,10 @@ Button {
 
     background: NeonStatePlate {
         selected: control.segmented && control.selected
-        hovered: control.segmented && control.hovered && !control.selected
-        pressed: control.segmented && control.down
+        // Unsegmented tabs (Dashboard, Explorer, Composer) are interactive
+        // too. The old segmented-only predicate left them visually inert.
+        hovered: control.hovered
+        pressed: control.down
         focused: Theme.keyboardFocusVisible(control)
         selectedFill: Theme.surfaceRaised
         hoverFill: Theme.surfaceHover

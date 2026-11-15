@@ -449,8 +449,11 @@ Item {
             anchors.fill: parent
             onClicked: legalReader.close()
         }
-        Superellipse {
+        NeonCard {
             id: legalSurface
+            interactive: false
+            ambientNeon: true
+            neonStrength: Theme.neonPanelStrength
             z: 1
             x: root.phone ? 0 : (legalReader.width - width) / 2
             y: root.phone ? legalReader.height - height : (legalReader.height - height) / 2
@@ -1239,7 +1242,13 @@ Item {
                 Accessible.name: qsTrId("genycaster.setup.single_legal_consent")
                 Accessible.checked: root.consentChecked
                 onClicked: root.consentChecked = !root.consentChecked
-                background: Superellipse {
+                background: NeonSurface {
+                    interactive: consentCheck.enabled
+                    ambientNeon: root.consentChecked
+                    deferredNeon: !root.consentChecked
+                    focused: Theme.keyboardFocusVisible(consentCheck)
+                    externalHovered: consentCheck.hovered
+                    neonStrength: Theme.neonControlStrength
                     fillColor: consentCheck.down ? Theme.surfacePressed
                                : consentCheck.hovered ? Theme.surfaceHover
                                : Theme.surfaceMuted
@@ -1512,8 +1521,13 @@ Item {
                         color: Theme.warning
                         wrapMode: Text.WordWrap
                     }
-                    Superellipse {
+                    NeonCard {
                         visible: nativeCustodyWallet.recoveryVisible
+                        // The private phrase is display-only; the card has
+                        // stationary material, no pointer-driven animation.
+                        interactive: false
+                        ambientNeon: true
+                        neonStrength: Theme.neonPanelStrength
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.phone ? Theme.scaleUi(480) : Theme.scaleUi(260)
                         fillColor: Theme.surface
@@ -2326,7 +2340,22 @@ Item {
                                 placeholderText: ""
                                 Accessible.name: qsTrId("genycaster.setup.native_recovery_placeholder")
                                                  + " " + (index + 1)
-                                background: Superellipse {
+                                HoverHandler {
+                                    id: recoveryWordPointer
+                                    enabled: Theme.neonEnabled && wordField.enabled
+                                    blocking: false
+                                }
+                                background: NeonSurface {
+                                    interactive: wordField.enabled
+                                    deferredNeon: true
+                                    ambientNeon: wordField.activeFocus
+                                    focused: wordField.activeFocus
+                                    externalHovered: wordField.hovered
+                                    externalPointerX: recoveryWordPointer.hovered
+                                        ? recoveryWordPointer.point.position.x : width / 2
+                                    externalPointerY: recoveryWordPointer.hovered
+                                        ? recoveryWordPointer.point.position.y : height / 2
+                                    neonStrength: Theme.neonControlStrength
                                     fillColor: wordField.activeFocus
                                                ? Theme.surfaceHover : Theme.surface
                                     borderWidth: wordField.activeFocus ? 2 : Theme.strokeStandard
@@ -2651,7 +2680,12 @@ Item {
                         Accessible.name: modelData.label
                         Accessible.checked: chosen
                         onClicked: appearanceController.setThemeMode(modelData.key)
-                        background: Superellipse {
+                        background: NeonCard {
+                            interactive: appearanceChoice.enabled
+                            ambientNeon: appearanceChoice.chosen
+                            focused: Theme.keyboardFocusVisible(appearanceChoice)
+                            externalHovered: appearanceChoice.hovered
+                            neonStrength: Theme.neonCardStrength
                             fillColor: appearanceChoice.chosen ? Theme.surfaceMuted : Theme.surface
                             borderWidth: appearanceChoice.chosen ? 2 : 1
                             borderColor: appearanceChoice.chosen ? Theme.accent : Theme.borderMuted
@@ -2727,7 +2761,12 @@ Item {
                 Accessible.name: Theme.platformName + " " + Theme.platformAccentHex
                 Accessible.checked: chosen
                 onClicked: appearanceController.setColorThemeId("platform")
-                background: Superellipse {
+                background: NeonCard {
+                    interactive: setupPlatformColor.enabled
+                    ambientNeon: setupPlatformColor.chosen
+                    focused: Theme.keyboardFocusVisible(setupPlatformColor)
+                    externalHovered: setupPlatformColor.hovered
+                    neonStrength: Theme.neonCardStrength
                     fillColor: setupPlatformColor.chosen ? Theme.surfaceSelected : Theme.surfaceMuted
                     borderWidth: setupPlatformColor.chosen ? 2 : Theme.strokeHairline
                     borderColor: setupPlatformColor.chosen ? Theme.accent : Theme.borderSubtle
@@ -2787,8 +2826,12 @@ Item {
             Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 90
-                Superellipse {
+                NeonSurface {
                     id: completionBadge
+                    interactive: false
+                    ambientNeon: true
+                    inverted: true
+                    neonStrength: Theme.neonCardStrength
                     width: 66
                     height: 66
                     anchors.centerIn: parent

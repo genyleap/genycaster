@@ -24,7 +24,27 @@ Button {
                                         ? neutralPrimary ? Theme.surface : Theme.accentInk
                                         : Theme.inkDisabled
 
-    background: Superellipse {
+    HoverHandler {
+        id: primaryPointer
+        enabled: Theme.neonEnabled && root.enabled
+        blocking: false
+    }
+
+    background: NeonSurface {
+        interactive: root.enabled
+        ambientNeon: root.enabled
+        neonBusy: root.busy
+        inverted: root.neutralPrimary
+        focused: Theme.keyboardFocusVisible(root)
+        externalHovered: root.hovered
+        externalPointerX: primaryPointer.hovered ? primaryPointer.point.position.x : width / 2
+        externalPointerY: primaryPointer.hovered ? primaryPointer.point.position.y : height / 2
+        neonStrength: Theme.neonCardStrength
+        // White-on-dark primary buttons keep an accent reflection; the rim
+        // follows the button outline rather than painting a second rectangle.
+        neonColor: root.neutralPrimary
+                   ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.32)
+                   : "transparent"
         fillColor: !root.enabled
                    ? Theme.surfaceMuted
                    : root.neutralPrimary ? Theme.ink
@@ -36,9 +56,6 @@ Button {
         curveDepth: Theme.curveContainer
         elevation: root.enabled ? Theme.elevationControl : Theme.elevationNone
 
-        Behavior on fillColor {
-            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-        }
     }
 
     contentItem: RowLayout {

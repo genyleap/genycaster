@@ -4,7 +4,7 @@ import Farcaster.Client
 
 // Height derives from actual localized text, rather than forcing three rows
 // into a fixed 120px card at every font scale.
-NeonSurface {
+NeonCard {
     id: root
     interactive: true
     ambientNeon: true

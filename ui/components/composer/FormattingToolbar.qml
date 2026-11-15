@@ -3,8 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonPanelStrength
     property int activeBlockIndex: -1
     property var activeEditor: null
     property var editorHost: null

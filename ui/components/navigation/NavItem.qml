@@ -115,6 +115,9 @@ Button {
         NeonStatePlate {
             anchors.fill: parent
             selected: control.selected
+            // The Sidebar has its own proximity field and Halo; prevent a
+            // second reflection from the state-plate overlay.
+            neonOnHover: false
             hovered: control.hovered && !control.selected
             pressed: control.down
             focused: Theme.keyboardFocusVisible(control)

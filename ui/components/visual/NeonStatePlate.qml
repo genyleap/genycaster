@@ -1,9 +1,10 @@
 import QtQuick
 import Farcaster.Client
 
-// Faithful Genyleap Neon UI Kit state plate: selected, hover, and pressed
-// are independent opacity layers. Neon is NOT painted here: tabs and menu
-// rows should have crisp material transitions, not permanent luminous borders.
+// Kit material state plate: selected, hover, and pressed are independent
+// opacity layers. The glint is transient (never a permanent selected halo).
+// This is shared by Tabs, ComboBox menus and navigation to avoid one-off
+// implementations that never respond to pointer proximity.
 Item {
     id: plate
     property bool selected: false
@@ -12,6 +13,8 @@ Item {
     property bool focused: false
     property bool outlined: false
     property bool animatePaint: true
+    property bool neonOnHover: true
+    property real neonStrength: Theme.neonControlStrength
     property color selectedFill: Theme.primarySurface
     property color hoverFill: Theme.surfaceHover
     property color pressedFill: Theme.surfacePressed
@@ -54,12 +57,26 @@ Item {
         borderWidth: 0
         opacity: plate.pressed ? 1 : 0
     }
-    // Keyboard focus remains visible even with the Neon preference disabled.
-    Superellipse {
+    HoverHandler {
+        id: glintPointer
+        enabled: plate.neonOnHover && Theme.neonEnabled
+        blocking: false
+    }
+    // Focus is a distinct, accessible outline. The optional hover reflection
+    // is demand-loaded and fades when the pointer leaves.
+    NeonSurface {
         anchors.fill: parent
+        interactive: plate.neonOnHover
+        deferredNeon: true
+        ambientNeon: false
+        focused: plate.focused
+        externalHovered: plate.hovered && plate.neonOnHover
+        externalPointerX: glintPointer.hovered ? glintPointer.point.position.x : width / 2
+        externalPointerY: glintPointer.hovered ? glintPointer.point.position.y : height / 2
         fillColor: "transparent"
         borderWidth: plate.focused ? 2 : plate.outlined ? 1 : 0
         borderColor: plate.focused ? Theme.focus : plate.outlineColor
         curveDepth: plate.cornerRadius
+        neonStrength: plate.neonStrength
     }
 }

@@ -67,9 +67,16 @@ Button {
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
 
-    background: NeonSurface {
-        interactive: root.enabled && (root.accountShowcase || root.networkShowcase || root.primary)
-        ambientNeon: root.accountShowcase || root.networkShowcase || root.primary || root.selected
+    background: NeonCard {
+        // Every SetupActionCard is a real Button. Earlier only the account
+        // and protocol showcase variants got hover reflection, leaving sign-in,
+        // legal, provider and recovery choices completely inert.
+        interactive: root.enabled && !root.unavailable
+        ambientNeon: root.enabled
+                     && (root.accountShowcase || root.networkShowcase || root.primary
+                         || root.setupEmphasis || root.selected)
+        deferredNeon: !root.accountShowcase && !root.networkShowcase
+                      && !root.primary && !root.setupEmphasis && !root.selected
         neonBusy: root.busy
         inverted: root.primary && !root.neutralPrimary
         focused: Theme.keyboardFocusVisible(root)

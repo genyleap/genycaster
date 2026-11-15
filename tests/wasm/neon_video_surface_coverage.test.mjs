@@ -9,10 +9,10 @@ const read = path => readFileSync(path, 'utf8');
 test('Dashboard composer and four quick-access cards have Kit material', () => {
     const dashboard = read('ui/components/home/HomeDashboard.qml');
     const composer = read('ui/components/home/HomeComposer.qml');
-    assert.match(dashboard, /delegate: NeonSurface \{[\s\S]*?id: shortcut/);
+    assert.match(dashboard, /delegate: NeonCard \{[\s\S]*?id: shortcut/);
     assert.match(dashboard, /externalHovered: actionMouse\.containsMouse/);
     assert.match(dashboard, /externalPointerX: actionMouse\.mouseX/);
-    assert.match(dashboard, /component HomeActivityCard: NeonSurface \{/);
+    assert.match(dashboard, /component HomeActivityCard: NeonCard \{/);
     assert.match(dashboard, /id: desktopComposerSurface[\s\S]*?ambientNeon: true/);
     assert.match(dashboard, /NeonSurface \{[\s\S]*?id: mobileComposerSurface/);
     assert.match(composer, /^NeonSurface \{/m);
@@ -22,14 +22,14 @@ test('Dashboard composer and four quick-access cards have Kit material', () => {
 test('Right-hand Calendar, Assets, Feed and Market share a card material', () => {
     const rail = read('ui/components/navigation/ContextRail.qml');
     const pulse = read('ui/components/feed/FeedPulseCard.qml');
-    assert.match(rail, /component WidgetCard: NeonSurface \{/);
+    assert.match(rail, /component WidgetCard: NeonCard \{/);
     assert.match(rail, /default property alias content: body\.data/);
     assert.match(rail, /id: assetFront[\s\S]*?ambientNeon: true/);
     assert.match(pulse, /^NeonSurface \{/m);
     assert.match(pulse, /ambientNeon: true/);
     for(const file of ['MarketKpi','MarketTrend','StatsChart','StatsBreakdown']) {
         const source = read('ui/components/home/' + file + '.qml');
-        assert.match(source, /^NeonSurface \{/m, file);
+        assert.match(source, /^NeonCard \{/m, file);
         assert.match(source, /ambientNeon: true/, file);
     }
 });
@@ -54,7 +54,7 @@ test('Appearance drawer includes the visible setting and color picker panels', (
     }
     for (const name of ['DisplayScaleControl','PanelWidthControl']) {
         const source = read('ui/components/settings/'+name+'.qml');
-        assert.match(source, /^NeonSurface \{/m, name);
+        assert.match(source, /^NeonCard \{/m, name);
     }
 });
 

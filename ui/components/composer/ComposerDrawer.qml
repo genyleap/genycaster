@@ -841,7 +841,7 @@ GenyDrawer {
         y: parent ? (parent.height - height) / 2 : 0
         padding: Theme.space4
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Superellipse {
+        background: PopupSurface {
             fillColor: Theme.surfaceElevated
             borderWidth: 1
             borderColor: Theme.borderStrong
@@ -1021,9 +1021,12 @@ GenyDrawer {
                     onClicked: channelPicker.close()
                 }
             }
-            Superellipse {
+            NeonSurface {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
+                interactive: true
+                ambientNeon: channelSearch.activeFocus
+                neonStrength: Theme.neonControlStrength
                 fillColor: Theme.editorSurface
                 borderWidth: 1
                 borderColor: channelSearch.activeFocus ? Theme.accent : Theme.borderMuted
@@ -1757,8 +1760,12 @@ GenyDrawer {
             x: sideMargin
             spacing: root.keyboardVisible ? Theme.space2 : Theme.space3
 
-            Superellipse {
+            NeonCard {
                 id: replyContextCard
+                interactive: true
+                ambientNeon: true
+                externalHovered: replyContextHover.hovered
+                neonStrength: Theme.neonCardStrength
                 visible: root.replyMode || root.quoteMode
                 Layout.fillWidth: true
                 // Keep the parent/quoted Cast readable even with the keyboard
@@ -1967,10 +1974,15 @@ GenyDrawer {
                     sourceUrl: String(presentationBridge.accountAvatarUrl || "")
                     displayName: String(presentationBridge.accountName || "")
                 }
-                Superellipse {
+                NeonSurface {
                     visible: root.editorMode !== "preview"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    // Keep the mobile editor edge entirely clear; on desktop
+                    // the editor's own background owns focus and pointer rim.
+                    interactive: !root.compact
+                    ambientNeon: !root.compact && root.editorMode === "visual"
+                    neonStrength: Theme.neonPanelStrength
                     fillColor: root.compact ? "transparent" : Theme.editorSurface
                     borderWidth: root.compact ? 0 : Theme.strokeHairline
                     borderColor: Theme.borderSubtle
@@ -2180,7 +2192,11 @@ GenyDrawer {
                             }
                         }
 
-                        Superellipse {
+                        NeonSurface {
+                            interactive: true
+                            deferredNeon: true
+                            ambientNeon: threadEditor.activeFocus
+                            neonStrength: Theme.neonControlStrength
                             Layout.fillWidth: true
                             Layout.minimumWidth: 0
                             Layout.preferredHeight: Math.max(118, Math.min(210, threadEditor.contentHeight + Theme.space5))
@@ -2320,8 +2336,12 @@ GenyDrawer {
                 Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 Layout.preferredWidth: 0
-                Superellipse {
+                NeonSurface {
                     anchors.fill: parent
+                    interactive: true
+                    deferredNeon: true
+                    ambientNeon: root.selectedParentUrl.length > 0
+                    neonStrength: Theme.neonControlStrength
                     curveDepth: Theme.curveControl
                     fillColor: root.selectedParentUrl.length > 0
                                ? Theme.primarySurface : Theme.surfaceMuted

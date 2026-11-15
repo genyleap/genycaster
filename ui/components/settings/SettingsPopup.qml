@@ -519,15 +519,16 @@ GenyDrawer {
                 elide: Text.ElideRight
             }
         }
-        background: Superellipse {
-            fillColor: navTab.selected ? Theme.surfaceSelected
-                       : navTab.hovered ? Theme.surfaceHover : "transparent"
-            borderWidth: navTab.activeFocus && Theme.keyboardFocusVisible(navTab) ? 1 : 0
-            borderColor: Theme.focus
-            curveDepth: Theme.curveControl
-            Behavior on fillColor {
-                ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-            }
+        background: NeonStatePlate {
+            selected: navTab.selected
+            hovered: navTab.hovered
+            pressed: navTab.down
+            focused: Theme.keyboardFocusVisible(navTab)
+            selectedFill: Theme.surfaceSelected
+            hoverFill: Theme.surfaceHover
+            pressedFill: Theme.surfacePressed
+            cornerRadius: Theme.curveControl
+            neonOnHover: true
             Rectangle {
                 visible: navTab.selected
                 width: 3
@@ -1154,6 +1155,20 @@ GenyDrawer {
                                     Accessible.name: String(modelData.label)
                                     Accessible.checked: selected
 
+                                    // Palette selection is shown by its own
+                                    // circular ring. This plate only adds the
+                                    // shared transient glint on pointer entry.
+                                    NeonStatePlate {
+                                        anchors.fill: parent
+                                        selected: false
+                                        hovered: presetHover.hovered
+                                        pressed: false
+                                        selectedFill: "transparent"
+                                        hoverFill: Theme.surfaceHover
+                                        cornerRadius: Theme.curveControl
+                                        neonOnHover: true
+                                        neonStrength: Theme.neonControlStrength
+                                    }
                                     ColumnLayout {
                                         anchors.fill: parent
                                         spacing: Theme.space1

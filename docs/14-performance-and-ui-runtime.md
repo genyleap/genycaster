@@ -662,3 +662,39 @@ lightweight CI gate. `qmlcachegen` of the touched components and
 Qt Quick/Xvfb screenshots with an overlaid MouseArea verify source
 compatibility and real pointer glints, but do not substitute for an
 end-to-end macOS UI test, particularly under Metal and HiDPI.
+
+### Onboarding-to-composer Neon coverage — 2026-11-15 follow-up
+
+The 93-second desktop recording (2026-11-15 12-20-36.mp4) shows that
+the old `SetupPrimaryButton` and 24 native recovery fields still used
+plain Superellipse backgrounds, `SetupActionCard` enabled its neon only
+for showcase/primary variants, and the language wheel, consent, theme
+selection, Composer editing surfaces and menu tabs were inconsistent.
+
+Instead of giving every icon and separator its own shader, a semantic
+`NeonCard` derives from the shared `NeonSurface`; actual cards and panels
+opt into the common ambient rim, pointer coordinates, focus and fading.
+The small decorations, chart dots, data skeletons and media textures
+remain plain and do not allocate GPU effects.
+
+Setup now gives the primary CTA, all enabled account/provider/legal
+choices, language wheel, consent button, 24 sensitive recovery inputs,
+appearance choices, completion badge and recovery-phrase display the
+appropriate semantic material. Recovery words never enter any shader
+property; the ambient recovery card is display-only.
+
+`NeonStatePlate` preserves selection, pressed, hover and focus layers
+while adding a *transient* demand-loaded glint, including unsegmented
+GenyTabButtons, Settings navigation and palette swatches. Sidebar
+items disable the duplicate plate glow because their own shared
+proximity halo already owns it.
+
+Composer uses Neon surfaces for its toolbar, media/insert panels,
+quoted-Cast context, desktop editor container, channel search, thread
+editors and clear-confirmation popup. The underlying editable text
+and native input context remain unmodified.
+
+Coverage source tests are in neon_global_setup_coverage.test.mjs and
+the existing Neon contract suites. Live macOS/Metal/HiDPI visuals
+and platform performance still need a device smoke run; source tests
+must not be presented as equivalent to visual approval.

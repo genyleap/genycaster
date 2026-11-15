@@ -3,8 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonCard {
     id: root
+    interactive: true
+    ambientNeon: true
+    neonStrength: Theme.neonPanelStrength
 
     property string kind: ""
     property int blockIndex: -1

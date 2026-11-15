@@ -200,7 +200,7 @@ Item {
                             ? qsTrId("genycaster.pro.get_pro")
                             : qsTrId("genycaster.pro.check_status"), glyph: Theme.iconSpark }
                 ]
-                delegate: NeonSurface {
+                delegate: NeonCard {
                     id: shortcut
                     interactive: !locked && !root.compact
                     ambientNeon: true
@@ -286,7 +286,7 @@ Item {
 
     // Replaces the promotional GENY carousel with an actionable, live inbox
     // entry. No fabricated prices, counters, or automatic animation loops.
-    component HomeActivityCard: NeonSurface {
+    component HomeActivityCard: NeonCard {
         id: activityCard
         interactive: true
         ambientNeon: true

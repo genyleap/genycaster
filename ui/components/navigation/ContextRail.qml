@@ -123,7 +123,7 @@ Item {
         return suggestedComponent
     }
 
-    component WidgetCard: NeonSurface {
+    component WidgetCard: NeonCard {
         id: card
         interactive: true
         ambientNeon: true

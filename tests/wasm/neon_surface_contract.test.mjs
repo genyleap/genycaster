@@ -66,8 +66,11 @@ test('Neon is a persistent, power-aware, reduced-motion aware user preference', 
     assert.match(settings, /onToggled: Theme\.setNeonEnabled\(checked\)/);
     assert.match(plate, /NeonSurface \{/);
     assert.match(material, /sourceComponent: NeonHalo \{/);
-    // GenyHub's selection plates are crisp; only interactive surfaces glow.
-    assert.doesNotMatch(statePlate, /NeonSurface \{/);
+    // State plates preserve crisp selection paint while the hover glint is
+    // demand-loaded, never a permanent selected outline.
+    assert.match(statePlate, /NeonSurface \{/);
+    assert.match(statePlate, /deferredNeon: true/);
+    assert.match(statePlate, /ambientNeon: false/);
     assert.match(statePlate, /borderWidth: plate\.focused \? 2/);
     assert.match(halo, /running: root\.activityActive && root\.visible && Theme\.neonMotionEnabled/);
     assert.match(halo, /readonly property bool tracking: Theme\.neonEnabled && \(active \|\| hovered\)/);
@@ -93,10 +96,11 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     const field = read('ui/components/controls/BidiTextField.qml');
     const combo = read('ui/components/controls/GenyComboBox.qml');
     const switchControl = read('ui/components/controls/GenySwitch.qml');
-    for (const component of [action, popup, choice, stats, pulse,
+    for (const component of [action, popup, stats, pulse,
                              compose, compactMobile, mobileDock, field, switchControl]) {
         assert.match(component, /NeonSurface \{/);
     }
+    assert.match(choice, /background: NeonCard \{/);
     for (const component of [tab, desktopNav, combo]) {
         assert.match(component, /NeonStatePlate \{/);
     }
@@ -115,7 +119,8 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     assert.match(plate, /fillColor: "transparent"/);
     assert.match(action, /ambientNeon: control\.prominent \|\| control\.selected/);
     assert.match(action, /externalHovered: control\.hovered && !control\.mobileViewport/);
-    assert.match(choice, /ambientNeon: root\.accountShowcase/);
+    assert.match(choice, /ambientNeon: root\.enabled/);
+    assert.match(choice, /interactive: root\.enabled && !root\.unavailable/);
     assert.match(stats, /ambientNeon: true/);
     assert.match(pulse, /neonBusy: root\.loading/);
     assert.match(compose, /ambientNeon: true/);

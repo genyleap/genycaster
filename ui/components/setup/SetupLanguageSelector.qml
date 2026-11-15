@@ -88,10 +88,13 @@ Item {
             Layout.preferredHeight: root.narrow ? 328 : 356
             Layout.bottomMargin: root.narrow ? Theme.space3 : Theme.space4
 
-            Superellipse {
+            NeonCard {
                 anchors.centerIn: parent
                 width: Math.min(parent.width, root.narrow ? 340 : 400)
                 height: root.rowHeight - 4
+                interactive: true
+                ambientNeon: true
+                neonStrength: Theme.neonControlStrength
                 fillColor: Theme.surfaceMuted
                 borderColor: root.storyboard ? "transparent" : Theme.borderMuted
                 borderWidth: Theme.strokeStandard
@@ -143,6 +146,26 @@ Item {
                     Accessible.role: Accessible.RadioButton
                     Accessible.name: modelData.language
                     Accessible.checked: selected
+
+                    // The wheel retains its centered selected backdrop, but
+                    // every language can now respond to pointer proximity.
+                    HoverHandler {
+                        id: languagePointer
+                        enabled: Theme.neonEnabled && !picker.moving
+                        blocking: false
+                    }
+                    NeonStatePlate {
+                        anchors.fill: parent
+                        selected: false
+                        hovered: languagePointer.hovered
+                        pressed: false
+                        outlined: false
+                        neonOnHover: true
+                        neonStrength: Theme.neonControlStrength
+                        hoverFill: Theme.surfaceHover
+                        cornerRadius: Theme.curveControl
+                        opacity: languageRow.selected ? 0.42 : 0.80
+                    }
 
                     RowLayout {
                         anchors.fill: parent

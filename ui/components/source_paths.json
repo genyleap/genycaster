@@ -112,6 +112,7 @@
   "MobileCreateMenu.qml": "navigation/MobileCreateMenu.qml",
   "ModalHeader.qml": "controls/ModalHeader.qml",
   "NavItem.qml": "navigation/NavItem.qml",
+  "NeonCard.qml": "visual/NeonCard.qml",
   "NeonHalo.qml": "visual/NeonHalo.qml",
   "NeonStatePlate.qml": "visual/NeonStatePlate.qml",
   "NeonSurface.qml": "visual/NeonSurface.qml",

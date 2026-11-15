@@ -24,9 +24,20 @@ Button {
     Accessible.name: label
     Accessible.checked: checked
 
-    // A recovery phrase is sensitive: no full-row hover plate or animation.
-    // The entire row remains a keyboard and pointer accessible hit target.
-    background: Item {}
+    // The recovery words themselves stay private. The opt-in row only
+    // shows a subtle transient focus/hover response, not permanent glow.
+    background: NeonSurface {
+        interactive: control.enabled
+        deferredNeon: true
+        ambientNeon: false
+        focused: Theme.keyboardFocusVisible(control)
+        externalHovered: control.hovered
+        fillColor: control.down ? Theme.surfacePressed
+                   : control.hovered ? Theme.surfaceHover : "transparent"
+        borderWidth: 0
+        curveDepth: Theme.curveControl
+        neonStrength: Theme.neonControlStrength
+    }
 
     contentItem: RowLayout {
         id: choiceContent
