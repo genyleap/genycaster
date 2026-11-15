@@ -203,9 +203,15 @@ class PipelineTests(unittest.TestCase):
         actions = (qml / "controls/ActionButton.qml").read_text(encoding="utf-8")
         self.assertIn("ColorAnimation", shared_tabs)
         self.assertIn("ColorAnimation", actions)
-        self.assertIn("Theme.surfaceRaised", shared_tabs)
-        self.assertNotIn("Theme.surfaceHover", shared_tabs)
-        self.assertIn('fillColor: control.segmented && control.selected', shared_tabs)
+        # NeonStatePlate now owns the hover and selection material. The old
+        # text-only predicate was intentionally replaced by the shared state
+        # surface; preserve its behavior instead of blocking the new design.
+        self.assertIn("background: NeonStatePlate", shared_tabs)
+        self.assertIn("selected: control.segmented && control.selected", shared_tabs)
+        self.assertIn("hovered: control.hovered", shared_tabs)
+        self.assertIn("selectedFill: Theme.surfaceRaised", shared_tabs)
+        self.assertIn("hoverFill: Theme.surfaceHover", shared_tabs)
+        self.assertIn("visible: !control.segmented && control.showSelectionIndicator", shared_tabs)
         avatar = (qml / "content/Avatar.qml").read_text(encoding="utf-8")
         story = (qml / "feed/StoryItem.qml").read_text(encoding="utf-8")
         self.assertIn("visible: !avatarImage.ready", avatar)
