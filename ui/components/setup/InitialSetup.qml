@@ -1475,6 +1475,7 @@ Item {
                         wrapMode: Text.WordWrap
                     }
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         visible: root.confirmWalletReplacement
                         Layout.fillWidth: true
                         spacing: Theme.space2
@@ -1638,6 +1639,7 @@ Item {
                             wrapMode: Text.WordWrap
                         }
                         GridLayout {
+                            layoutDirection: Theme.uiDirection
                             columns: root.phone ? 1 : 2
                             Layout.fillWidth: true
                             columnSpacing: Theme.space2
@@ -2731,6 +2733,7 @@ Item {
                         }
                         contentItem: Item {
                             RowLayout {
+                                layoutDirection: Theme.uiDirection
                                 visible: root.phone
                                 anchors.fill: parent
                                 anchors.leftMargin: Theme.space3
