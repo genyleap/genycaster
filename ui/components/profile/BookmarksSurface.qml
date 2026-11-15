@@ -341,6 +341,7 @@ Flickable {
             elide: Text.ElideRight
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             visible: root.activeCollectionEntry !== null
             spacing: Theme.space2
@@ -446,6 +447,7 @@ Flickable {
         }
 
         GridLayout {
+            layoutDirection: Theme.uiDirection
             id: savedCastsGrid
             objectName: "desktopBookmarkGrid"
             Layout.fillWidth: true

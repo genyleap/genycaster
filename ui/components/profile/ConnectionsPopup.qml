@@ -274,6 +274,7 @@ GenyDrawer {
                 implicitHeight: 28
                 implicitWidth: verifiedRow.implicitWidth + Theme.space3 * 2
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     id: verifiedRow
                     anchors.centerIn: parent
                     spacing: Theme.space1
@@ -339,6 +340,7 @@ GenyDrawer {
         }
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             objectName: "connectionsProGatingBanner"
             visible: picker.authorized && !picker.proEligible
             Layout.fillWidth: true
@@ -602,6 +604,7 @@ GenyDrawer {
                                     font.pixelSize: Theme.typeCaptionSize
                                 }
                                 RowLayout {
+                                    layoutDirection: Theme.uiDirection
                                     Layout.fillWidth: true
                                     spacing: Theme.space2
                                     DirectionAwareTextField {

@@ -621,6 +621,7 @@ GenyDrawer {
                     }
 
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Repeater {
@@ -818,6 +819,7 @@ GenyDrawer {
                     }
 
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         ProTokenMark {
@@ -857,6 +859,7 @@ GenyDrawer {
                         borderWidth: Theme.strokeHairline
                         curveDepth: Theme.curveCompact
                         RowLayout {
+                            layoutDirection: Theme.uiDirection
                             id: validityRow
                             anchors.left: parent.left
                             anchors.right: parent.right
@@ -992,6 +995,7 @@ GenyDrawer {
                             elide: Text.ElideMiddle
                         }
                         RowLayout {
+                            layoutDirection: Theme.uiDirection
                             Layout.fillWidth: true
                             spacing: Theme.space2
                             ActionButton {

@@ -17,6 +17,7 @@ ColumnLayout {
     }
 
     GridLayout {
+        layoutDirection: Theme.uiDirection
         Layout.fillWidth: true
         columns: root.width < 600 ? 2 : 4
         columnSpacing: Theme.space2

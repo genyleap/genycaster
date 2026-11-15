@@ -85,6 +85,7 @@ Superellipse {
                             }
                         }
                         RowLayout {
+                            layoutDirection: Theme.uiDirection
                             Layout.fillWidth: true
                             spacing: Theme.space3
                             Repeater {
@@ -94,6 +95,7 @@ Superellipse {
                                     { icon: Theme.iconComment, amount: castRow.modelData.replies }
                                 ]
                                 delegate: RowLayout {
+                                    layoutDirection: Theme.uiDirection
                                     required property var modelData
                                     spacing: Theme.space1
                                     Icon {

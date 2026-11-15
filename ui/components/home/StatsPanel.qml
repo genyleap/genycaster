@@ -531,6 +531,7 @@ ColumnLayout {
         }
 
         GridLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             columns: root.compact || root.width < 660 ? 2 : 4
             columnSpacing: Theme.space2
@@ -590,6 +591,7 @@ ColumnLayout {
         }
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
 

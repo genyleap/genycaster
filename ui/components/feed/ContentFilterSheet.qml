@@ -203,6 +203,7 @@ GenyDrawer {
             color: Theme.divider
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             spacing: Theme.space2

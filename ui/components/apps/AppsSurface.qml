@@ -866,6 +866,7 @@ Item {
                                 // store grid footprint, not jump from a tall card
                                 // layout to 3 columns when the response arrives.
                                 RowLayout {
+                                    layoutDirection: Theme.uiDirection
                                     visible: root.compact
                                     anchors.fill: parent
                                     anchors.margins: Theme.space2
@@ -1124,6 +1125,7 @@ Item {
                                                     onClicked: root.openApp(cardCell.modelData)
                                                 }
                                                 RowLayout {
+                                                    layoutDirection: Theme.uiDirection
                                                     Layout.alignment: Qt.AlignVCenter
                                                     spacing: Theme.space1
                                                     ActionButton {

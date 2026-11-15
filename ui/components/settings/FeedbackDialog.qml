@@ -101,6 +101,7 @@ GenyAdaptiveDialog {
         }
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             objectName: "feedbackTabBar"
             Layout.fillWidth: true
             spacing: Theme.space4
@@ -184,6 +185,7 @@ GenyAdaptiveDialog {
                             font.weight: Theme.weightDemiBold
                         }
                         GridLayout {
+                            layoutDirection: Theme.uiDirection
                             Layout.fillWidth: true
                             columns: 3
                             uniformCellWidths: true
@@ -252,6 +254,7 @@ GenyAdaptiveDialog {
                                 anchors.margins: Theme.space3
                                 spacing: Theme.space2
                                 RowLayout {
+                                    layoutDirection: Theme.uiDirection
                                     Layout.fillWidth: true
                                     spacing: Theme.space2
                                     DirectionAwareLabel {
