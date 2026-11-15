@@ -2019,8 +2019,8 @@ Item {
                             width: implicitWidth
                             height: implicitHeight
                             radius: implicitHeight / 2
-                            color: Theme.dark ? "#342812" : "#FFF6DE"
-                            border.color: "#D6A435"
+                            color: Theme.verifiedGenyBadgeBackground
+                            border.color: Theme.verifiedGenyBadgeBorder
                             border.width: 1
                             Row {
                                 id: holderBadgeContent
@@ -2028,13 +2028,13 @@ Item {
                                 spacing: Theme.space1
                                 Icon {
                                     text: Theme.iconCheck
-                                    color: Theme.dark ? "#F5CD66" : "#956A0B"
+                                    color: Theme.verifiedGenyBadgeInk
                                     preferredSize: Theme.typeCaptionSize
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Label {
                                     text: qsTrId("genycaster.brand.geny_ticker")
-                                    color: Theme.dark ? "#F5CD66" : "#956A0B"
+                                    color: Theme.verifiedGenyBadgeInk
                                     font.pixelSize: Theme.typeCaptionSize
                                     font.weight: Theme.weightBold
                                 }
