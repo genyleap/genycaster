@@ -44,7 +44,8 @@ NeonSurface {
 
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName : qsTrId("genycaster.side_nav.no_identity_open")
-    readonly property string shownUsername: root.username.length > 0 ? root.username : "genycaster"
+    readonly property string shownUsername: /^fid:[0-9]+$/i.test(root.username.trim())
+                                            ? "" : root.username.trim()
     readonly property real contentPadding: root.compact ? Theme.space2 : Theme.space4
     // Window resizing changes line breaking while Qt is still negotiating
     // the sidebar width. Commit a measured height after layout settles,
@@ -216,7 +217,8 @@ NeonSurface {
                     Label {
                         Layout.fillWidth: true
                         LayoutMirroring.enabled: false
-                        text: "@" + root.shownUsername
+                        visible: root.shownUsername.length > 0
+                        text: root.shownUsername.length > 0 ? "@" + root.shownUsername : ""
                         color: Theme.textTertiary
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize
@@ -462,7 +464,8 @@ NeonSurface {
                     Label {
                         Layout.fillWidth: true
                         LayoutMirroring.enabled: false
-                        text: "@" + root.shownUsername
+                        visible: root.shownUsername.length > 0
+                        text: root.shownUsername.length > 0 ? "@" + root.shownUsername : ""
                         color: Theme.textTertiary
                         font.family: Theme.latinFontFamily
                         font.pixelSize: Theme.typeCaptionSize

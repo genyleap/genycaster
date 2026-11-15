@@ -3,6 +3,7 @@ module;
 #include <boost/json.hpp>
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cctype>
@@ -88,6 +89,22 @@ using JsonValue = boost::json::value;
     }
     if (value->is_int64() && value->as_int64() >= 0) {
         return static_cast<std::uint64_t>(value->as_int64());
+    }
+    // JSON gateways can serialize uint64 FIDs as decimal strings to avoid
+    // JavaScript's 53-bit integer precision limit. Reject signs, whitespace,
+    // fractions and overflow instead of silently coercing malformed IDs.
+    if (value->is_string()) {
+        const std::string_view digits{value->as_string().data(), value->as_string().size()};
+        if (!digits.empty() && std::ranges::all_of(digits, [](const char digit) {
+                return digit >= '0' && digit <= '9';
+            })) {
+            std::uint64_t parsed = 0;
+            const auto [end, error] = std::from_chars(
+                digits.data(), digits.data() + digits.size(), parsed);
+            if (error == std::errc{} && end == digits.data() + digits.size()) {
+                return parsed;
+            }
+        }
     }
     return std::unexpected(protocolError(
         std::string{context} + "." + std::string{key} + " must be a non-negative integer."));

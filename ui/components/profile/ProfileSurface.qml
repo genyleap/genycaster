@@ -3470,7 +3470,8 @@ Item {
                                  }
                                  DirectionAwareLabel {
                                      Layout.fillWidth: true
-                                     text: "@" + String(root.activeDetail.username || "")
+                                     visible: root.showUsername
+                                     text: root.showUsername ? "@" + String(root.activeDetail.username) : ""
                                      color: Theme.textSecondary
                                      font.pixelSize: Theme.typeCaptionSize
                                      elide: Text.ElideRight

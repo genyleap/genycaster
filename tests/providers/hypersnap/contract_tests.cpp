@@ -77,6 +77,18 @@ void testCanonicalCodec()
     auto user = provider::hypersnap::codec::decodeUser(test::hypersnap::fixtures::userResponse());
     assert(user);
     assert(user->fid.value == 42);
+    // HyperSnap gateways may JSON-encode 64-bit FIDs as decimal strings.
+    const auto stringFid = provider::hypersnap::codec::decodeUser(
+        R"json({"user":{"fid":"4294967296"}})json");
+    assert(stringFid && stringFid->fid.value == 4294967296ULL);
+    for (const auto malformed : {
+             R"json({"user":{"fid":"-1"}})json",
+             R"json({"user":{"fid":"1.5"}})json",
+             R"json({"user":{"fid":"18446744073709551616"}})json",
+             R"json({"user":{"fid":" 42"}})json",
+             R"json({"user":{"fid":"42abc"}})json"}) {
+        assert(!provider::hypersnap::codec::decodeUser(malformed));
+    }
     assert(user->username && user->username->value == "alice");
     assert(user->displayName && user->displayName->value == "Alice");
     assert(user->bio == "hello from hypersnap");

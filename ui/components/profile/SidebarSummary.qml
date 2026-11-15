@@ -22,7 +22,8 @@ Superellipse {
     readonly property string shownName: root.displayName.length > 0
                                         ? root.displayName
                                         : qsTrId("genycaster.side_nav.no_identity_open")
-    readonly property string shownUsername: root.username
+    readonly property string shownUsername: /^fid:[0-9]+$/i.test(root.username.trim())
+                                            ? "" : root.username.trim()
     readonly property bool verified: root.ownsDetail && Boolean(root.profileDetail.verified || false)
 
     implicitHeight: root.compact ? 52 : 60
@@ -81,10 +82,10 @@ Superellipse {
             }
 
             Label {
-                visible: root.authenticated
+                visible: root.authenticated && root.shownUsername.trim().length > 0
                 Layout.fillWidth: true
                 LayoutMirroring.enabled: false
-                text: "@" + root.shownUsername
+                text: root.shownUsername.trim().length > 0 ? "@" + root.shownUsername.trim() : ""
                 color: Theme.textTertiary
                 font.family: Theme.latinFontFamily
                 font.pixelSize: Theme.typeCaptionSize
