@@ -34,6 +34,8 @@ CHECKS: tuple[tuple[str, tuple[str, ...]], ...] = (
      ("node", "--test", "tests/wasm/native_executable_and_platform_scope.test.mjs")),
     ("Provider-neutral identity presentation and native signer authorization",
      ("node", "--test", "tests/wasm/provider_neutral_identity_presentation.test.mjs")),
+    ("Verified profile FID namespace and localized fallback",
+     ("node", "--test", "tests/wasm/profile_fid_namespace_label_contract.test.mjs")),
     ("Native custody worker lifetime contracts",
      ("node", "--test", "tests/wasm/native_custody_worker_lifetime.test.mjs")),
     ("Browser startup and Mini App identity contracts",

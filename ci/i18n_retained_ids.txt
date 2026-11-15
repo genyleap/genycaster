@@ -60,6 +60,7 @@ genycaster.nodes.health_explain
 genycaster.notifications.filter_reactions
 genycaster.notifications.filter_replies
 genycaster.profile.avatar
+genycaster.profile.farcaster_profile
 genycaster.profile.banner
 genycaster.profile.image_preview_hint
 genycaster.profile.open_profile_link
