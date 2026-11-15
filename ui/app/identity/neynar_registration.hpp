@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/neynar_registration.hpp
+ * @brief       Farcaster registration transport contracts for Neynar.
+ *
+ * @details
+ * Defines the paid reservation and chain-confirmation transport boundary.
+ * Keeps voucher authorization distinct from on-chain custody ownership.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QJsonObject>
