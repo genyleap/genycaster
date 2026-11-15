@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>Iluminação neon nas bordas</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>Reflexos suaves por GPU em cartões e diálogos; pausados no modo economia de energia.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>Reflexos neon em botões, cartões e diálogos. A economia de energia pausa o movimento, não o brilho.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

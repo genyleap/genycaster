@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>霓虹边缘光效</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>为卡片和对话框添加柔和的 GPU 反光；节能模式下暂停。</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>按钮、卡片和对话框采用霓虹反光效果。节能模式只暂停动态光效，保留静态光晕。</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

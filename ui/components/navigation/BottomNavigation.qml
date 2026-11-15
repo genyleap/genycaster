@@ -91,6 +91,19 @@ Item {
                 ? (Theme.dark ? "#24FFFFFF" : "#1E252C3C") : "transparent"
             borderWidth: 0
             scale: destination.down ? 0.96 : destination.active ? 1 : 0.93
+
+            Loader {
+                anchors.fill: parent
+                active: Theme.neonEnabled && destination.active
+                sourceComponent: NeonHalo {
+                    ambient: true
+                    cornerRadius: height / 2
+                    tintColor: Qt.rgba(Theme.navigationGlassInk.r,
+                                       Theme.navigationGlassInk.g,
+                                       Theme.navigationGlassInk.b, 0.40)
+                }
+            }
+
             Behavior on fillColor {
                 enabled: root.animateDock
                 ColorAnimation { duration: 185; easing.type: Easing.OutCubic }

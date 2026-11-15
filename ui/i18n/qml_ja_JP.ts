@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>ネオンエッジライト</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>カードとダイアログに控えめなGPUの反射光。省電力モードでは停止します。</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>ボタン、カード、ダイアログにネオンの反射光を表示。省電力モードでは動きだけを停止します。</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

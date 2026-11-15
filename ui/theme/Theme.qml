@@ -13,13 +13,16 @@ QtObject {
         property bool animateEmoji: true
     }
     // The Neon Kit is a decorative, user-controlled surface treatment.
-    // Suspend the GPU rim shaders in energy-saving mode; this never changes
-    // business state, provider routing or authentication.
+    // Neon is a distinct appearance choice, never silently disabled by a
+    // separate energy-saving preference. Power saving suppresses animation
+    // and dynamic sampling while retaining a static rim so the user can
+    // actually see the selected visual style.
     property Settings neonPreferences: Settings {
         category: "NeonSurfaces"
         property bool enabled: true
     }
-    readonly property bool neonEnabled: neonPreferences.enabled && !powerSave
+    readonly property bool neonEnabled: neonPreferences.enabled
+    readonly property bool neonMotionEnabled: neonEnabled && !reduceMotion && !powerSave
     function setNeonEnabled(enabled) { neonPreferences.enabled = Boolean(enabled) }
     // Device-local, user-customizable mobile Action Button.
     // Persist only allowlisted capabilities, never executable commands.

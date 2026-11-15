@@ -20,6 +20,11 @@ Button {
     width: implicitWidth
     height: implicitHeight
     hoverEnabled: true
+    HoverHandler {
+        id: composePointer
+        enabled: Theme.neonEnabled
+        blocking: false
+    }
     containmentMask: background
     Accessible.name: control.labelText
     leftPadding: expanded ? Theme.space3 : 0
@@ -73,6 +78,17 @@ Button {
         elevation: Theme.elevationPopover
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.40 : (control.hovered ? 1.08 : 0.94)
+
+        NeonHalo {
+            anchors.fill: parent
+            ambient: true
+            active: control.hovered
+            pointerX: composePointer.hovered ? composePointer.point.position.x : width / 2
+            pointerY: composePointer.hovered ? composePointer.point.position.y : height / 2
+            cornerRadius: control.height / 2
+            strength: Theme.dark ? 1 : 0.88
+            tintColor: Qt.rgba(1, 1, 1, 0.42)
+        }
     }
 
     onHoveredChanged: {

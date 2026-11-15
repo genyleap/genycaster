@@ -32,6 +32,11 @@ Button {
 
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
+    HoverHandler {
+        id: cardPointer
+        enabled: Theme.neonEnabled
+        blocking: false
+    }
     implicitHeight: Math.max(accountShowcase ? 182 : networkShowcase ? 120
                              : compactCard ? 62 : onboardingStyle ? 78 : 96,
                              contentItem.implicitHeight + topPadding + bottomPadding)
@@ -86,8 +91,16 @@ Button {
         NeonHalo {
             anchors.fill: parent
             ambient: root.networkShowcase && root.selected
-            interactive: root.accountShowcase || root.networkShowcase
+                     || root.accountShowcase || root.primary
+            active: root.hovered
+            interactive: false
             activity: root.busy
+            pointerX: cardPointer.hovered ? cardPointer.point.position.x : width / 2
+            pointerY: cardPointer.hovered ? cardPointer.point.position.y : height / 2
+            strength: Theme.dark ? 0.98 : 0.79
+            tintColor: root.selected
+                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.48)
+                       : "transparent"
             cornerRadius: parent.curveDepth
             borderInset: parent.borderWidth / 2
         }

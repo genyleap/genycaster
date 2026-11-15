@@ -524,12 +524,19 @@ own `Theme`, superellipse renderer, typography, accent and layout policies.
   `Window.contentItem`, `Overlay.overlay`, or the popup itself. Callers
   directly hosted on Overlay must supply the real workspace explicitly.
   Changing the source hierarchy requires a recursion/hidden-content audit.
-- The shared `PopupSurface` and the account/network setup cards use the
-  UI Kit-inspired Neon edge shader. Hover is passive; activity orbits only
-  for genuine busy state. Reduced Motion removes the orbit, and the
-  persisted `Appearance → Neon edge lighting` preference can disable
-  decorative shader output. Energy-saving mode suspends Neon regardless
-  of the saved preference. No per-feed-row permanent animation is allowed.
+- The shared `PopupSurface`, `ActionButton`, selected `GenyTabButton`,
+  desktop `NavItem`, floating Compose, selected mobile navigation,
+  setup cards, KPI summaries and feed pulse summary use the UI Kit-inspired
+  Neon edge shader. The owning **control** supplies hover state and pointer
+  coordinates (not the shader's background, which may never see pointer
+  events); ambient is stationary and visible without hover on mobile.
+  Brightness includes a narrow inward falloff rather than an imperceptible
+  one-pixel line. Busy-state activity orbits only when useful.
+- The saved `Appearance → Neon edge lighting` preference controls visibility
+  independently of energy saving. Reduced Motion or power saving stops **only
+  light movement**, preserving the selected Neon skin as a static material.
+  The loading animation never stands in for real task progress.
+  Repeated feed rows do not instantiate permanent shader animations.
 - Wallet approval retains `NoAutoClose` and does not treat background taps
   as cancellation. Full-screen media viewers intentionally retain their
   dark, high-contrast presentation instead of blurring the media.

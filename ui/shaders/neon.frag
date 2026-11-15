@@ -35,10 +35,13 @@ void main()
     float inset = lightParameters.w;
     float sdf = superellipseDistance(pixel - vec2(inset), extent - vec2(2.0 * inset),
                                      surfaceParameters.z, surfaceParameters.w);
+    // A single one-pixel line disappeared at normal viewing distances.
+    // Keep the kit's analytic superellipse edge but add a small inwards
+    // light falloff; no full-screen bloom or off-surface halo allocations.
     float aa = max(fwidth(sdf), 0.001);
-    float borderCore = 1.0 - smoothstep(0.5 - 0.5 * aa, 0.5 + 0.5 * aa, abs(sdf));
-    float insideFeather = exp(-0.5 * pow((sdf + 1.0) / 1.15, 2.0))
-                         * (1.0 - smoothstep(-0.5, 0.5, sdf)) * 0.16;
+    float borderCore = 1.0 - smoothstep(0.45 - aa * 0.35, 1.35 + aa * 0.35, abs(sdf));
+    float insideFeather = exp(-0.5 * pow((sdf + 2.25) / 2.7, 2.0))
+                         * (1.0 - smoothstep(-0.35, 0.65, sdf)) * 0.26;
     vec2 delta = pixel - focusParameters.xy;
     float nearest = focusParameters.w;
     float tangentDistanceSq = max(0.0, dot(delta, delta) - nearest * nearest);
@@ -47,8 +50,8 @@ void main()
     float glint = exp(-0.5 * tangentDistanceSq / (sigma * sigma * 0.16));
     float approach = exp(-0.5 * pow(nearest / max(1.0, lightParameters.z), 2.0));
     float localized = (0.65 * shoulder + 0.35 * glint) * approach;
-    float rim = mix(localized, 0.32, steadyActivity);
-    float feather = mix(shoulder * approach, 0.32, steadyActivity);
+    float rim = mix(localized, 0.57, steadyActivity);
+    float feather = mix(shoulder * approach, 0.58, steadyActivity);
     float alpha = (borderCore * rim + insideFeather * feather)
                   * lightParameters.y * qt_Opacity;
     alpha = clamp(alpha, 0.0, 1.0);

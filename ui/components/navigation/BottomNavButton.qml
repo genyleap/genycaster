@@ -42,6 +42,17 @@ Button {
                 borderWidth: control.selected && control.darkDock ? 1 : 0
                 borderColor: Qt.rgba(1, 1, 1, 0.18)
                 curveDepth: height / 2
+
+                Loader {
+                    anchors.fill: parent
+                    active: Theme.neonEnabled && control.selected
+                    sourceComponent: NeonHalo {
+                        ambient: true
+                        cornerRadius: height / 2
+                        tintColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                           Theme.accent.b, 0.46)
+                    }
+                }
             }
 
             Icon {

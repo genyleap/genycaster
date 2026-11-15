@@ -4798,8 +4798,8 @@ Company | https://company.com</source>
             <translation>نورپردازی نئونی لبه‌ها</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>بازتاب ملایم نور با پردازش GPU روی کارت‌ها و دیالوگ‌ها؛ در حالت صرفه‌جویی انرژی متوقف می‌شود.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>بازتاب نئونی روی دکمه‌ها، کارت‌ها و دیالوگ‌ها. صرفه‌جویی انرژی فقط حرکت نور را متوقف می‌کند، نه خود نور را.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

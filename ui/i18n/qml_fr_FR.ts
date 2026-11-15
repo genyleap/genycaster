@@ -4778,8 +4778,8 @@ Entreprise | https://company.com</translation>
             <translation>Éclairage néon des contours</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>Reflets GPU discrets sur les cartes et dialogues, suspendus en économie d’énergie.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>Reflets néon sur les boutons, cartes et dialogues. L’économie d’énergie arrête le mouvement, pas la lumière.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

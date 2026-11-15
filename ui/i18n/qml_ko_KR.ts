@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>네온 테두리 조명</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>카드와 대화상자에 은은한 GPU 반사광을 표시합니다. 절전 모드에서는 중지됩니다.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>버튼, 카드 및 대화상자에 네온 반사광을 표시합니다. 절전 모드는 움직임만 멈춥니다.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

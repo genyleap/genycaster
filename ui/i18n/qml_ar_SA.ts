@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>إضاءة الحواف النيونية</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>انعكاسات GPU خفيفة على البطاقات ومربعات الحوار؛ تتوقف في وضع توفير الطاقة.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>انعكاسات نيون على الأزرار والبطاقات ومربعات الحوار. توفير الطاقة يوقف الحركة، لا الإضاءة.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

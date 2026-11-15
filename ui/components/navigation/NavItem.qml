@@ -21,6 +21,11 @@ Button {
     topPadding: 0
     bottomPadding: 0
     hoverEnabled: true
+    HoverHandler {
+        id: navPointer
+        enabled: Theme.neonEnabled
+        blocking: false
+    }
     containmentMask: background
     Accessible.name: text
     LayoutMirroring.enabled: false
@@ -105,6 +110,20 @@ Button {
         borderColor: Theme.focus
         curveDepth: Theme.curveControl
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
+
+        Loader {
+            anchors.fill: parent
+            active: Theme.neonEnabled && (control.selected || control.hovered)
+            sourceComponent: NeonHalo {
+                ambient: control.selected
+                active: control.hovered
+                pointerX: navPointer.hovered ? navPointer.point.position.x : width / 2
+                pointerY: navPointer.hovered ? navPointer.point.position.y : height / 2
+                cornerRadius: Theme.curveControl
+                tintColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                   Theme.accent.b, control.selected ? 0.50 : 0.20)
+            }
+        }
         Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }
 }

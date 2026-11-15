@@ -55,14 +55,53 @@ test('Neon is a persistent, power-aware, reduced-motion aware user preference', 
     const plate = read('ui/components/controls/PopupSurface.qml');
     const halo = read('ui/components/visual/NeonHalo.qml');
     assert.match(theme, /category: "NeonSurfaces"/);
-    assert.match(theme, /readonly property bool neonEnabled: neonPreferences\.enabled && !powerSave/);
+    assert.match(theme, /readonly property bool neonEnabled: neonPreferences\.enabled/);
+    assert.match(theme, /readonly property bool neonMotionEnabled: neonEnabled && !reduceMotion && !powerSave/);
     assert.match(theme, /function setNeonEnabled\(enabled\)/);
     assert.match(settings, /checked: Theme\.neonPreferences\.enabled/);
     assert.match(settings, /onToggled: Theme\.setNeonEnabled\(checked\)/);
     assert.match(plate, /NeonHalo \{/);
-    assert.match(halo, /Theme\.reduceMotion \? 0/);
+    assert.match(halo, /readonly property bool motionAllowed: Theme\.neonMotionEnabled/);
+    assert.match(halo, /readonly property bool tracking: Theme\.neonEnabled && \(active \|\| hovered\)/);
     assert.match(halo, /blocking: false/);
     assert.match(halo, /steadyActivity:/);
+});
+
+
+test('Neon is present on visible common controls, selected tabs and dashboard cards', () => {
+    const action = read('ui/components/controls/ActionButton.qml');
+    const tab = read('ui/components/controls/GenyTabButton.qml');
+    const popup = read('ui/components/controls/PopupSurface.qml');
+    const choice = read('ui/components/setup/SetupActionCard.qml');
+    const stats = read('ui/components/home/StatsKpi.qml');
+    const pulse = read('ui/components/feed/FeedPulseCard.qml');
+    const compose = read('ui/components/navigation/FloatingComposeButton.qml');
+    const compactMobile = read('ui/components/navigation/BottomNavButton.qml');
+    const mobileDock = read('ui/components/navigation/BottomNavigation.qml');
+    const desktopNav = read('ui/components/navigation/NavItem.qml');
+    assert.match(action, /Loader \{[\s\S]*?sourceComponent: NeonHalo \{/);
+    assert.match(action, /active: control\.hovered && !control\.mobileViewport/);
+    assert.match(action, /ambient: control\.prominent \|\| control\.selected \|\| control\.positive/);
+    assert.match(action, /activity: control\.busy/);
+    assert.match(tab, /sourceComponent: NeonHalo \{/);
+    assert.match(tab, /ambient: control\.selected/);
+    assert.match(popup, /active: platePointer\.hovered/);
+    assert.match(choice, /active: root\.hovered/);
+    assert.match(choice, /ambient: root\.networkShowcase && root\.selected/);
+    assert.match(stats, /NeonHalo \{[\s\S]*?ambient: true/);
+    assert.match(pulse, /NeonHalo \{[\s\S]*?ambient: true/);
+    assert.match(pulse, /activity: root\.loading/);
+    assert.match(compose, /NeonHalo \{/);
+    assert.match(compose, /ambient: true/);
+    assert.match(compactMobile, /Theme\.neonEnabled && control\.selected/);
+    assert.match(compactMobile, /sourceComponent: NeonHalo \{/);
+    assert.match(mobileDock, /Theme\.neonEnabled && destination\.active/);
+    assert.match(mobileDock, /sourceComponent: NeonHalo \{/);
+    assert.match(desktopNav, /Theme\.neonEnabled && \(control\.selected \|\| control\.hovered\)/);
+    assert.match(desktopNav, /sourceComponent: NeonHalo \{/);
+    const shader = read('ui/shaders/neon.frag');
+    assert.match(shader, /small inwards/);
+    assert.match(shader, /mix\(localized, 0\.57, steadyActivity\)/);
 });
 
 test('Neon preferences are translated in all supported QML catalogs', () => {

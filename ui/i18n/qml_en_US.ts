@@ -4798,8 +4798,8 @@ Company | https://company.com</translation>
             <translation>Neon edge lighting</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>

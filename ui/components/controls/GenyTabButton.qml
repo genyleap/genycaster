@@ -17,6 +17,11 @@ Button {
     implicitHeight: 40
     implicitWidth: Math.max(control.minimumWidth, contentItem.implicitWidth + Theme.space4)
     hoverEnabled: true
+    HoverHandler {
+        id: tabPointer
+        enabled: Theme.neonEnabled
+        blocking: false
+    }
     containmentMask: background
     flat: true
     scale: control.down ? 0.988 : 1.0
@@ -77,6 +82,21 @@ Button {
         elevation: control.segmented && control.selected ? Theme.elevationControl : Theme.elevationNone
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: 0.62
+
+        Loader {
+            anchors.fill: parent
+            active: Theme.neonEnabled && control.segmented
+                    && (control.selected || control.hovered)
+            sourceComponent: NeonHalo {
+                ambient: control.selected
+                active: control.hovered
+                pointerX: tabPointer.hovered ? tabPointer.point.position.x : width / 2
+                pointerY: tabPointer.hovered ? tabPointer.point.position.y : height / 2
+                cornerRadius: Theme.curveControl
+                tintColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                   Theme.accent.b, control.selected ? 0.4 : 0.20)
+            }
+        }
         Behavior on fillColor {
             ColorAnimation {
                 duration: Theme.reduceMotion ? 0 : 140

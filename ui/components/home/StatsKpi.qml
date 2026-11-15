@@ -40,6 +40,15 @@ Superellipse {
     borderColor: Theme.borderMuted
     curveDepth: Theme.curveContainer
 
+    // These few summary cards are persistent, high-salience surfaces.
+    // A stationary rim is visible on desktop and touch without a hover event.
+    NeonHalo {
+        anchors.fill: parent
+        ambient: true
+        cornerRadius: root.curveDepth
+        borderInset: root.borderWidth / 2
+    }
+
     NumberAnimation {
         id: numberTween
         target: root

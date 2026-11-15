@@ -130,6 +130,14 @@ Superellipse {
     curveDepth: Theme.curveModal
     implicitHeight: 214
 
+    NeonHalo {
+        anchors.fill: parent
+        ambient: true
+        activity: root.loading
+        cornerRadius: root.curveDepth
+        borderInset: root.borderWidth / 2
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.space4

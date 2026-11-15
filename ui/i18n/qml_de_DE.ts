@@ -4777,8 +4777,8 @@ Company | https://company.com</source>
             <translation>Neon-Kantenbeleuchtung</translation>
         </message>
         <message id="genycaster.settings.neon_effects_description">
-            <source>Soft GPU highlights on cards and dialogs. Pauses in energy-saving mode.</source>
-            <translation>Dezente GPU-Lichtreflexe auf Karten und Dialogen; im Energiesparmodus pausiert.</translation>
+            <source>Neon reflections on buttons, cards and dialogs. Energy saving pauses motion, not the glow.</source>
+            <translation>Neonreflexe auf Schaltflächen, Karten und Dialogen. Der Energiesparmodus stoppt die Bewegung, nicht das Leuchten.</translation>
         </message>
         <message id="genycaster.settings.reduce_motion">
             <source>Reduce motion</source>
