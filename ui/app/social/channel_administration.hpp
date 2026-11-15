@@ -1,9 +1,15 @@
 /*!
- * @file ui/app/social/channel_administration.hpp
- * @brief Read-only channel roles and capability-gated Neynar management.
+ * @file        ui/app/social/channel_administration.hpp
+ * @brief       Capability-gated channel administration controller.
  *
- * Management operations do not use the canonical cast signer implicitly.
- * A Neynar managed signer must first be verified against the current FID.
+ * @details
+ * Reads channel roles and validates permission state before actions.
+ * Keeps managed channel operations separate from the cast-signing authority.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
  */
 #pragma once
 
