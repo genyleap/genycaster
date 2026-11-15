@@ -114,6 +114,7 @@ Item {
         spacing: Theme.space2
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             Layout.leftMargin: Theme.mobileGutter
             Layout.rightMargin: Theme.mobileGutter
@@ -230,6 +231,7 @@ Item {
                     spacing: Theme.space1
                     visible: !row.hasPreview
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         DirectionAwareLabel {
                             Layout.fillWidth: true

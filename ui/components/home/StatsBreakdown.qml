@@ -286,6 +286,7 @@ NeonCard {
                     Repeater {
                         model: root.receivedSeries
                         delegate: RowLayout {
+                            layoutDirection: Theme.uiDirection
                             id: legendEntry
                             required property var modelData
                             spacing: Theme.space1

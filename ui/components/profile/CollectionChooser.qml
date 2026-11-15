@@ -90,6 +90,7 @@ Popup {
             }
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
             DirectionAwareTextField {

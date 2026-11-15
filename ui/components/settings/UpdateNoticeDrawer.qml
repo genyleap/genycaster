@@ -110,6 +110,7 @@ Popup {
             opacity: 0.48
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space3
             Superellipse {
@@ -243,6 +244,7 @@ Popup {
             }
 
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 DirectionAwareLabel {
                     Layout.fillWidth: true
@@ -300,6 +302,7 @@ Popup {
             color: Theme.divider
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             id: updateNoticeStickyActions
             objectName: "updateNoticeStickyActions"
             anchors.bottom: parent.bottom

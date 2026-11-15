@@ -338,6 +338,7 @@ Item {
         spacing: root.actionSpacing
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             id: castViewsLabel
             objectName: "castViewCount"
             visible: root.showViews && root.resolvedViewCount !== null && root.resolvedViewCount !== undefined

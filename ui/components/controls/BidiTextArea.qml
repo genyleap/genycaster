@@ -320,6 +320,7 @@ TextArea {
             elevation: Theme.elevationControl
         }
         contentItem: RowLayout {
+            layoutDirection: Theme.uiDirection
             spacing: Theme.space1
             ActionButton {
                 compact: true

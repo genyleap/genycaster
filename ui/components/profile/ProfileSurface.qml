@@ -2815,6 +2815,7 @@ Item {
                 horizontalAlignment: Theme.textStartAlignment
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 visible: false
                 Layout.fillWidth: true
                 Layout.leftMargin: root.profileContentX
@@ -3716,6 +3717,7 @@ Item {
                 }
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 ActionButton {

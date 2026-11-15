@@ -540,6 +540,7 @@ ColumnLayout {
                         font.pixelSize: Theme.typeCaptionSize
                     }
                     Flow {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Layout.preferredHeight: childrenRect.height
@@ -582,6 +583,7 @@ ColumnLayout {
                             Accessible.name: qsTrId("genycaster.nodes.api_key")
                         }
                         Flow {
+                            layoutDirection: Theme.uiDirection
                             Layout.fillWidth: true
                             spacing: Theme.space2
                             Layout.preferredHeight: childrenRect.height
@@ -702,6 +704,7 @@ ColumnLayout {
             font.weight: Theme.weightDemiBold
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
             ActionButton {
@@ -759,6 +762,7 @@ ColumnLayout {
             color: Theme.ink
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
             DirectionAwareTextField {
@@ -798,6 +802,7 @@ ColumnLayout {
             font.pixelSize: Theme.typeCaptionSize
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             DirectionAwareLabel {
                 Layout.fillWidth: true
@@ -819,6 +824,7 @@ ColumnLayout {
                 color: Theme.ink
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 DirectionAwareTextField {
@@ -847,6 +853,7 @@ ColumnLayout {
             }
         }
         Flow {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
             Layout.preferredHeight: childrenRect.height
@@ -1125,6 +1132,7 @@ ColumnLayout {
                 elide: Text.ElideMiddle
             }
             Flow {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 Layout.preferredHeight: childrenRect.height
@@ -1163,6 +1171,7 @@ ColumnLayout {
             placeholderText: qsTrId("genycaster.nodes.name")
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             DirectionAwareTextField {
                 id: writeEndpoint

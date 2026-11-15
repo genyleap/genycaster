@@ -196,6 +196,7 @@ Item {
         spacing: Theme.space2
 
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.fillWidth: true
             spacing: Theme.space2
             Label {
@@ -242,6 +243,7 @@ Item {
                 spacing: Theme.space2
 
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     Layout.fillWidth: true
                     spacing: Theme.space2
                     Rectangle {
@@ -374,6 +376,7 @@ Item {
                     spacing: Theme.space2
 
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space2
                         Rectangle {
@@ -418,6 +421,7 @@ Item {
                             }
                         }
                         RowLayout {
+                            layoutDirection: Theme.uiDirection
                             // Compact, theme-styled filters live in the upper-right
                             // instead of taking an entire row of the profile.
                             Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
@@ -448,6 +452,7 @@ Item {
                     }
 
                     RowLayout {
+                        layoutDirection: Theme.uiDirection
                         Layout.fillWidth: true
                         spacing: Theme.space1
                         ActionButton {
@@ -593,6 +598,7 @@ Item {
                 border.color: Theme.borderMuted
 
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     id: walletContent
                     anchors.left: parent.left
                     anchors.right: parent.right

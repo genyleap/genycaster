@@ -198,6 +198,7 @@ Item {
             }
 
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 Item { Layout.fillWidth: true }
                 ActionButton {

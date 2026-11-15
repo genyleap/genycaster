@@ -121,6 +121,7 @@ NeonSurface {
             onTapped: metric.activated()
         }
         RowLayout {
+            layoutDirection: Theme.uiDirection
             Layout.alignment: Qt.AlignHCenter
             spacing: Theme.space1
             Icon {

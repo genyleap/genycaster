@@ -764,6 +764,7 @@ GenyDrawer {
         contentItem: ColumnLayout {
             spacing: Theme.space3
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
                 Icon {
                     text: Theme.iconList
@@ -794,6 +795,7 @@ GenyDrawer {
                 color: Theme.proAccent
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 ActionButton {
@@ -864,6 +866,7 @@ GenyDrawer {
                 text: qsTrId("genycaster.composer.clear_all_confirmation")
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 Item { Layout.fillWidth: true }
@@ -1003,6 +1006,7 @@ GenyDrawer {
         contentItem: ColumnLayout {
             spacing: Theme.space2
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 Layout.fillWidth: true
                 spacing: Theme.space2
                 DirectionAwareLabel {
@@ -1928,6 +1932,7 @@ GenyDrawer {
             }
 
             RowLayout {
+                layoutDirection: Qt.LeftToRight
                 Layout.fillWidth: true
                 Layout.preferredHeight: root.editorMode === "preview"
                                         ? farcasterPreview.implicitHeight
@@ -1965,7 +1970,6 @@ GenyDrawer {
                                             ? (root.compact ? 138 : 96)
                                             : (root.compact ? 135 : 108)
                 spacing: Theme.space3
-                layoutDirection: Qt.LeftToRight
 
                 Avatar {
                     visible: root.compact && root.editorMode === "visual"
@@ -2350,6 +2354,7 @@ GenyDrawer {
                                  ? Theme.accent : Theme.borderMuted
                 }
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     id: selectedChannelContents
                     anchors.fill: parent
                     anchors.leftMargin: Theme.space2
@@ -2406,6 +2411,7 @@ GenyDrawer {
                                  ? Theme.accent : Theme.borderMuted
                 }
                 RowLayout {
+                    layoutDirection: Theme.uiDirection
                     anchors.fill: parent
                     anchors.leftMargin: Theme.space2
                     anchors.rightMargin: Theme.space2

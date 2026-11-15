@@ -136,6 +136,7 @@ Button {
         contentItem: ColumnLayout {
             spacing: Theme.space1
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 spacing: Theme.space2
                 Icon {
                     text: Theme.iconSpark

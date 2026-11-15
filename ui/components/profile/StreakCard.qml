@@ -501,6 +501,7 @@ Item {
                 }
             }
             RowLayout {
+                layoutDirection: Theme.uiDirection
                 objectName: "streakBadgeProgress"
                 Layout.fillWidth: true
                 visible: root.inspectedMilestone > 0
