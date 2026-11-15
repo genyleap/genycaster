@@ -993,8 +993,8 @@ GenyDrawer {
                             rowSpacing: Theme.space2
                             Repeater {
                                 model: [
-                                    {id:"blue",color:"#3266FA",label:qsTrId("genycaster.settings.mobile_action_blue")},
-                                    {id:"coral",color:"#FF5267",label:qsTrId("genycaster.settings.mobile_action_coral")},
+                                    {id:"blue",color:Theme.mobileActionBlue,label:qsTrId("genycaster.settings.mobile_action_blue")},
+                                    {id:"coral",color:Theme.mobileActionCoral,label:qsTrId("genycaster.settings.mobile_action_coral")},
                                     {id:"theme",color:Theme.presetFill,label:qsTrId("genycaster.settings.mobile_action_theme")}
                                 ]
                                 delegate: Item {
