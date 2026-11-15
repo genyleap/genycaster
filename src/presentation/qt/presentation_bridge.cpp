@@ -1839,10 +1839,10 @@ bool PresentationBridge::updateProtocolProfile(const QVariantMap& fields)
             && key != QStringLiteral("banner") && key != QStringLiteral("username")) return false;
         const QString value = it.value().toString();
         const int maximumBytes = key == QStringLiteral("display") ? 32
-            : key == QStringLiteral("username") ? 16 : 256;
+            : key == QStringLiteral("username") ? 20 : 256;
         if (key == QStringLiteral("username")) {
             static const QRegularExpression preferredName{
-                QStringLiteral("^[a-z0-9][a-z0-9-]{0,15}$")};
+                QStringLiteral("^[a-z0-9][a-z0-9-]{0,15}(\\.eth)?$")};
             if (!preferredName.match(value).hasMatch()) return false;
         }
         if (value.toUtf8().size() > maximumBytes || value.contains(QLatin1Char('\0')))

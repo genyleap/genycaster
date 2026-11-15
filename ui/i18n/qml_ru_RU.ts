@@ -1073,8 +1073,8 @@ Company | https://company.com</source>
             <translation>Установить предпочитаемое имя</translation>
         </message>
         <message id="genycaster.profile.invalid_preferred_username">
-            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
-            <translation>Введите 1–16 строчных латинских букв, цифр или дефисов. Имя уже должно принадлежать этому FID.</translation>
+            <source>Enter a 1–16-character lowercase name or a verified ENS name ending in .eth. The name must already belong to this FID.</source>
+            <translation>Введите имя из 1–16 строчных латинских букв, цифр или дефисов либо подтверждённое имя ENS с окончанием .eth. Имя уже должно принадлежать этому FID.</translation>
         </message>
         <message id="genycaster.connections.native_identity_note">
             <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>

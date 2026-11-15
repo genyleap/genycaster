@@ -3417,7 +3417,7 @@ Item {
                         objectName: "profileProtocolUsername"
                         Layout.fillWidth: true
                         forceLeftToRight: true
-                        maximumLength: 16
+                        maximumLength: 20
                         inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                         placeholderText: qsTrId("genycaster.profile.username_unset")
                     }
@@ -3438,7 +3438,7 @@ Item {
                         text: qsTrId("genycaster.profile.update_preferred_username")
                         onClicked: {
                             const candidate = usernameProtocolEditor.text.trim().toLowerCase()
-                            if (!/^[a-z0-9][a-z0-9-]{0,15}$/.test(candidate)) {
+                            if (!/^[a-z0-9][a-z0-9-]{0,15}(\.eth)?$/.test(candidate)) {
                                 root.protocolProfileError = qsTrId("genycaster.profile.invalid_preferred_username")
                                 return
                             }

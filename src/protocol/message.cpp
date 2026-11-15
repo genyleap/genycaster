@@ -654,22 +654,23 @@ foundation::result::Result<UnsignedMessage> encodeUserDataAdd(const UserDataInpu
     const auto field = static_cast<std::uint32_t>(input.field);
     const bool supported = field == 1U || field == 2U || field == 3U
         || field == 5U || field == 6U || field == 10U;
-    if (!supported || input.value.size() > (field == 2U ? 32U : field == 6U ? 16U : 256U)) {
+    if (!supported || input.value.size() > (field == 2U ? 32U : field == 6U ? 20U : 256U)) {
         return std::unexpected(invalid("UserDataAdd has an unsupported field or exceeds its byte limit."));
     }
     if (field == 6U) {
         // USER_DATA_TYPE_USERNAME changes the preferred name only. The
         // selected node MUST validate an existing ownership proof for FID.
         // This message never creates, transfers, or claims a username.
-        if (input.value.empty() || input.value.size() > 16U ||
-            input.value.front() < 'a' || input.value.front() > 'z') {
-            const bool beginsWithDigit = !input.value.empty() &&
-                input.value.front() >= '0' && input.value.front() <= '9';
-            if (!beginsWithDigit) {
-                return std::unexpected(invalid("Preferred username must begin with a lowercase letter or digit."));
-            }
+        std::string_view label{input.value};
+        // ENS_L1 proofs use a .eth suffix; fnames have no suffix.
+        if (label.ends_with(".eth")) label.remove_suffix(4U);
+        if (label.empty() || label.size() > 16U ||
+            !((label.front() >= 'a' && label.front() <= 'z') ||
+              (label.front() >= '0' && label.front() <= '9'))) {
+            return std::unexpected(invalid(
+                "Preferred username must be a valid Fname or .eth label."));
         }
-        for (const char ch : input.value) {
+        for (const char ch : label) {
             if (!((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-')) {
                 return std::unexpected(invalid("Preferred username contains invalid characters."));
             }

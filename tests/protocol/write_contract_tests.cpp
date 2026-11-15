@@ -356,6 +356,8 @@ void profileFieldsAndPreferredUsernameUseDistinctUserDataSlots()
     // USER_DATA_TYPE_USERNAME selects a previously owned name. It cannot
     // create a missing UsernameProof: the node must reject an unowned name.
     assert(codec->prepareProfileField(preferred, key));
+    preferred.value = "claimed.eth";
+    assert(codec->prepareProfileField(preferred, key));
     preferred.value = "Invalid Username";
     assert(!codec->prepareProfileField(preferred, key));
     preferred.value = "";

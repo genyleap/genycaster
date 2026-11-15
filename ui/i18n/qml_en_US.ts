@@ -1074,8 +1074,8 @@ Company | https://company.com</translation>
             <translation>Set preferred username</translation>
         </message>
         <message id="genycaster.profile.invalid_preferred_username">
-            <source>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</source>
-            <translation>Enter 1–16 lowercase letters, digits or hyphens. The name must already belong to this FID.</translation>
+            <source>Enter a 1–16-character lowercase name or a verified ENS name ending in .eth. The name must already belong to this FID.</source>
+            <translation>Enter a 1–16-character lowercase name or a verified ENS name ending in .eth. The name must already belong to this FID.</translation>
         </message>
         <message id="genycaster.connections.native_identity_note">
             <source>This HyperSnap FID is already verified by its native registry. Farcaster verification is not required. External account linking requires separate Genyleap/OpenProof authorization.</source>
