@@ -1582,8 +1582,8 @@ Company | https://company.com</source>
             <translation>تجاری · راه‌اندازی و پایش مدیریت‌شده</translation>
         </message>
         <message id="genycaster.nodes.provision_pipeline">
-            <source>Server → Install → Sync → Connect</source>
-            <translation>سرور ← نصب ← همگام‌سازی ← اتصال</translation>
+            <source>Server · Install · Sync · Connect</source>
+            <translation>سرور · نصب · همگام‌سازی · اتصال</translation>
         </message>
         <message id="genycaster.nodes.provision_guide">
             <source>Server requirements and guide</source>
@@ -6687,7 +6687,7 @@ Company | https://company.com</source>
         </message>
         <message id="genycaster.setup.recovery_phrase_unavailable">
             <source>The original Farcaster app or wallet may reveal a recovery phrase it securely retained (older Warpcast versions: Settings > Advanced > Reveal recovery phrase). Genycaster does not retain the original words and cannot reconstruct them from your publishing signer. Keep your backup private.</source>
-            <translation>اگر برنامهٔ اصلی فارکستر یا کیف پولتان واژه‌ها را نگه داشته باشد، شاید بتوانید آن‌ها را از تنظیمات امنیتی ببینید (در نسخه‌های قدیمی وارپ‌کست: تنظیمات ← پیشرفته ← نمایش عبارت بازیابی). جنی‌کستر واژه‌های اصلی را ذخیره نمی‌کند و نمی‌تواند آن‌ها را از کلید انتشار بسازد. نسخهٔ پشتیبان را محرمانه نگه دارید.</translation>
+            <translation>اگر برنامهٔ اصلی فارکستر یا کیف پولتان واژه‌ها را نگه داشته باشد، شاید بتوانید آن‌ها را از تنظیمات امنیتی ببینید (در نسخه‌های قدیمی وارپ‌کست: تنظیمات، سپس پیشرفته، سپس نمایش عبارت بازیابی). جنی‌کستر واژه‌های اصلی را ذخیره نمی‌کند و نمی‌تواند آن‌ها را از کلید انتشار بسازد. نسخهٔ پشتیبان را محرمانه نگه دارید.</translation>
         </message>
         <message id="genycaster.miniapp.preview_unavailable">
             <source>Mini App preview unavailable</source>
