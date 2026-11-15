@@ -48,6 +48,8 @@ class PresentationBridge final : public QObject {
     Q_PROPERTY(bool authenticationApprovalAvailable READ authenticationApprovalAvailable NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString authenticationErrorText READ authenticationErrorText NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountIdentityIssuer READ accountIdentityIssuer NOTIFY authenticationStateChanged)
+    Q_PROPERTY(bool nativeCustodyAccount READ nativeCustodyAccount NOTIFY authenticationStateChanged)
+    Q_PROPERTY(QString accountIdentityBadge READ accountIdentityBadge NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountName READ accountName NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountUsername READ accountUsername NOTIFY authenticationStateChanged)
     Q_PROPERTY(QString accountAvatarUrl READ accountAvatarUrl NOTIFY authenticationStateChanged)
@@ -151,6 +153,12 @@ public:
     [[nodiscard]] bool authenticationApprovalAvailable() const noexcept;
     [[nodiscard]] QString authenticationErrorText() const;
     [[nodiscard]] QString accountIdentityIssuer() const;
+
+    /** @brief Trusted issuer classification, not a QML comparison of provider IDs. */
+    [[nodiscard]] bool nativeCustodyAccount() const noexcept;
+
+    /** @brief Localized identity badge for the authenticated provider. */
+    [[nodiscard]] QString accountIdentityBadge() const;
     [[nodiscard]] QString accountName() const;
     [[nodiscard]] QString accountUsername() const;
     [[nodiscard]] QString accountAvatarUrl() const;
