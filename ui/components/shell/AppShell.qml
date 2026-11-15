@@ -2123,6 +2123,7 @@ Item {
                                                                        && presentationBridge.writeReady
                                                 accountFid: presentationBridge.accountFid
                                                 accountIssuer: presentationBridge.accountIdentityIssuer
+                                                accountIsNativeCustody: presentationBridge.nativeCustodyAccount
                                                 onBackRequested: root.returnFromProfileSurface()
                                                 onProRequested: genyProDetailsDrawer.open()
                                                 onFollowersRequested: presentationBridge.openFollowers()
