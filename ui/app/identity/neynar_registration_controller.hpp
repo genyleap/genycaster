@@ -1,3 +1,17 @@
+/*!
+ * @file        ui/app/identity/neynar_registration_controller.hpp
+ * @brief       Farcaster registration state coordinator for Qt onboarding.
+ *
+ * @details
+ * Coordinates FID reservation, custody transfer and verified confirmation.
+ * Never treats relay acceptance alone as completed registration.
+ *
+ * @author      Genyleap Engineering
+ * @since       15 Nov 2026
+ * @copyright   Copyright (c) 2026 Genyleap.
+ * @license     See LICENSE in repository root (GPL-3.0-only).
+ */
+
 #pragma once
 
 #include <QByteArray>
@@ -64,14 +78,19 @@ public:
 
     /** A voucher is provided after a separate, verified paid sponsorship. */
     Q_INVOKABLE bool useEnrollmentVoucher(QString voucher);
+
     /** Cost-bearing, requires a real user click; never automatically retried. */
     Q_INVOKABLE bool reserveFid();
+
     /** Native EIP-712 transfer, then one irrevocable Neynar network request. */
     Q_INVOKABLE bool submit(QString requestedUsername);
+
     /** Read-only registry confirmation, safe after an ambiguous HTTP timeout. */
     Q_INVOKABLE bool checkConfirmation();
+
     /** Stops UI polling, but does not claim a chain write was revoked. */
     Q_INVOKABLE void stopPolling();
+
     /** Never discard a submitted or unknown-outcome registration. */
     Q_INVOKABLE bool reset();
 
