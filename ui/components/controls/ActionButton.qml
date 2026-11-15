@@ -272,7 +272,22 @@ Button {
         Accessible.ignored: true
     }
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: control.enabled && !control.destructive
+                     && (control.prominent || control.selected || control.positive
+                         || (control.hovered && !control.quiet))
+        ambientNeon: control.prominent || control.selected || control.positive
+        busy: control.busy
+        inverted: control.prominent || control.positive || control.destructiveFilled
+        focused: Theme.keyboardFocusVisible(control)
+        externalHovered: control.hovered && !control.mobileViewport
+        externalPointerX: neonPointer.hovered ? neonPointer.point.position.x : width / 2
+        externalPointerY: neonPointer.hovered ? neonPointer.point.position.y : height / 2
+        neonStrength: Theme.neonControlStrength
+        neonColor: control.prominent ? Qt.rgba(1, 1, 1, 0.18)
+                   : control.selected ? Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                               Theme.accent.b, 0.36)
+                   : "transparent"
         fillColor: {
             if (!control.enabled && !control.busy)
                 return control.quiet ? "transparent" : Theme.surfaceMuted
@@ -306,40 +321,5 @@ Button {
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.42 : (control.hovered ? 1.08 : 1.0)
 
-        // Decorative shaders are lazy for ordinary controls in repeating
-        // lists. Primary/selected buttons keep a stationary rim even on
-        // touch devices, where there is no hover.
-        Loader {
-            anchors.fill: parent
-            active: Theme.neonEnabled
-                    && (control.prominent || control.selected || control.positive
-                        || control.busy || (control.hovered && !control.quiet
-                                           && !control.destructive))
-            sourceComponent: NeonHalo {
-                ambient: control.prominent || control.selected || control.positive
-                active: control.hovered && !control.mobileViewport
-                activity: control.busy
-                pointerX: neonPointer.hovered ? neonPointer.point.position.x : width / 2
-                pointerY: neonPointer.hovered ? neonPointer.point.position.y : height / 2
-                cornerRadius: control.pill ? control.height / 2 : Theme.curveControl
-                borderInset: Theme.keyboardFocusVisible(control) ? 1 : Theme.strokeStandard / 2
-                tintColor: control.prominent
-                           ? Qt.rgba(1, 1, 1, 0.38)
-                           : control.selected ? Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                                      Theme.accent.b, 0.58)
-                           : control.positive ? Qt.rgba(Theme.success.r, Theme.success.g,
-                                                      Theme.success.b, 0.48)
-                           : "transparent"
-            }
-        }
-
-        // Keep hover geometry fixed and blend paint briefly, including on
-        // rapid pointer traversal. Selected and focus states remain distinct.
-        Behavior on fillColor {
-            ColorAnimation {
-                duration: Theme.reduceMotion ? 0 : 110
-                easing.type: Easing.OutCubic
-            }
-        }
     }
 }

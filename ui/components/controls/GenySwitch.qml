@@ -64,15 +64,21 @@ Switch {
             Layout.preferredHeight: 26
             Layout.alignment: Qt.AlignVCenter
 
-            Superellipse {
+            NeonSurface {
                 anchors.fill: parent
+                interactive: control.enabled
+                ambientNeon: control.checked
+                inverted: control.checked
+                externalHovered: control.hovered
+                neonStrength: Theme.neonControlStrength
+                neonColor: control.checked ? Qt.rgba(1, 1, 1, 0.20)
+                                           : "transparent"
                 fillColor: !control.enabled ? Theme.surfacePressed
                            : control.checked ? Theme.primaryFill
                            : control.hovered ? Theme.surfacePressed : Theme.surfaceMuted
                 borderWidth: control.checked ? 0 : 1
                 borderColor: Theme.borderStrong
                 curveDepth: height / 2
-                Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
             }
 
             Superellipse {

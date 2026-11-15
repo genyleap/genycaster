@@ -71,38 +71,17 @@ Button {
         }
     }
 
-    background: Superellipse {
-        // Hover must never create a second painted tab. The selected
-        // surface is stable; nonselected tabs remain transparent.
-        fillColor: control.segmented && control.selected
-                   ? Theme.surfaceRaised : "transparent"
-        borderWidth: Theme.keyboardFocusVisible(control) ? 2 : 0
-        borderColor: Theme.focus
-        curveDepth: Theme.curveControl
-        elevation: control.segmented && control.selected ? Theme.elevationControl : Theme.elevationNone
-        shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
-        shadowOpacityScale: 0.62
-
-        Loader {
-            anchors.fill: parent
-            active: Theme.neonEnabled && control.segmented
-                    && (control.selected || control.hovered)
-            sourceComponent: NeonHalo {
-                ambient: control.selected
-                active: control.hovered
-                pointerX: tabPointer.hovered ? tabPointer.point.position.x : width / 2
-                pointerY: tabPointer.hovered ? tabPointer.point.position.y : height / 2
-                cornerRadius: Theme.curveControl
-                tintColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                   Theme.accent.b, control.selected ? 0.4 : 0.20)
-            }
-        }
-        Behavior on fillColor {
-            ColorAnimation {
-                duration: Theme.reduceMotion ? 0 : 140
-                easing.type: Easing.OutCubic
-            }
-        }
+    background: NeonStatePlate {
+        selected: control.segmented && control.selected
+        hovered: control.segmented && control.hovered
+        pressed: control.segmented && control.down
+        focused: Theme.keyboardFocusVisible(control)
+        selectedFill: Theme.surfaceRaised
+        hoverFill: Theme.surfaceHover
+        pressedFill: Theme.surfacePressed
+        cornerRadius: Theme.curveControl
+        pointerX: tabPointer.hovered ? tabPointer.point.position.x : width / 2
+        pointerY: tabPointer.hovered ? tabPointer.point.position.y : height / 2
 
         Superellipse {
             visible: !control.segmented && control.showSelectionIndicator

@@ -524,14 +524,26 @@ own `Theme`, superellipse renderer, typography, accent and layout policies.
   `Window.contentItem`, `Overlay.overlay`, or the popup itself. Callers
   directly hosted on Overlay must supply the real workspace explicitly.
   Changing the source hierarchy requires a recursion/hidden-content audit.
-- The shared `PopupSurface`, `ActionButton`, selected `GenyTabButton`,
-  desktop `NavItem`, floating Compose, selected mobile navigation,
-  setup cards, KPI summaries and feed pulse summary use the UI Kit-inspired
-  Neon edge shader. The owning **control** supplies hover state and pointer
-  coordinates (not the shader's background, which may never see pointer
-  events); ambient is stationary and visible without hover on mobile.
-  Brightness includes a narrow inward falloff rather than an imperceptible
-  one-pixel line. Busy-state activity orbits only when useful.
+- `NeonSurface` is the single shared material owner. It inherits
+  GenyCaster's retained `Superellipse` geometry and keeps filling, stroke,
+  focus, opacity transitions and Neon in the **same component**. `NeonHalo`
+  projects the pointer onto the actual n=4 Lamé outline using the UI Kit's
+  bounded closest-point calculation, preserving the last sample on exit to
+  prevent jumps. The legacy separate overlay implementations are retired.
+- `NeonStatePlate` uses the Kit's independent selected/hover/pressed opacity
+  layers with a focus stroke drawn last. Tabs, sidebar navigation and ComboBox
+  menu rows share that state machine instead of repainting a single abrupt
+  rectangle.
+- Primary buttons, floating Compose, popup surfaces, navigation capsules,
+  setup cards, KPI summaries, input fields, text areas, switches, ComboBox,
+  multi-select, the Pro badge and feed-pulse summary now use those shared
+  materials. Parent Control hover may be passed explicitly to compensate
+  for pointer delivery on `Control.background`.
+  Repeated plain feed rows **do not** allocate Neon shaders by default.
+  Ambient rims are stationary on touch displays; only real busy states orbit.
+- Material paint transitions are independent of the Neon preference. Turning
+  off Neon removes only the decorative rim without disabling regular hover,
+  pressed, selected or keyboard focus feedback.
 - The saved `Appearance → Neon edge lighting` preference controls visibility
   independently of energy saving. Reduced Motion or power saving stops **only
   light movement**, preserving the selected Neon skin as a static material.
@@ -547,8 +559,16 @@ own `Theme`, superellipse renderer, typography, accent and layout policies.
   `/genycaster/effects/neon.frag.qsb` on **all configured targets**.
 
 Verification: `tests/wasm/neon_surface_contract.test.mjs`, Qt 6.12
-CMake configure and individual qsb compilation. These source/build checks
-do **not** establish native rendering quality: opening multiple nested
-drawers, mixed DPR, light/dark, Persian/Arabic RTL, keyboard and touch
-dismissal, Windows/macOS/Linux/Android/WASM GPU performance and reduced
-motion still require real device smoke tests.
+CMake configure and individual qsb compilation. The 2026-11-15 Linux
+**headless Qt Quick material smoke** additionally loaded copies of the real
+`NeonHalo`, `NeonSurface` and `NeonStatePlate` with a mock Theme and
+mock Superellipse shape: with Neon on it recorded 25,241 bright pixels
+and a maximum channel value of about 0.67; with Neon off it recorded
+19,496 bright pixels and a maximum of about 0.27. Both executions exited
+zero with no shader/QML runtime warnings. This compares the **material
+layer**, not the GenyCaster app or the production QSG geometry.
+
+These results do **not** establish full native rendering quality: opening
+multiple nested drawers, mixed DPR, light/dark, Persian/Arabic RTL,
+keyboard and touch dismissal, Windows/macOS/Linux/Android/WASM GPU
+performance and reduced motion still require real device smoke tests.

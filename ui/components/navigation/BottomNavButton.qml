@@ -34,8 +34,13 @@ Button {
             width: 44
             height: 38
 
-            Superellipse {
+            NeonSurface {
                 anchors.fill: parent
+                ambientNeon: control.selected
+                interactive: false
+                neonStrength: Theme.neonControlStrength
+                neonColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
+                                    Theme.accent.b, 0.28)
                 fillColor: control.selected
                            ? (control.darkDock ? Qt.rgba(1, 1, 1, 0.14) : Theme.surfaceSelected)
                            : "transparent"
@@ -43,16 +48,7 @@ Button {
                 borderColor: Qt.rgba(1, 1, 1, 0.18)
                 curveDepth: height / 2
 
-                Loader {
-                    anchors.fill: parent
-                    active: Theme.neonEnabled && control.selected
-                    sourceComponent: NeonHalo {
-                        ambient: true
-                        cornerRadius: height / 2
-                        tintColor: Qt.rgba(Theme.accent.r, Theme.accent.g,
-                                           Theme.accent.b, 0.46)
-                    }
-                }
+
             }
 
             Icon {

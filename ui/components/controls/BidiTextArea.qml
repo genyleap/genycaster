@@ -392,7 +392,14 @@ TextArea {
     LayoutMirroring.enabled: false
     horizontalAlignment: effectiveTextDirection === Qt.RightToLeft ? TextEdit.AlignRight : TextEdit.AlignLeft
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: root.enabled && !root.readOnly
+        ambientNeon: root.activeFocus
+        focused: root.activeFocus
+        neonStrength: Theme.neonControlStrength
+        neonColor: root.activeFocus
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
+            : "transparent"
         fillColor: root.enabled
                    ? (root.activeFocus ? Theme.surfaceElevated : root.hovered ? Theme.surfaceHover : Theme.surfaceRaised)
                    : Theme.surfaceMuted
@@ -402,6 +409,5 @@ TextArea {
         elevation: root.activeFocus ? Theme.elevationControl : Theme.elevationNone
         shadowColor: root.activeFocus ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: 0.82
-        Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }
 }

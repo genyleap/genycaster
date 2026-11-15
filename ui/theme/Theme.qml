@@ -23,6 +23,21 @@ QtObject {
     }
     readonly property bool neonEnabled: neonPreferences.enabled
     readonly property bool neonMotionEnabled: neonEnabled && !reduceMotion && !powerSave
+    // Kit v0.4.5 material semantics, backed by GenyCaster's active theme.
+    // A neutral ambient rim is intentionally quieter than an active glint.
+    readonly property real neonControlStrength: dark ? 0.52 : 0.38
+    readonly property real neonCardStrength: dark ? 0.78 : 0.48
+    readonly property real neonPanelStrength: dark ? 0.48 : 0.32
+    readonly property real neonAmbientStrength: dark ? 0.38 : 0.32
+    readonly property real neonActivityStrength: dark ? 0.90 : 0.65
+    readonly property real neonEdgeFalloff: 32
+    readonly property real neonOrbitSpeed: 260
+    readonly property real neonLightLuminance: 0.96
+    readonly property real neonDarkLuminance: 0.10
+    readonly property int materialSurfaceDuration: reduceMotion ? 0 : 105
+    readonly property int neonSurfaceDuration: neonMotionEnabled ? 105 : 0
+    readonly property int neonEnterDuration: neonMotionEnabled ? 100 : 0
+    readonly property int neonExitDuration: neonMotionEnabled ? 90 : 0
     function setNeonEnabled(enabled) { neonPreferences.enabled = Boolean(enabled) }
     // Device-local, user-customizable mobile Action Button.
     // Persist only allowlisted capabilities, never executable commands.

@@ -3,8 +3,11 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Farcaster.Client
 
-Superellipse {
+NeonSurface {
     id: root
+    ambientNeon: true
+    busy: root.loading
+    neonStrength: Theme.neonPanelStrength
 
     property var rows: []
     property bool busy: false
@@ -129,14 +132,6 @@ Superellipse {
     borderWidth: 0
     curveDepth: Theme.curveModal
     implicitHeight: 214
-
-    NeonHalo {
-        anchors.fill: parent
-        ambient: true
-        activity: root.loading
-        cornerRadius: root.curveDepth
-        borderInset: root.borderWidth / 2
-    }
 
     ColumnLayout {
         anchors.fill: parent

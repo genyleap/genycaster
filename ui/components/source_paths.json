@@ -113,6 +113,8 @@
   "ModalHeader.qml": "controls/ModalHeader.qml",
   "NavItem.qml": "navigation/NavItem.qml",
   "NeonHalo.qml": "visual/NeonHalo.qml",
+  "NeonStatePlate.qml": "visual/NeonStatePlate.qml",
+  "NeonSurface.qml": "visual/NeonSurface.qml",
   "NodeManagementPanel.qml": "settings/NodeManagementPanel.qml",
   "NotificationSurface.qml": "feed/NotificationSurface.qml",
   "PanelWidthControl.qml": "settings/PanelWidthControl.qml",

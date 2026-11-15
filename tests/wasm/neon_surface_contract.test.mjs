@@ -54,14 +54,18 @@ test('Neon is a persistent, power-aware, reduced-motion aware user preference', 
     const settings = read('ui/components/settings/SettingsPopup.qml');
     const plate = read('ui/components/controls/PopupSurface.qml');
     const halo = read('ui/components/visual/NeonHalo.qml');
+    const material = read('ui/components/visual/NeonSurface.qml');
+    const statePlate = read('ui/components/visual/NeonStatePlate.qml');
     assert.match(theme, /category: "NeonSurfaces"/);
     assert.match(theme, /readonly property bool neonEnabled: neonPreferences\.enabled/);
     assert.match(theme, /readonly property bool neonMotionEnabled: neonEnabled && !reduceMotion && !powerSave/);
     assert.match(theme, /function setNeonEnabled\(enabled\)/);
     assert.match(settings, /checked: Theme\.neonPreferences\.enabled/);
     assert.match(settings, /onToggled: Theme\.setNeonEnabled\(checked\)/);
-    assert.match(plate, /NeonHalo \{/);
-    assert.match(halo, /readonly property bool motionAllowed: Theme\.neonMotionEnabled/);
+    assert.match(plate, /NeonSurface \{/);
+    assert.match(material, /sourceComponent: NeonHalo \{/);
+    assert.match(statePlate, /NeonSurface \{/);
+    assert.match(halo, /running: root\.activityActive && root\.visible && Theme\.neonMotionEnabled/);
     assert.match(halo, /readonly property bool tracking: Theme\.neonEnabled && \(active \|\| hovered\)/);
     assert.match(halo, /blocking: false/);
     assert.match(halo, /steadyActivity:/);
@@ -69,6 +73,7 @@ test('Neon is a persistent, power-aware, reduced-motion aware user preference', 
 
 
 test('Neon is present on visible common controls, selected tabs and dashboard cards', () => {
+    const theme = read('ui/theme/Theme.qml');
     const action = read('ui/components/controls/ActionButton.qml');
     const tab = read('ui/components/controls/GenyTabButton.qml');
     const popup = read('ui/components/controls/PopupSurface.qml');
@@ -79,26 +84,47 @@ test('Neon is present on visible common controls, selected tabs and dashboard ca
     const compactMobile = read('ui/components/navigation/BottomNavButton.qml');
     const mobileDock = read('ui/components/navigation/BottomNavigation.qml');
     const desktopNav = read('ui/components/navigation/NavItem.qml');
-    assert.match(action, /Loader \{[\s\S]*?sourceComponent: NeonHalo \{/);
-    assert.match(action, /active: control\.hovered && !control\.mobileViewport/);
-    assert.match(action, /ambient: control\.prominent \|\| control\.selected \|\| control\.positive/);
-    assert.match(action, /activity: control\.busy/);
-    assert.match(tab, /sourceComponent: NeonHalo \{/);
-    assert.match(tab, /ambient: control\.selected/);
-    assert.match(popup, /active: platePointer\.hovered/);
-    assert.match(choice, /active: root\.hovered/);
-    assert.match(choice, /ambient: root\.networkShowcase && root\.selected/);
-    assert.match(stats, /NeonHalo \{[\s\S]*?ambient: true/);
-    assert.match(pulse, /NeonHalo \{[\s\S]*?ambient: true/);
-    assert.match(pulse, /activity: root\.loading/);
-    assert.match(compose, /NeonHalo \{/);
-    assert.match(compose, /ambient: true/);
-    assert.match(compactMobile, /Theme\.neonEnabled && control\.selected/);
-    assert.match(compactMobile, /sourceComponent: NeonHalo \{/);
-    assert.match(mobileDock, /Theme\.neonEnabled && destination\.active/);
-    assert.match(mobileDock, /sourceComponent: NeonHalo \{/);
-    assert.match(desktopNav, /Theme\.neonEnabled && \(control\.selected \|\| control\.hovered\)/);
-    assert.match(desktopNav, /sourceComponent: NeonHalo \{/);
+    const material = read('ui/components/visual/NeonSurface.qml');
+    const plate = read('ui/components/visual/NeonStatePlate.qml');
+    const field = read('ui/components/controls/BidiTextField.qml');
+    const combo = read('ui/components/controls/GenyComboBox.qml');
+    const switchControl = read('ui/components/controls/GenySwitch.qml');
+    for (const component of [action, popup, choice, stats, pulse,
+                             compose, compactMobile, mobileDock, field, switchControl]) {
+        assert.match(component, /NeonSurface \{/);
+    }
+    for (const component of [tab, desktopNav, combo]) {
+        assert.match(component, /NeonStatePlate \{/);
+    }
+    assert.match(material, /property bool ambientNeon: false/);
+    assert.match(material, /property bool interactive: false/);
+    assert.match(material, /property bool busy: false/);
+    assert.match(material, /sourceComponent: NeonHalo \{/);
+    assert.match(material, /cornerPower: material\.exponent/);
+    assert.match(material, /borderInset: material\.borderWidth \/ 2/);
+    assert.match(material, /Theme\.neonEnabled/);
+    // Turning the effect off never disables paint/focus state animations.
+    assert.match(material, /enabled: material\.animatePaint && !Theme\.reduceMotion/);
+    assert.match(theme, /readonly property int materialSurfaceDuration: reduceMotion \? 0 : 105/);
+    assert.match(plate, /opacity: plate\.selected \? 1 : 0/);
+    assert.match(plate, /plate\.hovered && !plate\.pressed/);
+    assert.match(plate, /fillColor: "transparent"/);
+    assert.match(action, /ambientNeon: control\.prominent \|\| control\.selected/);
+    assert.match(action, /externalHovered: control\.hovered && !control\.mobileViewport/);
+    assert.match(choice, /ambientNeon: root\.accountShowcase/);
+    assert.match(stats, /ambientNeon: true/);
+    assert.match(pulse, /busy: root\.loading/);
+    assert.match(compose, /ambientNeon: true/);
+    assert.match(mobileDock, /ambientNeon: destination\.active/);
+    assert.match(desktopNav, /hovered: control\.hovered/);
+    assert.match(field, /ambientNeon: root\.activeFocus/);
+    assert.match(combo, /ambientNeon: control\.popup\.visible/);
+    assert.match(switchControl, /ambientNeon: control\.checked/);
+    const halo = read('ui/components/visual/NeonHalo.qml');
+    assert.match(halo, /function nearestBorderPoint\(/);
+    assert.match(halo, /for \(let step = 0; step < 18; \+\+step\)/);
+    assert.match(halo, /property point sampledPointer/);
+    assert.match(halo, /Qt\.callLater\(samplePointer\)/);
     const shader = read('ui/shaders/neon.frag');
     assert.match(shader, /small inwards/);
     assert.match(shader, /mix\(localized, 0\.57, steadyActivity\)/);

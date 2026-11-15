@@ -81,7 +81,12 @@ Button {
         onTriggered: if (root.hovered && !root.compact) root.showHint()
     }
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: root.enabled && !root.compact
+        ambientNeon: root.eligible
+        neonStrength: Theme.neonControlStrength
+        neonColor: root.eligible ? Qt.rgba(Theme.proAccent.r, Theme.proAccent.g,
+                                           Theme.proAccent.b, 0.35) : "transparent"
         fillColor: root.down || root.hovered
             ? (root.eligible || root.basicVerified ? Theme.proSurfaceHover : Theme.surfaceHover)
             : root.eligible ? Theme.proSurface : Theme.surfaceRaised
@@ -90,9 +95,6 @@ Button {
             ? Theme.focus : (root.eligible || root.basicVerified ? Theme.proBorder : Theme.borderSubtle)
         curveDepth: height / 2
         elevation: Theme.elevationNone
-        Behavior on fillColor {
-            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-        }
     }
 
     contentItem: RowLayout {

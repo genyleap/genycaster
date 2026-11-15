@@ -66,7 +66,15 @@ Button {
         }
     }
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: control.enabled
+        ambientNeon: true
+        inverted: true
+        externalHovered: control.hovered
+        externalPointerX: composePointer.hovered ? composePointer.point.position.x : width / 2
+        externalPointerY: composePointer.hovered ? composePointer.point.position.y : height / 2
+        neonStrength: Theme.neonCardStrength
+        neonColor: Qt.rgba(1, 1, 1, 0.30)
         fillColor: control.down ? Theme.primaryPressed
                   : control.hovered ? Theme.primaryFillHover
                   : Theme.primaryFill
@@ -79,16 +87,7 @@ Button {
         shadowColor: Theme.keyboardFocusVisible(control) ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.down ? 0.40 : (control.hovered ? 1.08 : 0.94)
 
-        NeonHalo {
-            anchors.fill: parent
-            ambient: true
-            active: control.hovered
-            pointerX: composePointer.hovered ? composePointer.point.position.x : width / 2
-            pointerY: composePointer.hovered ? composePointer.point.position.y : height / 2
-            cornerRadius: control.height / 2
-            strength: Theme.dark ? 1 : 0.88
-            tintColor: Qt.rgba(1, 1, 1, 0.42)
-        }
+
     }
 
     onHoveredChanged: {

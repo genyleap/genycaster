@@ -5,8 +5,11 @@ import Farcaster.Client
 
 // Responsive locale-aware KPI. All rows take their actual implicit height,
 // including multi-line footnotes in Arabic/Persian or large accessibility type.
-Superellipse {
+NeonSurface {
     id: root
+    ambientNeon: true
+    neonStrength: Theme.neonCardStrength
+    ambientStrength: Theme.neonAmbientStrength
     property string title: ""
     property string iconName: ""
     property string footnote: ""
@@ -39,15 +42,6 @@ Superellipse {
     borderWidth: 1
     borderColor: Theme.borderMuted
     curveDepth: Theme.curveContainer
-
-    // These few summary cards are persistent, high-salience surfaces.
-    // A stationary rim is visible on desktop and touch without a hover event.
-    NeonHalo {
-        anchors.fill: parent
-        ambient: true
-        cornerRadius: root.curveDepth
-        borderInset: root.borderWidth / 2
-    }
 
     NumberAnimation {
         id: numberTween

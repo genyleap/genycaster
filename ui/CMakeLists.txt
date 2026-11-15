@@ -24,6 +24,8 @@ set(farcasterQmlFiles
     components/feed/DeveloperPost.qml
     components/visual/DrawerBackdrop.qml
     components/visual/NeonHalo.qml
+    components/visual/NeonSurface.qml
+    components/visual/NeonStatePlate.qml
     components/content/Avatar.qml
     components/media/AudioPreview.qml
     components/navigation/BottomNavButton.qml

@@ -83,7 +83,14 @@ ComboBox {
         }
     }
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: control.enabled
+        ambientNeon: control.popup.visible
+        focused: Theme.keyboardFocusVisible(control) || control.popup.visible
+        neonStrength: Theme.neonControlStrength
+        neonColor: control.popup.visible
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.34)
+            : "transparent"
         fillColor: control.popup.visible ? Theme.surfaceElevated
                   : control.hovered ? Theme.surfaceHover : Theme.surfaceRaised
         borderWidth: Theme.keyboardFocusVisible(control) || control.popup.visible ? 2 : 1
@@ -92,7 +99,6 @@ ComboBox {
         elevation: Theme.elevationControl
         shadowColor: Theme.keyboardFocusVisible(control) || control.popup.visible ? Theme.focusHalo : Theme.shadow
         shadowOpacityScale: control.popup.visible ? 1.10 : 0.88
-        Behavior on fillColor { ColorAnimation { duration: Theme.motionFast } }
     }
 
     delegate: ItemDelegate {
@@ -133,31 +139,16 @@ ComboBox {
             }
         }
 
-        background: Item {
-            Rectangle {
-                anchors.fill: parent
-                anchors.leftMargin: 1
-                anchors.rightMargin: 1
-                color: optionDelegate.highlighted || optionDelegate.hovered
-                       ? Theme.surfaceHover
-                       : optionDelegate.currentOption ? Theme.primarySurface : "transparent"
-            }
-            Rectangle {
-                width: 3
-                height: parent.height - 8
-                anchors.verticalCenter: parent.verticalCenter
-                x: Theme.rtl ? parent.width - width - 2 : 2
-                radius: 1.5
-                visible: optionDelegate.currentOption
-                color: Theme.accent
-            }
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Theme.strokeHairline
-                color: Theme.borderSubtle
-            }
+        background: NeonStatePlate {
+            anchors.margins: Math.max(1, Theme.space1 / 2)
+            selected: optionDelegate.currentOption
+            hovered: optionDelegate.highlighted || optionDelegate.hovered
+            pressed: optionDelegate.down
+            focused: Theme.keyboardFocusVisible(optionDelegate)
+            selectedFill: Theme.primarySurface
+            hoverFill: Theme.surfaceHover
+            pressedFill: Theme.surfacePressed
+            cornerRadius: Theme.curveCompact
         }
     }
 

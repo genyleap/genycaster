@@ -67,7 +67,19 @@ Button {
                                                : primary ? Qt.rgba(foreground.r, foreground.g, foreground.b, 0.84)
                                                : Theme.inkMuted
 
-    background: Superellipse {
+    background: NeonSurface {
+        interactive: root.enabled && (root.accountShowcase || root.networkShowcase || root.primary)
+        ambientNeon: root.accountShowcase || root.networkShowcase || root.primary || root.selected
+        busy: root.busy
+        inverted: root.primary && !root.neutralPrimary
+        focused: Theme.keyboardFocusVisible(root)
+        externalHovered: root.hovered
+        externalPointerX: cardPointer.hovered ? cardPointer.point.position.x : width / 2
+        externalPointerY: cardPointer.hovered ? cardPointer.point.position.y : height / 2
+        neonStrength: Theme.neonCardStrength
+        neonColor: root.selected
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.40)
+            : "transparent"
         fillColor: root.unavailable ? (Theme.dark ? "#23272E" : "#F5F6F8")
                    : root.setupEmphasis ? (Theme.dark ? "#24252C" : "#22232A")
                    : root.visuallyDisabled
@@ -88,26 +100,7 @@ Button {
         curveDepth: Theme.curveContainer
         elevation: root.primary && !root.visuallyDisabled ? Theme.elevationControl : Theme.elevationNone
 
-        NeonHalo {
-            anchors.fill: parent
-            ambient: root.networkShowcase && root.selected
-                     || root.accountShowcase || root.primary
-            active: root.hovered
-            interactive: false
-            activity: root.busy
-            pointerX: cardPointer.hovered ? cardPointer.point.position.x : width / 2
-            pointerY: cardPointer.hovered ? cardPointer.point.position.y : height / 2
-            strength: Theme.dark ? 0.98 : 0.79
-            tintColor: root.selected
-                       ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.48)
-                       : "transparent"
-            cornerRadius: parent.curveDepth
-            borderInset: parent.borderWidth / 2
-        }
 
-        Behavior on fillColor {
-            ColorAnimation { duration: Theme.reduceMotion ? 0 : Theme.motionFast }
-        }
     }
 
     contentItem: Item {

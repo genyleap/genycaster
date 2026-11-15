@@ -55,8 +55,16 @@ Item {
     Accessible.description: (selectedValues || []).map(value=>optionLabel(value)).join(", ")
     LayoutMirroring.enabled: false
 
-    Superellipse {
+    NeonSurface {
         anchors.fill: parent
+        interactive: openButton.enabled
+        ambientNeon: picker.visible
+        externalHovered: openButton.hovered
+        focused: Theme.keyboardFocusVisible(openButton) || picker.visible
+        neonStrength: Theme.neonControlStrength
+        neonColor: picker.visible
+            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.35)
+            : "transparent"
         fillColor: picker.visible ? Theme.surfaceElevated : Theme.surfaceRaised
         borderWidth: picker.visible || Theme.keyboardFocusVisible(openButton) ? 2 : 1
         borderColor: picker.visible || Theme.keyboardFocusVisible(openButton)
@@ -105,7 +113,11 @@ Item {
                 implicitHeight: 32
                 Accessible.name: control.removeLabel + ": " + control.optionLabel(modelData)
                 onClicked: control.toggleOption(String(modelData))
-                background: Superellipse {
+                background: NeonSurface {
+                    ambientNeon: true
+                    interactive: selectionChip.enabled
+                    neonStrength: Theme.neonControlStrength
+                    neonColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.28)
                     fillColor: Theme.primarySurface
                     borderColor: Theme.accent
                     borderWidth: Theme.strokeHairline
