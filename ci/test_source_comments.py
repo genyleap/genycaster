@@ -33,6 +33,14 @@ class SourceCommentTests(unittest.TestCase):
         self.assertIn('// hypersnap /* url */', masked)
         self.assertNotIn("// fake provider", masked)
 
+    def test_cpp_digit_separators_do_not_hide_comments(self):
+        source = "constexpr auto fid = 9'007'199; // HyperSnap is a comment\\n"
+        source += 'auto issuer = "hypersnap:native-registry";'
+        masked = without_comments(source)
+        self.assertNotIn("// HyperSnap", masked)
+        self.assertIn("9'007'199", masked)
+        self.assertIn('"hypersnap:native-registry"', masked)
+
     def test_javascript_templates_preserve_provider_names(self):
         source = 'const issuer = `hypersnap:native-registry`; /* remark */\n'
         masked = without_comments(source)
