@@ -74,6 +74,7 @@ jobs:
           python3 ci/check_deployment_boundaries.py
           python3 ci/check_media_upload_contract.py
           node --test services/test/deployment_config.test.mjs
+          node --test tests/wasm/openproof_registration_parity.test.mjs
           # Fail before expensive Qt installs if Neon pointer geometry or the
           # QML lifetime contract regresses.
           node --test tests/wasm/neon_geometry_behavior.test.mjs tests/wasm/neon_surface_contract.test.mjs tests/wasm/neon_video_surface_coverage.test.mjs tests/wasm/neon_global_setup_coverage.test.mjs

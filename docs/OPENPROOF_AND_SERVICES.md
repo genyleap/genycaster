@@ -21,11 +21,63 @@ Farcaster identity (FID). The native GenyCaster adapter is implemented in
 include `ui/app/identity/browser_auth.cpp` and
 `services/media-gateway/browser_farcaster_auth.mjs`.
 
-The first-party Genyleap/OpenProof account route and the direct
-“Sign in with Farcaster” onboarding route ultimately resolve a
-**verified OpenProof-backed identity linked to a Farcaster FID**.
-A successful login does not grant a protocol signer, custody access,
-Mini App wallet permission or automatic publishing authority.
+The first-party Genyleap/OpenProof account route and the **direct
+OpenProof-backed** “Sign in with Farcaster” authentication route resolve a
+**verified OpenProof-backed identity linked to a Farcaster FID**, provided the
+issuer's ceremony completes successfully. In native builds with OpenProof
+enabled, both buttons now use the OpenProof adapter. In the browser, the
+corresponding routes use the browser OpenProof gateway. A successful login
+does not grant a protocol signer, custody access, Mini App wallet permission
+or automatic publishing authority.
+
+### Protocol registration is NOT automatic OpenProof enrollment
+
+GenyCaster also has independent native **Create account** workflows for
+HyperSnap's shard-0 native registry and Farcaster's Optimism IdRegistry
+(Neynar-assisted). Both verify a custody address and FID, but then call
+`acceptVerifiedNativeCustody` or `acceptVerifiedFarcasterCustody`, respectively.
+Those functions persist a short-lived *protocol-only* local session with an
+issuer of `hypersnap:native-registry` or `farcaster:optimism-id-registry`.
+**Neither registration commits an OpenProof identity, calls OPP, or guarantees
+an OpenProof account.** Native custody recovery follows the same rule.
+
+Browser/WASM OpenProof device/Farcaster sign-in is OpenProof-backed only after
+the real issuer grants a subject and an authenticated connection. The
+`genycaster:device-local` browser recovery path deliberately does **not**
+constitute a renewed OpenProof login or account enrollment. In current
+WebAssembly builds, native custody registration is compiled out; do not infer
+that a successful browser sign-in tested native protocol registration.
+
+The current OPP Web3 login API implements `farcaster` (SIWF, Optimism
+IdRegistry) and `ethereum-wallet` (SIWE). It has **no HyperSnap-native
+provider/connection verifier**. An EVM address in OPP alone must not be
+treated as verified ownership of a HyperSnap FID, nor must a protocol FID be
+submitted as an unauthenticated account-creation claim.
+
+**Required before claiming automatic OpenProof enrollment for every signup:**
+
+1. OPP must accept a fresh, domain-bound, single-use custody proof for a
+   HyperSnap-native FID, verify the FID-to-custody relationship against a
+   fixed trusted HyperSnap registry, and durably link that exact
+   `(protocol, fid)` tuple to a canonical OPP subject. Farcaster's existing
+   SIWF/Optimism verifier may be reused for its own FIDs only.
+2. After a protocol registration is **confirmed** (not merely submitted),
+   a shared native/browser onboarding coordinator must complete the appropriate
+   OPP ceremony with user consent, then verify the resulting subject and
+   linked protocol FID before reporting **account registration complete**.
+   It must never reuse a protocol KEY_ADD signature, handle mnemonic words
+   in QML, or silently enroll by an unverified public FID.
+3. Interrupted or offline OPP enrollment must have a resumable, idempotent
+   pending state; it must not fabricate a synced account, rotate the
+   custody key, repeat on-chain registration, or change the selected writer.
+   Existing protocol-only sessions need a verified migration/linking path.
+4. The matrix of macOS, Windows, Linux, Android, iOS and WebAssembly must be
+   acceptance-tested for both supported protocols and for new, resumed and
+   recovered identities. **No all-platform guarantee exists yet.**
+
+This is an explicit **open product/security integration gap**, not a missing
+background telemetry call. OPP authentication, protocol registration, app-owned
+account data and device signer authorization remain separate trust domains.
 
 OpenProof is an **external runtime service and repository**, not a C++
 module statically embedded in the GenyCaster executable. A running OpenProof

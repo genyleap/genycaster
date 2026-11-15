@@ -19,7 +19,7 @@ This page tracks **implementation** independently from **qualification and relea
 |---|---|---|---|---|
 | **01** | Shared C++ core and architectural boundaries | **Complete** | Named modules, domain/capability ports, build and architecture checks | Preserve dependency and ownership rules |
 | **02** | Local-first reads and multi-node routing | **Complete** | SQLite state, read adapters, HyperSnap-preferred routing, selectable node profiles | Offline, cursor and multi-node fault-injection acceptance |
-| **03** | Identity, signer and social-write pipeline | **Complete** | OpenProof identity, session/signer boundaries, canonical writes and durable outbox | Authorization/revocation review, real-node retries and vault/device qualification |
+| **03** | Identity, signer and social-write pipeline | **Complete (baseline only)** | OpenProof authentication, separate native protocol identity, session/signer boundaries, canonical writes and durable outbox | **Not complete:** automatic OPP enrollment for HyperSnap/Farcaster native signup and browser device-only continuity; separate OPP account convergence and platform qualification required |
 | **04** | Social interface, media and localization | **Complete** | Cast feeds, threads, profiles, rich media, adaptive Qt Quick, i18n/l10n | Navigation/media stability, accessibility, device/browser and GPU frame-time acceptance |
 | **05** | Mini Apps and wallet integration | **In progress** | Discovery, embedded host and runtime-specific wallet adapters | Consent isolation, expiry/revocation and cross-platform security parity |
 | **06** | Widgets, GENY integration and account extras | **Complete** | Reorderable widgets, assets, GenyPulse, Geny Pro service policy and app-owned state | Live service verification, source accuracy and entitlement lifecycle tests |
@@ -45,7 +45,7 @@ This page tracks **implementation** independently from **qualification and relea
 
 **Complete — baseline source implementation.** Authentication, custody approval, protocol signers and provider submission are separate authorities. Canonical messages and an account-scoped durable outbox support the write pipeline.
 
-**Remaining:** platform vault acceptance, explicit signer scope/expiry/revocation, approval on sensitive operations, restart and ambiguous-outcome reconciliation. **Security/qualification gate:** no plaintext-key fallback, unauthorized signature or duplicate write on network retries is possible under the verified threat model.
+**Remaining:** platform vault acceptance, explicit signer scope/expiry/revocation, approval on sensitive operations, restart and ambiguous-outcome reconciliation. **Cross-protocol identity convergence is NOT complete:** native HyperSnap and Farcaster registration commit verified protocol-only local sessions, not OPP accounts. OpenProof currently supports SIWF/Farcaster and SIWE/Ethereum wallet, but no verified HyperSnap-native FID link. New and recovered identities across all six platforms must gain a consented, signed, idempotent OPP link ceremony with backend registry verification before claiming automatic OPP enrollment. **Security/qualification gate:** no plaintext-key fallback, unauthorized signature, forged OPP enrollment or duplicate write on network retries is possible under the verified threat model. See [OpenProof and Services](OPENPROOF_AND_SERVICES.md).
 
 ### Phase 04 — Native social experience
 

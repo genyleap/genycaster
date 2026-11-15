@@ -637,7 +637,15 @@ foundation::result::Result<std::unique_ptr<Runtime>> makeRuntime(
         *runtime->sessionStore,
         primaryAuthentication,
         farcasterIdentityResolver,
-#if FARCASTER_HAS_FARCASTER_AUTH
+#if GENYCASTER_HAS_OPENPROOF_AUTH
+        // OpenProof implements the direct Farcaster challenge as well as
+        // device OAuth. When composed, BOTH user-facing sign-in choices
+        // must resolve a verified OpenProof subject and a linked FID.
+        // The compatibility adapter remains an identity resolver only.
+        runtime->openProofAuthentication.get()
+#elif FARCASTER_HAS_FARCASTER_AUTH
+        // Standalone/self-hosted compatibility builds have no OpenProof
+        // authority; never mislabel their protocol-only session as one.
         runtime->farcasterAuthentication.get()
 #else
         nullptr
